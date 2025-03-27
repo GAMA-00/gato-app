@@ -10,8 +10,27 @@ import Calendar from "./pages/Calendar";
 import Services from "./pages/Services";
 import Clients from "./pages/Clients";
 import NotFound from "./pages/NotFound";
+import { useIsMobile } from "./hooks/use-mobile";
+import { cn } from "./lib/utils";
 
 const queryClient = new QueryClient();
+
+const AppRoutes = () => {
+  const isMobile = useIsMobile();
+  
+  return (
+    <div className={cn("flex", isMobile && "flex-col")}>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/clients" element={<Clients />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -19,16 +38,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="flex">
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
+        <AppRoutes />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
