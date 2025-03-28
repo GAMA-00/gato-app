@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Home, Users, Briefcase, Menu } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, Home, Users, Briefcase, Menu, CalendarClock, Building } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -38,13 +38,24 @@ const NavItem = ({
 const Navbar = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
-  const navItems = [
+  // Determine if we're in client or provider mode
+  const isClientSection = location.pathname.startsWith('/client');
+  
+  const providerNavItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/calendar', icon: Calendar, label: 'Calendar' },
     { to: '/services', icon: Briefcase, label: 'Services' },
     { to: '/clients', icon: Users, label: 'Clients' }
   ];
+  
+  const clientNavItems = [
+    { to: '/client', icon: Building, label: 'Buildings' },
+    { to: '/client/bookings', icon: CalendarClock, label: 'My Bookings' }
+  ];
+  
+  const navItems = isClientSection ? clientNavItems : providerNavItems;
 
   const renderNavItems = (closeMenu?: () => void) => (
     <nav className="flex flex-col gap-2">
@@ -58,6 +69,20 @@ const Navbar = () => {
           onClick={closeMenu}
         />
       ))}
+      
+      {/* Switch between client and provider views */}
+      <div className="mt-6 px-4">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start" 
+          onClick={() => {
+            if (closeMenu) closeMenu();
+            navigate(isClientSection ? '/' : '/client');
+          }}
+        >
+          Switch to {isClientSection ? 'Provider' : 'Client'} View
+        </Button>
+      </div>
     </nav>
   );
 
@@ -68,8 +93,8 @@ const Navbar = () => {
           <span className="text-primary font-medium">JS</span>
         </div>
         <div>
-          <p className="font-medium">Service Provider</p>
-          <p className="text-sm text-muted-foreground">Admin Dashboard</p>
+          <p className="font-medium">{isClientSection ? 'Client' : 'Service Provider'}</p>
+          <p className="text-sm text-muted-foreground">{isClientSection ? 'Resident' : 'Admin Dashboard'}</p>
         </div>
       </div>
     </div>
@@ -90,7 +115,9 @@ const Navbar = () => {
           <SheetContent side="left" className="w-64 pt-6">
             <div className="px-4 mb-6">
               <h1 className="text-xl font-semibold text-primary">ServiceSync</h1>
-              <p className="text-sm text-muted-foreground">Calendar Administration</p>
+              <p className="text-sm text-muted-foreground">
+                {isClientSection ? 'Client Portal' : 'Calendar Administration'}
+              </p>
             </div>
             
             {renderNavItems(() => document.querySelector('[data-state="open"]')?.setAttribute('data-state', 'closed'))}
@@ -105,7 +132,9 @@ const Navbar = () => {
     <div className="w-64 h-screen fixed left-0 top-0 border-r glassmorphism py-8 px-4 flex flex-col gap-8">
       <div className="px-4">
         <h1 className="text-xl font-semibold text-primary">ServiceSync</h1>
-        <p className="text-sm text-muted-foreground">Calendar Administration</p>
+        <p className="text-sm text-muted-foreground">
+          {isClientSection ? 'Client Portal' : 'Calendar Administration'}
+        </p>
       </div>
       
       {renderNavItems()}

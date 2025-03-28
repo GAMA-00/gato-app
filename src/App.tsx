@@ -10,7 +10,10 @@ import Calendar from "./pages/Calendar";
 import Services from "./pages/Services";
 import Clients from "./pages/Clients";
 import NotFound from "./pages/NotFound";
-import { useIsMobile } from "./hooks/use-mobile";
+import ClientHome from "./pages/ClientHome";
+import ClientServices from "./pages/ClientServices";
+import ClientBooking from "./pages/ClientBooking";
+import ClientBookings from "./pages/ClientBookings";
 
 const queryClient = new QueryClient();
 
@@ -19,10 +22,19 @@ const AppRoutes = () => {
     <>
       <Navbar />
       <Routes>
+        {/* Provider routes */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/services" element={<Services />} />
         <Route path="/clients" element={<Clients />} />
+        
+        {/* Client routes */}
+        <Route path="/client" element={<ClientHome />} />
+        <Route path="/client/services/:buildingId" element={<ClientServices />} />
+        <Route path="/client/book/:buildingId/:serviceId" element={<ClientBooking />} />
+        <Route path="/client/bookings" element={<ClientBookings />} />
+        
+        {/* Not found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

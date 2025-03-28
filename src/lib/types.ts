@@ -27,6 +27,14 @@ export interface Client {
   createdAt: Date;
 }
 
+export interface Building {
+  id: string;
+  name: string;
+  address: string;
+}
+
+export type UserRole = 'client' | 'provider';
+
 export type RecurrencePattern = 
   | 'none'
   | 'daily'
