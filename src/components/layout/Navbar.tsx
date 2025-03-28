@@ -66,7 +66,11 @@ const Navbar = () => {
           to={item.to}
           icon={item.icon}
           label={item.label}
-          isActive={location.pathname === item.to}
+          isActive={
+            item.to === '/' 
+              ? location.pathname === '/' 
+              : location.pathname.startsWith(item.to)
+          }
           onClick={closeMenu}
         />
       ))}
