@@ -21,24 +21,24 @@ const Calendar = () => {
   
   const handleAddAppointment = () => {
     // In a real app, this would open a form to create a new appointment
-    console.log('Add appointment');
+    console.log('Agregar cita');
   };
 
   return (
     <PageContainer 
-      title="Calendar" 
-      subtitle="Manage your schedule and appointments"
+      title="Calendario" 
+      subtitle="Administra tu agenda y citas"
       action={
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
                 <Filter className="mr-2 h-4 w-4" />
-                Filters
+                Filtros
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Status</DropdownMenuLabel>
+              <DropdownMenuLabel>Estado</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem
                 checked={statusFilter.includes('scheduled')}
@@ -50,7 +50,7 @@ const Calendar = () => {
                   );
                 }}
               >
-                Scheduled
+                Programada
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={statusFilter.includes('confirmed')}
@@ -62,20 +62,20 @@ const Calendar = () => {
                   );
                 }}
               >
-                Confirmed
+                Confirmada
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={showCompleted}
                 onCheckedChange={setShowCompleted}
               >
-                Show Completed
+                Mostrar Completadas
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
           <Button onClick={handleAddAppointment}>
             <Plus className="mr-2 h-4 w-4" />
-            New Appointment
+            Nueva Cita
           </Button>
         </div>
       }

@@ -18,12 +18,12 @@ const Dashboard = () => {
 
   return (
     <PageContainer 
-      title="Dashboard" 
-      subtitle="Welcome back to ServiceSync"
+      title="Inicio" 
+      subtitle="Bienvenido de nuevo a ServiceSync"
       action={
         <Button onClick={handleAddAppointment}>
           <Plus className="mr-2 h-4 w-4" />
-          New Appointment
+          Nueva Cita
         </Button>
       }
     >
@@ -37,26 +37,26 @@ const Dashboard = () => {
           
           <div className="lg:col-span-4">
             <div className="glassmorphism rounded-lg p-5 h-full">
-              <h3 className="text-lg font-medium mb-3">Quick Stats</h3>
+              <h3 className="text-lg font-medium mb-3">Estadísticas Rápidas</h3>
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-muted-foreground text-sm">Most Popular Service</p>
-                  <p className="font-medium">Standard Home Cleaning</p>
+                  <p className="text-muted-foreground text-sm">Servicio Más Popular</p>
+                  <p className="font-medium">Limpieza Estándar de Hogar</p>
                 </div>
                 
                 <div>
-                  <p className="text-muted-foreground text-sm">Busiest Day</p>
-                  <p className="font-medium">Wednesday</p>
+                  <p className="text-muted-foreground text-sm">Día Más Ocupado</p>
+                  <p className="font-medium">Miércoles</p>
                 </div>
                 
                 <div>
-                  <p className="text-muted-foreground text-sm">Average Appointment Duration</p>
-                  <p className="font-medium">90 minutes</p>
+                  <p className="text-muted-foreground text-sm">Duración Promedio de Cita</p>
+                  <p className="font-medium">90 minutos</p>
                 </div>
                 
                 <div>
-                  <p className="text-muted-foreground text-sm">Client Satisfaction</p>
+                  <p className="text-muted-foreground text-sm">Satisfacción del Cliente</p>
                   <div className="relative pt-1">
                     <div className="overflow-hidden h-2 text-xs flex rounded bg-muted">
                       <div style={{ width: "85%" }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"></div>

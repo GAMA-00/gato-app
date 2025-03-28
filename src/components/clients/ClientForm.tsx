@@ -25,10 +25,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Client } from '@/lib/types';
 
 const clientFormSchema = z.object({
-  name: z.string().min(2, { message: 'Client name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-  phone: z.string().min(5, { message: 'Please enter a valid phone number.' }),
-  address: z.string().min(5, { message: 'Please enter a valid address.' }),
+  name: z.string().min(2, { message: 'El nombre del cliente debe tener al menos 2 caracteres.' }),
+  email: z.string().email({ message: 'Por favor ingresa una dirección de correo electrónico válida.' }),
+  phone: z.string().min(5, { message: 'Por favor ingresa un número de teléfono válido.' }),
+  address: z.string().min(5, { message: 'Por favor ingresa una dirección válida.' }),
   notes: z.string().optional()
 });
 
@@ -76,7 +76,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? 'Edit Client' : 'Add New Client'}</DialogTitle>
+          <DialogTitle>{initialData ? 'Editar Cliente' : 'Agregar Nuevo Cliente'}</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
@@ -86,9 +86,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>Nombre Completo</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter client name" {...field} />
+                    <Input placeholder="Ingresa nombre del cliente" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -101,9 +101,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Correo Electrónico</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="client@example.com" {...field} />
+                      <Input type="email" placeholder="cliente@ejemplo.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -115,7 +115,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel>Número de Teléfono</FormLabel>
                     <FormControl>
                       <Input placeholder="(555) 123-4567" {...field} />
                     </FormControl>
@@ -130,9 +130,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>Dirección</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter client address" {...field} />
+                    <Input placeholder="Ingresa dirección del cliente" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -144,16 +144,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Notas</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Any additional information..." 
+                      placeholder="Cualquier información adicional..." 
                       rows={3}
                       {...field} 
                     />
                   </FormControl>
                   <FormDescription>
-                    Add any special instructions or notes about this client.
+                    Agrega cualquier instrucción especial o notas sobre este cliente.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -162,10 +162,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit">
-                {initialData ? 'Save Changes' : 'Add Client'}
+                {initialData ? 'Guardar Cambios' : 'Agregar Cliente'}
               </Button>
             </DialogFooter>
           </form>

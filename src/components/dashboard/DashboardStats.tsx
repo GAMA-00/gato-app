@@ -35,7 +35,7 @@ const StatCard: React.FC<StatCardProps> = ({
                 <span className={trend.isPositive ? "text-green-500" : "text-red-500"}>
                   {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
                 </span>
-                <span className="text-xs text-muted-foreground">vs last period</span>
+                <span className="text-xs text-muted-foreground">vs periodo anterior</span>
               </div>
             )}
           </div>
@@ -56,31 +56,31 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard
-        title="Today's Appointments"
+        title="Citas de Hoy"
         value={stats.todayAppointments}
         icon={<Calendar className="h-5 w-5 text-primary" />}
-        description="Scheduled for today"
+        description="Programadas para hoy"
         trend={{ value: 12, isPositive: true }}
       />
       <StatCard
-        title="This Week"
+        title="Esta Semana"
         value={stats.weekAppointments}
         icon={<Clock className="h-5 w-5 text-primary" />}
-        description="Upcoming appointments"
+        description="Próximas citas"
         trend={{ value: 8, isPositive: true }}
       />
       <StatCard
-        title="Monthly Revenue"
+        title="Ingresos Mensuales"
         value={`$${stats.monthRevenue.toLocaleString()}`}
         icon={<DollarSign className="h-5 w-5 text-primary" />}
-        description="For current month"
+        description="Para el mes actual"
         trend={{ value: 5, isPositive: true }}
       />
       <StatCard
-        title="Active Clients"
+        title="Clientes Activos"
         value={stats.activeClients}
         icon={<Users className="h-5 w-5 text-primary" />}
-        description="Total active clients"
+        description="Total de clientes activos"
         trend={{ value: 3, isPositive: true }}
       />
     </div>

@@ -44,16 +44,16 @@ const Navbar = () => {
   const isClientSection = location.pathname.startsWith('/client');
   
   const providerNavItems = [
-    { to: '/', icon: Home, label: 'Dashboard' },
-    { to: '/calendar', icon: Calendar, label: 'Calendar' },
-    { to: '/services', icon: Briefcase, label: 'Services' },
-    { to: '/clients', icon: Users, label: 'Clients' },
-    { to: '/achievements', icon: Award, label: 'Achievements' }
+    { to: '/', icon: Home, label: 'Inicio' },
+    { to: '/calendar', icon: Calendar, label: 'Calendario' },
+    { to: '/services', icon: Briefcase, label: 'Servicios' },
+    { to: '/clients', icon: Users, label: 'Clientes' },
+    { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
   const clientNavItems = [
-    { to: '/client', icon: Building, label: 'Buildings' },
-    { to: '/client/bookings', icon: CalendarClock, label: 'My Bookings' }
+    { to: '/client', icon: Building, label: 'Edificios' },
+    { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas' }
   ];
   
   const navItems = isClientSection ? clientNavItems : providerNavItems;
@@ -87,7 +87,7 @@ const Navbar = () => {
             navigate(isClientSection ? '/' : '/client');
           }}
         >
-          Switch to {isClientSection ? 'Provider' : 'Client'} View
+          Cambiar a Vista de {isClientSection ? 'Proveedor' : 'Cliente'}
         </Button>
       </div>
     </nav>
@@ -100,8 +100,8 @@ const Navbar = () => {
           <span className="text-primary font-medium">JS</span>
         </div>
         <div>
-          <p className="font-medium">{isClientSection ? 'Client' : 'Service Provider'}</p>
-          <p className="text-sm text-muted-foreground">{isClientSection ? 'Resident' : 'Admin Dashboard'}</p>
+          <p className="font-medium">{isClientSection ? 'Cliente' : 'Proveedor de Servicios'}</p>
+          <p className="text-sm text-muted-foreground">{isClientSection ? 'Residente' : 'Panel de Administración'}</p>
         </div>
       </div>
     </div>
@@ -116,14 +116,14 @@ const Navbar = () => {
           <SheetTrigger asChild>
             <Button variant="outline" size="icon">
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle menu</span>
+              <span className="sr-only">Alternar menú</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 pt-6">
             <div className="px-4 mb-6">
               <h1 className="text-xl font-semibold text-primary">Gato</h1>
               <p className="text-sm text-muted-foreground">
-                {isClientSection ? 'Client Portal' : 'Calendar Administration'}
+                {isClientSection ? 'Portal de Cliente' : 'Administración de Calendario'}
               </p>
             </div>
             
@@ -140,7 +140,7 @@ const Navbar = () => {
       <div className="px-4">
         <h1 className="text-xl font-semibold text-primary">Gato</h1>
         <p className="text-sm text-muted-foreground">
-          {isClientSection ? 'Client Portal' : 'Calendar Administration'}
+          {isClientSection ? 'Portal de Cliente' : 'Administración de Calendario'}
         </p>
       </div>
       

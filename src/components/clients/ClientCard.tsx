@@ -32,7 +32,7 @@ const ClientCard: React.FC<ClientCardProps> = ({
               <div>
                 <h3 className="font-medium">{client.name}</h3>
                 <p className="text-xs text-muted-foreground">
-                  Client since {format(client.createdAt, 'MMM yyyy')}
+                  Cliente desde {format(client.createdAt, 'MMM yyyy')}
                 </p>
               </div>
               

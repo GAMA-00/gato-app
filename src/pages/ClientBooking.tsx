@@ -12,11 +12,11 @@ import { toast } from 'sonner';
 
 // Mock buildings data
 const MOCK_BUILDINGS: Building[] = [
-  { id: '1', name: 'Sunset Towers', address: '123 Sunset Blvd' },
-  { id: '2', name: 'Ocean View Apartments', address: '456 Ocean Dr' },
-  { id: '3', name: 'Mountain Heights', address: '789 Mountain Rd' },
-  { id: '4', name: 'City Center Residences', address: '101 Main St' },
-  { id: '5', name: 'Parkside Condos', address: '202 Park Ave' }
+  { id: '1', name: 'Torres del Atardecer', address: '123 Blvd. Atardecer' },
+  { id: '2', name: 'Apartamentos Vista al Mar', address: '456 Calle del Océano' },
+  { id: '3', name: 'Alturas de la Montaña', address: '789 Carretera Montaña' },
+  { id: '4', name: 'Residencias Centro de la Ciudad', address: '101 Calle Principal' },
+  { id: '5', name: 'Condominios Parque', address: '202 Avenida del Parque' }
 ];
 
 // Mock available time slots
@@ -45,32 +45,32 @@ const ClientBooking = () => {
     if (!selectedDate || !selectedTime) return;
     
     // In a real app, we would send this data to an API
-    toast.success('Appointment booked successfully!');
+    toast.success('¡Cita reservada exitosamente!');
     navigate('/client/bookings');
   };
 
   if (!building || !service) {
     return (
-      <PageContainer title="Loading...">
-        <div>Loading service details...</div>
+      <PageContainer title="Cargando...">
+        <div>Cargando detalles del servicio...</div>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer
-      title="Book Appointment"
-      subtitle={`${service.name} at ${building.name}`}
+      title="Reservar Cita"
+      subtitle={`${service.name} en ${building.name}`}
     >
       <div className="grid gap-8 grid-cols-1 md:grid-cols-3">
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Select Date & Time</CardTitle>
+            <CardTitle>Seleccionar Fecha y Hora</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-8 md:flex-row">
               <div className="flex-1">
-                <h3 className="text-sm font-medium mb-4">Select a date</h3>
+                <h3 className="text-sm font-medium mb-4">Selecciona una fecha</h3>
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -82,7 +82,7 @@ const ClientBooking = () => {
               
               {selectedDate && (
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium mb-4">Available times for {format(selectedDate, 'MMM d, yyyy')}</h3>
+                  <h3 className="text-sm font-medium mb-4">Horarios disponibles para {format(selectedDate, 'MMM d, yyyy')}</h3>
                   <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                     {AVAILABLE_TIMES.map((time) => (
                       <Button
@@ -101,20 +101,20 @@ const ClientBooking = () => {
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={() => navigate(`/client/services/${buildingId}`)}>
-              Back to Services
+              Volver a Servicios
             </Button>
             <Button 
               disabled={!selectedDate || !selectedTime}
               onClick={handleBookAppointment}
             >
-              Book Appointment
+              Reservar Cita
             </Button>
           </CardFooter>
         </Card>
         
         <Card>
           <CardHeader>
-            <CardTitle>Service Details</CardTitle>
+            <CardTitle>Detalles del Servicio</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -123,15 +123,15 @@ const ClientBooking = () => {
             </div>
             <div className="pt-4 border-t">
               <p className="flex justify-between">
-                <span>Duration:</span>
-                <span>{service.duration} minutes</span>
+                <span>Duración:</span>
+                <span>{service.duration} minutos</span>
               </p>
               <p className="flex justify-between">
-                <span>Price:</span>
+                <span>Precio:</span>
                 <span>${service.price.toFixed(2)}</span>
               </p>
               <p className="flex justify-between">
-                <span>Location:</span>
+                <span>Ubicación:</span>
                 <span>{building.name}</span>
               </p>
             </div>

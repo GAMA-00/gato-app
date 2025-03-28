@@ -11,24 +11,24 @@ import { format } from 'date-fns';
 const MOCK_BOOKINGS = [
   {
     id: '1',
-    serviceName: 'House Cleaning',
-    buildingName: 'Sunset Towers',
+    serviceName: 'Limpieza de Casa',
+    buildingName: 'Torres del Atardecer',
     date: new Date(2023, 6, 15, 10, 0),
     duration: 120,
     status: 'upcoming'
   },
   {
     id: '2',
-    serviceName: 'Pet Grooming',
-    buildingName: 'Sunset Towers',
+    serviceName: 'Peluquería para Mascotas',
+    buildingName: 'Torres del Atardecer',
     date: new Date(2023, 6, 20, 14, 0),
     duration: 60,
     status: 'upcoming'
   },
   {
     id: '3',
-    serviceName: 'Car Wash',
-    buildingName: 'Sunset Towers',
+    serviceName: 'Lavado de Auto',
+    buildingName: 'Torres del Atardecer',
     date: new Date(2023, 5, 10, 9, 0),
     duration: 45,
     status: 'completed'
@@ -43,17 +43,17 @@ const ClientBookings = () => {
 
   return (
     <PageContainer
-      title="My Bookings"
-      subtitle="View and manage your appointments"
+      title="Mis Reservas"
+      subtitle="Ver y administrar tus citas"
       action={
         <Button onClick={() => navigate('/client')}>
-          Book New Service
+          Reservar Nuevo Servicio
         </Button>
       }
     >
       <div className="space-y-8">
         <section>
-          <h2 className="text-xl font-medium mb-4">Upcoming Appointments</h2>
+          <h2 className="text-xl font-medium mb-4">Citas Próximas</h2>
           {upcomingBookings.length > 0 ? (
             <div className="space-y-4">
               {upcomingBookings.map(booking => (
@@ -85,7 +85,7 @@ const ClientBookings = () => {
                       
                       <div className="border-t md:border-t-0 md:border-l p-6 flex items-center">
                         <Button variant="outline">
-                          Details
+                          Detalles
                           <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
                       </div>
@@ -95,12 +95,12 @@ const ClientBookings = () => {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No upcoming appointments</p>
+            <p className="text-muted-foreground">No hay citas próximas</p>
           )}
         </section>
         
         <section>
-          <h2 className="text-xl font-medium mb-4">Past Appointments</h2>
+          <h2 className="text-xl font-medium mb-4">Citas Pasadas</h2>
           {pastBookings.length > 0 ? (
             <div className="space-y-4">
               {pastBookings.map(booking => (
@@ -132,7 +132,7 @@ const ClientBookings = () => {
                       
                       <div className="border-t md:border-t-0 md:border-l p-6 flex items-center">
                         <Button variant="outline">
-                          Details
+                          Detalles
                           <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
                       </div>
@@ -142,7 +142,7 @@ const ClientBookings = () => {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No past appointments</p>
+            <p className="text-muted-foreground">No hay citas pasadas</p>
           )}
         </section>
       </div>

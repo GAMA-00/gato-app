@@ -35,7 +35,7 @@ const Clients = () => {
   const handleDeleteClient = (client: Client) => {
     // In a real app, this would call an API
     setClients(clients.filter(c => c.id !== client.id));
-    toast.success('Client deleted successfully');
+    toast.success('Cliente eliminado exitosamente');
   };
   
   const handleSubmitClient = (clientData: Partial<Client>) => {
@@ -44,7 +44,7 @@ const Clients = () => {
       setClients(clients.map(c => 
         c.id === editingClient.id ? { ...c, ...clientData } : c
       ));
-      toast.success('Client updated successfully');
+      toast.success('Cliente actualizado exitosamente');
     } else {
       // Add new client
       const newClient: Client = {
@@ -58,25 +58,25 @@ const Clients = () => {
       };
       
       setClients([newClient, ...clients]);
-      toast.success('Client added successfully');
+      toast.success('Cliente agregado exitosamente');
     }
   };
 
   return (
     <PageContainer 
-      title="Clients" 
-      subtitle="Manage your client database"
+      title="Clientes" 
+      subtitle="Administra tu base de datos de clientes"
       action={
         <Button onClick={handleAddClient}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Client
+          Agregar Cliente
         </Button>
       }
     >
       <div className="space-y-6">
         <div className="max-w-md">
           <Input 
-            placeholder="Search clients..." 
+            placeholder="Buscar clientes..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -94,7 +94,7 @@ const Clients = () => {
           
           {filteredClients.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No clients found. Add a new client to get started.</p>
+              <p className="text-muted-foreground">No se encontraron clientes. Agrega un nuevo cliente para comenzar.</p>
             </div>
           )}
         </div>

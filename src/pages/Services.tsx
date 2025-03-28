@@ -34,7 +34,7 @@ const Services = () => {
   const handleDeleteService = (service: Service) => {
     // In a real app, this would call an API
     setServices(services.filter(s => s.id !== service.id));
-    toast.success('Service deleted successfully');
+    toast.success('Servicio eliminado exitosamente');
   };
   
   const handleSubmitService = (serviceData: Partial<Service>) => {
@@ -43,7 +43,7 @@ const Services = () => {
       setServices(services.map(s => 
         s.id === editingService.id ? { ...s, ...serviceData } : s
       ));
-      toast.success('Service updated successfully');
+      toast.success('Servicio actualizado exitosamente');
     } else {
       // Add new service
       const newService: Service = {
@@ -57,25 +57,25 @@ const Services = () => {
       };
       
       setServices([newService, ...services]);
-      toast.success('Service added successfully');
+      toast.success('Servicio agregado exitosamente');
     }
   };
 
   return (
     <PageContainer 
-      title="Services" 
-      subtitle="Manage your service offerings"
+      title="Servicios" 
+      subtitle="Administra tus ofertas de servicio"
       action={
         <Button onClick={handleAddService}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Service
+          Agregar Servicio
         </Button>
       }
     >
       <div className="space-y-6">
         <div className="max-w-md">
           <Input 
-            placeholder="Search services..." 
+            placeholder="Buscar servicios..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -93,7 +93,7 @@ const Services = () => {
           
           {filteredServices.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No services found. Add a new service to get started.</p>
+              <p className="text-muted-foreground">No se encontraron servicios. Agrega un nuevo servicio para comenzar.</p>
             </div>
           )}
         </div>

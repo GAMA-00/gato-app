@@ -42,7 +42,7 @@ const AchievementCard: React.FC<{ achievement: Achievement }> = ({ achievement }
             <p className="text-sm text-muted-foreground mt-1">{achievement.description}</p>
             {isCompleted && (
               <p className="text-xs text-primary mt-2">
-                Completed on {achievement.completedAt?.toLocaleDateString()}
+                Completado el {achievement.completedAt?.toLocaleDateString()}
               </p>
             )}
           </div>
@@ -73,11 +73,11 @@ const LevelCard: React.FC<{
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between text-sm">
-          <span>{level.minPoints} points</span>
-          {level.maxPoints !== Infinity && <span>{level.maxPoints} points</span>}
+          <span>{level.minPoints} puntos</span>
+          {level.maxPoints !== Infinity && <span>{level.maxPoints} puntos</span>}
         </div>
         {isCurrentLevel && (
-          <Badge className="mt-2" style={{ backgroundColor: level.color }}>Current Level</Badge>
+          <Badge className="mt-2" style={{ backgroundColor: level.color }}>Nivel Actual</Badge>
         )}
       </CardContent>
     </Card>
@@ -101,23 +101,23 @@ const Achievements: React.FC = () => {
   const pendingAchievements = achievements.filter(a => !a.completedAt);
   
   return (
-    <PageContainer title="Achievements" subtitle="Track your progress and unlock rewards">
+    <PageContainer title="Logros" subtitle="Sigue tu progreso y desbloquea recompensas">
       <div className="space-y-8">
         {/* Progress summary card */}
         <Card className="glassmorphism">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold">Level: {currentLevelInfo.name}</h2>
+                <h2 className="text-2xl font-semibold">Nivel: {currentLevelInfo.name}</h2>
                 <p className="text-muted-foreground mt-1">
-                  {totalPoints} points total • {completedAchievements.length} achievements unlocked
+                  {totalPoints} puntos en total • {completedAchievements.length} logros desbloqueados
                 </p>
               </div>
               {nextLevel && (
                 <div className="bg-secondary/50 px-4 py-2 rounded-lg">
-                  <p className="text-sm font-medium">Next level: {nextLevelInfo?.name}</p>
+                  <p className="text-sm font-medium">Siguiente nivel: {nextLevelInfo?.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {pointsToNextLevel} points needed
+                    {pointsToNextLevel} puntos necesarios
                   </p>
                 </div>
               )}
@@ -141,7 +141,7 @@ const Achievements: React.FC = () => {
         
         {/* Achievement levels */}
         <div>
-          <h3 className="text-lg font-medium mb-4">Achievement Levels</h3>
+          <h3 className="text-lg font-medium mb-4">Niveles de Logros</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {ACHIEVEMENT_LEVELS.map((level) => (
               <LevelCard 
@@ -156,7 +156,7 @@ const Achievements: React.FC = () => {
         
         {/* Completed achievements */}
         <div>
-          <h3 className="text-lg font-medium mb-4">Unlocked Achievements</h3>
+          <h3 className="text-lg font-medium mb-4">Logros Desbloqueados</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {completedAchievements.map((achievement) => (
               <AchievementCard key={achievement.id} achievement={achievement} />
@@ -167,7 +167,7 @@ const Achievements: React.FC = () => {
         {/* Pending achievements */}
         {pendingAchievements.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium mb-4">Upcoming Achievements</h3>
+            <h3 className="text-lg font-medium mb-4">Próximos Logros</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pendingAchievements.map((achievement) => (
                 <AchievementCard key={achievement.id} achievement={achievement} />

@@ -15,11 +15,11 @@ import { Building } from '@/lib/types';
 
 // Mock buildings data
 const MOCK_BUILDINGS: Building[] = [
-  { id: '1', name: 'Sunset Towers', address: '123 Sunset Blvd' },
-  { id: '2', name: 'Ocean View Apartments', address: '456 Ocean Dr' },
-  { id: '3', name: 'Mountain Heights', address: '789 Mountain Rd' },
-  { id: '4', name: 'City Center Residences', address: '101 Main St' },
-  { id: '5', name: 'Parkside Condos', address: '202 Park Ave' }
+  { id: '1', name: 'Torres del Atardecer', address: '123 Blvd. Atardecer' },
+  { id: '2', name: 'Apartamentos Vista al Mar', address: '456 Calle del Océano' },
+  { id: '3', name: 'Alturas de la Montaña', address: '789 Carretera Montaña' },
+  { id: '4', name: 'Residencias Centro de la Ciudad', address: '101 Calle Principal' },
+  { id: '5', name: 'Condominios Parque', address: '202 Avenida del Parque' }
 ];
 
 const ClientHome = () => {
@@ -36,15 +36,15 @@ const ClientHome = () => {
 
   return (
     <PageContainer 
-      title="Welcome" 
-      subtitle="Select your building to see available services"
+      title="Bienvenido" 
+      subtitle="Selecciona tu edificio para ver los servicios disponibles"
     >
       <div className="max-w-md mx-auto mt-8 space-y-8">
         <div className="space-y-4">
-          <label className="text-sm font-medium">Select your building</label>
+          <label className="text-sm font-medium">Selecciona tu edificio</label>
           <Select onValueChange={setSelectedBuilding} value={selectedBuilding}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choose a building" />
+              <SelectValue placeholder="Elige un edificio" />
             </SelectTrigger>
             <SelectContent>
               {MOCK_BUILDINGS.map((building) => (
@@ -52,7 +52,7 @@ const ClientHome = () => {
                   {building.name}
                 </SelectItem>
               ))}
-              <SelectItem value="provider">I am a service provider</SelectItem>
+              <SelectItem value="provider">Soy un proveedor de servicios</SelectItem>
             </SelectContent>
           </Select>
 
@@ -61,16 +61,16 @@ const ClientHome = () => {
             disabled={!selectedBuilding} 
             className="w-full mt-6"
           >
-            Continue
+            Continuar
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
 
         <div className="p-6 border rounded-lg bg-muted/30">
-          <h3 className="font-medium mb-2">About ServiceSync</h3>
+          <h3 className="font-medium mb-2">Acerca de ServiceSync</h3>
           <p className="text-sm text-muted-foreground">
-            ServiceSync connects you with trusted service providers in your building.
-            Book cleaning, pet grooming, car washing services, and more with just a few clicks.
+            ServiceSync te conecta con proveedores de servicios confiables en tu edificio.
+            Reserva servicios de limpieza, peluquería para mascotas, lavado de autos y más con solo unos clics.
           </p>
         </div>
       </div>

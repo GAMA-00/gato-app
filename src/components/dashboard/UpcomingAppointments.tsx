@@ -38,7 +38,7 @@ const AppointmentItem: React.FC<AppointmentItemProps> = ({
                 : '#4B5563'
             }}
           >
-            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+            {appointment.status === 'confirmed' ? 'Confirmada' : 'Programada'}
           </span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground mt-1">
@@ -69,7 +69,7 @@ const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
   return (
     <Card className="glassmorphism">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl">Upcoming Appointments</CardTitle>
+        <CardTitle className="text-xl">Próximas Citas</CardTitle>
       </CardHeader>
       <CardContent>
         {sortedAppointments.length > 0 ? (
@@ -90,7 +90,7 @@ const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p>No upcoming appointments</p>
+            <p>No hay próximas citas</p>
           </div>
         )}
       </CardContent>

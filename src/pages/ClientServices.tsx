@@ -10,11 +10,11 @@ import { Service, Building } from '@/lib/types';
 
 // Mock buildings data
 const MOCK_BUILDINGS: Building[] = [
-  { id: '1', name: 'Sunset Towers', address: '123 Sunset Blvd' },
-  { id: '2', name: 'Ocean View Apartments', address: '456 Ocean Dr' },
-  { id: '3', name: 'Mountain Heights', address: '789 Mountain Rd' },
-  { id: '4', name: 'City Center Residences', address: '101 Main St' },
-  { id: '5', name: 'Parkside Condos', address: '202 Park Ave' }
+  { id: '1', name: 'Torres del Atardecer', address: '123 Blvd. Atardecer' },
+  { id: '2', name: 'Apartamentos Vista al Mar', address: '456 Calle del Océano' },
+  { id: '3', name: 'Alturas de la Montaña', address: '789 Carretera Montaña' },
+  { id: '4', name: 'Residencias Centro de la Ciudad', address: '101 Calle Principal' },
+  { id: '5', name: 'Condominios Parque', address: '202 Avenida del Parque' }
 ];
 
 const ClientServices = () => {
@@ -35,24 +35,24 @@ const ClientServices = () => {
 
   if (!building) {
     return (
-      <PageContainer title="Loading...">
-        <div>Loading building information...</div>
+      <PageContainer title="Cargando...">
+        <div>Cargando información del edificio...</div>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer
-      title={`Services at ${building.name}`}
+      title={`Servicios en ${building.name}`}
       subtitle={building.address}
       action={
         <Button variant="outline" onClick={() => navigate('/client')}>
-          Change Building
+          Cambiar Edificio
         </Button>
       }
     >
       <div className="space-y-6">
-        <h2 className="text-xl font-medium">Available Services</h2>
+        <h2 className="text-xl font-medium">Servicios Disponibles</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service) => (
@@ -64,7 +64,7 @@ const ClientServices = () => {
                 <div className="space-y-2">
                   <div className="flex items-center text-sm">
                     <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{service.duration} minutes</span>
+                    <span>{service.duration} minutos</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -79,7 +79,7 @@ const ClientServices = () => {
                   onClick={() => handleBookService(service.id)}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
-                  Book Appointment
+                  Reservar Cita
                 </Button>
               </CardFooter>
             </Card>
@@ -87,7 +87,7 @@ const ClientServices = () => {
           
           {services.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No services available at this building yet.</p>
+              <p className="text-muted-foreground">No hay servicios disponibles en este edificio todavía.</p>
             </div>
           )}
         </div>
