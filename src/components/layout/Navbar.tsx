@@ -103,7 +103,7 @@ const Navbar = () => {
   if (isMobile) {
     return (
       <div className="w-full h-16 fixed top-0 left-0 z-50 border-b glassmorphism py-2 px-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-primary">ServiceSync</h1>
+        <h1 className="text-xl font-semibold text-primary">Gato</h1>
         
         <Sheet>
           <SheetTrigger asChild>
@@ -114,7 +114,7 @@ const Navbar = () => {
           </SheetTrigger>
           <SheetContent side="left" className="w-64 pt-6">
             <div className="px-4 mb-6">
-              <h1 className="text-xl font-semibold text-primary">ServiceSync</h1>
+              <h1 className="text-xl font-semibold text-primary">Gato</h1>
               <p className="text-sm text-muted-foreground">
                 {isClientSection ? 'Client Portal' : 'Calendar Administration'}
               </p>
@@ -131,7 +131,7 @@ const Navbar = () => {
   return (
     <div className="w-64 h-screen fixed left-0 top-0 border-r glassmorphism py-8 px-4 flex flex-col gap-8">
       <div className="px-4">
-        <h1 className="text-xl font-semibold text-primary">ServiceSync</h1>
+        <h1 className="text-xl font-semibold text-primary">Gato</h1>
         <p className="text-sm text-muted-foreground">
           {isClientSection ? 'Client Portal' : 'Calendar Administration'}
         </p>
