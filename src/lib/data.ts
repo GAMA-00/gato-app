@@ -2,12 +2,12 @@ import { Service, Client, Appointment, ServiceCategory, AppointmentStatus, Achie
 
 // Service Categories with colors
 export const SERVICE_CATEGORIES: Record<ServiceCategory, { label: string, color: string }> = {
-  'cleaning': { label: 'Cleaning', color: '#4F46E5' },
-  'pet-grooming': { label: 'Pet Grooming', color: '#10B981' },
-  'car-wash': { label: 'Car Wash', color: '#3B82F6' },
-  'gardening': { label: 'Gardening', color: '#16A34A' },
-  'maintenance': { label: 'Maintenance', color: '#F59E0B' },
-  'other': { label: 'Other', color: '#6B7280' }
+  'cleaning': { label: 'Limpieza', color: '#4F46E5' },
+  'pet-grooming': { label: 'Cuidado de Mascotas', color: '#10B981' },
+  'car-wash': { label: 'Lavado de Autos', color: '#3B82F6' },
+  'gardening': { label: 'Jardinería', color: '#16A34A' },
+  'maintenance': { label: 'Mantenimiento', color: '#F59E0B' },
+  'other': { label: 'Otros', color: '#6B7280' }
 };
 
 // Appointment Statuses
@@ -270,8 +270,8 @@ export const getDashboardStats = () => {
 export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   { 
     level: 'beginner', 
-    name: 'Beginner', 
-    description: 'Just starting out! Complete jobs to earn points and level up.',
+    name: 'Novato', 
+    description: '¡Estás empezando! Completa trabajos para ganar puntos y subir de nivel.',
     minPoints: 0, 
     maxPoints: 99, 
     color: '#6B7280', 
@@ -279,8 +279,8 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   },
   { 
     level: 'trusty', 
-    name: 'Trusty', 
-    description: 'Building a reputation for reliability and quality service.',
+    name: 'Confiable', 
+    description: 'Construyendo una reputación de confiabilidad y calidad de servicio.',
     minPoints: 100, 
     maxPoints: 299, 
     color: '#3B82F6', 
@@ -288,8 +288,8 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   },
   { 
     level: 'recommended', 
-    name: 'Recommended', 
-    description: 'Highly rated by clients and actively recommended to others.',
+    name: 'Recomendado', 
+    description: 'Altamente valorado por los clientes y activamente recomendado a otros.',
     minPoints: 300, 
     maxPoints: 599, 
     color: '#8B5CF6', 
@@ -297,8 +297,8 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   },
   { 
     level: 'expert', 
-    name: 'Expert', 
-    description: 'A top-tier provider known for exceptional service quality.',
+    name: 'Experto', 
+    description: 'Un proveedor de primer nivel conocido por su calidad de servicio excepcional.',
     minPoints: 600, 
     maxPoints: Infinity, 
     color: '#F59E0B', 
