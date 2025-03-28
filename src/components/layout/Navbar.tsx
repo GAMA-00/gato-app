@@ -71,7 +71,16 @@ const Navbar = () => {
               ? location.pathname === '/' 
               : location.pathname.startsWith(item.to)
           }
-          onClick={closeMenu}
+          onClick={(e) => {
+            // Prevent default navigation behavior for clients link in provider view
+            if (item.label === 'Clients' && !isClientSection) {
+              e.preventDefault();
+              if (closeMenu) closeMenu();
+              navigate('/clients');
+            } else if (closeMenu) {
+              closeMenu();
+            }
+          }}
         />
       ))}
       
