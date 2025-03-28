@@ -50,7 +50,11 @@ const ClientBooking = () => {
   };
 
   if (!building || !service) {
-    return <PageContainer title="Loading..."></PageContainer>;
+    return (
+      <PageContainer title="Loading...">
+        <div>Loading service details...</div>
+      </PageContainer>
+    );
   }
 
   return (

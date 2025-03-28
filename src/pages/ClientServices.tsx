@@ -34,7 +34,11 @@ const ClientServices = () => {
   };
 
   if (!building) {
-    return <PageContainer title="Loading..."></PageContainer>;
+    return (
+      <PageContainer title="Loading...">
+        <div>Loading building information...</div>
+      </PageContainer>
+    );
   }
 
   return (
