@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Home, Users, Briefcase, Menu, CalendarClock, Building } from 'lucide-react';
+import { Calendar, Home, Users, Briefcase, Menu, CalendarClock, Building, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,8 @@ const Navbar = () => {
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/calendar', icon: Calendar, label: 'Calendar' },
     { to: '/services', icon: Briefcase, label: 'Services' },
-    { to: '/clients', icon: Users, label: 'Clients' }
+    { to: '/clients', icon: Users, label: 'Clients' },
+    { to: '/achievements', icon: Award, label: 'Achievements' }
   ];
   
   const clientNavItems = [
