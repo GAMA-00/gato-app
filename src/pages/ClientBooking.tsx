@@ -83,12 +83,12 @@ const ClientBooking = () => {
               {selectedDate && (
                 <div className="flex-1">
                   <h3 className="text-sm font-medium mb-4">Available times for {format(selectedDate, 'MMM d, yyyy')}</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                     {AVAILABLE_TIMES.map((time) => (
                       <Button
                         key={time}
                         variant={selectedTime === time ? "default" : "outline"}
-                        className="w-full justify-center text-sm"
+                        className="w-full justify-center text-xs md:text-sm py-2 px-1 h-auto min-h-9"
                         onClick={() => setSelectedTime(time)}
                       >
                         {time}
@@ -143,4 +143,3 @@ const ClientBooking = () => {
 };
 
 export default ClientBooking;
-
