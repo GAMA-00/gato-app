@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
 import Services from "./pages/Services";
 import Clients from "./pages/Clients";
+import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
 import ClientHome from "./pages/ClientHome";
 import ClientServices from "./pages/ClientServices";
@@ -27,6 +28,7 @@ const AppRoutes = () => {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/services" element={<Services />} />
         <Route path="/clients" element={<Clients />} />
+        <Route path="/achievements" element={<Achievements />} />
         
         {/* Client routes */}
         <Route path="/client" element={<ClientHome />} />

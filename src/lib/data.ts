@@ -1,5 +1,4 @@
-
-import { Service, Client, Appointment, ServiceCategory, AppointmentStatus } from './types';
+import { Service, Client, Appointment, ServiceCategory, AppointmentStatus, Achievement, AchievementLevel, AchievementLevelInfo, ProviderAchievements } from './types';
 
 // Service Categories with colors
 export const SERVICE_CATEGORIES: Record<ServiceCategory, { label: string, color: string }> = {
@@ -264,5 +263,140 @@ export const getDashboardStats = () => {
     weekAppointments,
     monthRevenue,
     activeClients: MOCK_CLIENTS.length
+  };
+};
+
+// Achievement Levels
+export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
+  { 
+    level: 'beginner', 
+    name: 'Beginner', 
+    description: 'Just starting out! Complete jobs to earn points and level up.',
+    minPoints: 0, 
+    maxPoints: 99, 
+    color: '#6B7280', 
+    icon: 'user' 
+  },
+  { 
+    level: 'trusty', 
+    name: 'Trusty', 
+    description: 'Building a reputation for reliability and quality service.',
+    minPoints: 100, 
+    maxPoints: 299, 
+    color: '#3B82F6', 
+    icon: 'shield' 
+  },
+  { 
+    level: 'recommended', 
+    name: 'Recommended', 
+    description: 'Highly rated by clients and actively recommended to others.',
+    minPoints: 300, 
+    maxPoints: 599, 
+    color: '#8B5CF6', 
+    icon: 'star' 
+  },
+  { 
+    level: 'expert', 
+    name: 'Expert', 
+    description: 'A top-tier provider known for exceptional service quality.',
+    minPoints: 600, 
+    maxPoints: Infinity, 
+    color: '#F59E0B', 
+    icon: 'award' 
+  }
+];
+
+// Achievement Types
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: '1',
+    name: 'First Job Completed',
+    description: 'Successfully completed your first job',
+    points: 10,
+    icon: 'check-circle',
+    completedAt: new Date('2023-02-15')
+  },
+  {
+    id: '2',
+    name: 'Five Star Review',
+    description: 'Received a five-star rating from a client',
+    points: 20,
+    icon: 'star',
+    completedAt: new Date('2023-03-10')
+  },
+  {
+    id: '3',
+    name: 'Social Media Sharer',
+    description: 'Shared a completed job on social media',
+    points: 15,
+    icon: 'share',
+    completedAt: new Date('2023-04-05')
+  },
+  {
+    id: '4',
+    name: '10 Jobs Milestone',
+    description: 'Completed 10 jobs successfully',
+    points: 50,
+    icon: 'milestone',
+    completedAt: new Date('2023-05-20')
+  },
+  {
+    id: '5',
+    name: 'Perfect Month',
+    description: 'Completed all scheduled jobs in a month',
+    points: 75,
+    icon: 'calendar-check',
+    completedAt: new Date('2023-06-30')
+  },
+  {
+    id: '6',
+    name: 'Returning Customer',
+    description: 'A client booked your services more than once',
+    points: 25,
+    icon: 'repeat',
+    completedAt: new Date('2023-07-15')
+  },
+  {
+    id: '7',
+    name: 'Fast Response',
+    description: 'Responded to all client inquiries within 1 hour for a week',
+    points: 30,
+    icon: 'zap',
+    completedAt: null
+  },
+  {
+    id: '8',
+    name: 'Service Ambassador',
+    description: 'Referred another service provider to the platform',
+    points: 40,
+    icon: 'users',
+    completedAt: null
+  }
+];
+
+// Get provider achievements
+export const getProviderAchievements = (): ProviderAchievements => {
+  const completedAchievements = ACHIEVEMENTS.filter(a => a.completedAt);
+  const totalPoints = completedAchievements.reduce((sum, achievement) => sum + achievement.points, 0);
+  
+  const currentLevelInfo = ACHIEVEMENT_LEVELS.find(
+    level => totalPoints >= level.minPoints && totalPoints <= level.maxPoints
+  ) || ACHIEVEMENT_LEVELS[0];
+  
+  const currentLevelIndex = ACHIEVEMENT_LEVELS.findIndex(level => level.level === currentLevelInfo.level);
+  const nextLevelInfo = currentLevelIndex < ACHIEVEMENT_LEVELS.length - 1 
+    ? ACHIEVEMENT_LEVELS[currentLevelIndex + 1] 
+    : null;
+  
+  const pointsToNextLevel = nextLevelInfo 
+    ? nextLevelInfo.minPoints - totalPoints 
+    : 0;
+  
+  return {
+    totalPoints,
+    currentLevel: currentLevelInfo.level,
+    nextLevel: nextLevelInfo?.level || null,
+    pointsToNextLevel,
+    achievements: ACHIEVEMENTS
   };
 };

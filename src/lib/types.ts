@@ -66,3 +66,32 @@ export interface DashboardStats {
   monthRevenue: number;
   activeClients: number;
 }
+
+export type AchievementLevel = 'beginner' | 'trusty' | 'recommended' | 'expert';
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  points: number;
+  icon: string;
+  completedAt?: Date;
+}
+
+export interface AchievementLevelInfo {
+  level: AchievementLevel;
+  name: string;
+  description: string;
+  minPoints: number;
+  maxPoints: number;
+  color: string;
+  icon: string;
+}
+
+export interface ProviderAchievements {
+  totalPoints: number;
+  currentLevel: AchievementLevel;
+  nextLevel: AchievementLevel | null;
+  pointsToNextLevel: number;
+  achievements: Achievement[];
+}
