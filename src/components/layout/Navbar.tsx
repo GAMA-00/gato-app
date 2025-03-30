@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, Home, Users, Briefcase, Menu, CalendarClock, Building, Award } from 'lucide-react';
@@ -42,6 +43,7 @@ const Navbar = () => {
   // Determine if we're in client or provider mode - only check exact path prefix
   const isClientSection = location.pathname.startsWith('/client');
   
+  // Define provider navigation items
   const providerNavItems = [
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
@@ -50,21 +52,39 @@ const Navbar = () => {
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
+  // Define client navigation items
   const clientNavItems = [
     { to: '/client', icon: Building, label: 'Edificios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas' }
   ];
   
+  // Select which navigation items to display based on the current section
   const navItems = isClientSection ? clientNavItems : providerNavItems;
 
   // Function to determine if a nav item is active
   const isNavItemActive = (itemPath: string) => {
+    // Special case for root path
     if (itemPath === '/') {
       return location.pathname === '/';
     }
     
-    // Other paths - simple prefix matching but ensure we don't cross between /clients and /client
-    return location.pathname.startsWith(itemPath);
+    // Special case for "/clients" to ensure it doesn't match "/client" routes
+    if (itemPath === '/clients') {
+      return location.pathname.startsWith('/clients');
+    }
+    
+    // Special case for "/client" to ensure it's only active for client routes
+    if (itemPath === '/client') {
+      return location.pathname === '/client' || 
+             (location.pathname.startsWith('/client/') && 
+              !location.pathname.startsWith('/clients/'));
+    }
+    
+    // For other paths, check if the current path starts with the item path
+    return location.pathname.startsWith(itemPath) && 
+           // Make sure we're not matching across sections
+           ((isClientSection && itemPath.startsWith('/client')) || 
+            (!isClientSection && !itemPath.startsWith('/client')));
   };
 
   // This function should ONLY be called by the dedicated "Change View" button
