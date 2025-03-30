@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, Home, Users, Briefcase, Menu, CalendarClock, Building, Award } from 'lucide-react';
@@ -69,11 +68,10 @@ const Navbar = () => {
           isActive={
             item.to === '/' 
               ? location.pathname === '/' 
-              : location.pathname.startsWith(item.to)
+              : location.pathname === item.to || 
+                (item.to !== '/client' && location.pathname.startsWith(item.to))
           }
-          onClick={() => {
-            if (closeMenu) closeMenu();
-          }}
+          onClick={closeMenu}
         />
       ))}
       
