@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, Home, Users, Briefcase, Menu, CalendarClock, Building, Award } from 'lucide-react';
@@ -41,7 +40,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   
   // Determine if we're in client or provider mode
-  // Explicitly check if path starts with '/client' for client section
   const isClientSection = location.pathname.startsWith('/client');
   
   const providerNavItems = [
@@ -61,24 +59,25 @@ const Navbar = () => {
 
   // Function to determine if a nav item is active
   const isNavItemActive = (itemPath: string) => {
+    // Keep the exact path match logic 
     if (itemPath === '/') {
       return location.pathname === '/';
     }
     
-    // For /clients route, make sure we don't consider it active when on /client paths
+    // For clients and client routes, we need to be more specific
     if (itemPath === '/clients') {
-      return location.pathname === '/clients' || 
-             (location.pathname.startsWith('/clients/') && !location.pathname.startsWith('/client'));
+      // Only consider active when explicitly on /clients or one of its sub-routes, 
+      // but never when on a /client/* route (client section)
+      return location.pathname.startsWith('/clients');
     }
     
-    // For /client route, only consider active when exactly on /client or a /client/* path
     if (itemPath === '/client') {
-      return location.pathname === '/client' || 
-             (location.pathname.startsWith('/client/') && !location.pathname.startsWith('/clients'));
+      // Only consider active when explicitly on /client or one of its sub-routes
+      return location.pathname.startsWith('/client');
     }
     
-    // For other routes
-    return location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`);
+    // For other routes, match if the path starts with the item path
+    return location.pathname.startsWith(itemPath);
   };
 
   const renderNavItems = (closeMenu?: () => void) => (
