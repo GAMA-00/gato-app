@@ -47,7 +47,7 @@ const Navbar = () => {
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/clients', icon: Users, label: 'Clientes' },
+    { to: '/clients', icon: Users, label: 'Mis clientes' }, // Cambiado de "Clientes" a "Mis clientes"
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
@@ -71,8 +71,9 @@ const Navbar = () => {
               ? location.pathname === '/' 
               : location.pathname === item.to || 
                 (location.pathname.startsWith(item.to) && 
-                 // Aseguramos que /clients no se considere parte de /client
-                 !(item.to === '/client' && location.pathname.startsWith('/clients')))
+                 // Aseguramos que /clients no se considere parte de /client y viceversa
+                 !((item.to === '/client' && location.pathname.startsWith('/clients')) ||
+                   (item.to === '/clients' && location.pathname.startsWith('/client'))))
           }
           onClick={closeMenu}
         />
