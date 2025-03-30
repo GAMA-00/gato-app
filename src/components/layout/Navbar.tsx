@@ -39,7 +39,7 @@ const Navbar = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   
-  // Determine if we're in client or provider mode
+  // Determine if we're in client or provider mode - only check exact path prefix
   const isClientSection = location.pathname.startsWith('/client');
   
   const providerNavItems = [
@@ -59,25 +59,17 @@ const Navbar = () => {
 
   // Function to determine if a nav item is active
   const isNavItemActive = (itemPath: string) => {
-    // Keep the exact path match logic 
     if (itemPath === '/') {
       return location.pathname === '/';
     }
     
-    // For clients and client routes, we need to be more specific
-    if (itemPath === '/clients') {
-      // Only consider active when explicitly on /clients or one of its sub-routes, 
-      // but never when on a /client/* route (client section)
-      return location.pathname.startsWith('/clients');
-    }
-    
-    if (itemPath === '/client') {
-      // Only consider active when explicitly on /client or one of its sub-routes
-      return location.pathname.startsWith('/client');
-    }
-    
-    // For other routes, match if the path starts with the item path
+    // Other paths - simple prefix matching but ensure we don't cross between /clients and /client
     return location.pathname.startsWith(itemPath);
+  };
+
+  // This function should ONLY be called by the dedicated "Change View" button
+  const switchView = () => {
+    navigate(isClientSection ? '/' : '/client');
   };
 
   const renderNavItems = (closeMenu?: () => void) => (
@@ -93,14 +85,14 @@ const Navbar = () => {
         />
       ))}
       
-      {/* Switch between client and provider views */}
+      {/* Switch between client and provider views - ONLY way to change views */}
       <div className="mt-6 px-4">
         <Button 
           variant="outline" 
           className="w-full justify-start" 
           onClick={() => {
             if (closeMenu) closeMenu();
-            navigate(isClientSection ? '/' : '/client');
+            switchView();
           }}
         >
           Cambiar a Vista de {isClientSection ? 'Proveedor' : 'Cliente'}
