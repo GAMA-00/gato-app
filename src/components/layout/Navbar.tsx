@@ -41,13 +41,14 @@ const Navbar = () => {
   const navigate = useNavigate();
   
   // Determine if we're in client or provider mode
+  // Explicitly check if path starts with '/client' for client section
   const isClientSection = location.pathname.startsWith('/client');
   
   const providerNavItems = [
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/clients', icon: Users, label: 'Mis clientes' }, // Cambiado de "Clientes" a "Mis clientes"
+    { to: '/clients', icon: Users, label: 'Mis clientes' },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
@@ -58,6 +59,28 @@ const Navbar = () => {
   
   const navItems = isClientSection ? clientNavItems : providerNavItems;
 
+  // Function to determine if a nav item is active
+  const isNavItemActive = (itemPath: string) => {
+    if (itemPath === '/') {
+      return location.pathname === '/';
+    }
+    
+    // For /clients route, make sure we don't consider it active when on /client paths
+    if (itemPath === '/clients') {
+      return location.pathname === '/clients' || 
+             (location.pathname.startsWith('/clients/') && !location.pathname.startsWith('/client'));
+    }
+    
+    // For /client route, only consider active when exactly on /client or a /client/* path
+    if (itemPath === '/client') {
+      return location.pathname === '/client' || 
+             (location.pathname.startsWith('/client/') && !location.pathname.startsWith('/clients'));
+    }
+    
+    // For other routes
+    return location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`);
+  };
+
   const renderNavItems = (closeMenu?: () => void) => (
     <nav className="flex flex-col gap-2">
       {navItems.map((item) => (
@@ -66,15 +89,7 @@ const Navbar = () => {
           to={item.to}
           icon={item.icon}
           label={item.label}
-          isActive={
-            item.to === '/' 
-              ? location.pathname === '/' 
-              : location.pathname === item.to || 
-                (location.pathname.startsWith(item.to) && 
-                 // Aseguramos que /clients no se considere parte de /client y viceversa
-                 !((item.to === '/client' && location.pathname.startsWith('/clients')) ||
-                   (item.to === '/clients' && location.pathname.startsWith('/client'))))
-          }
+          isActive={isNavItemActive(item.to)}
           onClick={closeMenu}
         />
       ))}
