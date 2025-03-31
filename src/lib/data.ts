@@ -310,64 +310,64 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
 export const ACHIEVEMENTS: Achievement[] = [
   {
     id: '1',
-    name: 'First Job Completed',
-    description: 'Successfully completed your first job',
+    name: 'Primer Servicio Completado',
+    description: 'Has completado con éxito tu primer servicio',
     points: 10,
     icon: 'check-circle',
     completedAt: new Date('2023-02-15')
   },
   {
     id: '2',
-    name: 'Five Star Review',
-    description: 'Received a five-star rating from a client',
+    name: 'Reseña de Cinco Estrellas',
+    description: 'Has recibido una calificación de cinco estrellas de un cliente',
     points: 20,
     icon: 'star',
     completedAt: new Date('2023-03-10')
   },
   {
     id: '3',
-    name: 'Social Media Sharer',
-    description: 'Shared a completed job on social media',
+    name: 'Compartido en Redes Sociales',
+    description: 'Has compartido un trabajo completado en redes sociales',
     points: 15,
     icon: 'share',
     completedAt: new Date('2023-04-05')
   },
   {
     id: '4',
-    name: '10 Jobs Milestone',
-    description: 'Completed 10 jobs successfully',
+    name: 'Hito de 10 Servicios',
+    description: 'Has completado 10 servicios con éxito',
     points: 50,
     icon: 'milestone',
     completedAt: new Date('2023-05-20')
   },
   {
     id: '5',
-    name: 'Perfect Month',
-    description: 'Completed all scheduled jobs in a month',
+    name: 'Mes Perfecto',
+    description: 'Has completado todos los servicios programados en un mes',
     points: 75,
     icon: 'calendar-check',
     completedAt: new Date('2023-06-30')
   },
   {
     id: '6',
-    name: 'Returning Customer',
-    description: 'A client booked your services more than once',
+    name: 'Cliente Recurrente',
+    description: 'Un cliente ha reservado tus servicios más de una vez',
     points: 25,
     icon: 'repeat',
     completedAt: new Date('2023-07-15')
   },
   {
     id: '7',
-    name: 'Fast Response',
-    description: 'Responded to all client inquiries within 1 hour for a week',
+    name: 'Respuesta Rápida',
+    description: 'Has respondido a todas las consultas de clientes en menos de 1 hora durante una semana',
     points: 30,
     icon: 'zap',
     completedAt: null
   },
   {
     id: '8',
-    name: 'Service Ambassador',
-    description: 'Referred another service provider to the platform',
+    name: 'Embajador de Servicio',
+    description: 'Has referido a otro proveedor de servicios a la plataforma',
     points: 40,
     icon: 'users',
     completedAt: null
