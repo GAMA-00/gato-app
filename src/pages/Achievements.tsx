@@ -9,6 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import PageContainer from '@/components/layout/PageContainer';
 import { ACHIEVEMENT_LEVELS, getProviderAchievements } from '@/lib/data';
 import { Achievement, AchievementLevelInfo } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 const iconMap: Record<string, React.ReactNode> = {
   'user': <User className="h-5 w-5" />,
@@ -96,7 +97,7 @@ const AchievementCard: React.FC<{ achievement: Achievement }> = ({ achievement }
             ) : (
               <div className="text-center py-4 text-muted-foreground">
                 <p>Aún no has completado este logro</p>
-                <Button className="mt-2 bg-primary/80 hover:bg-primary text-white py-1 px-4 rounded-full">
+                <Button className="mt-2">
                   Completar ahora
                 </Button>
               </div>
@@ -122,21 +123,17 @@ const LevelCard: React.FC<{
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
-              style={{ backgroundColor: `${level.color}30` }}>
-              {level.level.charAt(0).toUpperCase()}
-            </span>
+          <CardTitle className="text-lg truncate pr-2">
             {level.name}
           </CardTitle>
           <div 
-            className="p-2 rounded-full" 
+            className="p-2 rounded-full flex-shrink-0" 
             style={{ backgroundColor: `${level.color}20` }}
           >
             {iconMap[level.icon] || <Trophy className="h-5 w-5" style={{ color: level.color }} />}
           </div>
         </div>
-        <CardDescription>{level.description}</CardDescription>
+        <CardDescription className="line-clamp-2 h-10">{level.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mt-2">
@@ -165,16 +162,6 @@ const LevelCard: React.FC<{
     </Card>
   );
 };
-
-// Button component for our UI
-const Button = ({ children, className, ...props }: any) => (
-  <button 
-    className={`bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded ${className || ''}`}
-    {...props}
-  >
-    {children}
-  </button>
-);
 
 const Achievements: React.FC = () => {
   const { totalPoints, currentLevel, nextLevel, pointsToNextLevel, achievements } = getProviderAchievements();
