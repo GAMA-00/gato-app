@@ -168,7 +168,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
         
-        {/* Simplified Rating Section */}
+        {/* Performance Statistics */}
+        <DashboardStats stats={stats} />
+        
+        {/* Simplified Rating Section - Moved below Performance Statistics */}
         <Card className="glassmorphism">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xl flex items-center">
@@ -202,9 +205,6 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-        
-        {/* Performance Statistics */}
-        <DashboardStats stats={stats} />
         
         {/* Quick Stats - at the bottom */}
         <Card className="glassmorphism">
