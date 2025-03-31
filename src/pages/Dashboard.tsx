@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Calendar, Clock, Star, Users, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Calendar, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageContainer from '@/components/layout/PageContainer';
 import DashboardStats from '@/components/dashboard/DashboardStats';
@@ -8,45 +8,32 @@ import { MOCK_APPOINTMENTS, MOCK_SERVICES, MOCK_CLIENTS, getDashboardStats } fro
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, isSameDay, addDays } from 'date-fns';
-import { 
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
-// Mock ratings data
-const mockRatings = [
-  { month: 'Ene', rating: 4.5 },
-  { month: 'Feb', rating: 4.2 },
-  { month: 'Mar', rating: 4.7 },
-  { month: 'Abr', rating: 4.8 },
-  { month: 'May', rating: 4.6 },
-  { month: 'Jun', rating: 4.9 }
-];
-
-// Mock new clients data
-const mockNewClients = [
-  {
-    id: 'nc1',
-    name: 'María López',
-    address: 'Torre Norte, Apt 502',
-    service: 'Limpieza Estándar',
-    date: new Date(2023, 5, 28)
+// Mock comments and ratings data
+const mockComments = [
+  { 
+    id: 'r1', 
+    clientName: 'María López', 
+    serviceName: 'Limpieza Estándar',
+    date: new Date(2023, 5, 28), 
+    rating: 5, 
+    comment: 'Excelente servicio, mi casa quedó impecable.' 
   },
-  {
-    id: 'nc2',
-    name: 'Juan García',
-    address: 'Edificio Sol, Apt 305',
-    service: 'Limpieza Profunda',
-    date: new Date(2023, 5, 26)
+  { 
+    id: 'r2', 
+    clientName: 'Juan García', 
+    serviceName: 'Limpieza Profunda',
+    date: new Date(2023, 5, 26), 
+    rating: 4, 
+    comment: 'Buen servicio, aunque llegaron un poco tarde.' 
   },
-  {
-    id: 'nc3',
-    name: 'Ana Torres',
-    address: 'Residencial Vista, Apt 203',
-    service: 'Mantenimiento',
-    date: new Date(2023, 5, 25)
+  { 
+    id: 'r3', 
+    clientName: 'Ana Torres', 
+    serviceName: 'Mantenimiento',
+    date: new Date(2023, 5, 25), 
+    rating: 5, 
+    comment: 'Muy profesionales y puntuales.' 
   }
 ];
 
@@ -55,7 +42,6 @@ const Dashboard = () => {
   const stats = getDashboardStats();
   const today = new Date();
   const tomorrow = addDays(new Date(), 1);
-  const [ratingView, setRatingView] = useState<'latest' | 'average'>('latest');
   
   // Filter appointments for today and tomorrow
   const todaysAppointments = MOCK_APPOINTMENTS
@@ -105,91 +91,22 @@ const Dashboard = () => {
     );
   };
 
-  // Render a new client card
-  const renderNewClientCard = (client) => {
-    return (
-      <div key={client.id} className="p-4 border-b last:border-0">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-              <span className="text-primary font-medium">
-                {client.name.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
-            <div>
-              <h4 className="font-medium">{client.name}</h4>
-              <p className="text-sm text-muted-foreground">{client.service}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">
-              Desde {format(client.date, 'dd MMM yyyy')}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {client.address}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Render a rating stars
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 0; i < 5; i++) {
+      stars.push(
+        <Star 
+          key={i} 
+          className={`h-4 w-4 ${i < rating ? 'text-amber-500 fill-amber-500' : 'text-gray-300'}`}
+        />
+      );
+    }
+    return <div className="flex">{stars}</div>;
   };
 
-  const renderRatingData = () => {
-    const averageRating = (mockRatings.reduce((sum, item) => sum + item.rating, 0) / mockRatings.length).toFixed(1);
-    
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-2xl font-semibold">{ratingView === 'latest' ? '4.9' : averageRating}</h3>
-            <p className="text-sm text-muted-foreground">
-              {ratingView === 'latest' ? 'Calificación más reciente' : 'Calificación promedio'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant={ratingView === 'latest' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => setRatingView('latest')}
-            >
-              Reciente
-            </Button>
-            <Button 
-              variant={ratingView === 'average' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => setRatingView('average')}
-            >
-              Promedio
-            </Button>
-          </div>
-        </div>
-        
-        <div className="h-64">
-          <ChartContainer config={{ rating: { color: '#9b87f5' } }}>
-            <BarChart data={mockRatings}>
-              <XAxis dataKey="month" />
-              <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
-              <Bar dataKey="rating" fill="var(--color-rating)" radius={[4, 4, 0, 0]} />
-              <ChartTooltip
-                content={<ChartTooltipContent />}
-              />
-            </BarChart>
-          </ChartContainer>
-        </div>
-        
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center">
-            <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
-            <span>5% vs mes anterior</span>
-          </div>
-          <div className="flex items-center">
-            <Star className="h-4 w-4 text-amber-500 mr-1" />
-            <span>25 calificaciones este mes</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // Calculate average rating
+  const averageRating = (mockComments.reduce((sum, item) => sum + item.rating, 0) / mockComments.length).toFixed(1);
 
   return (
     <PageContainer 
@@ -250,41 +167,39 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* New Clients - replacing "Citas de hoy" in the stats grid */}
-        <Card className="glassmorphism">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xl flex items-center">
-              <Users className="mr-2 h-5 w-5 text-primary" />
-              Nuevos Clientes
-            </CardTitle>
-            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
-              {mockNewClients.length} clientes
-            </span>
-          </CardHeader>
-          <CardContent>
-            {mockNewClients.length > 0 ? (
-              <div className="divide-y">
-                {mockNewClients.map(renderNewClientCard)}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No hay clientes nuevos</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
         
-        {/* Rating Visualization */}
+        {/* Simplified Rating Section */}
         <Card className="glassmorphism">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xl flex items-center">
               <Star className="mr-2 h-5 w-5 text-primary" />
               Calificaciones
             </CardTitle>
+            <div className="flex items-center">
+              <span className="text-2xl font-semibold mr-2">{averageRating}</span>
+              {renderStars(parseFloat(averageRating))}
+            </div>
           </CardHeader>
           <CardContent>
-            {renderRatingData()}
+            <div className="space-y-4">
+              {mockComments.map(comment => (
+                <div key={comment.id} className="border-b pb-3 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h4 className="font-medium">{comment.clientName}</h4>
+                      <p className="text-xs text-muted-foreground">{comment.serviceName}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {renderStars(comment.rating)}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        {format(comment.date, 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm mt-1">{comment.comment}</p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
         
