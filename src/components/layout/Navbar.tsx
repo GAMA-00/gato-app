@@ -103,7 +103,7 @@ const Navbar = () => {
       <div className="mt-6 px-4">
         <Button 
           variant="outline" 
-          className="w-full justify-start" 
+          className="w-full justify-start text-sm py-2 h-auto min-h-10 whitespace-normal" 
           onClick={() => {
             if (closeMenu) closeMenu();
             switchView();
