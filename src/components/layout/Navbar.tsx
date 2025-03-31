@@ -43,12 +43,12 @@ const Navbar = () => {
   // Determine if we're in client or provider mode - only check exact path prefix
   const isClientSection = location.pathname.startsWith('/client');
   
-  // Define provider navigation items - Added "Clientes" item
+  // Define provider navigation items - Changed "Clientes" to "Mis Clientes"
   const providerNavItems = [
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/clients', icon: Users, label: 'Clientes' },
+    { to: '/clients', icon: Users, label: 'Mis Clientes' },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
