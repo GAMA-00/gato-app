@@ -43,7 +43,7 @@ const Achievements: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold">Nivel {currentLevelInfo.name.toUpperCase()}</h2>
-                    <p className="text-sm text-muted-foreground">{currentLevelInfo.name}</p>
+                    {/* Removed the duplicate smaller text that showed the level name again */}
                   </div>
                 </div>
               </div>
