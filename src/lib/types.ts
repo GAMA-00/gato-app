@@ -76,6 +76,7 @@ export interface Achievement {
   points: number;
   icon: string;
   completedAt?: Date;
+  completionCount?: number; // Number of times the achievement has been completed
 }
 
 export interface AchievementLevelInfo {
