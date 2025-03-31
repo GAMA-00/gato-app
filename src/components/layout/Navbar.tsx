@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Home, Briefcase, Menu, CalendarClock, Building, Award, Users } from 'lucide-react';
+import { Calendar, Home, Briefcase, Menu, CalendarClock, Building, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -43,12 +43,11 @@ const Navbar = () => {
   // Determine if we're in client or provider mode - only check exact path prefix
   const isClientSection = location.pathname.startsWith('/client');
   
-  // Define provider navigation items - Changed "Clientes" to "Mis Clientes"
+  // Define provider navigation items - Removed "Mis Clientes" item
   const providerNavItems = [
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/clients', icon: Users, label: 'Mis Clientes' },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
@@ -73,11 +72,6 @@ const Navbar = () => {
       return location.pathname === '/client' || 
              (location.pathname.startsWith('/client/') && 
               !location.pathname.startsWith('/clients/'));
-    }
-    
-    // Special case for "/clients" to ensure it's only active for the clients page
-    if (itemPath === '/clients') {
-      return location.pathname.startsWith('/clients');
     }
     
     // For other paths, check if the current path starts with the item path
