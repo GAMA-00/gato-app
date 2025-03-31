@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Calendar, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -93,12 +92,7 @@ const Dashboard = () => {
         <RatingSection comments={mockComments} />
         
         {/* Quick Stats */}
-        <QuickStats
-          popularService="Limpieza Estándar de Hogar"
-          busiestDay="Miércoles"
-          avgDuration="90 minutos"
-          satisfaction={85}
-        />
+        <QuickStats />
       </div>
     </PageContainer>
   );

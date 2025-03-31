@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Calendar, Clock, DollarSign, Users } from 'lucide-react';
+import { Clock, DollarSign, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DashboardStats as DashboardStatsType } from '@/lib/types';
 
@@ -54,14 +53,7 @@ interface DashboardStatsProps {
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <StatCard
-        title="Citas de Hoy"
-        value={stats.todayAppointments}
-        icon={<Calendar className="h-5 w-5 text-primary" />}
-        description="Programadas para hoy"
-        trend={{ value: 12, isPositive: true }}
-      />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <StatCard
         title="Esta Semana"
         value={stats.weekAppointments}
@@ -77,7 +69,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         trend={{ value: 5, isPositive: true }}
       />
       <StatCard
-        title="Clientes Activos"
+        title="Clientes Recurrentes"
         value={stats.activeClients}
         icon={<Users className="h-5 w-5 text-primary" />}
         description="Total de clientes activos"
