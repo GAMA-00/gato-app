@@ -29,7 +29,7 @@ const LevelCard: React.FC<{
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg truncate pr-2 min-h-7">
+          <CardTitle className="text-base truncate pr-2 min-h-6">
             {level.name}
           </CardTitle>
           <div 
