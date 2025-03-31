@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Award, Star, CheckCircle, Share2, Shield, Trophy, User, Users, Zap, Calendar, Repeat } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,9 +24,7 @@ const iconMap: Record<string, React.ReactNode> = {
   'users': <Users className="h-5 w-5" />,
 };
 
-// Gamified achievement card that shows completed achievements as "medals"
 const AchievementCard: React.FC<{ achievement: Achievement }> = ({ achievement }) => {
-  // For multiple completions, we'll show how many times it was completed
   const completionCount = achievement.completionCount || 0;
   const isCompleted = completionCount > 0;
   
@@ -71,11 +68,9 @@ const AchievementCard: React.FC<{ achievement: Achievement }> = ({ achievement }
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Simulate multiple completions with different dates */}
                     {Array.from({ length: completionCount }).map((_, index) => {
-                      // Generate a date in the past relative to completion date
                       const date = new Date(achievement.completedAt || new Date());
-                      date.setDate(date.getDate() - (index * 15)); // Each 15 days before
+                      date.setDate(date.getDate() - (index * 15));
                       
                       return (
                         <TableRow key={index}>
@@ -109,7 +104,6 @@ const AchievementCard: React.FC<{ achievement: Achievement }> = ({ achievement }
   );
 };
 
-// Level card that shows each level as a game-like achievement
 const LevelCard: React.FC<{ 
   level: AchievementLevelInfo, 
   isCurrentLevel: boolean,
@@ -117,13 +111,13 @@ const LevelCard: React.FC<{
   progress: number
 }> = ({ level, isCurrentLevel, isAchieved, progress }) => {
   return (
-    <Card className={`transition-all duration-300 ${
+    <Card className={`transition-all duration-300 h-full ${
       isCurrentLevel ? 'border-primary shadow-md glassmorphism border-2' : 
       isAchieved ? 'glassmorphism' : 'opacity-60'}`}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg truncate pr-2">
+          <CardTitle className="text-lg truncate pr-2 min-h-7">
             {level.name}
           </CardTitle>
           <div 
@@ -133,7 +127,7 @@ const LevelCard: React.FC<{
             {iconMap[level.icon] || <Trophy className="h-5 w-5" style={{ color: level.color }} />}
           </div>
         </div>
-        <CardDescription className="line-clamp-2 h-10">{level.description}</CardDescription>
+        <CardDescription className="line-clamp-3 min-h-[4.5rem]">{level.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mt-2">
@@ -166,31 +160,26 @@ const LevelCard: React.FC<{
 const Achievements: React.FC = () => {
   const { totalPoints, currentLevel, nextLevel, pointsToNextLevel, achievements } = getProviderAchievements();
   
-  // Find current level information
   const currentLevelInfo = ACHIEVEMENT_LEVELS.find(l => l.level === currentLevel) || ACHIEVEMENT_LEVELS[0];
   const nextLevelInfo = nextLevel ? ACHIEVEMENT_LEVELS.find(l => l.level === nextLevel) : null;
   
-  // Calculate progress percentage to next level
   const progressPercentage = nextLevelInfo
     ? ((totalPoints - currentLevelInfo.minPoints) / (nextLevelInfo.minPoints - currentLevelInfo.minPoints)) * 100
     : 100;
   
-  // Add completion count to simulate multiple completions
   const enhancedAchievements = achievements.map(achievement => ({
     ...achievement,
     completionCount: achievement.completedAt 
-      ? Math.floor(Math.random() * 5) + 1 // Random 1-5 completions for demo
+      ? Math.floor(Math.random() * 5) + 1
       : 0
   }));
   
-  // Get active and locked achievements
   const activeAchievements = enhancedAchievements.filter(a => a.completionCount > 0);
   const lockedAchievements = enhancedAchievements.filter(a => a.completionCount === 0);
   
   return (
     <PageContainer title="Logros" subtitle="Sube de nivel y desbloquea recompensas">
       <div className="space-y-8">
-        {/* XP Progress and Level */}
         <Card className="glassmorphism border-primary/20">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -225,12 +214,10 @@ const Achievements: React.FC = () => {
           </CardContent>
         </Card>
         
-        {/* Level progression - game levels */}
         <div className="mb-8">
           <h3 className="text-lg font-medium mb-4">Progresión de Nivel</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {ACHIEVEMENT_LEVELS.map((level) => {
-              // Calculate level-specific progress
               const isCurrentLevelItem = level.level === currentLevel;
               const isAchieved = totalPoints >= level.minPoints;
               const levelProgress = isCurrentLevelItem 
@@ -250,7 +237,6 @@ const Achievements: React.FC = () => {
           </div>
         </div>
         
-        {/* Completed achievements */}
         {activeAchievements.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -267,7 +253,6 @@ const Achievements: React.FC = () => {
           </div>
         )}
         
-        {/* Locked achievements */}
         {lockedAchievements.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
