@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Trending, Star } from 'lucide-react';
+import { Award, TrendingUp, Star } from 'lucide-react';
 
 const QuickStats: React.FC = () => {
   return (
@@ -24,7 +24,7 @@ const QuickStats: React.FC = () => {
           
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-full bg-primary/10">
-              <Trending className="h-5 w-5 text-primary" />
+              <TrendingUp className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="font-medium">Limpieza es el servicio con mas demanda de esta torre.</p>
