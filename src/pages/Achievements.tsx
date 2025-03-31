@@ -42,7 +42,7 @@ const Achievements: React.FC = () => {
                     <Trophy className="h-6 w-6" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Nivel {currentLevelInfo.level.toUpperCase()}</h2>
+                    <h2 className="text-2xl font-bold">Nivel {currentLevelInfo.name.toUpperCase()}</h2>
                     <p className="text-sm text-muted-foreground">{currentLevelInfo.name}</p>
                   </div>
                 </div>
