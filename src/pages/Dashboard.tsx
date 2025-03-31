@@ -124,45 +124,45 @@ const Dashboard = () => {
           </CardContent>
         </Card>
         
-        {/* Performance Statistics (Simplified) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8">
-            <DashboardStats stats={stats} />
-          </div>
-          
-          <div className="lg:col-span-4">
-            <div className="glassmorphism rounded-lg p-5 h-full">
-              <h3 className="text-lg font-medium mb-3">Estadísticas Rápidas</h3>
+        {/* Performance Statistics */}
+        <DashboardStats stats={stats} />
+        
+        {/* Quick Stats - moved to bottom */}
+        <Card className="glassmorphism">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xl">
+              Estadísticas Rápidas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-muted-foreground text-sm">Servicio Más Popular</p>
+                <p className="font-medium">Limpieza Estándar de Hogar</p>
+              </div>
               
-              <div className="space-y-4">
-                <div>
-                  <p className="text-muted-foreground text-sm">Servicio Más Popular</p>
-                  <p className="font-medium">Limpieza Estándar de Hogar</p>
-                </div>
-                
-                <div>
-                  <p className="text-muted-foreground text-sm">Día Más Ocupado</p>
-                  <p className="font-medium">Miércoles</p>
-                </div>
-                
-                <div>
-                  <p className="text-muted-foreground text-sm">Duración Promedio de Cita</p>
-                  <p className="font-medium">90 minutos</p>
-                </div>
-                
-                <div>
-                  <p className="text-muted-foreground text-sm">Satisfacción del Cliente</p>
-                  <div className="relative pt-1">
-                    <div className="overflow-hidden h-2 text-xs flex rounded bg-muted">
-                      <div style={{ width: "85%" }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"></div>
-                    </div>
-                    <p className="text-xs text-right mt-1">85%</p>
+              <div>
+                <p className="text-muted-foreground text-sm">Día Más Ocupado</p>
+                <p className="font-medium">Miércoles</p>
+              </div>
+              
+              <div>
+                <p className="text-muted-foreground text-sm">Duración Promedio de Cita</p>
+                <p className="font-medium">90 minutos</p>
+              </div>
+              
+              <div>
+                <p className="text-muted-foreground text-sm">Satisfacción del Cliente</p>
+                <div className="relative pt-1">
+                  <div className="overflow-hidden h-2 text-xs flex rounded bg-muted">
+                    <div style={{ width: "85%" }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"></div>
                   </div>
+                  <p className="text-xs text-right mt-1">85%</p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </PageContainer>
   );
