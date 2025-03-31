@@ -57,7 +57,11 @@ const Dashboard = () => {
   const tomorrow = addDays(new Date(), 1);
   const [ratingView, setRatingView] = useState<'latest' | 'average'>('latest');
   
-  // Filter appointments for tomorrow
+  // Filter appointments for today and tomorrow
+  const todaysAppointments = MOCK_APPOINTMENTS
+    .filter(app => isSameDay(app.startTime, today))
+    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    
   const tomorrowsAppointments = MOCK_APPOINTMENTS
     .filter(app => isSameDay(app.startTime, tomorrow))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
@@ -199,7 +203,55 @@ const Dashboard = () => {
       }
     >
       <div className="space-y-8">
-        {/* New Clients */}
+        {/* Today's Appointments */}
+        <Card className="glassmorphism">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xl flex items-center">
+              <Calendar className="mr-2 h-5 w-5 text-primary" />
+              Citas de Hoy
+            </CardTitle>
+            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+              {todaysAppointments.length} citas
+            </span>
+          </CardHeader>
+          <CardContent>
+            {todaysAppointments.length > 0 ? (
+              <div className="divide-y">
+                {todaysAppointments.map(renderAppointmentCard)}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No hay citas programadas para hoy</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Tomorrow's Appointments */}
+        <Card className="glassmorphism">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xl flex items-center">
+              <Calendar className="mr-2 h-5 w-5 text-primary" />
+              Citas de Mañana
+            </CardTitle>
+            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+              {tomorrowsAppointments.length} citas
+            </span>
+          </CardHeader>
+          <CardContent>
+            {tomorrowsAppointments.length > 0 ? (
+              <div className="divide-y">
+                {tomorrowsAppointments.map(renderAppointmentCard)}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No hay citas programadas para mañana</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* New Clients - replacing "Citas de hoy" in the stats grid */}
         <Card className="glassmorphism">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xl flex items-center">
@@ -233,30 +285,6 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             {renderRatingData()}
-          </CardContent>
-        </Card>
-        
-        {/* Tomorrow's Appointments */}
-        <Card className="glassmorphism">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xl flex items-center">
-              <Calendar className="mr-2 h-5 w-5 text-primary" />
-              Citas de Mañana
-            </CardTitle>
-            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
-              {tomorrowsAppointments.length} citas
-            </span>
-          </CardHeader>
-          <CardContent>
-            {tomorrowsAppointments.length > 0 ? (
-              <div className="divide-y">
-                {tomorrowsAppointments.map(renderAppointmentCard)}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No hay citas programadas para mañana</p>
-              </div>
-            )}
           </CardContent>
         </Card>
         
