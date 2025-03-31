@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
+import ProviderRateSettings from '@/components/services/ProviderRateSettings';
 import { MOCK_SERVICES } from '@/lib/data';
 import { Service } from '@/lib/types';
 
@@ -15,6 +16,7 @@ const Services = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | undefined>(undefined);
+  const [providerRate, setProviderRate] = useState(50); // Default rate of $50/hour
   
   const filteredServices = services.filter(
     service => service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,6 +62,11 @@ const Services = () => {
       toast.success('Servicio agregado exitosamente');
     }
   };
+  
+  const handleSaveRate = (rate: number) => {
+    setProviderRate(rate);
+    // In a real app, this would call an API to update the provider's rate
+  };
 
   return (
     <PageContainer 
@@ -73,6 +80,12 @@ const Services = () => {
       }
     >
       <div className="space-y-6">
+        {/* Provider Rate Settings Card */}
+        <ProviderRateSettings 
+          initialRate={providerRate}
+          onSave={handleSaveRate}
+        />
+        
         <div className="max-w-md">
           <Input 
             placeholder="Buscar servicios..." 
