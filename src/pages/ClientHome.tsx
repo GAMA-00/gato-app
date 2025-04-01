@@ -69,7 +69,8 @@ const ClientHome = () => {
         <div className="p-6 border rounded-lg bg-muted/30">
           <h3 className="font-medium mb-2">Acerca de Gato</h3>
           <p className="text-sm text-muted-foreground">
-            Reserva servicios de manera recurrente con solo unos clicks.
+            Servicios confiables, sin salir de casa.
+            Gato conecta a residentes con profesionales que ya trabajan en tu edificio de manera recurrente. Rápido, seguro y fácil de agendar.
           </p>
         </div>
       </div>
