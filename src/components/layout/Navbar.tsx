@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, Home, Briefcase, Menu, CalendarClock, Building, Award } from 'lucide-react';
@@ -62,23 +61,35 @@ const Navbar = () => {
 
   // Function to determine if a nav item is active
   const isNavItemActive = (itemPath: string) => {
+    // For the client section items, use exact matching to avoid both being highlighted
+    if (isClientSection) {
+      // For "/client" (Edificios), only highlight when exactly on that path
+      if (itemPath === '/client') {
+        return location.pathname === '/client';
+      }
+      
+      // For client bookings, only highlight when on that path or its subpaths
+      if (itemPath === '/client/bookings') {
+        return location.pathname.startsWith('/client/bookings');
+      }
+      
+      // For services (which are under /client/services/* or booking paths)
+      if (location.pathname.includes('/client/services') || 
+          location.pathname.includes('/client/book')) {
+        return itemPath === '/client';
+      }
+      
+      return location.pathname === itemPath;
+    }
+    
+    // For provider section, keep the original behavior
     // Special case for root path
     if (itemPath === '/') {
       return location.pathname === '/';
     }
     
-    // Special case for "/client" to ensure it's only active for client routes
-    if (itemPath === '/client') {
-      return location.pathname === '/client' || 
-             (location.pathname.startsWith('/client/') && 
-              !location.pathname.startsWith('/clients/'));
-    }
-    
     // For other paths, check if the current path starts with the item path
-    return location.pathname.startsWith(itemPath) && 
-           // Make sure we're not matching across sections
-           ((isClientSection && itemPath.startsWith('/client')) || 
-            (!isClientSection && !itemPath.startsWith('/client')));
+    return location.pathname.startsWith(itemPath);
   };
 
   // This function should ONLY be called by the dedicated "Change View" button
