@@ -64,15 +64,20 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   );
   
   const hours = Array.from({ length: 12 }, (_, i) => i + 8);
+  const isCurrentDay = isToday(date);
   
   return (
-    <div className="h-[1000px] relative border-r last:border-r-0 calendar-day">
+    <div className={cn(
+      "h-[1000px] relative border-r last:border-r-0 calendar-day",
+      isCurrentDay ? "bg-primary/5" : ""
+    )}>
       <div 
         className={cn(
-          "sticky top-0 py-2 text-center border-b z-10",
-          isToday(date) ? "bg-primary/5" : "bg-white"
+          "sticky top-0 py-2 text-center border-b z-10"
         )}
-        style={{ backgroundColor: isToday(date) ? "rgba(var(--primary), 0.05)" : "#ffffff" }}
+        style={{ 
+          backgroundColor: isCurrentDay ? "#f0f7ff" : "#ffffff" 
+        }}
       >
         <div 
           className={cn(
@@ -86,10 +91,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           className={cn(
             "flex items-center justify-center",
             !isCurrentMonth && "text-muted-foreground",
-            isToday(date) && "font-bold text-primary"
+            isCurrentDay && "font-bold text-primary"
           )}
         >
-          {isToday(date) ? (
+          {isCurrentDay ? (
             <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
               {format(date, 'd')}
             </div>
@@ -99,10 +104,13 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         </div>
       </div>
       
-      <div className="relative h-full bg-white">
+      <div className={cn("relative h-full", isCurrentDay ? "bg-primary/5" : "bg-white")}>
         {hours.map((hour) => (
           <div key={hour} className="border-b h-[60px] relative">
-            <div className="absolute left-1 -top-3 px-1 text-xs text-muted-foreground select-none bg-white">
+            <div className={cn(
+              "absolute left-1 -top-3 text-xs text-muted-foreground select-none",
+              isCurrentDay ? "bg-primary/5" : "bg-white"
+            )} style={{ padding: "0 2px" }}>
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
