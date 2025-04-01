@@ -59,15 +59,18 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   appointments,
   isCurrentMonth
 }) => {
+  // Filter appointments ending before or at 8pm (20:00)
   const dayAppointments = appointments.filter(appointment => 
-    isSameDay(appointment.startTime, date)
+    isSameDay(appointment.startTime, date) && 
+    appointment.endTime.getHours() <= 20
   );
   
-  const hours = Array.from({ length: 12 }, (_, i) => i + 8);
+  // Only show hours from 8am to 8pm (8 to 20)
+  const hours = Array.from({ length: 13 }, (_, i) => i + 8);
   const isCurrentDay = isToday(date);
   
   return (
-    <div className="h-[1000px] relative border-r last:border-r-0 calendar-day">
+    <div className="h-[780px] relative border-r last:border-r-0 calendar-day">
       <div 
         className="sticky top-0 py-2 text-center border-b z-10 bg-white"
       >
@@ -99,7 +102,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
       <div className="relative h-full bg-white">
         {hours.map((hour) => (
           <div key={hour} className="border-b h-[60px] relative">
-            <div className="absolute left-1 -top-3 text-xs text-muted-foreground select-none bg-white" style={{ padding: "0 2px" }}>
+            <div className="absolute left-1 -top-3 text-xs text-muted-foreground select-none bg-white py-0 px-1">
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
