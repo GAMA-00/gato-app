@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -69,8 +68,7 @@ const ClientHome = () => {
         <div className="p-6 border rounded-lg bg-muted/30">
           <h3 className="font-medium mb-2">Acerca de Gato</h3>
           <p className="text-sm text-muted-foreground">
-            Servicios confiables, sin salir de casa.
-            Gato conecta a residentes con profesionales que ya trabajan en tu edificio de manera recurrente. Rápido, seguro y fácil de agendar.
+            Gato te conecta con trabajadores que ya ofrecen servicios en tu torre. Agenda en 3 clicks servicios confiables, sin salir de casa.
           </p>
         </div>
       </div>
