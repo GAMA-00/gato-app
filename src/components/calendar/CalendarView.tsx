@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -31,7 +30,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       style={{
         top: `${startHour * 60 + startMinutes}px`,
         height: `${durationMinutes}px`,
-        backgroundColor: `${categoryColor}20`, // 20% opacity
+        backgroundColor: `${categoryColor}20`,
         borderLeft: `3px solid ${categoryColor}`
       }}
     >
@@ -59,19 +58,18 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   appointments,
   isCurrentMonth
 }) => {
-  // Filter appointments for this day
   const dayAppointments = appointments.filter(appointment => 
     isSameDay(appointment.startTime, date)
   );
   
-  const hours = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
+  const hours = Array.from({ length: 12 }, (_, i) => i + 8);
   
   return (
     <div className="h-[1000px] relative border-r last:border-r-0 calendar-day">
       <div 
         className={cn(
-          "sticky top-0 py-2 text-center border-b z-10 bg-background",
-          isToday(date) && "bg-primary/5"
+          "sticky top-0 py-2 text-center border-b z-10",
+          isToday(date) ? "bg-primary/5" : "bg-white"
         )}
       >
         <div 
@@ -102,7 +100,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
       <div className="relative h-full">
         {hours.map((hour) => (
           <div key={hour} className="border-b h-[60px]">
-            <div className="absolute left-1 -translate-y-3/4 px-1 text-xs text-muted-foreground select-none bg-background inline-block">
+            <div className="absolute left-1 -mt-2 px-1 text-xs text-muted-foreground select-none bg-white">
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
@@ -152,8 +150,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
   };
   
   return (
-    <Card className="glassmorphism overflow-hidden border-0 shadow-medium">
-      <div className="p-4 flex items-center justify-between border-b">
+    <Card className="overflow-hidden border-0 shadow-medium">
+      <div className="p-4 flex items-center justify-between border-b bg-white">
         <h2 className="text-xl font-semibold">
           {format(currentDate, 'MMMM yyyy')}
         </h2>
@@ -171,7 +169,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
           </div>
         </div>
       </div>
-      <div className="overflow-auto max-h-[calc(100vh-200px)]">
+      <div className="overflow-auto max-h-[calc(100vh-200px)] bg-white">
         <div className="flex min-w-[700px]">
           {days.map((day, index) => (
             <div key={index} className="flex-1">
