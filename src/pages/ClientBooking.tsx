@@ -62,8 +62,36 @@ const ClientBooking = () => {
       title="Reservar Cita"
       subtitle={`${service.name} en ${building.name}`}
     >
-      <div className="grid gap-8 grid-cols-1 md:grid-cols-3">
-        <Card className="md:col-span-2">
+      <div className="grid gap-8 grid-cols-1 md:grid-cols-1">
+        {/* Service Details Card - Now displayed first */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detalles del Servicio</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="font-medium">{service.name}</h3>
+              <p className="text-sm text-muted-foreground">{service.description}</p>
+            </div>
+            <div className="pt-4 border-t">
+              <p className="flex justify-between">
+                <span>Duración:</span>
+                <span>{service.duration} minutos</span>
+              </p>
+              <p className="flex justify-between">
+                <span>Precio:</span>
+                <span>${service.price.toFixed(2)}</span>
+              </p>
+              <p className="flex justify-between">
+                <span>Ubicación:</span>
+                <span>{building.name}</span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Date and Time Selection Card - Now displayed second */}
+        <Card>
           <CardHeader>
             <CardTitle>Seleccionar Fecha y Hora</CardTitle>
           </CardHeader>
@@ -83,7 +111,7 @@ const ClientBooking = () => {
               {selectedDate && (
                 <div className="flex-1">
                   <h3 className="text-sm font-medium mb-4">Horarios disponibles para {format(selectedDate, 'MMM d, yyyy')}</h3>
-                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {AVAILABLE_TIMES.map((time) => (
                       <Button
                         key={time}
@@ -110,32 +138,6 @@ const ClientBooking = () => {
               Reservar Cita
             </Button>
           </CardFooter>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalles del Servicio</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-medium">{service.name}</h3>
-              <p className="text-sm text-muted-foreground">{service.description}</p>
-            </div>
-            <div className="pt-4 border-t">
-              <p className="flex justify-between">
-                <span>Duración:</span>
-                <span>{service.duration} minutos</span>
-              </p>
-              <p className="flex justify-between">
-                <span>Precio:</span>
-                <span>${service.price.toFixed(2)}</span>
-              </p>
-              <p className="flex justify-between">
-                <span>Ubicación:</span>
-                <span>{building.name}</span>
-              </p>
-            </div>
-          </CardContent>
         </Card>
       </div>
     </PageContainer>
