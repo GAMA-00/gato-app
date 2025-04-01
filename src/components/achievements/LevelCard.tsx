@@ -10,10 +10,10 @@ import { AchievementLevelInfo } from '@/lib/types';
 import { User, Shield, Star, Award } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
-  'user': <User className="h-5 w-5" />,
-  'shield': <Shield className="h-5 w-5" />,
-  'star': <Star className="h-5 w-5" />,
-  'award': <Award className="h-5 w-5" />,
+  'user': <User className="h-4 w-4" />,
+  'shield': <Shield className="h-4 w-4" />,
+  'star': <Star className="h-4 w-4" />,
+  'award': <Award className="h-4 w-4" />,
 };
 
 const LevelCard: React.FC<{ 
@@ -33,10 +33,10 @@ const LevelCard: React.FC<{
             {level.name}
           </CardTitle>
           <div 
-            className="p-2 rounded-full flex items-center justify-center flex-shrink-0" 
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" 
             style={{ backgroundColor: `${level.color}20` }}
           >
-            {iconMap[level.icon] || <Trophy className="h-5 w-5" style={{ color: level.color }} />}
+            {iconMap[level.icon] || <Trophy className="h-4 w-4" style={{ color: level.color }} />}
           </div>
         </div>
         <CardDescription className="line-clamp-4 min-h-[6rem]">{level.description}</CardDescription>
