@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, DollarSign, Edit, Trash } from 'lucide-react';
+import { Clock, Trash, Edit } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Service } from '@/lib/types';
@@ -41,7 +41,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                     <Clock className="h-3 w-3" /> {service.duration} min
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <DollarSign className="h-3 w-3" /> ${service.price}
+                    ${service.price}
                   </span>
                 </div>
               </div>

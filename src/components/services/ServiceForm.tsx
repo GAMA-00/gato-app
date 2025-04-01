@@ -8,7 +8,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { Service, ServiceCategory } from '@/lib/types';
 import { SERVICE_CATEGORIES } from '@/lib/data';
+import { Trash } from 'lucide-react';
 
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: 'Service name must be at least 2 characters.' }),
@@ -47,13 +49,15 @@ interface ServiceFormProps {
   onClose: () => void;
   onSubmit: (service: Partial<Service>) => void;
   initialData?: Service;
+  onDelete?: (service: Service) => void;
 }
 
 const ServiceForm: React.FC<ServiceFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  initialData
+  initialData,
+  onDelete
 }) => {
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
@@ -80,11 +84,21 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     onClose();
   };
   
+  const handleDelete = () => {
+    if (initialData && onDelete) {
+      onDelete(initialData);
+      onClose();
+    }
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Service' : 'Add New Service'}</DialogTitle>
+          <DialogDescription>
+            {initialData ? 'Make changes to your service or delete it.' : 'Add a new service to your offerings.'}
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
@@ -184,13 +198,25 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
               )}
             />
             
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {initialData ? 'Save Changes' : 'Add Service'}
-              </Button>
+            <DialogFooter className="flex justify-between items-center w-full">
+              {initialData && onDelete && (
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  onClick={handleDelete}
+                  className="mr-auto"
+                >
+                  <Trash className="h-4 w-4 mr-2" /> Delete Service
+                </Button>
+              )}
+              <div className="space-x-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {initialData ? 'Save Changes' : 'Add Service'}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>

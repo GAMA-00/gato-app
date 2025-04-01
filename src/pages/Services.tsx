@@ -116,6 +116,7 @@ const Services = () => {
           onClose={() => setIsFormOpen(false)}
           onSubmit={handleSubmitService}
           initialData={editingService}
+          onDelete={handleDeleteService}
         />
       </div>
     </PageContainer>
