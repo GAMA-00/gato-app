@@ -4,7 +4,7 @@ import { Check, X, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Appointment, Client, Service } from '@/lib/types';
+import { Appointment, Client, Service, RecurrencePattern } from '@/lib/types';
 import { MOCK_SERVICES, MOCK_CLIENTS } from '@/lib/data';
 
 // Mock job requests (in a real app, this would come from props or API)
@@ -18,9 +18,11 @@ const JOB_REQUESTS = [
       startTime: new Date(new Date().setHours(10, 0)),
       endTime: new Date(new Date().setHours(12, 0)),
       status: 'pending',
-      recurrence: 'none',
+      recurrence: 'none' as RecurrencePattern,
       notes: 'New client request',
-      createdAt: new Date()
+      createdAt: new Date(),
+      building: 'Torre Norte',
+      apartment: '703'
     }
   },
   {
@@ -32,9 +34,11 @@ const JOB_REQUESTS = [
       startTime: new Date(new Date().setHours(14, 30)),
       endTime: new Date(new Date().setHours(16, 0)),
       status: 'pending',
-      recurrence: 'none',
+      recurrence: 'none' as RecurrencePattern,
       notes: 'Special cleaning request',
-      createdAt: new Date()
+      createdAt: new Date(),
+      building: 'Edificio Azul',
+      apartment: '1204'
     }
   }
 ];
@@ -72,7 +76,7 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
           ${service.price}
         </div>
         <div className="bg-orange-100 text-orange-700 text-xs font-medium rounded-full px-2 py-0.5">
-          {service.duration} min
+          {request.appointment.building} - #{request.appointment.apartment}
         </div>
         <div className="ml-auto flex gap-2">
           <Button 
