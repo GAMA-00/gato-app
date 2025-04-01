@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -71,6 +72,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           "sticky top-0 py-2 text-center border-b z-10",
           isToday(date) ? "bg-primary/5" : "bg-white"
         )}
+        style={{ backgroundColor: isToday(date) ? "rgba(var(--primary), 0.05)" : "#ffffff" }}
       >
         <div 
           className={cn(
@@ -97,10 +99,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         </div>
       </div>
       
-      <div className="relative h-full">
+      <div className="relative h-full bg-white">
         {hours.map((hour) => (
-          <div key={hour} className="border-b h-[60px]">
-            <div className="absolute left-1 -mt-2 px-1 text-xs text-muted-foreground select-none bg-white">
+          <div key={hour} className="border-b h-[60px] relative">
+            <div className="absolute left-1 -top-3 px-1 text-xs text-muted-foreground select-none bg-white">
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
