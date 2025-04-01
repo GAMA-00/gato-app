@@ -101,8 +101,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
       
       <div className="relative h-full">
         {hours.map((hour) => (
-          <div key={hour} className="border-b h-[60px] text-xs text-muted-foreground">
-            <div className="absolute left-0 -translate-y-2 px-1 select-none">{hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}</div>
+          <div key={hour} className="border-b h-[60px]">
+            <div className="absolute left-1 -translate-y-3 px-1 text-xs text-muted-foreground select-none">
+              {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
+            </div>
           </div>
         ))}
         
@@ -150,8 +152,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
   };
   
   return (
-    <Card className="glassmorphism overflow-hidden">
-      <div className="border-b p-4 flex items-center justify-between">
+    <Card className="glassmorphism overflow-hidden border-0 shadow-medium">
+      <div className="p-4 flex items-center justify-between border-b">
         <h2 className="text-xl font-semibold">
           {format(currentDate, 'MMMM yyyy')}
         </h2>
@@ -170,7 +172,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
         </div>
       </div>
       <div className="overflow-auto max-h-[calc(100vh-200px)]">
-        <div className="flex divide-x min-w-[700px]">
+        <div className="flex min-w-[700px]">
           {days.map((day, index) => (
             <div key={index} className="flex-1">
               <CalendarDay 
