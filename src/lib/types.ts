@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'cleaning'
   | 'pet-grooming'
@@ -58,6 +57,8 @@ export interface Appointment {
   recurrence: RecurrencePattern;
   notes: string;
   createdAt: Date;
+  building?: string;
+  apartment?: string;
 }
 
 export interface DashboardStats {
