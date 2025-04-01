@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, Trash, Edit } from 'lucide-react';
+import { Clock, Edit } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Service } from '@/lib/types';
@@ -46,12 +46,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button variant="ghost" size="icon" onClick={() => onEdit(service)}>
                   <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => onDelete(service)}>
-                  <Trash className="h-4 w-4" />
                 </Button>
               </div>
             </div>
