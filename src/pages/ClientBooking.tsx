@@ -111,12 +111,12 @@ const ClientBooking = () => {
               {selectedDate && (
                 <div className="flex-1">
                   <h3 className="text-sm font-medium mb-4">Horarios disponibles para {format(selectedDate, 'MMM d, yyyy')}</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {AVAILABLE_TIMES.map((time) => (
                       <Button
                         key={time}
                         variant={selectedTime === time ? "default" : "outline"}
-                        className="w-full justify-center text-xs md:text-sm py-2 px-1 h-auto min-h-9"
+                        className="w-full h-12 justify-center text-sm py-3"
                         onClick={() => setSelectedTime(time)}
                       >
                         {time}
