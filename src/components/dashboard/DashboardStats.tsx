@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Clock, DollarSign, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -53,7 +54,7 @@ interface DashboardStatsProps {
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
       <StatCard
         title="Esta Semana"
         value={stats.weekAppointments}

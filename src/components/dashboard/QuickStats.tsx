@@ -5,7 +5,7 @@ import { Award, TrendingUp, Star } from 'lucide-react';
 
 const QuickStats: React.FC = () => {
   return (
-    <Card className="glassmorphism">
+    <Card className="glassmorphism mt-2">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-xl">
           Estadísticas Rápidas

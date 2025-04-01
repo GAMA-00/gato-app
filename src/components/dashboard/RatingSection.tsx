@@ -36,7 +36,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ comments }) => {
   const averageRating = (comments.reduce((sum, item) => sum + item.rating, 0) / comments.length).toFixed(1);
 
   return (
-    <Card className="glassmorphism">
+    <Card className="glassmorphism mt-2">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-xl flex items-center">
           <Star className="mr-2 h-5 w-5 text-primary" />

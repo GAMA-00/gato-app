@@ -1,13 +1,15 @@
 
-import React from 'react';
-import { Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Eye, EyeOff } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import AppointmentList from '@/components/dashboard/AppointmentList';
 import RatingSection from '@/components/dashboard/RatingSection';
 import QuickStats from '@/components/dashboard/QuickStats';
-import { MOCK_APPOINTMENTS, MOCK_SERVICES, MOCK_CLIENTS, getDashboardStats } from '@/lib/data';
+import { MOCK_APPOINTMENTS, getDashboardStats } from '@/lib/data';
 import { isSameDay, addDays } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // Mock comments and ratings data
 const mockComments = [
@@ -37,6 +39,40 @@ const mockComments = [
   }
 ];
 
+const StatisticsSection = ({ 
+  title, 
+  defaultOpen = false, 
+  children 
+}: { 
+  title: string, 
+  defaultOpen?: boolean,
+  children: React.ReactNode 
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            {isOpen ? 
+              <EyeOff className="h-4 w-4" /> : 
+              <Eye className="h-4 w-4" />
+            }
+            <span className="sr-only">
+              {isOpen ? 'Ocultar' : 'Mostrar'} {title}
+            </span>
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent>
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 const Dashboard = () => {
   const stats = getDashboardStats();
   const today = new Date();
@@ -57,7 +93,7 @@ const Dashboard = () => {
       subtitle="Bienvenido de nuevo"
     >
       <div className="space-y-8">
-        {/* Today's Appointments */}
+        {/* Today's Appointments - Always visible */}
         <AppointmentList
           appointments={todaysAppointments}
           title="Citas de Hoy"
@@ -65,7 +101,7 @@ const Dashboard = () => {
           emptyMessage="No hay citas programadas para hoy"
         />
 
-        {/* Tomorrow's Appointments */}
+        {/* Tomorrow's Appointments - Always visible */}
         <AppointmentList
           appointments={tomorrowsAppointments}
           title="Citas de Mañana"
@@ -73,14 +109,20 @@ const Dashboard = () => {
           emptyMessage="No hay citas programadas para mañana"
         />
         
-        {/* Performance Statistics */}
-        <DashboardStats stats={stats} />
+        {/* Performance Statistics - Hidden by default */}
+        <StatisticsSection title="Estadísticas de Desempeño">
+          <DashboardStats stats={stats} />
+        </StatisticsSection>
         
-        {/* Ratings Section */}
-        <RatingSection comments={mockComments} />
+        {/* Ratings Section - Hidden by default */}
+        <StatisticsSection title="Calificaciones y Comentarios">
+          <RatingSection comments={mockComments} />
+        </StatisticsSection>
         
-        {/* Quick Stats */}
-        <QuickStats />
+        {/* Quick Stats - Hidden by default */}
+        <StatisticsSection title="Estadísticas Rápidas">
+          <QuickStats />
+        </StatisticsSection>
       </div>
     </PageContainer>
   );
