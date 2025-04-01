@@ -33,7 +33,7 @@ const LevelCard: React.FC<{
             {level.name}
           </CardTitle>
           <div 
-            className="p-2 rounded-full flex-shrink-0" 
+            className="p-2 rounded-full flex items-center justify-center flex-shrink-0" 
             style={{ backgroundColor: `${level.color}20` }}
           >
             {iconMap[level.icon] || <Trophy className="h-5 w-5" style={{ color: level.color }} />}
