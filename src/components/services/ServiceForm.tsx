@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { 
@@ -8,32 +8,14 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+import { Form } from '@/components/ui/form';
 import { Service, ServiceCategory } from '@/lib/types';
-import { SERVICE_CATEGORIES } from '@/lib/data';
-import { Trash } from 'lucide-react';
+import ServiceFormFields from './ServiceFormFields';
+import ServiceFormFooter from './ServiceFormFooter';
 
+// Schema definitions for validation
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: 'Service name must be at least 2 characters.' }),
   category: z.enum(['cleaning', 'pet-grooming', 'car-wash', 'gardening', 'maintenance', 'other'] as const),
@@ -84,9 +66,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     onClose();
   };
   
-  const handleDelete = () => {
-    if (initialData && onDelete) {
-      onDelete(initialData);
+  const handleDelete = (service: Service) => {
+    if (onDelete) {
+      onDelete(service);
       onClose();
     }
   };
@@ -101,125 +83,20 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter service name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid sm:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.entries(SERVICE_CATEGORIES).map(([value, category]) => (
-                          <SelectItem key={value} value={value}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <FormProvider {...form}>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              <ServiceFormFields />
               
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duration (mins)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="15" step="15" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price ($)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" step="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Enter service description..." 
-                      rows={3}
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Describe the service in detail.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter className="flex justify-between items-center w-full">
-              {initialData && onDelete && (
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  onClick={handleDelete}
-                  className="mr-auto"
-                >
-                  <Trash className="h-4 w-4 mr-2" /> Delete Service
-                </Button>
-              )}
-              <div className="space-x-2">
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {initialData ? 'Save Changes' : 'Add Service'}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </Form>
+              <ServiceFormFooter 
+                isEditing={!!initialData}
+                onDelete={handleDelete}
+                initialData={initialData}
+                onCancel={onClose}
+              />
+            </form>
+          </Form>
+        </FormProvider>
       </DialogContent>
     </Dialog>
   );
