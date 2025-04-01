@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -67,10 +66,9 @@ const ClientHome = () => {
         </div>
 
         <div className="p-6 border rounded-lg bg-muted/30">
-          <h3 className="font-medium mb-2">Acerca de ServiceSync</h3>
+          <h3 className="font-medium mb-2">Acerca de Gato</h3>
           <p className="text-sm text-muted-foreground">
-            ServiceSync te conecta con proveedores de servicios confiables en tu edificio.
-            Reserva servicios de limpieza, peluquería para mascotas, lavado de autos y más con solo unos clics.
+            Reserva servicios de manera recurrente con solo unos clicks.
           </p>
         </div>
       </div>
