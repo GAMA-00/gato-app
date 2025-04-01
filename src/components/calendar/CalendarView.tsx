@@ -67,17 +67,9 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   const isCurrentDay = isToday(date);
   
   return (
-    <div className={cn(
-      "h-[1000px] relative border-r last:border-r-0 calendar-day",
-      isCurrentDay ? "bg-primary/5" : ""
-    )}>
+    <div className="h-[1000px] relative border-r last:border-r-0 calendar-day">
       <div 
-        className={cn(
-          "sticky top-0 py-2 text-center border-b z-10"
-        )}
-        style={{ 
-          backgroundColor: isCurrentDay ? "#f0f7ff" : "#ffffff" 
-        }}
+        className="sticky top-0 py-2 text-center border-b z-10 bg-white"
       >
         <div 
           className={cn(
@@ -104,13 +96,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         </div>
       </div>
       
-      <div className={cn("relative h-full", isCurrentDay ? "bg-primary/5" : "bg-white")}>
+      <div className="relative h-full bg-white">
         {hours.map((hour) => (
           <div key={hour} className="border-b h-[60px] relative">
-            <div className={cn(
-              "absolute left-1 -top-3 text-xs text-muted-foreground select-none",
-              isCurrentDay ? "bg-primary/5" : "bg-white"
-            )} style={{ padding: "0 2px" }}>
+            <div className="absolute left-1 -top-3 text-xs text-muted-foreground select-none bg-white" style={{ padding: "0 2px" }}>
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
