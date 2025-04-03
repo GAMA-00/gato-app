@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, Home, Briefcase, Menu, CalendarClock, Building, Award, MessageSquare } from 'lucide-react';
@@ -48,10 +47,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { hasUnreadMessages } = useChat();
   
-  // Determine if we're in client or provider mode
   const isClientSection = location.pathname.startsWith('/client');
   
-  // Define provider navigation items
   const providerNavItems = [
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
@@ -60,19 +57,15 @@ const Navbar = () => {
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
-  // Define client navigation items
   const clientNavItems = [
     { to: '/client', icon: Building, label: 'Edificios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas' },
     { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];
   
-  // Select which navigation items to display based on the current section
   const navItems = isClientSection ? clientNavItems : providerNavItems;
 
-  // Function to determine if a nav item is active
   const isNavItemActive = (itemPath: string) => {
-    // For the messages pages
     if (itemPath === '/messages' && location.pathname === '/messages') {
       return true;
     }
@@ -81,19 +74,15 @@ const Navbar = () => {
       return true;
     }
     
-    // For the client section items, use exact matching to avoid both being highlighted
     if (isClientSection) {
-      // For "/client" (Edificios), only highlight when exactly on that path
       if (itemPath === '/client') {
         return location.pathname === '/client';
       }
       
-      // For client bookings, only highlight when on that path or its subpaths
       if (itemPath === '/client/bookings') {
         return location.pathname.startsWith('/client/bookings');
       }
       
-      // For services (which are under /client/services/* or booking paths)
       if (location.pathname.includes('/client/services') || 
           location.pathname.includes('/client/book')) {
         return itemPath === '/client';
@@ -102,17 +91,13 @@ const Navbar = () => {
       return location.pathname === itemPath;
     }
     
-    // For provider section, keep the original behavior
-    // Special case for root path
     if (itemPath === '/') {
       return location.pathname === '/';
     }
     
-    // For other paths, check if the current path starts with the item path
     return location.pathname.startsWith(itemPath);
   };
 
-  // This function should ONLY be called by the dedicated "Change View" button
   const switchView = () => {
     navigate(isClientSection ? '/' : '/client');
   };
@@ -131,7 +116,6 @@ const Navbar = () => {
         />
       ))}
       
-      {/* Switch between client and provider views - ONLY way to change views */}
       <div className="mt-6 px-4">
         <Button 
           variant="outline" 
