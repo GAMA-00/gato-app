@@ -168,8 +168,11 @@ const Navbar = () => {
         
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="relative">
               <Menu className="h-5 w-5" />
+              {hasUnreadMessages && (
+                <Badge variant="destructive" className="absolute -top-1 -right-1 h-2 w-2 p-0" />
+              )}
               <span className="sr-only">Alternar menú</span>
             </Button>
           </SheetTrigger>

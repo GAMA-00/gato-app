@@ -18,7 +18,6 @@ import ClientServices from "./pages/ClientServices";
 import ClientBooking from "./pages/ClientBooking";
 import ClientBookings from "./pages/ClientBookings";
 import { ChatProvider } from "./contexts/ChatContext";
-import Chat from "./components/chat/Chat";
 
 // Create a client for React Query
 const queryClient = new QueryClient();
@@ -46,7 +45,6 @@ const AppRoutes = () => {
         {/* Not found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Chat />
     </>
   );
 };
