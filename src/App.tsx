@@ -15,6 +15,8 @@ import ClientHome from "./pages/ClientHome";
 import ClientServices from "./pages/ClientServices";
 import ClientBooking from "./pages/ClientBooking";
 import ClientBookings from "./pages/ClientBookings";
+import { ChatProvider } from "./contexts/ChatContext";
+import Chat from "./components/chat/Chat";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,7 @@ const AppRoutes = () => {
         {/* Not found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <Chat />
     </>
   );
 };
@@ -47,9 +50,11 @@ const App = () => (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AppRoutes />
+        <ChatProvider>
+          <Toaster />
+          <Sonner />
+          <AppRoutes />
+        </ChatProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </BrowserRouter>
