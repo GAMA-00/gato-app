@@ -10,6 +10,8 @@ import Calendar from "./pages/Calendar";
 import Services from "./pages/Services";
 import Clients from "./pages/Clients";
 import Achievements from "./pages/Achievements";
+import Messages from "./pages/Messages";
+import ClientMessages from "./pages/ClientMessages";
 import NotFound from "./pages/NotFound";
 import ClientHome from "./pages/ClientHome";
 import ClientServices from "./pages/ClientServices";
@@ -31,6 +33,7 @@ const AppRoutes = () => {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/services" element={<Services />} />
         <Route path="/clients" element={<Clients />} />
+        <Route path="/messages" element={<Messages />} />
         <Route path="/achievements" element={<Achievements />} />
         
         {/* Client routes */}
@@ -38,11 +41,11 @@ const AppRoutes = () => {
         <Route path="/client/services/:buildingId" element={<ClientServices />} />
         <Route path="/client/book/:buildingId/:serviceId" element={<ClientBooking />} />
         <Route path="/client/bookings" element={<ClientBookings />} />
+        <Route path="/client/messages" element={<ClientMessages />} />
         
         {/* Not found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Chat />
     </>
   );
 };

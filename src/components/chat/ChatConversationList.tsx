@@ -5,12 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useChat } from '@/contexts/ChatContext';
+import { cn } from '@/lib/utils';
 
 interface ChatConversationListProps {
   onSelectConversation: () => void;
+  className?: string;
 }
 
-const ChatConversationList: React.FC<ChatConversationListProps> = ({ onSelectConversation }) => {
+const ChatConversationList: React.FC<ChatConversationListProps> = ({ onSelectConversation, className }) => {
   const { conversations, setActiveConversation, markAsRead } = useChat();
   const isClient = window.location.pathname.startsWith('/client');
 
@@ -24,7 +26,7 @@ const ChatConversationList: React.FC<ChatConversationListProps> = ({ onSelectCon
   };
 
   return (
-    <ScrollArea className="flex-1 p-4">
+    <ScrollArea className={cn("flex-1 p-4", className)}>
       <div className="space-y-2">
         {conversations.length > 0 ? (
           conversations.map(conversation => {

@@ -1,28 +1,33 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Home, Briefcase, Menu, CalendarClock, Building, Award } from 'lucide-react';
+import { Calendar, Home, Briefcase, Menu, CalendarClock, Building, Award, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useChat } from '@/contexts/ChatContext';
+import { Badge } from '@/components/ui/badge';
 
 const NavItem = ({ 
   to, 
   icon: Icon, 
   label, 
   isActive,
-  onClick
+  onClick,
+  badge
 }: { 
   to: string; 
   icon: React.ComponentType<{ className?: string }>; 
   label: string; 
   isActive: boolean;
   onClick?: () => void;
+  badge?: boolean;
 }) => (
   <Link
     to={to}
     className={cn(
-      "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
+      "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative",
       isActive 
         ? "bg-primary/10 text-primary font-medium" 
         : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -31,6 +36,9 @@ const NavItem = ({
   >
     <Icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
     <span>{label}</span>
+    {badge && (
+      <Badge variant="destructive" className="absolute right-2 top-2 h-2 w-2 p-0" />
+    )}
   </Link>
 );
 
@@ -38,22 +46,25 @@ const Navbar = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { hasUnreadMessages } = useChat();
   
-  // Determine if we're in client or provider mode - only check exact path prefix
+  // Determine if we're in client or provider mode
   const isClientSection = location.pathname.startsWith('/client');
   
-  // Define provider navigation items - Removed "Mis Clientes" item
+  // Define provider navigation items
   const providerNavItems = [
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
+    { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
   // Define client navigation items
   const clientNavItems = [
     { to: '/client', icon: Building, label: 'Edificios' },
-    { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas' }
+    { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas' },
+    { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];
   
   // Select which navigation items to display based on the current section
@@ -61,6 +72,15 @@ const Navbar = () => {
 
   // Function to determine if a nav item is active
   const isNavItemActive = (itemPath: string) => {
+    // For the messages pages
+    if (itemPath === '/messages' && location.pathname === '/messages') {
+      return true;
+    }
+    
+    if (itemPath === '/client/messages' && location.pathname === '/client/messages') {
+      return true;
+    }
+    
     // For the client section items, use exact matching to avoid both being highlighted
     if (isClientSection) {
       // For "/client" (Edificios), only highlight when exactly on that path
@@ -107,6 +127,7 @@ const Navbar = () => {
           label={item.label}
           isActive={isNavItemActive(item.to)}
           onClick={closeMenu}
+          badge={item.badge}
         />
       ))}
       
