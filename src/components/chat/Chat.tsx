@@ -1,15 +1,17 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '@/contexts/ChatContext';
 import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Chat: React.FC = () => {
   const navigate = useNavigate();
   const { hasUnreadMessages } = useChat();
   const isClient = window.location.pathname.startsWith('/client');
+  const isMobile = useIsMobile();
   
   const handleChatClick = () => {
     if (isClient) {
@@ -19,8 +21,15 @@ const Chat: React.FC = () => {
     }
   };
 
+  // Only show this floating chat button if we're NOT already on a messages page
+  const isMessagesPage = window.location.pathname.includes('/messages');
+
+  if (isMessagesPage || !isMobile) {
+    return null;
+  }
+
   return (
-    <div className="fixed bottom-4 right-4 z-50 md:hidden">
+    <div className="fixed bottom-4 right-4 z-50">
       <Button 
         variant="default" 
         size="icon" 

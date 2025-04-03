@@ -46,6 +46,7 @@ const AppRoutes = () => {
         {/* Not found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <Chat />
     </>
   );
 };
