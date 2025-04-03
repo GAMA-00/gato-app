@@ -45,8 +45,15 @@ const ChatMessages: React.FC = () => {
                 ) : (
                   <p>{message.content}</p>
                 )}
-                <div className={`text-xs mt-1 ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                <div className={`text-xs mt-1 flex items-center gap-1 ${
+                  isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                }`}>
                   {format(message.timestamp, 'HH:mm', { locale: es })}
+                  {isOwn && (
+                    <span className="ml-1">
+                      {message.read ? '✓✓' : '✓'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
