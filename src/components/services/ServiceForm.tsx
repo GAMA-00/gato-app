@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Service, ServiceCategory } from '@/lib/types';
+import { InfoIcon } from 'lucide-react';
 import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
 
@@ -87,6 +88,23 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               <ServiceFormFields />
+              
+              {/* Pricing Information Notice */}
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-sm">
+                <div className="flex items-start gap-2">
+                  <InfoIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="font-medium">Información importante sobre precios</p>
+                    <p className="text-muted-foreground">
+                      La tarifa que estableces será exactamente el ingreso que recibes por hora de servicio. 
+                      Como plataforma, cobramos un 20% adicional al cliente que aparecerá en el listado de servicios.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Ejemplo: Si estableces $100/hora como tu tarifa, el cliente verá $120/hora en el listado.
+                    </p>
+                  </div>
+                </div>
+              </div>
               
               <ServiceFormFooter 
                 isEditing={!!initialData}
