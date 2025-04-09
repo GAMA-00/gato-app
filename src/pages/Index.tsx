@@ -18,7 +18,7 @@ const Index = () => {
           <Button 
             onClick={() => navigate('/client')} 
             size="lg" 
-            className="text-base px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground premium-shadow"
+            className="text-base px-8 py-6 bg-navy hover:bg-navy/90 text-navy-foreground premium-shadow"
           >
             Portal de Cliente
           </Button>
@@ -26,7 +26,7 @@ const Index = () => {
             onClick={() => navigate('/dashboard')} 
             size="lg" 
             variant="outline"
-            className="text-base px-8 py-6 border-primary text-primary hover:bg-primary/10 luxury-border"
+            className="text-base px-8 py-6 border-gray-medium text-navy hover:bg-gray-light/30 luxury-border"
           >
             Administración
           </Button>

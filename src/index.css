@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,6 +33,13 @@
     --input: 34 15% 85%;
     --ring: 35 40% 45%;
 
+    --navy: 215 50% 23%;
+    --navy-foreground: 0 0% 98%;
+    
+    --gray-light: 210 10% 85%;
+    --gray-medium: 210 10% 70%;
+    --gray-dark: 210 10% 40%;
+
     --radius: 0.5rem;
   }
 
@@ -63,6 +71,13 @@
     --border: 32 15% 25%;
     --input: 32 15% 25%;
     --ring: 35 40% 60%;
+    
+    --navy: 215 50% 30%;
+    --navy-foreground: 0 0% 98%;
+    
+    --gray-light: 210 10% 25%;
+    --gray-medium: 210 10% 40%;
+    --gray-dark: 210 10% 15%;
   }
 }
 
@@ -119,16 +134,32 @@
     background: linear-gradient(to right, #d7cdb4 0%, #eae3d0 100%);
   }
   
+  .navy-gradient {
+    background: linear-gradient(to right, hsl(215, 50%, 23%) 0%, hsl(215, 40%, 33%) 100%);
+  }
+  
   .gold-accent {
     color: #c9b27c;
+  }
+  
+  .navy-accent {
+    color: hsl(215, 50%, 23%);
   }
   
   .premium-shadow {
     box-shadow: 0 10px 30px -5px rgba(169, 150, 113, 0.15);
   }
   
+  .navy-shadow {
+    box-shadow: 0 10px 30px -5px rgba(35, 55, 87, 0.15);
+  }
+  
   .luxury-border {
     border-color: rgba(201, 178, 124, 0.3);
+  }
+  
+  .navy-border {
+    border-color: rgba(35, 55, 87, 0.3);
   }
 }
 
