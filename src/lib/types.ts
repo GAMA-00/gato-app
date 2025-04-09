@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'cleaning'
   | 'pet-grooming'
@@ -59,6 +60,16 @@ export interface Appointment {
   createdAt: Date;
   building?: string;
   apartment?: string;
+}
+
+export interface BlockedTimeSlot {
+  id: string;
+  day: number; // 0-6 for Sunday-Saturday
+  startHour: number; // 0-23
+  endHour: number; // 0-23
+  note?: string;
+  isRecurring: boolean;
+  createdAt: Date;
 }
 
 export interface DashboardStats {

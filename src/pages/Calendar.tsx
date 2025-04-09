@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequests from '@/components/calendar/JobRequests';
+import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
 import { MOCK_APPOINTMENTS } from '@/lib/data';
 import { toast } from "@/components/ui/use-toast";
 import { Appointment } from '@/lib/types';
@@ -22,6 +23,7 @@ const Calendar = () => {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [showCompleted, setShowCompleted] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>(MOCK_APPOINTMENTS);
+  const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   
   const handleAddAppointment = () => {
     // In a real app, this would open a form to create a new appointment
@@ -100,6 +102,10 @@ const Calendar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           
+          <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
+            {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
+          </Button>
+          
           <Button onClick={handleAddAppointment}>
             <Plus className="mr-2 h-4 w-4" />
             Nueva Cita
@@ -108,6 +114,9 @@ const Calendar = () => {
       }
     >
       <div className="space-y-6">
+        {showBlockedTimeSlots && (
+          <BlockedTimeSlots />
+        )}
         <JobRequests 
           onAcceptRequest={handleAcceptRequest}
           onDeclineRequest={handleDeclineRequest}
