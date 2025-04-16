@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,15 +37,15 @@ const Calendar = () => {
     setAppointments(prev => [...prev, newAppointment]);
     
     toast({
-      title: "Job request accepted",
-      description: "The appointment has been added to your calendar.",
+      title: "Solicitud aceptada",
+      description: "La cita ha sido agregada a tu calendario.",
     });
   };
 
   const handleDeclineRequest = (requestId: string) => {
     toast({
-      title: "Job request declined",
-      description: "The request has been removed from your list.",
+      title: "Solicitud rechazada",
+      description: "La solicitud ha sido eliminada de tu lista.",
     });
   };
 

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Check, X, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,7 +20,7 @@ const JOB_REQUESTS = [
       endTime: new Date(new Date().setHours(12, 0)),
       status: 'pending',
       recurrence: 'none' as RecurrencePattern,
-      notes: 'New client request',
+      notes: 'Solicitud de cliente nuevo',
       createdAt: new Date(),
       building: 'Torre Norte',
       apartment: '703'
@@ -35,7 +36,7 @@ const JOB_REQUESTS = [
       endTime: new Date(new Date().setHours(16, 0)),
       status: 'pending',
       recurrence: 'none' as RecurrencePattern,
-      notes: 'Special cleaning request',
+      notes: 'Solicitud especial de limpieza',
       createdAt: new Date(),
       building: 'Edificio Azul',
       apartment: '1204'
@@ -85,7 +86,7 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
           
           {request.appointment.notes && (
             <div className="text-sm bg-muted/50 p-2 rounded-md">
-              <span className="font-medium">Note:</span> {request.appointment.notes}
+              <span className="font-medium">Nota:</span> {request.appointment.notes}
             </div>
           )}
           
@@ -97,7 +98,7 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
               onClick={() => onDecline(request.id)}
             >
               <X className="h-4 w-4 mr-1" />
-              Decline
+              Rechazar
             </Button>
             <Button 
               variant="outline" 
@@ -106,7 +107,7 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
               onClick={() => onAccept(request.id)}
             >
               <Check className="h-4 w-4 mr-1" />
-              Accept
+              Aceptar
             </Button>
           </div>
         </div>
@@ -140,7 +141,7 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
                 onClick={() => onDecline(request.id)}
               >
                 <X className="h-4 w-4 mr-1" />
-                Decline
+                Rechazar
               </Button>
               <Button 
                 variant="outline" 
@@ -149,14 +150,14 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
                 onClick={() => onAccept(request.id)}
               >
                 <Check className="h-4 w-4 mr-1" />
-                Accept
+                Aceptar
               </Button>
             </div>
           </div>
           
           {request.appointment.notes && (
             <div className="mt-2 text-sm text-muted-foreground">
-              <span className="font-medium">Note:</span> {request.appointment.notes}
+              <span className="font-medium">Nota:</span> {request.appointment.notes}
             </div>
           )}
         </div>
@@ -191,12 +192,12 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center">
             <Calendar className="mr-2 h-5 w-5 text-orange-500" />
-            Job Requests
+            Solicitudes de Servicio
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground py-6">
-            No pending job requests at the moment
+            No hay solicitudes pendientes en este momento
           </p>
         </CardContent>
       </Card>
@@ -208,7 +209,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center">
           <Calendar className="mr-2 h-5 w-5 text-orange-500" />
-          Job Requests ({JOB_REQUESTS.length})
+          Solicitudes de Servicio ({JOB_REQUESTS.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">

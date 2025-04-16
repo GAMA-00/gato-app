@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -80,7 +81,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             !isCurrentMonth && "text-muted-foreground",
           )}
         >
-          {format(date, 'EEE')}
+          {format(date, 'EEE', { locale: es })}
         </div>
         <div 
           className={cn(
@@ -155,11 +156,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
     <Card className="overflow-hidden border-0 shadow-medium">
       <div className="p-4 flex items-center justify-between border-b bg-white">
         <h2 className="text-xl font-semibold">
-          {format(currentDate, 'MMMM yyyy')}
+          {format(currentDate, 'MMMM yyyy', { locale: es })}
         </h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleToday}>
-            Today
+            Hoy
           </Button>
           <div className="flex">
             <Button variant="outline" size="icon" onClick={handlePreviousWeek}>
