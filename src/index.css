@@ -1,95 +1,104 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 36 30% 97%;
-    --foreground: 32 10% 10%;
-
+    --background: 30 20% 96%; /* Cream Beige */
+    --foreground: 0 0% 20%; /* Dark Gray for general text */
+    
+    --heading: 0 0% 13%; /* Onyx Black for titles */
+    --subtitle: 0 0% 45%; /* Smoky Grey for subtitles */
+    
+    --golden-whisker: 35 70% 65%; /* Golden Whisker */
+    --golden-whisker-hover: 35 70% 60%;
+    
+    --burnt-amber: 25 80% 55%; /* Burnt Amber */
+    --burnt-amber-hover: 25 80% 50%;
+    
     --card: 0 0% 100%;
-    --card-foreground: 32 10% 12%;
-
+    --card-foreground: 0 0% 13%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 32 10% 12%;
-
-    --primary: 35 40% 45%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 34 20% 92%;
-    --secondary-foreground: 32 10% 20%;
-
-    --muted: 34 10% 90%;
-    --muted-foreground: 32 10% 45%;
-
-    --accent: 35 30% 85%;
-    --accent-foreground: 32 10% 25%;
-
+    --popover-foreground: 0 0% 13%;
+    
+    --primary: var(--golden-whisker);
+    --primary-foreground: 0 0% 13%;
+    
+    --secondary: 30 20% 96%;
+    --secondary-foreground: 0 0% 13%;
+    
+    --muted: 30 10% 93%;
+    --muted-foreground: 0 0% 45%;
+    
+    --accent: 25 80% 55%;
+    --accent-foreground: 0 0% 13%;
+    
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
-
-    --border: 34 15% 85%;
-    --input: 34 15% 85%;
-    --ring: 35 40% 45%;
-
-    --navy: 215 50% 23%;
-    --navy-foreground: 0 0% 98%;
     
-    --gray-light: 210 10% 85%;
-    --gray-medium: 210 10% 70%;
-    --gray-dark: 210 10% 40%;
+    --border: 30 15% 85%;
+    --input: 30 15% 85%;
+    --ring: 35 70% 65%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 32 10% 7%;
-    --foreground: 35 10% 95%;
-
-    --card: 32 10% 10%;
-    --card-foreground: 35 10% 95%;
-
-    --popover: 32 10% 10%;
-    --popover-foreground: 35 10% 95%;
-
-    --primary: 35 40% 55%;
-    --primary-foreground: 32 10% 12%;
-
-    --secondary: 32 10% 16%;
-    --secondary-foreground: 35 10% 95%;
-
-    --muted: 32 10% 16%;
-    --muted-foreground: 35 10% 65%;
-
-    --accent: 32 10% 16%;
-    --accent-foreground: 35 10% 95%;
-
+    --background: 0 0% 15%; /* Smoky Grey for dark mode */
+    --foreground: 30 20% 96%;
+    
+    --heading: 30 20% 96%; /* Light color for dark mode titles */
+    --subtitle: 0 0% 75%; /* Light grey for dark mode subtitles */
+    
+    --golden-whisker: 35 70% 65%;
+    --golden-whisker-hover: 35 70% 60%;
+    
+    --burnt-amber: 25 80% 55%;
+    --burnt-amber-hover: 25 80% 50%;
+    
+    --card: 0 0% 20%;
+    --card-foreground: 30 20% 96%;
+    
+    --popover: 0 0% 20%;
+    --popover-foreground: 30 20% 96%;
+    
+    --primary: var(--golden-whisker);
+    --primary-foreground: 0 0% 13%;
+    
+    --secondary: 0 0% 25%;
+    --secondary-foreground: 30 20% 96%;
+    
+    --muted: 0 0% 25%;
+    --muted-foreground: 0 0% 65%;
+    
+    --accent: 25 80% 55%;
+    --accent-foreground: 0 0% 13%;
+    
     --destructive: 0 60% 30%;
     --destructive-foreground: 0 0% 95%;
-
-    --border: 32 15% 25%;
-    --input: 32 15% 25%;
-    --ring: 35 40% 60%;
     
-    --navy: 215 50% 30%;
-    --navy-foreground: 0 0% 98%;
-    
-    --gray-light: 210 10% 25%;
-    --gray-medium: 210 10% 40%;
-    --gray-dark: 210 10% 15%;
+    --border: 0 0% 30%;
+    --input: 0 0% 30%;
+    --ring: 35 70% 65%;
   }
-}
-
-@layer base {
+  
   * {
     @apply border-border;
   }
-
+  
   body {
     @apply bg-background text-foreground font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-heading;
+  }
+  
+  .subtitle {
+    @apply text-subtitle;
   }
 }
 
