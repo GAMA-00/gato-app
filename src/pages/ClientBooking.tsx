@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -9,6 +10,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { MOCK_SERVICES } from '@/lib/data';
 import { Service, Building } from '@/lib/types';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import RequireAuth from '@/components/auth/RequireAuth';
 
 // Mock buildings data
 const MOCK_BUILDINGS: Building[] = [
@@ -24,16 +27,17 @@ const AVAILABLE_TIMES = [
   '9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'
 ];
 
-const ClientBooking = () => {
+const ClientBookingContent = () => {
   const { buildingId, serviceId } = useParams<{ buildingId: string, serviceId: string }>();
   const [building, setBuilding] = useState<Building | null>(null);
   const [service, setService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   useEffect(() => {
-    // In a real app, we would fetch this data from an API
+    // En una aplicación real, obtendríamos estos datos de una API
     const selectedBuilding = MOCK_BUILDINGS.find(b => b.id === buildingId) || null;
     const selectedService = MOCK_SERVICES.find(s => s.id === serviceId) || null;
     
@@ -42,9 +46,9 @@ const ClientBooking = () => {
   }, [buildingId, serviceId]);
 
   const handleBookAppointment = () => {
-    if (!selectedDate || !selectedTime) return;
+    if (!selectedDate || !selectedTime || !user) return;
     
-    // In a real app, we would send this data to an API
+    // En una aplicación real, enviaríamos esta información a una API
     toast.success('¡Cita reservada exitosamente!');
     navigate('/client/bookings');
   };
@@ -105,12 +109,13 @@ const ClientBooking = () => {
                   onSelect={setSelectedDate}
                   disabled={(date) => date < new Date()}
                   className="rounded-md border pointer-events-auto"
+                  locale={es}
                 />
               </div>
               
               {selectedDate && (
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium mb-4">Horarios disponibles para {format(selectedDate, 'MMM d, yyyy')}</h3>
+                  <h3 className="text-sm font-medium mb-4">Horarios disponibles para {format(selectedDate, 'MMM d, yyyy', { locale: es })}</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {AVAILABLE_TIMES.map((time) => (
                       <Button
@@ -134,6 +139,7 @@ const ClientBooking = () => {
             <Button 
               disabled={!selectedDate || !selectedTime}
               onClick={handleBookAppointment}
+              className="bg-golden-whisker text-heading hover:bg-golden-whisker-hover"
             >
               Reservar Cita
             </Button>
@@ -141,6 +147,15 @@ const ClientBooking = () => {
         </Card>
       </div>
     </PageContainer>
+  );
+};
+
+// Componente wrapper que protege la ruta
+const ClientBooking = () => {
+  return (
+    <RequireAuth requirePaymentMethod={true}>
+      <ClientBookingContent />
+    </RequireAuth>
   );
 };
 

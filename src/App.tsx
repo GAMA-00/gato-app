@@ -17,7 +17,12 @@ import ClientHome from "./pages/ClientHome";
 import ClientServices from "./pages/ClientServices";
 import ClientBooking from "./pages/ClientBooking";
 import ClientBookings from "./pages/ClientBookings";
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import PaymentSetup from "./pages/PaymentSetup";
 import { ChatProvider } from "./contexts/ChatContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Create a client for React Query
 const queryClient = new QueryClient();
@@ -27,8 +32,16 @@ const AppRoutes = () => {
     <>
       <Navbar />
       <Routes>
+        {/* Landing page */}
+        <Route path="/" element={<Index />} />
+        
+        {/* Auth Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/payment-setup" element={<PaymentSetup />} />
+        
         {/* Provider routes */}
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/services" element={<Services />} />
         <Route path="/clients" element={<Clients />} />
@@ -53,11 +66,13 @@ const App = () => (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ChatProvider>
-          <AppRoutes />
-          <Toaster />
-          <Sonner />
-        </ChatProvider>
+        <AuthProvider>
+          <ChatProvider>
+            <AppRoutes />
+            <Toaster />
+            <Sonner />
+          </ChatProvider>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </BrowserRouter>
