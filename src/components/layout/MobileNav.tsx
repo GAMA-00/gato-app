@@ -21,12 +21,6 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
       <h1 className="text-xl font-semibold text-primary">Gato</h1>
       
       <div className="flex items-center gap-3">
-        <img 
-          src="/lovable-uploads/72c0b3b8-cfbd-4419-9e23-dbc8deb057f2.png" 
-          alt="Gato Logo" 
-          className="h-8 w-8"
-        />
-        
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="relative">

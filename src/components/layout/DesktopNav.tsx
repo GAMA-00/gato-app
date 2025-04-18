@@ -18,11 +18,6 @@ const DesktopNav = ({ isClientSection, onSwitchView }: DesktopNavProps) => {
             {isClientSection ? 'Portal de Cliente' : 'Administración de Calendario'}
           </p>
         </div>
-        <img 
-          src="/lovable-uploads/72c0b3b8-cfbd-4419-9e23-dbc8deb057f2.png" 
-          alt="Gato Logo" 
-          className="h-10 w-10"
-        />
       </div>
       
       <NavItems isClientSection={isClientSection} onSwitchView={onSwitchView} />
