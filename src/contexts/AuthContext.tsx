@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Definimos el tipo de usuario
@@ -31,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Al cargar la app, verificar si hay un usuario en localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('gato_user');
+    console.log('Stored User:', storedUser); // Agregamos este console.log para ver el contenido
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
