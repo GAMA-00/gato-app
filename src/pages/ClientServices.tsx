@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -36,7 +35,7 @@ const ClientServices = () => {
   if (!building) {
     return (
       <PageContainer title="Cargando...">
-        <div>Cargando información del edificio...</div>
+        <div>Cargando información de la residencia...</div>
       </PageContainer>
     );
   }
@@ -47,7 +46,7 @@ const ClientServices = () => {
       subtitle={building.address}
       action={
         <Button variant="outline" onClick={() => navigate('/client')}>
-          Cambiar Edificio
+          Cambiar Residencia
         </Button>
       }
     >
@@ -87,7 +86,7 @@ const ClientServices = () => {
           
           {services.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No hay servicios disponibles en este edificio todavía.</p>
+              <p className="text-muted-foreground">No hay servicios disponibles en esta residencia todavía.</p>
             </div>
           )}
         </div>

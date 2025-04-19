@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -14,11 +15,11 @@ import { Building } from '@/lib/types';
 
 // Mock buildings data
 const MOCK_BUILDINGS: Building[] = [
-  { id: '1', name: 'Torres del Atardecer', address: '123 Blvd. Atardecer' },
-  { id: '2', name: 'Apartamentos Vista al Mar', address: '456 Calle del Océano' },
-  { id: '3', name: 'Alturas de la Montaña', address: '789 Carretera Montaña' },
+  { id: '1', name: 'Residencias del Atardecer', address: '123 Blvd. Atardecer' },
+  { id: '2', name: 'Residencias Vista al Mar', address: '456 Calle del Océano' },
+  { id: '3', name: 'Residencias de la Montaña', address: '789 Carretera Montaña' },
   { id: '4', name: 'Residencias Centro de la Ciudad', address: '101 Calle Principal' },
-  { id: '5', name: 'Condominios Parque', address: '202 Avenida del Parque' }
+  { id: '5', name: 'Residencias Parque', address: '202 Avenida del Parque' }
 ];
 
 const ClientHome = () => {
@@ -27,7 +28,7 @@ const ClientHome = () => {
 
   const handleContinue = () => {
     if (selectedBuilding === 'provider') {
-      navigate('/'); // Navigate to provider dashboard
+      navigate('/');
     } else if (selectedBuilding) {
       navigate(`/client/services/${selectedBuilding}`);
     }
@@ -36,14 +37,14 @@ const ClientHome = () => {
   return (
     <PageContainer 
       title="Bienvenido" 
-      subtitle="Selecciona tu edificio para ver los servicios disponibles"
+      subtitle="Seleccione su residencia"
     >
       <div className="max-w-md mx-auto mt-8 space-y-8">
         <div className="space-y-4">
-          <label className="text-sm font-medium">Selecciona tu edificio</label>
+          <label className="text-sm font-medium">Seleccione su residencia</label>
           <Select onValueChange={setSelectedBuilding} value={selectedBuilding}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Elige un edificio" />
+              <SelectValue placeholder="Elija una residencia" />
             </SelectTrigger>
             <SelectContent>
               {MOCK_BUILDINGS.map((building) => (
@@ -63,13 +64,6 @@ const ClientHome = () => {
             Continuar
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        </div>
-
-        <div className="p-6 border rounded-lg bg-muted/30">
-          <h3 className="font-medium mb-2">Acerca de Gato</h3>
-          <p className="text-sm text-muted-foreground">
-            Gato te conecta con trabajadores que ya ofrecen servicios en tu torre. Agenda en 3 clicks servicios confiables, sin salir de casa.
-          </p>
         </div>
       </div>
     </PageContainer>
