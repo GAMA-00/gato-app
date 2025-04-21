@@ -76,11 +76,13 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? 'Edit Service' : 'Add New Service'}</DialogTitle>
+          <DialogTitle>{initialData ? 'Editar Servicio' : 'Agregar Nuevo Servicio'}</DialogTitle>
           <DialogDescription>
-            {initialData ? 'Make changes to your service or delete it.' : 'Add a new service to your offerings.'}
+            {initialData 
+              ? 'Realiza los cambios necesarios en tu servicio.' 
+              : 'Completa la información para crear un nuevo servicio.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -89,7 +91,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               <ServiceFormFields />
               
-              {/* Pricing Information Notice */}
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-sm">
                 <div className="flex items-start gap-2">
                   <InfoIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
