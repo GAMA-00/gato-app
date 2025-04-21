@@ -59,10 +59,10 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
       {!user?.hasPaymentMethod && (
         <Button 
           variant="outline" 
-          className="w-full mb-2 justify-start text-amber-600 border-amber-200 hover:bg-amber-50 text-sm py-2 px-3"
+          className="w-full mb-2 justify-start text-amber-600 border-amber-200 hover:bg-amber-50 text-xs py-1.5 px-3"
           onClick={handlePaymentSetup}
         >
-          <CreditCard className="mr-2 h-4 w-4 shrink-0" />
+          <CreditCard className="mr-2 h-3.5 w-3.5 shrink-0" />
           Añadir método de pago
         </Button>
       )}
