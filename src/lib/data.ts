@@ -28,7 +28,8 @@ export const MOCK_SERVICES: Service[] = [
     duration: 120,
     price: 80,
     description: 'Complete home cleaning service including dusting, vacuuming, and bathroom cleaning.',
-    createdAt: new Date('2023-01-15')
+    createdAt: new Date('2023-01-15'),
+    buildingIds: ['1', '2', '3']
   },
   {
     id: '2',
@@ -37,7 +38,8 @@ export const MOCK_SERVICES: Service[] = [
     duration: 60,
     price: 50,
     description: 'Full grooming service for small dog breeds including bath, haircut, nail trimming, and ear cleaning.',
-    createdAt: new Date('2023-02-10')
+    createdAt: new Date('2023-02-10'),
+    buildingIds: ['1', '3']
   },
   {
     id: '3',
@@ -46,7 +48,8 @@ export const MOCK_SERVICES: Service[] = [
     duration: 90,
     price: 45,
     description: 'Exterior wash, wax, and interior vacuuming and detailing.',
-    createdAt: new Date('2023-03-05')
+    createdAt: new Date('2023-03-05'),
+    buildingIds: ['2']
   },
   {
     id: '4',
@@ -55,7 +58,8 @@ export const MOCK_SERVICES: Service[] = [
     duration: 60,
     price: 35,
     description: 'Professional lawn mowing, edging, and cleanup.',
-    createdAt: new Date('2023-04-20')
+    createdAt: new Date('2023-04-20'),
+    buildingIds: ['1', '2']
   },
   {
     id: '5',
@@ -64,7 +68,8 @@ export const MOCK_SERVICES: Service[] = [
     duration: 120,
     price: 95,
     description: 'Routine plumbing check and minor repairs.',
-    createdAt: new Date('2023-05-15')
+    createdAt: new Date('2023-05-15'),
+    buildingIds: ['3']
   }
 ];
 
