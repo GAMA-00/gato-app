@@ -13,13 +13,11 @@ import { ArrowRight } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Building } from '@/lib/types';
 
-// Mock buildings data
+// Updated mock buildings data
 const MOCK_BUILDINGS: Building[] = [
-  { id: '1', name: 'Residencias del Atardecer', address: '123 Blvd. Atardecer' },
-  { id: '2', name: 'Residencias Vista al Mar', address: '456 Calle del Océano' },
-  { id: '3', name: 'Residencias de la Montaña', address: '789 Carretera Montaña' },
-  { id: '4', name: 'Residencias Centro de la Ciudad', address: '101 Calle Principal' },
-  { id: '5', name: 'Residencias Parque', address: '202 Avenida del Parque' }
+  { id: '1', name: 'Colinas de Montealegre', address: '123 Blvd. Montealegre' },
+  { id: '2', name: 'Gregal', address: '456 Calle Gregal' },
+  { id: '3', name: 'El Herran', address: '789 Carretera El Herran' }
 ];
 
 const ClientHome = () => {
@@ -27,9 +25,7 @@ const ClientHome = () => {
   const navigate = useNavigate();
 
   const handleContinue = () => {
-    if (selectedBuilding === 'provider') {
-      navigate('/');
-    } else if (selectedBuilding) {
+    if (selectedBuilding) {
       navigate(`/client/services/${selectedBuilding}`);
     }
   };
@@ -52,7 +48,6 @@ const ClientHome = () => {
                   {building.name}
                 </SelectItem>
               ))}
-              <SelectItem value="provider">Soy un proveedor de servicios</SelectItem>
             </SelectContent>
           </Select>
 
