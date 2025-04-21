@@ -31,14 +31,12 @@ const Services = () => {
   };
   
   const handleDeleteService = (service: Service) => {
-    // In a real app, this would call an API
     setServices(services.filter(s => s.id !== service.id));
-    toast.success('Servicio eliminado exitosamente');
+    toast.success('Anuncio eliminado exitosamente');
   };
   
   const handleSubmitService = (serviceData: Partial<Service>) => {
     if (editingService) {
-      // Update existing service
       setServices(services.map(s => 
         s.id === editingService.id ? { 
           ...s, 
@@ -46,9 +44,8 @@ const Services = () => {
           buildingIds: serviceData.buildingIds || [] 
         } : s
       ));
-      toast.success('Servicio actualizado exitosamente');
+      toast.success('Anuncio actualizado exitosamente');
     } else {
-      // Add new service
       const newService: Service = {
         id: Date.now().toString(),
         name: serviceData.name || '',
@@ -61,25 +58,25 @@ const Services = () => {
       };
       
       setServices([newService, ...services]);
-      toast.success('Servicio agregado exitosamente');
+      toast.success('Anuncio agregado exitosamente');
     }
   };
 
   return (
     <PageContainer 
-      title="Servicios" 
-      subtitle="Administra tus ofertas de servicio"
+      title="Anuncios" 
+      subtitle="Administra tus anuncios de servicios"
       action={
         <Button onClick={handleAddService}>
           <Plus className="mr-2 h-4 w-4" />
-          Agregar Servicio
+          Crear Anuncio
         </Button>
       }
     >
       <div className="space-y-6">
         <div className="max-w-md">
           <Input 
-            placeholder="Buscar servicios..." 
+            placeholder="Buscar anuncios..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -97,7 +94,7 @@ const Services = () => {
           
           {filteredServices.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No se encontraron servicios. Agrega un nuevo servicio para comenzar.</p>
+              <p className="text-muted-foreground">No se encontraron anuncios. Agrega un nuevo anuncio para comenzar.</p>
             </div>
           )}
         </div>

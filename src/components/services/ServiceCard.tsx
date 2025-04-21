@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Clock, Edit } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Clock, DollarSign, Edit } from 'lucide-react';
 import { Service } from '@/lib/types';
 import { SERVICE_CATEGORIES } from '@/lib/data';
 
@@ -12,65 +12,35 @@ interface ServiceCardProps {
   onDelete: (service: Service) => void;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({
-  service,
-  onEdit,
-  onDelete
-}) => {
-  const category = SERVICE_CATEGORIES[service.category];
-  
+const ServiceCard: React.FC<ServiceCardProps> = ({ service, onEdit }) => {
   return (
-    <Card className="glassmorphism overflow-hidden group transition-all duration-300 hover:shadow-medium">
-      <CardContent className="p-5">
-        <div className="flex items-start gap-3">
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${category.color}20` }}
-          >
-            <span style={{ color: category.color }} className="font-medium text-sm">
-              {service.name.charAt(0).toUpperCase()}
-            </span>
+    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+      <CardContent className="p-6">
+        <h3 className="text-lg font-semibold mb-2">{service.name}</h3>
+        <p className="text-muted-foreground text-sm mb-4">{service.description}</p>
+        
+        <div className="space-y-2">
+          <div className="flex items-center text-sm">
+            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span>{service.duration} minutos</span>
           </div>
-          
-          <div className="flex-grow">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-medium">{service.name}</h3>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> {service.duration} min
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    ${service.price}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" onClick={() => onEdit(service)}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div 
-              className="text-xs px-2 py-1 rounded-full inline-block mt-2"
-              style={{ 
-                backgroundColor: `${category.color}15`,
-                color: category.color
-              }}
-            >
-              {category.label}
-            </div>
-            
-            {service.description && (
-              <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
-                {service.description}
-              </p>
-            )}
+          <div className="flex items-center text-sm">
+            <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span>${service.price.toFixed(2)}</span>
           </div>
         </div>
       </CardContent>
+      
+      <CardFooter className="bg-muted/20 px-6 py-4">
+        <Button 
+          variant="outline" 
+          onClick={() => onEdit(service)}
+          className="w-full"
+        >
+          <Edit className="mr-2 h-4 w-4" />
+          Editar Anuncio
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
