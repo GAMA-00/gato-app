@@ -59,11 +59,10 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
       {!user?.hasPaymentMethod && (
         <Button 
           variant="outline" 
-          size="sm" 
-          className="w-full mb-2 justify-start text-amber-600 border-amber-200 hover:bg-amber-50"
+          className="w-full mb-2 justify-start text-amber-600 border-amber-200 hover:bg-amber-50 text-base py-3"
           onClick={handlePaymentSetup}
         >
-          <CreditCard className="mr-2 h-4 w-4" />
+          <CreditCard className="mr-2 h-5 w-5" />
           Añadir método de pago
         </Button>
       )}
