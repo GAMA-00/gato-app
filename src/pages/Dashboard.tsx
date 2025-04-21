@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Calendar, Eye, EyeOff } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
@@ -11,7 +10,6 @@ import { isSameDay, addDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-// Mock comments and ratings data
 const mockComments = [
   { 
     id: 'r1', 
@@ -41,7 +39,7 @@ const mockComments = [
 
 const StatisticsSection = ({ 
   title, 
-  defaultOpen = false, 
+  defaultOpen = true, 
   children 
 }: { 
   title: string, 
@@ -78,7 +76,6 @@ const Dashboard = () => {
   const today = new Date();
   const tomorrow = addDays(new Date(), 1);
   
-  // Filter appointments for today and tomorrow
   const todaysAppointments = MOCK_APPOINTMENTS
     .filter(app => isSameDay(app.startTime, today))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
@@ -91,9 +88,9 @@ const Dashboard = () => {
     <PageContainer 
       title="Inicio" 
       subtitle="Bienvenido de nuevo"
+      className="pt-0"
     >
-      <div className="space-y-8">
-        {/* Today's Appointments - Always visible */}
+      <div className="space-y-6">
         <AppointmentList
           appointments={todaysAppointments}
           title="Citas de Hoy"
@@ -101,7 +98,6 @@ const Dashboard = () => {
           emptyMessage="No hay citas programadas para hoy"
         />
 
-        {/* Tomorrow's Appointments - Always visible */}
         <AppointmentList
           appointments={tomorrowsAppointments}
           title="Citas de Mañana"
@@ -109,19 +105,16 @@ const Dashboard = () => {
           emptyMessage="No hay citas programadas para mañana"
         />
         
-        {/* Performance Statistics - Hidden by default */}
+        <StatisticsSection title="Estadísticas Rápidas" defaultOpen={true}>
+          <QuickStats />
+        </StatisticsSection>
+        
         <StatisticsSection title="Estadísticas de Desempeño">
           <DashboardStats stats={stats} />
         </StatisticsSection>
         
-        {/* Ratings Section - Hidden by default */}
-        <StatisticsSection title="Calificaciones y Comentarios">
+        <StatisticsSection title="Calificaciones y Comentarios" defaultOpen={false}>
           <RatingSection comments={mockComments} />
-        </StatisticsSection>
-        
-        {/* Quick Stats - Hidden by default */}
-        <StatisticsSection title="Estadísticas Rápidas">
-          <QuickStats />
         </StatisticsSection>
       </div>
     </PageContainer>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, Building, MessageSquare } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, Building, MessageSquare, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/contexts/ChatContext';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
     { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
+    { to: '/achievements', icon: Award, label: 'Logros' },
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
   ];
   

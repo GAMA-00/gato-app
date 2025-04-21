@@ -22,12 +22,12 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-20" : "pl-64", 
+      isMobile ? "pt-4" : "pl-64", // Reducir el espacio superior en mobile
       "min-h-screen bg-background", 
       className
     )}>
       <div className={cn("p-4 md:p-8 max-w-7xl animate-fade-in")}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-1">{title}</h1>
             {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
