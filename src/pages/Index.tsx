@@ -14,7 +14,7 @@ const Index = () => {
           Bienvenido a <span className="text-golden-whisker">Gato</span>
         </h1>
         <p className="text-base md:text-xl text-subtitle mb-12 leading-relaxed">
-          La plataforma exclusiva para gestionar servicios premium para residentes y proveedores de servicios.
+          Servicios recurrentes, sin salir de casa
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button 
@@ -39,3 +39,4 @@ const Index = () => {
 };
 
 export default Index;
+
