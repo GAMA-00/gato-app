@@ -3,6 +3,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileNav from './MobileNav';
+import MobileBottomNav from './MobileBottomNav';
 import DesktopNav from './DesktopNav';
 
 const Navbar = () => {
@@ -17,7 +18,14 @@ const Navbar = () => {
   };
 
   if (isMobile) {
-    return <MobileNav isClientSection={isClientSection} onSwitchView={switchView} />;
+    return (
+      <>
+        <MobileNav isClientSection={isClientSection} onSwitchView={switchView} />
+        <MobileBottomNav isClientSection={isClientSection} />
+        <div className="h-16" /> {/* Spacer for fixed header */}
+        <div className="pb-[72px]" /> {/* Spacer for fixed bottom nav */}
+      </>
+    );
   }
 
   return <DesktopNav isClientSection={isClientSection} onSwitchView={switchView} />;

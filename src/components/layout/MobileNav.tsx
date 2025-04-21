@@ -4,7 +4,6 @@ import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import NavItems from './NavItems';
 import UserInfo from './UserInfo';
 import { useChat } from '@/contexts/ChatContext';
 
@@ -28,23 +27,17 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
               {hasUnreadMessages && (
                 <Badge variant="destructive" className="absolute -top-1 -right-1 h-2 w-2 p-0" />
               )}
-              <span className="sr-only">Alternar menú</span>
+              <span className="sr-only">Menú de usuario</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 pt-6">
+          <SheetContent side="right" className="w-64 pt-6">
             <div className="px-4 mb-6">
-              <h1 className="text-xl font-semibold text-primary">Gato</h1>
+              <h1 className="text-xl font-semibold text-primary">Mi Cuenta</h1>
               <p className="text-sm text-muted-foreground">
                 {isClientSection ? 'Portal de Cliente' : 'Administración de Calendario'}
               </p>
             </div>
-            
-            <NavItems 
-              isClientSection={isClientSection} 
-              onSwitchView={onSwitchView} 
-              closeMenu={() => document.querySelector('[data-state="open"]')?.setAttribute('data-state', 'closed')}
-            />
-            <UserInfo isClientSection={isClientSection} />
+            <UserInfo isClientSection={isClientSection} onSwitchView={onSwitchView} />
           </SheetContent>
         </Sheet>
       </div>

@@ -1,16 +1,16 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogIn, LogOut, User, CreditCard } from 'lucide-react';
+import { LogIn, LogOut, CreditCard } from 'lucide-react';
 
 interface UserInfoProps {
   isClientSection: boolean;
+  onSwitchView?: () => void;
 }
 
-const UserInfo = ({ isClientSection }: UserInfoProps) => {
+const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -64,6 +64,16 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
         >
           <CreditCard className="mr-2 h-3.5 w-3.5 shrink-0" />
           Añadir método de pago
+        </Button>
+      )}
+      
+      {onSwitchView && (
+        <Button 
+          variant="outline" 
+          className="w-full mb-2 justify-start text-sm"
+          onClick={onSwitchView}
+        >
+          Cambiar a {isClientSection ? 'Vista de Proveedor' : 'Vista de Cliente'}
         </Button>
       )}
       
