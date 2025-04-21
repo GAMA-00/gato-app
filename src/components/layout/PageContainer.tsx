@@ -22,7 +22,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-4" : "pl-64", // Reducir el espacio superior en mobile
+      isMobile ? "pt-2" : "pl-64", // Further reduced top padding in mobile
       "min-h-screen bg-background", 
       className
     )}>
