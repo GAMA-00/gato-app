@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'cleaning'
   | 'pet-grooming'
@@ -15,6 +14,7 @@ export interface Service {
   price: number;
   description: string;
   createdAt: Date;
+  buildingIds: string[]; // New field to store available buildings
 }
 
 export interface Client {

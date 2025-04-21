@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,11 @@ const Services = () => {
     if (editingService) {
       // Update existing service
       setServices(services.map(s => 
-        s.id === editingService.id ? { ...s, ...serviceData } : s
+        s.id === editingService.id ? { 
+          ...s, 
+          ...serviceData,
+          buildingIds: serviceData.buildingIds || [] 
+        } : s
       ));
       toast.success('Servicio actualizado exitosamente');
     } else {
@@ -53,6 +56,7 @@ const Services = () => {
         duration: serviceData.duration || 60,
         price: serviceData.price || 0,
         description: serviceData.description || '',
+        buildingIds: serviceData.buildingIds || [],
         createdAt: new Date()
       };
       

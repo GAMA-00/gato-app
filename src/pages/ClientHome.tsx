@@ -15,9 +15,9 @@ import { Building } from '@/lib/types';
 
 // Updated mock buildings data
 const MOCK_BUILDINGS: Building[] = [
-  { id: '1', name: 'Colinas de Montealegre', address: '123 Blvd. Montealegre' },
-  { id: '2', name: 'Gregal', address: '456 Calle Gregal' },
-  { id: '3', name: 'El Herran', address: '789 Carretera El Herran' }
+  { id: '1', name: 'Colinas de Montealegre', address: 'Tres Rios' },
+  { id: '2', name: 'Gregal', address: 'Tres Rios' },
+  { id: '3', name: 'El Herran', address: 'Tres Rios' }
 ];
 
 const ClientHome = () => {
