@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,13 +8,11 @@ import { Clock, DollarSign, Calendar } from 'lucide-react';
 import { MOCK_SERVICES } from '@/lib/data';
 import { Service, Building } from '@/lib/types';
 
-// Mock buildings data
+// Mock buildings data with descriptive names
 const MOCK_BUILDINGS: Building[] = [
-  { id: '1', name: 'Torres del Atardecer', address: '123 Blvd. Atardecer' },
-  { id: '2', name: 'Apartamentos Vista al Mar', address: '456 Calle del Océano' },
-  { id: '3', name: 'Alturas de la Montaña', address: '789 Carretera Montaña' },
-  { id: '4', name: 'Residencias Centro de la Ciudad', address: '101 Calle Principal' },
-  { id: '5', name: 'Condominios Parque', address: '202 Avenida del Parque' }
+  { id: '1', name: 'Colinas de Montealegre', address: 'Tres Ríos, Cartago' },
+  { id: '2', name: 'Gregal', address: 'Tres Ríos, Cartago' },
+  { id: '3', name: 'El Herrán', address: 'Tres Ríos, Cartago' }
 ];
 
 const ClientServices = () => {
@@ -23,7 +22,6 @@ const ClientServices = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // In a real app, we would fetch the building data from an API
     const selectedBuilding = MOCK_BUILDINGS.find(b => b.id === buildingId) || null;
     setBuilding(selectedBuilding);
   }, [buildingId]);
@@ -35,15 +33,15 @@ const ClientServices = () => {
   if (!building) {
     return (
       <PageContainer title="Cargando...">
-        <div>Cargando información de la residencia...</div>
+        <div>Buscando información de la residencia...</div>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer
-      title={`Servicios en ${building.name}`}
-      subtitle={building.address}
+      title={building.name}
+      subtitle={`Servicios disponibles en ${building.address}`}
       action={
         <Button variant="outline" onClick={() => navigate('/client')}>
           Cambiar Residencia
@@ -51,8 +49,6 @@ const ClientServices = () => {
       }
     >
       <div className="space-y-6">
-        <h2 className="text-xl font-medium">Servicios Disponibles</h2>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service) => (
             <Card key={service.id} className="overflow-hidden hover:shadow-md transition-shadow">
