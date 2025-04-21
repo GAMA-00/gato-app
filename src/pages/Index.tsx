@@ -1,5 +1,5 @@
 
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -7,31 +7,23 @@ const Index = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
+  useEffect(() => {
+    // Automatically redirect to dashboard after animation
+    const timer = setTimeout(() => {
+      navigate('/dashboard');
+    }, 3000); // 3 seconds delay
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
     <div className={`min-h-screen flex items-center justify-center bg-background ${!isMobile ? 'pl-64' : 'pt-20'}`}>
-      <div className="max-w-3xl px-6 py-16 text-center">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 tracking-tight text-heading">
-          Bienvenido a <span className="text-golden-whisker">Gato</span>
+      <div className="text-center animate-scale-in">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-heading mb-4">
+          <span className="text-golden-whisker">Gato</span>
         </h1>
-        <p className="text-base md:text-xl text-subtitle mb-12 leading-relaxed">
-          Servicios recurrentes, sin salir de casa
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button 
-            onClick={() => navigate('/client')} 
-            size="lg" 
-            className="text-base px-8 py-6 bg-golden-whisker hover:bg-golden-whisker-hover text-heading"
-          >
-            Portal de Cliente
-          </Button>
-          <Button 
-            onClick={() => navigate('/dashboard')} 
-            size="lg" 
-            variant="outline"
-            className="text-base px-8 py-6 border-golden-whisker text-heading hover:bg-golden-whisker/10"
-          >
-            Administración
-          </Button>
+        <div className="animate-pulse">
+          <div className="h-2 w-24 bg-golden-whisker/50 rounded mx-auto"></div>
         </div>
       </div>
     </div>
@@ -39,4 +31,3 @@ const Index = () => {
 };
 
 export default Index;
-
