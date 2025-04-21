@@ -6,7 +6,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-background pl-64">
       <div className="max-w-3xl px-6 py-16 text-center">
         <h1 className="text-5xl md:text-6xl font-bold mb-8 tracking-tight text-heading">
           Bienvenido a <span className="text-golden-whisker">Gato</span>
