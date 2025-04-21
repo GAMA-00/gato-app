@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -10,9 +9,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { CreditCard, Calendar, ShieldCheck } from 'lucide-react';
+import { Clock, Calendar, ShieldCheck, CreditCard } from 'lucide-react';
 
-// Esquema de validación
 const paymentSchema = z.object({
   cardNumber: z.string().min(16, 'Número de tarjeta inválido').max(19),
   cardName: z.string().min(3, 'Nombre en la tarjeta requerido'),
@@ -37,8 +35,6 @@ const PaymentSetup = () => {
   });
 
   const onSubmit = (values: PaymentFormValues) => {
-    // En una aplicación real, aquí se enviaría a Stripe
-    // Por ahora simulamos la actualización
     if (user) {
       login({
         ...user,
@@ -77,7 +73,6 @@ const PaymentSetup = () => {
                         className="pl-10" 
                         {...field} 
                         onChange={(e) => {
-                          // Solo permitir números y espacios
                           const value = e.target.value.replace(/[^\d\s]/g, '');
                           field.onChange(value);
                         }}
@@ -161,9 +156,12 @@ const PaymentSetup = () => {
               />
             </div>
             
-            <Button type="submit" className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover">
-              <CreditCard className="mr-2 h-4 w-4" />
-              Guardar Método de Pago
+            <Button 
+              type="submit" 
+              className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover flex items-center justify-center gap-2"
+            >
+              <CreditCard className="h-4 w-4" />
+              <span className="truncate">Guardar Método de Pago</span>
             </Button>
           </form>
         </Form>
