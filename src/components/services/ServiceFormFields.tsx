@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   FormField,
@@ -20,6 +20,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { SERVICE_CATEGORIES } from '@/lib/data';
+import { Image } from 'lucide-react';
 
 const MOCK_BUILDINGS = [
   { id: '1', name: 'Colinas de Montealegre', address: 'Tres Rios' },
@@ -30,6 +31,17 @@ const MOCK_BUILDINGS = [
 const ServiceFormFields: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
   const selectedBuildings = watch('buildingIds') || [];
+
+  // Para imágenes de trabajos anteriores
+  const [images, setImages] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    setImages(files);
+    setPreviews(files.map(f => URL.createObjectURL(f)));
+    setValue("workImages", files, { shouldValidate: true });
+  };
 
   const handleSelectAllBuildings = (checked: boolean) => {
     if (checked) {
@@ -54,7 +66,7 @@ const ServiceFormFields: React.FC = () => {
           </FormItem>
         )}
       />
-      
+
       <div className="grid sm:grid-cols-2 gap-6">
         <FormField
           control={control}
@@ -62,7 +74,7 @@ const ServiceFormFields: React.FC = () => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select 
+              <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
               >
@@ -83,7 +95,7 @@ const ServiceFormFields: React.FC = () => {
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={control}
@@ -98,7 +110,7 @@ const ServiceFormFields: React.FC = () => {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={control}
             name="price"
@@ -114,7 +126,7 @@ const ServiceFormFields: React.FC = () => {
           />
         </div>
       </div>
-      
+
       <FormField
         control={control}
         name="description"
@@ -122,10 +134,10 @@ const ServiceFormFields: React.FC = () => {
           <FormItem>
             <FormLabel>Description</FormLabel>
             <FormControl>
-              <Textarea 
-                placeholder="Enter service description..." 
+              <Textarea
+                placeholder="Enter service description..."
                 rows={3}
-                {...field} 
+                {...field}
               />
             </FormControl>
             <FormDescription>
@@ -135,7 +147,7 @@ const ServiceFormFields: React.FC = () => {
           </FormItem>
         )}
       />
-      
+
       <FormField
         control={control}
         name="buildingIds"
@@ -187,6 +199,41 @@ const ServiceFormFields: React.FC = () => {
             </div>
             <FormDescription>
               Seleccione las residencias donde este servicio estará disponible
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Subida de imágenes de trabajos anteriores */}
+      <FormField
+        control={control}
+        name="workImages"
+        render={() => (
+          <FormItem>
+            <FormLabel>Imágenes de trabajos anteriores</FormLabel>
+            <FormControl>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <Image className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Agregar imágenes</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {previews.map((src, i) => (
+                    <img key={i} src={src} alt="" className="h-16 w-16 object-cover rounded" />
+                  ))}
+                </div>
+              </div>
+            </FormControl>
+            <FormDescription>
+              Puedes adjuntar fotos de trabajos realizados anteriormente.
             </FormDescription>
             <FormMessage />
           </FormItem>

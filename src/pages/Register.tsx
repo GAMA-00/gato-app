@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Image } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Building as BuildingType } from '@/lib/types';
 
 // Mock buildings data
@@ -21,15 +22,32 @@ const MOCK_BUILDINGS: BuildingType[] = [
   { id: '3', name: 'El Herran', address: 'Tres Rios' }
 ];
 
-// Esquema de validación
 const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
   phone: z.string().min(8, 'Número de teléfono inválido'),
-  buildingId: z.string().min(1, 'Debe seleccionar una residencia'),
+  role: z.enum(['client', 'provider']),
+  providerBuildingIds: z.array(z.string()).optional(),
+  buildingId: z.string().min(1, 'Debe seleccionar una residencia').optional(), // Para clientes
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
+  confirmPassword: z.string(),
+  profileImage: z.any().optional() // será validado/manual para el proveedor
+}).refine(
+  (data) =>
+    (data.role === 'client' && !!data.buildingId) ||
+    (data.role === 'provider' && data.providerBuildingIds && data.providerBuildingIds.length > 0),
+  {
+    message: "Debe seleccionar al menos una residencia",
+    path: ["providerBuildingIds"],
+  }
+).refine(
+  (data) =>
+    data.role === 'client' || (data.role === 'provider' && !!data.profileImage && typeof data.profileImage !== "string"),
+  {
+    message: "Debes adjuntar una foto de perfil como proveedor",
+    path: ["profileImage"],
+  }
+).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
 });
@@ -38,7 +56,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register: registerUser } = useAuth();
+  const [profilePreview, setProfilePreview] = useState<string>('');
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -46,40 +65,90 @@ const Register = () => {
       name: '',
       email: '',
       phone: '',
+      role: 'client',
+      providerBuildingIds: [],
       buildingId: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      profileImage: undefined,
     }
   });
 
+  // Watch role to switch form elements
+  const role = form.watch('role');
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      form.setValue('profileImage', file, { shouldValidate: true });
+      setProfilePreview(URL.createObjectURL(file));
+    }
+  };
+
   const onSubmit = (values: RegisterFormValues) => {
-    // Buscar el nombre del edificio seleccionado
-    const selectedBuilding = MOCK_BUILDINGS.find(b => b.id === values.buildingId);
-    
-    // Registrar al usuario con la información de su residencia
-    register({
+    // Para cliente: buildingId simple. Para proveedor: providerBuildingIds.
+    let selectedBuildingNames: string[] = [];
+    if (values.role === 'provider' && values.providerBuildingIds) {
+      selectedBuildingNames = MOCK_BUILDINGS.filter(b => values.providerBuildingIds!.includes(b.id)).map(b => b.name);
+    }
+    if (values.role === 'client' && values.buildingId) {
+      selectedBuildingNames = [MOCK_BUILDINGS.find(b => b.id === values.buildingId)?.name || ''];
+    }
+
+    // Simulación de guardado de imagen (guarda la url local, real sería upload)
+    let profileImageUrl = '';
+    if (values.role === 'provider' && values.profileImage instanceof File) {
+      profileImageUrl = profilePreview;
+    }
+
+    registerUser({
       id: Date.now().toString(),
       name: values.name,
       email: values.email,
       phone: values.phone,
-      buildingId: values.buildingId,
-      buildingName: selectedBuilding?.name || '',
+      buildingId: values.role === 'client' ? values.buildingId || '' : (values.providerBuildingIds as string[])[0],
+      buildingName: selectedBuildingNames[0] || '',
       hasPaymentMethod: false,
-      role: 'client' // Set the role as 'client' for users registering from the client view
+      role: values.role,
+      // extras para proveedor
+      profileImage: profileImageUrl,
+      offerBuildings: values.providerBuildingIds, // custom, para demo
     });
-    
+
     toast.success('Registro exitoso, ahora completa tus datos de pago');
-    navigate('/payment-setup', { state: { fromClientView: true } });
+    navigate('/payment-setup', { state: { fromClientView: values.role === 'client' } });
   };
 
   return (
-    <PageContainer 
-      title="Crear Cuenta" 
-      subtitle="Regístrate para agendar servicios"
+    <PageContainer
+      title="Crear Cuenta"
+      subtitle="Regístrate para agendar u ofrecer servicios"
     >
       <div className="max-w-md mx-auto mt-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de usuario</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="client">Cliente</SelectItem>
+                        <SelectItem value="provider">Proveedor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="name"
@@ -89,10 +158,10 @@ const Register = () => {
                   <FormControl>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="Tu nombre completo" 
-                        className="pl-10" 
-                        {...field} 
+                      <Input
+                        placeholder="Tu nombre completo"
+                        className="pl-10"
+                        {...field}
                       />
                     </div>
                   </FormControl>
@@ -100,7 +169,44 @@ const Register = () => {
                 </FormItem>
               )}
             />
-            
+
+            {/* Foto de perfil SOLO proveedor */}
+            {role === 'provider' && (
+              <FormField
+                control={form.control}
+                name="profileImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Foto de Perfil
+                    </FormLabel>
+                    <FormControl>
+                      <div className="flex gap-4 items-center">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Image className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Adjuntar imagen</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageChange}
+                          />
+                        </label>
+                        {profilePreview && (
+                          <img
+                            src={profilePreview}
+                            alt="Vista previa"
+                            className="h-12 w-12 rounded-full ring-2 object-cover"
+                          />
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="email"
@@ -110,10 +216,10 @@ const Register = () => {
                   <FormControl>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="correo@ejemplo.com" 
-                        className="pl-10" 
-                        {...field} 
+                      <Input
+                        placeholder="correo@ejemplo.com"
+                        className="pl-10"
+                        {...field}
                       />
                     </div>
                   </FormControl>
@@ -121,7 +227,7 @@ const Register = () => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="phone"
@@ -131,10 +237,10 @@ const Register = () => {
                   <FormControl>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="+52 1234567890" 
-                        className="pl-10" 
-                        {...field} 
+                      <Input
+                        placeholder="+52 1234567890"
+                        className="pl-10"
+                        {...field}
                       />
                     </div>
                   </FormControl>
@@ -142,35 +248,71 @@ const Register = () => {
                 </FormItem>
               )}
             />
-            
-            <FormField
-              control={form.control}
-              name="buildingId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Seleccione su Residencia</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger className="pl-10">
-                          <SelectValue placeholder="Elija una residencia" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MOCK_BUILDINGS.map((building) => (
-                            <SelectItem key={building.id} value={building.id}>
-                              {building.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+
+            {/* Residencias */}
+            {role === 'client' && (
+              <FormField
+                control={form.control}
+                name="buildingId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Seleccione su Residencia</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <SelectTrigger className="pl-10">
+                            <SelectValue placeholder="Elija una residencia" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MOCK_BUILDINGS.map((building) => (
+                              <SelectItem key={building.id} value={building.id}>
+                                {building.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {role === 'provider' && (
+              <FormField
+                control={form.control}
+                name="providerBuildingIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Residencias donde ofreces tus servicios</FormLabel>
+                    <div className="flex flex-col gap-2">
+                      {MOCK_BUILDINGS.map((building) => (
+                        <div key={building.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`building-checkbox-${building.id}`}
+                            checked={field.value?.includes(building.id)}
+                            onCheckedChange={(checked) => {
+                              const checkedArr = Array.isArray(field.value) ? field.value : [];
+                              if (checked) {
+                                field.onChange([...checkedArr, building.id]);
+                              } else {
+                                field.onChange(checkedArr.filter((id: string) => id !== building.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`building-checkbox-${building.id}`} className="text-sm font-medium">
+                            {building.name}
+                          </label>
+                        </div>
+                      ))}
                     </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="password"
@@ -180,11 +322,11 @@ const Register = () => {
                   <FormControl>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        type="password" 
-                        placeholder="••••••" 
-                        className="pl-10" 
-                        {...field} 
+                      <Input
+                        type="password"
+                        placeholder="••••••"
+                        className="pl-10"
+                        {...field}
                       />
                     </div>
                   </FormControl>
@@ -192,7 +334,7 @@ const Register = () => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="confirmPassword"
@@ -202,11 +344,11 @@ const Register = () => {
                   <FormControl>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        type="password" 
-                        placeholder="••••••" 
-                        className="pl-10" 
-                        {...field} 
+                      <Input
+                        type="password"
+                        placeholder="••••••"
+                        className="pl-10"
+                        {...field}
                       />
                     </div>
                   </FormControl>
@@ -214,14 +356,14 @@ const Register = () => {
                 </FormItem>
               )}
             />
-            
+
             <Button type="submit" className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover">
               <UserPlus className="mr-2 h-4 w-4" />
               Crear Cuenta
             </Button>
           </form>
         </Form>
-        
+
         <div className="mt-6 text-center">
           <p>¿Ya tienes una cuenta? {' '}
             <Link to="/login" className="text-golden-whisker hover:underline">
