@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
-import { MOCK_SERVICES } from '@/lib/data';
 import { Book, Home, Scissors, PawPrint, Dumbbell } from 'lucide-react';
+import { Service } from '@/lib/types';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'home': <Home className="h-6 w-6" />,
@@ -25,12 +25,31 @@ const categoryLabels: Record<string, string> = {
 const ClientProvidersList = () => {
   const { category, subcat } = useParams();
   const navigate = useNavigate();
+  const [services, setServices] = useState<Service[]>([]);
 
-  // Filter services by category and subcat (using service name includes subcat)
-  const matchingServices = MOCK_SERVICES.filter(
+  // Leer servicios reales de localStorage (usados por los proveedores)
+  useEffect(() => {
+    const savedServices = localStorage.getItem('gato_services');
+    if (savedServices) {
+      try {
+        const parsedServices: Service[] = JSON.parse(savedServices, (key, value) => {
+          if (key === 'createdAt') {
+            return new Date(value);
+          }
+          return value;
+        });
+        setServices(parsedServices);
+      } catch (err) {
+        setServices([]);
+      }
+    }
+  }, []);
+
+  // Filtrar servicios por categoría y subcategoría exacta
+  const matchingServices = services.filter(
     (service) =>
       service.category === category &&
-      service.name.toLowerCase().includes(subcat ? subcat.toLowerCase() : '')
+      service.name === subcat
   );
 
   const categoryIcon = category ? CATEGORY_ICONS[category] : null;
@@ -71,6 +90,7 @@ const ClientProvidersList = () => {
                   <span className="text-sm text-muted-foreground">${service.price.toFixed(2)}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{service.description}</div>
+                <div className="text-xs mt-2">Ofrecido por: <span className="font-semibold">{service.providerName}</span></div>
               </CardContent>
             </Card>
           ))
@@ -81,3 +101,4 @@ const ClientProvidersList = () => {
 };
 
 export default ClientProvidersList;
+
