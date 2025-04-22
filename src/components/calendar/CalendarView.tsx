@@ -4,10 +4,17 @@ import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, 
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Appointment, Client, Service } from '@/lib/types';
-import { MOCK_SERVICES, MOCK_CLIENTS, SERVICE_CATEGORIES } from '@/lib/data';
+import { MOCK_SERVICES, MOCK_CLIENTS } from '@/lib/data';
 import { cn } from '@/lib/utils';
+
+// Mapeo de estatus a colores 
+const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Soft green
+  scheduled:    { bg: "#FEC6A1", border: "#FF9100", text: "#924C00" }, // Soft orange
+  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" }        // Neutral gray
+};
 
 interface CalendarAppointmentProps {
   appointment: Appointment;
@@ -23,27 +30,38 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   const startHour = appointment.startTime.getHours();
   const startMinutes = appointment.startTime.getMinutes();
   const durationMinutes = (appointment.endTime.getTime() - appointment.startTime.getTime()) / (1000 * 60);
-  
-  const categoryColor = SERVICE_CATEGORIES[service.category].color;
-  
+
+  // Elegir color según status
+  let statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['scheduled'];
+
+  // Mostrar solo la dirección del cliente como ubicación (primer parte)
+  const location = client.address.split(',')[0];
+
   return (
     <div 
-      className="absolute left-1 right-1 rounded-md p-2 overflow-hidden text-xs shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md"
+      className="absolute left-1 right-1 rounded-lg px-3 py-2 overflow-hidden text-xs shadow transition-all duration-200 cursor-pointer hover:shadow-lg flex flex-col gap-0.5"
       style={{
         top: `${startHour * 60 + startMinutes}px`,
         height: `${durationMinutes}px`,
-        backgroundColor: `${categoryColor}20`,
-        borderLeft: `3px solid ${categoryColor}`
+        background: statusColor.bg,
+        borderLeft: `4px solid ${statusColor.border}`,
+        color: statusColor.text,
+        fontWeight: 500
       }}
+      title={service.name}
     >
-      <div className="font-medium truncate" style={{ color: categoryColor }}>
-        {service.name}
+      <div className="truncate text-base font-medium mb-0.5" style={{ color: statusColor.text }}>
+        {location}
       </div>
-      <div className="truncate text-muted-foreground">
+      <div 
+        className="truncate text-xs font-semibold"
+        style={{ color: statusColor.text }}>
         {client.name}
       </div>
-      <div className="truncate text-muted-foreground">
-        {format(appointment.startTime, 'h:mm a')} - {format(appointment.endTime, 'h:mm a')}
+      <div 
+        className="truncate text-[11px] text-muted-foreground mt-0.5"
+        style={{ fontWeight: 400 }}>
+        {service.name}
       </div>
     </div>
   );
@@ -60,36 +78,20 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   appointments,
   isCurrentMonth
 }) => {
-  // Filter appointments ending before or at 8pm (20:00)
   const dayAppointments = appointments.filter(appointment => 
     isSameDay(appointment.startTime, date) && 
     appointment.endTime.getHours() <= 20
   );
-  
-  // Only show hours from 8am to 8pm (8 to 20)
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
   const isCurrentDay = isToday(date);
-  
+
   return (
     <div className="h-[780px] relative border-r last:border-r-0 calendar-day">
-      <div 
-        className="sticky top-0 py-2 text-center border-b z-10 bg-white"
-      >
-        <div 
-          className={cn(
-            "text-xs uppercase tracking-wide mb-1",
-            !isCurrentMonth && "text-muted-foreground",
-          )}
-        >
+      <div className="sticky top-0 py-2 text-center border-b z-10 bg-white">
+        <div className={cn("text-xs uppercase tracking-wide mb-1", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
         </div>
-        <div 
-          className={cn(
-            "flex items-center justify-center",
-            !isCurrentMonth && "text-muted-foreground",
-            isCurrentDay && "font-bold text-primary"
-          )}
-        >
+        <div className={cn("flex items-center justify-center", !isCurrentMonth && "text-muted-foreground", isCurrentDay && "font-bold text-primary")}>
           {isCurrentDay ? (
             <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
               {format(date, 'd')}
@@ -99,7 +101,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           )}
         </div>
       </div>
-      
+
       <div className="relative h-full bg-white">
         {hours.map((hour) => (
           <div key={hour} className="border-b h-[60px] relative">
@@ -108,11 +110,9 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             </div>
           </div>
         ))}
-        
         {dayAppointments.map(appointment => {
           const service = MOCK_SERVICES.find(s => s.id === appointment.serviceId)!;
           const client = MOCK_CLIENTS.find(c => c.id === appointment.clientId)!;
-          
           return (
             <CalendarAppointment
               key={appointment.id}
@@ -133,25 +133,25 @@ interface CalendarViewProps {
 
 const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  
+
   const startDate = startOfWeek(currentDate, { weekStartsOn: 0 });
   const endDate = endOfWeek(currentDate, { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start: startDate, end: endDate });
-  
+
   const currentMonth = currentDate.getMonth();
-  
+
   const handlePreviousWeek = () => {
     setCurrentDate(prevDate => addDays(prevDate, -7));
   };
-  
+
   const handleNextWeek = () => {
     setCurrentDate(prevDate => addDays(prevDate, 7));
   };
-  
+
   const handleToday = () => {
     setCurrentDate(new Date());
   };
-  
+
   return (
     <Card className="overflow-hidden border-0 shadow-medium">
       <div className="p-4 flex items-center justify-between border-b bg-white">
@@ -190,3 +190,4 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
 };
 
 export default CalendarView;
+
