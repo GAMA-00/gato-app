@@ -11,7 +11,7 @@ import { MessageSquare } from 'lucide-react';
 const Messages = () => {
   const { activeConversation, setActiveConversation, markAsRead } = useChat();
   
-  // Clear active conversation when navigating to this page
+  // Clear active conversation when navigating away from this page
   useEffect(() => {
     return () => setActiveConversation(null);
   }, [setActiveConversation]);
@@ -26,7 +26,7 @@ const Messages = () => {
   return (
     <PageContainer 
       title="Mensajes" 
-      subtitle="Administra tus comunicaciones"
+      subtitle="Administra tus comunicaciones con clientes"
       action={null}
     >
       <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-220px)]">
@@ -47,9 +47,7 @@ const Messages = () => {
           <Card className="flex-1 flex flex-col h-full">
             <div className="border-b p-4">
               <h2 className="text-lg font-medium">
-                {window.location.pathname.startsWith('/client')
-                  ? activeConversation.providerName
-                  : activeConversation.clientName}
+                {activeConversation.clientName}
               </h2>
             </div>
             <ChatMessages />

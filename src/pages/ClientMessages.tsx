@@ -14,7 +14,7 @@ const ClientMessages = () => {
   const { activeConversation, setActiveConversation, markAsRead } = useChat();
   const isMobile = useIsMobile();
   
-  // Clear active conversation when navigating to this page
+  // Clear active conversation when navigating away from this page
   useEffect(() => {
     return () => setActiveConversation(null);
   }, [setActiveConversation]);

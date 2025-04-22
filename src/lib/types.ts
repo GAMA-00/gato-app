@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -20,6 +19,8 @@ export interface Service {
   description: string;
   createdAt: Date;
   buildingIds: string[]; // Available buildings
+  providerId: string; // ID of the provider who created this service
+  providerName: string; // Name of the provider
 }
 
 export interface Client {
@@ -57,6 +58,7 @@ export interface Appointment {
   id: string;
   serviceId: string;
   clientId: string;
+  providerId: string; // Added to link appointment to provider
   startTime: Date;
   endTime: Date;
   status: string;
@@ -65,6 +67,8 @@ export interface Appointment {
   createdAt: Date;
   building?: string;
   apartment?: string;
+  serviceName?: string; // Added for easier reference
+  clientName?: string; // Added for easier reference
 }
 
 export interface BlockedTimeSlot {

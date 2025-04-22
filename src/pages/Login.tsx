@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -11,11 +11,13 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
 import { Mail, Lock, LogIn } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-// Esquema de validación
+// Validation schema
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  role: z.enum(['client', 'provider'])
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -25,33 +27,39 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
   
-  // Get the intended destination from location state, or default to "/client"
+  // Get the intended destination from location state, or default to appropriate home
   const from = location.state?.from?.pathname || '/client';
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: ''
+      password: '',
+      role: 'client'
     }
   });
 
   const onSubmit = (values: LoginFormValues) => {
     // In a real application, we would verify with the backend
-    // We're simulating a successful login with admin-like permissions
     login({
-      id: '1',
-      name: 'Usuario Demo',
+      id: Date.now().toString(), // Generate a unique ID
+      name: 'Usuario ' + values.email.split('@')[0],
       email: values.email,
       phone: '123456789',
       buildingId: '1',
       buildingName: 'Colinas de Montealegre',
-      hasPaymentMethod: true, // Set to true to avoid payment method restrictions
-      role: 'provider' // Using provider role to enable access to both views
+      hasPaymentMethod: true,
+      role: values.role
     });
     
     toast.success('Inicio de sesión exitoso');
-    navigate(from);
+    
+    // Navigate to the appropriate home page based on role
+    if (values.role === 'client') {
+      navigate('/client');
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -99,6 +107,41 @@ const Login = () => {
                         {...field} 
                       />
                     </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Tipo de Cuenta</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-col space-y-1"
+                    >
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="client" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Cliente - Busco servicios
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="provider" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Proveedor - Ofrezco servicios
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -10,10 +10,10 @@ export interface User {
   buildingId: string;
   buildingName: string;
   hasPaymentMethod: boolean;
-  role: 'client' | 'provider'; // Add role field to differentiate users
+  role: 'client' | 'provider';
 }
 
-// Interfaz del contexto de autenticación
+// Authentication context interface
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -22,47 +22,46 @@ interface AuthContextType {
   logout: () => void;
   updateUserPaymentMethod: (hasPaymentMethod: boolean) => void;
   isLoading: boolean;
-  isClient: boolean; // Check if user is a client
-  isProvider: boolean; // Check if user is a provider
+  isClient: boolean;
+  isProvider: boolean;
 }
 
-// Crear el contexto
+// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Proveedor del contexto
+// Provider for the context
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Al cargar la app, verificar si hay un usuario en localStorage
+  // Check if there's a user in localStorage when the app loads
   useEffect(() => {
     const storedUser = localStorage.getItem('gato_user');
-    console.log('Stored User:', storedUser);
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
     setIsLoading(false);
   }, []);
 
-  // Función para iniciar sesión
+  // Login function
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
-  // Función para registrarse (similar a login por ahora)
+  // Register function
   const register = (userData: User) => {
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
-  // Función para cerrar sesión
+  // Logout function
   const logout = () => {
     setUser(null);
     localStorage.removeItem('gato_user');
   };
   
-  // Función para actualizar el método de pago del usuario
+  // Update user payment method
   const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
     if (user) {
       const updatedUser = { ...user, hasPaymentMethod };
@@ -92,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Hook para usar el contexto
+// Hook to use the context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

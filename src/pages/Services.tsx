@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,16 +7,46 @@ import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
-import { MOCK_SERVICES } from '@/lib/data';
 import { Service } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Services = () => {
-  const [services, setServices] = useState<Service[]>(MOCK_SERVICES);
+  const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | undefined>(undefined);
+  const { user } = useAuth();
   
-  const filteredServices = services.filter(
+  // Load services from localStorage on component mount
+  useEffect(() => {
+    const savedServices = localStorage.getItem('gato_services');
+    if (savedServices) {
+      try {
+        const parsedServices = JSON.parse(savedServices, (key, value) => {
+          if (key === 'createdAt') {
+            return new Date(value);
+          }
+          return value;
+        });
+        setServices(parsedServices);
+      } catch (error) {
+        console.error('Error parsing services:', error);
+        setServices([]);
+      }
+    }
+  }, []);
+  
+  // Save services to localStorage when they change
+  useEffect(() => {
+    if (services.length > 0) {
+      localStorage.setItem('gato_services', JSON.stringify(services));
+    }
+  }, [services]);
+  
+  // Filter services to only show those created by the current provider
+  const providerServices = user ? services.filter(service => service.providerId === user.id) : [];
+  
+  const filteredServices = providerServices.filter(
     service => service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                service.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -36,12 +67,18 @@ const Services = () => {
   };
   
   const handleSubmitService = (serviceData: Partial<Service>) => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para crear anuncios');
+      return;
+    }
+    
     if (editingService) {
       setServices(services.map(s => 
         s.id === editingService.id ? { 
           ...s, 
           ...serviceData,
-          buildingIds: serviceData.buildingIds || [] 
+          buildingIds: serviceData.buildingIds || [],
+          providerId: s.providerId
         } : s
       ));
       toast.success('Anuncio actualizado exitosamente');
@@ -54,12 +91,16 @@ const Services = () => {
         price: serviceData.price || 0,
         description: serviceData.description || '',
         buildingIds: serviceData.buildingIds || [],
-        createdAt: new Date()
+        createdAt: new Date(),
+        providerId: user.id,
+        providerName: user.name
       };
       
       setServices([newService, ...services]);
       toast.success('Anuncio agregado exitosamente');
     }
+    
+    setIsFormOpen(false);
   };
 
   return (

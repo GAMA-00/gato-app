@@ -1,41 +1,14 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, EyeOff } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
-import DashboardStats from '@/components/dashboard/DashboardStats';
 import AppointmentList from '@/components/dashboard/AppointmentList';
-import RatingSection from '@/components/dashboard/RatingSection';
 import QuickStats from '@/components/dashboard/QuickStats';
-import { MOCK_APPOINTMENTS, getDashboardStats } from '@/lib/data';
 import { isSameDay, addDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
-const mockComments = [
-  { 
-    id: 'r1', 
-    clientName: 'María López', 
-    serviceName: 'Limpieza Estándar',
-    date: new Date(2023, 5, 28), 
-    rating: 5, 
-    comment: 'Excelente servicio, mi casa quedó impecable.' 
-  },
-  { 
-    id: 'r2', 
-    clientName: 'Juan García', 
-    serviceName: 'Limpieza Profunda',
-    date: new Date(2023, 5, 26), 
-    rating: 4, 
-    comment: 'Buen servicio, aunque llegaron un poco tarde.' 
-  },
-  { 
-    id: 'r3', 
-    clientName: 'Ana Torres', 
-    serviceName: 'Mantenimiento',
-    date: new Date(2023, 5, 25), 
-    rating: 5, 
-    comment: 'Muy profesionales y puntuales.' 
-  }
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { Appointment } from '@/lib/types';
 
 const StatisticsSection = ({ 
   title, 
@@ -72,17 +45,46 @@ const StatisticsSection = ({
 };
 
 const Dashboard = () => {
-  const stats = getDashboardStats();
+  const { user } = useAuth();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  
+  // Load appointments from localStorage
+  useEffect(() => {
+    const savedAppointments = localStorage.getItem('gato_appointments');
+    if (savedAppointments) {
+      try {
+        const parsedAppointments = JSON.parse(savedAppointments, (key, value) => {
+          if (key === 'startTime' || key === 'endTime' || key === 'createdAt') {
+            return new Date(value);
+          }
+          return value;
+        });
+        setAppointments(parsedAppointments);
+      } catch (error) {
+        console.error('Error parsing appointments:', error);
+      }
+    }
+  }, []);
+  
+  // Filter appointments for the current provider
+  const providerAppointments = user 
+    ? appointments.filter(appointment => appointment.providerId === user.id)
+    : [];
+  
   const today = new Date();
   const tomorrow = addDays(new Date(), 1);
   
-  const todaysAppointments = MOCK_APPOINTMENTS
+  const todaysAppointments = providerAppointments
     .filter(app => isSameDay(app.startTime, today))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     
-  const tomorrowsAppointments = MOCK_APPOINTMENTS
+  const tomorrowsAppointments = providerAppointments
     .filter(app => isSameDay(app.startTime, tomorrow))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  
+  // Calculate quick stats
+  const upcomingAppointments = providerAppointments.filter(app => app.startTime > today).length;
+  const totalAppointments = providerAppointments.length;
 
   return (
     <PageContainer 
@@ -106,15 +108,24 @@ const Dashboard = () => {
         />
         
         <StatisticsSection title="Estadísticas Rápidas" defaultOpen={true}>
-          <QuickStats />
-        </StatisticsSection>
-        
-        <StatisticsSection title="Estadísticas de Desempeño">
-          <DashboardStats stats={stats} />
-        </StatisticsSection>
-        
-        <StatisticsSection title="Calificaciones y Comentarios" defaultOpen={false}>
-          <RatingSection comments={mockComments} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-primary/10 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-muted-foreground">Citas Hoy</h3>
+              <p className="text-2xl font-bold">{todaysAppointments.length}</p>
+            </div>
+            <div className="bg-primary/10 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-muted-foreground">Citas Mañana</h3>
+              <p className="text-2xl font-bold">{tomorrowsAppointments.length}</p>
+            </div>
+            <div className="bg-primary/10 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-muted-foreground">Próximas Citas</h3>
+              <p className="text-2xl font-bold">{upcomingAppointments}</p>
+            </div>
+            <div className="bg-primary/10 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-muted-foreground">Total Citas</h3>
+              <p className="text-2xl font-bold">{totalAppointments}</p>
+            </div>
+          </div>
         </StatisticsSection>
       </div>
     </PageContainer>

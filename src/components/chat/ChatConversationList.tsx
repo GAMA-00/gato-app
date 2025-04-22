@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useChat } from '@/contexts/ChatContext';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatConversationListProps {
   onSelectConversation: () => void;
@@ -14,7 +15,11 @@ interface ChatConversationListProps {
 
 const ChatConversationList: React.FC<ChatConversationListProps> = ({ onSelectConversation, className }) => {
   const { conversations, setActiveConversation, markAsRead } = useChat();
-  const isClient = window.location.pathname.startsWith('/client');
+  const { user } = useAuth();
+  
+  if (!user) return null;
+  
+  const isClient = user.role === 'client';
 
   const handleSelectConversation = (conversationId: string) => {
     const conversation = conversations.find(c => c.id === conversationId);
@@ -30,7 +35,9 @@ const ChatConversationList: React.FC<ChatConversationListProps> = ({ onSelectCon
       <div className="space-y-2">
         {conversations.length > 0 ? (
           conversations.map(conversation => {
-            const lastMessage = conversation.messages[conversation.messages.length - 1];
+            const lastMessage = conversation.messages.length > 0 
+              ? conversation.messages[conversation.messages.length - 1] 
+              : null;
             
             return (
               <div
@@ -58,9 +65,13 @@ const ChatConversationList: React.FC<ChatConversationListProps> = ({ onSelectCon
                     )}
                   </div>
                   
-                  {lastMessage && (
+                  {lastMessage ? (
                     <p className="text-sm text-muted-foreground truncate">
                       {lastMessage.isImage ? '📷 Imagen' : lastMessage.content}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">
+                      Nueva conversación
                     </p>
                   )}
                 </div>
@@ -76,6 +87,9 @@ const ChatConversationList: React.FC<ChatConversationListProps> = ({ onSelectCon
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <p>No hay conversaciones aún</p>
+            {isClient && (
+              <p className="text-sm mt-2">Busca servicios para iniciar una conversación con proveedores</p>
+            )}
           </div>
         )}
       </div>
