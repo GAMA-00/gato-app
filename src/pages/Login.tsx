@@ -37,8 +37,8 @@ const Login = () => {
   });
 
   const onSubmit = (values: LoginFormValues) => {
-    // En una aplicación real, aquí se verificaría con el backend
-    // Simulamos un inicio de sesión exitoso
+    // In a real application, we would verify with the backend
+    // We're simulating a successful login with admin-like permissions
     login({
       id: '1',
       name: 'Usuario Demo',
@@ -46,8 +46,8 @@ const Login = () => {
       phone: '123456789',
       buildingId: '1',
       buildingName: 'Colinas de Montealegre',
-      hasPaymentMethod: false,
-      role: 'client' // Add the missing role property
+      hasPaymentMethod: true, // Set to true to avoid payment method restrictions
+      role: 'provider' // Using provider role to enable access to both views
     });
     
     toast.success('Inicio de sesión exitoso');

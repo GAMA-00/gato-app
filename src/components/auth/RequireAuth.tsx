@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 interface RequireAuthProps {
   children: React.ReactNode;
   requirePaymentMethod?: boolean;
-  clientOnly?: boolean; // Add this to indicate client-only routes
-  providerOnly?: boolean; // Add this to indicate provider-only routes
+  clientOnly?: boolean; 
+  providerOnly?: boolean; 
 }
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ 
@@ -34,14 +34,12 @@ const RequireAuth: React.FC<RequireAuthProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If provider is trying to access client-only routes or vice versa
-  if (isAuthenticated) {
-    if (clientOnly && !isClient) {
-      return <Navigate to="/dashboard" replace />;
-    }
-    if (providerOnly && !isProvider) {
-      return <Navigate to="/client" replace />;
-    }
+  // Modified: Allow accessing provider routes even without the provider role
+  // This ensures users can navigate between views
+  
+  // Render the children for all authenticated users regardless of role when accessing provider routes
+  if (isAuthenticated && providerOnly) {
+    return <>{children}</>;
   }
 
   // For routes that still require authentication
