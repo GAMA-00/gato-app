@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, EyeOff } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
@@ -91,23 +92,25 @@ const Dashboard = () => {
       className="pt-0"
     >
       <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6">
+          <AppointmentList
+            appointments={todaysAppointments}
+            title="Citas de Hoy"
+            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+            emptyMessage="No hay citas programadas para hoy"
+          />
+
+          <AppointmentList
+            appointments={tomorrowsAppointments}
+            title="Citas de Mañana"
+            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+            emptyMessage="No hay citas programadas para mañana"
+          />
+        </div>
+
         <QuickStats />
         
         <DashboardStats stats={stats} />
-
-        <AppointmentList
-          appointments={todaysAppointments}
-          title="Citas de Hoy"
-          icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-          emptyMessage="No hay citas programadas para hoy"
-        />
-
-        <AppointmentList
-          appointments={tomorrowsAppointments}
-          title="Citas de Mañana"
-          icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-          emptyMessage="No hay citas programadas para mañana"
-        />
       </div>
     </PageContainer>
   );
