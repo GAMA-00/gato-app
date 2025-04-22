@@ -17,12 +17,12 @@ import ClientHome from "./pages/ClientHome";
 import ClientServices from "./pages/ClientServices";
 import ClientBooking from "./pages/ClientBooking";
 import ClientBookings from "./pages/ClientBookings";
-import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PaymentSetup from "./pages/PaymentSetup";
 import { ChatProvider } from "./contexts/ChatContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import RequireAuth from "./components/auth/RequireAuth";
 
 // Create a client for React Query
 const queryClient = new QueryClient();
@@ -32,8 +32,8 @@ const AppRoutes = () => {
     <>
       <Navbar />
       <Routes>
-        {/* Landing page */}
-        <Route path="/" element={<Index />} />
+        {/* Landing page - Redirect to client home */}
+        <Route path="/" element={<ClientHome />} />
         
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
@@ -51,9 +51,21 @@ const AppRoutes = () => {
         {/* Client routes */}
         <Route path="/client" element={<ClientHome />} />
         <Route path="/client/services/:buildingId" element={<ClientServices />} />
-        <Route path="/client/book/:buildingId/:serviceId" element={<ClientBooking />} />
-        <Route path="/client/bookings" element={<ClientBookings />} />
-        <Route path="/client/messages" element={<ClientMessages />} />
+        <Route path="/client/book/:buildingId/:serviceId" element={
+          <RequireAuth requirePaymentMethod={true}>
+            <ClientBooking />
+          </RequireAuth>
+        } />
+        <Route path="/client/bookings" element={
+          <RequireAuth>
+            <ClientBookings />
+          </RequireAuth>
+        } />
+        <Route path="/client/messages" element={
+          <RequireAuth>
+            <ClientMessages />
+          </RequireAuth>
+        } />
         
         {/* Not found */}
         <Route path="*" element={<NotFound />} />

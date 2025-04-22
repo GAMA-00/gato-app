@@ -1,8 +1,13 @@
+
 export type ServiceCategory = 
-  | 'cleaning'
-  | 'pet-grooming'
+  | 'home'
+  | 'personal-care'
+  | 'pets'
+  | 'sports'
+  | 'classes'
   | 'car-wash'
   | 'gardening'
+  | 'cleaning'
   | 'maintenance'
   | 'other';
 
@@ -14,7 +19,7 @@ export interface Service {
   price: number;
   description: string;
   createdAt: Date;
-  buildingIds: string[]; // New field to store available buildings
+  buildingIds: string[]; // Available buildings
 }
 
 export interface Client {
@@ -107,4 +112,11 @@ export interface ProviderAchievements {
   nextLevel: AchievementLevel | null;
   pointsToNextLevel: number;
   achievements: Achievement[];
+}
+
+export interface CategoryOption {
+  id: ServiceCategory;
+  name: string;
+  icon: React.ReactNode;
+  services: string[];
 }

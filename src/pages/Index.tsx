@@ -6,7 +6,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate('/dashboard');
+    navigate('/client');
   }, [navigate]);
 
   // Return null since we're immediately redirecting

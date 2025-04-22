@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -40,10 +41,13 @@ const PaymentSetup = () => {
         ...user,
         hasPaymentMethod: true
       });
+      
+      toast.success('¡Método de pago registrado correctamente!');
+      navigate('/client');
+    } else {
+      toast.error('Por favor registre su cuenta primero');
+      navigate('/register');
     }
-    
-    toast.success('¡Método de pago registrado correctamente!');
-    navigate('/client');
   };
 
   return (

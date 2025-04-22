@@ -1,11 +1,14 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Definimos el tipo de usuario
+// Definimos el tipo de usuario con la información ampliada
 export interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
+  buildingId: string;
+  buildingName: string;
   hasPaymentMethod: boolean;
 }
 
