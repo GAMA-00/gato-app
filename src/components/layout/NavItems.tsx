@@ -16,11 +16,12 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
   const location = useLocation();
   const { hasUnreadMessages } = useChat();
   
+  // Remove "Clientes" from providerNavItems
   const providerNavItems = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/clients', icon: Users, label: 'Clientes' },
+    // { to: '/clients', icon: Users, label: 'Clientes' },  // Eliminated
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
@@ -97,3 +98,4 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
 };
 
 export default NavItems;
+

@@ -15,10 +15,12 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const navigate = useNavigate();
   const { hasUnreadMessages } = useChat();
 
+  // Remove "Clientes" from providerNavItems
   const providerNavItems = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
+    // { to: '/clients', icon: Users, label: 'Clientes' },  // Eliminated
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
@@ -101,3 +103,4 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
 };
 
 export default MobileBottomNav;
+
