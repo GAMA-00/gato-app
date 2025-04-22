@@ -3,16 +3,18 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, Clock, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
+// Updated mock stats with more dynamic values
 const MOCK_STATS = {
   rating: 5.0,
   weekAppointments: 12,
-  weekAppointmentsChange: 8, // porcentaje incremento/decremento
+  weekAppointmentsChange: 8, // percentage increase/decrease
   weekAppointmentsPositive: true,
   monthRevenue: 10400,
   monthRevenueChange: 5,
   monthRevenuePositive: true
 };
 
+// Helper to render star ratings
 const renderStars = (rating: number) => {
   const stars = [];
   for (let i = 0; i < 5; i++) {
@@ -88,4 +90,3 @@ const QuickStats: React.FC = () => {
 };
 
 export default QuickStats;
-

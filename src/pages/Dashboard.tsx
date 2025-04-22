@@ -1,14 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, EyeOff } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import AppointmentList from '@/components/dashboard/AppointmentList';
 import QuickStats from '@/components/dashboard/QuickStats';
+import DashboardStats from '@/components/dashboard/DashboardStats';
+import { getDashboardStats } from '@/lib/data';
 import { isSameDay, addDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
-import { Appointment } from '@/lib/types';
+import { Appointment, DashboardStats as DashboardStatsType } from '@/lib/types';
 
 const StatisticsSection = ({ 
   title, 
@@ -47,6 +48,7 @@ const StatisticsSection = ({
 const Dashboard = () => {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [stats, setStats] = useState<DashboardStatsType>(getDashboardStats());
   
   // Load appointments from localStorage
   useEffect(() => {
@@ -81,10 +83,6 @@ const Dashboard = () => {
   const tomorrowsAppointments = providerAppointments
     .filter(app => isSameDay(app.startTime, tomorrow))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-  
-  // Calculate quick stats
-  const upcomingAppointments = providerAppointments.filter(app => app.startTime > today).length;
-  const totalAppointments = providerAppointments.length;
 
   return (
     <PageContainer 
@@ -93,6 +91,10 @@ const Dashboard = () => {
       className="pt-0"
     >
       <div className="space-y-6">
+        <QuickStats />
+        
+        <DashboardStats stats={stats} />
+
         <AppointmentList
           appointments={todaysAppointments}
           title="Citas de Hoy"
@@ -106,27 +108,6 @@ const Dashboard = () => {
           icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
           emptyMessage="No hay citas programadas para mañana"
         />
-        
-        <StatisticsSection title="Estadísticas Rápidas" defaultOpen={true}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-primary/10 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-muted-foreground">Citas Hoy</h3>
-              <p className="text-2xl font-bold">{todaysAppointments.length}</p>
-            </div>
-            <div className="bg-primary/10 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-muted-foreground">Citas Mañana</h3>
-              <p className="text-2xl font-bold">{tomorrowsAppointments.length}</p>
-            </div>
-            <div className="bg-primary/10 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-muted-foreground">Próximas Citas</h3>
-              <p className="text-2xl font-bold">{upcomingAppointments}</p>
-            </div>
-            <div className="bg-primary/10 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-muted-foreground">Total Citas</h3>
-              <p className="text-2xl font-bold">{totalAppointments}</p>
-            </div>
-          </div>
-        </StatisticsSection>
       </div>
     </PageContainer>
   );
