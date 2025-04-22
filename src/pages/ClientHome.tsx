@@ -1,52 +1,60 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Home, 
-  Scissors, 
-  PawPrint, 
-  Dumbbell, 
-  Book, 
-  ArrowRight 
+import {
+  Home,
+  Scissors,
+  PawPrint,
+  Dumbbell,
+  Book,
+  ArrowRight
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue
+} from '@/components/ui/select';
 import { MOCK_SERVICES } from '@/lib/data';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Main categories and associated icons
 const CATEGORIES = [
-  { 
-    id: 'home', 
-    title: 'Hogar', 
-    icon: Home 
+  {
+    id: 'home',
+    title: 'Hogar',
+    icon: Home
   },
-  { 
-    id: 'personal-care', 
-    title: 'Cuidado Personal', 
-    icon: Scissors 
+  {
+    id: 'personal-care',
+    title: 'Cuidado Personal',
+    icon: Scissors
   },
-  { 
-    id: 'pets', 
-    title: 'Mascotas', 
-    icon: PawPrint 
+  {
+    id: 'pets',
+    title: 'Mascotas',
+    icon: PawPrint
   },
-  { 
-    id: 'sports', 
-    title: 'Deportes', 
-    icon: Dumbbell 
+  {
+    id: 'sports',
+    title: 'Deportes',
+    icon: Dumbbell
   },
-  { 
-    id: 'classes', 
-    title: 'Clases', 
-    icon: Book 
+  {
+    id: 'classes',
+    title: 'Clases',
+    icon: Book
   }
 ];
 
-// Simulación de residencias del usuario (en producción, obtener desde user/building/backend)
+// Simulated available residences
 const AVAILABLE_RESIDENCES = [
-  { id: 'res1', name: 'Residencia Los Robles' },
-  { id: 'res2', name: 'Residencial Oasis' },
-  { id: 'res3', name: 'Condo Villa Sur' }
+  { id: '1', name: 'Residencia Los Robles' },
+  { id: '2', name: 'Residencial Oasis' },
+  { id: '3', name: 'Condo Villa Sur' }
 ];
 
 const LOCAL_STORAGE_KEY = 'gato_selected_residence';
@@ -54,55 +62,60 @@ const LOCAL_STORAGE_KEY = 'gato_selected_residence';
 const ClientHome = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedResidence, setSelectedResidence] = useState<string | null>(null);
+  const [selectedResidence, setSelectedResidence] = useState<string>('');
+  // Track open dropdown by category id
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // Cargar residencia seleccionada (desde usuario o localStorage)
+  // Load initial residence selection
   useEffect(() => {
-    let initialResidenceId = null;
+    let initialResidenceId = '';
     if (user && user.buildingId) {
       initialResidenceId = user.buildingId;
     } else {
-      initialResidenceId = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) initialResidenceId = saved;
     }
-    // Si no existe, usar la primera opción como fallback
     if (!initialResidenceId && AVAILABLE_RESIDENCES.length > 0) {
       initialResidenceId = AVAILABLE_RESIDENCES[0].id;
     }
     setSelectedResidence(initialResidenceId);
   }, [user]);
 
-  // Cuando cambia, guardamos para próximas visitas
   useEffect(() => {
     if (selectedResidence) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedResidence);
     }
   }, [selectedResidence]);
 
-  // Obtener nombre de residencia seleccionada
-  const selectedResidenceObj = AVAILABLE_RESIDENCES.find(r => r.id === selectedResidence);
+  const selectedResidenceObj = AVAILABLE_RESIDENCES.find(
+    r => r.id === selectedResidence
+  );
 
-  // Obtener servicios disponibles por categoría y residencia
+  // List services for a category & selected residence
   function getServicesByCategory(categoryId: string) {
-    // Filtrar por residencia
     if (!selectedResidence) return [];
-    // Suponemos que MOCK_SERVICES tiene el campo buildingIds (plural) y category
     return MOCK_SERVICES.filter(
       s => s.buildingIds.includes(selectedResidence) && s.category === categoryId
     );
   }
 
+  // Handles toggling the dropdown for categories
+  const handleCategoryClick = (categoryId: string) => {
+    setOpenDropdown(prev => (prev === categoryId ? null : categoryId));
+  };
+
   return (
     <div className="p-4 md:p-8">
       <div className="max-w-md mb-2">
         <Select
-          value={selectedResidence ?? ''}
-          onValueChange={(value) => setSelectedResidence(value)}
+          value={selectedResidence}
+          onValueChange={value => setSelectedResidence(value)}
         >
           <SelectTrigger className="mb-2">
             <SelectValue placeholder="Selecciona tu residencia" />
           </SelectTrigger>
           <SelectContent>
-            {AVAILABLE_RESIDENCES.map((r) => (
+            {AVAILABLE_RESIDENCES.map(r => (
               <SelectItem key={r.id} value={r.id}>
                 {r.name}
               </SelectItem>
@@ -121,46 +134,61 @@ const ClientHome = () => {
       </h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CATEGORIES.map((category) => {
+        {CATEGORIES.map(category => {
+          const CategoryIcon = category.icon;
           const services = getServicesByCategory(category.id);
           return (
-            <Card 
-              key={category.id} 
-              className="hover:shadow-md transition-shadow"
-            >
-              <CardContent className="p-4 flex flex-col gap-3">
-                <div className="flex items-center gap-3 mb-2">
-                  <category.icon className="h-6 w-6 text-primary" />
-                  <span className="font-medium">{category.title}</span>
-                </div>
-                {services.length > 0 ? (
-                  <Select
-                    onValueChange={(serviceId) => {
-                      navigate(`/client/book/${selectedResidence}/${serviceId}`);
-                    }}
+            <Card key={category.id} className="p-0">
+              <div className="flex flex-col">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between text-left rounded-none p-4 border-b font-medium"
+                  onClick={() => handleCategoryClick(category.id)}
+                  aria-expanded={openDropdown === category.id}
+                  aria-controls={`dropdown-${category.id}`}
+                >
+                  <span className="flex items-center gap-3">
+                    <CategoryIcon className="h-6 w-6 text-primary" />
+                    {category.title}
+                  </span>
+                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                </Button>
+                {openDropdown === category.id && (
+                  <div
+                    className="bg-background z-50 p-2 animate-fade-in"
+                    id={`dropdown-${category.id}`}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecciona un servicio" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {services.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
-                          <span className="flex items-center gap-2">
-                            {service.name}
-                            <ArrowRight className="h-4 w-4 ml-2" />
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="py-3 text-center text-sm text-muted-foreground">
-                    Aun no hay proveedores en este servicio
+                    {services.length > 0 ? (
+                      <ul>
+                        {services.map(service => (
+                          <li key={service.id}>
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-between px-3 py-2 rounded text-left"
+                              onClick={() =>
+                                navigate(
+                                  `/client/services/${category.id}/${encodeURIComponent(
+                                    service.name
+                                  )}`
+                                )
+                              }
+                            >
+                              <span>{service.name}</span>
+                              <ArrowRight className="h-4 w-4 text-primary ml-2" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-center text-sm text-muted-foreground py-2">
+                        Aun no hay proveedores en este servicio
+                      </div>
+                    )}
                   </div>
                 )}
-              </CardContent>
+              </div>
             </Card>
-          )
+          );
         })}
       </div>
     </div>
