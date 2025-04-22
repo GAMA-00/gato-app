@@ -16,6 +16,7 @@ const JOB_REQUESTS = [
       id: 'pending-1',
       serviceId: '1',
       clientId: '1',
+      providerId: 'provider-1', // Added providerId
       startTime: new Date(new Date().setHours(10, 0)),
       endTime: new Date(new Date().setHours(12, 0)),
       status: 'pending',
@@ -32,6 +33,7 @@ const JOB_REQUESTS = [
       id: 'pending-2',
       serviceId: '3',
       clientId: '2',
+      providerId: 'provider-1', // Added providerId
       startTime: new Date(new Date().setHours(14, 30)),
       endTime: new Date(new Date().setHours(16, 0)),
       status: 'pending',

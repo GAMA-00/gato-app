@@ -33,7 +33,9 @@ export const MOCK_SERVICES: Service[] = [
     price: 80,
     description: 'Complete home cleaning service including dusting, vacuuming, and bathroom cleaning.',
     createdAt: new Date('2023-01-15'),
-    buildingIds: ['1', '2', '3']
+    buildingIds: ['1', '2', '3'],
+    providerId: 'provider-1',
+    providerName: 'Clean Experts'
   },
   {
     id: '2',
@@ -43,7 +45,9 @@ export const MOCK_SERVICES: Service[] = [
     price: 50,
     description: 'Full grooming service for small dog breeds including bath, haircut, nail trimming, and ear cleaning.',
     createdAt: new Date('2023-02-10'),
-    buildingIds: ['1', '3']
+    buildingIds: ['1', '3'],
+    providerId: 'provider-2',
+    providerName: 'Pet Paradise'
   },
   {
     id: '3',
@@ -53,7 +57,9 @@ export const MOCK_SERVICES: Service[] = [
     price: 45,
     description: 'Exterior wash, wax, and interior vacuuming and detailing.',
     createdAt: new Date('2023-03-05'),
-    buildingIds: ['2']
+    buildingIds: ['2'],
+    providerId: 'provider-3',
+    providerName: 'Shiny Cars'
   },
   {
     id: '4',
@@ -63,7 +69,9 @@ export const MOCK_SERVICES: Service[] = [
     price: 35,
     description: 'Professional lawn mowing, edging, and cleanup.',
     createdAt: new Date('2023-04-20'),
-    buildingIds: ['1', '2']
+    buildingIds: ['1', '2'],
+    providerId: 'provider-4',
+    providerName: 'Green Gardens'
   },
   {
     id: '5',
@@ -73,7 +81,9 @@ export const MOCK_SERVICES: Service[] = [
     price: 95,
     description: 'Routine plumbing check and minor repairs.',
     createdAt: new Date('2023-05-15'),
-    buildingIds: ['3']
+    buildingIds: ['3'],
+    providerId: 'provider-5',
+    providerName: 'Fix-It Plumbing'
   }
 ];
 
@@ -150,6 +160,7 @@ export const generateMockAppointments = (): Appointment[] => {
     id: '1',
     serviceId: '1', // Standard Home Cleaning
     clientId: '1', // Jane Smith
+    providerId: 'provider-1',
     startTime: setTimeOnDate(today, 10, 0),
     endTime: setTimeOnDate(today, 12, 0),
     status: 'scheduled',
@@ -162,6 +173,7 @@ export const generateMockAppointments = (): Appointment[] => {
     id: '2',
     serviceId: '3', // Premium Car Wash
     clientId: '2', // John Doe
+    providerId: 'provider-3',
     startTime: setTimeOnDate(today, 14, 0),
     endTime: setTimeOnDate(today, 15, 30),
     status: 'confirmed',
@@ -176,6 +188,7 @@ export const generateMockAppointments = (): Appointment[] => {
     id: '3',
     serviceId: '2', // Dog Grooming
     clientId: '3', // Emily Johnson
+    providerId: 'provider-2',
     startTime: setTimeOnDate(tomorrow, 9, 0),
     endTime: setTimeOnDate(tomorrow, 10, 0),
     status: 'confirmed',
@@ -190,6 +203,7 @@ export const generateMockAppointments = (): Appointment[] => {
     id: '4',
     serviceId: '4', // Lawn Mowing
     clientId: '4', // Michael Brown
+    providerId: 'provider-4',
     startTime: setTimeOnDate(dayAfter, 16, 0),
     endTime: setTimeOnDate(dayAfter, 17, 0),
     status: 'scheduled',
@@ -204,6 +218,7 @@ export const generateMockAppointments = (): Appointment[] => {
     id: '5',
     serviceId: '5', // Plumbing Maintenance
     clientId: '5', // Sophie Wilson
+    providerId: 'provider-5',
     startTime: setTimeOnDate(nextWeek, 13, 0),
     endTime: setTimeOnDate(nextWeek, 15, 0),
     status: 'scheduled',
@@ -228,6 +243,7 @@ export const generateMockAppointments = (): Appointment[] => {
       id: `${i + 5}`,
       serviceId,
       clientId,
+      providerId: service.providerId,
       startTime,
       endTime,
       status: 'scheduled',
