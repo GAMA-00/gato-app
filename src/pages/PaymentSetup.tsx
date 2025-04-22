@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,57 +9,53 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Clock, Calendar, ShieldCheck, CreditCard } from 'lucide-react';
+import { CreditCard, CalendarRange } from 'lucide-react';
 
+// Esquema de validación para tarjeta de crédito
 const paymentSchema = z.object({
   cardNumber: z.string().min(16, 'Número de tarjeta inválido').max(19),
-  cardName: z.string().min(3, 'Nombre en la tarjeta requerido'),
-  expiryDate: z.string().regex(/^\d{2}\/\d{2}$/, 'Formato MM/YY requerido'),
-  cvv: z.string().regex(/^\d{3,4}$/, 'CVV inválido')
+  cardholderName: z.string().min(3, 'Nombre del titular inválido'),
+  expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Formato debe ser MM/YY'),
+  cvv: z.string().min(3, 'CVV inválido').max(4)
 });
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 const PaymentSetup = () => {
   const navigate = useNavigate();
-  const { user, login } = useAuth();
-
+  const location = useLocation();
+  const { user, updateUserPaymentMethod } = useAuth();
+  
+  // Check if we came from client view to maintain that context
+  const fromClientView = location.state?.fromClientView === true;
+  
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       cardNumber: '',
-      cardName: '',
+      cardholderName: '',
       expiryDate: '',
       cvv: ''
     }
   });
 
   const onSubmit = (values: PaymentFormValues) => {
-    if (user) {
-      login({
-        ...user,
-        hasPaymentMethod: true
-      });
-      
-      toast.success('¡Método de pago registrado correctamente!');
-      navigate('/client');
-    } else {
-      toast.error('Por favor registre su cuenta primero');
-      navigate('/register');
-    }
+    // En una aplicación real, aquí enviaríamos la información a un procesador de pagos
+    // Simulamos una actualización exitosa
+    updateUserPaymentMethod(true);
+    
+    toast.success('Método de pago registrado exitosamente');
+    
+    // Navigate to client home if we came from client view, or to the default dashboard otherwise
+    navigate(fromClientView ? '/client' : '/');
   };
 
   return (
     <PageContainer 
-      title="Configurar Método de Pago" 
-      subtitle="Añade una tarjeta para poder realizar reservas"
+      title="Configurar Pago" 
+      subtitle="Ingresa los datos de tu tarjeta de crédito"
     >
       <div className="max-w-md mx-auto mt-8">
-        <div className="mb-6 p-4 border rounded-lg bg-amber-50 text-amber-800 text-sm">
-          <ShieldCheck className="inline-block mr-2 h-5 w-5" />
-          Tus datos de pago están seguros y se procesarán a través de nuestra pasarela de pago segura.
-        </div>
-        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -73,13 +68,9 @@ const PaymentSetup = () => {
                     <div className="relative">
                       <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input 
-                        placeholder="1234 5678 9012 3456" 
+                        placeholder="**** **** **** ****" 
                         className="pl-10" 
                         {...field} 
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^\d\s]/g, '');
-                          field.onChange(value);
-                        }}
                       />
                     </div>
                   </FormControl>
@@ -90,15 +81,14 @@ const PaymentSetup = () => {
             
             <FormField
               control={form.control}
-              name="cardName"
+              name="cardholderName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre en la Tarjeta</FormLabel>
+                  <FormLabel>Nombre del Titular</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="NOMBRE COMO APARECE EN LA TARJETA" 
+                      placeholder="Como aparece en la tarjeta" 
                       {...field} 
-                      className="uppercase"
                     />
                   </FormControl>
                   <FormMessage />
@@ -106,28 +96,20 @@ const PaymentSetup = () => {
               )}
             />
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex gap-4">
               <FormField
                 control={form.control}
                 name="expiryDate"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-1/2">
                     <FormLabel>Fecha de Expiración</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <CalendarRange className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input 
                           placeholder="MM/YY" 
                           className="pl-10" 
                           {...field} 
-                          onChange={(e) => {
-                            let value = e.target.value.replace(/[^\d]/g, '');
-                            if (value.length > 2) {
-                              value = value.slice(0, 2) + '/' + value.slice(2, 4);
-                            }
-                            field.onChange(value);
-                          }}
-                          maxLength={5}
                         />
                       </div>
                     </FormControl>
@@ -140,18 +122,13 @@ const PaymentSetup = () => {
                 control={form.control}
                 name="cvv"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-1/2">
                     <FormLabel>CVV</FormLabel>
                     <FormControl>
                       <Input 
                         type="password" 
-                        placeholder="123" 
-                        maxLength={4}
+                        placeholder="•••" 
                         {...field} 
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          field.onChange(value);
-                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -160,12 +137,8 @@ const PaymentSetup = () => {
               />
             </div>
             
-            <Button 
-              type="submit" 
-              className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover flex items-center justify-center gap-2"
-            >
-              <CreditCard className="h-4 w-4" />
-              <span className="truncate">Guardar Método de Pago</span>
+            <Button type="submit" className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover">
+              Guardar
             </Button>
           </form>
         </Form>

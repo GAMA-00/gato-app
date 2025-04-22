@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
@@ -33,9 +33,9 @@ const AppRoutes = () => {
       <Navbar />
       <Routes>
         {/* Landing page - Redirect to client home */}
-        <Route path="/" element={<ClientHome />} />
+        <Route path="/" element={<Navigate to="/client" replace />} />
         
-        {/* Auth Routes */}
+        {/* Auth Routes - These maintain the client context */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/payment-setup" element={<PaymentSetup />} />

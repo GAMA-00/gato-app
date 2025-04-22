@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (user: User) => void;
   register: (user: User) => void;
   logout: () => void;
+  updateUserPaymentMethod: (hasPaymentMethod: boolean) => void;
   isLoading: boolean;
 }
 
@@ -57,6 +58,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('gato_user');
   };
+  
+  // Función para actualizar el método de pago del usuario
+  const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
+    if (user) {
+      const updatedUser = { ...user, hasPaymentMethod };
+      setUser(updatedUser);
+      localStorage.setItem('gato_user', JSON.stringify(updatedUser));
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ 
@@ -65,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login, 
       register, 
       logout,
+      updateUserPaymentMethod,
       isLoading
     }}>
       {children}

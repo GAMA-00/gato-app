@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, CreditCard, Building } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building as BuildingType } from '@/lib/types';
 
@@ -68,7 +68,7 @@ const Register = () => {
     });
     
     toast.success('Registro exitoso, ahora completa tus datos de pago');
-    navigate('/payment-setup');
+    navigate('/payment-setup', { state: { fromClientView: true } });
   };
 
   return (
