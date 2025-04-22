@@ -14,7 +14,8 @@ import {
   Scissors,
   PawPrint,
   Dumbbell,
-  Book
+  Book,
+  ArrowRight
 } from 'lucide-react';
 import { MOCK_SERVICES } from '@/lib/data';
 import { ServiceCategory } from '@/lib/types';
@@ -41,7 +42,7 @@ const SUBCATEGORIES: SubcategoryMap = {
   'home': ['Limpieza', 'Planchado', 'Jardinero', 'Lavacar', 'Chef', 'Niñera', 'Mantenimiento'],
   'personal-care': ['Peluquero', 'Masajista', 'Manicurista', 'Maquillista', 'Depilación', 'Fisioterapia'],
   'pets': ['Peluquería Canina', 'Paseo de perros'],
-  'sports': [],
+  'sports': ['Entrenador Personal', 'Pilates', 'Tenis', 'Mecanico de bicis'],
   'classes': ['Música', 'Tutorías', 'Idiomas']
 };
 
@@ -111,7 +112,7 @@ const ClientHome = () => {
                       <CardContent className="p-3">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{subcat}</span>
-                          <span className="text-muted-foreground">Ver proveedores &rarr;</span>
+                          <ArrowRight className="text-muted-foreground" />
                         </div>
                       </CardContent>
                     </Card>
