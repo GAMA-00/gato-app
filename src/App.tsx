@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,29 +42,60 @@ const AppRoutes = () => {
         <Route path="/payment-setup" element={<PaymentSetup />} />
         
         {/* Provider routes */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/calendar" element={<Calendar />} />
-        <Route path="/services" element={<Services />} />
-        {/* <Route path="/clients" element={<Clients />} /> */}
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/achievements" element={<Achievements />} />
+        <Route path="/dashboard" element={
+          <RequireAuth providerOnly={true}>
+            <Dashboard />
+          </RequireAuth>
+        } />
+        <Route path="/calendar" element={
+          <RequireAuth providerOnly={true}>
+            <Calendar />
+          </RequireAuth>
+        } />
+        <Route path="/services" element={
+          <RequireAuth providerOnly={true}>
+            <Services />
+          </RequireAuth>
+        } />
+        <Route path="/messages" element={
+          <RequireAuth providerOnly={true}>
+            <Messages />
+          </RequireAuth>
+        } />
+        <Route path="/achievements" element={
+          <RequireAuth providerOnly={true}>
+            <Achievements />
+          </RequireAuth>
+        } />
         
-        {/* Client routes */}
-        <Route path="/client" element={<ClientHome />} />
-        <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
-        <Route path="/client/services/:buildingId" element={<ClientServices />} />
+        {/* Client routes - Allow access without authentication */}
+        <Route path="/client" element={
+          <RequireAuth clientOnly={true}>
+            <ClientHome />
+          </RequireAuth>
+        } />
+        <Route path="/client/services/:category/:subcat" element={
+          <RequireAuth clientOnly={true}>
+            <ClientProvidersList />
+          </RequireAuth>
+        } />
+        <Route path="/client/services/:buildingId" element={
+          <RequireAuth clientOnly={true}>
+            <ClientServices />
+          </RequireAuth>
+        } />
         <Route path="/client/book/:buildingId/:serviceId" element={
-          <RequireAuth requirePaymentMethod={true}>
+          <RequireAuth clientOnly={true} requirePaymentMethod={true}>
             <ClientBooking />
           </RequireAuth>
         } />
         <Route path="/client/bookings" element={
-          <RequireAuth>
+          <RequireAuth clientOnly={true}>
             <ClientBookings />
           </RequireAuth>
         } />
         <Route path="/client/messages" element={
-          <RequireAuth>
+          <RequireAuth clientOnly={true}>
             <ClientMessages />
           </RequireAuth>
         } />

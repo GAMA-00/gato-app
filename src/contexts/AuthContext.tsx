@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Definimos el tipo de usuario con la información ampliada
+// Define the user types with different roles
 export interface User {
   id: string;
   name: string;
@@ -10,6 +10,7 @@ export interface User {
   buildingId: string;
   buildingName: string;
   hasPaymentMethod: boolean;
+  role: 'client' | 'provider'; // Add role field to differentiate users
 }
 
 // Interfaz del contexto de autenticación
@@ -21,6 +22,8 @@ interface AuthContextType {
   logout: () => void;
   updateUserPaymentMethod: (hasPaymentMethod: boolean) => void;
   isLoading: boolean;
+  isClient: boolean; // Check if user is a client
+  isProvider: boolean; // Check if user is a provider
 }
 
 // Crear el contexto
@@ -34,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Al cargar la app, verificar si hay un usuario en localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('gato_user');
-    console.log('Stored User:', storedUser); // Agregamos este console.log para ver el contenido
+    console.log('Stored User:', storedUser);
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -68,6 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Check if the user is a client or provider
+  const isClient = user?.role === 'client';
+  const isProvider = user?.role === 'provider';
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -76,7 +83,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register, 
       logout,
       updateUserPaymentMethod,
-      isLoading
+      isLoading,
+      isClient,
+      isProvider
     }}>
       {children}
     </AuthContext.Provider>

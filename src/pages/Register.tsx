@@ -64,7 +64,8 @@ const Register = () => {
       phone: values.phone,
       buildingId: values.buildingId,
       buildingName: selectedBuilding?.name || '',
-      hasPaymentMethod: false
+      hasPaymentMethod: false,
+      role: 'client' // Set the role as 'client' for users registering from the client view
     });
     
     toast.success('Registro exitoso, ahora completa tus datos de pago');
