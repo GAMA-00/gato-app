@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { MOCK_SERVICES } from '@/lib/data';
@@ -47,10 +46,10 @@ const ClientProvidersList = () => {
       }
       subtitle={
         <button
-          className="text-sm text-muted-foreground hover:underline mb-2 flex items-center gap-1"
+          className="text-sm text-muted-foreground hover:underline mb-2"
           onClick={() => navigate('/client')}
         >
-          <ArrowRight className="h-4 w-4" />
+          &larr; Volver a categorías
         </button>
       }
     >
@@ -82,4 +81,3 @@ const ClientProvidersList = () => {
 };
 
 export default ClientProvidersList;
-
