@@ -5,8 +5,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PageContainerProps {
   children: React.ReactNode;
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode; // Changed from string to ReactNode
+  subtitle?: React.ReactNode; // Changed from string to ReactNode
   action?: React.ReactNode;
   className?: string;
 }
