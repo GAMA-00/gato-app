@@ -33,12 +33,15 @@ const ClientProvidersList = () => {
       service.name.toLowerCase().includes(subcat ? subcat.toLowerCase() : '')
   );
 
+  const categoryIcon = category ? CATEGORY_ICONS[category] : null;
+  const titleText = subcat || '';
+
   return (
     <PageContainer
       title={
         <div className="flex items-center gap-2">
-          {CATEGORY_ICONS[category as string]}
-          <span>{subcat}</span>
+          {categoryIcon}
+          <span>{titleText}</span>
         </div>
       }
       subtitle={
