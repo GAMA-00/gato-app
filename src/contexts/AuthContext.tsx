@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Define the user types with different roles
@@ -11,6 +10,8 @@ export interface User {
   buildingName: string;
   hasPaymentMethod: boolean;
   role: 'client' | 'provider';
+  profileImage?: string; // Added to store provider profile image URL
+  offerBuildings?: string[]; // Added to store buildings where provider offers services
 }
 
 // Authentication context interface

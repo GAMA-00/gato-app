@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -110,9 +109,8 @@ const Register = () => {
       buildingName: selectedBuildingNames[0] || '',
       hasPaymentMethod: false,
       role: values.role,
-      // extras para proveedor
       profileImage: profileImageUrl,
-      offerBuildings: values.providerBuildingIds, // custom, para demo
+      offerBuildings: values.providerBuildingIds
     });
 
     toast.success('Registro exitoso, ahora completa tus datos de pago');
