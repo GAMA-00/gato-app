@@ -85,9 +85,9 @@ const ClientHome = () => {
   function getServicesByCategory(categoryId: string) {
     // Filtrar por residencia
     if (!selectedResidence) return [];
-    // Suponemos que MOCK_SERVICES tiene el campo buildingId y category
+    // Suponemos que MOCK_SERVICES tiene el campo buildingIds (plural) y category
     return MOCK_SERVICES.filter(
-      s => s.buildingId === selectedResidence && s.category === categoryId
+      s => s.buildingIds.includes(selectedResidence) && s.category === categoryId
     );
   }
 
@@ -168,4 +168,3 @@ const ClientHome = () => {
 };
 
 export default ClientHome;
-
