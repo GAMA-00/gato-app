@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar, Home, Briefcase, CalendarClock, Building, Award, MessageSquare, Users } from 'lucide-react';
+import { Calendar, Home, Briefcase, CalendarClock, Award, MessageSquare, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NavItem from './NavItem';
 import { useChat } from '@/contexts/ChatContext';
@@ -27,7 +27,7 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
   ];
   
   const clientNavItems = [
-    { to: '/client', icon: Building, label: 'Edificios' },
+    { to: '/client', icon: Briefcase, label: 'Servicios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas' },
     { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];
@@ -98,4 +98,3 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
 };
 
 export default NavItems;
-

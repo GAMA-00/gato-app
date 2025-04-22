@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,7 @@ import PaymentSetup from "./pages/PaymentSetup";
 import { ChatProvider } from "./contexts/ChatContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/auth/RequireAuth";
+import ClientProvidersList from "./pages/ClientProvidersList";
 
 // Create a client for React Query
 const queryClient = new QueryClient();
@@ -44,12 +44,13 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/services" element={<Services />} />
-        <Route path="/clients" element={<Clients />} />
+        {/* <Route path="/clients" element={<Clients />} /> */}
         <Route path="/messages" element={<Messages />} />
         <Route path="/achievements" element={<Achievements />} />
         
         {/* Client routes */}
         <Route path="/client" element={<ClientHome />} />
+        <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
         <Route path="/client/services/:buildingId" element={<ClientServices />} />
         <Route path="/client/book/:buildingId/:serviceId" element={
           <RequireAuth requirePaymentMethod={true}>

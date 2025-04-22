@@ -14,7 +14,7 @@ import {
   Scissors,
   PawPrint,
   Dumbbell,
-  Music
+  Book
 } from 'lucide-react';
 import { MOCK_SERVICES } from '@/lib/data';
 import { ServiceCategory } from '@/lib/types';
@@ -25,8 +25,7 @@ const CATEGORY_ICONS: Record<ServiceCategory, React.ReactNode> = {
   'personal-care': <Scissors className="h-6 w-6" />,
   'pets': <PawPrint className="h-6 w-6" />,
   'sports': <Dumbbell className="h-6 w-6" />,
-  'classes': <Music className="h-6 w-6" />,
-  // Not needed for the main categories view:
+  'classes': <Book className="h-6 w-6" />,
   'car-wash': null,
   'gardening': null,
   'cleaning': null,
@@ -56,38 +55,20 @@ const CLIENT_CATEGORIES: ServiceCategory[] = [
 
 const ClientHome = () => {
   const [openCategory, setOpenCategory] = useState<ServiceCategory | null>(null);
-  const [openSubcat, setOpenSubcat] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Returns services for a category and subcategory
-  const getServices = (category: ServiceCategory, subcategory?: string) => {
-    return MOCK_SERVICES.filter((service) =>
-      service.category === category &&
-      (subcategory
-        ? service.name.toLowerCase().includes(subcategory.toLowerCase())
-        : true)
-    );
-  };
-
-  const handleSelectService = (serviceId: string) => {
-    if (user?.buildingId) {
-      navigate(`/client/book/${user.buildingId}/${serviceId}`);
-    }
-  };
-
   const toggleCategory = (category: ServiceCategory) => {
     setOpenCategory(openCategory === category ? null : category);
-    setOpenSubcat(null);
   };
 
-  const toggleSubcat = (subcat: string) => {
-    setOpenSubcat(openSubcat === subcat ? null : subcat);
+  const handleSubcatSelect = (category: ServiceCategory, subcat: string) => {
+    navigate(`/client/services/${category}/${subcat}`);
   };
 
   return (
     <PageContainer
-      title="Servicios Disponibles"
+      title="Servicios"
       subtitle={user?.buildingName ? `En ${user.buildingName}` : "Seleccione una categoría para explorar servicios"}
     >
       <div className="max-w-lg mx-auto space-y-4">
@@ -121,50 +102,20 @@ const ClientHome = () => {
               {/* Subcategories */}
               {SUBCATEGORIES[category] && SUBCATEGORIES[category]!.length > 0 ? (
                 <div className="space-y-3">
-                  {SUBCATEGORIES[category]!.map((subcat) => {
-                    const services = getServices(category, subcat);
-                    return (
-                      <Collapsible
-                        key={subcat}
-                        open={openSubcat === subcat}
-                        onOpenChange={() => toggleSubcat(subcat)}
-                        className="border rounded-lg"
-                      >
-                        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 bg-muted/10 rounded hover:bg-muted/20 text-sm">
-                          <span>{subcat}</span>
-                          <span className="text-muted-foreground">
-                            {(openSubcat === subcat) ? '▲' : '▼'}
-                          </span>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="pt-2 px-3 pb-3">
-                          {/* List of services in subcategory */}
-                          {services.length > 0 ? (
-                            <div className="flex flex-col gap-2">
-                              {services.map((service) => (
-                                <Card
-                                  key={service.id}
-                                  className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                                  onClick={() => handleSelectService(service.id)}
-                                >
-                                  <CardContent className="p-3">
-                                    <div className="flex justify-between items-center">
-                                      <p className="font-medium">{service.name}</p>
-                                      <p className="text-sm text-muted-foreground">${service.price.toFixed(2)}</p>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">{service.description}</p>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="py-3 pl-1 text-muted-foreground text-xs">
-                              No hay servicios disponibles en esta subcategoría.
-                            </div>
-                          )}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    );
-                  })}
+                  {SUBCATEGORIES[category]!.map((subcat) => (
+                    <Card
+                      key={subcat}
+                      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handleSubcatSelect(category, subcat)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{subcat}</span>
+                          <span className="text-muted-foreground">Ver proveedores &rarr;</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : (
                 <div className="py-6 text-center text-muted-foreground">

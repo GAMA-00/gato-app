@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, Building, MessageSquare, Award, Users } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, MessageSquare, Award, Building, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/contexts/ChatContext';
 import { Badge } from '@/components/ui/badge';
+import { Book } from 'lucide-react';
 
 interface MobileBottomNavProps {
   isClientSection: boolean;
@@ -26,7 +27,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   ];
   
   const clientNavItems = [
-    { to: '/client', icon: Building, label: 'Edificios' },
+    { to: '/client', icon: Briefcase, label: 'Servicios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Reservas' },
     { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];
@@ -103,4 +104,3 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
 };
 
 export default MobileBottomNav;
-
