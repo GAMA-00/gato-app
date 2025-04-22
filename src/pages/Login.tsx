@@ -40,6 +40,8 @@ const Login = () => {
       name: 'Usuario Demo',
       email: values.email,
       phone: '123456789',
+      buildingId: '1',
+      buildingName: 'Colinas de Montealegre',
       hasPaymentMethod: false
     });
     

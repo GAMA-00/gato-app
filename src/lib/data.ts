@@ -2,8 +2,12 @@ import { Service, Client, Appointment, ServiceCategory, AppointmentStatus, Achie
 
 // Service Categories with colors
 export const SERVICE_CATEGORIES: Record<ServiceCategory, { label: string, color: string }> = {
+  'home': { label: 'Hogar', color: '#4F46E5' },
+  'personal-care': { label: 'Cuidado Personal', color: '#10B981' },
+  'pets': { label: 'Mascotas', color: '#3B82F6' },
+  'sports': { label: 'Deportes', color: '#16A34A' },
+  'classes': { label: 'Clases', color: '#F59E0B' },
   'cleaning': { label: 'Limpieza', color: '#4F46E5' },
-  'pet-grooming': { label: 'Cuidado de Mascotas', color: '#10B981' },
   'car-wash': { label: 'Lavado de Autos', color: '#3B82F6' },
   'gardening': { label: 'Jardinería', color: '#16A34A' },
   'maintenance': { label: 'Mantenimiento', color: '#F59E0B' },
@@ -34,7 +38,7 @@ export const MOCK_SERVICES: Service[] = [
   {
     id: '2',
     name: 'Dog Grooming - Small Breed',
-    category: 'pet-grooming',
+    category: 'pets',
     duration: 60,
     price: 50,
     description: 'Full grooming service for small dog breeds including bath, haircut, nail trimming, and ear cleaning.',

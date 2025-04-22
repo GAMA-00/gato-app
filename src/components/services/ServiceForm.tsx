@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +20,7 @@ import ServiceFormFooter from './ServiceFormFooter';
 // Schema definitions for validation
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: 'Service name must be at least 2 characters.' }),
-  category: z.enum(['cleaning', 'pet-grooming', 'car-wash', 'gardening', 'maintenance', 'other'] as const),
+  category: z.enum(['home', 'personal-care', 'pets', 'sports', 'classes', 'car-wash', 'gardening', 'cleaning', 'maintenance', 'other'] as const),
   duration: z.coerce.number().min(15, { message: 'Duration must be at least 15 minutes.' }),
   price: z.coerce.number().min(1, { message: 'Price must be at least $1.' }),
   description: z.string().optional()
@@ -52,7 +53,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       description: initialData.description
     } : {
       name: '',
-      category: 'cleaning',
+      category: 'home',
       duration: 60,
       price: 50,
       description: ''
