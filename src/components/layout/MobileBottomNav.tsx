@@ -16,33 +16,51 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const { hasUnreadMessages } = useChat();
 
   const providerNavItems = [
-    { to: '/', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/achievements', icon: Award, label: 'Logros' },
+    { to: '/', icon: Home, label: 'Inicio' },
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
+    { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
   const clientNavItems = [
     { to: '/client', icon: Building, label: 'Edificios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Reservas' },
-    { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
+    { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];
 
   const navItems = isClientSection ? clientNavItems : providerNavItems;
 
   const isNavItemActive = (itemPath: string) => {
-    if (itemPath === '/messages' && location.pathname === '/messages') return true;
-    if (itemPath === '/client/messages' && location.pathname === '/client/messages') return true;
+    if (itemPath === '/messages' && location.pathname === '/messages') {
+      return true;
+    }
+    
+    if (itemPath === '/client/messages' && location.pathname === '/client/messages') {
+      return true;
+    }
+    
     if (isClientSection) {
-      if (itemPath === '/client') return location.pathname === '/client';
-      if (itemPath === '/client/bookings') return location.pathname.startsWith('/client/bookings');
-      if (location.pathname.includes('/client/services') || location.pathname.includes('/client/book')) {
+      if (itemPath === '/client') {
+        return location.pathname === '/client';
+      }
+      
+      if (itemPath === '/client/bookings') {
+        return location.pathname.startsWith('/client/bookings');
+      }
+      
+      if (location.pathname.includes('/client/services') || 
+          location.pathname.includes('/client/book')) {
         return itemPath === '/client';
       }
+      
       return location.pathname === itemPath;
     }
-    if (itemPath === '/') return location.pathname === '/';
+    
+    if (itemPath === '/') {
+      return location.pathname === '/';
+    }
+    
     return location.pathname.startsWith(itemPath);
   };
 
