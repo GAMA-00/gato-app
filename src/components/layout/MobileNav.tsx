@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Menu, Repeat2, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -61,10 +60,10 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
             
             <Button 
               variant="outline" 
-              className="mx-4 mb-4 justify-start text-sm"
+              className="mx-4 mb-4 justify-start text-sm px-4 py-3 h-auto" // Increased padding and height
               onClick={onSwitchView}
             >
-              <Repeat2 className="mr-2 h-4 w-4" />
+              <Repeat2 className="mr-2 h-5 w-5" /> {/* Slightly larger icon */}
               Cambiar a {isClientSection ? 'Vista de Proveedor' : 'Vista de Cliente'}
             </Button>
             
