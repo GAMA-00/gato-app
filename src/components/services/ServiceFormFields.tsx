@@ -17,9 +17,12 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
+  SelectGroup,
+  SelectLabel
 } from '@/components/ui/select';
 import { SERVICE_CATEGORIES } from '@/lib/data';
+import { SERVICE_SUBCATEGORIES } from '@/lib/subcategories';
 import { Image } from 'lucide-react';
 
 const MOCK_BUILDINGS = [
@@ -28,6 +31,13 @@ const MOCK_BUILDINGS = [
   { id: '3', name: 'El Herran', address: 'Tres Rios' }
 ];
 
+// Construye un arreglo de todas las subcategorías con su categoría asociada
+const ALL_SUBCATEGORIES = Object.entries(SERVICE_SUBCATEGORIES)
+  .flatMap(([category, subcats]) => subcats.map(subcat => ({
+    category,
+    subcat
+  })));
+
 const ServiceFormFields: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
   const selectedBuildings = watch('buildingIds') || [];
@@ -35,6 +45,10 @@ const ServiceFormFields: React.FC = () => {
   // Para imágenes de trabajos anteriores
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+
+  // Mantén el estado local para la categoría y subcategoría seleccionadas
+  const selectedSubcat = watch('name');
+  const selectedCategory = ALL_SUBCATEGORIES.find(sc => sc.subcat === selectedSubcat)?.category || '';
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -51,17 +65,44 @@ const ServiceFormFields: React.FC = () => {
     }
   };
 
+  // Cuando cambia la subcategoría seleccionada, actualiza también la categoría en el formulario
+  React.useEffect(() => {
+    if (selectedSubcat && selectedCategory) {
+      setValue('category', selectedCategory, { shouldValidate: true });
+    }
+  }, [selectedSubcat, selectedCategory, setValue]);
+
   return (
     <div className="space-y-6">
+      {/* CAMBIO: Dropdown de subcategoría en vez de Name */}
       <FormField
         control={control}
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Service Name</FormLabel>
-            <FormControl>
-              <Input placeholder="Enter service name" {...field} />
-            </FormControl>
+            <FormLabel>¿Qué servicio quieres anunciar?</FormLabel>
+            <Select
+              onValueChange={field.onChange}
+              value={field.value || ''}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un tipo de servicio..." />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent className="z-[999] bg-background">
+                {Object.entries(SERVICE_SUBCATEGORIES).map(([category, subcats]) => (
+                  <SelectGroup key={category}>
+                    <SelectLabel className="text-muted-foreground font-semibold">{SERVICE_CATEGORIES[category]?.label || category}</SelectLabel>
+                    {subcats.map((subcat) => (
+                      <SelectItem key={subcat} value={subcat}>
+                        {subcat}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}
@@ -73,24 +114,8 @@ const ServiceFormFields: React.FC = () => {
           name="category"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Category</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {Object.entries(SERVICE_CATEGORIES).map(([value, category]) => (
-                    <SelectItem key={value} value={value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel>Categoría</FormLabel>
+              <Input value={SERVICE_CATEGORIES[selectedCategory]?.label || selectedCategory} readOnly className="bg-muted" />
               <FormMessage />
             </FormItem>
           )}
@@ -102,7 +127,7 @@ const ServiceFormFields: React.FC = () => {
             name="duration"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (mins)</FormLabel>
+                <FormLabel>Duración (mins)</FormLabel>
                 <FormControl>
                   <Input type="number" min="15" step="15" {...field} />
                 </FormControl>
@@ -116,7 +141,7 @@ const ServiceFormFields: React.FC = () => {
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price ($)</FormLabel>
+                <FormLabel>Costo ($)</FormLabel>
                 <FormControl>
                   <Input type="number" min="1" step="1" {...field} />
                 </FormControl>
@@ -132,16 +157,16 @@ const ServiceFormFields: React.FC = () => {
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Description</FormLabel>
+            <FormLabel>Descripción</FormLabel>
             <FormControl>
               <Textarea
-                placeholder="Enter service description..."
+                placeholder="Describe a detalle el servicio que ofreces..."
                 rows={3}
                 {...field}
               />
             </FormControl>
             <FormDescription>
-              Describe the service in detail.
+              Explica los detalles más importantes de tu servicio.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -198,7 +223,7 @@ const ServiceFormFields: React.FC = () => {
               </div>
             </div>
             <FormDescription>
-              Seleccione las residencias donde este servicio estará disponible
+              Selecciona las residencias donde este servicio estará disponible.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -233,7 +258,7 @@ const ServiceFormFields: React.FC = () => {
               </div>
             </FormControl>
             <FormDescription>
-              Puedes adjuntar fotos de trabajos realizados anteriormente.
+              Adjunta fotos de trabajos realizados anteriormente.
             </FormDescription>
             <FormMessage />
           </FormItem>
