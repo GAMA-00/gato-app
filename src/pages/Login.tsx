@@ -46,7 +46,8 @@ const Login = () => {
       phone: '123456789',
       buildingId: '1',
       buildingName: 'Colinas de Montealegre',
-      hasPaymentMethod: false
+      hasPaymentMethod: false,
+      role: 'client' // Add the missing role property
     });
     
     toast.success('Inicio de sesión exitoso');
