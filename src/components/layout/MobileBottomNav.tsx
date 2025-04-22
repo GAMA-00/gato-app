@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, Building, MessageSquare, Award } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, Building, MessageSquare, Award, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/contexts/ChatContext';
 import { Badge } from '@/components/ui/badge';
@@ -16,9 +16,9 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const { hasUnreadMessages } = useChat();
 
   const providerNavItems = [
+    { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/', icon: Home, label: 'Inicio' },
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
@@ -57,8 +57,8 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
       return location.pathname === itemPath;
     }
     
-    if (itemPath === '/') {
-      return location.pathname === '/';
+    if (itemPath === '/dashboard') {
+      return location.pathname === '/dashboard';
     }
     
     return location.pathname.startsWith(itemPath);

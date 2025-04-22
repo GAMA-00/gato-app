@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar, Home, Briefcase, CalendarClock, Building, Award, MessageSquare } from 'lucide-react';
+import { Calendar, Home, Briefcase, CalendarClock, Building, Award, MessageSquare, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NavItem from './NavItem';
 import { useChat } from '@/contexts/ChatContext';
@@ -17,9 +17,10 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
   const { hasUnreadMessages } = useChat();
   
   const providerNavItems = [
-    { to: '/', icon: Home, label: 'Inicio' },
+    { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
+    { to: '/clients', icon: Users, label: 'Clientes' },
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
@@ -58,8 +59,8 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
       return location.pathname === itemPath;
     }
     
-    if (itemPath === '/') {
-      return location.pathname === '/';
+    if (itemPath === '/dashboard') {
+      return location.pathname === '/dashboard';
     }
     
     return location.pathname.startsWith(itemPath);

@@ -14,7 +14,12 @@ const Navbar = () => {
   const isClientSection = location.pathname.startsWith('/client');
 
   const switchView = () => {
-    navigate(isClientSection ? '/' : '/client');
+    // Navigate to the appropriate home page based on current view
+    if (isClientSection) {
+      navigate('/dashboard');
+    } else {
+      navigate('/client');
+    }
   };
 
   if (isMobile) {
