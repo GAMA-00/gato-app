@@ -11,58 +11,86 @@ import { cn } from '@/lib/utils';
 
 // Mapeo de estatus a colores 
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Soft green
-  scheduled:    { bg: "#FEC6A1", border: "#FF9100", text: "#924C00" }, // Soft orange
-  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" }        // Neutral gray
+  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Verde
+  scheduled:    { bg: "#FEC6A1", border: "#FF9100", text: "#924C00" }, // Naranja
+  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" }        // Gris
 };
 
 interface CalendarAppointmentProps {
   appointment: Appointment;
   service: Service;
   client: Client;
+  expanded: boolean;
+  onClick: () => void;
 }
 
 const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   appointment,
   service,
-  client
+  client,
+  expanded,
+  onClick
 }) => {
   const startHour = appointment.startTime.getHours();
   const startMinutes = appointment.startTime.getMinutes();
   const durationMinutes = (appointment.endTime.getTime() - appointment.startTime.getTime()) / (1000 * 60);
 
-  // Elegir color según status
-  let statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['scheduled'];
+  const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['scheduled'];
 
   // Mostrar solo la dirección del cliente como ubicación (primer parte)
   const location = client.address.split(',')[0];
 
   return (
-    <div 
-      className="absolute left-1 right-1 rounded-lg px-3 py-2 overflow-hidden text-xs shadow transition-all duration-200 cursor-pointer hover:shadow-lg flex flex-col gap-0.5"
+    <div
+      className={cn(
+        "absolute left-1 right-1 overflow-hidden shadow transition-all duration-150 cursor-pointer rounded-lg flex flex-col border-l-4",
+        expanded ? "z-20 bg-white border border-gray-200 p-3 h-fit min-h-[70px]" : "px-2 py-1 gap-0.5"
+      )}
       style={{
         top: `${startHour * 60 + startMinutes}px`,
-        height: `${durationMinutes}px`,
-        background: statusColor.bg,
+        height: expanded ? undefined : `${Math.max(durationMinutes, 36)}px`,
+        background: expanded ? '#fff' : statusColor.bg,
         borderLeft: `4px solid ${statusColor.border}`,
         color: statusColor.text,
         fontWeight: 500
       }}
       title={service.name}
+      onClick={onClick}
+      tabIndex={0}
+      role="button"
     >
-      <div className="truncate text-base font-medium mb-0.5" style={{ color: statusColor.text }}>
+      <div 
+        className={cn(
+          "truncate font-semibold", 
+          expanded ? "text-base mb-1" : "text-xs"
+        )}
+        style={{ color: statusColor.text }}>
         {location}
       </div>
       <div 
-        className="truncate text-xs font-semibold"
+        className={cn(
+          "truncate",
+          expanded ? "text-sm font-medium" : "text-[10px] font-normal"
+        )}
         style={{ color: statusColor.text }}>
         {client.name}
       </div>
       <div 
-        className="truncate text-[11px] text-muted-foreground mt-0.5"
+        className={cn(
+          "truncate text-muted-foreground",
+          expanded ? "text-xs mt-1" : "text-[9px] mt-0.5"
+        )}
         style={{ fontWeight: 400 }}>
         {service.name}
       </div>
+      {expanded &&
+        <div className="text-[11px] mt-1 text-gray-400">
+          {/* Puedes agregar más detalles si hay campos extra requeridos */}
+          <span>
+            {format(appointment.startTime, "HH:mm")} - {format(appointment.endTime, "HH:mm")}
+          </span>
+        </div>
+      }
     </div>
   );
 };
@@ -71,12 +99,16 @@ interface CalendarDayProps {
   date: Date;
   appointments: Appointment[];
   isCurrentMonth: boolean;
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
 }
 
 const CalendarDay: React.FC<CalendarDayProps> = ({
   date,
   appointments,
-  isCurrentMonth
+  isCurrentMonth,
+  expandedId,
+  setExpandedId
 }) => {
   const dayAppointments = appointments.filter(appointment => 
     isSameDay(appointment.startTime, date) && 
@@ -86,7 +118,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   const isCurrentDay = isToday(date);
 
   return (
-    <div className="h-[780px] relative border-r last:border-r-0 calendar-day">
+    <div className="h-[780px] relative border-r last:border-r-0 calendar-day bg-white">
       <div className="sticky top-0 py-2 text-center border-b z-10 bg-white">
         <div className={cn("text-xs uppercase tracking-wide mb-1", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
@@ -119,6 +151,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
               appointment={appointment}
               service={service}
               client={client}
+              expanded={expandedId === appointment.id}
+              onClick={() => setExpandedId(expandedId === appointment.id ? null : appointment.id)}
             />
           );
         })}
@@ -133,6 +167,7 @@ interface CalendarViewProps {
 
 const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const startDate = startOfWeek(currentDate, { weekStartsOn: 0 });
   const endDate = endOfWeek(currentDate, { weekStartsOn: 0 });
@@ -142,14 +177,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
 
   const handlePreviousWeek = () => {
     setCurrentDate(prevDate => addDays(prevDate, -7));
+    setExpandedId(null);
   };
 
   const handleNextWeek = () => {
     setCurrentDate(prevDate => addDays(prevDate, 7));
+    setExpandedId(null);
   };
 
   const handleToday = () => {
     setCurrentDate(new Date());
+    setExpandedId(null);
   };
 
   return (
@@ -180,6 +218,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
                 date={day} 
                 appointments={appointments}
                 isCurrentMonth={day.getMonth() === currentMonth}
+                expandedId={expandedId}
+                setExpandedId={setExpandedId}
               />
             </div>
           ))}
@@ -190,4 +230,3 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
 };
 
 export default CalendarView;
-
