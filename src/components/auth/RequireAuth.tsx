@@ -8,13 +8,15 @@ interface RequireAuthProps {
   requirePaymentMethod?: boolean;
   clientOnly?: boolean; 
   providerOnly?: boolean; 
+  strictAuth?: boolean; // Nuevo parámetro para indicar si la autenticación es estrictamente requerida
 }
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ 
   children, 
   requirePaymentMethod = false,
   clientOnly = false,
-  providerOnly = false 
+  providerOnly = false,
+  strictAuth = false // Por defecto, no requerimos autenticación estricta
 }) => {
   const { isAuthenticated, user, isLoading, isClient, isProvider } = useAuth();
   const location = useLocation();
@@ -23,31 +25,29 @@ const RequireAuth: React.FC<RequireAuthProps> = ({
     return <div className="flex justify-center items-center h-screen">Cargando...</div>;
   }
 
-  // If this is a client route, allow access without authentication for most pages
+  // Si esta es una ruta de cliente, permitir acceso sin autenticación para la mayoría de las páginas
   if (clientOnly && !providerOnly) {
-    // For pages that don't strictly require auth, just render the children
+    // Para páginas que no requieren estrictamente autenticación, simplemente renderizar los hijos
     return <>{children}</>;
   }
 
-  // For provider routes, require authentication
-  if (providerOnly && !isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // Modified: Allow accessing provider routes even without the provider role
-  // This ensures users can navigate between views
-  
-  // Render the children for all authenticated users regardless of role when accessing provider routes
-  if (isAuthenticated && providerOnly) {
+  // Para rutas de proveedor, permitir navegación sin autenticación excepto cuando strictAuth=true
+  if (providerOnly) {
+    // Si requiere autenticación estricta (como para crear anuncios) y no está autenticado
+    if (strictAuth && !isAuthenticated) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    
+    // En otros casos, permitir acceso a rutas de proveedor sin autenticación
     return <>{children}</>;
   }
 
-  // For routes that still require authentication
-  if (!isAuthenticated && !clientOnly) {
+  // Para rutas que aún requieren autenticación
+  if (!isAuthenticated && !clientOnly && strictAuth) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If the route requires a payment method and the user doesn't have one
+  // Si la ruta requiere un método de pago y el usuario no tiene uno
   if (requirePaymentMethod && user && !user.hasPaymentMethod) {
     return <Navigate to="/payment-setup" replace />;
   }

@@ -9,13 +9,15 @@ import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
 import { Service } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Services = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | undefined>(undefined);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   
   // Load services from localStorage on component mount
   useEffect(() => {
@@ -43,8 +45,10 @@ const Services = () => {
     }
   }, [services]);
   
-  // Filter services to only show those created by the current provider
-  const providerServices = user ? services.filter(service => service.providerId === user.id) : [];
+  // Filter services by current provider if authenticated, otherwise show all
+  const providerServices = isAuthenticated && user 
+    ? services.filter(service => service.providerId === user.id) 
+    : services;
   
   const filteredServices = providerServices.filter(
     service => service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -52,23 +56,45 @@ const Services = () => {
   );
   
   const handleAddService = () => {
+    // Verificar si el usuario está autenticado antes de permitir crear un anuncio
+    if (!isAuthenticated) {
+      toast.error('Debes iniciar sesión para crear un anuncio');
+      navigate('/login', { state: { from: '/services' } });
+      return;
+    }
+    
     setEditingService(undefined);
     setIsFormOpen(true);
   };
   
   const handleEditService = (service: Service) => {
+    // Verificar si el usuario está autenticado antes de permitir editar un anuncio
+    if (!isAuthenticated) {
+      toast.error('Debes iniciar sesión para editar un anuncio');
+      navigate('/login', { state: { from: '/services' } });
+      return;
+    }
+    
     setEditingService(service);
     setIsFormOpen(true);
   };
   
   const handleDeleteService = (service: Service) => {
+    // Verificar si el usuario está autenticado antes de permitir eliminar un anuncio
+    if (!isAuthenticated) {
+      toast.error('Debes iniciar sesión para eliminar un anuncio');
+      navigate('/login', { state: { from: '/services' } });
+      return;
+    }
+    
     setServices(services.filter(s => s.id !== service.id));
     toast.success('Anuncio eliminado exitosamente');
   };
   
   const handleSubmitService = (serviceData: Partial<Service>) => {
-    if (!user) {
+    if (!isAuthenticated || !user) {
       toast.error('Debes iniciar sesión para crear anuncios');
+      navigate('/login', { state: { from: '/services' } });
       return;
     }
     

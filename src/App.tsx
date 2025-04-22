@@ -41,7 +41,7 @@ const AppRoutes = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/payment-setup" element={<PaymentSetup />} />
         
-        {/* Provider routes */}
+        {/* Provider routes - Now accessible without authentication */}
         <Route path="/dashboard" element={
           <RequireAuth providerOnly={true}>
             <Dashboard />
@@ -58,7 +58,7 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         <Route path="/messages" element={
-          <RequireAuth providerOnly={true}>
+          <RequireAuth providerOnly={true} strictAuth={true}>
             <Messages />
           </RequireAuth>
         } />
@@ -95,7 +95,7 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         <Route path="/client/messages" element={
-          <RequireAuth clientOnly={true}>
+          <RequireAuth clientOnly={true} strictAuth={true}>
             <ClientMessages />
           </RequireAuth>
         } />
