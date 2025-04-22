@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogIn, LogOut, CreditCard } from 'lucide-react';
+import { LogIn, LogOut, CreditCard, Repeat2 } from 'lucide-react';
 
 interface UserInfoProps {
   isClientSection: boolean;
@@ -67,15 +68,14 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
         </Button>
       )}
       
-      {onSwitchView && (
-        <Button 
-          variant="outline" 
-          className="w-full mb-2 justify-start text-sm"
-          onClick={onSwitchView}
-        >
-          Cambiar a {isClientSection ? 'Vista de Proveedor' : 'Vista de Cliente'}
-        </Button>
-      )}
+      <Button 
+        variant="outline" 
+        className="w-full mb-2 justify-start text-sm"
+        onClick={onSwitchView}
+      >
+        <Repeat2 className="mr-2 h-4 w-4" />
+        Cambiar a {isClientSection ? 'Vista de Proveedor' : 'Vista de Cliente'}
+      </Button>
       
       <Button 
         variant="outline" 
