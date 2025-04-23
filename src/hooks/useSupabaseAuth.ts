@@ -148,8 +148,8 @@ export const useSupabaseAuth = () => {
         
         console.log('ID de edificio para perfil:', buildingIdForProfile);
         
-        // Create profile
-        const { error: profileError } = await supabase
+        // Create profile con RLS habilitado ahora
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
@@ -161,14 +161,15 @@ export const useSupabaseAuth = () => {
               building_id: buildingIdForProfile, // Usar el UUID correcto o null
               has_payment_method: false
             }
-          ]);
+          ])
+          .select();
 
         if (profileError) {
           console.error('Error al crear perfil de usuario:', profileError);
           throw profileError;
         }
         
-        console.log('Perfil creado exitosamente');
+        console.log('Perfil creado exitosamente:', profileData);
         toast.success('Registro exitoso! Por favor verifica tu email.');
       }
 
