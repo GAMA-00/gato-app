@@ -6,9 +6,25 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SERVICE_CATEGORIES } from '@/lib/data';
 import { SERVICE_SUBCATEGORIES } from '@/lib/subcategories';
 import { NavigationMenu } from '@/components/ui/navigation-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Home, Scissors, PawPrint, Dumbbell, Book } from 'lucide-react';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
 import { Service } from '@/lib/types';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
+import { Button } from '@/components/ui/button';
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  'home': <Home className="h-5 w-5" />,
+  'personal-care': <Scissors className="h-5 w-5" />,
+  'pets': <PawPrint className="h-5 w-5" />,
+  'sports': <Dumbbell className="h-5 w-5" />,
+  'classes': <Book className="h-5 w-5" />
+};
 
 const ClientHome = () => {
   const navigate = useNavigate();
@@ -57,28 +73,32 @@ const ClientHome = () => {
         </TabsContent>
 
         <TabsContent value="all">
-          <NavigationMenu className="max-w-full overflow-auto">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {Object.entries(SERVICE_CATEGORIES).map(([categoryId, category]) => (
-                <div key={categoryId} className="space-y-4">
-                  <h3 className="font-medium text-lg" style={{ color: category.color }}>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {Object.entries(SERVICE_CATEGORIES).map(([categoryId, category]) => (
+              <DropdownMenu key={categoryId}>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-auto py-6 flex flex-col items-center gap-2 text-base border-2"
+                    style={{ color: category.color }}
+                  >
+                    {CATEGORY_ICONS[categoryId]}
                     {category.label}
-                  </h3>
-                  <div className="space-y-2">
-                    {SERVICE_SUBCATEGORIES[categoryId]?.map((subcategory) => (
-                      <button
-                        key={subcategory}
-                        onClick={() => navigate(`/client/services/${categoryId}/${subcategory}`)}
-                        className="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-accent transition-colors"
-                      >
-                        {subcategory}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </NavigationMenu>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {SERVICE_SUBCATEGORIES[categoryId]?.map((subcategory) => (
+                    <DropdownMenuItem
+                      key={subcategory}
+                      onClick={() => navigate(`/client/services/${categoryId}/${subcategory}`)}
+                    >
+                      {subcategory}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </PageContainer>
