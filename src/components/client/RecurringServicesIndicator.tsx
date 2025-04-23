@@ -7,10 +7,10 @@ interface RecurringServicesIndicatorProps {
 }
 
 const RecurringServicesIndicator = ({ count }: RecurringServicesIndicatorProps) => {
-  // Limitar el contador a 5
+  // Limit the counter to 5
   const normalizedCount = Math.min(count, 5);
   
-  // Calcular la intensidad del color basado en el contador
+  // Calculate color intensity based on the counter
   const getFlameColor = (count: number) => {
     const colors = [
       'text-blue-300',

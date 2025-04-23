@@ -8,6 +8,7 @@ import { SERVICE_SUBCATEGORIES } from '@/lib/subcategories';
 import { NavigationMenu } from '@/components/ui/navigation-menu';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
 import { Service } from '@/lib/types';
+import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
 
 const ClientHome = () => {
   const navigate = useNavigate();
@@ -26,20 +27,28 @@ const ClientHome = () => {
     }
   }, []);
 
-  // Filtrar servicios recurrentes (aquellos que el usuario ha contratado más de una vez)
+  // Filter recurring services (those the user has booked multiple times)
   const recurringServices = services.filter(service => {
-    // Aquí irá la lógica para determinar si un servicio es recurrente
-    // Por ahora usaremos algunos servicios de ejemplo
+    // TODO: Implement proper recurring service logic
+    // For now, using a placeholder logic
     return service.category === 'home';
   });
 
   return (
-    <PageContainer title="Servicios Disponibles">
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">Todos los Servicios</TabsTrigger>
-          <TabsTrigger value="recurring" className="flex items-center gap-2">
-            Recurrentes
+    <PageContainer title="Available Services">
+      <Tabs 
+        defaultValue="all" 
+        className="w-full" 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+      >
+        <TabsList className="mb-4 w-full">
+          <TabsTrigger value="all" className="flex-1">
+            All Services
+          </TabsTrigger>
+          <TabsTrigger value="recurring" className="flex items-center gap-2 flex-1">
+            Recurring
+            <RecurringServicesIndicator count={recurringServices.length} />
           </TabsTrigger>
         </TabsList>
 
