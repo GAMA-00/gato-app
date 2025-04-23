@@ -1,17 +1,16 @@
-
-import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 // Validation schema
 const loginSchema = z.object({
@@ -24,12 +23,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { login } = useAuth();
+  const { signIn } = useSupabaseAuth();
   
-  // Get the intended destination from location state, or default to appropriate home
-  const from = location.state?.from?.pathname || '/client';
-
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -39,28 +34,18 @@ const Login = () => {
     }
   });
 
-  const onSubmit = (values: LoginFormValues) => {
-    // In a real application, we would verify with the backend
-    login({
-      id: Date.now().toString(), // Generate a unique ID
-      name: 'Usuario ' + values.email.split('@')[0],
-      email: values.email,
-      phone: '123456789',
-      buildingId: '1',
-      buildingName: 'Colinas de Montealegre',
-      hasPaymentMethod: true,
-      role: values.role
-    });
+  const onSubmit = async (values: LoginFormValues) => {
+    const { data, error } = await signIn(values.email, values.password);
     
-    toast.success('Inicio de sesión exitoso');
-    
-    // Navigate to the appropriate home page based on role
-    if (values.role === 'client') {
-      navigate('/client');
-    } else if (values.role === 'admin') {
-      navigate('/dashboard'); // Admin goes to dashboard
-    } else {
-      navigate('/dashboard'); // Provider goes to dashboard
+    if (data && !error) {
+      // Navigate to the appropriate home page based on role
+      if (values.role === 'client') {
+        navigate('/client');
+      } else if (values.role === 'admin') {
+        navigate('/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     }
   };
 

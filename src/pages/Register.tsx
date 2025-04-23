@@ -13,6 +13,7 @@ import { Mail, Lock, Phone, User, UserPlus, Building, Image } from 'lucide-react
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Building as BuildingType } from '@/lib/types';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 // Mock buildings data
 const MOCK_BUILDINGS: BuildingType[] = [
@@ -55,7 +56,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const navigate = useNavigate();
-  const { register: registerUser } = useAuth();
+  const { signUp } = useSupabaseAuth();
   const [profilePreview, setProfilePreview] = useState<string>('');
 
   const form = useForm<RegisterFormValues>({
@@ -84,7 +85,7 @@ const Register = () => {
     }
   };
 
-  const onSubmit = (values: RegisterFormValues) => {
+  const onSubmit = async (values: RegisterFormValues) => {
     // Para cliente: buildingId simple. Para proveedor: providerBuildingIds.
     let selectedBuildingNames: string[] = [];
     if (values.role === 'provider' && values.providerBuildingIds) {
@@ -94,27 +95,22 @@ const Register = () => {
       selectedBuildingNames = [MOCK_BUILDINGS.find(b => b.id === values.buildingId)?.name || ''];
     }
 
-    // Simulación de guardado de imagen (guarda la url local, real sería upload)
-    let profileImageUrl = '';
-    if (values.role === 'provider' && values.profileImage instanceof File) {
-      profileImageUrl = profilePreview;
-    }
-
-    registerUser({
-      id: Date.now().toString(),
+    const userData = {
       name: values.name,
-      email: values.email,
       phone: values.phone,
-      buildingId: values.role === 'client' ? values.buildingId || '' : (values.providerBuildingIds as string[])[0],
-      buildingName: selectedBuildingNames[0] || '',
-      hasPaymentMethod: false,
       role: values.role,
-      profileImage: profileImageUrl,
+      buildingId: values.role === 'client' ? values.buildingId : values.providerBuildingIds?.[0],
+      buildingName: selectedBuildingNames[0] || '',
       offerBuildings: values.providerBuildingIds
-    });
+    };
 
-    toast.success('Registro exitoso, ahora completa tus datos de pago');
-    navigate('/payment-setup', { state: { fromClientView: values.role === 'client' } });
+    const { error } = await signUp(values.email, values.password, userData);
+    
+    if (!error) {
+      navigate('/payment-setup', { 
+        state: { fromClientView: values.role === 'client' } 
+      });
+    }
   };
 
   return (
