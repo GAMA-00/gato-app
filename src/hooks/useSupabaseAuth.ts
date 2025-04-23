@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { UserRole } from '@/lib/types';
 
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
@@ -29,7 +30,7 @@ export const useSupabaseAuth = () => {
               buildingId: profile.building_id || '',
               buildingName: '', // You'll need to fetch this if needed
               hasPaymentMethod: profile.has_payment_method || false,
-              role: profile.role
+              role: profile.role as UserRole // Usar aserción de tipo para garantizar que sea del tipo correcto
             });
           }
         } else if (event === 'SIGNED_OUT') {
@@ -57,7 +58,7 @@ export const useSupabaseAuth = () => {
                 buildingId: profile.building_id || '',
                 buildingName: '', // You'll need to fetch this if needed
                 hasPaymentMethod: profile.has_payment_method || false,
-                role: profile.role
+                role: profile.role as UserRole // Usar aserción de tipo para garantizar que sea del tipo correcto
               });
             }
           });
