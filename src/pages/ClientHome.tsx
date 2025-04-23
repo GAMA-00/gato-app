@@ -33,6 +33,8 @@ const ClientHome = () => {
 
   useEffect(() => {
     const savedServices = localStorage.getItem('gato_services');
+    const savedAppointments = localStorage.getItem('gato_appointments');
+    
     if (savedServices) {
       try {
         const parsedServices = JSON.parse(savedServices);
@@ -45,8 +47,11 @@ const ClientHome = () => {
 
   // Filter recurring services (those the user has booked multiple times)
   const recurringServices = services.filter(service => {
-    // TODO: Implement proper recurring service logic
-    // For now, using a placeholder logic
+    // This is a placeholder. In a real implementation, we would:
+    // 1. Get all of the user's appointments
+    // 2. Count how many times each service appears
+    // 3. If a service appears more than once, it's recurring
+    // For now, using the placeholder logic
     return service.category === 'home';
   });
 

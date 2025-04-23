@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Define the user types with different roles
@@ -9,7 +10,7 @@ export interface User {
   buildingId: string;
   buildingName: string;
   hasPaymentMethod: boolean;
-  role: 'client' | 'provider';
+  role: 'client' | 'provider' | 'admin'; // Added admin role
   profileImage?: string; // Added to store provider profile image URL
   offerBuildings?: string[]; // Added to store buildings where provider offers services
 }
@@ -25,6 +26,7 @@ interface AuthContextType {
   isLoading: boolean;
   isClient: boolean;
   isProvider: boolean;
+  isAdmin: boolean; // Added admin check
 }
 
 // Create the context
@@ -71,9 +73,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Check if the user is a client or provider
+  // Check if the user is a client, provider, or admin
   const isClient = user?.role === 'client';
   const isProvider = user?.role === 'provider';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <AuthContext.Provider value={{ 
@@ -85,7 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateUserPaymentMethod,
       isLoading,
       isClient,
-      isProvider
+      isProvider,
+      isAdmin
     }}>
       {children}
     </AuthContext.Provider>

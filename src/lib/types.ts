@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -31,6 +32,9 @@ export interface Client {
   address: string;
   notes: string;
   createdAt: Date;
+  isRecurring: boolean; // Flag to identify recurring clients
+  preferredProviders: string[]; // IDs of preferred providers
+  totalBookings: number; // Count of total bookings made
 }
 
 export interface Building {
@@ -39,7 +43,7 @@ export interface Building {
   address: string;
 }
 
-export type UserRole = 'client' | 'provider';
+export type UserRole = 'client' | 'provider' | 'admin'; // Added admin role
 
 export type RecurrencePattern = 
   | 'none'
@@ -47,6 +51,13 @@ export type RecurrencePattern =
   | 'weekly'
   | 'biweekly'
   | 'monthly';
+
+export type OrderStatus = 
+  | 'pending'
+  | 'confirmed'
+  | 'completed'
+  | 'cancelled'
+  | 'rejected';
 
 export interface AppointmentStatus {
   id: string;
@@ -58,17 +69,20 @@ export interface Appointment {
   id: string;
   serviceId: string;
   clientId: string;
-  providerId: string; // Added to link appointment to provider
+  providerId: string;
   startTime: Date;
   endTime: Date;
-  status: string;
+  status: OrderStatus;
   recurrence: RecurrencePattern;
   notes: string;
   createdAt: Date;
   building?: string;
   apartment?: string;
-  serviceName?: string; // Added for easier reference
-  clientName?: string; // Added for easier reference
+  serviceName?: string;
+  clientName?: string;
+  adminNotes?: string; // Notes added by admin
+  lastModifiedBy?: string; // ID of the last user who modified this
+  lastModifiedAt?: Date; // When the appointment was last modified
 }
 
 export interface BlockedTimeSlot {
@@ -86,6 +100,46 @@ export interface DashboardStats {
   weekAppointments: number;
   monthRevenue: number;
   activeClients: number;
+  pendingOrders: number; // Added for admin dashboard
+  totalProviders: number; // Added for admin dashboard
+  recurringClients: number; // Added for admin dashboard
+  occasionalClients: number; // Added for admin dashboard
+}
+
+export interface AdminStats {
+  totalAppointments: number;
+  pendingAppointments: number;
+  completedAppointments: number;
+  cancelledAppointments: number;
+  totalRevenue: number;
+  totalClients: number;
+  recurringClients: number;
+  occasionalClients: number;
+  totalProviders: number;
+  activeProviders: number;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialties: ServiceCategory[];
+  rating: number;
+  totalBookings: number;
+  activeBookings: number;
+  isActive: boolean;
+  buildings: string[]; // Buildings where provider offers services
+  joinedAt: Date;
+  profileImage?: string;
+}
+
+export interface ClientProviderRelation {
+  clientId: string;
+  providerId: string;
+  bookingCount: number;
+  lastBookingDate: Date;
+  isPreferred: boolean;
 }
 
 export type AchievementLevel = 'beginner' | 'trusty' | 'recommended' | 'expert';
