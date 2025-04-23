@@ -1,35 +1,35 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { SERVICE_CATEGORIES } from '@/lib/data';
-import { SERVICE_SUBCATEGORIES } from '@/lib/subcategories';
+import { Home, Scissors, Dog, Dumbbell, Book, Wrench } from 'lucide-react';
 import { NavigationMenu } from '@/components/ui/navigation-menu';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Home, Scissors, PawPrint, Dumbbell, Book } from 'lucide-react';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
-import { Service } from '@/lib/types';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
-import { Button } from '@/components/ui/button';
+import { useCategories } from '@/hooks/useCategories';
+import { Service } from '@/lib/types';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  'home': <Home className="h-5 w-5" />,
-  'personal-care': <Scissors className="h-5 w-5" />,
-  'pets': <PawPrint className="h-5 w-5" />,
-  'sports': <Dumbbell className="h-5 w-5" />,
-  'classes': <Book className="h-5 w-5" />
+  'house': <Home className="h-5 w-5" />,
+  'scissors': <Scissors className="h-5 w-5" />,
+  'dog': <Dog className="h-5 w-5" />,
+  'dumbbell': <Dumbbell className="h-5 w-5" />,
+  'book': <Book className="h-5 w-5" />,
+  'wrench': <Wrench className="h-5 w-5" />
 };
 
 const ClientHome = () => {
   const navigate = useNavigate();
-  const [services, setServices] = useState<Service[]>([]);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const { data, isLoading } = useCategories();
+  const [services, setServices] = useState<Service[]>([]);
 
   useEffect(() => {
     const savedServices = localStorage.getItem('gato_services');
@@ -78,32 +78,39 @@ const ClientHome = () => {
         </TabsContent>
 
         <TabsContent value="all">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {Object.entries(SERVICE_CATEGORIES).map(([categoryId, category]) => (
-              <DropdownMenu key={categoryId}>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-auto py-6 flex flex-col items-center gap-2 text-base border-2"
-                    style={{ color: category.color }}
-                  >
-                    {CATEGORY_ICONS[categoryId]}
-                    {category.label}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  {SERVICE_SUBCATEGORIES[categoryId]?.map((subcategory) => (
-                    <DropdownMenuItem
-                      key={subcategory}
-                      onClick={() => navigate(`/client/services/${categoryId}/${subcategory}`)}
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 animate-pulse">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-32 bg-muted rounded-lg"></div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {data?.categories.map((category) => (
+                <DropdownMenu key={category.id}>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full h-auto py-6 flex flex-col items-center gap-2 text-base border-2"
                     >
-                      {subcategory}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ))}
-          </div>
+                      {CATEGORY_ICONS[category.icon]}
+                      {category.label}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                    {data.subcategoriesByCategory[category.id]?.map((subcategory) => (
+                      <DropdownMenuItem
+                        key={subcategory.id}
+                        onClick={() => navigate(`/client/services/${category.name}/${subcategory.name}`)}
+                      >
+                        {subcategory.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </PageContainer>
