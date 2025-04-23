@@ -38,7 +38,7 @@ export const useSupabaseAuth = () => {
               buildingId: profile.building_id || '',
               buildingName: '', // You'll need to fetch this if needed
               hasPaymentMethod: profile.has_payment_method || false,
-              role: profile.role as UserRole // Usar aserción de tipo para garantizar que sea del tipo correcto
+              role: profile.role as UserRole
             });
           } else {
             console.warn('No se encontró perfil para el usuario:', session.user.id);
@@ -79,7 +79,7 @@ export const useSupabaseAuth = () => {
                 buildingId: profile.building_id || '',
                 buildingName: '', // You'll need to fetch this if needed
                 hasPaymentMethod: profile.has_payment_method || false,
-                role: profile.role as UserRole // Usar aserción de tipo para garantizar que sea del tipo correcto
+                role: profile.role as UserRole
               });
             } else {
               console.warn('No se encontró perfil para el usuario en inicio:', session.user.id);
@@ -96,6 +96,7 @@ export const useSupabaseAuth = () => {
     };
   }, [setAuthUser, clearAuthUser]);
 
+  // Mejorar la función signUp para garantizar la creación del perfil
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Intentando registrar nuevo usuario:', email);
     console.log('Datos de usuario:', JSON.stringify(userData));
@@ -175,7 +176,7 @@ export const useSupabaseAuth = () => {
         console.log('Intentando crear perfil con datos:', profileObject);
         
         try {
-          // Intentar insertar el perfil directamente
+          // Primer método: insert directo a la tabla profiles
           const { data: profileInsertData, error: profileError } = await supabase
             .from('profiles')
             .insert([profileObject])
@@ -184,35 +185,48 @@ export const useSupabaseAuth = () => {
           if (profileError) {
             console.error('Error al crear perfil de usuario:', profileError);
             
-            // Intentar un método alternativo si falla el primero - inserción directa en SQL
-            if (profileError.code === '42P17' || profileError.message.includes('violates row-level security')) {
-              console.log('Intentando método alternativo para crear perfil...');
+            // Segundo método: intentar usar la función RPC si falla el primero
+            console.log('Intentando método alternativo para crear perfil...');
+            
+            // Usar la función RPC con type assertion para evitar errores de TypeScript
+            const { error: rpcError } = await supabase.rpc(
+              'create_user_profile' as any,
+              {
+                user_id: data.user.id,
+                user_name: userData.name,
+                user_email: email,
+                user_phone: userData.phone || '',
+                user_role: userData.role,
+                user_building_id: buildingIdForProfile
+              }
+            );
+            
+            if (rpcError) {
+              console.error('Error en método alternativo:', rpcError);
               
-              // Crear un registro en la tabla profiles usando la función rpc
-              // Usamos "as any" para evitar el error de TypeScript ya que la función es personalizada
-              const { error: rpcError } = await supabase.rpc(
-                'create_user_profile' as any,
-                {
-                  user_id: data.user.id,
-                  user_name: userData.name,
-                  user_email: email,
-                  user_phone: userData.phone || '',
-                  user_role: userData.role,
-                  user_building_id: buildingIdForProfile
-                }
-              );
+              // Tercer método: ejecutar una llamada SQL directa usando la REST API de Supabase
+              console.log('Intentando método final para crear perfil...');
               
-              if (rpcError) {
-                console.error('Error en método alternativo:', rpcError);
-                // Si ambos métodos fallan, mostrar advertencia pero no bloquear el registro
+              const adminResponse = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabase.supabaseKey}`,
+                  'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(profileObject)
+              });
+              
+              if (!adminResponse.ok) {
+                console.error('Error en método final:', await adminResponse.text());
                 toast.warning('Cuenta creada pero hubo un problema con el perfil. Por favor contacta al soporte.');
               } else {
-                console.log('Perfil creado con método alternativo');
+                console.log('Perfil creado con método final');
                 toast.success('Registro exitoso! Por favor verifica tu email.');
               }
             } else {
-              // Errores distintos a RLS
-              toast.warning('Cuenta creada pero hubo un problema con el perfil. Por favor contacta al soporte.');
+              console.log('Perfil creado con método alternativo');
+              toast.success('Registro exitoso! Por favor verifica tu email.');
             }
           } else {
             console.log('Perfil creado exitosamente:', profileInsertData);
