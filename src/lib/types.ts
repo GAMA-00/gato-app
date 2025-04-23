@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -99,4 +100,35 @@ export interface DashboardStats {
   weekAppointments: number;
   monthRevenue: number;
   activeClients: number;
+}
+
+// Adding the missing achievement-related interfaces
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  points: number;
+  icon: string;
+  completedAt: Date | null;
+  completionCount?: number;
+}
+
+export type AchievementLevel = 'beginner' | 'trusty' | 'recommended' | 'expert';
+
+export interface AchievementLevelInfo {
+  level: AchievementLevel;
+  name: string;
+  description: string;
+  minPoints: number;
+  maxPoints: number;
+  color: string;
+  icon: string;
+}
+
+export interface ProviderAchievements {
+  totalPoints: number;
+  currentLevel: AchievementLevel;
+  nextLevel: AchievementLevel | null;
+  pointsToNextLevel: number;
+  achievements: Achievement[];
 }
