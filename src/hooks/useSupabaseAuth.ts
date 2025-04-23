@@ -99,6 +99,109 @@ export const useSupabaseAuth = () => {
     };
   }, [setAuthUser, clearAuthUser]);
 
+  // Función mejorada para crear el perfil de usuario
+  const createUserProfile = async (userId: string, userData: any) => {
+    console.log('Intentando crear perfil para el usuario:', userId);
+    console.log('Datos de perfil:', JSON.stringify(userData));
+    
+    const profileObject = {
+      id: userId,
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone || '',
+      role: userData.role,
+      building_id: userData.buildingId || null,
+      has_payment_method: false
+    };
+    
+    console.log('Objeto de perfil a insertar:', profileObject);
+    
+    // MÉTODO 1: Insert directo a la tabla profiles
+    console.log('MÉTODO 1: Insertando directamente en la tabla profiles');
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .insert([profileObject])
+        .select();
+
+      if (profileError) {
+        console.error('ERROR MÉTODO 1:', profileError);
+        console.error('Código de error:', profileError.code);
+        console.error('Mensaje de error:', profileError.message);
+        console.error('Detalles:', profileError.details);
+        
+        // MÉTODO 2: Usar la función RPC
+        console.log('MÉTODO 2: Intentando con función RPC create_user_profile');
+        try {
+          const { error: rpcError } = await supabase.rpc(
+            'create_user_profile',
+            {
+              user_id: userId,
+              user_name: userData.name,
+              user_email: userData.email || '',
+              user_phone: userData.phone || '',
+              user_role: userData.role,
+              user_building_id: userData.buildingId || null
+            }
+          );
+          
+          if (rpcError) {
+            console.error('ERROR MÉTODO 2:', rpcError);
+            console.error('Código de error RPC:', rpcError.code);
+            console.error('Mensaje de error RPC:', rpcError.message);
+            console.error('Detalles RPC:', rpcError.details);
+            
+            // MÉTODO 3: Llamada REST directa
+            console.log('MÉTODO 3: Intentando con llamada REST directa');
+            try {
+              const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+                'apikey': SUPABASE_PUBLISHABLE_KEY,
+                'Prefer': 'return=minimal'
+              };
+              
+              console.log('Headers de petición REST:', headers);
+              console.log('URL de la petición REST:', `${SUPABASE_URL}/rest/v1/profiles`);
+              
+              const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(profileObject)
+              });
+              
+              if (!response.ok) {
+                console.error('ERROR MÉTODO 3: Respuesta no ok');
+                console.error('Estado HTTP:', response.status);
+                console.error('Texto de respuesta:', await response.text());
+                return false;
+              } else {
+                console.log('MÉTODO 3: Perfil creado con éxito');
+                return true;
+              }
+            } catch (restError: any) {
+              console.error('ERROR MÉTODO 3: Excepción en fetch', restError);
+              return false;
+            }
+          } else {
+            console.log('MÉTODO 2: Perfil creado con éxito mediante RPC');
+            return true;
+          }
+        } catch (rpcCallError: any) {
+          console.error('ERROR MÉTODO 2: Excepción en llamada RPC', rpcCallError);
+          return false;
+        }
+      } else {
+        console.log('MÉTODO 1: Perfil creado con éxito mediante insert directo');
+        console.log('Datos del perfil creado:', profileData);
+        return true;
+      }
+    } catch (insertError: any) {
+      console.error('ERROR MÉTODO 1: Excepción en insert', insertError);
+      return false;
+    }
+  };
+
   // Mejorar la función signUp para garantizar la creación del perfil
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Intentando registrar nuevo usuario:', email);
@@ -128,7 +231,7 @@ export const useSupabaseAuth = () => {
       console.log('Registro exitoso, respuesta de Supabase:', data);
 
       if (data.user) {
-        console.log('Creando registro en tabla profiles para:', data.user.id);
+        console.log('UUID de usuario creado:', data.user.id);
         
         // Verificar si el buildingId es válido
         let buildingIdForProfile = null;
@@ -163,81 +266,19 @@ export const useSupabaseAuth = () => {
           }
         }
         
-        console.log('ID de edificio para perfil:', buildingIdForProfile);
-        
-        // Crear el objeto de perfil
-        const profileObject = {
-          id: data.user.id,
-          name: userData.name,
+        // Preparar datos para el perfil
+        const profileCreateSuccess = await createUserProfile(data.user.id, {
+          ...userData,
           email: email,
-          phone: userData.phone || '',
-          role: userData.role,
-          building_id: buildingIdForProfile,
-          has_payment_method: false
-        };
-        
-        console.log('Intentando crear perfil con datos:', profileObject);
-        
-        try {
-          // Primer método: insert directo a la tabla profiles
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .insert([profileObject])
-            .select();
+          buildingId: buildingIdForProfile
+        });
 
-          if (profileError) {
-            console.error('Error al crear perfil de usuario:', profileError);
-            
-            // Segundo método: intentar usar la función RPC si falla el primero
-            console.log('Intentando método alternativo para crear perfil...');
-            
-            // Usar la función RPC con type assertion para evitar errores de TypeScript
-            const { error: rpcError } = await supabase.rpc(
-              'create_user_profile' as any,
-              {
-                user_id: data.user.id,
-                user_name: userData.name,
-                user_email: email,
-                user_phone: userData.phone || '',
-                user_role: userData.role,
-                user_building_id: buildingIdForProfile
-              }
-            );
-            
-            if (rpcError) {
-              console.error('Error en método alternativo:', rpcError);
-              
-              // Tercer método: ejecutar una llamada REST directa usando la URL y key
-              console.log('Intentando método final para crear perfil...');
-              
-              const adminResponse = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-                  'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(profileObject)
-              });
-              
-              if (!adminResponse.ok) {
-                console.error('Error en método final:', await adminResponse.text());
-                toast.warning('Cuenta creada pero hubo un problema con el perfil. Por favor contacta al soporte.');
-              } else {
-                console.log('Perfil creado con método final');
-                toast.success('Registro exitoso! Por favor verifica tu email.');
-              }
-            } else {
-              console.log('Perfil creado con método alternativo');
-              toast.success('Registro exitoso! Por favor verifica tu email.');
-            }
-          } else {
-            console.log('Perfil creado exitosamente:', profileData);
-            toast.success('Registro exitoso! Por favor verifica tu email.');
-          }
-        } catch (profileCreationError: any) {
-          console.error('Error al crear/actualizar perfil:', profileCreationError);
-          toast.warning('Usuario creado pero hubo un problema con el perfil. Por favor contacta al soporte.');
+        if (profileCreateSuccess) {
+          console.log('Perfil creado exitosamente');
+          toast.success('Registro exitoso! Por favor verifica tu email.');
+        } else {
+          console.warn('No se pudo crear el perfil pero la cuenta de usuario sí fue creada');
+          toast.warning('Cuenta creada pero hubo un problema con el perfil. Por favor contacta al soporte.');
         }
       }
 

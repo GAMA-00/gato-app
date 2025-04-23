@@ -439,6 +439,17 @@ export type Database = {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number
       }
+      create_user_profile: {
+        Args: {
+          user_id: string
+          user_name: string
+          user_email: string
+          user_phone: string
+          user_role: string
+          user_building_id?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

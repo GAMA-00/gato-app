@@ -55,6 +55,7 @@ const Register = () => {
   const [profilePreview, setProfilePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [buildings, setBuildings] = useState<BuildingType[]>([]);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
 
   // Cargar edificios desde la base de datos
   useEffect(() => {
@@ -116,6 +117,8 @@ const Register = () => {
       return value;
     }));
     
+    setRegistrationError(null);
+    
     if (isSubmitting) {
       console.log('Ya hay una solicitud en curso, ignorando el envío');
       return;
@@ -157,6 +160,7 @@ const Register = () => {
       
       if (error) {
         console.error('Error en registro:', error);
+        setRegistrationError(error.message || 'Ha ocurrido un error durante el registro');
         toast.error(`Error en registro: ${error.message || 'Ha ocurrido un error durante el registro'}`);
       } else {
         console.log('Registro exitoso, redirigiendo a /payment-setup');
@@ -167,6 +171,7 @@ const Register = () => {
       }
     } catch (error: any) {
       console.error('Error en el proceso de registro:', error);
+      setRegistrationError(error.message || 'Ha ocurrido un error inesperado');
       toast.error(`Error: ${error.message || 'Ha ocurrido un error inesperado'}`);
     } finally {
       setIsSubmitting(false);
@@ -179,6 +184,12 @@ const Register = () => {
       subtitle="Regístrate para agendar u ofrecer servicios"
     >
       <div className="max-w-md mx-auto mt-8">
+        {registrationError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+            <p className="text-sm">{registrationError}</p>
+          </div>
+        )}
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
