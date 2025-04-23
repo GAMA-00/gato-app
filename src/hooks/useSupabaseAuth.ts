@@ -126,26 +126,33 @@ export const useSupabaseAuth = () => {
       if (data.user) {
         console.log('Creando registro en tabla profiles para:', data.user.id);
         
-        // IMPORTANTE: Asegurar que el building_id sea null si no es un UUID válido
+        // Verificar si el buildingId es válido
         let buildingIdForProfile = null;
         
-        // Validamos primero si hay un buildingId
         if (userData.buildingId) {
           console.log('Verificando edificio con ID:', userData.buildingId);
           
           try {
-            // Intentamos buscar el UUID del edificio en la base de datos
-            const { data: buildingData, error: buildingError } = await supabase
-              .from('buildings')
-              .select('id')
-              .eq('id', userData.buildingId)
-              .single();
-              
-            if (buildingError) {
-              console.error('Error al obtener edificio:', buildingError);
-            } else if (buildingData) {
-              console.log('Edificio encontrado:', buildingData);
-              buildingIdForProfile = buildingData.id; // Usar el UUID del edificio de la DB
+            // Verificar si buildingId es un UUID válido
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const isValidUUID = uuidRegex.test(userData.buildingId);
+            
+            if (isValidUUID) {
+              // Buscar el edificio en la base de datos
+              const { data: buildingData, error: buildingError } = await supabase
+                .from('buildings')
+                .select('id')
+                .eq('id', userData.buildingId)
+                .single();
+                
+              if (buildingError) {
+                console.error('Error al obtener edificio:', buildingError);
+              } else if (buildingData) {
+                console.log('Edificio encontrado:', buildingData);
+                buildingIdForProfile = buildingData.id; // UUID válido del edificio
+              }
+            } else {
+              console.warn('El buildingId no es un UUID válido:', userData.buildingId);
             }
           } catch (buildingErr) {
             console.error('Error al buscar edificio:', buildingErr);
@@ -154,64 +161,62 @@ export const useSupabaseAuth = () => {
         
         console.log('ID de edificio para perfil:', buildingIdForProfile);
         
+        // Crear el objeto de perfil
+        const profileData = {
+          id: data.user.id,
+          name: userData.name,
+          email: email,
+          phone: userData.phone || '',
+          role: userData.role,
+          building_id: buildingIdForProfile,
+          has_payment_method: false
+        };
+        
+        console.log('Intentando crear perfil con datos:', profileData);
+        
         try {
-          // Create profile con manejo de errores mejorado
+          // Intentar insertar el perfil directamente
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .insert([
-              {
-                id: data.user.id,
-                name: userData.name,
-                email: email,
-                phone: userData.phone || '',
-                role: userData.role,
-                building_id: buildingIdForProfile, // Usar el UUID correcto o null
-                has_payment_method: false
-              }
-            ])
+            .insert([profileData])
             .select();
 
           if (profileError) {
             console.error('Error al crear perfil de usuario:', profileError);
-            // Mostrar mensaje detallado del error
-            if (profileError.message.includes('violates row-level security')) {
-              console.warn('Puede ser un problema con las políticas RLS. Verificar en la consola de Supabase.');
-            } else if (profileError.message.includes('duplicate key')) {
-              console.warn('El usuario ya tiene un perfil. Intentando actualizar...');
+            
+            // Intentar un método alternativo si falla el primero - inserción directa en SQL
+            if (profileError.code === '42P17' || profileError.message.includes('violates row-level security')) {
+              console.log('Intentando método alternativo para crear perfil...');
               
-              // Intentar actualizar el perfil existente como fallback
-              const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                  name: userData.name,
-                  email: email,
-                  phone: userData.phone || '',
-                  role: userData.role,
-                  building_id: buildingIdForProfile,
-                })
-                .eq('id', data.user.id);
-                
-              if (updateError) {
-                console.error('Error al actualizar perfil existente:', updateError);
-                throw updateError;
+              // Crear un registro en la tabla profiles usando la función rpc
+              const { error: rpcError } = await supabase.rpc('create_user_profile', {
+                user_id: data.user.id,
+                user_name: userData.name,
+                user_email: email,
+                user_phone: userData.phone || '',
+                user_role: userData.role,
+                user_building_id: buildingIdForProfile
+              });
+              
+              if (rpcError) {
+                console.error('Error en método alternativo:', rpcError);
+                // Si ambos métodos fallan, mostrar advertencia pero no bloquear el registro
+                toast.warning('Cuenta creada pero hubo un problema con el perfil. Por favor contacta al soporte.');
               } else {
-                console.log('Perfil existente actualizado exitosamente');
+                console.log('Perfil creado con método alternativo');
+                toast.success('Registro exitoso! Por favor verifica tu email.');
               }
             } else {
-              throw profileError;
+              // Errores distintos a RLS
+              toast.warning('Cuenta creada pero hubo un problema con el perfil. Por favor contacta al soporte.');
             }
           } else {
             console.log('Perfil creado exitosamente:', profileData);
+            toast.success('Registro exitoso! Por favor verifica tu email.');
           }
-          
-          toast.success('Registro exitoso! Por favor verifica tu email.');
         } catch (profileCreationError: any) {
           console.error('Error al crear/actualizar perfil:', profileCreationError);
-          
-          // Si hay error de perfil pero el usuario ya se creó, mostramos mensaje de éxito parcial
           toast.warning('Usuario creado pero hubo un problema con el perfil. Por favor contacta al soporte.');
-          
-          // No lanzamos error aquí para permitir continuar
         }
       }
 
@@ -236,6 +241,14 @@ export const useSupabaseAuth = () => {
 
       if (error) {
         console.error('Error en inicio de sesión:', error);
+        // Mensajes de error específicos para mejor experiencia de usuario
+        if (error.message.includes('Email not confirmed')) {
+          toast.error('Email no confirmado. Por favor revisa tu correo y confirma tu cuenta.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Credenciales incorrectas. Verifica tu email y contraseña.');
+        } else {
+          toast.error(error.message || 'Error al iniciar sesión');
+        }
         throw error;
       }
       
@@ -243,7 +256,6 @@ export const useSupabaseAuth = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error('Error capturado en inicio de sesión:', error);
-      toast.error(error.message || 'Error al iniciar sesión');
       return { data: null, error };
     } finally {
       setIsLoading(false);
