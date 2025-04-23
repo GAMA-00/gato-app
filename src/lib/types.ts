@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -100,81 +99,4 @@ export interface DashboardStats {
   weekAppointments: number;
   monthRevenue: number;
   activeClients: number;
-  pendingOrders: number; // Added for admin dashboard
-  totalProviders: number; // Added for admin dashboard
-  recurringClients: number; // Added for admin dashboard
-  occasionalClients: number; // Added for admin dashboard
-}
-
-export interface AdminStats {
-  totalAppointments: number;
-  pendingAppointments: number;
-  completedAppointments: number;
-  cancelledAppointments: number;
-  totalRevenue: number;
-  totalClients: number;
-  recurringClients: number;
-  occasionalClients: number;
-  totalProviders: number;
-  activeProviders: number;
-}
-
-export interface Provider {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  specialties: ServiceCategory[];
-  rating: number;
-  totalBookings: number;
-  activeBookings: number;
-  isActive: boolean;
-  buildings: string[]; // Buildings where provider offers services
-  joinedAt: Date;
-  profileImage?: string;
-}
-
-export interface ClientProviderRelation {
-  clientId: string;
-  providerId: string;
-  bookingCount: number;
-  lastBookingDate: Date;
-  isPreferred: boolean;
-}
-
-export type AchievementLevel = 'beginner' | 'trusty' | 'recommended' | 'expert';
-
-export interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  points: number;
-  icon: string;
-  completedAt?: Date;
-  completionCount?: number; // Number of times the achievement has been completed
-}
-
-export interface AchievementLevelInfo {
-  level: AchievementLevel;
-  name: string;
-  description: string;
-  minPoints: number;
-  maxPoints: number;
-  color: string;
-  icon: string;
-}
-
-export interface ProviderAchievements {
-  totalPoints: number;
-  currentLevel: AchievementLevel;
-  nextLevel: AchievementLevel | null;
-  pointsToNextLevel: number;
-  achievements: Achievement[];
-}
-
-export interface CategoryOption {
-  id: ServiceCategory;
-  name: string;
-  icon: React.ReactNode;
-  services: string[];
 }

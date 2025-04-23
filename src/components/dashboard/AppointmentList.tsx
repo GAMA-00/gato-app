@@ -1,13 +1,11 @@
 
 import React from 'react';
 import { Clock } from 'lucide-react';
-import { format, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Appointment, Client, Service } from '@/lib/types';
-import { MOCK_CLIENTS, MOCK_SERVICES } from '@/lib/data';
 
 interface AppointmentListProps {
-  appointments: Appointment[];
+  appointments: any[];
   title: string;
   icon?: React.ReactNode;
   emptyMessage?: string;
@@ -19,41 +17,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   icon,
   emptyMessage = "No hay citas programadas"
 }) => {
-  // Function to render an appointment card
-  const renderAppointmentCard = (appointment: Appointment) => {
-    const service = MOCK_SERVICES.find(s => s.id === appointment.serviceId);
-    const client = MOCK_CLIENTS.find(c => c.id === appointment.clientId);
-    
-    if (!service || !client) return null;
-    
-    return (
-      <div key={appointment.id} className="p-4 border-b last:border-0">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-              <span className="text-primary font-medium">
-                {client.name.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
-            <div>
-              <h4 className="font-medium">{client.name}</h4>
-              <p className="text-sm text-muted-foreground">{service.name}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center text-sm font-medium">
-              <Clock className="h-3.5 w-3.5 mr-1 text-primary" />
-              {format(appointment.startTime, 'h:mm a')} - {format(appointment.endTime, 'h:mm a')}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {client.address.split(',')[0]} {/* Showing first part of address as building */}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <Card className="glassmorphism">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -68,7 +31,32 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       <CardContent>
         {appointments.length > 0 ? (
           <div className="divide-y">
-            {appointments.map(renderAppointmentCard)}
+            {appointments.map((appointment) => (
+              <div key={appointment.id} className="p-4 border-b last:border-0">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-primary font-medium">
+                        {appointment.profiles?.name?.split(' ').map((n: string) => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{appointment.profiles?.name}</h4>
+                      <p className="text-sm text-muted-foreground">{appointment.services?.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center text-sm font-medium">
+                      <Clock className="h-3.5 w-3.5 mr-1 text-primary" />
+                      {format(new Date(appointment.start_time), 'h:mm a')} - {format(new Date(appointment.end_time), 'h:mm a')}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {appointment.apartment ? `Apt ${appointment.apartment}` : 'Sin apartamento'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
