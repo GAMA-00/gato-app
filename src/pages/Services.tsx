@@ -10,53 +10,200 @@ import ServiceForm from '@/components/services/ServiceForm';
 import { Service } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Services = () => {
-  const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | undefined>(undefined);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
-  // Load services from localStorage on component mount
-  useEffect(() => {
-    const savedServices = localStorage.getItem('gato_services');
-    if (savedServices) {
-      try {
-        const parsedServices = JSON.parse(savedServices, (key, value) => {
-          if (key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-        setServices(parsedServices);
-      } catch (error) {
-        console.error('Error parsing services:', error);
-        setServices([]);
+  // Fetch services from Supabase
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ['services', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('provider_id', user?.id || '');
+        
+      if (error) {
+        toast.error('Error loading services: ' + error.message);
+        throw error;
       }
+      
+      return data.map(service => ({
+        ...service,
+        id: service.id,
+        name: service.name,
+        category: service.category,
+        duration: service.duration,
+        price: service.base_price,
+        description: service.description,
+        buildingIds: [], // We'll handle this separately
+        createdAt: new Date(service.created_at),
+        providerId: service.provider_id,
+        providerName: user?.name || ''
+      })) as Service[];
+    },
+    enabled: !!isAuthenticated && !!user?.id
+  });
+  
+  // Query to get building associations for services
+  const { data: buildingAssociations = [] } = useQuery({
+    queryKey: ['building_services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('building_services')
+        .select('*');
+        
+      if (error) {
+        toast.error('Error loading building associations: ' + error.message);
+        throw error;
+      }
+      
+      return data;
+    },
+    enabled: !!services.length
+  });
+  
+  // Process services to include buildingIds
+  const processedServices = React.useMemo(() => {
+    return services.map(service => ({
+      ...service,
+      buildingIds: buildingAssociations
+        .filter(assoc => assoc.service_id === service.id)
+        .map(assoc => assoc.building_id)
+    }));
+  }, [services, buildingAssociations]);
+  
+  // Create service mutation
+  const createServiceMutation = useMutation({
+    mutationFn: async (serviceData: Partial<Service>) => {
+      // First insert the service
+      const { data, error } = await supabase
+        .from('services')
+        .insert({
+          name: serviceData.name || '',
+          category: serviceData.category || 'other',
+          description: serviceData.description || '',
+          base_price: serviceData.price || 0,
+          duration: serviceData.duration || 60,
+          provider_id: user?.id || ''
+        })
+        .select('id')
+        .single();
+        
+      if (error) throw error;
+      
+      // Then add building associations if any
+      if (serviceData.buildingIds?.length) {
+        const buildingAssociations = serviceData.buildingIds.map(buildingId => ({
+          service_id: data.id,
+          building_id: buildingId
+        }));
+        
+        const { error: buildingError } = await supabase
+          .from('building_services')
+          .insert(buildingAssociations);
+          
+        if (buildingError) throw buildingError;
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['building_services'] });
+      toast.success('Anuncio agregado exitosamente');
+    },
+    onError: (error) => {
+      toast.error('Error creating service: ' + error.message);
     }
-  }, []);
+  });
   
-  // Save services to localStorage when they change
-  useEffect(() => {
-    if (services.length > 0) {
-      localStorage.setItem('gato_services', JSON.stringify(services));
+  // Update service mutation
+  const updateServiceMutation = useMutation({
+    mutationFn: async (serviceData: Partial<Service>) => {
+      if (!serviceData.id) throw new Error('Service ID is required');
+      
+      // Update the service
+      const { error } = await supabase
+        .from('services')
+        .update({
+          name: serviceData.name,
+          category: serviceData.category,
+          description: serviceData.description,
+          base_price: serviceData.price,
+          duration: serviceData.duration
+        })
+        .eq('id', serviceData.id);
+        
+      if (error) throw error;
+      
+      // Handle building associations - first delete existing ones
+      const { error: deleteError } = await supabase
+        .from('building_services')
+        .delete()
+        .eq('service_id', serviceData.id);
+        
+      if (deleteError) throw deleteError;
+      
+      // Then add new associations if any
+      if (serviceData.buildingIds?.length) {
+        const buildingAssociations = serviceData.buildingIds.map(buildingId => ({
+          service_id: serviceData.id!,
+          building_id: buildingId
+        }));
+        
+        const { error: buildingError } = await supabase
+          .from('building_services')
+          .insert(buildingAssociations);
+          
+        if (buildingError) throw buildingError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['building_services'] });
+      toast.success('Anuncio actualizado exitosamente');
+    },
+    onError: (error) => {
+      toast.error('Error updating service: ' + error.message);
     }
-  }, [services]);
+  });
   
-  // Filter services by current provider if authenticated, otherwise show all
-  const providerServices = isAuthenticated && user 
-    ? services.filter(service => service.providerId === user.id) 
-    : services;
+  // Delete service mutation
+  const deleteServiceMutation = useMutation({
+    mutationFn: async (service: Service) => {
+      // Delete the service (building associations will cascade)
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', service.id);
+        
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['building_services'] });
+      toast.success('Anuncio eliminado exitosamente');
+    },
+    onError: (error) => {
+      toast.error('Error deleting service: ' + error.message);
+    }
+  });
   
-  const filteredServices = providerServices.filter(
-    service => service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               service.category.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredServices = processedServices.filter(
+    service => 
+      service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const handleAddService = () => {
-    // Verificar si el usuario está autenticado antes de permitir crear un anuncio
     if (!isAuthenticated) {
       toast.error('Debes iniciar sesión para crear un anuncio');
       navigate('/login', { state: { from: '/services' } });
@@ -68,7 +215,6 @@ const Services = () => {
   };
   
   const handleEditService = (service: Service) => {
-    // Verificar si el usuario está autenticado antes de permitir editar un anuncio
     if (!isAuthenticated) {
       toast.error('Debes iniciar sesión para editar un anuncio');
       navigate('/login', { state: { from: '/services' } });
@@ -80,15 +226,13 @@ const Services = () => {
   };
   
   const handleDeleteService = (service: Service) => {
-    // Verificar si el usuario está autenticado antes de permitir eliminar un anuncio
     if (!isAuthenticated) {
       toast.error('Debes iniciar sesión para eliminar un anuncio');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
     
-    setServices(services.filter(s => s.id !== service.id));
-    toast.success('Anuncio eliminado exitosamente');
+    deleteServiceMutation.mutate(service);
   };
   
   const handleSubmitService = (serviceData: Partial<Service>) => {
@@ -99,31 +243,12 @@ const Services = () => {
     }
     
     if (editingService) {
-      setServices(services.map(s => 
-        s.id === editingService.id ? { 
-          ...s, 
-          ...serviceData,
-          buildingIds: serviceData.buildingIds || [],
-          providerId: s.providerId
-        } : s
-      ));
-      toast.success('Anuncio actualizado exitosamente');
+      updateServiceMutation.mutate({
+        ...serviceData,
+        id: editingService.id
+      });
     } else {
-      const newService: Service = {
-        id: Date.now().toString(),
-        name: serviceData.name || '',
-        category: serviceData.category || 'other',
-        duration: serviceData.duration || 60,
-        price: serviceData.price || 0,
-        description: serviceData.description || '',
-        buildingIds: serviceData.buildingIds || [],
-        createdAt: new Date(),
-        providerId: user.id,
-        providerName: user.name
-      };
-      
-      setServices([newService, ...services]);
-      toast.success('Anuncio agregado exitosamente');
+      createServiceMutation.mutate(serviceData);
     }
     
     setIsFormOpen(false);
@@ -149,22 +274,30 @@ const Services = () => {
           />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredServices.map(service => (
-            <ServiceCard
-              key={service.id}
-              service={service}
-              onEdit={handleEditService}
-              onDelete={handleDeleteService}
-            />
-          ))}
-          
-          {filteredServices.length === 0 && (
-            <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No se encontraron anuncios. Agrega un nuevo anuncio para comenzar.</p>
-            </div>
-          )}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-40 rounded-lg animate-pulse bg-muted"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredServices.map(service => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                onEdit={handleEditService}
+                onDelete={handleDeleteService}
+              />
+            ))}
+            
+            {filteredServices.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">No se encontraron anuncios. Agrega un nuevo anuncio para comenzar.</p>
+              </div>
+            )}
+          </div>
+        )}
         
         <ServiceForm
           isOpen={isFormOpen}

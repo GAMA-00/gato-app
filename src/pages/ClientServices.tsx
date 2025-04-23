@@ -1,30 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SERVICE_CATEGORIES } from '@/lib/data';
-import { Service } from '@/lib/types';
 import { MessageSquare } from 'lucide-react';
 import { useChat } from '@/contexts/ChatContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useCommissionRate } from '@/hooks/useCommissionRate';
 import { useQuery } from '@tanstack/react-query';
-
-// Define an interface for the service data returned from Supabase
-interface ServiceData {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  base_price: number;
-  building_id: string;
-  provider_id: string;
-  profiles: {
-    name: string;
-  };
-}
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ClientServices = () => {
   const { buildingId } = useParams();
@@ -33,9 +19,21 @@ const ClientServices = () => {
   const { commissionRate } = useCommissionRate();
   
   const { data: services = [], isLoading } = useQuery({
-    queryKey: ['services', buildingId],
+    queryKey: ['client-services', buildingId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Query services and related building associations
+      const { data: buildingServices, error: bsError } = await supabase
+        .from('building_services')
+        .select('service_id')
+        .eq('building_id', buildingId);
+        
+      if (bsError) throw bsError;
+      
+      // If no services for this building, return empty array
+      if (!buildingServices.length) return [];
+      
+      // Get the actual services
+      const { data: servicesData, error: servicesError } = await supabase
         .from('services')
         .select(`
           *,
@@ -43,21 +41,23 @@ const ClientServices = () => {
             name
           )
         `)
-        .eq('building_id', buildingId);
-
-      if (error) throw error;
+        .in('id', buildingServices.map(bs => bs.service_id));
+        
+      if (servicesError) throw servicesError;
       
-      // Ensure data is not null before mapping
-      if (!data) return [];
-
-      // Now TypeScript knows data is an array of ServiceData
-      return data.map((service: ServiceData) => ({
-        ...service,
-        providerName: service.profiles.name,
+      return servicesData.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        category: service.category,
         price: service.base_price,
-        buildingIds: [service.building_id],
+        duration: service.duration,
+        providerId: service.provider_id,
+        providerName: service.profiles?.name || 'Proveedor',
+        buildingIds: [buildingId],
+        createdAt: new Date(service.created_at)
       }));
-    },
+    }
   });
 
   // Calculate final price with commission
@@ -74,27 +74,53 @@ const ClientServices = () => {
     navigate('/client/messages');
   };
 
+  if (isLoading) {
+    return (
+      <PageContainer
+        title="Servicios Disponibles"
+        subtitle="Explorando servicios disponibles..."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-16 w-full" />
+                  <div className="flex space-x-2 pt-2">
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-9 w-10" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Group services by category
+  const servicesByCategory = services.reduce((acc, service) => {
+    if (!acc[service.category]) {
+      acc[service.category] = [];
+    }
+    acc[service.category].push(service);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   return (
     <PageContainer
       title="Servicios Disponibles"
       subtitle="Explora los servicios disponibles en tu edificio"
     >
-      {isLoading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Cargando servicios...</p>
-        </div>
-      ) : services.length === 0 ? (
+      {services.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No hay servicios disponibles en este edificio todavía.</p>
         </div>
       ) : (
-        Object.entries(services.reduce((acc, service) => {
-          if (!acc[service.category]) {
-            acc[service.category] = [];
-          }
-          acc[service.category].push(service);
-          return acc;
-        }, {} as Record<string, any[]>)).map(([category, categoryServices]) => (
+        Object.entries(servicesByCategory).map(([category, categoryServices]) => (
           <div key={category} className="mb-8">
             <h2 className="text-xl font-semibold mb-4" style={{ color: SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES]?.color }}>
               {SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES]?.label || category}
@@ -122,7 +148,7 @@ const ClientServices = () => {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => handleContactProvider(service.provider_id, service.providerName)}
+                        onClick={() => handleContactProvider(service.providerId, service.providerName)}
                       >
                         <MessageSquare className="h-4 w-4" />
                       </Button>

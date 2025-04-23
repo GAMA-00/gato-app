@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Book, Home, Scissors, PawPrint, Dumbbell } from 'lucide-react';
-import { Service } from '@/lib/types';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'home': <Home className="h-6 w-6" />,
@@ -25,35 +27,73 @@ const categoryLabels: Record<string, string> = {
 const ClientProvidersList = () => {
   const { category, subcat } = useParams();
   const navigate = useNavigate();
-  const [services, setServices] = useState<Service[]>([]);
-
-  // Leer servicios reales de localStorage (usados por los proveedores)
-  useEffect(() => {
-    const savedServices = localStorage.getItem('gato_services');
-    if (savedServices) {
-      try {
-        const parsedServices: Service[] = JSON.parse(savedServices, (key, value) => {
-          if (key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-        setServices(parsedServices);
-      } catch (err) {
-        setServices([]);
-      }
+  
+  // Fetch services from Supabase based on category and name
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ['services-by-category', category, subcat],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select(`
+          *,
+          profiles:provider_id (
+            name
+          )
+        `)
+        .eq('category', category)
+        .eq('name', subcat);
+        
+      if (error) throw error;
+      
+      return data.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        category: service.category,
+        price: service.base_price,
+        providerId: service.provider_id,
+        providerName: service.profiles?.name || 'Proveedor'
+      }));
     }
-  }, []);
-
-  // Filtrar servicios por categoría y subcategoría exacta
-  const matchingServices = services.filter(
-    (service) =>
-      service.category === category &&
-      service.name === subcat
-  );
+  });
 
   const categoryIcon = category ? CATEGORY_ICONS[category] : null;
   const titleText = subcat || '';
+
+  if (isLoading) {
+    return (
+      <PageContainer
+        title={
+          <div className="flex items-center gap-2">
+            {categoryIcon}
+            <span>{titleText}</span>
+          </div>
+        }
+        subtitle={
+          <button
+            className="text-sm text-muted-foreground hover:underline mb-2"
+            onClick={() => navigate('/client')}
+          >
+            &larr; Volver a categorías
+          </button>
+        }
+      >
+        <div className="max-w-lg mx-auto space-y-4">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
@@ -73,12 +113,12 @@ const ClientProvidersList = () => {
       }
     >
       <div className="max-w-lg mx-auto space-y-4">
-        {matchingServices.length === 0 ? (
+        {services.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
-            Aun no hay proveedores de servicio en esta categoria :/
+            Aun no hay proveedores de servicio en esta categoría :/
           </div>
         ) : (
-          matchingServices.map((service) => (
+          services.map((service) => (
             <Card
               key={service.id}
               className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
@@ -101,4 +141,3 @@ const ClientProvidersList = () => {
 };
 
 export default ClientProvidersList;
-
