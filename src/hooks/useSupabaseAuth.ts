@@ -125,6 +125,29 @@ export const useSupabaseAuth = () => {
 
       if (data.user) {
         console.log('Creando registro en tabla profiles para:', data.user.id);
+        
+        // IMPORTANTE: Asegurar que el building_id sea null si no es un UUID válido
+        let buildingIdForProfile = null;
+        
+        // Intentamos buscar el UUID del edificio en la base de datos
+        if (userData.buildingId) {
+          console.log('Buscando información del edificio con ID:', userData.buildingId);
+          const { data: buildingData, error: buildingError } = await supabase
+            .from('buildings')
+            .select('id')
+            .eq('id', userData.buildingId)
+            .single();
+            
+          if (buildingError) {
+            console.error('Error al obtener edificio:', buildingError);
+          } else if (buildingData) {
+            console.log('Edificio encontrado:', buildingData);
+            buildingIdForProfile = buildingData.id; // Usar el UUID del edificio de la DB
+          }
+        }
+        
+        console.log('ID de edificio para perfil:', buildingIdForProfile);
+        
         // Create profile
         const { error: profileError } = await supabase
           .from('profiles')
@@ -135,7 +158,7 @@ export const useSupabaseAuth = () => {
               email: email,
               phone: userData.phone || '',
               role: userData.role,
-              building_id: userData.buildingId || null,
+              building_id: buildingIdForProfile, // Usar el UUID correcto o null
               has_payment_method: false
             }
           ]);

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -15,13 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Building as BuildingType } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-
-// Mock buildings data
-const MOCK_BUILDINGS: BuildingType[] = [
-  { id: '1', name: 'Colinas de Montealegre', address: 'Tres Rios' },
-  { id: '2', name: 'Gregal', address: 'Tres Rios' },
-  { id: '3', name: 'El Herran', address: 'Tres Rios' }
-];
+import { supabase } from '@/integrations/supabase/client';
 
 const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
@@ -60,6 +54,33 @@ const Register = () => {
   const { signUp } = useSupabaseAuth();
   const [profilePreview, setProfilePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [buildings, setBuildings] = useState<BuildingType[]>([]);
+
+  // Cargar edificios desde la base de datos
+  useEffect(() => {
+    const fetchBuildings = async () => {
+      try {
+        console.log('Consultando edificios desde Supabase');
+        const { data, error } = await supabase
+          .from('buildings')
+          .select('id, name, address');
+        
+        if (error) {
+          console.error('Error al cargar edificios:', error);
+          toast.error('Error al cargar las residencias');
+          return;
+        }
+        
+        console.log('Edificios cargados:', data);
+        setBuildings(data || []);
+      } catch (error) {
+        console.error('Error al cargar edificios:', error);
+        toast.error('Error al cargar las residencias');
+      }
+    };
+    
+    fetchBuildings();
+  }, []);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -95,17 +116,29 @@ const Register = () => {
       return value;
     }));
     
+    if (isSubmitting) {
+      console.log('Ya hay una solicitud en curso, ignorando el envío');
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       
       // Para cliente: buildingId simple. Para proveedor: providerBuildingIds.
+      let selectedBuildingId = '';
       let selectedBuildingNames: string[] = [];
+      
       if (values.role === 'provider' && values.providerBuildingIds) {
-        selectedBuildingNames = MOCK_BUILDINGS.filter(b => values.providerBuildingIds!.includes(b.id)).map(b => b.name);
+        // Para proveedores, tomamos el primer edificio seleccionado como principal
+        selectedBuildingId = values.providerBuildingIds[0] || '';
+        selectedBuildingNames = buildings.filter(b => values.providerBuildingIds!.includes(b.id)).map(b => b.name);
         console.log('Buildings seleccionados para proveedor:', selectedBuildingNames);
       }
+      
       if (values.role === 'client' && values.buildingId) {
-        selectedBuildingNames = [MOCK_BUILDINGS.find(b => b.id === values.buildingId)?.name || ''];
+        selectedBuildingId = values.buildingId;
+        const selectedBuilding = buildings.find(b => b.id === values.buildingId);
+        selectedBuildingNames = [selectedBuilding?.name || ''];
         console.log('Building seleccionado para cliente:', selectedBuildingNames[0]);
       }
 
@@ -113,9 +146,9 @@ const Register = () => {
         name: values.name,
         phone: values.phone,
         role: values.role,
-        buildingId: values.role === 'client' ? values.buildingId : values.providerBuildingIds?.[0],
+        buildingId: selectedBuildingId,
         buildingName: selectedBuildingNames[0] || '',
-        offerBuildings: values.providerBuildingIds
+        offerBuildings: values.role === 'provider' ? values.providerBuildingIds : [values.buildingId].filter(Boolean)
       };
       
       console.log('Enviando datos de usuario a signUp:', JSON.stringify(userData));
@@ -286,7 +319,7 @@ const Register = () => {
                             <SelectValue placeholder="Elija una residencia" />
                           </SelectTrigger>
                           <SelectContent>
-                            {MOCK_BUILDINGS.map((building) => (
+                            {buildings.map((building) => (
                               <SelectItem key={building.id} value={building.id}>
                                 {building.name}
                               </SelectItem>
@@ -308,7 +341,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Residencias donde ofreces tus servicios</FormLabel>
                     <div className="flex flex-col gap-2">
-                      {MOCK_BUILDINGS.map((building) => (
+                      {buildings.map((building) => (
                         <div key={building.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`building-checkbox-${building.id}`}
