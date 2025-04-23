@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, EyeOff, Users, Clock, PieChart, BarChart } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
@@ -21,7 +20,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Mock admin stats
 const MOCK_ADMIN_STATS: AdminStats = {
   totalAppointments: 150,
   pendingAppointments: 25,
@@ -313,7 +311,6 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [stats, setStats] = useState<DashboardStatsType>(getDashboardStats());
   
-  // Load appointments from localStorage
   useEffect(() => {
     const savedAppointments = localStorage.getItem('gato_appointments');
     if (savedAppointments) {
@@ -331,7 +328,6 @@ const Dashboard = () => {
     }
   }, []);
   
-  // Filter appointments for the current provider
   const providerAppointments = user && user.role === 'provider'
     ? appointments.filter(appointment => appointment.providerId === user.id)
     : [];

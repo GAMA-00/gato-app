@@ -46,7 +46,7 @@ const Clients = () => {
       ));
       toast.success('Cliente actualizado exitosamente');
     } else {
-      // Add new client
+      // Add new client with required fields for Client type
       const newClient: Client = {
         id: Date.now().toString(),
         name: clientData.name || '',
@@ -54,7 +54,10 @@ const Clients = () => {
         phone: clientData.phone || '',
         address: clientData.address || '',
         notes: clientData.notes || '',
-        createdAt: new Date()
+        createdAt: new Date(),
+        isRecurring: false,
+        preferredProviders: [],
+        totalBookings: 0
       };
       
       setClients([newClient, ...clients]);

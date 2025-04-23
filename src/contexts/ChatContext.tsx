@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 
 type Message = {
   id: string;
-  sender: 'client' | 'provider';
+  sender: 'client' | 'provider' | 'admin';
   content: string;
   timestamp: Date;
   isImage?: boolean;
@@ -128,9 +128,12 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const sendMessage = (content: string, isImage: boolean = false) => {
     if (!activeConversation || !user) return;
     
+    // Make sure we handle the admin role as well
+    const senderRole = user.role === 'admin' ? 'admin' : (user.role === 'client' ? 'client' : 'provider');
+    
     const newMessage: Message = {
       id: Date.now().toString(),
-      sender: user.role,
+      sender: senderRole,
       content,
       timestamp: new Date(),
       isImage,

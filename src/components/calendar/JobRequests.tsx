@@ -4,7 +4,7 @@ import { Check, X, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Appointment, Client, Service, RecurrencePattern } from '@/lib/types';
+import { Appointment, Client, Service, RecurrencePattern, OrderStatus } from '@/lib/types';
 import { MOCK_SERVICES, MOCK_CLIENTS } from '@/lib/data';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -16,10 +16,10 @@ const JOB_REQUESTS = [
       id: 'pending-1',
       serviceId: '1',
       clientId: '1',
-      providerId: 'provider-1', // Added providerId
+      providerId: 'provider-1',
       startTime: new Date(new Date().setHours(10, 0)),
       endTime: new Date(new Date().setHours(12, 0)),
-      status: 'pending',
+      status: 'pending' as OrderStatus,
       recurrence: 'none' as RecurrencePattern,
       notes: 'Solicitud de cliente nuevo',
       createdAt: new Date(),
@@ -33,10 +33,10 @@ const JOB_REQUESTS = [
       id: 'pending-2',
       serviceId: '3',
       clientId: '2',
-      providerId: 'provider-1', // Added providerId
+      providerId: 'provider-1',
       startTime: new Date(new Date().setHours(14, 30)),
       endTime: new Date(new Date().setHours(16, 0)),
-      status: 'pending',
+      status: 'pending' as OrderStatus,
       recurrence: 'none' as RecurrencePattern,
       notes: 'Solicitud especial de limpieza',
       createdAt: new Date(),

@@ -96,7 +96,10 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(555) 123-4567',
     address: '123 Apple St, Cupertino, CA 95014',
     notes: 'Prefers afternoon appointments',
-    createdAt: new Date('2023-01-20')
+    createdAt: new Date('2023-01-20'),
+    isRecurring: true,
+    preferredProviders: ['provider-1', 'provider-2'],
+    totalBookings: 15
   },
   {
     id: '2',
@@ -105,7 +108,10 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(555) 987-6543',
     address: '456 Orange Ave, San Francisco, CA 94107',
     notes: 'Has two dogs that need to be kept in a separate room during cleaning',
-    createdAt: new Date('2023-02-15')
+    createdAt: new Date('2023-02-15'),
+    isRecurring: true,
+    preferredProviders: ['provider-3'],
+    totalBookings: 8
   },
   {
     id: '3',
@@ -114,7 +120,10 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(555) 234-5678',
     address: '789 Grape Blvd, Palo Alto, CA 94301',
     notes: 'Allergic to strong cleaning products',
-    createdAt: new Date('2023-03-10')
+    createdAt: new Date('2023-03-10'),
+    isRecurring: false,
+    preferredProviders: [],
+    totalBookings: 3
   },
   {
     id: '4',
@@ -123,7 +132,10 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(555) 345-6789',
     address: '321 Pear Lane, San Jose, CA 95110',
     notes: 'Garage code: 1234',
-    createdAt: new Date('2023-04-05')
+    createdAt: new Date('2023-04-05'),
+    isRecurring: false,
+    preferredProviders: ['provider-4'],
+    totalBookings: 2
   },
   {
     id: '5',
@@ -132,7 +144,10 @@ export const MOCK_CLIENTS: Client[] = [
     phone: '(555) 456-7890',
     address: '654 Banana Ct, Mountain View, CA 94043',
     notes: 'Has a home security system - needs advance notice',
-    createdAt: new Date('2023-05-20')
+    createdAt: new Date('2023-05-20'),
+    isRecurring: false,
+    preferredProviders: [],
+    totalBookings: 1
   }
 ];
 
@@ -163,7 +178,7 @@ export const generateMockAppointments = (): Appointment[] => {
     providerId: 'provider-1',
     startTime: setTimeOnDate(today, 10, 0),
     endTime: setTimeOnDate(today, 12, 0),
-    status: 'scheduled',
+    status: 'confirmed',
     recurrence: 'weekly',
     notes: '',
     createdAt: new Date(today.setDate(today.getDate() - 7))
@@ -221,7 +236,7 @@ export const generateMockAppointments = (): Appointment[] => {
     providerId: 'provider-5',
     startTime: setTimeOnDate(nextWeek, 13, 0),
     endTime: setTimeOnDate(nextWeek, 15, 0),
-    status: 'scheduled',
+    status: 'pending',
     recurrence: 'none',
     notes: 'Check kitchen sink and upstairs bathroom',
     createdAt: new Date(today.setDate(today.getDate() - 3))
@@ -246,7 +261,7 @@ export const generateMockAppointments = (): Appointment[] => {
       providerId: service.providerId,
       startTime,
       endTime,
-      status: 'scheduled',
+      status: 'pending',
       recurrence: Math.random() > 0.5 ? 'none' : 'weekly',
       notes: '',
       createdAt: new Date(date.setDate(date.getDate() - 14))
@@ -287,7 +302,11 @@ export const getDashboardStats = () => {
     todayAppointments,
     weekAppointments,
     monthRevenue,
-    activeClients: MOCK_CLIENTS.length
+    activeClients: MOCK_CLIENTS.length,
+    pendingOrders: MOCK_APPOINTMENTS.filter(app => app.status === 'pending').length,
+    totalProviders: 5,
+    recurringClients: MOCK_CLIENTS.filter(client => client.isRecurring).length,
+    occasionalClients: MOCK_CLIENTS.filter(client => !client.isRecurring).length
   };
 };
 
