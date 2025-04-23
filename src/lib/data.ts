@@ -178,7 +178,7 @@ export const generateMockAppointments = (): Appointment[] => {
     providerId: 'provider-1',
     startTime: setTimeOnDate(today, 10, 0),
     endTime: setTimeOnDate(today, 12, 0),
-    status: 'confirmed',
+    status: 'pending', // Changed from 'scheduled'
     recurrence: 'weekly',
     notes: '',
     createdAt: new Date(today.setDate(today.getDate() - 7))
@@ -191,7 +191,7 @@ export const generateMockAppointments = (): Appointment[] => {
     providerId: 'provider-3',
     startTime: setTimeOnDate(today, 14, 0),
     endTime: setTimeOnDate(today, 15, 30),
-    status: 'confirmed',
+    status: 'pending', // Changed from 'scheduled'
     recurrence: 'biweekly',
     notes: 'Park in the driveway',
     createdAt: new Date(today.setDate(today.getDate() - 5))
@@ -221,7 +221,7 @@ export const generateMockAppointments = (): Appointment[] => {
     providerId: 'provider-4',
     startTime: setTimeOnDate(dayAfter, 16, 0),
     endTime: setTimeOnDate(dayAfter, 17, 0),
-    status: 'scheduled',
+    status: 'pending', // Kept as 'pending'
     recurrence: 'biweekly',
     notes: 'Backyard gate code: 5678',
     createdAt: new Date(today.setDate(today.getDate() - 10))
@@ -261,7 +261,7 @@ export const generateMockAppointments = (): Appointment[] => {
       providerId: service.providerId,
       startTime,
       endTime,
-      status: 'pending',
+      status: 'pending', // Changed from 'scheduled'
       recurrence: Math.random() > 0.5 ? 'none' : 'weekly',
       notes: '',
       createdAt: new Date(date.setDate(date.getDate() - 14))
