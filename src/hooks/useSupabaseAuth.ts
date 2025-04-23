@@ -129,48 +129,90 @@ export const useSupabaseAuth = () => {
         // IMPORTANTE: Asegurar que el building_id sea null si no es un UUID válido
         let buildingIdForProfile = null;
         
-        // Intentamos buscar el UUID del edificio en la base de datos
+        // Validamos primero si hay un buildingId
         if (userData.buildingId) {
-          console.log('Buscando información del edificio con ID:', userData.buildingId);
-          const { data: buildingData, error: buildingError } = await supabase
-            .from('buildings')
-            .select('id')
-            .eq('id', userData.buildingId)
-            .single();
-            
-          if (buildingError) {
-            console.error('Error al obtener edificio:', buildingError);
-          } else if (buildingData) {
-            console.log('Edificio encontrado:', buildingData);
-            buildingIdForProfile = buildingData.id; // Usar el UUID del edificio de la DB
+          console.log('Verificando edificio con ID:', userData.buildingId);
+          
+          try {
+            // Intentamos buscar el UUID del edificio en la base de datos
+            const { data: buildingData, error: buildingError } = await supabase
+              .from('buildings')
+              .select('id')
+              .eq('id', userData.buildingId)
+              .single();
+              
+            if (buildingError) {
+              console.error('Error al obtener edificio:', buildingError);
+            } else if (buildingData) {
+              console.log('Edificio encontrado:', buildingData);
+              buildingIdForProfile = buildingData.id; // Usar el UUID del edificio de la DB
+            }
+          } catch (buildingErr) {
+            console.error('Error al buscar edificio:', buildingErr);
           }
         }
         
         console.log('ID de edificio para perfil:', buildingIdForProfile);
         
-        // Create profile con RLS habilitado ahora
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              name: userData.name,
-              email: email,
-              phone: userData.phone || '',
-              role: userData.role,
-              building_id: buildingIdForProfile, // Usar el UUID correcto o null
-              has_payment_method: false
-            }
-          ])
-          .select();
+        try {
+          // Create profile con manejo de errores mejorado
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: data.user.id,
+                name: userData.name,
+                email: email,
+                phone: userData.phone || '',
+                role: userData.role,
+                building_id: buildingIdForProfile, // Usar el UUID correcto o null
+                has_payment_method: false
+              }
+            ])
+            .select();
 
-        if (profileError) {
-          console.error('Error al crear perfil de usuario:', profileError);
-          throw profileError;
+          if (profileError) {
+            console.error('Error al crear perfil de usuario:', profileError);
+            // Mostrar mensaje detallado del error
+            if (profileError.message.includes('violates row-level security')) {
+              console.warn('Puede ser un problema con las políticas RLS. Verificar en la consola de Supabase.');
+            } else if (profileError.message.includes('duplicate key')) {
+              console.warn('El usuario ya tiene un perfil. Intentando actualizar...');
+              
+              // Intentar actualizar el perfil existente como fallback
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                  name: userData.name,
+                  email: email,
+                  phone: userData.phone || '',
+                  role: userData.role,
+                  building_id: buildingIdForProfile,
+                })
+                .eq('id', data.user.id);
+                
+              if (updateError) {
+                console.error('Error al actualizar perfil existente:', updateError);
+                throw updateError;
+              } else {
+                console.log('Perfil existente actualizado exitosamente');
+              }
+            } else {
+              throw profileError;
+            }
+          } else {
+            console.log('Perfil creado exitosamente:', profileData);
+          }
+          
+          toast.success('Registro exitoso! Por favor verifica tu email.');
+        } catch (profileCreationError: any) {
+          console.error('Error al crear/actualizar perfil:', profileCreationError);
+          
+          // Si hay error de perfil pero el usuario ya se creó, mostramos mensaje de éxito parcial
+          toast.warning('Usuario creado pero hubo un problema con el perfil. Por favor contacta al soporte.');
+          
+          // No lanzamos error aquí para permitir continuar
         }
-        
-        console.log('Perfil creado exitosamente:', profileData);
-        toast.success('Registro exitoso! Por favor verifica tu email.');
       }
 
       return { data, error: null };
