@@ -59,6 +59,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { signUp } = useSupabaseAuth();
   const [profilePreview, setProfilePreview] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -88,44 +89,54 @@ const Register = () => {
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
-    console.log('Iniciando registro con valores:', JSON.stringify(values, (key, value) => {
+    console.log('Formulario enviado con valores:', JSON.stringify(values, (key, value) => {
       // No mostrar el archivo de imagen completo en el log, solo un indicador
       if (key === 'profileImage' && value instanceof File) return `[File: ${value.name}]`;
       return value;
     }));
-
-    // Para cliente: buildingId simple. Para proveedor: providerBuildingIds.
-    let selectedBuildingNames: string[] = [];
-    if (values.role === 'provider' && values.providerBuildingIds) {
-      selectedBuildingNames = MOCK_BUILDINGS.filter(b => values.providerBuildingIds!.includes(b.id)).map(b => b.name);
-      console.log('Buildings seleccionados para proveedor:', selectedBuildingNames);
-    }
-    if (values.role === 'client' && values.buildingId) {
-      selectedBuildingNames = [MOCK_BUILDINGS.find(b => b.id === values.buildingId)?.name || ''];
-      console.log('Building seleccionado para cliente:', selectedBuildingNames[0]);
-    }
-
-    const userData = {
-      name: values.name,
-      phone: values.phone,
-      role: values.role,
-      buildingId: values.role === 'client' ? values.buildingId : values.providerBuildingIds?.[0],
-      buildingName: selectedBuildingNames[0] || '',
-      offerBuildings: values.providerBuildingIds
-    };
     
-    console.log('Enviando datos de usuario a signUp:', JSON.stringify(userData));
+    try {
+      setIsSubmitting(true);
+      
+      // Para cliente: buildingId simple. Para proveedor: providerBuildingIds.
+      let selectedBuildingNames: string[] = [];
+      if (values.role === 'provider' && values.providerBuildingIds) {
+        selectedBuildingNames = MOCK_BUILDINGS.filter(b => values.providerBuildingIds!.includes(b.id)).map(b => b.name);
+        console.log('Buildings seleccionados para proveedor:', selectedBuildingNames);
+      }
+      if (values.role === 'client' && values.buildingId) {
+        selectedBuildingNames = [MOCK_BUILDINGS.find(b => b.id === values.buildingId)?.name || ''];
+        console.log('Building seleccionado para cliente:', selectedBuildingNames[0]);
+      }
 
-    const { error } = await signUp(values.email, values.password, userData);
-    
-    if (error) {
-      console.error('Error en registro:', error);
-      toast.error(`Error en registro: ${error.message}`);
-    } else {
-      console.log('Registro exitoso, redirigiendo a /payment-setup');
-      navigate('/payment-setup', { 
-        state: { fromClientView: values.role === 'client' } 
-      });
+      const userData = {
+        name: values.name,
+        phone: values.phone,
+        role: values.role,
+        buildingId: values.role === 'client' ? values.buildingId : values.providerBuildingIds?.[0],
+        buildingName: selectedBuildingNames[0] || '',
+        offerBuildings: values.providerBuildingIds
+      };
+      
+      console.log('Enviando datos de usuario a signUp:', JSON.stringify(userData));
+
+      const { error } = await signUp(values.email, values.password, userData);
+      
+      if (error) {
+        console.error('Error en registro:', error);
+        toast.error(`Error en registro: ${error.message || 'Ha ocurrido un error durante el registro'}`);
+      } else {
+        console.log('Registro exitoso, redirigiendo a /payment-setup');
+        toast.success('¡Cuenta creada exitosamente!');
+        navigate('/payment-setup', { 
+          state: { fromClientView: values.role === 'client' } 
+        });
+      }
+    } catch (error: any) {
+      console.error('Error en el proceso de registro:', error);
+      toast.error(`Error: ${error.message || 'Ha ocurrido un error inesperado'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -367,9 +378,19 @@ const Register = () => {
               )}
             />
 
-            <Button type="submit" className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Crear Cuenta
+            <Button 
+              type="submit" 
+              className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>Creando cuenta...</>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Crear Cuenta
+                </>
+              )}
             </Button>
           </form>
         </Form>

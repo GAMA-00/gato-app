@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,6 +102,12 @@ export const useSupabaseAuth = () => {
     
     setIsLoading(true);
     try {
+      // Primero validamos que todos los datos necesarios estén presentes
+      if (!email || !password || !userData.name || !userData.role) {
+        throw new Error('Faltan datos requeridos para el registro');
+      }
+
+      console.log('Ejecutando signUp en Supabase con:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -126,9 +133,9 @@ export const useSupabaseAuth = () => {
               id: data.user.id,
               name: userData.name,
               email: email,
-              phone: userData.phone,
+              phone: userData.phone || '',
               role: userData.role,
-              building_id: userData.buildingId,
+              building_id: userData.buildingId || null,
               has_payment_method: false
             }
           ]);
@@ -139,13 +146,13 @@ export const useSupabaseAuth = () => {
         }
         
         console.log('Perfil creado exitosamente');
+        toast.success('Registro exitoso! Por favor verifica tu email.');
       }
 
-      toast.success('Registro exitoso! Por favor verifica tu email.');
       return { data, error: null };
     } catch (error: any) {
       console.error('Error capturado en registro:', error);
-      toast.error(error.message);
+      toast.error(error.message || 'Error durante el registro');
       return { data: null, error };
     } finally {
       setIsLoading(false);
@@ -155,15 +162,22 @@ export const useSupabaseAuth = () => {
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log('Intentando iniciar sesión con:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error en inicio de sesión:', error);
+        throw error;
+      }
+      
+      console.log('Inicio de sesión exitoso:', data);
       return { data, error: null };
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Error capturado en inicio de sesión:', error);
+      toast.error(error.message || 'Error al iniciar sesión');
       return { data: null, error };
     } finally {
       setIsLoading(false);
