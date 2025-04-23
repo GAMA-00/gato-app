@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -80,19 +81,28 @@ const Register = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
+      console.log('Imagen seleccionada:', file.name, 'tamaño:', file.size);
       form.setValue('profileImage', file, { shouldValidate: true });
       setProfilePreview(URL.createObjectURL(file));
     }
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
+    console.log('Iniciando registro con valores:', JSON.stringify(values, (key, value) => {
+      // No mostrar el archivo de imagen completo en el log, solo un indicador
+      if (key === 'profileImage' && value instanceof File) return `[File: ${value.name}]`;
+      return value;
+    }));
+
     // Para cliente: buildingId simple. Para proveedor: providerBuildingIds.
     let selectedBuildingNames: string[] = [];
     if (values.role === 'provider' && values.providerBuildingIds) {
       selectedBuildingNames = MOCK_BUILDINGS.filter(b => values.providerBuildingIds!.includes(b.id)).map(b => b.name);
+      console.log('Buildings seleccionados para proveedor:', selectedBuildingNames);
     }
     if (values.role === 'client' && values.buildingId) {
       selectedBuildingNames = [MOCK_BUILDINGS.find(b => b.id === values.buildingId)?.name || ''];
+      console.log('Building seleccionado para cliente:', selectedBuildingNames[0]);
     }
 
     const userData = {
@@ -103,10 +113,16 @@ const Register = () => {
       buildingName: selectedBuildingNames[0] || '',
       offerBuildings: values.providerBuildingIds
     };
+    
+    console.log('Enviando datos de usuario a signUp:', JSON.stringify(userData));
 
     const { error } = await signUp(values.email, values.password, userData);
     
-    if (!error) {
+    if (error) {
+      console.error('Error en registro:', error);
+      toast.error(`Error en registro: ${error.message}`);
+    } else {
+      console.log('Registro exitoso, redirigiendo a /payment-setup');
       navigate('/payment-setup', { 
         state: { fromClientView: values.role === 'client' } 
       });
