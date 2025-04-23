@@ -46,3 +46,4 @@ $$;
 
 -- Asegurarse de que las políticas RLS no interfieran con esta función
 GRANT EXECUTE ON FUNCTION public.create_user_profile TO anon, authenticated, service_role;
+

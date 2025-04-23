@@ -162,7 +162,7 @@ export const useSupabaseAuth = () => {
         console.log('ID de edificio para perfil:', buildingIdForProfile);
         
         // Crear el objeto de perfil
-        const profileData = {
+        const profileObject = {
           id: data.user.id,
           name: userData.name,
           email: email,
@@ -172,13 +172,13 @@ export const useSupabaseAuth = () => {
           has_payment_method: false
         };
         
-        console.log('Intentando crear perfil con datos:', profileData);
+        console.log('Intentando crear perfil con datos:', profileObject);
         
         try {
           // Intentar insertar el perfil directamente
-          const { data: profileData, error: profileError } = await supabase
+          const { data: profileInsertData, error: profileError } = await supabase
             .from('profiles')
-            .insert([profileData])
+            .insert([profileObject])
             .select();
 
           if (profileError) {
@@ -211,7 +211,7 @@ export const useSupabaseAuth = () => {
               toast.warning('Cuenta creada pero hubo un problema con el perfil. Por favor contacta al soporte.');
             }
           } else {
-            console.log('Perfil creado exitosamente:', profileData);
+            console.log('Perfil creado exitosamente:', profileInsertData);
             toast.success('Registro exitoso! Por favor verifica tu email.');
           }
         } catch (profileCreationError: any) {
