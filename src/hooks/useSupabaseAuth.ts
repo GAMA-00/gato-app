@@ -189,14 +189,18 @@ export const useSupabaseAuth = () => {
               console.log('Intentando método alternativo para crear perfil...');
               
               // Crear un registro en la tabla profiles usando la función rpc
-              const { error: rpcError } = await supabase.rpc('create_user_profile', {
-                user_id: data.user.id,
-                user_name: userData.name,
-                user_email: email,
-                user_phone: userData.phone || '',
-                user_role: userData.role,
-                user_building_id: buildingIdForProfile
-              });
+              // Usamos "as any" para evitar el error de TypeScript ya que la función es personalizada
+              const { error: rpcError } = await supabase.rpc(
+                'create_user_profile' as any,
+                {
+                  user_id: data.user.id,
+                  user_name: userData.name,
+                  user_email: email,
+                  user_phone: userData.phone || '',
+                  user_role: userData.role,
+                  user_building_id: buildingIdForProfile
+                }
+              );
               
               if (rpcError) {
                 console.error('Error en método alternativo:', rpcError);
