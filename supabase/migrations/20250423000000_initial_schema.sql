@@ -31,16 +31,13 @@ create table buildings (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Tabla de servicios extendida
+-- Tabla de servicios extendida (sin columna generada)
 create table services (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
   category text not null,
   duration integer not null,
   base_price decimal not null, -- Precio base establecido por el proveedor
-  final_price decimal generated always as (base_price * (1 + (
-    select commission_rate / 100 from system_settings limit 1
-  ))) stored, -- Precio final incluyendo comisión
   description text not null,
   provider_id uuid references profiles(id) not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -133,4 +130,3 @@ begin
   return coalesce(refund, 0);
 end;
 $$ language plpgsql;
-

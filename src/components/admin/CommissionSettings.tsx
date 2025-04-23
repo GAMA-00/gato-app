@@ -34,6 +34,10 @@ const CommissionSettings: React.FC<CommissionSettingsProps> = ({
     try {
       await onUpdate(rate);
       toast.success('Tasa de comisión actualizada exitosamente');
+      
+      // In a demo environment without Supabase, store in localStorage
+      const systemSettings = { commissionRate: rate };
+      localStorage.setItem('gato_system_settings', JSON.stringify(systemSettings));
     } catch (error) {
       toast.error('Error al actualizar la tasa de comisión');
     } finally {
@@ -80,4 +84,3 @@ const CommissionSettings: React.FC<CommissionSettingsProps> = ({
 };
 
 export default CommissionSettings;
-

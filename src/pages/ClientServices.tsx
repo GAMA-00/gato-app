@@ -14,8 +14,9 @@ const ClientServices = () => {
   const navigate = useNavigate();
   const { startNewConversation } = useChat();
   const [services, setServices] = useState<Service[]>([]);
+  const [commissionRate, setCommissionRate] = useState(20); // Default commission rate
   
-  // Load services from localStorage
+  // Load services from localStorage and commission rate
   useEffect(() => {
     const savedServices = localStorage.getItem('gato_services');
     if (savedServices) {
@@ -31,6 +32,17 @@ const ClientServices = () => {
         console.error('Error parsing services:', error);
       }
     }
+    
+    // Load commission rate from localStorage (in a real app this would come from Supabase)
+    const savedSettings = localStorage.getItem('gato_system_settings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setCommissionRate(parsedSettings.commissionRate || 20);
+      } catch (error) {
+        console.error('Error parsing system settings:', error);
+      }
+    }
   }, []);
 
   // Group services by category
@@ -44,6 +56,11 @@ const ClientServices = () => {
     acc[service.category].push(service);
     return acc;
   }, {} as Record<string, Service[]>);
+
+  // Calculate final price with commission
+  const calculateFinalPrice = (basePrice: number) => {
+    return basePrice * (1 + (commissionRate / 100));
+  };
 
   const handleBookService = (serviceId: string) => {
     navigate(`/client/book/${buildingId}/${serviceId}`);
@@ -80,7 +97,7 @@ const ClientServices = () => {
                           Ofrecido por: {service.providerName}
                         </p>
                         <p className="text-sm mb-2">{service.description}</p>
-                        <p className="text-sm font-semibold mb-4">${service.price.toFixed(2)}</p>
+                        <p className="text-sm font-semibold mb-4">${calculateFinalPrice(service.price).toFixed(2)}</p>
                       </div>
                     </div>
                     <div className="flex space-x-2">

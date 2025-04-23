@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -15,6 +16,7 @@ const ClientBooking = () => {
   const [service, setService] = useState<Service | null>(null);
   const [startTime, setStartTime] = useState<Date>(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [commissionRate, setCommissionRate] = useState(20); // Default commission rate
 
   useEffect(() => {
     const savedServices = localStorage.getItem('gato_services');
@@ -50,10 +52,26 @@ const ClientBooking = () => {
         setAppointments([]);
       }
     }
+    
+    // Load commission rate from localStorage (in a real app this would come from Supabase)
+    const savedSettings = localStorage.getItem('gato_system_settings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setCommissionRate(parsedSettings.commissionRate || 20);
+      } catch (error) {
+        console.error('Error parsing system settings:', error);
+      }
+    }
   }, [serviceId]);
 
   const handleDateChange = (date: Date) => {
     setStartTime(date);
+  };
+  
+  // Calculate final price with commission
+  const calculateFinalPrice = (basePrice: number) => {
+    return basePrice * (1 + (commissionRate / 100));
   };
 
   const handleBookAppointment = () => {
@@ -95,6 +113,8 @@ const ClientBooking = () => {
     );
   }
 
+  const finalPrice = calculateFinalPrice(service.price);
+
   return (
     <PageContainer title="Reserva de Servicio" subtitle={service.name}>
       <Card className="max-w-md mx-auto">
@@ -104,7 +124,7 @@ const ClientBooking = () => {
             <p>Servicio: {service.name}</p>
             <p>Descripción: {service.description}</p>
             <p>Duración: {service.duration} minutos</p>
-            <p>Precio: ${service.price.toFixed(2)}</p>
+            <p>Precio: ${finalPrice.toFixed(2)}</p>
           </div>
           <div className="mb-4">
             <p className="font-semibold">Seleccionar Fecha y Hora:</p>
