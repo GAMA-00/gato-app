@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  role: z.enum(['client', 'provider'])
+  role: z.enum(['client', 'provider', 'admin'])
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -57,8 +57,10 @@ const Login = () => {
     // Navigate to the appropriate home page based on role
     if (values.role === 'client') {
       navigate('/client');
+    } else if (values.role === 'admin') {
+      navigate('/dashboard'); // Admin goes to dashboard
     } else {
-      navigate('/dashboard');
+      navigate('/dashboard'); // Provider goes to dashboard
     }
   };
 
@@ -139,6 +141,14 @@ const Login = () => {
                         </FormControl>
                         <FormLabel className="font-normal">
                           Proveedor - Ofrezco servicios
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="admin" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Administrador - Gestión del sistema
                         </FormLabel>
                       </FormItem>
                     </RadioGroup>
