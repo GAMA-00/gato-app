@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SystemSettings {
-  id: number;
+  id: string; // Changed from number to string to match Supabase's response
   commission_rate: number;
   created_at: string;
   updated_at: string;
@@ -31,7 +31,7 @@ export function useCommissionRate() {
       const { error } = await supabase
         .from('system_settings')
         .update({ commission_rate: newRate })
-        .eq('id', 1);
+        .eq('id', settings?.id || '1'); // Using string '1' as fallback, and using settings?.id which is now a string
 
       if (error) throw error;
       return newRate;

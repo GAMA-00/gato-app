@@ -36,7 +36,7 @@ const CommissionSettings: React.FC<CommissionSettingsProps> = ({
       const { error } = await supabase
         .from('system_settings')
         .update({ commission_rate: rate })
-        .eq('id', 1); // We only have one record
+        .eq('id', '1'); // Changed to string '1' to match expected type
 
       if (error) throw error;
 
