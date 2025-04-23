@@ -80,3 +80,4 @@ const CommissionSettings: React.FC<CommissionSettingsProps> = ({
 };
 
 export default CommissionSettings;
+
