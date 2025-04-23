@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -8,54 +7,39 @@ import { SERVICE_CATEGORIES } from '@/lib/data';
 import { Service } from '@/lib/types';
 import { MessageSquare } from 'lucide-react';
 import { useChat } from '@/contexts/ChatContext';
+import { supabase } from '@/lib/supabase';
+import { useCommissionRate } from '@/hooks/useCommissionRate';
+import { useQuery } from '@tanstack/react-query';
 
 const ClientServices = () => {
   const { buildingId } = useParams();
   const navigate = useNavigate();
   const { startNewConversation } = useChat();
-  const [services, setServices] = useState<Service[]>([]);
-  const [commissionRate, setCommissionRate] = useState(20); // Default commission rate
+  const { commissionRate } = useCommissionRate();
   
-  // Load services from localStorage and commission rate
-  useEffect(() => {
-    const savedServices = localStorage.getItem('gato_services');
-    if (savedServices) {
-      try {
-        const parsedServices = JSON.parse(savedServices, (key, value) => {
-          if (key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-        setServices(parsedServices);
-      } catch (error) {
-        console.error('Error parsing services:', error);
-      }
-    }
-    
-    // Load commission rate from localStorage (in a real app this would come from Supabase)
-    const savedSettings = localStorage.getItem('gato_system_settings');
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings);
-        setCommissionRate(parsedSettings.commissionRate || 20);
-      } catch (error) {
-        console.error('Error parsing system settings:', error);
-      }
-    }
-  }, []);
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ['services', buildingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select(`
+          *,
+          profiles:provider_id (
+            name
+          )
+        `)
+        .eq('building_id', buildingId);
 
-  // Group services by category
-  const servicesByCategory = services.reduce((acc, service) => {
-    // Check if this service is available in the selected building
-    if (!service.buildingIds.includes(buildingId || '')) return acc;
-    
-    if (!acc[service.category]) {
-      acc[service.category] = [];
-    }
-    acc[service.category].push(service);
-    return acc;
-  }, {} as Record<string, Service[]>);
+      if (error) throw error;
+
+      return data.map(service => ({
+        ...service,
+        providerName: service.profiles.name,
+        price: service.base_price,
+        buildingIds: [service.building_id],
+      }));
+    },
+  });
 
   // Calculate final price with commission
   const calculateFinalPrice = (basePrice: number) => {
@@ -76,12 +60,22 @@ const ClientServices = () => {
       title="Servicios Disponibles"
       subtitle="Explora los servicios disponibles en tu edificio"
     >
-      {Object.keys(servicesByCategory).length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Cargando servicios...</p>
+        </div>
+      ) : services.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No hay servicios disponibles en este edificio todavía.</p>
         </div>
       ) : (
-        Object.entries(servicesByCategory).map(([category, categoryServices]) => (
+        Object.entries(services.reduce((acc, service) => {
+          if (!acc[service.category]) {
+            acc[service.category] = [];
+          }
+          acc[service.category].push(service);
+          return acc;
+        }, {} as Record<string, any[]>)).map(([category, categoryServices]) => (
           <div key={category} className="mb-8">
             <h2 className="text-xl font-semibold mb-4" style={{ color: SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES]?.color }}>
               {SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES]?.label || category}
@@ -109,7 +103,7 @@ const ClientServices = () => {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => handleContactProvider(service.providerId, service.providerName)}
+                        onClick={() => handleContactProvider(service.provider_id, service.providerName)}
                       >
                         <MessageSquare className="h-4 w-4" />
                       </Button>

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Percent } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface CommissionSettingsProps {
   currentRate: number;
@@ -32,13 +33,17 @@ const CommissionSettings: React.FC<CommissionSettingsProps> = ({
 
     setIsUpdating(true);
     try {
+      const { error } = await supabase
+        .from('system_settings')
+        .update({ commission_rate: rate })
+        .eq('id', 1); // We only have one record
+
+      if (error) throw error;
+
       await onUpdate(rate);
       toast.success('Tasa de comisión actualizada exitosamente');
-      
-      // In a demo environment without Supabase, store in localStorage
-      const systemSettings = { commissionRate: rate };
-      localStorage.setItem('gato_system_settings', JSON.stringify(systemSettings));
     } catch (error) {
+      console.error('Error updating commission rate:', error);
       toast.error('Error al actualizar la tasa de comisión');
     } finally {
       setIsUpdating(false);
