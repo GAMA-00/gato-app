@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -10,6 +11,20 @@ import { useChat } from '@/contexts/ChatContext';
 import { supabase } from '@/lib/supabase';
 import { useCommissionRate } from '@/hooks/useCommissionRate';
 import { useQuery } from '@tanstack/react-query';
+
+// Define an interface for the service data returned from Supabase
+interface ServiceData {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  base_price: number;
+  building_id: string;
+  provider_id: string;
+  profiles: {
+    name: string;
+  };
+}
 
 const ClientServices = () => {
   const { buildingId } = useParams();
@@ -31,8 +46,12 @@ const ClientServices = () => {
         .eq('building_id', buildingId);
 
       if (error) throw error;
+      
+      // Ensure data is not null before mapping
+      if (!data) return [];
 
-      return data.map(service => ({
+      // Now TypeScript knows data is an array of ServiceData
+      return data.map((service: ServiceData) => ({
         ...service,
         providerName: service.profiles.name,
         price: service.base_price,
