@@ -5,6 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { UserRole } from '@/lib/types';
 
+// Import constants from the Supabase client file
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
+
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -177,7 +180,7 @@ export const useSupabaseAuth = () => {
         
         try {
           // Primer método: insert directo a la tabla profiles
-          const { data: profileInsertData, error: profileError } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .insert([profileObject])
             .select();
@@ -204,14 +207,14 @@ export const useSupabaseAuth = () => {
             if (rpcError) {
               console.error('Error en método alternativo:', rpcError);
               
-              // Tercer método: ejecutar una llamada SQL directa usando la REST API de Supabase
+              // Tercer método: ejecutar una llamada REST directa usando la URL y key
               console.log('Intentando método final para crear perfil...');
               
-              const adminResponse = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles`, {
+              const adminResponse = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabase.supabaseKey}`,
+                  'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
                   'Prefer': 'return=minimal'
                 },
                 body: JSON.stringify(profileObject)
@@ -229,7 +232,7 @@ export const useSupabaseAuth = () => {
               toast.success('Registro exitoso! Por favor verifica tu email.');
             }
           } else {
-            console.log('Perfil creado exitosamente:', profileInsertData);
+            console.log('Perfil creado exitosamente:', profileData);
             toast.success('Registro exitoso! Por favor verifica tu email.');
           }
         } catch (profileCreationError: any) {
