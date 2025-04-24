@@ -8,6 +8,7 @@ import { UserRole } from '@/lib/types';
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationAttempts, setRegistrationAttempts] = useState(0);
 
   useEffect(() => {
     console.log('Iniciando setup de autenticación con Supabase');
@@ -16,31 +17,38 @@ export const useSupabaseAuth = () => {
         console.log('Evento de autenticación:', event);
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('Usuario autenticado:', session.user.id);
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          if (profileError) {
-            console.error('Error al obtener perfil:', profileError);
-          }
+            if (profileError) {
+              console.error('Error al obtener perfil:', profileError);
+              toast.error('Error al cargar perfil de usuario');
+            }
 
-          if (profile) {
-            console.log('Perfil obtenido:', profile);
-            setAuthUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              name: profile.name,
-              phone: profile.phone || '',
-              buildingId: profile.residencia_id || '',
-              buildingName: '', // You'll need to fetch this if needed
-              hasPaymentMethod: profile.has_payment_method || false,
-              role: profile.role as UserRole,
-              avatarUrl: profile.avatar_url // Update to use profile.avatar_url
-            });
-          } else {
-            console.warn('No se encontró perfil para el usuario:', session.user.id);
+            if (profile) {
+              console.log('Perfil obtenido:', profile);
+              setAuthUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                name: profile.name,
+                phone: profile.phone || '',
+                buildingId: profile.residencia_id || '',
+                buildingName: '', // You'll need to fetch this if needed
+                hasPaymentMethod: profile.has_payment_method || false,
+                role: profile.role as UserRole,
+                avatarUrl: profile.avatar_url // Update to use profile.avatar_url
+              });
+            } else {
+              console.warn('No se encontró perfil para el usuario:', session.user.id);
+              toast.warning('Perfil de usuario no encontrado');
+            }
+          } catch (error) {
+            console.error('Error en el procesamiento de perfil:', error);
+            toast.error('Error al procesar perfil de usuario');
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('Usuario cerró sesión');
@@ -49,21 +57,27 @@ export const useSupabaseAuth = () => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error al obtener sesión:', error);
-      }
-      
-      if (session?.user) {
-        console.log('Sesión existente encontrada para:', session.user.id);
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile, error: profileError }) => {
+    const loadInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error al obtener sesión:', error);
+          return;
+        }
+        
+        if (session?.user) {
+          console.log('Sesión existente encontrada para:', session.user.id);
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
             if (profileError) {
               console.error('Error al obtener perfil en inicio:', profileError);
+              return;
             }
             
             if (profile) {
@@ -82,11 +96,18 @@ export const useSupabaseAuth = () => {
             } else {
               console.warn('No se encontró perfil para el usuario en inicio:', session.user.id);
             }
-          });
-      } else {
-        console.log('No hay sesión activa');
+          } catch (error) {
+            console.error('Error al cargar perfil inicial:', error);
+          }
+        } else {
+          console.log('No hay sesión activa');
+        }
+      } catch (error) {
+        console.error('Error al verificar sesión inicial:', error);
       }
-    });
+    };
+
+    loadInitialSession();
 
     return () => {
       console.log('Limpiando suscripción de autenticación');
@@ -104,6 +125,16 @@ export const useSupabaseAuth = () => {
       if (userData.avatarFile) {
         console.log('Procesando avatar del usuario...');
         try {
+          // Verificar si existe el bucket de avatars
+          const { data: bucketData, error: bucketError } = await supabase
+            .storage
+            .getBucket('avatars');
+          
+          if (bucketError) {
+            console.error('Error al verificar bucket de avatars:', bucketError);
+            console.log('El bucket de avatars no existe o no se puede acceder a él');
+          }
+          
           // Crear un nombre de archivo único usando el ID de usuario
           const fileExt = userData.avatarFile.name.split('.').pop();
           const filePath = `${userId}/avatar.${fileExt}`;
@@ -119,6 +150,7 @@ export const useSupabaseAuth = () => {
           
           if (uploadError) {
             console.error('Error al subir avatar:', uploadError);
+            toast.error('Error al subir imagen de perfil');
           } else {
             console.log('Avatar subido exitosamente:', uploadData);
             
@@ -132,6 +164,7 @@ export const useSupabaseAuth = () => {
           }
         } catch (error) {
           console.error('Error en el procesamiento del avatar:', error);
+          toast.error('Error al procesar imagen de perfil');
         }
       }
       
@@ -158,10 +191,110 @@ export const useSupabaseAuth = () => {
       }
       
       console.log('Perfil creado exitosamente');
-      return true;
+      return { success: true };
     } catch (error: any) {
       console.error('Error en createUserProfile:', error);
-      throw error;
+      return { success: false, error: error.message || 'Error al crear perfil de usuario' };
+    }
+  };
+
+  // Nueva función para verificar si un correo ya está registrado
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          shouldCreateUser: false
+        }
+      });
+
+      // Si hay un error "User not found", entonces el correo no existe
+      if (error && error.message.includes('User not found')) {
+        return false;
+      }
+
+      // Si no hay error o el error es diferente, probablemente el usuario ya existe
+      return true;
+    } catch (error) {
+      console.error('Error al verificar existencia de correo:', error);
+      return false; // Asumir que no existe en caso de error
+    }
+  };
+
+  const directSignUp = async (email: string, password: string, userData: any) => {
+    try {
+      console.log('Intentando registro directo sin confirmación de correo...');
+      
+      // 1. Crear el usuario con autoconfirmación
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: userData.name,
+            role: userData.role,
+            phone: userData.phone
+          },
+          // No redirigir, manejar la confirmación manualmente
+          emailRedirectTo: undefined
+        }
+      });
+      
+      if (error) {
+        console.error('Error en registro directo:', error);
+        return { success: false, error };
+      }
+      
+      if (!data.user) {
+        return { 
+          success: false, 
+          error: new Error('No se pudo crear el usuario') 
+        };
+      }
+      
+      console.log('Usuario creado exitosamente:', data.user.id);
+      
+      // 2. Crear perfil inmediatamente
+      const profileResult = await createUserProfile(data.user.id, {
+        ...userData,
+        email: email,
+        residenciaId: userData.role === 'client' 
+          ? userData.residenciaId
+          : (userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0 
+            ? userData.providerResidenciaIds[0] 
+            : null)
+      });
+      
+      if (!profileResult.success) {
+        console.error('Error al crear perfil en registro directo:', profileResult.error);
+        return { 
+          success: false, 
+          error: new Error(profileResult.error || 'Error al crear perfil de usuario'),
+          user: data.user
+        };
+      }
+      
+      // 3. Iniciar sesión directamente
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (signInError) {
+        console.error('Error al iniciar sesión tras registro directo:', signInError);
+        return { 
+          success: true, 
+          needsManualLogin: true, 
+          error: signInError,
+          user: data.user 
+        };
+      }
+      
+      return { success: true, data };
+      
+    } catch (error: any) {
+      console.error('Error en directSignUp:', error);
+      return { success: false, error };
     }
   };
 
@@ -174,108 +307,52 @@ export const useSupabaseAuth = () => {
     }
     
     setIsLoading(true);
+    setRegistrationAttempts(prev => prev + 1);
     
     try {
-      // SOLUCIÓN ALTERNATIVA: Usar signUp sin confirmación por correo electrónico
-      console.log('Usando método alternativo para evitar límites de tasa de email');
-      
-      // 1. Crear el usuario directamente
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: userData.name,
-            role: userData.role,
-            phone: userData.phone
-          },
-          emailRedirectTo: window.location.origin,
-          // Configuración para manejar el problema de límite de emails
-          // Enviamos la petición pero no dependemos de que llegue el email
-        }
-      });
+      // Paso 1: Verificar si el correo ya existe
+      const emailExists = await checkEmailExists(email);
+      if (emailExists) {
+        console.log('El correo ya está registrado, redirigiendo a inicio de sesión');
+        toast.error('Este correo electrónico ya está en uso. Por favor, inicie sesión.');
+        return { 
+          data: null, 
+          error: new Error('Este correo electrónico ya está en uso')
+        };
+      }
 
-      // Si hay un error específico de límite de tasa de email o cualquier otro error
-      if (error) {
-        console.error('Error en supabase.auth.signUp:', error);
+      // Paso 2: Intentar el registro directo (sin enviar email)
+      console.log('Iniciando proceso de registro con Supabase...');
+      const result = await directSignUp(email, password, userData);
+
+      if (result.success) {
+        console.log('Registro directo exitoso');
+        toast.success('¡Cuenta creada exitosamente!');
         
-        if (error.message.includes('email rate limit')) {
-          // Intentar un enfoque alternativo
-          toast.error('Se ha detectado un límite de emails. Intentando un método alternativo...');
-          
-          // Intenta iniciar sesión directamente - esto podría funcionar si el usuario ya fue creado
-          // pero el email falló en enviarse
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
-          
-          if (signInError) {
-            console.error('Error en inicio de sesión alternativo:', signInError);
-            throw new Error('No se pudo crear o iniciar sesión con esta cuenta. Por favor, intente con un correo diferente.');
-          }
-          
-          // Si llegamos aquí, pudimos iniciar sesión, así que el usuario existe
-          data.user = signInData.user;
-          data.session = signInData.session;
+        if (result.needsManualLogin) {
+          toast.info('Por favor, inicie sesión con su nuevo correo y contraseña');
         } else {
-          throw error;
+          toast.success('¡Iniciando sesión automáticamente!');
         }
-      }
-      
-      if (!data.user) {
-        console.error('No se pudo crear el usuario (data.user es null)');
-        throw new Error('No se pudo crear el usuario');
-      }
-      
-      console.log('Usuario creado o autenticado exitosamente:', data.user.id);
-
-      // 2. Crear perfil de usuario
-      console.log('Creando perfil para el usuario...');
-      
-      // Determinar el ID de residencia para guardar en el perfil
-      let residenciaId = null;
-      if (userData.role === 'client') {
-        residenciaId = userData.residenciaId;
-      } else if (userData.role === 'provider' && userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0) {
-        // Para proveedores, guardamos la primera residencia seleccionada en su perfil
-        residenciaId = userData.providerResidenciaIds[0];
-      }
-      
-      console.log('ID de residencia seleccionada para el perfil:', residenciaId);
-      
-      await createUserProfile(data.user.id, {
-        ...userData,
-        email: email,
-        residenciaId: residenciaId
-      });
-
-      console.log('Proceso de registro completado exitosamente');
-      
-      // Si tenemos una sesión, establecemos al usuario como autenticado directamente
-      if (data.session) {
-        console.log('Iniciando sesión automáticamente después del registro');
         
-        // La autenticación ocurrirá automáticamente a través del evento onAuthStateChange
-        toast.success('¡Registro exitoso! Iniciando sesión automáticamente...');
+        return { data: result.data, error: null };
       } else {
-        toast.success('¡Registro exitoso! Por favor verifica tu email para iniciar sesión.');
+        // Si no podemos registrar al usuario directamente, mostramos el error
+        console.error('Error en registro directo:', result.error);
+        throw result.error;
       }
-      
-      return { data, error: null };
-      
     } catch (error: any) {
       console.error('Error en proceso de registro:', error);
       
       // Mensajes de error específicos
-      let errorMsg = error.message;
-      if (error.message.includes('email rate limit')) {
-        errorMsg = 'Se ha excedido el límite de emails. Intenta con otro email o espera unos minutos.';
-      } else if (error.message.includes('User already registered')) {
-        errorMsg = 'Este email ya está registrado. Intenta iniciar sesión.';
+      if (error.message?.includes('email rate limit')) {
+        toast.error('El servidor está muy ocupado. Por favor, intente con otro correo electrónico o espere unos minutos.');
+      } else if (error.message?.includes('User already registered')) {
+        toast.error('Este correo ya está registrado. Intente iniciar sesión.');
+      } else {
+        toast.error(error.message || 'Error durante el registro');
       }
       
-      toast.error(errorMsg || 'Error durante el registro');
       return { data: null, error };
     } finally {
       setIsLoading(false);
@@ -319,6 +396,7 @@ export const useSupabaseAuth = () => {
       if (error) throw error;
       clearAuthUser();
     } catch (error: any) {
+      console.error('Error al cerrar sesión:', error);
       toast.error(error.message);
     }
   };
@@ -327,6 +405,7 @@ export const useSupabaseAuth = () => {
     signUp,
     signIn,
     signOut,
-    isLoading
+    isLoading,
+    registrationAttempts
   };
 };

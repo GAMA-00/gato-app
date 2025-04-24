@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building, Upload, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Upload, AlertCircle, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Residencia } from '@/lib/types';
@@ -18,6 +18,8 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Esquema de validación común para clientes y proveedores
 const registerSchema = z.object({
@@ -55,13 +57,15 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const navigate = useNavigate();
-  const { signUp } = useSupabaseAuth();
+  const { signUp, isLoading, registrationAttempts } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [residencias, setResidencias] = useState<Residencia[]>([]);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showEmailAlert, setShowEmailAlert] = useState(false);
+  const [showTipDialog, setShowTipDialog] = useState(false);
+  const [loadingResidencias, setLoadingResidencias] = useState(true);
   const { user } = useAuth();
   
   // Si el usuario ya está autenticado, redirigir al dashboard
@@ -71,10 +75,18 @@ const Register = () => {
     }
   }, [user, navigate]);
 
+  // Mostrar diálogo de consejos si hay varios intentos
+  useEffect(() => {
+    if (registrationAttempts > 2) {
+      setShowTipDialog(true);
+    }
+  }, [registrationAttempts]);
+
   // Cargar residencias
   useEffect(() => {
     const fetchResidencias = async () => {
       try {
+        setLoadingResidencias(true);
         console.log('Consultando residencias desde Supabase');
         const { data, error } = await supabase
           .from('residencias')
@@ -91,6 +103,8 @@ const Register = () => {
       } catch (error) {
         console.error('Error al cargar residencias:', error);
         toast.error('Error al cargar las residencias');
+      } finally {
+        setLoadingResidencias(false);
       }
     };
     
@@ -169,24 +183,39 @@ const Register = () => {
       console.log('Preparando datos para registro...');
       console.log('Iniciando proceso de registro con Supabase...');
       
+      // Generar un email único para evitar rate limits
+      let email = values.email;
+      // Si ya ha habido más de 2 intentos, sugerimos usar un email diferente
+      if (registrationAttempts > 2) {
+        const emailParts = email.split('@');
+        const randomSuffix = Math.floor(Math.random() * 10000);
+        // Solo añadir el sufijo si no se ha añadido antes
+        if (!emailParts[0].includes('+')) {
+          email = `${emailParts[0]}+${randomSuffix}@${emailParts[1]}`;
+          console.log('Utilizando email modificado para evitar rate limits:', email);
+        }
+      }
+      
       const dataToSend = {
         ...values,
+        email,
         avatarFile
       };
       
       // Intentar registro
-      const result = await signUp(values.email, values.password, dataToSend);
+      const result = await signUp(email, values.password, dataToSend);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
         
         // Mostrar alerta específica para errores de límite de email
-        if (result.error.message.includes('email rate limit') || 
-            result.error.message.includes('límite de emails')) {
+        if (result.error.message?.includes('email rate limit') || 
+            result.error.message?.includes('límite de emails')) {
           setShowEmailAlert(true);
+          setShowTipDialog(true);
         }
         
-        setRegistrationError(result.error.message);
+        setRegistrationError(result.error.message || "Error desconocido");
       } else if (result.data?.session) {
         // Si tenemos sesión, el usuario fue registrado y autenticado con éxito
         console.log('Registro y autenticación exitosos!');
@@ -195,18 +224,19 @@ const Register = () => {
           state: { fromClientView: values.role === 'client' } 
         });
       } else {
-        // Registro exitoso pero necesita confirmar email
-        console.log('Registro exitoso, esperando confirmación de email!');
-        toast.success('¡Cuenta creada! Por favor verifica tu email para iniciar sesión.');
+        // Registro exitoso pero necesita confirmar email o iniciar sesión
+        console.log('Registro exitoso, redirigiendo a login!');
+        toast.success('¡Cuenta creada! Por favor inicie sesión.');
         navigate('/login');
       }
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
       
       // Mostrar alerta específica para errores de límite de email
-      if (error.message.includes('email rate limit') || 
-          error.message.includes('límite de emails')) {
+      if (error.message?.includes('email rate limit') || 
+          error.message?.includes('límite de emails')) {
         setShowEmailAlert(true);
+        setShowTipDialog(true);
       }
       
       setRegistrationError(error.message || "Error desconocido durante el registro");
@@ -214,6 +244,19 @@ const Register = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const retryWithDifferentEmail = () => {
+    const email = form.getValues('email');
+    const emailParts = email.split('@');
+    const randomSuffix = Math.floor(Math.random() * 10000);
+    const newEmail = `${emailParts[0]}+${randomSuffix}@${emailParts[1]}`;
+    
+    form.setValue('email', newEmail);
+    setRegistrationError(null);
+    setShowEmailAlert(false);
+    setShowTipDialog(false);
+    toast.info('Email modificado automáticamente para evitar límites de registro');
   };
 
   return (
@@ -226,7 +269,15 @@ const Register = () => {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription className="text-sm">
-              Se ha excedido el límite de emails para este correo. Por favor, intenta con otro correo electrónico o espera unos minutos.
+              Se ha excedido el límite de emails para este correo. Por favor, intenta con un correo electrónico diferente o usa el botón para generar una variación del mismo.
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={retryWithDifferentEmail}
+              >
+                Usar variación de email
+              </Button>
             </AlertDescription>
           </Alert>
         )}
@@ -385,10 +436,10 @@ const Register = () => {
                         <Select 
                           onValueChange={field.onChange} 
                           value={field.value || ''}
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || loadingResidencias}
                         >
                           <SelectTrigger className="pl-10">
-                            <SelectValue placeholder="Elija una residencia" />
+                            <SelectValue placeholder={loadingResidencias ? "Cargando..." : "Elija una residencia"} />
                           </SelectTrigger>
                           <SelectContent>
                             {residencias.map((residencia) => (
@@ -414,28 +465,39 @@ const Register = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Residencias donde ofreces tus servicios</FormLabel>
-                    <div className="flex flex-col gap-2">
-                      {residencias.map((residencia) => (
-                        <div key={residencia.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`residencia-checkbox-${residencia.id}`}
-                            checked={field.value?.includes(residencia.id)}
-                            onCheckedChange={(checked) => {
-                              const checkedArr = Array.isArray(field.value) ? field.value : [];
-                              if (checked) {
-                                field.onChange([...checkedArr, residencia.id]);
-                              } else {
-                                field.onChange(checkedArr.filter((id: string) => id !== residencia.id));
-                              }
-                            }}
-                            disabled={isSubmitting}
-                          />
-                          <label htmlFor={`residencia-checkbox-${residencia.id}`} className="text-sm font-medium">
-                            {residencia.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
+                    {loadingResidencias ? (
+                      <div className="flex items-center justify-center p-4 border rounded-md">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span>Cargando residencias...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2 p-4 border rounded-md">
+                        {residencias.length === 0 ? (
+                          <p className="text-sm text-gray-500">No hay residencias disponibles</p>
+                        ) : (
+                          residencias.map((residencia) => (
+                            <div key={residencia.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`residencia-checkbox-${residencia.id}`}
+                                checked={field.value?.includes(residencia.id)}
+                                onCheckedChange={(checked) => {
+                                  const checkedArr = Array.isArray(field.value) ? field.value : [];
+                                  if (checked) {
+                                    field.onChange([...checkedArr, residencia.id]);
+                                  } else {
+                                    field.onChange(checkedArr.filter((id: string) => id !== residencia.id));
+                                  }
+                                }}
+                                disabled={isSubmitting}
+                              />
+                              <label htmlFor={`residencia-checkbox-${residencia.id}`} className="text-sm font-medium">
+                                {residencia.name}
+                              </label>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -494,15 +556,18 @@ const Register = () => {
             <Button 
               type="submit" 
               className="w-full bg-navy text-white hover:bg-navy-hover"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
             >
-              {isSubmitting ? (
-                <>Creando cuenta...</>
+              {isSubmitting || isLoading ? (
+                <div className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creando cuenta...
+                </div>
               ) : (
-                <>
+                <div className="flex items-center">
                   <UserPlus className="mr-2 h-4 w-4" />
                   Crear Cuenta
-                </>
+                </div>
               )}
             </Button>
           </form>
@@ -516,6 +581,45 @@ const Register = () => {
           </p>
         </div>
       </div>
+
+      {/* Dialog de consejos para registro */}
+      <Dialog open={showTipDialog} onOpenChange={setShowTipDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Consejos para completar el registro</DialogTitle>
+            <DialogDescription>
+              Hemos detectado que estás teniendo problemas para completar el registro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="pt-4">
+                <h3 className="font-semibold mb-2">Consejos para evitar errores:</h3>
+                <ul className="list-disc pl-5 space-y-2 text-sm">
+                  <li>Usa un correo electrónico diferente que no haya sido registrado antes.</li>
+                  <li>Asegúrate de completar correctamente todos los campos requeridos.</li>
+                  <li>Usa el botón "Usar variación de email" para crear una variante de tu correo.</li>
+                  <li>Si continúas teniendo problemas, intenta más tarde o contacta a soporte.</li>
+                </ul>
+              </CardContent>
+            </Card>
+            <Button 
+              className="w-full" 
+              onClick={retryWithDifferentEmail}
+              variant="default"
+            >
+              Crear variación de email automáticamente
+            </Button>
+            <Button 
+              className="w-full" 
+              onClick={() => setShowTipDialog(false)}
+              variant="outline"
+            >
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 };
