@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Menu, Repeat2, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,9 +27,9 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
     <div className="w-full h-16 fixed top-0 left-0 z-50 border-b glassmorphism py-2 px-4 flex items-center justify-between">
       <div className="flex items-center">
         <img 
-          src="/lovable-uploads/2e6d167b-de93-4622-b986-70d3bd9ff753.png" 
-          alt="Logo" 
-          className="h-10 w-auto object-contain"
+          src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png" 
+          alt="Gato" 
+          className="h-12 w-auto object-contain"
         />
       </div>
       
