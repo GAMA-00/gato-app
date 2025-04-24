@@ -13,7 +13,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { Mail, Lock, Phone, User, UserPlus, Building, Image } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building as BuildingType } from '@/lib/types';
+import { Residencia } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,18 +22,18 @@ const registerSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
   phone: z.string().min(8, 'Número de teléfono inválido'),
   role: z.enum(['client', 'provider']),
-  providerBuildingIds: z.array(z.string()).optional(),
-  buildingId: z.string().min(1, 'Debe seleccionar una residencia').optional(), // Para clientes
+  providerResidenciaIds: z.array(z.string()).optional(),
+  residenciaId: z.string().min(1, 'Debe seleccionar una residencia').optional(), // Para clientes
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   confirmPassword: z.string(),
   profileImage: z.any().optional() // será validado/manual para el proveedor
 }).refine(
   (data) =>
-    (data.role === 'client' && !!data.buildingId) ||
-    (data.role === 'provider' && data.providerBuildingIds && data.providerBuildingIds.length > 0),
+    (data.role === 'client' && !!data.residenciaId) ||
+    (data.role === 'provider' && data.providerResidenciaIds && data.providerResidenciaIds.length > 0),
   {
     message: "Debe seleccionar al menos una residencia",
-    path: ["providerBuildingIds"],
+    path: ["providerResidenciaIds"],
   }
 ).refine(
   (data) =>
@@ -54,33 +54,33 @@ const Register = () => {
   const { signUp } = useSupabaseAuth();
   const [profilePreview, setProfilePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [buildings, setBuildings] = useState<BuildingType[]>([]);
+  const [residencias, setResidencias] = useState<Residencia[]>([]);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
 
-  // Cargar edificios desde la base de datos
+  // Cargar residencias desde la base de datos
   useEffect(() => {
-    const fetchBuildings = async () => {
+    const fetchResidencias = async () => {
       try {
-        console.log('Consultando edificios desde Supabase');
+        console.log('Consultando residencias desde Supabase');
         const { data, error } = await supabase
-          .from('buildings')
+          .from('residencias')
           .select('id, name, address');
         
         if (error) {
-          console.error('Error al cargar edificios:', error);
+          console.error('Error al cargar residencias:', error);
           toast.error('Error al cargar las residencias');
           return;
         }
         
-        console.log('Edificios cargados:', data);
-        setBuildings(data || []);
+        console.log('Residencias cargadas:', data);
+        setResidencias(data || []);
       } catch (error) {
-        console.error('Error al cargar edificios:', error);
+        console.error('Error al cargar residencias:', error);
         toast.error('Error al cargar las residencias');
       }
     };
     
-    fetchBuildings();
+    fetchResidencias();
   }, []);
 
   const form = useForm<RegisterFormValues>({
@@ -90,8 +90,8 @@ const Register = () => {
       email: '',
       phone: '',
       role: 'client',
-      providerBuildingIds: [],
-      buildingId: '',
+      providerResidenciaIds: [],
+      residenciaId: '',
       password: '',
       confirmPassword: '',
       profileImage: undefined,
@@ -127,31 +127,31 @@ const Register = () => {
     try {
       setIsSubmitting(true);
       
-      // Para cliente: buildingId simple. Para proveedor: providerBuildingIds.
-      let selectedBuildingId = '';
-      let selectedBuildingNames: string[] = [];
+      // Para cliente: residenciaId simple. Para proveedor: providerResidenciaIds.
+      let selectedResidenciaId = '';
+      let selectedResidenciaNames: string[] = [];
       
-      if (values.role === 'provider' && values.providerBuildingIds) {
-        // Para proveedores, tomamos el primer edificio seleccionado como principal
-        selectedBuildingId = values.providerBuildingIds[0] || '';
-        selectedBuildingNames = buildings.filter(b => values.providerBuildingIds!.includes(b.id)).map(b => b.name);
-        console.log('Buildings seleccionados para proveedor:', selectedBuildingNames);
+      if (values.role === 'provider' && values.providerResidenciaIds) {
+        // Para proveedores, tomamos la primer residencia seleccionada como principal
+        selectedResidenciaId = values.providerResidenciaIds[0] || '';
+        selectedResidenciaNames = residencias.filter(r => values.providerResidenciaIds!.includes(r.id)).map(r => r.name);
+        console.log('Residencias seleccionadas para proveedor:', selectedResidenciaNames);
       }
       
-      if (values.role === 'client' && values.buildingId) {
-        selectedBuildingId = values.buildingId;
-        const selectedBuilding = buildings.find(b => b.id === values.buildingId);
-        selectedBuildingNames = [selectedBuilding?.name || ''];
-        console.log('Building seleccionado para cliente:', selectedBuildingNames[0]);
+      if (values.role === 'client' && values.residenciaId) {
+        selectedResidenciaId = values.residenciaId;
+        const selectedResidencia = residencias.find(r => r.id === values.residenciaId);
+        selectedResidenciaNames = [selectedResidencia?.name || ''];
+        console.log('Residencia seleccionada para cliente:', selectedResidenciaNames[0]);
       }
 
       const userData = {
         name: values.name,
         phone: values.phone,
         role: values.role,
-        buildingId: selectedBuildingId,
-        buildingName: selectedBuildingNames[0] || '',
-        offerBuildings: values.role === 'provider' ? values.providerBuildingIds : [values.buildingId].filter(Boolean)
+        residenciaId: selectedResidenciaId,
+        residenciaName: selectedResidenciaNames[0] || '',
+        offerResidencias: values.role === 'provider' ? values.providerResidenciaIds : [values.residenciaId].filter(Boolean)
       };
       
       console.log('Enviando datos de usuario a signUp:', JSON.stringify(userData));
@@ -318,7 +318,7 @@ const Register = () => {
             {role === 'client' && (
               <FormField
                 control={form.control}
-                name="buildingId"
+                name="residenciaId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Seleccione su Residencia</FormLabel>
@@ -330,9 +330,9 @@ const Register = () => {
                             <SelectValue placeholder="Elija una residencia" />
                           </SelectTrigger>
                           <SelectContent>
-                            {buildings.map((building) => (
-                              <SelectItem key={building.id} value={building.id}>
-                                {building.name}
+                            {residencias.map((residencia) => (
+                              <SelectItem key={residencia.id} value={residencia.id}>
+                                {residencia.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -347,27 +347,27 @@ const Register = () => {
             {role === 'provider' && (
               <FormField
                 control={form.control}
-                name="providerBuildingIds"
+                name="providerResidenciaIds"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Residencias donde ofreces tus servicios</FormLabel>
                     <div className="flex flex-col gap-2">
-                      {buildings.map((building) => (
-                        <div key={building.id} className="flex items-center space-x-2">
+                      {residencias.map((residencia) => (
+                        <div key={residencia.id} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`building-checkbox-${building.id}`}
-                            checked={field.value?.includes(building.id)}
+                            id={`residencia-checkbox-${residencia.id}`}
+                            checked={field.value?.includes(residencia.id)}
                             onCheckedChange={(checked) => {
                               const checkedArr = Array.isArray(field.value) ? field.value : [];
                               if (checked) {
-                                field.onChange([...checkedArr, building.id]);
+                                field.onChange([...checkedArr, residencia.id]);
                               } else {
-                                field.onChange(checkedArr.filter((id: string) => id !== building.id));
+                                field.onChange(checkedArr.filter((id: string) => id !== residencia.id));
                               }
                             }}
                           />
-                          <label htmlFor={`building-checkbox-${building.id}`} className="text-sm font-medium">
-                            {building.name}
+                          <label htmlFor={`residencia-checkbox-${residencia.id}`} className="text-sm font-medium">
+                            {residencia.name}
                           </label>
                         </div>
                       ))}
@@ -424,7 +424,7 @@ const Register = () => {
 
             <Button 
               type="submit" 
-              className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover"
+              className="w-full bg-navy text-white hover:bg-navy-hover"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -441,7 +441,7 @@ const Register = () => {
 
         <div className="mt-6 text-center">
           <p>¿Ya tienes una cuenta? {' '}
-            <Link to="/login" className="text-golden-whisker hover:underline">
+            <Link to="/login" className="text-navy hover:underline">
               Inicia sesión
             </Link>
           </p>

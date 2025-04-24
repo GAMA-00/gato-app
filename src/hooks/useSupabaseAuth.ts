@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,7 +36,7 @@ export const useSupabaseAuth = () => {
               email: session.user.email || '',
               name: profile.name,
               phone: profile.phone || '',
-              buildingId: profile.building_id || '',
+              buildingId: profile.residencia_id || '',
               buildingName: '', // You'll need to fetch this if needed
               hasPaymentMethod: profile.has_payment_method || false,
               role: profile.role as UserRole
@@ -76,7 +77,7 @@ export const useSupabaseAuth = () => {
                 email: session.user.email || '',
                 name: profile.name,
                 phone: profile.phone || '',
-                buildingId: profile.building_id || '',
+                buildingId: profile.residencia_id || '',
                 buildingName: '', // You'll need to fetch this if needed
                 hasPaymentMethod: profile.has_payment_method || false,
                 role: profile.role as UserRole
@@ -106,7 +107,7 @@ export const useSupabaseAuth = () => {
       email: userData.email,
       phone: userData.phone || '',
       role: userData.role,
-      building_id: userData.buildingId || null,
+      residencia_id: userData.residenciaId || null,
       has_payment_method: false
     };
     
@@ -137,7 +138,7 @@ export const useSupabaseAuth = () => {
               user_email: userData.email || '',
               user_phone: userData.phone || '',
               user_role: userData.role,
-              user_building_id: userData.buildingId || null
+              user_residencia_id: userData.residenciaId || null
             }
           );
           
@@ -175,7 +176,7 @@ export const useSupabaseAuth = () => {
             name: userData.name,
             role: userData.role,
             phone: userData.phone,
-            buildingId: userData.buildingId,
+            residenciaId: userData.residenciaId,
             email: email
           },
         }

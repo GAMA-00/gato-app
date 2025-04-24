@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -14,6 +15,7 @@ export interface Service {
   id: string;
   name: string;
   subcategoryId: string;
+  category?: string; // Mantener category como opcional para compatibilidad
   duration: number;
   price: number;
   description: string;
@@ -75,7 +77,7 @@ export interface Appointment {
   recurrence: RecurrencePattern;
   notes: string;
   createdAt: Date;
-  building?: string;
+  residencia?: string;
   apartment?: string;
   serviceName?: string;
   clientName?: string;
@@ -129,4 +131,11 @@ export interface ProviderAchievements {
   nextLevel: AchievementLevel | null;
   pointsToNextLevel: number;
   achievements: Achievement[];
+}
+
+// Renombrar interfaz de Building a Residencia para mayor coherencia
+export interface Residencia {
+  id: string;
+  name: string;
+  address: string;
 }

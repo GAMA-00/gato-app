@@ -13,35 +13,36 @@ import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ClientServices = () => {
-  const { buildingId } = useParams();
+  const { residenciaId } = useParams();
   const navigate = useNavigate();
   const { startNewConversation } = useChat();
   const { commissionRate } = useCommissionRate();
   
   const { data: services = [], isLoading } = useQuery({
-    queryKey: ['client-services', buildingId],
+    queryKey: ['client-services', residenciaId],
     queryFn: async () => {
       // Query services and related building associations
-      const { data: buildingServices, error: bsError } = await supabase
-        .from('building_services')
+      const { data: residenciaServices, error: rsError } = await supabase
+        .from('residencia_services')
         .select('service_id')
-        .eq('building_id', buildingId);
+        .eq('residencia_id', residenciaId);
         
-      if (bsError) throw bsError;
+      if (rsError) throw rsError;
       
-      // If no services for this building, return empty array
-      if (!buildingServices.length) return [];
+      // Si no hay servicios para esta residencia, devolver array vacío
+      if (!residenciaServices.length) return [];
       
-      // Get the actual services
+      // Obtener los servicios reales
       const { data: servicesData, error: servicesError } = await supabase
         .from('services')
         .select(`
           *,
+          subcategories(*),
           profiles:provider_id (
             name
           )
         `)
-        .in('id', buildingServices.map(bs => bs.service_id));
+        .in('id', residenciaServices.map(rs => rs.service_id));
         
       if (servicesError) throw servicesError;
       
@@ -49,12 +50,13 @@ const ClientServices = () => {
         id: service.id,
         name: service.name,
         description: service.description,
-        category: service.category,
+        subcategoryId: service.subcategory_id,
+        category: service.subcategories?.category_id,
         price: service.base_price,
         duration: service.duration,
         providerId: service.provider_id,
         providerName: service.profiles?.name || 'Proveedor',
-        buildingIds: [buildingId],
+        residenciaIds: [residenciaId],
         createdAt: new Date(service.created_at)
       }));
     }
@@ -66,7 +68,7 @@ const ClientServices = () => {
   };
 
   const handleBookService = (serviceId: string) => {
-    navigate(`/client/book/${buildingId}/${serviceId}`);
+    navigate(`/client/book/${residenciaId}/${serviceId}`);
   };
 
   const handleContactProvider = (providerId: string, providerName: string) => {
@@ -103,27 +105,28 @@ const ClientServices = () => {
 
   // Group services by category
   const servicesByCategory = services.reduce((acc, service) => {
-    if (!acc[service.category]) {
-      acc[service.category] = [];
+    const categoryId = service.category || '';
+    if (!acc[categoryId]) {
+      acc[categoryId] = [];
     }
-    acc[service.category].push(service);
+    acc[categoryId].push(service);
     return acc;
   }, {} as Record<string, any[]>);
 
   return (
     <PageContainer
       title="Servicios Disponibles"
-      subtitle="Explora los servicios disponibles en tu edificio"
+      subtitle="Explora los servicios disponibles en tu residencia"
     >
       {services.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No hay servicios disponibles en este edificio todavía.</p>
+          <p className="text-muted-foreground">No hay servicios disponibles en esta residencia todavía.</p>
         </div>
       ) : (
-        Object.entries(servicesByCategory).map(([category, categoryServices]) => (
-          <div key={category} className="mb-8">
-            <h2 className="text-xl font-semibold mb-4" style={{ color: SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES]?.color }}>
-              {SERVICE_CATEGORIES[category as keyof typeof SERVICE_CATEGORIES]?.label || category}
+        Object.entries(servicesByCategory).map(([categoryId, categoryServices]) => (
+          <div key={categoryId} className="mb-8">
+            <h2 className="text-xl font-semibold mb-4" style={{ color: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333' }}>
+              {SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || 'Otros servicios'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {categoryServices.map(service => (

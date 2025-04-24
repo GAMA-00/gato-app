@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form } from '@/components/ui/form';
-import { Service, ServiceCategory } from '@/lib/types';
+import { Service } from '@/lib/types';
 import { InfoIcon } from 'lucide-react';
 import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
@@ -20,10 +20,11 @@ import ServiceFormFooter from './ServiceFormFooter';
 // Schema definitions for validation
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: 'Service name must be at least 2 characters.' }),
-  category: z.enum(['home', 'personal-care', 'pets', 'sports', 'classes', 'car-wash', 'gardening', 'cleaning', 'maintenance', 'other'] as const),
+  subcategoryId: z.string().min(1, { message: 'Debe seleccionar una subcategoría.' }),
   duration: z.coerce.number().min(15, { message: 'Duration must be at least 15 minutes.' }),
   price: z.coerce.number().min(1, { message: 'Price must be at least $1.' }),
-  description: z.string().optional()
+  description: z.string().optional(),
+  residenciaIds: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos una residencia.' })
 });
 
 type ServiceFormValues = z.infer<typeof serviceFormSchema>;
@@ -47,16 +48,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: initialData ? {
       name: initialData.name,
-      category: initialData.category,
+      subcategoryId: initialData.subcategoryId,
       duration: initialData.duration,
       price: initialData.price,
-      description: initialData.description
+      description: initialData.description,
+      residenciaIds: initialData.residenciaIds
     } : {
       name: '',
-      category: 'home',
+      subcategoryId: '',
       duration: 60,
       price: 50,
-      description: ''
+      description: '',
+      residenciaIds: []
     }
   });
   

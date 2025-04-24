@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -52,7 +53,7 @@ const ClientHome = () => {
     // 2. Count how many times each service appears
     // 3. If a service appears more than once, it's recurring
     // For now, using the placeholder logic
-    return service.category === 'home';
+    return service.subcategoryId === 'home' || service.category === 'home';
   });
 
   return (
