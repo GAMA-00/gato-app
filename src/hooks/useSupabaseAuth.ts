@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,7 +36,7 @@ export const useSupabaseAuth = () => {
               buildingName: '', // You'll need to fetch this if needed
               hasPaymentMethod: profile.has_payment_method || false,
               role: profile.role as UserRole,
-              avatarUrl: profile.avatar_url || ''  // Añadiendo la URL del avatar
+              avatarUrl: profile.avatar_url // Update to use profile.avatar_url
             });
           } else {
             console.warn('No se encontró perfil para el usuario:', session.user.id);
@@ -77,7 +76,7 @@ export const useSupabaseAuth = () => {
                 buildingName: '', // You'll need to fetch this if needed
                 hasPaymentMethod: profile.has_payment_method || false,
                 role: profile.role as UserRole,
-                avatarUrl: profile.avatar_url || ''  // Añadiendo la URL del avatar
+                avatarUrl: profile.avatar_url // Update to use profile.avatar_url
               });
             } else {
               console.warn('No se encontró perfil para el usuario en inicio:', session.user.id);

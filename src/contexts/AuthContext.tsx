@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Define the user types with different roles
@@ -10,9 +9,9 @@ export interface User {
   buildingId: string;
   buildingName: string;
   hasPaymentMethod: boolean;
-  role: 'client' | 'provider' | 'admin'; // Added admin role
-  profileImage?: string; // Added to store provider profile image URL
-  offerBuildings?: string[]; // Added to store buildings where provider offers services
+  role: 'client' | 'provider' | 'admin';
+  avatarUrl?: string; // Added avatarUrl as optional property
+  offerBuildings?: string[];
 }
 
 // Authentication context interface
@@ -26,7 +25,7 @@ interface AuthContextType {
   isLoading: boolean;
   isClient: boolean;
   isProvider: boolean;
-  isAdmin: boolean; // Added admin check
+  isAdmin: boolean;
 }
 
 // Create the context
