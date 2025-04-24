@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,6 @@ const Services = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Fetch servicios from Supabase
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['services', user?.id],
     queryFn: async () => {
@@ -56,7 +54,6 @@ const Services = () => {
     enabled: !!isAuthenticated && !!user?.id
   });
   
-  // Query para obtener las asociaciones de residencias para servicios
   const { data: residenciaAssociations = [] } = useQuery({
     queryKey: ['residencia_services'],
     queryFn: async () => {
@@ -74,7 +71,6 @@ const Services = () => {
     enabled: !!services.length
   });
   
-  // Procesar servicios para incluir residenciaIds
   const processedServices = React.useMemo(() => {
     return services.map(service => ({
       ...service,
@@ -84,10 +80,8 @@ const Services = () => {
     }));
   }, [services, residenciaAssociations]);
   
-  // Mutación para crear servicios
   const createServiceMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
-      // Primero consultamos a qué categoría pertenece esta subcategoría
       const { data: subcategory, error: subcategoryError } = await supabase
         .from('subcategories')
         .select('category_id')
@@ -96,7 +90,6 @@ const Services = () => {
         
       if (subcategoryError) throw subcategoryError;
       
-      // Primero insertamos el servicio con la categoría asociada
       const { data, error } = await supabase
         .from('services')
         .insert({
@@ -105,14 +98,14 @@ const Services = () => {
           description: serviceData.description || '',
           base_price: serviceData.price || 0,
           duration: serviceData.duration || 60,
-          provider_id: user?.id || ''
+          provider_id: user?.id || '',
+          category: subcategory.category_id
         })
         .select('id')
         .single();
         
       if (error) throw error;
       
-      // Luego agregamos asociaciones de residencias si hay alguna
       if (serviceData.residenciaIds?.length) {
         const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
           service_id: data.id,
@@ -138,12 +131,10 @@ const Services = () => {
     }
   });
   
-  // Mutación para actualizar servicios
   const updateServiceMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
       if (!serviceData.id) throw new Error('Service ID is required');
       
-      // Update the service
       const { error } = await supabase
         .from('services')
         .update({
@@ -157,7 +148,6 @@ const Services = () => {
         
       if (error) throw error;
       
-      // Handle residenciaIds associations - first delete existing ones
       const { error: deleteError } = await supabase
         .from('residencia_services')
         .delete()
@@ -165,7 +155,6 @@ const Services = () => {
         
       if (deleteError) throw deleteError;
       
-      // Then add new associations if any
       if (serviceData.residenciaIds?.length) {
         const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
           service_id: serviceData.id!,
@@ -189,10 +178,8 @@ const Services = () => {
     }
   });
   
-  // Mutación para eliminar servicios
   const deleteServiceMutation = useMutation({
     mutationFn: async (service: Service) => {
-      // Delete the service (residencia associations will cascade)
       const { error } = await supabase
         .from('services')
         .delete()

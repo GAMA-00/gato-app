@@ -38,7 +38,7 @@ export interface Client {
   totalBookings: number;
 }
 
-export interface Building {
+export interface Residencia {
   id: string;
   name: string;
   address: string;
@@ -131,11 +131,4 @@ export interface ProviderAchievements {
   nextLevel: AchievementLevel | null;
   pointsToNextLevel: number;
   achievements: Achievement[];
-}
-
-// Renombrar interfaz de Building a Residencia para mayor coherencia
-export interface Residencia {
-  id: string;
-  name: string;
-  address: string;
 }

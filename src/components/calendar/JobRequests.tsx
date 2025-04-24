@@ -23,7 +23,7 @@ const JOB_REQUESTS = [
       recurrence: 'none' as RecurrencePattern,
       notes: 'Solicitud de cliente nuevo',
       createdAt: new Date(),
-      building: 'Torre Norte',
+      residencia: 'Torre Norte',
       apartment: '703'
     }
   },
@@ -40,7 +40,7 @@ const JOB_REQUESTS = [
       recurrence: 'none' as RecurrencePattern,
       notes: 'Solicitud especial de limpieza',
       createdAt: new Date(),
-      building: 'Edificio Azul',
+      residencia: 'Edificio Azul',
       apartment: '1204'
     }
   }
@@ -82,7 +82,7 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
               <span>{format(request.appointment.startTime, 'h:mm a')} - {format(request.appointment.endTime, 'h:mm a')}</span>
             </div>
             <div className="bg-orange-100 text-orange-700 text-xs font-medium rounded-full px-2 py-0.5 self-start">
-              {request.appointment.building} - #{request.appointment.apartment}
+              {request.appointment.residencia} - #{request.appointment.apartment}
             </div>
           </div>
           
@@ -133,7 +133,7 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
               ${service.price}
             </div>
             <div className="bg-orange-100 text-orange-700 text-xs font-medium rounded-full px-2 py-0.5">
-              {request.appointment.building} - #{request.appointment.apartment}
+              {request.appointment.residencia} - #{request.appointment.apartment}
             </div>
             <div className="ml-auto flex gap-2">
               <Button 
