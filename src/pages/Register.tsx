@@ -10,12 +10,13 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Upload } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Residencia } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 // Esquema de validación común para clientes y proveedores
 const registerSchema = z.object({
@@ -26,7 +27,8 @@ const registerSchema = z.object({
   providerResidenciaIds: z.array(z.string()).optional(),
   residenciaId: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirmPassword: z.string()
+  confirmPassword: z.string(),
+  avatarUrl: z.string().optional()
 }).refine(
   (data) => data.password === data.confirmPassword, {
     message: "Las contraseñas no coinciden",
@@ -56,6 +58,9 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [residencias, setResidencias] = useState<Residencia[]>([]);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // Cargar residencias
   useEffect(() => {
@@ -94,11 +99,73 @@ const Register = () => {
       residenciaId: '',
       password: '',
       confirmPassword: '',
+      avatarUrl: ''
     }
   });
 
   // Watch role to switch form elements
   const role = form.watch('role');
+
+  // Manejar la selección de avatar
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar el tamaño del archivo (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no debe superar los 5MB');
+      return;
+    }
+
+    // Validar el tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      toast.error('El archivo debe ser una imagen');
+      return;
+    }
+
+    setAvatarFile(file);
+    
+    // Crear una URL para previsualizar la imagen
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+  };
+
+  // Función para subir el avatar a Supabase Storage
+  const uploadAvatar = async (userId: string): Promise<string | null> => {
+    if (!avatarFile) return null;
+    
+    try {
+      // Crear un nombre de archivo único usando el ID de usuario
+      const fileExt = avatarFile.name.split('.').pop();
+      const filePath = `${userId}/avatar.${fileExt}`;
+      
+      console.log('Subiendo avatar a Supabase Storage:', filePath);
+      
+      // Subir la imagen a Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile, {
+          upsert: true
+        });
+      
+      if (error) {
+        console.error('Error al subir avatar:', error);
+        toast.error('Error al subir la imagen de perfil');
+        return null;
+      }
+      
+      // Obtener la URL pública del avatar
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      console.log('Avatar subido con éxito. URL:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error al procesar el avatar:', error);
+      return null;
+    }
+  };
 
   const onSubmit = async (values: RegisterFormValues) => {
     console.log('onSubmit llamado con valores:', values);
@@ -129,7 +196,12 @@ const Register = () => {
       console.log('Preparando datos para registro...');
       console.log('Iniciando proceso de registro con Supabase...');
       
-      const result = await signUp(values.email, values.password, values);
+      const dataToSend = {
+        ...values,
+        avatarFile // Añadir el archivo de avatar a los datos
+      };
+      
+      const result = await signUp(values.email, values.password, dataToSend);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
@@ -190,6 +262,42 @@ const Register = () => {
                 </FormItem>
               )}
             />
+
+            {/* Avatar */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Foto de Perfil</label>
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Avatar className="h-20 w-20">
+                    {avatarPreview ? (
+                      <AvatarImage src={avatarPreview} alt="Avatar preview" />
+                    ) : (
+                      <AvatarFallback>
+                        <User className="h-10 w-10 text-gray-400" />
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <input
+                    type="file"
+                    id="avatar"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <label
+                  htmlFor="avatar"
+                  className="cursor-pointer inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Subir imagen
+                </label>
+              </div>
+              <p className="text-xs text-gray-500">
+                Opcional. Formatos: JPG, PNG. Máximo 5MB.
+              </p>
+            </div>
 
             {/* Nombre */}
             <FormField

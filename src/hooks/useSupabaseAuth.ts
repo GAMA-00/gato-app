@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,7 +36,8 @@ export const useSupabaseAuth = () => {
               buildingId: profile.residencia_id || '',
               buildingName: '', // You'll need to fetch this if needed
               hasPaymentMethod: profile.has_payment_method || false,
-              role: profile.role as UserRole
+              role: profile.role as UserRole,
+              avatarUrl: profile.avatar_url || ''  // Añadiendo la URL del avatar
             });
           } else {
             console.warn('No se encontró perfil para el usuario:', session.user.id);
@@ -74,7 +76,8 @@ export const useSupabaseAuth = () => {
                 buildingId: profile.residencia_id || '',
                 buildingName: '', // You'll need to fetch this if needed
                 hasPaymentMethod: profile.has_payment_method || false,
-                role: profile.role as UserRole
+                role: profile.role as UserRole,
+                avatarUrl: profile.avatar_url || ''  // Añadiendo la URL del avatar
               });
             } else {
               console.warn('No se encontró perfil para el usuario en inicio:', session.user.id);
@@ -96,6 +99,42 @@ export const useSupabaseAuth = () => {
       console.log('Creando perfil para usuario con ID:', userId);
       console.log('Datos de usuario para perfil:', userData);
       
+      // Primero, subir el avatar si existe
+      let avatarUrl = null;
+      if (userData.avatarFile) {
+        console.log('Procesando avatar del usuario...');
+        try {
+          // Crear un nombre de archivo único usando el ID de usuario
+          const fileExt = userData.avatarFile.name.split('.').pop();
+          const filePath = `${userId}/avatar.${fileExt}`;
+          
+          console.log('Subiendo avatar a Storage:', filePath);
+          
+          // Subir la imagen
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, userData.avatarFile, {
+              upsert: true
+            });
+          
+          if (uploadError) {
+            console.error('Error al subir avatar:', uploadError);
+          } else {
+            console.log('Avatar subido exitosamente:', uploadData);
+            
+            // Obtener la URL pública
+            const { data: urlData } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(filePath);
+            
+            avatarUrl = urlData.publicUrl;
+            console.log('URL del avatar:', avatarUrl);
+          }
+        } catch (error) {
+          console.error('Error en el procesamiento del avatar:', error);
+        }
+      }
+      
       const profileData = {
         id: userId,
         name: userData.name,
@@ -103,7 +142,8 @@ export const useSupabaseAuth = () => {
         phone: userData.phone || '',
         role: userData.role,
         residencia_id: userData.residenciaId || null,
-        has_payment_method: false
+        has_payment_method: false,
+        avatar_url: avatarUrl  // Añadir URL del avatar al perfil
       };
       
       console.log('Objeto de perfil final a insertar:', profileData);
@@ -136,6 +176,22 @@ export const useSupabaseAuth = () => {
     setIsLoading(true);
     
     try {
+      // Validar si el correo ya fue registrado previamente
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .limit(1);
+      
+      if (checkError) {
+        console.error('Error al verificar email existente:', checkError);
+      }
+      
+      if (existingUsers && existingUsers.length > 0) {
+        console.warn('Email ya registrado:', email);
+        throw new Error('Este correo electrónico ya está registrado. Intenta iniciar sesión.');
+      }
+      
       console.log('Paso 1: Creando usuario en auth.users...');
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -151,6 +207,15 @@ export const useSupabaseAuth = () => {
 
       if (error) {
         console.error('Error en supabase.auth.signUp:', error);
+        
+        // Manejar específicamente el error de límite de tasa
+        if (error.message.includes('email rate limit')) {
+          console.log('Error de límite de tasa de email detectado. Intentando solución alternativa...');
+          
+          // Sugerir al usuario usar otro email
+          throw new Error('Se ha excedido el límite de emails para este correo. Por favor, intenta con otro correo electrónico o espera unos minutos.');
+        }
+        
         throw error;
       }
       
