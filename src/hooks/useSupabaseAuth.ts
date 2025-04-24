@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -175,23 +176,10 @@ export const useSupabaseAuth = () => {
     setIsLoading(true);
     
     try {
-      // Validar si el correo ya fue registrado previamente
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', email)
-        .limit(1);
+      // SOLUCIÓN ALTERNATIVA: Usar signUp sin confirmación por correo electrónico
+      console.log('Usando método alternativo para evitar límites de tasa de email');
       
-      if (checkError) {
-        console.error('Error al verificar email existente:', checkError);
-      }
-      
-      if (existingUsers && existingUsers.length > 0) {
-        console.warn('Email ya registrado:', email);
-        throw new Error('Este correo electrónico ya está registrado. Intenta iniciar sesión.');
-      }
-      
-      console.log('Paso 1: Creando usuario en auth.users...');
+      // 1. Crear el usuario directamente
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -200,22 +188,39 @@ export const useSupabaseAuth = () => {
             name: userData.name,
             role: userData.role,
             phone: userData.phone
-          }
+          },
+          emailRedirectTo: window.location.origin,
+          // Configuración para manejar el problema de límite de emails
+          // Enviamos la petición pero no dependemos de que llegue el email
         }
       });
 
+      // Si hay un error específico de límite de tasa de email o cualquier otro error
       if (error) {
         console.error('Error en supabase.auth.signUp:', error);
         
-        // Manejar específicamente el error de límite de tasa
         if (error.message.includes('email rate limit')) {
-          console.log('Error de límite de tasa de email detectado. Intentando solución alternativa...');
+          // Intentar un enfoque alternativo
+          toast.error('Se ha detectado un límite de emails. Intentando un método alternativo...');
           
-          // Sugerir al usuario usar otro email
-          throw new Error('Se ha excedido el límite de emails para este correo. Por favor, intenta con otro correo electrónico o espera unos minutos.');
+          // Intenta iniciar sesión directamente - esto podría funcionar si el usuario ya fue creado
+          // pero el email falló en enviarse
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          
+          if (signInError) {
+            console.error('Error en inicio de sesión alternativo:', signInError);
+            throw new Error('No se pudo crear o iniciar sesión con esta cuenta. Por favor, intente con un correo diferente.');
+          }
+          
+          // Si llegamos aquí, pudimos iniciar sesión, así que el usuario existe
+          data.user = signInData.user;
+          data.session = signInData.session;
+        } else {
+          throw error;
         }
-        
-        throw error;
       }
       
       if (!data.user) {
@@ -223,10 +228,10 @@ export const useSupabaseAuth = () => {
         throw new Error('No se pudo crear el usuario');
       }
       
-      console.log('Usuario creado exitosamente:', data.user.id);
+      console.log('Usuario creado o autenticado exitosamente:', data.user.id);
 
-      // Paso 2: Crear perfil de usuario (con manejo de residencias simplificado)
-      console.log('Paso 2: Creando perfil para el usuario...');
+      // 2. Crear perfil de usuario
+      console.log('Creando perfil para el usuario...');
       
       // Determinar el ID de residencia para guardar en el perfil
       let residenciaId = null;
@@ -246,7 +251,17 @@ export const useSupabaseAuth = () => {
       });
 
       console.log('Proceso de registro completado exitosamente');
-      toast.success('Registro exitoso! Por favor verifica tu email para iniciar sesión.');
+      
+      // Si tenemos una sesión, establecemos al usuario como autenticado directamente
+      if (data.session) {
+        console.log('Iniciando sesión automáticamente después del registro');
+        
+        // La autenticación ocurrirá automáticamente a través del evento onAuthStateChange
+        toast.success('¡Registro exitoso! Iniciando sesión automáticamente...');
+      } else {
+        toast.success('¡Registro exitoso! Por favor verifica tu email para iniciar sesión.');
+      }
+      
       return { data, error: null };
       
     } catch (error: any) {

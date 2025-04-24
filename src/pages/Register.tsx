@@ -10,13 +10,14 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building, Upload } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Upload, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Residencia } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Esquema de validación común para clientes y proveedores
 const registerSchema = z.object({
@@ -60,7 +61,15 @@ const Register = () => {
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [showEmailAlert, setShowEmailAlert] = useState(false);
+  const { user } = useAuth();
+  
+  // Si el usuario ya está autenticado, redirigir al dashboard
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   // Cargar residencias
   useEffect(() => {
@@ -130,43 +139,6 @@ const Register = () => {
     setAvatarPreview(previewUrl);
   };
 
-  // Función para subir el avatar a Supabase Storage
-  const uploadAvatar = async (userId: string): Promise<string | null> => {
-    if (!avatarFile) return null;
-    
-    try {
-      // Crear un nombre de archivo único usando el ID de usuario
-      const fileExt = avatarFile.name.split('.').pop();
-      const filePath = `${userId}/avatar.${fileExt}`;
-      
-      console.log('Subiendo avatar a Supabase Storage:', filePath);
-      
-      // Subir la imagen a Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile, {
-          upsert: true
-        });
-      
-      if (error) {
-        console.error('Error al subir avatar:', error);
-        toast.error('Error al subir la imagen de perfil');
-        return null;
-      }
-      
-      // Obtener la URL pública del avatar
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-      
-      console.log('Avatar subido con éxito. URL:', urlData.publicUrl);
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error al procesar el avatar:', error);
-      return null;
-    }
-  };
-
   const onSubmit = async (values: RegisterFormValues) => {
     console.log('onSubmit llamado con valores:', values);
     if (isSubmitting) {
@@ -177,6 +149,7 @@ const Register = () => {
     try {
       setIsSubmitting(true);
       setRegistrationError(null);
+      setShowEmailAlert(false);
       
       console.log('Validando formulario...');
       // Validación básica
@@ -192,30 +165,50 @@ const Register = () => {
         return;
       }
 
-      // Llamando a signUp con el manejo de residencias integrado
+      // Preparando datos para registro
       console.log('Preparando datos para registro...');
       console.log('Iniciando proceso de registro con Supabase...');
       
       const dataToSend = {
         ...values,
-        avatarFile // Añadir el archivo de avatar a los datos
+        avatarFile
       };
       
+      // Intentar registro
       const result = await signUp(values.email, values.password, dataToSend);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
+        
+        // Mostrar alerta específica para errores de límite de email
+        if (result.error.message.includes('email rate limit') || 
+            result.error.message.includes('límite de emails')) {
+          setShowEmailAlert(true);
+        }
+        
         setRegistrationError(result.error.message);
-        toast.error(result.error.message || "Error durante el registro");
-      } else {
-        console.log('Registro exitoso!');
-        toast.success('¡Cuenta creada exitosamente!');
+      } else if (result.data?.session) {
+        // Si tenemos sesión, el usuario fue registrado y autenticado con éxito
+        console.log('Registro y autenticación exitosos!');
+        toast.success('¡Cuenta creada e iniciada sesión exitosamente!');
         navigate('/payment-setup', { 
           state: { fromClientView: values.role === 'client' } 
         });
+      } else {
+        // Registro exitoso pero necesita confirmar email
+        console.log('Registro exitoso, esperando confirmación de email!');
+        toast.success('¡Cuenta creada! Por favor verifica tu email para iniciar sesión.');
+        navigate('/login');
       }
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
+      
+      // Mostrar alerta específica para errores de límite de email
+      if (error.message.includes('email rate limit') || 
+          error.message.includes('límite de emails')) {
+        setShowEmailAlert(true);
+      }
+      
       setRegistrationError(error.message || "Error desconocido durante el registro");
       toast.error(error.message || "Error durante el registro");
     } finally {
@@ -229,10 +222,20 @@ const Register = () => {
       subtitle="Regístrate para agendar u ofrecer servicios"
     >
       <div className="max-w-md mx-auto mt-8">
-        {registrationError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            <p className="text-sm">{registrationError}</p>
-          </div>
+        {showEmailAlert && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription className="text-sm">
+              Se ha excedido el límite de emails para este correo. Por favor, intenta con otro correo electrónico o espera unos minutos.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {registrationError && !showEmailAlert && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription className="text-sm">{registrationError}</AlertDescription>
+          </Alert>
         )}
         
         <Form {...form}>
