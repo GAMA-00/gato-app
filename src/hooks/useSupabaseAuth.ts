@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -143,13 +142,14 @@ export const useSupabaseAuth = () => {
           );
           
           if (rpcError) {
+            console.error('ERROR MÉTODO 2 (RPC):', rpcError);
             throw rpcError;
           }
           
           console.log('MÉTODO 2: Perfil creado con éxito mediante RPC');
           return true;
         } catch (error: any) {
-          console.error('ERROR MÉTODO 2:', error);
+          console.error('ERROR MÉTODO 2 (catch):', error);
           return false;
         }
       }
@@ -157,13 +157,14 @@ export const useSupabaseAuth = () => {
       console.log('MÉTODO 1: Perfil creado con éxito:', profileData);
       return true;
     } catch (error: any) {
-      console.error('Error al crear perfil:', error);
+      console.error('Error general al crear perfil:', error);
       return false;
     }
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
-    console.log('Iniciando registro con:', { email, userData });
+    console.log('Inicio de signUp - email:', email);
+    console.log('Inicio de signUp - userData:', JSON.stringify(userData));
     setIsLoading(true);
     
     try {
@@ -178,6 +179,7 @@ export const useSupabaseAuth = () => {
         }
       });
       
+      console.log('ANTES de supabase.auth.signUp');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -191,6 +193,7 @@ export const useSupabaseAuth = () => {
           },
         }
       });
+      console.log('DESPUÉS de supabase.auth.signUp - resultado:', { data: !!data, error: error });
 
       if (error) {
         console.error('Error en signUp:', error);
@@ -205,10 +208,12 @@ export const useSupabaseAuth = () => {
       console.log('Usuario creado exitosamente:', data.user);
 
       // 2. Crear el perfil una vez que tengamos el usuario
+      console.log('ANTES de createUserProfile');
       const profileSuccess = await createUserProfile(data.user.id, {
         ...userData,
         email: email
       });
+      console.log('DESPUÉS de createUserProfile - éxito:', profileSuccess);
 
       if (!profileSuccess) {
         console.warn('Se creó el usuario pero hubo problemas al crear el perfil');
@@ -223,6 +228,7 @@ export const useSupabaseAuth = () => {
       toast.error(error.message || 'Error durante el registro');
       return { data: null, error };
     } finally {
+      console.log('Setting isLoading to false');
       setIsLoading(false);
     }
   };

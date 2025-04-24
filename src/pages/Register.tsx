@@ -111,7 +111,7 @@ const Register = () => {
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
-    console.log('Formulario enviado con valores:', JSON.stringify(values, (key, value) => {
+    console.log('INICIO: Formulario enviado con valores:', JSON.stringify(values, (key, value) => {
       // No mostrar el archivo de imagen completo en el log, solo un indicador
       if (key === 'profileImage' && value instanceof File) return `[File: ${value.name}]`;
       return value;
@@ -133,6 +133,7 @@ const Register = () => {
       
       if (!tieneImagen || !tieneResidencias) {
         console.warn('Falló validación de proveedor:', !tieneImagen ? 'Falta imagen' : 'Faltan residencias');
+        return; // Detener la ejecución si no cumple con los requisitos
       }
     }
     
@@ -144,7 +145,9 @@ const Register = () => {
     }
     
     try {
+      console.log('ANTES de setIsSubmitting(true)');
       setIsSubmitting(true);
+      console.log('DESPUÉS de setIsSubmitting(true), valor actual:', isSubmitting);
       console.log('Iniciando proceso de registro...');
       
       // Para cliente: residenciaId simple. Para proveedor: providerResidenciaIds.
@@ -174,14 +177,18 @@ const Register = () => {
         offerResidencias: values.role === 'provider' ? values.providerResidenciaIds : [values.residenciaId].filter(Boolean)
       };
       
-      console.log('Enviando datos de usuario a signUp:', JSON.stringify(userData));
+      console.log('ANTES de signUp - Enviando datos de usuario:', JSON.stringify(userData));
+      console.log('Email:', values.email);
+      console.log('Contraseña longitud:', values.password.length);
 
-      const { error } = await signUp(values.email, values.password, userData);
+      // Intentar registrar al usuario
+      const result = await signUp(values.email, values.password, userData);
+      console.log('DESPUÉS de signUp - Resultado:', result);
       
-      if (error) {
-        console.error('Error en registro:', error);
-        setRegistrationError(error.message || 'Ha ocurrido un error durante el registro');
-        toast.error(`Error en registro: ${error.message || 'Ha ocurrido un error durante el registro'}`);
+      if (result.error) {
+        console.error('Error en registro:', result.error);
+        setRegistrationError(result.error.message || 'Ha ocurrido un error durante el registro');
+        toast.error(`Error en registro: ${result.error.message || 'Ha ocurrido un error durante el registro'}`);
       } else {
         console.log('Registro exitoso, redirigiendo a /payment-setup');
         toast.success('¡Cuenta creada exitosamente!');
@@ -194,7 +201,9 @@ const Register = () => {
       setRegistrationError(error.message || 'Ha ocurrido un error inesperado');
       toast.error(`Error: ${error.message || 'Ha ocurrido un error inesperado'}`);
     } finally {
+      console.log('Ejecutando finally block');
       setIsSubmitting(false);
+      console.log('isSubmitting establecido a false');
     }
   };
 
@@ -211,7 +220,10 @@ const Register = () => {
         )}
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(e) => {
+            console.log('Formulario enviado, ejecutando onSubmit');
+            form.handleSubmit(onSubmit)(e);
+          }} className="space-y-6">
             <FormField
               control={form.control}
               name="role"
@@ -219,7 +231,10 @@ const Register = () => {
                 <FormItem>
                   <FormLabel>Tipo de usuario</FormLabel>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(value) => {
+                      console.log('Rol cambiado a:', value);
+                      field.onChange(value);
+                    }} value={field.value}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -446,6 +461,7 @@ const Register = () => {
               type="submit" 
               className="w-full bg-navy text-white hover:bg-navy-hover"
               disabled={isSubmitting}
+              onClick={() => console.log('Botón de registro clickeado')}
             >
               {isSubmitting ? (
                 <>Creando cuenta...</>
