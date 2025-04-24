@@ -168,6 +168,16 @@ export const useSupabaseAuth = () => {
     
     try {
       // 1. Primero registrar el usuario en Authentication
+      console.log('Enviando solicitud de registro a Supabase Auth con datos:', {
+        email: email,
+        userData: {
+          name: userData.name,
+          role: userData.role,
+          phone: userData.phone,
+          residenciaId: userData.residenciaId
+        }
+      });
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -188,6 +198,7 @@ export const useSupabaseAuth = () => {
       }
 
       if (!data.user) {
+        console.error('No se recibió objeto de usuario tras registro');
         throw new Error('No se pudo crear el usuario');
       }
 

@@ -117,6 +117,25 @@ const Register = () => {
       return value;
     }));
     
+    // Depuración: Verificando validaciones específicas para proveedores
+    if (values.role === 'provider') {
+      console.log('Modo proveedor detectado');
+      console.log('Imagen de perfil:', values.profileImage ? 'Presente' : 'Ausente');
+      console.log('Residencias seleccionadas:', values.providerResidenciaIds);
+      
+      // Verificar validación de imagen
+      const tieneImagen = values.profileImage && typeof values.profileImage !== "string";
+      console.log('¿Tiene imagen válida?', tieneImagen);
+      
+      // Verificar validación de residencias
+      const tieneResidencias = values.providerResidenciaIds && values.providerResidenciaIds.length > 0;
+      console.log('¿Tiene residencias seleccionadas?', tieneResidencias);
+      
+      if (!tieneImagen || !tieneResidencias) {
+        console.warn('Falló validación de proveedor:', !tieneImagen ? 'Falta imagen' : 'Faltan residencias');
+      }
+    }
+    
     setRegistrationError(null);
     
     if (isSubmitting) {
@@ -126,6 +145,7 @@ const Register = () => {
     
     try {
       setIsSubmitting(true);
+      console.log('Iniciando proceso de registro...');
       
       // Para cliente: residenciaId simple. Para proveedor: providerResidenciaIds.
       let selectedResidenciaId = '';
