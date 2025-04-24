@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,30 +91,30 @@ export const useSupabaseAuth = () => {
     };
   }, [setAuthUser, clearAuthUser]);
 
-  // Función simplificada para crear perfiles, con mejor manejo de errores
   const createUserProfile = async (userId: string, userData: any) => {
     try {
-      console.log('Creando perfil para usuario:', userId, userData);
-      const profileObject = {
+      console.log('Creando perfil para usuario con ID:', userId);
+      console.log('Datos de usuario para perfil:', userData);
+      
+      const profileData = {
         id: userId,
         name: userData.name,
         email: userData.email,
         phone: userData.phone || '',
         role: userData.role,
-        residencia_id: userData.role === 'provider' 
-          ? null 
-          : userData.residenciaId || null,
+        residencia_id: userData.residenciaId || null,
         has_payment_method: false
       };
       
-      console.log('Objeto de perfil a insertar:', profileObject);
-      const { error: profileError } = await supabase
+      console.log('Objeto de perfil final a insertar:', profileData);
+      
+      const { error } = await supabase
         .from('profiles')
-        .insert([profileObject]);
+        .insert([profileData]);
 
-      if (profileError) {
-        console.error('Error al crear perfil:', profileError);
-        throw profileError;
+      if (error) {
+        console.error('Error al crear perfil:', error);
+        throw error;
       }
       
       console.log('Perfil creado exitosamente');
@@ -126,20 +125,18 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Versión mejorada de signUp con mejor manejo de errores
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Iniciando registro con datos:', { email, ...userData });
     
     if (isLoading) {
       console.log('Ya hay una solicitud en curso, abortando');
-      throw new Error('Ya hay una solicitud en curso');
+      return { data: null, error: new Error('Ya hay una solicitud en curso') };
     }
     
     setIsLoading(true);
     
     try {
-      // 1. Creamos el usuario en auth.users
-      console.log('Enviando solicitud de registro a Supabase...');
+      console.log('Paso 1: Creando usuario en auth.users...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -164,11 +161,24 @@ export const useSupabaseAuth = () => {
       
       console.log('Usuario creado exitosamente:', data.user.id);
 
-      // 2. Creamos el perfil en profiles
-      console.log('Creando perfil para el usuario...');
+      // Paso 2: Crear perfil de usuario (con manejo de residencias simplificado)
+      console.log('Paso 2: Creando perfil para el usuario...');
+      
+      // Determinar el ID de residencia para guardar en el perfil
+      let residenciaId = null;
+      if (userData.role === 'client') {
+        residenciaId = userData.residenciaId;
+      } else if (userData.role === 'provider' && userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0) {
+        // Para proveedores, guardamos la primera residencia seleccionada en su perfil
+        residenciaId = userData.providerResidenciaIds[0];
+      }
+      
+      console.log('ID de residencia seleccionada para el perfil:', residenciaId);
+      
       await createUserProfile(data.user.id, {
         ...userData,
-        email: email
+        email: email,
+        residenciaId: residenciaId
       });
 
       console.log('Proceso de registro completado exitosamente');
@@ -178,7 +188,7 @@ export const useSupabaseAuth = () => {
     } catch (error: any) {
       console.error('Error en proceso de registro:', error);
       
-      // Mensajes de error específicos y más amigables
+      // Mensajes de error específicos
       let errorMsg = error.message;
       if (error.message.includes('email rate limit')) {
         errorMsg = 'Se ha excedido el límite de emails. Intenta con otro email o espera unos minutos.';

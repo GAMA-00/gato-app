@@ -10,21 +10,21 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building, Image } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Residencia } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-// Esquema de validación simplificado que trata de manera similar a clientes y proveedores
+// Esquema de validación común para clientes y proveedores
 const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
   phone: z.string().min(8, 'Número de teléfono inválido'),
   role: z.enum(['client', 'provider']),
   providerResidenciaIds: z.array(z.string()).optional(),
-  residenciaId: z.string().min(1, 'Debe seleccionar una residencia').optional(), // Para clientes
+  residenciaId: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   confirmPassword: z.string()
 }).refine(
@@ -34,7 +34,6 @@ const registerSchema = z.object({
   }
 ).refine(
   (data) => {
-    // Simplificamos las validaciones para que sean similares para ambos roles
     if (data.role === 'client') {
       return !!data.residenciaId;
     }
@@ -58,7 +57,7 @@ const Register = () => {
   const [residencias, setResidencias] = useState<Residencia[]>([]);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
 
-  // Cargar residencias desde la base de datos
+  // Cargar residencias
   useEffect(() => {
     const fetchResidencias = async () => {
       try {
@@ -113,39 +112,29 @@ const Register = () => {
       setRegistrationError(null);
       
       console.log('Validando formulario...');
-      // Validar residencias según el rol
+      // Validación básica
       if (role === 'client' && !values.residenciaId) {
         toast.error('Debes seleccionar una residencia');
+        setIsSubmitting(false);
         return;
       }
       
       if (role === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
         toast.error('Debes seleccionar al menos una residencia');
+        setIsSubmitting(false);
         return;
       }
 
-      // Prepare data for registration - simplificando para que sea similar para ambos roles
+      // Llamando a signUp con el manejo de residencias integrado
       console.log('Preparando datos para registro...');
-      const residenciaId = role === 'provider' 
-        ? values.providerResidenciaIds?.[0] 
-        : values.residenciaId;
-
-      const userData = {
-        name: values.name,
-        phone: values.phone,
-        role: values.role,
-        residenciaId: residenciaId,
-      };
-
-      console.log('Datos de usuario preparados:', userData);
       console.log('Iniciando proceso de registro con Supabase...');
       
-      const result = await signUp(values.email, values.password, userData);
+      const result = await signUp(values.email, values.password, values);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
         setRegistrationError(result.error.message);
-        toast.error(result.error.message);
+        toast.error(result.error.message || "Error durante el registro");
       } else {
         console.log('Registro exitoso!');
         toast.success('¡Cuenta creada exitosamente!');
@@ -155,8 +144,8 @@ const Register = () => {
       }
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
-      setRegistrationError(error.message);
-      toast.error(error.message);
+      setRegistrationError(error.message || "Error desconocido durante el registro");
+      toast.error(error.message || "Error durante el registro");
     } finally {
       setIsSubmitting(false);
     }
