@@ -24,60 +24,53 @@ import {
 import { SERVICE_CATEGORIES } from '@/lib/data';
 import { SERVICE_SUBCATEGORIES } from '@/lib/subcategories';
 import { Image } from 'lucide-react';
-
-const MOCK_BUILDINGS = [
-  { id: '1', name: 'Colinas de Montealegre', address: 'Tres Rios' },
-  { id: '2', name: 'Gregal', address: 'Tres Rios' },
-  { id: '3', name: 'El Herran', address: 'Tres Rios' }
-];
-
-// Construye un arreglo de todas las subcategorías con su categoría asociada
-const ALL_SUBCATEGORIES = Object.entries(SERVICE_SUBCATEGORIES)
-  .flatMap(([category, subcats]) => subcats.map(subcat => ({
-    category,
-    subcat
-  })));
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const ServiceFormFields: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
-  const selectedBuildings = watch('buildingIds') || [];
+  const selectedResidencias = watch('residenciaIds') || [];
 
-  // Para imágenes de trabajos anteriores
-  const [images, setImages] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  // Fetch residencias from Supabase
+  const { data: residencias = [] } = useQuery({
+    queryKey: ['residencias'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('residencias')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
-  // Mantén el estado local para la categoría y subcategoría seleccionadas
-  const selectedSubcat = watch('name');
-  const selectedCategory = ALL_SUBCATEGORIES.find(sc => sc.subcat === selectedSubcat)?.category || '';
+  // Fetch categories and subcategories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*, subcategories(*)');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    setImages(files);
-    setPreviews(files.map(f => URL.createObjectURL(f)));
-    setValue("workImages", files, { shouldValidate: true });
-  };
-
-  const handleSelectAllBuildings = (checked: boolean) => {
+  const handleSelectAllResidencias = (checked: boolean) => {
     if (checked) {
-      setValue('buildingIds', MOCK_BUILDINGS.map(b => b.id));
+      setValue('residenciaIds', residencias.map(r => r.id));
     } else {
-      setValue('buildingIds', []);
+      setValue('residenciaIds', []);
     }
   };
-
-  // Cuando cambia la subcategoría seleccionada, actualiza también la categoría en el formulario
-  React.useEffect(() => {
-    if (selectedSubcat && selectedCategory) {
-      setValue('category', selectedCategory, { shouldValidate: true });
-    }
-  }, [selectedSubcat, selectedCategory, setValue]);
 
   return (
     <div className="space-y-6">
-      {/* CAMBIO: Dropdown de subcategoría en vez de Name */}
       <FormField
         control={control}
-        name="name"
+        name="subcategoryId"
         render={({ field }) => (
           <FormItem>
             <FormLabel>¿Qué servicio quieres anunciar?</FormLabel>
@@ -90,13 +83,13 @@ const ServiceFormFields: React.FC = () => {
                   <SelectValue placeholder="Selecciona un tipo de servicio..." />
                 </SelectTrigger>
               </FormControl>
-              <SelectContent className="z-[999] bg-background">
-                {Object.entries(SERVICE_SUBCATEGORIES).map(([category, subcats]) => (
-                  <SelectGroup key={category}>
-                    <SelectLabel className="text-muted-foreground font-semibold">{SERVICE_CATEGORIES[category]?.label || category}</SelectLabel>
-                    {subcats.map((subcat) => (
-                      <SelectItem key={subcat} value={subcat}>
-                        {subcat}
+              <SelectContent className="max-h-[300px]">
+                {categories.map((category) => (
+                  <SelectGroup key={category.id}>
+                    <SelectLabel>{category.label}</SelectLabel>
+                    {category.subcategories?.map((subcategory) => (
+                      <SelectItem key={subcategory.id} value={subcategory.id}>
+                        {subcategory.label}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -111,45 +104,31 @@ const ServiceFormFields: React.FC = () => {
       <div className="grid sm:grid-cols-2 gap-6">
         <FormField
           control={control}
-          name="category"
+          name="duration"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Categoría</FormLabel>
-              <Input value={SERVICE_CATEGORIES[selectedCategory]?.label || selectedCategory} readOnly className="bg-muted" />
+              <FormLabel>Duración (mins)</FormLabel>
+              <FormControl>
+                <Input type="number" min="15" step="15" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={control}
-            name="duration"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Duración (mins)</FormLabel>
-                <FormControl>
-                  <Input type="number" min="15" step="15" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Costo ($)</FormLabel>
-                <FormControl>
-                  <Input type="number" min="1" step="1" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={control}
+          name="price"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Costo ($)</FormLabel>
+              <FormControl>
+                <Input type="number" min="1" step="1" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
 
       <FormField
@@ -175,7 +154,7 @@ const ServiceFormFields: React.FC = () => {
 
       <FormField
         control={control}
-        name="buildingIds"
+        name="residenciaIds"
         render={() => (
           <FormItem>
             <FormLabel>Residencias Disponibles</FormLabel>
@@ -183,8 +162,8 @@ const ServiceFormFields: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="selectAll"
-                  checked={selectedBuildings.length === MOCK_BUILDINGS.length}
-                  onCheckedChange={handleSelectAllBuildings}
+                  checked={selectedResidencias.length === residencias.length}
+                  onCheckedChange={handleSelectAllResidencias}
                 />
                 <label
                   htmlFor="selectAll"
@@ -194,29 +173,29 @@ const ServiceFormFields: React.FC = () => {
                 </label>
               </div>
               <div className="grid gap-2">
-                {MOCK_BUILDINGS.map((building) => (
-                  <div key={building.id} className="flex items-center space-x-2">
+                {residencias.map((residencia) => (
+                  <div key={residencia.id} className="flex items-center space-x-2">
                     <FormField
                       control={control}
-                      name="buildingIds"
+                      name="residenciaIds"
                       render={({ field }) => (
                         <Checkbox
-                          id={`building-${building.id}`}
-                          checked={field.value?.includes(building.id)}
+                          id={`residencia-${residencia.id}`}
+                          checked={field.value?.includes(residencia.id)}
                           onCheckedChange={(checked) => {
                             const updatedValue = checked
-                              ? [...(field.value || []), building.id]
-                              : field.value?.filter((id: string) => id !== building.id) || [];
+                              ? [...(field.value || []), residencia.id]
+                              : field.value?.filter((id: string) => id !== residencia.id) || [];
                             field.onChange(updatedValue);
                           }}
                         />
                       )}
                     />
                     <label
-                      htmlFor={`building-${building.id}`}
+                      htmlFor={`residencia-${residencia.id}`}
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      {building.name}
+                      {residencia.name}
                     </label>
                   </div>
                 ))}
@@ -230,11 +209,11 @@ const ServiceFormFields: React.FC = () => {
         )}
       />
 
-      {/* Subida de imágenes de trabajos anteriores */}
+      {/* Sección de imágenes de trabajos anteriores */}
       <FormField
         control={control}
         name="workImages"
-        render={() => (
+        render={({ field }) => (
           <FormItem>
             <FormLabel>Imágenes de trabajos anteriores</FormLabel>
             <FormControl>
@@ -247,12 +226,21 @@ const ServiceFormFields: React.FC = () => {
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={handleImageChange}
+                    onChange={(e) => {
+                      const files = e.target.files ? Array.from(e.target.files) : [];
+                      field.onChange(files);
+                    }}
                   />
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {previews.map((src, i) => (
-                    <img key={i} src={src} alt="" className="h-16 w-16 object-cover rounded" />
+                  {field.value?.map((file: File, i: number) => (
+                    <div key={i} className="relative">
+                      <img 
+                        src={URL.createObjectURL(file)} 
+                        alt="" 
+                        className="h-16 w-16 object-cover rounded" 
+                      />
+                    </div>
                   ))}
                 </div>
               </div>

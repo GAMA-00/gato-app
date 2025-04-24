@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    --background: 30 20% 96%; /* Cream Beige */
-    --foreground: 0 0% 20%; /* Dark Gray for general text */
+    --background: 30 20% 96%;
+    --foreground: 0 0% 20%;
     
-    --heading: 0 0% 13%; /* Onyx Black for titles */
-    --subtitle: 0 0% 45%; /* Smoky Grey for subtitles */
+    --heading: 0 0% 13%;
+    --subtitle: 0 0% 45%;
     
-    --golden-whisker: 35 70% 65%; /* Golden Whisker */
-    --golden-whisker-hover: 35 70% 60%;
+    --navy: 230 18% 22%; /* #32323D */
+    --navy-hover: 230 18% 17%;
     
-    --burnt-amber: 25 80% 55%; /* Burnt Amber */
-    --burnt-amber-hover: 25 80% 50%;
+    --neutral-gray: 15 5% 62%; /* #A7A195 */
+    --neutral-gray-hover: 15 5% 57%;
     
     --card: 0 0% 100%;
     --card-foreground: 0 0% 13%;
@@ -22,8 +22,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 13%;
     
-    --primary: var(--golden-whisker);
-    --primary-foreground: 0 0% 13%;
+    --primary: var(--navy);
+    --primary-foreground: 0 0% 98%;
     
     --secondary: 30 20% 96%;
     --secondary-foreground: 0 0% 13%;
@@ -31,7 +31,7 @@
     --muted: 30 10% 93%;
     --muted-foreground: 0 0% 45%;
     
-    --accent: 25 80% 55%;
+    --accent: var(--neutral-gray);
     --accent-foreground: 0 0% 13%;
     
     --destructive: 0 70% 50%;
@@ -51,11 +51,11 @@
     --heading: 30 20% 96%; /* Light color for dark mode titles */
     --subtitle: 0 0% 75%; /* Light grey for dark mode subtitles */
     
-    --golden-whisker: 35 70% 65%;
-    --golden-whisker-hover: 35 70% 60%;
+    --navy: 230 18% 22%; /* #32323D */
+    --navy-hover: 230 18% 17%;
     
-    --burnt-amber: 25 80% 55%;
-    --burnt-amber-hover: 25 80% 50%;
+    --neutral-gray: 15 5% 62%; /* #A7A195 */
+    --neutral-gray-hover: 15 5% 57%;
     
     --card: 0 0% 20%;
     --card-foreground: 30 20% 96%;
@@ -63,7 +63,7 @@
     --popover: 0 0% 20%;
     --popover-foreground: 30 20% 96%;
     
-    --primary: var(--golden-whisker);
+    --primary: var(--navy);
     --primary-foreground: 0 0% 13%;
     
     --secondary: 0 0% 25%;
@@ -72,7 +72,7 @@
     --muted: 0 0% 25%;
     --muted-foreground: 0 0% 65%;
     
-    --accent: 25 80% 55%;
+    --accent: var(--neutral-gray);
     --accent-foreground: 0 0% 13%;
     
     --destructive: 0 60% 30%;

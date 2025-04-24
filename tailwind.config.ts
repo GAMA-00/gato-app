@@ -18,17 +18,6 @@ export default {
       }
     },
     extend: {
-      fontFamily: {
-				sans: [
-					'-apple-system',
-					'BlinkMacSystemFont',
-					'"Segoe UI"',
-					'Roboto',
-					'"Helvetica Neue"',
-					'Arial',
-					'sans-serif',
-				],
-			},
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -63,21 +52,26 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        heading: {
-          DEFAULT: 'hsl(var(--heading))',
+        navy: {
+          DEFAULT: 'hsl(var(--navy))',
+          hover: 'hsl(var(--navy-hover))',
         },
-        subtitle: {
-          DEFAULT: 'hsl(var(--subtitle))',
-        },
-        'golden-whisker': {
-          DEFAULT: 'hsl(var(--golden-whisker))',
-          hover: 'hsl(var(--golden-whisker-hover))',
-        },
-        'burnt-amber': {
-          DEFAULT: 'hsl(var(--burnt-amber))',
-          hover: 'hsl(var(--burnt-amber-hover))',
+        'neutral-gray': {
+          DEFAULT: 'hsl(var(--neutral-gray))',
+          hover: 'hsl(var(--neutral-gray-hover))',
         },
       },
+      fontFamily: {
+				sans: [
+					'-apple-system',
+					'BlinkMacSystemFont',
+					'"Segoe UI"',
+					'Roboto',
+					'"Helvetica Neue"',
+					'Arial',
+					'sans-serif',
+				],
+			},
       borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',

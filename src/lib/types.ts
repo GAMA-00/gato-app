@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -14,14 +13,14 @@ export type ServiceCategory =
 export interface Service {
   id: string;
   name: string;
-  category: ServiceCategory;
-  duration: number; // in minutes
+  subcategoryId: string;
+  duration: number;
   price: number;
   description: string;
   createdAt: Date;
-  buildingIds: string[]; // Available buildings
-  providerId: string; // ID of the provider who created this service
-  providerName: string; // Name of the provider
+  residenciaIds: string[];
+  providerId: string;
+  providerName: string;
 }
 
 export interface Client {
@@ -32,9 +31,9 @@ export interface Client {
   address: string;
   notes: string;
   createdAt: Date;
-  isRecurring: boolean; // Flag to identify recurring clients
-  preferredProviders: string[]; // IDs of preferred providers
-  totalBookings: number; // Count of total bookings made
+  isRecurring: boolean;
+  preferredProviders: string[];
+  totalBookings: number;
 }
 
 export interface Building {
@@ -43,7 +42,7 @@ export interface Building {
   address: string;
 }
 
-export type UserRole = 'client' | 'provider' | 'admin'; // Added admin role
+export type UserRole = 'client' | 'provider' | 'admin';
 
 export type RecurrencePattern = 
   | 'none'
@@ -80,16 +79,16 @@ export interface Appointment {
   apartment?: string;
   serviceName?: string;
   clientName?: string;
-  adminNotes?: string; // Notes added by admin
-  lastModifiedBy?: string; // ID of the last user who modified this
-  lastModifiedAt?: Date; // When the appointment was last modified
+  adminNotes?: string;
+  lastModifiedBy?: string;
+  lastModifiedAt?: Date;
 }
 
 export interface BlockedTimeSlot {
   id: string;
-  day: number; // 0-6 for Sunday-Saturday
-  startHour: number; // 0-23
-  endHour: number; // 0-23
+  day: number;
+  startHour: number;
+  endHour: number;
   note?: string;
   isRecurring: boolean;
   createdAt: Date;
@@ -102,7 +101,6 @@ export interface DashboardStats {
   activeClients: number;
 }
 
-// Adding the missing achievement-related interfaces
 export interface Achievement {
   id: string;
   name: string;

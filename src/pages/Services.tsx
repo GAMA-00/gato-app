@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,11 +38,11 @@ const Services = () => {
         ...service,
         id: service.id,
         name: service.name,
-        category: service.category,
+        subcategoryId: service.subcategory_id,
         duration: service.duration,
         price: service.base_price,
         description: service.description,
-        buildingIds: [], // We'll handle this separately
+        residenciaIds: [], // We'll handle this separately
         createdAt: new Date(service.created_at),
         providerId: service.provider_id,
         providerName: user?.name || ''
@@ -52,16 +51,16 @@ const Services = () => {
     enabled: !!isAuthenticated && !!user?.id
   });
   
-  // Query to get building associations for services
-  const { data: buildingAssociations = [] } = useQuery({
-    queryKey: ['building_services'],
+  // Query to get residencia associations for services
+  const { data: residenciaAssociations = [] } = useQuery({
+    queryKey: ['residencia_services'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('building_services')
+        .from('residencia_services')
         .select('*');
         
       if (error) {
-        toast.error('Error loading building associations: ' + error.message);
+        toast.error('Error loading residencia associations: ' + error.message);
         throw error;
       }
       
@@ -70,15 +69,15 @@ const Services = () => {
     enabled: !!services.length
   });
   
-  // Process services to include buildingIds
+  // Process services to include residenciaIds
   const processedServices = React.useMemo(() => {
     return services.map(service => ({
       ...service,
-      buildingIds: buildingAssociations
+      residenciaIds: residenciaAssociations
         .filter(assoc => assoc.service_id === service.id)
-        .map(assoc => assoc.building_id)
+        .map(assoc => assoc.residencia_id)
     }));
-  }, [services, buildingAssociations]);
+  }, [services, residenciaAssociations]);
   
   // Create service mutation
   const createServiceMutation = useMutation({
@@ -88,7 +87,7 @@ const Services = () => {
         .from('services')
         .insert({
           name: serviceData.name || '',
-          category: serviceData.category || 'other',
+          subcategory_id: serviceData.subcategoryId,
           description: serviceData.description || '',
           base_price: serviceData.price || 0,
           duration: serviceData.duration || 60,
@@ -99,25 +98,25 @@ const Services = () => {
         
       if (error) throw error;
       
-      // Then add building associations if any
-      if (serviceData.buildingIds?.length) {
-        const buildingAssociations = serviceData.buildingIds.map(buildingId => ({
+      // Then add residencia associations if any
+      if (serviceData.residenciaIds?.length) {
+        const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
           service_id: data.id,
-          building_id: buildingId
+          residencia_id: residenciaId
         }));
         
-        const { error: buildingError } = await supabase
-          .from('building_services')
-          .insert(buildingAssociations);
+        const { error: residenciaError } = await supabase
+          .from('residencia_services')
+          .insert(residenciaAssociations);
           
-        if (buildingError) throw buildingError;
+        if (residenciaError) throw residenciaError;
       }
       
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['building_services'] });
+      queryClient.invalidateQueries({ queryKey: ['residencia_services'] });
       toast.success('Anuncio agregado exitosamente');
     },
     onError: (error) => {
@@ -135,7 +134,7 @@ const Services = () => {
         .from('services')
         .update({
           name: serviceData.name,
-          category: serviceData.category,
+          subcategory_id: serviceData.subcategoryId,
           description: serviceData.description,
           base_price: serviceData.price,
           duration: serviceData.duration
@@ -144,31 +143,31 @@ const Services = () => {
         
       if (error) throw error;
       
-      // Handle building associations - first delete existing ones
+      // Handle residencia associations - first delete existing ones
       const { error: deleteError } = await supabase
-        .from('building_services')
+        .from('residencia_services')
         .delete()
         .eq('service_id', serviceData.id);
         
       if (deleteError) throw deleteError;
       
       // Then add new associations if any
-      if (serviceData.buildingIds?.length) {
-        const buildingAssociations = serviceData.buildingIds.map(buildingId => ({
+      if (serviceData.residenciaIds?.length) {
+        const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
           service_id: serviceData.id!,
-          building_id: buildingId
+          residencia_id: residenciaId
         }));
         
-        const { error: buildingError } = await supabase
-          .from('building_services')
-          .insert(buildingAssociations);
+        const { error: residenciaError } = await supabase
+          .from('residencia_services')
+          .insert(residenciaAssociations);
           
-        if (buildingError) throw buildingError;
+        if (residenciaError) throw residenciaError;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['building_services'] });
+      queryClient.invalidateQueries({ queryKey: ['residencia_services'] });
       toast.success('Anuncio actualizado exitosamente');
     },
     onError: (error) => {
@@ -179,7 +178,7 @@ const Services = () => {
   // Delete service mutation
   const deleteServiceMutation = useMutation({
     mutationFn: async (service: Service) => {
-      // Delete the service (building associations will cascade)
+      // Delete the service (residencia associations will cascade)
       const { error } = await supabase
         .from('services')
         .delete()
@@ -189,7 +188,7 @@ const Services = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['building_services'] });
+      queryClient.invalidateQueries({ queryKey: ['residencia_services'] });
       toast.success('Anuncio eliminado exitosamente');
     },
     onError: (error) => {
@@ -200,7 +199,7 @@ const Services = () => {
   const filteredServices = processedServices.filter(
     service => 
       service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchTerm.toLowerCase())
+      service.subcategoryId.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const handleAddService = () => {
