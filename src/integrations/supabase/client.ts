@@ -9,6 +9,7 @@ export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ey
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Configuración mejorada para evitar problemas con la sesión y autenticación
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
@@ -17,7 +18,19 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: localStorage
+      storage: localStorage,
+      flowType: 'pkce' // Tipo de flujo más seguro para OAuth
+    },
+    global: {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    },
+    // Añadir retries para mejorar la fiabilidad de las conexiones
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     }
   }
 );

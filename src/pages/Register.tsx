@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -65,8 +64,21 @@ const Register = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showEmailAlert, setShowEmailAlert] = useState(false);
   const [showTipDialog, setShowTipDialog] = useState(false);
+  const [alternativeEmail, setAlternativeEmail] = useState<string | null>(null);
   const [loadingResidencias, setLoadingResidencias] = useState(true);
   const { user } = useAuth();
+  
+  // Depuración para problemas de registro
+  useEffect(() => {
+    console.log("Estado actual del registro:", { 
+      isSubmitting, 
+      isLoading, 
+      registrationAttempts,
+      registrationError,
+      showEmailAlert,
+      alternativeEmail 
+    });
+  }, [isSubmitting, isLoading, registrationAttempts, registrationError, showEmailAlert, alternativeEmail]);
   
   // Si el usuario ya está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -77,7 +89,7 @@ const Register = () => {
 
   // Mostrar diálogo de consejos si hay varios intentos
   useEffect(() => {
-    if (registrationAttempts > 2) {
+    if (registrationAttempts > 1) {
       setShowTipDialog(true);
     }
   }, [registrationAttempts]);
@@ -128,6 +140,7 @@ const Register = () => {
 
   // Watch role to switch form elements
   const role = form.watch('role');
+  const email = form.watch('email');
 
   // Manejar la selección de avatar
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,6 +164,26 @@ const Register = () => {
     // Crear una URL para previsualizar la imagen
     const previewUrl = URL.createObjectURL(file);
     setAvatarPreview(previewUrl);
+  };
+
+  // FUNCIONES PARA MANEJO DE REGISTRO MEJORADO
+  const generateAlternativeEmail = (baseEmail: string): string => {
+    const emailParts = baseEmail.split('@');
+    const randomSuffix = Math.floor(Math.random() * 10000);
+    return `${emailParts[0]}+${randomSuffix}@${emailParts[1]}`;
+  };
+  
+  const retryWithDifferentEmail = () => {
+    if (!email) return;
+    
+    const newEmail = generateAlternativeEmail(email);
+    setAlternativeEmail(newEmail);
+    
+    form.setValue('email', newEmail);
+    setRegistrationError(null);
+    setShowEmailAlert(false);
+    
+    toast.info(`Email modificado automáticamente: ${newEmail}`);
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -179,38 +212,39 @@ const Register = () => {
         return;
       }
 
+      // Mostrar estado del proceso
+      toast.info('Iniciando registro, por favor espere...');
+      
       // Preparando datos para registro
       console.log('Preparando datos para registro...');
       console.log('Iniciando proceso de registro con Supabase...');
       
-      // Generar un email único para evitar rate limits
-      let email = values.email;
-      // Si ya ha habido más de 2 intentos, sugerimos usar un email diferente
-      if (registrationAttempts > 2) {
-        const emailParts = email.split('@');
-        const randomSuffix = Math.floor(Math.random() * 10000);
-        // Solo añadir el sufijo si no se ha añadido antes
-        if (!emailParts[0].includes('+')) {
-          email = `${emailParts[0]}+${randomSuffix}@${emailParts[1]}`;
-          console.log('Utilizando email modificado para evitar rate limits:', email);
-        }
-      }
+      // Usar el email alternativo si existe
+      const emailToUse = alternativeEmail || values.email;
+      console.log(`Usando email para registro: ${emailToUse}`);
       
       const dataToSend = {
         ...values,
-        email,
+        email: emailToUse,
         avatarFile
       };
       
       // Intentar registro
-      const result = await signUp(email, values.password, dataToSend);
+      const result = await signUp(emailToUse, values.password, dataToSend);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
         
-        // Mostrar alerta específica para errores de límite de email
-        if (result.error.message?.includes('email rate limit') || 
-            result.error.message?.includes('límite de emails')) {
+        // Determinar si el error podría estar relacionado con el email
+        const errorMsg = result.error.message || "";
+        const isEmailRelatedError = 
+          errorMsg.includes('email') || 
+          errorMsg.includes('correo') || 
+          errorMsg.includes('ya está en uso') || 
+          errorMsg.includes('rate limit');
+        
+        // Mostrar alerta específica para errores de email
+        if (isEmailRelatedError) {
           setShowEmailAlert(true);
           setShowTipDialog(true);
         }
@@ -234,7 +268,8 @@ const Register = () => {
       
       // Mostrar alerta específica para errores de límite de email
       if (error.message?.includes('email rate limit') || 
-          error.message?.includes('límite de emails')) {
+          error.message?.includes('límite de emails') ||
+          error.message?.includes('ya está en uso')) {
         setShowEmailAlert(true);
         setShowTipDialog(true);
       }
@@ -244,19 +279,6 @@ const Register = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const retryWithDifferentEmail = () => {
-    const email = form.getValues('email');
-    const emailParts = email.split('@');
-    const randomSuffix = Math.floor(Math.random() * 10000);
-    const newEmail = `${emailParts[0]}+${randomSuffix}@${emailParts[1]}`;
-    
-    form.setValue('email', newEmail);
-    setRegistrationError(null);
-    setShowEmailAlert(false);
-    setShowTipDialog(false);
-    toast.info('Email modificado automáticamente para evitar límites de registro');
   };
 
   return (
@@ -269,7 +291,7 @@ const Register = () => {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription className="text-sm">
-              Se ha excedido el límite de emails para este correo. Por favor, intenta con un correo electrónico diferente o usa el botón para generar una variación del mismo.
+              {registrationError || "Se ha excedido el límite de emails para este correo o ya está en uso. Por favor, intenta con un correo electrónico diferente o usa el botón para generar una variación del mismo."}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -317,7 +339,6 @@ const Register = () => {
               )}
             />
 
-            {/* Avatar */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Foto de Perfil</label>
               <div className="flex items-center space-x-4">
@@ -353,7 +374,6 @@ const Register = () => {
               </p>
             </div>
 
-            {/* Nombre */}
             <FormField
               control={form.control}
               name="name"
@@ -376,7 +396,6 @@ const Register = () => {
               )}
             />
 
-            {/* Email */}
             <FormField
               control={form.control}
               name="email"
@@ -388,18 +407,22 @@ const Register = () => {
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="correo@ejemplo.com"
-                        className="pl-10"
+                        className={`pl-10 ${alternativeEmail ? 'bg-yellow-50 border-yellow-300' : ''}`}
                         {...field}
                         disabled={isSubmitting}
                       />
                     </div>
                   </FormControl>
+                  {alternativeEmail && (
+                    <p className="text-xs text-amber-600">
+                      Se utilizará una variante del correo para evitar limitaciones de registro
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Teléfono */}
             <FormField
               control={form.control}
               name="phone"
@@ -422,7 +445,6 @@ const Register = () => {
               )}
             />
 
-            {/* Residencias - Cliente */}
             {role === 'client' && (
               <FormField
                 control={form.control}
@@ -457,7 +479,6 @@ const Register = () => {
               />
             )}
 
-            {/* Residencias - Proveedor */}
             {role === 'provider' && (
               <FormField
                 control={form.control}
@@ -504,7 +525,6 @@ const Register = () => {
               />
             )}
 
-            {/* Contraseña */}
             <FormField
               control={form.control}
               name="password"
@@ -528,7 +548,6 @@ const Register = () => {
               )}
             />
 
-            {/* Confirmar Contraseña */}
             <FormField
               control={form.control}
               name="confirmPassword"
@@ -552,7 +571,6 @@ const Register = () => {
               )}
             />
 
-            {/* Botón de envío */}
             <Button 
               type="submit" 
               className="w-full bg-navy text-white hover:bg-navy-hover"
@@ -582,24 +600,24 @@ const Register = () => {
         </div>
       </div>
 
-      {/* Dialog de consejos para registro */}
       <Dialog open={showTipDialog} onOpenChange={setShowTipDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Consejos para completar el registro</DialogTitle>
             <DialogDescription>
-              Hemos detectado que estás teniendo problemas para completar el registro.
+              Estamos detectando problemas con el registro. Esto puede ocurrir cuando Supabase tiene registros "fantasma" o en caché.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Card>
               <CardContent className="pt-4">
-                <h3 className="font-semibold mb-2">Consejos para evitar errores:</h3>
+                <h3 className="font-semibold mb-2">Soluciones recomendadas:</h3>
                 <ul className="list-disc pl-5 space-y-2 text-sm">
-                  <li>Usa un correo electrónico diferente que no haya sido registrado antes.</li>
-                  <li>Asegúrate de completar correctamente todos los campos requeridos.</li>
-                  <li>Usa el botón "Usar variación de email" para crear una variante de tu correo.</li>
-                  <li>Si continúas teniendo problemas, intenta más tarde o contacta a soporte.</li>
+                  <li>Usa el botón "Usar variación de email" para crear una variante de tu correo (esto añade +número a tu email actual).</li>
+                  <li>Usa un correo electrónico completamente diferente que no hayas usado antes.</li>
+                  <li>Espera 30-60 minutos y vuelve a intentarlo (los límites de registro pueden restablecerse).</li>
+                  <li>Limpia el caché y cookies del navegador, o intenta desde un navegador privado/incógnito.</li>
+                  <li>Si tienes acceso a Supabase, verifica la tabla Auth para confirmar si el usuario existe realmente.</li>
                 </ul>
               </CardContent>
             </Card>
