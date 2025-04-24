@@ -1,39 +1,109 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CalendarClock, ChevronRight, Clock, MapPin, Check } from 'lucide-react';
-import { format } from 'date-fns';
+import { CalendarClock, Clock, Calendar, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// Mock bookings data
+// Mock bookings data structure updated
 const MOCK_BOOKINGS = [
   {
     id: '1',
     serviceName: 'Limpieza de Casa',
+    subcategory: 'Limpieza Regular',
+    providerName: 'María González',
     buildingName: 'Torres del Atardecer',
-    date: new Date(2023, 6, 15, 10, 0),
+    date: new Date(2023, 6, 15, 15, 0),
     duration: 120,
+    recurrence: 'weekly',
     status: 'upcoming'
   },
   {
     id: '2',
     serviceName: 'Peluquería para Mascotas',
+    subcategory: 'Corte de Pelo',
+    providerName: 'Juan Pérez',
     buildingName: 'Torres del Atardecer',
     date: new Date(2023, 6, 20, 14, 0),
     duration: 60,
+    recurrence: 'none',
     status: 'upcoming'
   },
   {
     id: '3',
     serviceName: 'Lavado de Auto',
+    subcategory: 'Lavado Completo',
+    providerName: 'Ana Rodríguez',
     buildingName: 'Torres del Atardecer',
     date: new Date(2023, 5, 10, 9, 0),
     duration: 45,
+    recurrence: 'none',
     status: 'completed'
   }
 ];
+
+const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
+  const isRecurring = booking.recurrence !== 'none';
+  
+  return (
+    <Card className="mb-4 overflow-hidden animate-scale-in">
+      <CardContent className="p-4">
+        <div className="flex flex-col space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-medium text-base">{booking.serviceName}</h3>
+              <p className="text-sm text-muted-foreground">{booking.subcategory}</p>
+            </div>
+            <div className={cn(
+              "px-2 py-1 rounded-full text-xs font-medium",
+              booking.status === 'upcoming' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+            )}>
+              {isRecurring ? 'Recurrente' : 'Una vez'}
+            </div>
+          </div>
+          
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 mr-2" />
+            <span>
+              {isRecurring ? (
+                `Todos los ${format(booking.date, 'EEEE', { locale: es })} - ${format(booking.date, 'h:mm a')}`
+              ) : (
+                format(booking.date, 'PPP - h:mm a', { locale: es })
+              )}
+            </span>
+          </div>
+          
+          <div className="text-sm">
+            <span className="text-muted-foreground">Proveedor:</span>{' '}
+            <span className="font-medium">{booking.providerName}</span>
+          </div>
+          
+          <div className="flex gap-2 pt-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              Reagendar
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const ClientBookings = () => {
   const navigate = useNavigate();
@@ -51,98 +121,34 @@ const ClientBookings = () => {
         </Button>
       }
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         <section>
-          <h2 className="text-xl font-medium mb-4">Citas Próximas</h2>
+          <h2 className="text-lg font-medium mb-4">Citas Próximas</h2>
           {upcomingBookings.length > 0 ? (
-            <div className="space-y-4">
+            <div>
               {upcomingBookings.map(booking => (
-                <Card key={booking.id} className="overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="flex flex-col md:flex-row">
-                      <div className="bg-primary/10 md:w-32 p-6 flex flex-col justify-center items-center">
-                        <CalendarClock className="h-6 w-6 text-primary mb-2" />
-                        <div className="text-center">
-                          <div className="font-medium">{format(booking.date, 'MMM')}</div>
-                          <div className="text-2xl font-bold">{format(booking.date, 'd')}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 p-6">
-                        <h3 className="font-medium text-lg">{booking.serviceName}</h3>
-                        
-                        <div className="mt-2 space-y-2">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4 mr-2" />
-                            <span>{format(booking.date, 'h:mm a')} ({booking.duration} min)</span>
-                          </div>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            <span>{booking.buildingName}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t md:border-t-0 md:border-l p-6 flex items-center">
-                        <Button variant="outline">
-                          Detalles
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <BookingCard key={booking.id} booking={booking} />
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No hay citas próximas</p>
+            <p className="text-muted-foreground text-center py-8">
+              No hay citas próximas
+            </p>
           )}
         </section>
         
         <section>
-          <h2 className="text-xl font-medium mb-4">Citas Pasadas</h2>
+          <h2 className="text-lg font-medium mb-4">Citas Pasadas</h2>
           {pastBookings.length > 0 ? (
-            <div className="space-y-4">
+            <div>
               {pastBookings.map(booking => (
-                <Card key={booking.id} className="overflow-hidden bg-muted/30">
-                  <CardContent className="p-0">
-                    <div className="flex flex-col md:flex-row">
-                      <div className="bg-muted/30 md:w-32 p-6 flex flex-col justify-center items-center">
-                        <Check className="h-6 w-6 text-muted-foreground mb-2" />
-                        <div className="text-center text-muted-foreground">
-                          <div className="font-medium">{format(booking.date, 'MMM')}</div>
-                          <div className="text-2xl font-bold">{format(booking.date, 'd')}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 p-6">
-                        <h3 className="font-medium text-lg">{booking.serviceName}</h3>
-                        
-                        <div className="mt-2 space-y-2">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4 mr-2" />
-                            <span>{format(booking.date, 'h:mm a')} ({booking.duration} min)</span>
-                          </div>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            <span>{booking.buildingName}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t md:border-t-0 md:border-l p-6 flex items-center">
-                        <Button variant="outline">
-                          Detalles
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <BookingCard key={booking.id} booking={booking} />
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No hay citas pasadas</p>
+            <p className="text-muted-foreground text-center py-8">
+              No hay citas pasadas
+            </p>
           )}
         </section>
       </div>

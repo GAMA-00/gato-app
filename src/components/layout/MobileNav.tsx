@@ -25,7 +25,13 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
   
   return (
     <div className="w-full h-16 fixed top-0 left-0 z-50 border-b glassmorphism py-2 px-4 flex items-center justify-between">
-      <h1 className="text-xl font-semibold text-primary">Gato</h1>
+      <div className="flex items-center">
+        <img 
+          src="/lovable-uploads/2e6d167b-de93-4622-b986-70d3bd9ff753.png" 
+          alt="Gato" 
+          className="h-8 w-auto"
+        />
+      </div>
       
       <div className="flex items-center gap-3">
         <Sheet>
