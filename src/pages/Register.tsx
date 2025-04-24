@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -54,7 +53,6 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 const Register = () => {
   const navigate = useNavigate();
   const { signUp } = useSupabaseAuth();
-  const [profilePreview, setProfilePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [residencias, setResidencias] = useState<Residencia[]>([]);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
@@ -108,107 +106,55 @@ const Register = () => {
     if (file) {
       console.log('Imagen seleccionada:', file.name, 'tamaño:', file.size);
       form.setValue('profileImage', file, { shouldValidate: true });
-      setProfilePreview(URL.createObjectURL(file));
     }
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
-    console.log('[Register] Inicio de envío del formulario');
-    console.log('[Register] Valores del formulario:', JSON.stringify(values, (key, value) => {
-      if (key === 'profileImage' && value instanceof File) return `[File: ${value.name}]`;
-      return value;
-    }, 2));
-    
-    if (isSubmitting) {
-      console.log('[Register] Ya hay una solicitud en curso, ignorando');
-      return;
-    }
+    if (isSubmitting) return;
     
     try {
       setIsSubmitting(true);
       setRegistrationError(null);
       
-      // Verificar validaciones específicas
-      console.log('[Register] Verificando validaciones específicas');
-      
-      if (values.role === 'provider') {
-        console.log('[Register] Modo proveedor detectado');
-        
-        // Verificar imagen de perfil
-        const tieneImagen = values.profileImage && typeof values.profileImage !== "string";
-        console.log('[Register] ¿Tiene imagen válida?', tieneImagen);
-        if (!tieneImagen) {
-          toast.error('Debes adjuntar una foto de perfil como proveedor');
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Verificar residencias seleccionadas
-        const tieneResidencias = values.providerResidenciaIds && values.providerResidenciaIds.length > 0;
-        console.log('[Register] ¿Tiene residencias seleccionadas?', tieneResidencias);
-        if (!tieneResidencias) {
-          toast.error('Debes seleccionar al menos una residencia donde ofreces servicios');
-          setIsSubmitting(false);
-          return;
-        }
+      // Check for required residencia based on role
+      if (!values.residenciaId && values.role === 'client') {
+        toast.error('Debes seleccionar una residencia');
+        return;
       }
       
-      // Para cliente: residenciaId simple. Para proveedor: providerResidenciaIds.
-      let selectedResidenciaId = '';
-      
-      if (values.role === 'provider' && values.providerResidenciaIds && values.providerResidenciaIds.length > 0) {
-        // Para proveedores, tomamos la primer residencia seleccionada como principal
-        selectedResidenciaId = values.providerResidenciaIds[0] || '';
-        const selectedResidenciaNames = residencias
-          .filter(r => values.providerResidenciaIds!.includes(r.id))
-          .map(r => r.name);
-        console.log('[Register] Residencias seleccionadas para proveedor:', selectedResidenciaNames);
+      if (!values.providerResidenciaIds?.length && values.role === 'provider') {
+        toast.error('Debes seleccionar al menos una residencia');
+        return;
       }
-      
-      if (values.role === 'client' && values.residenciaId) {
-        selectedResidenciaId = values.residenciaId;
-        const selectedResidencia = residencias.find(r => r.id === values.residenciaId);
-        console.log('[Register] Residencia seleccionada para cliente:', selectedResidencia?.name);
-      }
+
+      // Prepare data for registration
+      const residenciaId = values.role === 'provider' 
+        ? values.providerResidenciaIds?.[0] 
+        : values.residenciaId;
 
       const userData = {
         name: values.name,
         phone: values.phone,
         role: values.role,
-        residenciaId: selectedResidenciaId,
-        offerResidencias: values.role === 'provider' 
-          ? values.providerResidenciaIds 
-          : [values.residenciaId].filter(Boolean)
+        residenciaId: residenciaId,
+        offerResidencias: values.role === 'provider' ? values.providerResidenciaIds : [residenciaId]
       };
-      
-      console.log('[Register] Enviando datos de registro a useSupabaseAuth');
-      console.log('[Register] Datos de usuario:', JSON.stringify(userData, null, 2));
 
-      // Intentar registrar al usuario
       const result = await signUp(values.email, values.password, userData);
       
-      console.log('[Register] Resultado del registro:', { 
-        success: !!result.data, 
-        error: result.error ? result.error.message : null 
-      });
-      
       if (result.error) {
-        console.error('[Register] Error en registro:', result.error);
-        setRegistrationError(result.error.message || 'Ha ocurrido un error durante el registro');
-        toast.error(`Error en registro: ${result.error.message || 'Ha ocurrido un error durante el registro'}`);
+        setRegistrationError(result.error.message);
+        toast.error(result.error.message);
       } else {
-        console.log('[Register] Registro exitoso, redirigiendo a /payment-setup');
         toast.success('¡Cuenta creada exitosamente!');
         navigate('/payment-setup', { 
           state: { fromClientView: values.role === 'client' } 
         });
       }
     } catch (error: any) {
-      console.error('[Register] Error en el proceso de registro:', error);
-      setRegistrationError(error.message || 'Ha ocurrido un error inesperado');
-      toast.error(`Error: ${error.message || 'Ha ocurrido un error inesperado'}`);
+      setRegistrationError(error.message);
+      toast.error(error.message);
     } finally {
-      console.log('[Register] Finalizando proceso de envío');
       setIsSubmitting(false);
     }
   };
@@ -299,13 +245,6 @@ const Register = () => {
                             disabled={isSubmitting}
                           />
                         </label>
-                        {profilePreview && (
-                          <img
-                            src={profilePreview}
-                            alt="Vista previa"
-                            className="h-12 w-12 rounded-full ring-2 object-cover"
-                          />
-                        )}
                       </div>
                     </FormControl>
                     <FormMessage />
