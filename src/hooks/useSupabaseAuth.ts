@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,61 +101,47 @@ export const useSupabaseAuth = () => {
     console.log('Intentando crear perfil para el usuario:', userId);
     console.log('Datos de perfil:', JSON.stringify(userData, null, 2));
     
-    const profileObject = {
-      id: userId,
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone || '',
-      role: userData.role,
-      residencia_id: userData.residenciaId || null,
-      has_payment_method: false
-    };
-    
-    console.log('Objeto de perfil a insertar:', JSON.stringify(profileObject, null, 2));
-    
     try {
-      // MÉTODO 1: Insert directo a la tabla profiles
-      console.log('MÉTODO 1: Insertando directamente en la tabla profiles');
+      // Crear objeto de perfil para inserción
+      const profileObject = {
+        id: userId,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone || '',
+        role: userData.role,
+        residencia_id: userData.residenciaId || null,
+        has_payment_method: false
+      };
+      
+      console.log('Objeto de perfil a insertar:', JSON.stringify(profileObject, null, 2));
+      
+      // Insertar directamente en la tabla profiles
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .insert([profileObject])
-        .select();
+        .insert([profileObject]);
 
       if (profileError) {
-        console.error('ERROR MÉTODO 1:', profileError);
-        console.error('Código de error:', profileError.code);
-        console.error('Mensaje de error:', profileError.message);
-        console.error('Detalles:', profileError.details);
+        console.error('Error al insertar perfil:', profileError);
         
-        // MÉTODO 2: Usar la función RPC
-        console.log('MÉTODO 2: Intentando con función RPC create_user_profile');
-        try {
-          const { error: rpcError } = await supabase.rpc(
-            'create_user_profile',
-            {
-              user_id: userId,
-              user_name: userData.name,
-              user_email: userData.email || '',
-              user_phone: userData.phone || '',
-              user_role: userData.role,
-              user_residencia_id: userData.residenciaId || null
-            }
-          );
-          
-          if (rpcError) {
-            console.error('ERROR MÉTODO 2 (RPC):', rpcError);
-            throw rpcError;
+        // Intento alternativo usando RPC
+        const { error: rpcError } = await supabase.rpc(
+          'create_user_profile',
+          {
+            user_id: userId,
+            user_name: userData.name,
+            user_email: userData.email || '',
+            user_phone: userData.phone || '',
+            user_role: userData.role,
+            user_residencia_id: userData.residenciaId || null
           }
-          
-          console.log('MÉTODO 2: Perfil creado con éxito mediante RPC');
-          return true;
-        } catch (error: any) {
-          console.error('ERROR MÉTODO 2 (catch):', error);
-          return false;
+        );
+        
+        if (rpcError) {
+          console.error('Error en método RPC:', rpcError);
+          throw rpcError;
         }
       }
 
-      console.log('MÉTODO 1: Perfil creado con éxito:', profileData);
       return true;
     } catch (error: any) {
       console.error('Error general al crear perfil:', error);
@@ -163,23 +150,19 @@ export const useSupabaseAuth = () => {
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
-    console.log('Inicio de signUp - email:', email);
-    console.log('Inicio de signUp - userData:', JSON.stringify(userData));
+    console.log('[signUp] Iniciando registro con email:', email);
+    console.log('[signUp] Datos de usuario:', JSON.stringify(userData, null, 2));
+    
+    if (isLoading) {
+      console.log('Ya hay una solicitud en curso, ignorando');
+      return { data: null, error: new Error('Ya hay una solicitud en curso') };
+    }
+    
     setIsLoading(true);
     
     try {
-      // 1. Primero registrar el usuario en Authentication
-      console.log('Enviando solicitud de registro a Supabase Auth con datos:', {
-        email: email,
-        userData: {
-          name: userData.name,
-          role: userData.role,
-          phone: userData.phone,
-          residenciaId: userData.residenciaId
-        }
-      });
-      
-      console.log('ANTES de supabase.auth.signUp');
+      // 1. Registrar el usuario en Auth
+      console.log('[signUp] Enviando solicitud a Supabase Auth');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -188,47 +171,49 @@ export const useSupabaseAuth = () => {
             name: userData.name,
             role: userData.role,
             phone: userData.phone,
-            residenciaId: userData.residenciaId,
-            email: email
-          },
+            residenciaId: userData.residenciaId
+          }
         }
       });
-      console.log('DESPUÉS de supabase.auth.signUp - resultado:', { data: !!data, error: error });
+      console.log('[signUp] Respuesta de signUp:', { success: !!data.user, error: error });
 
       if (error) {
-        console.error('Error en signUp:', error);
-        throw error;
+        console.error('[signUp] Error en registro:', error);
+        toast.error(error.message || 'Error durante el registro');
+        return { data: null, error };
       }
 
       if (!data.user) {
-        console.error('No se recibió objeto de usuario tras registro');
-        throw new Error('No se pudo crear el usuario');
+        console.error('[signUp] No se recibió objeto de usuario tras registro');
+        const noUserError = new Error('No se pudo crear el usuario');
+        toast.error('No se pudo crear el usuario');
+        return { data: null, error: noUserError };
       }
 
-      console.log('Usuario creado exitosamente:', data.user);
+      console.log('[signUp] Usuario creado exitosamente:', data.user.id);
 
-      // 2. Crear el perfil una vez que tengamos el usuario
-      console.log('ANTES de createUserProfile');
+      // 2. Crear el perfil
+      console.log('[signUp] Creando perfil para usuario:', data.user.id);
       const profileSuccess = await createUserProfile(data.user.id, {
         ...userData,
         email: email
       });
-      console.log('DESPUÉS de createUserProfile - éxito:', profileSuccess);
+      console.log('[signUp] Resultado de creación de perfil:', profileSuccess);
 
       if (!profileSuccess) {
-        console.warn('Se creó el usuario pero hubo problemas al crear el perfil');
+        console.warn('[signUp] Se creó el usuario pero hubo problemas al crear el perfil');
       }
 
-      console.log('Registro completado con éxito');
+      console.log('[signUp] Registro completado con éxito');
       toast.success('Registro exitoso! Por favor verifica tu email para iniciar sesión.');
       
       return { data, error: null };
     } catch (error: any) {
-      console.error('Error en el proceso de registro:', error);
-      toast.error(error.message || 'Error durante el registro');
+      console.error('[signUp] Error crítico en el proceso de registro:', error);
+      toast.error(error.message || 'Error inesperado durante el registro');
       return { data: null, error };
     } finally {
-      console.log('Setting isLoading to false');
+      console.log('[signUp] Finalizando proceso de registro');
       setIsLoading(false);
     }
   };

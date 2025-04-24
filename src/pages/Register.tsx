@@ -28,6 +28,11 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   profileImage: z.any().optional() // será validado/manual para el proveedor
 }).refine(
+  (data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  }
+).refine(
   (data) =>
     (data.role === 'client' && !!data.residenciaId) ||
     (data.role === 'provider' && data.providerResidenciaIds && data.providerResidenciaIds.length > 0),
@@ -42,10 +47,7 @@ const registerSchema = z.object({
     message: "Debes adjuntar una foto de perfil como proveedor",
     path: ["profileImage"],
   }
-).refine((data) => data.password === data.confirmPassword, {
-  message: "Las contraseñas no coinciden",
-  path: ["confirmPassword"],
-});
+);
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -111,61 +113,62 @@ const Register = () => {
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
-    console.log('INICIO: Formulario enviado con valores:', JSON.stringify(values, (key, value) => {
-      // No mostrar el archivo de imagen completo en el log, solo un indicador
+    console.log('[Register] Inicio de envío del formulario');
+    console.log('[Register] Valores del formulario:', JSON.stringify(values, (key, value) => {
       if (key === 'profileImage' && value instanceof File) return `[File: ${value.name}]`;
       return value;
-    }));
-    
-    // Depuración: Verificando validaciones específicas para proveedores
-    if (values.role === 'provider') {
-      console.log('Modo proveedor detectado');
-      console.log('Imagen de perfil:', values.profileImage ? 'Presente' : 'Ausente');
-      console.log('Residencias seleccionadas:', values.providerResidenciaIds);
-      
-      // Verificar validación de imagen
-      const tieneImagen = values.profileImage && typeof values.profileImage !== "string";
-      console.log('¿Tiene imagen válida?', tieneImagen);
-      
-      // Verificar validación de residencias
-      const tieneResidencias = values.providerResidenciaIds && values.providerResidenciaIds.length > 0;
-      console.log('¿Tiene residencias seleccionadas?', tieneResidencias);
-      
-      if (!tieneImagen || !tieneResidencias) {
-        console.warn('Falló validación de proveedor:', !tieneImagen ? 'Falta imagen' : 'Faltan residencias');
-        return; // Detener la ejecución si no cumple con los requisitos
-      }
-    }
-    
-    setRegistrationError(null);
+    }, 2));
     
     if (isSubmitting) {
-      console.log('Ya hay una solicitud en curso, ignorando el envío');
+      console.log('[Register] Ya hay una solicitud en curso, ignorando');
       return;
     }
     
     try {
-      console.log('ANTES de setIsSubmitting(true)');
       setIsSubmitting(true);
-      console.log('DESPUÉS de setIsSubmitting(true), valor actual:', isSubmitting);
-      console.log('Iniciando proceso de registro...');
+      setRegistrationError(null);
+      
+      // Verificar validaciones específicas
+      console.log('[Register] Verificando validaciones específicas');
+      
+      if (values.role === 'provider') {
+        console.log('[Register] Modo proveedor detectado');
+        
+        // Verificar imagen de perfil
+        const tieneImagen = values.profileImage && typeof values.profileImage !== "string";
+        console.log('[Register] ¿Tiene imagen válida?', tieneImagen);
+        if (!tieneImagen) {
+          toast.error('Debes adjuntar una foto de perfil como proveedor');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Verificar residencias seleccionadas
+        const tieneResidencias = values.providerResidenciaIds && values.providerResidenciaIds.length > 0;
+        console.log('[Register] ¿Tiene residencias seleccionadas?', tieneResidencias);
+        if (!tieneResidencias) {
+          toast.error('Debes seleccionar al menos una residencia donde ofreces servicios');
+          setIsSubmitting(false);
+          return;
+        }
+      }
       
       // Para cliente: residenciaId simple. Para proveedor: providerResidenciaIds.
       let selectedResidenciaId = '';
-      let selectedResidenciaNames: string[] = [];
       
-      if (values.role === 'provider' && values.providerResidenciaIds) {
+      if (values.role === 'provider' && values.providerResidenciaIds && values.providerResidenciaIds.length > 0) {
         // Para proveedores, tomamos la primer residencia seleccionada como principal
         selectedResidenciaId = values.providerResidenciaIds[0] || '';
-        selectedResidenciaNames = residencias.filter(r => values.providerResidenciaIds!.includes(r.id)).map(r => r.name);
-        console.log('Residencias seleccionadas para proveedor:', selectedResidenciaNames);
+        const selectedResidenciaNames = residencias
+          .filter(r => values.providerResidenciaIds!.includes(r.id))
+          .map(r => r.name);
+        console.log('[Register] Residencias seleccionadas para proveedor:', selectedResidenciaNames);
       }
       
       if (values.role === 'client' && values.residenciaId) {
         selectedResidenciaId = values.residenciaId;
         const selectedResidencia = residencias.find(r => r.id === values.residenciaId);
-        selectedResidenciaNames = [selectedResidencia?.name || ''];
-        console.log('Residencia seleccionada para cliente:', selectedResidenciaNames[0]);
+        console.log('[Register] Residencia seleccionada para cliente:', selectedResidencia?.name);
       }
 
       const userData = {
@@ -173,37 +176,40 @@ const Register = () => {
         phone: values.phone,
         role: values.role,
         residenciaId: selectedResidenciaId,
-        residenciaName: selectedResidenciaNames[0] || '',
-        offerResidencias: values.role === 'provider' ? values.providerResidenciaIds : [values.residenciaId].filter(Boolean)
+        offerResidencias: values.role === 'provider' 
+          ? values.providerResidenciaIds 
+          : [values.residenciaId].filter(Boolean)
       };
       
-      console.log('ANTES de signUp - Enviando datos de usuario:', JSON.stringify(userData));
-      console.log('Email:', values.email);
-      console.log('Contraseña longitud:', values.password.length);
+      console.log('[Register] Enviando datos de registro a useSupabaseAuth');
+      console.log('[Register] Datos de usuario:', JSON.stringify(userData, null, 2));
 
       // Intentar registrar al usuario
       const result = await signUp(values.email, values.password, userData);
-      console.log('DESPUÉS de signUp - Resultado:', result);
+      
+      console.log('[Register] Resultado del registro:', { 
+        success: !!result.data, 
+        error: result.error ? result.error.message : null 
+      });
       
       if (result.error) {
-        console.error('Error en registro:', result.error);
+        console.error('[Register] Error en registro:', result.error);
         setRegistrationError(result.error.message || 'Ha ocurrido un error durante el registro');
         toast.error(`Error en registro: ${result.error.message || 'Ha ocurrido un error durante el registro'}`);
       } else {
-        console.log('Registro exitoso, redirigiendo a /payment-setup');
+        console.log('[Register] Registro exitoso, redirigiendo a /payment-setup');
         toast.success('¡Cuenta creada exitosamente!');
         navigate('/payment-setup', { 
           state: { fromClientView: values.role === 'client' } 
         });
       }
     } catch (error: any) {
-      console.error('Error en el proceso de registro:', error);
+      console.error('[Register] Error en el proceso de registro:', error);
       setRegistrationError(error.message || 'Ha ocurrido un error inesperado');
       toast.error(`Error: ${error.message || 'Ha ocurrido un error inesperado'}`);
     } finally {
-      console.log('Ejecutando finally block');
+      console.log('[Register] Finalizando proceso de envío');
       setIsSubmitting(false);
-      console.log('isSubmitting establecido a false');
     }
   };
 
@@ -220,10 +226,7 @@ const Register = () => {
         )}
         
         <Form {...form}>
-          <form onSubmit={(e) => {
-            console.log('Formulario enviado, ejecutando onSubmit');
-            form.handleSubmit(onSubmit)(e);
-          }} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="role"
@@ -231,10 +234,11 @@ const Register = () => {
                 <FormItem>
                   <FormLabel>Tipo de usuario</FormLabel>
                   <FormControl>
-                    <Select onValueChange={(value) => {
-                      console.log('Rol cambiado a:', value);
-                      field.onChange(value);
-                    }} value={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={isSubmitting}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -249,6 +253,7 @@ const Register = () => {
               )}
             />
 
+            {/* Nombre */}
             <FormField
               control={form.control}
               name="name"
@@ -262,6 +267,7 @@ const Register = () => {
                         placeholder="Tu nombre completo"
                         className="pl-10"
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </div>
                   </FormControl>
@@ -282,7 +288,7 @@ const Register = () => {
                     </FormLabel>
                     <FormControl>
                       <div className="flex gap-4 items-center">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className={`flex items-center gap-2 ${!isSubmitting ? 'cursor-pointer' : 'opacity-70'}`}>
                           <Image className="h-6 w-6 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">Adjuntar imagen</span>
                           <input
@@ -290,6 +296,7 @@ const Register = () => {
                             accept="image/*"
                             className="hidden"
                             onChange={handleImageChange}
+                            disabled={isSubmitting}
                           />
                         </label>
                         {profilePreview && (
@@ -307,6 +314,7 @@ const Register = () => {
               />
             )}
 
+            {/* Email */}
             <FormField
               control={form.control}
               name="email"
@@ -320,6 +328,7 @@ const Register = () => {
                         placeholder="correo@ejemplo.com"
                         className="pl-10"
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </div>
                   </FormControl>
@@ -328,6 +337,7 @@ const Register = () => {
               )}
             />
 
+            {/* Teléfono */}
             <FormField
               control={form.control}
               name="phone"
@@ -341,6 +351,7 @@ const Register = () => {
                         placeholder="+52 1234567890"
                         className="pl-10"
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </div>
                   </FormControl>
@@ -349,7 +360,7 @@ const Register = () => {
               )}
             />
 
-            {/* Residencias */}
+            {/* Residencias - Cliente */}
             {role === 'client' && (
               <FormField
                 control={form.control}
@@ -360,7 +371,11 @@ const Register = () => {
                     <FormControl>
                       <div className="relative">
                         <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || ''}
+                          disabled={isSubmitting}
+                        >
                           <SelectTrigger className="pl-10">
                             <SelectValue placeholder="Elija una residencia" />
                           </SelectTrigger>
@@ -379,6 +394,8 @@ const Register = () => {
                 )}
               />
             )}
+
+            {/* Residencias - Proveedor */}
             {role === 'provider' && (
               <FormField
                 control={form.control}
@@ -400,6 +417,7 @@ const Register = () => {
                                 field.onChange(checkedArr.filter((id: string) => id !== residencia.id));
                               }
                             }}
+                            disabled={isSubmitting}
                           />
                           <label htmlFor={`residencia-checkbox-${residencia.id}`} className="text-sm font-medium">
                             {residencia.name}
@@ -413,6 +431,7 @@ const Register = () => {
               />
             )}
 
+            {/* Contraseña */}
             <FormField
               control={form.control}
               name="password"
@@ -427,6 +446,7 @@ const Register = () => {
                         placeholder="••••••"
                         className="pl-10"
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </div>
                   </FormControl>
@@ -435,6 +455,7 @@ const Register = () => {
               )}
             />
 
+            {/* Confirmar Contraseña */}
             <FormField
               control={form.control}
               name="confirmPassword"
@@ -449,6 +470,7 @@ const Register = () => {
                         placeholder="••••••"
                         className="pl-10"
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </div>
                   </FormControl>
@@ -457,11 +479,11 @@ const Register = () => {
               )}
             />
 
+            {/* Botón de envío */}
             <Button 
               type="submit" 
               className="w-full bg-navy text-white hover:bg-navy-hover"
               disabled={isSubmitting}
-              onClick={() => console.log('Botón de registro clickeado')}
             >
               {isSubmitting ? (
                 <>Creando cuenta...</>
