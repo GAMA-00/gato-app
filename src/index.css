@@ -175,6 +175,10 @@
   .text-heading {
     color: hsl(var(--heading));
   }
+
+  .text-subtitle {
+    color: hsl(var(--subtitle));
+  }
 }
 
 /* Calendar specific styles */
