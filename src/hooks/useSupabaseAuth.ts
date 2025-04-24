@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,18 +92,23 @@ export const useSupabaseAuth = () => {
     };
   }, [setAuthUser, clearAuthUser]);
 
+  // Función simplificada para crear perfiles, con mejor manejo de errores
   const createUserProfile = async (userId: string, userData: any) => {
     try {
+      console.log('Creando perfil para usuario:', userId, userData);
       const profileObject = {
         id: userId,
         name: userData.name,
         email: userData.email,
         phone: userData.phone || '',
         role: userData.role,
-        residencia_id: userData.residenciaId || null,
+        residencia_id: userData.role === 'provider' 
+          ? null 
+          : userData.residenciaId || null,
         has_payment_method: false
       };
       
+      console.log('Objeto de perfil a insertar:', profileObject);
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([profileObject]);
@@ -111,24 +117,29 @@ export const useSupabaseAuth = () => {
         console.error('Error al crear perfil:', profileError);
         throw profileError;
       }
-
+      
+      console.log('Perfil creado exitosamente');
       return true;
     } catch (error: any) {
-      console.error('Error al crear perfil:', error);
+      console.error('Error en createUserProfile:', error);
       throw error;
     }
   };
 
+  // Versión mejorada de signUp con mejor manejo de errores
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Iniciando registro con datos:', { email, ...userData });
     
     if (isLoading) {
+      console.log('Ya hay una solicitud en curso, abortando');
       throw new Error('Ya hay una solicitud en curso');
     }
     
     setIsLoading(true);
     
     try {
+      // 1. Creamos el usuario en auth.users
+      console.log('Enviando solicitud de registro a Supabase...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -136,26 +147,46 @@ export const useSupabaseAuth = () => {
           data: {
             name: userData.name,
             role: userData.role,
-            phone: userData.phone,
-            residenciaId: userData.residenciaId
+            phone: userData.phone
           }
         }
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('No se pudo crear el usuario');
+      if (error) {
+        console.error('Error en supabase.auth.signUp:', error);
+        throw error;
+      }
+      
+      if (!data.user) {
+        console.error('No se pudo crear el usuario (data.user es null)');
+        throw new Error('No se pudo crear el usuario');
+      }
+      
+      console.log('Usuario creado exitosamente:', data.user.id);
 
+      // 2. Creamos el perfil en profiles
+      console.log('Creando perfil para el usuario...');
       await createUserProfile(data.user.id, {
         ...userData,
         email: email
       });
 
+      console.log('Proceso de registro completado exitosamente');
       toast.success('Registro exitoso! Por favor verifica tu email para iniciar sesión.');
       return { data, error: null };
       
     } catch (error: any) {
-      console.error('Error en registro:', error);
-      toast.error(error.message || 'Error durante el registro');
+      console.error('Error en proceso de registro:', error);
+      
+      // Mensajes de error específicos y más amigables
+      let errorMsg = error.message;
+      if (error.message.includes('email rate limit')) {
+        errorMsg = 'Se ha excedido el límite de emails. Intenta con otro email o espera unos minutos.';
+      } else if (error.message.includes('User already registered')) {
+        errorMsg = 'Este email ya está registrado. Intenta iniciar sesión.';
+      }
+      
+      toast.error(errorMsg || 'Error durante el registro');
       return { data: null, error };
     } finally {
       setIsLoading(false);

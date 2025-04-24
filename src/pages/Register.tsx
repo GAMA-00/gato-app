@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -16,6 +17,7 @@ import { Residencia } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
+// Esquema de validación simplificado que trata de manera similar a clientes y proveedores
 const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
@@ -24,27 +26,26 @@ const registerSchema = z.object({
   providerResidenciaIds: z.array(z.string()).optional(),
   residenciaId: z.string().min(1, 'Debe seleccionar una residencia').optional(), // Para clientes
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirmPassword: z.string(),
-  profileImage: z.any().optional() // será validado/manual para el proveedor
+  confirmPassword: z.string()
 }).refine(
   (data) => data.password === data.confirmPassword, {
     message: "Las contraseñas no coinciden",
     path: ["confirmPassword"],
   }
 ).refine(
-  (data) =>
-    (data.role === 'client' && !!data.residenciaId) ||
-    (data.role === 'provider' && data.providerResidenciaIds && data.providerResidenciaIds.length > 0),
+  (data) => {
+    // Simplificamos las validaciones para que sean similares para ambos roles
+    if (data.role === 'client') {
+      return !!data.residenciaId;
+    }
+    if (data.role === 'provider') {
+      return !!data.providerResidenciaIds && data.providerResidenciaIds.length > 0;
+    }
+    return false;
+  },
   {
     message: "Debe seleccionar al menos una residencia",
-    path: ["providerResidenciaIds"],
-  }
-).refine(
-  (data) =>
-    data.role === 'client' || (data.role === 'provider' && !!data.profileImage && typeof data.profileImage !== "string"),
-  {
-    message: "Debes adjuntar una foto de perfil como proveedor",
-    path: ["profileImage"],
+    path: ["residenciaId"],
   }
 );
 
@@ -94,41 +95,38 @@ const Register = () => {
       residenciaId: '',
       password: '',
       confirmPassword: '',
-      profileImage: undefined,
     }
   });
 
   // Watch role to switch form elements
   const role = form.watch('role');
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      console.log('Imagen seleccionada:', file.name, 'tamaño:', file.size);
-      form.setValue('profileImage', file, { shouldValidate: true });
-    }
-  };
-
   const onSubmit = async (values: RegisterFormValues) => {
-    if (isSubmitting) return;
+    console.log('onSubmit llamado con valores:', values);
+    if (isSubmitting) {
+      console.log('Ya hay un envío en curso, ignorando');
+      return;
+    }
     
     try {
       setIsSubmitting(true);
       setRegistrationError(null);
       
-      // Check for required residencia based on role
-      if (!values.residenciaId && values.role === 'client') {
+      console.log('Validando formulario...');
+      // Validar residencias según el rol
+      if (role === 'client' && !values.residenciaId) {
         toast.error('Debes seleccionar una residencia');
         return;
       }
       
-      if (!values.providerResidenciaIds?.length && values.role === 'provider') {
+      if (role === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
         toast.error('Debes seleccionar al menos una residencia');
         return;
       }
 
-      // Prepare data for registration
-      const residenciaId = values.role === 'provider' 
+      // Prepare data for registration - simplificando para que sea similar para ambos roles
+      console.log('Preparando datos para registro...');
+      const residenciaId = role === 'provider' 
         ? values.providerResidenciaIds?.[0] 
         : values.residenciaId;
 
@@ -137,21 +135,26 @@ const Register = () => {
         phone: values.phone,
         role: values.role,
         residenciaId: residenciaId,
-        offerResidencias: values.role === 'provider' ? values.providerResidenciaIds : [residenciaId]
       };
 
+      console.log('Datos de usuario preparados:', userData);
+      console.log('Iniciando proceso de registro con Supabase...');
+      
       const result = await signUp(values.email, values.password, userData);
       
       if (result.error) {
+        console.error('Error durante el registro:', result.error);
         setRegistrationError(result.error.message);
         toast.error(result.error.message);
       } else {
+        console.log('Registro exitoso!');
         toast.success('¡Cuenta creada exitosamente!');
         navigate('/payment-setup', { 
           state: { fromClientView: values.role === 'client' } 
         });
       }
     } catch (error: any) {
+      console.error('Error capturado en onSubmit:', error);
       setRegistrationError(error.message);
       toast.error(error.message);
     } finally {
@@ -221,37 +224,6 @@ const Register = () => {
                 </FormItem>
               )}
             />
-
-            {/* Foto de perfil SOLO proveedor */}
-            {role === 'provider' && (
-              <FormField
-                control={form.control}
-                name="profileImage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Foto de Perfil
-                    </FormLabel>
-                    <FormControl>
-                      <div className="flex gap-4 items-center">
-                        <label className={`flex items-center gap-2 ${!isSubmitting ? 'cursor-pointer' : 'opacity-70'}`}>
-                          <Image className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Adjuntar imagen</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleImageChange}
-                            disabled={isSubmitting}
-                          />
-                        </label>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             {/* Email */}
             <FormField
