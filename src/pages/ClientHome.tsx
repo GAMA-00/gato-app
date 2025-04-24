@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Home, Scissors, Dog, Dumbbell, Book, Wrench } from 'lucide-react';
-import { NavigationMenu } from '@/components/ui/navigation-menu';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -46,18 +44,12 @@ const ClientHome = () => {
     }
   }, []);
 
-  // Filter recurring services (those the user has booked multiple times)
   const recurringServices = services.filter(service => {
-    // This is a placeholder. In a real implementation, we would:
-    // 1. Get all of the user's appointments
-    // 2. Count how many times each service appears
-    // 3. If a service appears more than once, it's recurring
-    // For now, using the placeholder logic
     return service.subcategoryId === 'home' || service.category === 'home';
   });
 
   return (
-    <PageContainer title="Available Services">
+    <PageContainer title="Servicios Disponibles">
       <Tabs 
         defaultValue="all" 
         className="w-full" 
@@ -66,10 +58,10 @@ const ClientHome = () => {
       >
         <TabsList className="mb-4 w-full">
           <TabsTrigger value="all" className="flex-1">
-            All Services
+            Todos los servicios
           </TabsTrigger>
           <TabsTrigger value="recurring" className="flex items-center gap-2 flex-1">
-            Recurring
+            Recurrente
             <RecurringServicesIndicator count={recurringServices.length} />
           </TabsTrigger>
         </TabsList>
