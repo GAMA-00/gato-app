@@ -149,7 +149,7 @@ const Register = () => {
         if (result.error.message.includes('teléfono ya está en uso')) {
           toast.error('Este número de teléfono ya está registrado. Por favor, utilice otro número.');
         } else {
-          toast.error(result.error.message || 'Error durante el registro');
+          toast.error('Error durante el registro: ' + result.error.message);
         }
         
         setRegistrationError(result.error.message || "Error desconocido");
@@ -163,7 +163,7 @@ const Register = () => {
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
       setRegistrationError(error.message || "Error desconocido durante el registro");
-      toast.error(error.message || "Error durante el registro");
+      toast.error('Error durante el registro: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }

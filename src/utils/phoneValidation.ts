@@ -3,6 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const checkPhoneExists = async (phone: string): Promise<boolean> => {
   try {
+    if (!phone) {
+      return false;
+    }
+    
     console.log('Checking if phone exists:', phone);
     
     const { data: profiles, error } = await supabase

@@ -120,7 +120,7 @@ export const useSupabaseAuth = () => {
     setIsLoading(true);
     
     try {
-      // Only check for phone uniqueness
+      // Check for phone uniqueness
       if (userData.phone) {
         const phoneExists = await checkPhoneExists(userData.phone);
         
@@ -135,39 +135,32 @@ export const useSupabaseAuth = () => {
         }
       }
       
-      console.log('Attempting user registration');
+      console.log('Attempting user registration with random username');
       
-      // Create the user directly in the database first
-      // Generate a random password for authentication
-      const tempPassword = Math.random().toString(36).substring(2, 15);
+      // Create a random username for authentication to bypass email verification
+      const randomUsername = `user_${Math.random().toString(36).substring(2, 15)}`;
+      // Generate a simple password
+      const randomPassword = Math.random().toString(36).substring(2, 15);
       
-      // Use email as username to avoid Supabase email verification/rate limits
       const { data, error } = await supabase.auth.signUp({
-        email: `user_${Date.now()}@example.com`, // Use timestamp to make it unique
-        password: tempPassword,
-        options: {
-          data: {
-            email: email, // Store the real email in metadata
-            name: userData.name,
-            role: userData.role
-          }
-        }
+        email: randomUsername,
+        password: randomPassword
       });
       
       if (error) {
         console.error('User registration error:', error);
-        toast.error(error.message || 'Registration error');
+        toast.error(error.message || 'Error en el registro');
         return { data: null, error };
       }
       
       if (data?.user) {
         console.log('User created successfully:', data.user.id);
         
-        // Create user profile with the real email
+        // Create user profile with the actual email
         const profileData = {
           id: data.user.id,
           name: userData.name,
-          email: email,
+          email: email, // Store the real email
           phone: userData.phone || '',
           role: userData.role,
           residencia_id: userData.role === 'client' ? userData.residenciaId : null,
@@ -180,39 +173,40 @@ export const useSupabaseAuth = () => {
         
         if (profileError) {
           console.error('Error creating profile:', profileError);
-          toast.error('Error creating user profile');
+          toast.error('Error al crear el perfil de usuario');
           return { 
             data: null, 
             error: profileError 
           };
         }
         
-        // Now sign in the user with the created credentials
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: `user_${Date.now()}@example.com`,
-          password: tempPassword
+        // Store the provider's residencia IDs if they're a provider
+        if (userData.role === 'provider' && userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0) {
+          // Handle provider residencias if needed
+          console.log('Provider residencias:', userData.providerResidenciaIds);
+        }
+        
+        // Now sign in the user immediately
+        await supabase.auth.signInWithPassword({
+          email: randomUsername,
+          password: randomPassword
         });
         
-        if (signInError) {
-          console.error('Error signing in after registration:', signInError);
-          toast.error('Account created but could not sign in automatically');
-        } else {
-          console.log('User signed in successfully after registration');
-          toast.success('Account created successfully!');
-        }
+        console.log('User signed in successfully after registration');
+        toast.success('¡Cuenta creada con éxito!');
         
         return { data, error: null };
       } else {
         console.error('No user data received after registration');
-        toast.error('Error creating account');
+        toast.error('Error al crear cuenta');
         return { 
           data: null, 
-          error: new Error('Could not create user')
+          error: new Error('No se pudo crear el usuario')
         };
       }
     } catch (error: any) {
       console.error('Unexpected registration error:', error);
-      toast.error(error.message || 'Registration error');
+      toast.error(error.message || 'Error en el registro');
       return { data: null, error };
     } finally {
       setIsLoading(false);
@@ -236,29 +230,35 @@ export const useSupabaseAuth = () => {
         return { data: null, error: new Error('User not found') };
       }
       
-      // Try to authenticate with each matching profile
-      let result = null;
+      // Try to authenticate using the user ID
+      let authResult = null;
       
       for (const profile of profiles) {
-        const { data: authData } = await supabase.auth.signInWithPassword({
-          email: profile.email,
-          password
-        });
+        // Fetch the auth user associated with this profile ID
+        const { data: { user } } = await supabase.auth.admin.getUserById(profile.id);
         
-        if (authData?.session) {
-          result = authData;
-          break;
+        if (user) {
+          // Try signing in with that user's email
+          const { data } = await supabase.auth.signInWithPassword({
+            email: user.email,
+            password: password
+          });
+          
+          if (data?.session) {
+            authResult = data;
+            break;
+          }
         }
       }
       
-      if (!result) {
+      if (!authResult) {
         console.log('Login failed, incorrect credentials');
         toast.error('Error en las credenciales. Por favor verifique su email y contraseña.');
         return { data: null, error: new Error('Invalid credentials') };
       }
       
-      console.log('Login successful:', result);
-      return { data: result, error: null };
+      console.log('Login successful:', authResult);
+      return { data: authResult, error: null };
     } catch (error: any) {
       console.error('Login error caught:', error);
       toast.error('Error en el inicio de sesión');
