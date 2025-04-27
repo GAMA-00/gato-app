@@ -10,18 +10,15 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building, Upload, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Residencia } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent } from '@/components/ui/card';
 
-// Schema for client and provider validation
+// Schema for client and provider validation - simplified
 const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
@@ -29,15 +26,8 @@ const registerSchema = z.object({
   role: z.enum(['client', 'provider']),
   providerResidenciaIds: z.array(z.string()).optional(),
   residenciaId: z.string().optional(),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirmPassword: z.string(),
-  avatarUrl: z.string().optional()
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
 }).refine(
-  (data) => data.password === data.confirmPassword, {
-    message: "Las contraseñas no coinciden",
-    path: ["confirmPassword"],
-  }
-).refine(
   (data) => {
     if (data.role === 'client') {
       return !!data.residenciaId;
@@ -61,8 +51,6 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [residencias, setResidencias] = useState<Residencia[]>([]);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loadingResidencias, setLoadingResidencias] = useState(true);
   const { user } = useAuth();
   
@@ -111,38 +99,12 @@ const Register = () => {
       role: 'client',
       providerResidenciaIds: [],
       residenciaId: '',
-      password: '',
-      confirmPassword: '',
-      avatarUrl: ''
+      password: ''
     }
   });
 
   // Watch role to switch form elements
   const role = form.watch('role');
-
-  // Handle avatar selection
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('La imagen no debe superar los 5MB');
-      return;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('El archivo debe ser una imagen');
-      return;
-    }
-
-    setAvatarFile(file);
-    
-    // Create URL for image preview
-    const previewUrl = URL.createObjectURL(file);
-    setAvatarPreview(previewUrl);
-  };
 
   const onSubmit = async (values: RegisterFormValues) => {
     if (isSubmitting) {
@@ -157,13 +119,11 @@ const Register = () => {
       // Basic validation
       if (role === 'client' && !values.residenciaId) {
         toast.error('Debes seleccionar una residencia');
-        setIsSubmitting(false);
         return;
       }
       
       if (role === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
         toast.error('Debes seleccionar al menos una residencia');
-        setIsSubmitting(false);
         return;
       }
 
@@ -171,39 +131,35 @@ const Register = () => {
       toast.info('Iniciando registro, por favor espere...');
       console.log('Datos de registro:', values);
       
-      const dataToSend = {
-        ...values,
-        avatarFile
+      // Prepare data to send
+      const userData = {
+        name: values.name,
+        phone: values.phone,
+        role: values.role,
+        residenciaId: values.role === 'client' ? values.residenciaId : null,
+        providerResidenciaIds: values.role === 'provider' ? values.providerResidenciaIds : []
       };
       
       // Attempt registration
-      const result = await signUp(values.email, values.password, dataToSend);
+      const result = await signUp(values.email, values.password, userData);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
         
         if (result.error.message.includes('teléfono ya está en uso')) {
           toast.error('Este número de teléfono ya está registrado. Por favor, utilice otro número.');
-        } else if (result.error.message.includes('correo') || result.error.message.includes('email')) {
-          toast.error('Este correo electrónico ya está registrado. Por favor, utilice otro correo.');
         } else {
           toast.error(result.error.message || 'Error durante el registro');
         }
         
         setRegistrationError(result.error.message || "Error desconocido");
-      } else if (result.data?.session) {
-        // If we have a session, user was registered and authenticated successfully
-        console.log('Registro y autenticación exitosos!');
-        toast.success('¡Cuenta creada e iniciada sesión exitosamente!');
+      } else if (result.data?.user) {
+        // Successful registration
+        console.log('Registro exitoso!');
         navigate('/payment-setup', { 
           state: { fromClientView: values.role === 'client' } 
         });
-      } else {
-        // Successful registration but needs email confirmation or login
-        console.log('Registro exitoso, redirigiendo a login!');
-        toast.success('¡Cuenta creada! Por favor inicie sesión.');
-        navigate('/login');
-      }
+      } 
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
       setRegistrationError(error.message || "Error desconocido durante el registro");
@@ -253,41 +209,6 @@ const Register = () => {
                 </FormItem>
               )}
             />
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Foto de Perfil</label>
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Avatar className="h-20 w-20">
-                    {avatarPreview ? (
-                      <AvatarImage src={avatarPreview} alt="Avatar preview" />
-                    ) : (
-                      <AvatarFallback>
-                        <User className="h-10 w-10 text-gray-400" />
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <input
-                    type="file"
-                    id="avatar"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <label
-                  htmlFor="avatar"
-                  className="cursor-pointer inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Subir imagen
-                </label>
-              </div>
-              <p className="text-xs text-gray-500">
-                Opcional. Formatos: JPG, PNG. Máximo 5MB.
-              </p>
-            </div>
 
             <FormField
               control={form.control}
@@ -441,29 +362,6 @@ const Register = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contraseña</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="password"
-                        placeholder="••••••"
-                        className="pl-10"
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirmar Contraseña</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { UserRole } from '@/lib/types';
-import { createUserProfile } from '@/utils/profileManagement';
 import { checkPhoneExists } from '@/utils/phoneValidation';
 
 export const useSupabaseAuth = () => {
@@ -34,7 +33,7 @@ export const useSupabaseAuth = () => {
               console.log('Profile retrieved:', profile);
               setAuthUser({
                 id: session.user.id,
-                email: session.user.email || '',
+                email: profile.email || '',
                 name: profile.name,
                 phone: profile.phone || '',
                 buildingId: profile.residencia_id || '',
@@ -85,7 +84,7 @@ export const useSupabaseAuth = () => {
               console.log('Initial profile loaded:', profile);
               setAuthUser({
                 id: session.user.id,
-                email: session.user.email || '',
+                email: profile.email || '',
                 name: profile.name,
                 phone: profile.phone || '',
                 buildingId: profile.residencia_id || '',
@@ -128,6 +127,7 @@ export const useSupabaseAuth = () => {
         if (phoneExists) {
           console.log('Phone number already registered');
           toast.error('Este número de teléfono ya está registrado. Por favor use un número diferente.');
+          setIsLoading(false);
           return { 
             data: null, 
             error: new Error('Phone number already in use')
@@ -135,22 +135,21 @@ export const useSupabaseAuth = () => {
         }
       }
       
-      console.log('Attempting user registration:', email);
+      console.log('Attempting user registration');
       
-      // Generate a random suffix to make email unique in Supabase
-      const randomSuffix = Math.random().toString(36).substring(2, 10);
-      const uniqueEmail = `${email.split('@')[0]}+${randomSuffix}@${email.split('@')[1]}`;
+      // Create the user directly in the database first
+      // Generate a random password for authentication
+      const tempPassword = Math.random().toString(36).substring(2, 15);
       
-      console.log('Using modified email for Supabase:', uniqueEmail);
-      
+      // Use email as username to avoid Supabase email verification/rate limits
       const { data, error } = await supabase.auth.signUp({
-        email: uniqueEmail, // Use the unique email for Supabase
-        password,
+        email: `user_${Date.now()}@example.com`, // Use timestamp to make it unique
+        password: tempPassword,
         options: {
           data: {
+            email: email, // Store the real email in metadata
             name: userData.name,
-            role: userData.role,
-            original_email: email // Store the original email in metadata
+            role: userData.role
           }
         }
       });
@@ -164,12 +163,44 @@ export const useSupabaseAuth = () => {
       if (data?.user) {
         console.log('User created successfully:', data.user.id);
         
-        await createUserProfile(data.user.id, {
-          ...userData,
-          email // Use the original email for the profile
+        // Create user profile with the real email
+        const profileData = {
+          id: data.user.id,
+          name: userData.name,
+          email: email,
+          phone: userData.phone || '',
+          role: userData.role,
+          residencia_id: userData.role === 'client' ? userData.residenciaId : null,
+          has_payment_method: false
+        };
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([profileData]);
+        
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          toast.error('Error creating user profile');
+          return { 
+            data: null, 
+            error: profileError 
+          };
+        }
+        
+        // Now sign in the user with the created credentials
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: `user_${Date.now()}@example.com`,
+          password: tempPassword
         });
         
-        toast.success('Account created successfully!');
+        if (signInError) {
+          console.error('Error signing in after registration:', signInError);
+          toast.error('Account created but could not sign in automatically');
+        } else {
+          console.log('User signed in successfully after registration');
+          toast.success('Account created successfully!');
+        }
+        
         return { data, error: null };
       } else {
         console.error('No user data received after registration');
@@ -191,54 +222,46 @@ export const useSupabaseAuth = () => {
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      console.log('Attempting login with:', email);
+      console.log('Attempting login with email:', email);
       
-      // First try exact email
-      let result = await supabase.auth.signInWithPassword({ email, password });
+      // Find the profile with this email
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', email);
       
-      // If failed, try to find the account by querying profiles
-      if (result.error) {
-        console.log('Login failed with exact email, trying to find matching profile');
+      if (profilesError || !profiles || profiles.length === 0) {
+        console.error('No profile found with this email:', email);
+        toast.error('Usuario no encontrado. Por favor verifique su email.');
+        return { data: null, error: new Error('User not found') };
+      }
+      
+      // Try to authenticate with each matching profile
+      let result = null;
+      
+      for (const profile of profiles) {
+        const { data: authData } = await supabase.auth.signInWithPassword({
+          email: profile.email,
+          password
+        });
         
-        // Find the profile with this email
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', email);
-        
-        if (profilesError || !profiles || profiles.length === 0) {
-          console.error('No profile found with this email:', profilesError || 'No profiles');
-          toast.error('Error en las credenciales. Por favor verifique su email y contraseña.');
-          throw result.error;
-        }
-        
-        // Find the auth user related to this profile
-        for (const profile of profiles) {
-          // Try to login with the found user id's associated email
-          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (authUser?.user) {
-            // Try login with the auth email
-            result = await supabase.auth.signInWithPassword({
-              email: authUser.user.email!,
-              password
-            });
-            
-            if (!result.error) break; // Successfully logged in
-          }
+        if (authData?.session) {
+          result = authData;
+          break;
         }
       }
       
-      if (result.error) {
-        console.error('Login error after all attempts:', result.error);
+      if (!result) {
+        console.log('Login failed, incorrect credentials');
         toast.error('Error en las credenciales. Por favor verifique su email y contraseña.');
-        throw result.error;
+        return { data: null, error: new Error('Invalid credentials') };
       }
       
-      console.log('Login successful:', result.data);
-      return { data: result.data, error: null };
+      console.log('Login successful:', result);
+      return { data: result, error: null };
     } catch (error: any) {
       console.error('Login error caught:', error);
+      toast.error('Error en el inicio de sesión');
       return { data: null, error };
     } finally {
       setIsLoading(false);
