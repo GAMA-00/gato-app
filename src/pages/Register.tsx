@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 
-// Esquema de validación común para clientes y proveedores
+// Schema for client and provider validation
 const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
@@ -63,20 +63,17 @@ const Register = () => {
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [showEmailAlert, setShowEmailAlert] = useState(false);
-  const [showTipDialog, setShowTipDialog] = useState(false);
-  const [alternativeEmail, setAlternativeEmail] = useState<string | null>(null);
   const [loadingResidencias, setLoadingResidencias] = useState(true);
   const { user } = useAuth();
   
-  // Si el usuario ya está autenticado, redirigir al dashboard
+  // Redirect if user is already authenticated
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
 
-  // Cargar residencias
+  // Load residencias
   useEffect(() => {
     const fetchResidencias = async () => {
       try {
@@ -122,20 +119,19 @@ const Register = () => {
 
   // Watch role to switch form elements
   const role = form.watch('role');
-  const email = form.watch('email');
 
-  // Manejar la selección de avatar
+  // Handle avatar selection
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar el tamaño del archivo (máximo 5MB)
+    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('La imagen no debe superar los 5MB');
       return;
     }
 
-    // Validar el tipo de archivo
+    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('El archivo debe ser una imagen');
       return;
@@ -143,29 +139,9 @@ const Register = () => {
 
     setAvatarFile(file);
     
-    // Crear una URL para previsualizar la imagen
+    // Create URL for image preview
     const previewUrl = URL.createObjectURL(file);
     setAvatarPreview(previewUrl);
-  };
-
-  // FUNCIONES PARA MANEJO DE REGISTRO MEJORADO
-  const generateAlternativeEmail = (baseEmail: string): string => {
-    const emailParts = baseEmail.split('@');
-    const randomSuffix = Math.floor(Math.random() * 10000);
-    return `${emailParts[0]}+${randomSuffix}@${emailParts[1]}`;
-  };
-  
-  const retryWithDifferentEmail = () => {
-    if (!email) return;
-    
-    const newEmail = generateAlternativeEmail(email);
-    setAlternativeEmail(newEmail);
-    
-    form.setValue('email', newEmail);
-    setRegistrationError(null);
-    setShowEmailAlert(false);
-    
-    toast.info(`Email modificado automáticamente: ${newEmail}`);
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -177,11 +153,8 @@ const Register = () => {
     try {
       setIsSubmitting(true);
       setRegistrationError(null);
-      setShowEmailAlert(false);
-      setShowTipDialog(false); // Muy importante: no mostrar el diálogo por defecto
       
-      console.log('Validando formulario...');
-      // Validación básica
+      // Basic validation
       if (role === 'client' && !values.residenciaId) {
         toast.error('Debes seleccionar una residencia');
         setIsSubmitting(false);
@@ -194,58 +167,45 @@ const Register = () => {
         return;
       }
 
-      // Mostrar estado del proceso
+      // Show registration status
       toast.info('Iniciando registro, por favor espere...');
-      
-      // Usar el email alternativo si existe
-      const emailToUse = alternativeEmail || values.email;
-      console.log(`Usando email para registro: ${emailToUse}`);
+      console.log('Datos de registro:', values);
       
       const dataToSend = {
         ...values,
-        email: emailToUse,
         avatarFile
       };
       
-      // Intentar registro
-      const result = await signUp(emailToUse, values.password, dataToSend);
+      // Attempt registration
+      const result = await signUp(values.email, values.password, dataToSend);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
         
-        // Determinar si el error está relacionado con "email ya existente"
-        const errorMsg = result.error.message || "";
-        const isEmailExistsError = 
-          errorMsg.includes('ya está en uso') || 
-          errorMsg.includes('already in use') ||
-          errorMsg.includes('already registered');
-        
-        if (isEmailExistsError) {
-          setShowEmailAlert(true);
-          toast.error('Este correo ya está registrado. Intente con otro o use la variante.');
+        if (result.error.message.includes('teléfono ya está en uso')) {
+          toast.error('Este número de teléfono ya está registrado. Por favor, utilice otro número.');
+        } else if (result.error.message.includes('correo') || result.error.message.includes('email')) {
+          toast.error('Este correo electrónico ya está registrado. Por favor, utilice otro correo.');
         } else {
-          // Mostrar mensaje de error genérico
-          toast.error(errorMsg || 'Error durante el registro');
+          toast.error(result.error.message || 'Error durante el registro');
         }
         
         setRegistrationError(result.error.message || "Error desconocido");
       } else if (result.data?.session) {
-        // Si tenemos sesión, el usuario fue registrado y autenticado con éxito
+        // If we have a session, user was registered and authenticated successfully
         console.log('Registro y autenticación exitosos!');
         toast.success('¡Cuenta creada e iniciada sesión exitosamente!');
         navigate('/payment-setup', { 
           state: { fromClientView: values.role === 'client' } 
         });
       } else {
-        // Registro exitoso pero necesita confirmar email o iniciar sesión
+        // Successful registration but needs email confirmation or login
         console.log('Registro exitoso, redirigiendo a login!');
         toast.success('¡Cuenta creada! Por favor inicie sesión.');
         navigate('/login');
       }
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
-      
-      // Mensaje de error genérico, ya que los específicos se manejan en signUp
       setRegistrationError(error.message || "Error desconocido durante el registro");
       toast.error(error.message || "Error durante el registro");
     } finally {
@@ -259,24 +219,7 @@ const Register = () => {
       subtitle="Regístrate para agendar u ofrecer servicios"
     >
       <div className="max-w-md mx-auto mt-8">
-        {showEmailAlert && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <AlertDescription className="text-sm">
-              {registrationError || "Este correo electrónico ya está en uso. Por favor, intenta con un correo electrónico diferente o usa el botón para generar una variación del mismo."}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2 w-full"
-                onClick={retryWithDifferentEmail}
-              >
-                Usar variación de email
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {registrationError && !showEmailAlert && (
+        {registrationError && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription className="text-sm">{registrationError}</AlertDescription>
@@ -379,17 +322,12 @@ const Register = () => {
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="correo@ejemplo.com"
-                        className={`pl-10 ${alternativeEmail ? 'bg-yellow-50 border-yellow-300' : ''}`}
+                        className="pl-10"
                         {...field}
                         disabled={isSubmitting}
                       />
                     </div>
                   </FormControl>
-                  {alternativeEmail && (
-                    <p className="text-xs text-amber-600">
-                      Se utilizará una variante del correo para evitar limitaciones de registro
-                    </p>
-                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -571,45 +509,6 @@ const Register = () => {
           </p>
         </div>
       </div>
-
-      <Dialog open={showTipDialog} onOpenChange={setShowTipDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Consejos para completar el registro</DialogTitle>
-            <DialogDescription>
-              Estamos detectando problemas con el registro. Esto puede ocurrir cuando Supabase tiene registros "fantasma" o en caché.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="pt-4">
-                <h3 className="font-semibold mb-2">Soluciones recomendadas:</h3>
-                <ul className="list-disc pl-5 space-y-2 text-sm">
-                  <li>Usa el botón "Usar variación de email" para crear una variante de tu correo (esto añade +número a tu email actual).</li>
-                  <li>Usa un correo electrónico completamente diferente que no hayas usado antes.</li>
-                  <li>Espera 30-60 minutos y vuelve a intentarlo (los límites de registro pueden restablecerse).</li>
-                  <li>Limpia el caché y cookies del navegador, o intenta desde un navegador privado/incógnito.</li>
-                  <li>Si tienes acceso a Supabase, verifica la tabla Auth para confirmar si el usuario existe realmente.</li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Button 
-              className="w-full" 
-              onClick={retryWithDifferentEmail}
-              variant="default"
-            >
-              Crear variación de email automáticamente
-            </Button>
-            <Button 
-              className="w-full" 
-              onClick={() => setShowTipDialog(false)}
-              variant="outline"
-            >
-              Cerrar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </PageContainer>
   );
 };

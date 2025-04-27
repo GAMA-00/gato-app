@@ -16,18 +16,14 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false, // Cambio importante: desactivamos esto para evitar problemas con la URL
+      detectSessionInUrl: false,
       storage: localStorage,
       flowType: 'pkce'
     },
     global: {
       headers: {
-        'Content-Type': 'application/json'
-      }
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 10
+        'Content-Type': 'application/json',
+        'X-Client-Info': 'lovable-app'
       }
     }
   }

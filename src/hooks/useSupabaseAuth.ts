@@ -37,7 +37,7 @@ export const useSupabaseAuth = () => {
                 name: profile.name,
                 phone: profile.phone || '',
                 buildingId: profile.residencia_id || '',
-                buildingName: '', // You'll need to fetch this if needed
+                buildingName: '', 
                 hasPaymentMethod: profile.has_payment_method || false,
                 role: profile.role as UserRole,
                 avatarUrl: profile.avatar_url 
@@ -88,7 +88,7 @@ export const useSupabaseAuth = () => {
                 name: profile.name,
                 phone: profile.phone || '',
                 buildingId: profile.residencia_id || '',
-                buildingName: '', // You'll need to fetch this if needed
+                buildingName: '', 
                 hasPaymentMethod: profile.has_payment_method || false,
                 role: profile.role as UserRole,
                 avatarUrl: profile.avatar_url 
@@ -115,50 +115,39 @@ export const useSupabaseAuth = () => {
     };
   }, [setAuthUser, clearAuthUser]);
 
-  // IMPLEMENTACIÓN MEJORADA Y SIMPLIFICADA:
-  // Esta función ahora está optimizada para detectar correctamente si un correo ya está registrado
-  const checkEmailExists = async (email: string): Promise<boolean> => {
+  // Check if a phone number is already registered
+  const checkPhoneExists = async (phone: string): Promise<boolean> => {
     try {
-      console.log('Verificando si existe email:', email);
+      console.log('Verificando si existe teléfono:', phone);
       
-      // Método confiable: Intentar iniciar sesión con un OTP (no envía email)
-      // y verificar el tipo de error
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false // Esto es clave para no crear usuarios nuevos
-        }
-      });
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', phone)
+        .limit(1);
       
-      // Si el error contiene "User not found", entonces el correo NO existe
-      const userNotFound = error && (
-        error.message.includes('User not found') || 
-        error.message.includes('No user found') ||
-        error.message.includes('Email not found')
-      );
+      const exists = !error && profiles && profiles.length > 0;
+      console.log('¿El teléfono ya está registrado?:', exists);
       
-      console.log('¿Usuario no encontrado?:', userNotFound);
-      console.log('¿El correo existe?:', !userNotFound);
-      
-      return !userNotFound; // Si NO hay error de "usuario no encontrado", el correo existe
+      return exists;
     } catch (error) {
-      console.error('Error al verificar existencia del correo:', error);
-      return false; // En caso de error, asumimos que no existe
+      console.error('Error al verificar existencia del teléfono:', error);
+      return false;
     }
   };
 
-  // Método mejorado para creación de perfiles
+  // Method for creating user profiles
   const createUserProfile = async (userId: string, userData: any) => {
     try {
       console.log('Creando perfil para usuario con ID:', userId);
       console.log('Datos de usuario para perfil:', userData);
       
-      // Subir el avatar si existe
+      // Upload avatar if exists
       let avatarUrl = null;
       if (userData.avatarFile) {
         console.log('Procesando avatar del usuario...');
         try {
-          // Verificar si existe el bucket de avatars
+          // Check if avatars bucket exists
           try {
             const { data: bucketData, error: bucketError } = await supabase
               .storage
@@ -175,13 +164,13 @@ export const useSupabaseAuth = () => {
             console.error('Error al verificar/crear bucket de avatars:', bucketError);
           }
           
-          // Crear un nombre de archivo único
+          // Create a unique filename
           const fileExt = userData.avatarFile.name.split('.').pop();
           const filePath = `${userId}/avatar.${fileExt}`;
           
           console.log('Subiendo avatar a Storage:', filePath);
           
-          // Subir la imagen
+          // Upload image
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('avatars')
             .upload(filePath, userData.avatarFile, {
@@ -194,7 +183,7 @@ export const useSupabaseAuth = () => {
           } else {
             console.log('Avatar subido exitosamente:', uploadData);
             
-            // Obtener la URL pública
+            // Get public URL
             const { data: urlData } = supabase.storage
               .from('avatars')
               .getPublicUrl(filePath);
@@ -238,11 +227,28 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Método simplificado de registro directo 
-  const registerUser = async (email: string, password: string, userData: any) => {
-    console.log('Intentando registro directo de usuario:', email);
+  // Direct registration method
+  const signUp = async (email: string, password: string, userData: any) => {
+    console.log('Iniciando proceso de registro con email:', email);
+    setIsLoading(true);
+    
     try {
-      // 1. Registrar usuario en Auth
+      // 1. Check if phone number is already registered
+      if (userData.phone) {
+        const phoneExists = await checkPhoneExists(userData.phone);
+        
+        if (phoneExists) {
+          console.log('El número de teléfono ya está registrado');
+          toast.error('Este número de teléfono ya está registrado. Por favor, use otro número.');
+          return { 
+            data: null, 
+            error: new Error('Este número de teléfono ya está en uso')
+          };
+        }
+      }
+      
+      // 2. Try direct user registration with Supabase
+      console.log('Intentando registrar usuario directamente:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -255,61 +261,45 @@ export const useSupabaseAuth = () => {
         }
       });
       
+      // 3. Handle registration errors
       if (error) {
         console.error('Error en registro de usuario:', error);
-        throw error;
+        
+        // If the error message contains "email already in use" or similar
+        if (error.message && (
+            error.message.includes('already in use') || 
+            error.message.includes('already registered') ||
+            error.message.includes('email already taken')
+          )) {
+          toast.error('Este correo electrónico ya está registrado. Por favor, inicie sesión o use otro correo.');
+        } else {
+          toast.error(error.message || 'Error durante el registro');
+        }
+        
+        return { data: null, error };
       }
       
-      if (!data.user) {
-        throw new Error('No se pudo crear el usuario');
-      }
-      
-      console.log('Usuario creado exitosamente:', data.user.id);
-      
-      // 2. Crear perfil
-      await createUserProfile(data.user.id, {
-        ...userData,
-        email
-      });
-      
-      return { success: true, data };
-    } catch (error: any) {
-      console.error('Error en registerUser:', error);
-      return { success: false, error };
-    }
-  };
-
-  // Método principal de registro significativamente simplificado
-  const signUp = async (email: string, password: string, userData: any) => {
-    console.log('Iniciando proceso de registro con email:', email);
-    setIsLoading(true);
-    
-    try {
-      // 1. Verificar si el correo ya existe
-      const emailExists = await checkEmailExists(email);
-      
-      if (emailExists) {
-        console.log('El correo ya está registrado en Supabase Auth');
-        toast.error('Este correo electrónico ya está registrado. Por favor, inicie sesión.');
+      // 4. Create user profile if registration was successful
+      if (data?.user) {
+        console.log('Usuario creado exitosamente:', data.user.id);
+        
+        await createUserProfile(data.user.id, {
+          ...userData,
+          email
+        });
+        
+        toast.success('¡Cuenta creada exitosamente!');
+        return { data, error: null };
+      } else {
+        console.error('No se recibieron datos de usuario después del registro');
+        toast.error('Error al crear la cuenta');
         return { 
           data: null, 
-          error: new Error('Este correo electrónico ya está en uso')
+          error: new Error('No se pudo crear el usuario')
         };
       }
-      
-      // 2. Si el correo no existe, proceder con registro normal
-      console.log('El correo no existe, procediendo con el registro');
-      const result = await registerUser(email, password, userData);
-      
-      if (result.success) {
-        toast.success('¡Cuenta creada exitosamente!');
-      } else {
-        toast.error(result.error?.message || 'Error durante el registro');
-      }
-      
-      return result;
     } catch (error: any) {
-      console.error('Error en proceso de registro:', error);
+      console.error('Error inesperado durante el registro:', error);
       toast.error(error.message || 'Error durante el registro');
       return { data: null, error };
     } finally {
@@ -317,7 +307,7 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Mantener los métodos de inicio de sesión y cierre de sesión originales
+  // Login method
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -349,6 +339,7 @@ export const useSupabaseAuth = () => {
     }
   };
 
+  // Logout method
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
