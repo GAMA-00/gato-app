@@ -10,7 +10,6 @@ import { checkPhoneExists } from '@/utils/phoneValidation';
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [registrationAttempts, setRegistrationAttempts] = useState(0);
 
   useEffect(() => {
     console.log('Starting Supabase authentication setup');
@@ -122,12 +121,13 @@ export const useSupabaseAuth = () => {
     setIsLoading(true);
     
     try {
+      // Only check for phone uniqueness, not email
       if (userData.phone) {
         const phoneExists = await checkPhoneExists(userData.phone);
         
         if (phoneExists) {
           console.log('Phone number already registered');
-          toast.error('This phone number is already registered. Please use a different number.');
+          toast.error('Este número de teléfono ya está registrado. Por favor use un número diferente.');
           return { 
             data: null, 
             error: new Error('Phone number already in use')
@@ -135,7 +135,7 @@ export const useSupabaseAuth = () => {
         }
       }
       
-      console.log('Attempting direct user registration:', email);
+      console.log('Attempting user registration:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -144,7 +144,7 @@ export const useSupabaseAuth = () => {
             name: userData.name,
             role: userData.role
           },
-          emailRedirectTo: `${window.location.origin}/login`
+          // Remove email redirect to simplify the process
         }
       });
       
@@ -192,13 +192,7 @@ export const useSupabaseAuth = () => {
 
       if (error) {
         console.error('Login error:', error);
-        if (error.message.includes('Email not confirmed')) {
-          toast.error('Email not confirmed. Please check your email and confirm your account.');
-        } else if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid credentials. Please check your email and password.');
-        } else {
-          toast.error(error.message || 'Login error');
-        }
+        toast.error('Error en las credenciales. Por favor verifique su email y contraseña.');
         throw error;
       }
       
@@ -227,7 +221,6 @@ export const useSupabaseAuth = () => {
     signUp,
     signIn,
     signOut,
-    isLoading,
-    registrationAttempts
+    isLoading
   };
 };
