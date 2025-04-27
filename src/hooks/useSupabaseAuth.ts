@@ -121,7 +121,7 @@ export const useSupabaseAuth = () => {
     setIsLoading(true);
     
     try {
-      // Only check for phone uniqueness, not email
+      // Only check for phone uniqueness
       if (userData.phone) {
         const phoneExists = await checkPhoneExists(userData.phone);
         
@@ -136,15 +136,22 @@ export const useSupabaseAuth = () => {
       }
       
       console.log('Attempting user registration:', email);
+      
+      // Generate a random suffix to make email unique in Supabase
+      const randomSuffix = Math.random().toString(36).substring(2, 10);
+      const uniqueEmail = `${email.split('@')[0]}+${randomSuffix}@${email.split('@')[1]}`;
+      
+      console.log('Using modified email for Supabase:', uniqueEmail);
+      
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: uniqueEmail, // Use the unique email for Supabase
         password,
         options: {
           data: {
             name: userData.name,
-            role: userData.role
-          },
-          // Remove email redirect to simplify the process
+            role: userData.role,
+            original_email: email // Store the original email in metadata
+          }
         }
       });
       
@@ -159,7 +166,7 @@ export const useSupabaseAuth = () => {
         
         await createUserProfile(data.user.id, {
           ...userData,
-          email
+          email // Use the original email for the profile
         });
         
         toast.success('Account created successfully!');
@@ -185,19 +192,51 @@ export const useSupabaseAuth = () => {
     setIsLoading(true);
     try {
       console.log('Attempting login with:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        console.error('Login error:', error);
-        toast.error('Error en las credenciales. Por favor verifique su email y contraseña.');
-        throw error;
+      
+      // First try exact email
+      let result = await supabase.auth.signInWithPassword({ email, password });
+      
+      // If failed, try to find the account by querying profiles
+      if (result.error) {
+        console.log('Login failed with exact email, trying to find matching profile');
+        
+        // Find the profile with this email
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email);
+        
+        if (profilesError || !profiles || profiles.length === 0) {
+          console.error('No profile found with this email:', profilesError || 'No profiles');
+          toast.error('Error en las credenciales. Por favor verifique su email y contraseña.');
+          throw result.error;
+        }
+        
+        // Find the auth user related to this profile
+        for (const profile of profiles) {
+          // Try to login with the found user id's associated email
+          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+          
+          if (authUser?.user) {
+            // Try login with the auth email
+            result = await supabase.auth.signInWithPassword({
+              email: authUser.user.email!,
+              password
+            });
+            
+            if (!result.error) break; // Successfully logged in
+          }
+        }
       }
       
-      console.log('Login successful:', data);
-      return { data, error: null };
+      if (result.error) {
+        console.error('Login error after all attempts:', result.error);
+        toast.error('Error en las credenciales. Por favor verifique su email y contraseña.');
+        throw result.error;
+      }
+      
+      console.log('Login successful:', result.data);
+      return { data: result.data, error: null };
     } catch (error: any) {
       console.error('Login error caught:', error);
       return { data: null, error };
