@@ -115,45 +115,35 @@ export const useSupabaseAuth = () => {
     };
   }, [setAuthUser, clearAuthUser]);
 
-  // IMPLEMENTACIÓN MEJORADA: Verificación directa si un email existe en Auth
+  // IMPLEMENTACIÓN MEJORADA Y SIMPLIFICADA:
+  // Esta función ahora está optimizada para detectar correctamente si un correo ya está registrado
   const checkEmailExists = async (email: string): Promise<boolean> => {
-    console.log('Verificando si existe email en Supabase:', email);
     try {
-      // Intentar una operación que nos diga si el usuario existe sin enviar emails
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`
-      });
+      console.log('Verificando si existe email:', email);
       
-      // Si NO hay error de "usuario no encontrado", el usuario existe
-      const userNotFoundError = error && 
-        (error.message.includes('User not found') || 
-         error.message.includes('No user found'));
-      
-      console.log('Resultado de verificación email:', !userNotFoundError);
-      
-      if (!userNotFoundError) {
-        console.log('El correo ya existe en el sistema');
-        return true;
-      }
-      
-      // Verificación adicional para asegurarnos
-      const { data, error: signInError } = await supabase.auth.signInWithOtp({
+      // Método confiable: Intentar iniciar sesión con un OTP (no envía email)
+      // y verificar el tipo de error
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: false }
+        options: {
+          shouldCreateUser: false // Esto es clave para no crear usuarios nuevos
+        }
       });
       
-      // Si no hay error de "usuario no encontrado", el usuario existe
-      const otpUserNotFoundError = signInError && 
-        (signInError.message.includes('User not found') || 
-         signInError.message.includes('No user found'));
+      // Si el error contiene "User not found", entonces el correo NO existe
+      const userNotFound = error && (
+        error.message.includes('User not found') || 
+        error.message.includes('No user found') ||
+        error.message.includes('Email not found')
+      );
       
-      console.log('Resultado de verificación adicional:', !otpUserNotFoundError);
+      console.log('¿Usuario no encontrado?:', userNotFound);
+      console.log('¿El correo existe?:', !userNotFound);
       
-      return !otpUserNotFoundError;
+      return !userNotFound; // Si NO hay error de "usuario no encontrado", el correo existe
     } catch (error) {
       console.error('Error al verificar existencia del correo:', error);
-      // En caso de error, asumimos que no existe para permitir el intento de registro
-      return false;
+      return false; // En caso de error, asumimos que no existe
     }
   };
 
@@ -163,12 +153,12 @@ export const useSupabaseAuth = () => {
       console.log('Creando perfil para usuario con ID:', userId);
       console.log('Datos de usuario para perfil:', userData);
       
-      // Primero, subir el avatar si existe
+      // Subir el avatar si existe
       let avatarUrl = null;
       if (userData.avatarFile) {
         console.log('Procesando avatar del usuario...');
         try {
-          // Verificar si existe el bucket de avatars, intentar crearlo si no existe
+          // Verificar si existe el bucket de avatars
           try {
             const { data: bucketData, error: bucketError } = await supabase
               .storage
@@ -185,7 +175,7 @@ export const useSupabaseAuth = () => {
             console.error('Error al verificar/crear bucket de avatars:', bucketError);
           }
           
-          // Crear un nombre de archivo único usando el ID de usuario
+          // Crear un nombre de archivo único
           const fileExt = userData.avatarFile.name.split('.').pop();
           const filePath = `${userId}/avatar.${fileExt}`;
           
@@ -248,11 +238,11 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // NUEVA IMPLEMENTACIÓN: Método de registro directo con admin API
-  const registerDirectly = async (email: string, password: string, userData: any) => {
-    console.log('Intentando registro DIRECTO bypass Email:', email);
+  // Método simplificado de registro directo 
+  const registerUser = async (email: string, password: string, userData: any) => {
+    console.log('Intentando registro directo de usuario:', email);
     try {
-      // 1. Intentar registro estándar primero
+      // 1. Registrar usuario en Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -266,7 +256,7 @@ export const useSupabaseAuth = () => {
       });
       
       if (error) {
-        console.error('Error en registro estándar:', error);
+        console.error('Error en registro de usuario:', error);
         throw error;
       }
       
@@ -274,9 +264,9 @@ export const useSupabaseAuth = () => {
         throw new Error('No se pudo crear el usuario');
       }
       
-      console.log('Usuario creado con método estándar:', data.user.id);
+      console.log('Usuario creado exitosamente:', data.user.id);
       
-      // 2. Crear perfil inmediatamente
+      // 2. Crear perfil
       await createUserProfile(data.user.id, {
         ...userData,
         email
@@ -284,52 +274,18 @@ export const useSupabaseAuth = () => {
       
       return { success: true, data };
     } catch (error: any) {
-      console.error('Error en registerDirectly:', error);
+      console.error('Error en registerUser:', error);
       return { success: false, error };
     }
   };
 
-  // NUEVA IMPLEMENTACIÓN: Método alternativo de registro
-  const registerWithRandomEmail = async (email: string, password: string, userData: any) => {
-    console.log('Intentando registro con email modificado');
-    
-    // Crear un email aleatorio basado en el original para evitar colisiones
-    const emailParts = email.split('@');
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const modifiedEmail = `${emailParts[0]}+${randomString}@${emailParts[1]}`;
-    
-    console.log(`Email original: ${email} -> Email modificado: ${modifiedEmail}`);
-    
-    // Intentar registro con el email modificado
-    const result = await registerDirectly(modifiedEmail, password, {
-      ...userData,
-      email: modifiedEmail
-    });
-    
-    if (result.success) {
-      console.log('Registro exitoso con email modificado');
-      toast.success('Cuenta creada exitosamente con variante de email');
-      toast.info(`Se utilizó una variante de su email: ${modifiedEmail}`);
-    }
-    
-    return result;
-  };
-
-  // Método principal de registro con múltiples estrategias
+  // Método principal de registro significativamente simplificado
   const signUp = async (email: string, password: string, userData: any) => {
-    console.log('Iniciando proceso de registro completo con datos:', { email, ...userData });
-    
-    if (isLoading) {
-      console.log('Ya hay una solicitud en curso, abortando');
-      return { data: null, error: new Error('Ya hay una solicitud en curso') };
-    }
-    
+    console.log('Iniciando proceso de registro con email:', email);
     setIsLoading(true);
-    setRegistrationAttempts(prev => prev + 1);
     
     try {
-      // ESTRATEGIA 1: Verificar si el correo ya existe en sistema
-      console.log('ESTRATEGIA 1: Verificando existencia previa del email');
+      // 1. Verificar si el correo ya existe
       const emailExists = await checkEmailExists(email);
       
       if (emailExists) {
@@ -340,53 +296,28 @@ export const useSupabaseAuth = () => {
           error: new Error('Este correo electrónico ya está en uso')
         };
       }
-
-      // ESTRATEGIA 2: Intentar registro directo estándar
-      console.log('ESTRATEGIA 2: Intentando registro directo estándar');
-      const directResult = await registerDirectly(email, password, userData);
       
-      if (directResult.success) {
-        console.log('Registro directo exitoso');
+      // 2. Si el correo no existe, proceder con registro normal
+      console.log('El correo no existe, procediendo con el registro');
+      const result = await registerUser(email, password, userData);
+      
+      if (result.success) {
         toast.success('¡Cuenta creada exitosamente!');
-        return directResult;
+      } else {
+        toast.error(result.error?.message || 'Error durante el registro');
       }
       
-      // ESTRATEGIA 3: Si hay error y parece relacionado con el email, intentar con email modificado
-      console.log('ESTRATEGIA 3: Intentando registro con email modificado');
-      const errorMsg = directResult.error?.message || '';
-      const isEmailRelatedError = errorMsg.includes('email') || 
-                                  errorMsg.includes('correo') || 
-                                  errorMsg.includes('422') || 
-                                  errorMsg.includes('rate limit');
-                                  
-      if (isEmailRelatedError) {
-        console.log('Error relacionado con email, intentando con email modificado');
-        const alternativeResult = await registerWithRandomEmail(email, password, userData);
-        return alternativeResult;
-      }
-      
-      // Si llegamos aquí, todas las estrategias fallaron
-      console.error('Todas las estrategias de registro han fallado');
-      throw directResult.error || new Error('Error desconocido durante el registro');
-      
+      return result;
     } catch (error: any) {
       console.error('Error en proceso de registro:', error);
-      
-      // Mensajes de error específicos
-      if (error.message?.includes('email rate limit')) {
-        toast.error('El servidor está muy ocupado. Por favor, intente con otro correo electrónico o espere unos minutos.');
-      } else if (error.message?.includes('User already registered')) {
-        toast.error('Este correo ya está registrado. Intente iniciar sesión.');
-      } else {
-        toast.error(error.message || 'Error durante el registro');
-      }
-      
+      toast.error(error.message || 'Error durante el registro');
       return { data: null, error };
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Mantener los métodos de inicio de sesión y cierre de sesión originales
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {

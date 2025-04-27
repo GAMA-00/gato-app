@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -56,7 +57,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const navigate = useNavigate();
-  const { signUp, isLoading, registrationAttempts } = useSupabaseAuth();
+  const { signUp, isLoading } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [residencias, setResidencias] = useState<Residencia[]>([]);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
@@ -68,31 +69,12 @@ const Register = () => {
   const [loadingResidencias, setLoadingResidencias] = useState(true);
   const { user } = useAuth();
   
-  // Depuración para problemas de registro
-  useEffect(() => {
-    console.log("Estado actual del registro:", { 
-      isSubmitting, 
-      isLoading, 
-      registrationAttempts,
-      registrationError,
-      showEmailAlert,
-      alternativeEmail 
-    });
-  }, [isSubmitting, isLoading, registrationAttempts, registrationError, showEmailAlert, alternativeEmail]);
-  
   // Si el usuario ya está autenticado, redirigir al dashboard
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
-
-  // Mostrar diálogo de consejos si hay varios intentos
-  useEffect(() => {
-    if (registrationAttempts > 1) {
-      setShowTipDialog(true);
-    }
-  }, [registrationAttempts]);
 
   // Cargar residencias
   useEffect(() => {
@@ -187,7 +169,6 @@ const Register = () => {
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
-    console.log('onSubmit llamado con valores:', values);
     if (isSubmitting) {
       console.log('Ya hay un envío en curso, ignorando');
       return;
@@ -197,6 +178,7 @@ const Register = () => {
       setIsSubmitting(true);
       setRegistrationError(null);
       setShowEmailAlert(false);
+      setShowTipDialog(false); // Muy importante: no mostrar el diálogo por defecto
       
       console.log('Validando formulario...');
       // Validación básica
@@ -215,10 +197,6 @@ const Register = () => {
       // Mostrar estado del proceso
       toast.info('Iniciando registro, por favor espere...');
       
-      // Preparando datos para registro
-      console.log('Preparando datos para registro...');
-      console.log('Iniciando proceso de registro con Supabase...');
-      
       // Usar el email alternativo si existe
       const emailToUse = alternativeEmail || values.email;
       console.log(`Usando email para registro: ${emailToUse}`);
@@ -235,18 +213,19 @@ const Register = () => {
       if (result.error) {
         console.error('Error durante el registro:', result.error);
         
-        // Determinar si el error podría estar relacionado con el email
+        // Determinar si el error está relacionado con "email ya existente"
         const errorMsg = result.error.message || "";
-        const isEmailRelatedError = 
-          errorMsg.includes('email') || 
-          errorMsg.includes('correo') || 
+        const isEmailExistsError = 
           errorMsg.includes('ya está en uso') || 
-          errorMsg.includes('rate limit');
+          errorMsg.includes('already in use') ||
+          errorMsg.includes('already registered');
         
-        // Mostrar alerta específica para errores de email
-        if (isEmailRelatedError) {
+        if (isEmailExistsError) {
           setShowEmailAlert(true);
-          setShowTipDialog(true);
+          toast.error('Este correo ya está registrado. Intente con otro o use la variante.');
+        } else {
+          // Mostrar mensaje de error genérico
+          toast.error(errorMsg || 'Error durante el registro');
         }
         
         setRegistrationError(result.error.message || "Error desconocido");
@@ -266,14 +245,7 @@ const Register = () => {
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
       
-      // Mostrar alerta específica para errores de límite de email
-      if (error.message?.includes('email rate limit') || 
-          error.message?.includes('límite de emails') ||
-          error.message?.includes('ya está en uso')) {
-        setShowEmailAlert(true);
-        setShowTipDialog(true);
-      }
-      
+      // Mensaje de error genérico, ya que los específicos se manejan en signUp
       setRegistrationError(error.message || "Error desconocido durante el registro");
       toast.error(error.message || "Error durante el registro");
     } finally {
@@ -291,7 +263,7 @@ const Register = () => {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription className="text-sm">
-              {registrationError || "Se ha excedido el límite de emails para este correo o ya está en uso. Por favor, intenta con un correo electrónico diferente o usa el botón para generar una variación del mismo."}
+              {registrationError || "Este correo electrónico ya está en uso. Por favor, intenta con un correo electrónico diferente o usa el botón para generar una variación del mismo."}
               <Button 
                 variant="outline" 
                 size="sm" 
