@@ -9,6 +9,7 @@ import RecurringServicesList from '@/components/client/RecurringServicesList';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
 import { useCategories } from '@/hooks/useCategories';
 import { Service } from '@/lib/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'home': <Home className="h-4 w-4" />,
@@ -117,7 +118,7 @@ const ClientHome = () => {
           <RecurringServicesList services={recurringServices} />
         </TabsContent>
 
-        <TabsContent value="all">
+        <TabsContent value="all" className="pb-16">
           {isLoading ? (
             <div className="space-y-6">
               {[...Array(3)].map((_, i) => (
@@ -136,43 +137,45 @@ const ClientHome = () => {
               Error loading services. Please try again later.
             </div>
           ) : (
-            <div className="space-y-6">
-              {sortedCategories.map((category, index) => (
-                <div key={category.id} className="animate-fade-in">
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index)}`}>
-                    {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
-                    <h2 className="text-sm font-medium">{category.label}</h2>
-                  </div>
-                  
-                  {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                      {data.serviceTypesByCategory[category.id].map((serviceType) => (
-                        <Card 
-                          key={serviceType.id}
-                          className={`hover:shadow-md hover:translate-y-[-2px] transition-all duration-200 border-l-4 ${getCategoryColor(index)}`}
-                          onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
-                        >
-                          <CardContent className="p-2 flex items-center justify-between cursor-pointer">
-                            <span className="font-medium text-xs">{serviceType.name}</span>
-                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          </CardContent>
-                        </Card>
-                      ))}
+            <ScrollArea className="h-[calc(100vh-200px)] pr-4">
+              <div className="space-y-6">
+                {sortedCategories.map((category, index) => (
+                  <div key={category.id} className="animate-fade-in mb-6">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index)}`}>
+                      {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
+                      <h2 className="text-sm font-medium">{category.label}</h2>
                     </div>
-                  ) : (
-                    <p className="text-muted-foreground text-xs">
-                      No hay servicios disponibles en esta categoría
-                    </p>
-                  )}
-                </div>
-              ))}
+                    
+                    {data.serviceTypesByCategory[category.id]?.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                        {data.serviceTypesByCategory[category.id].map((serviceType) => (
+                          <Card 
+                            key={serviceType.id}
+                            className={`hover:shadow-md hover:translate-y-[-2px] transition-all duration-200 border-l-4 ${getCategoryColor(index)}`}
+                            onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
+                          >
+                            <CardContent className="p-2 flex items-center justify-between cursor-pointer">
+                              <span className="font-medium text-xs">{serviceType.name}</span>
+                              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-xs">
+                        No hay servicios disponibles en esta categoría
+                      </p>
+                    )}
+                  </div>
+                ))}
 
-              {(!data?.categories || data.categories.length === 0) && (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No hay categorías disponibles.</p>
-                </div>
-              )}
-            </div>
+                {(!data?.categories || data.categories.length === 0) && (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No hay categorías disponibles.</p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           )}
         </TabsContent>
       </Tabs>
