@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { useAuth } from './AuthContext';
@@ -91,7 +90,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                   // Need to fetch other party info
                   const { data: providerData } = await supabase
                     .from('providers')
-                    .select('name')
+                    .select('*')
                     .eq('id', otherPartyId)
                     .single();
                     
@@ -150,7 +149,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                   // Need to fetch other party info
                   const { data: clientData } = await supabase
                     .from('clients')
-                    .select('name')
+                    .select('*')
                     .eq('id', otherPartyId)
                     .single();
                     
