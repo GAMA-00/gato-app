@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle, Info } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Residencia } from '@/lib/types';
@@ -148,6 +148,8 @@ const Register = () => {
         
         if (result.error.message.includes('teléfono ya está en uso')) {
           toast.error('Este número de teléfono ya está registrado. Por favor, utilice otro número.');
+        } else if (result.error.message.includes('Email rate limit exceeded')) {
+          setRegistrationError('Has alcanzado el límite de intentos de registro con este correo. Por favor utiliza otra dirección de correo o intenta más tarde.');
         } else {
           toast.error('Error durante el registro: ' + result.error.message);
         }
@@ -181,6 +183,14 @@ const Register = () => {
             <AlertDescription className="text-sm">{registrationError}</AlertDescription>
           </Alert>
         )}
+        
+        <Alert className="mb-6 bg-blue-50">
+          <Info className="h-4 w-4 mr-2 text-blue-600" />
+          <AlertDescription className="text-sm">
+            Al registrarte, recibirás un correo de verificación. Si no lo recibes después de unos minutos, 
+            intenta con otra dirección de correo electrónico o contacta a soporte.
+          </AlertDescription>
+        </Alert>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

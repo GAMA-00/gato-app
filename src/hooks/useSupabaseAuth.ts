@@ -38,8 +38,20 @@ export const useSupabaseAuth = () => {
         password,
       });
 
+      // Verificar si hay un error específico de límite de tasa de correos
       if (authError) {
         console.error('Error creating auth user:', authError);
+        
+        // Manejo específico para el error de límite de tasa de correos
+        if (authError.message.includes('email rate limit exceeded') || 
+            authError.status === 429) {
+          toast.error('Has enviado demasiados correos de verificación recientemente. Por favor intenta con otro correo o espera unos minutos antes de intentarlo nuevamente.');
+          return { 
+            data: null, 
+            error: new Error('Email rate limit exceeded. Try with a different email address or wait a few minutes.')
+          };
+        }
+        
         toast.error('Error al crear la cuenta: ' + authError.message);
         return { data: null, error: authError };
       }
@@ -136,11 +148,18 @@ export const useSupabaseAuth = () => {
         role: userData.role as UserRole,
       };
       
+      // Mensaje específico para informar al usuario sobre la confirmación de correo
+      if (authData.user && !authData.user.confirmed_at) {
+        toast.success('¡Cuenta creada! Por favor verifica tu correo electrónico para completar el registro.');
+        toast.info('Si no recibes el correo, puedes intentar con otra dirección de correo o contactar a soporte.');
+      } else {
+        toast.success('¡Cuenta creada con éxito!');
+      }
+      
       // Establecer el usuario en el contexto de autenticación
       setAuthUser(userObj);
       
       console.log('User registered successfully');
-      toast.success('¡Cuenta creada con éxito!');
       
       return { 
         data: { user: userObj }, 
