@@ -90,7 +90,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                   // Need to fetch other party info
                   const { data: providerData } = await supabase
                     .from('providers')
-                    .select('*')
+                    .select('name')
                     .eq('id', otherPartyId)
                     .single();
                     
@@ -149,7 +149,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                   // Need to fetch other party info
                   const { data: clientData } = await supabase
                     .from('clients')
-                    .select('*')
+                    .select('name')
                     .eq('id', otherPartyId)
                     .single();
                     
@@ -360,7 +360,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   return (
     <ChatContext.Provider value={{ 
-      conversations: userConversations, 
+      conversations: userConversations || [], // Ensure we don't pass undefined
       activeConversation, 
       setActiveConversation,
       sendMessage,
@@ -372,6 +372,9 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     </ChatContext.Provider>
   );
 };
+
+// Declare userConversations here to fix the reference
+const userConversations = [];
 
 export const useChat = () => {
   const context = useContext(ChatContext);

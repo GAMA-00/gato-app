@@ -126,7 +126,7 @@ export const useSupabaseAuth = () => {
       // Try to find a client with this email
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
-        .select('*')
+        .select('id, name, email, phone, residencia_id, has_payment_method')
         .eq('email', email)
         .maybeSingle();
       
@@ -140,7 +140,7 @@ export const useSupabaseAuth = () => {
       if (!clientData) {
         const { data: providerData, error: providerError } = await supabase
           .from('providers')
-          .select('*')
+          .select('id, name, email, phone, has_payment_method, about_me')
           .eq('email', email)
           .maybeSingle();
         
@@ -159,8 +159,8 @@ export const useSupabaseAuth = () => {
         // Provider found, create user object
         const userData = {
           id: providerData.id,
-          email: providerData.email || email,
-          name: providerData.name || '',
+          email: providerData.email,
+          name: providerData.name,
           phone: providerData.phone || '',
           buildingId: '',
           buildingName: '', 
@@ -177,8 +177,8 @@ export const useSupabaseAuth = () => {
       // Client found, create user object
       const userData = {
         id: clientData.id,
-        email: clientData.email || email,
-        name: clientData.name || '',
+        email: clientData.email,
+        name: clientData.name,
         phone: clientData.phone || '',
         buildingId: clientData.residencia_id || '',
         buildingName: '', 
