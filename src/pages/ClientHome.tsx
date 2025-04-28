@@ -9,6 +9,8 @@ import RecurringServicesList from '@/components/client/RecurringServicesList';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
 import { useCategories } from '@/hooks/useCategories';
 import { Service } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'home': <Home className="h-4 w-4" />,
@@ -24,7 +26,8 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'camera': <Camera className="h-4 w-4" />,
   'yoga': <PenTool className="h-4 w-4" />,
   'tennis': <Dumbbell className="h-4 w-4" />,
-  'hand-helping': <Home className="h-4 w-4" />
+  'hand-helping': <Home className="h-4 w-4" />,
+  'house': <Home className="h-4 w-4" />
 };
 
 // Priority order for categories display
@@ -38,6 +41,7 @@ const CATEGORY_PRIORITY = {
 };
 
 const ClientHome = () => {
+  console.log('ClientHome component rendered');
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>('all');
   const { data, isLoading, error } = useCategories();
@@ -55,15 +59,17 @@ const ClientHome = () => {
 
   useEffect(() => {
     const savedServices = localStorage.getItem('gato_services');
-    const savedAppointments = localStorage.getItem('gato_appointments');
     
     if (savedServices) {
       try {
         const parsedServices = JSON.parse(savedServices);
         setServices(parsedServices);
+        console.log('Services loaded from localStorage:', parsedServices);
       } catch (err) {
         console.error('Error parsing services:', err);
       }
+    } else {
+      console.log('No services found in localStorage');
     }
   }, []);
 
@@ -73,6 +79,7 @@ const ClientHome = () => {
   });
 
   const handleServiceTypeClick = (categoryName: string, serviceTypeName: string) => {
+    console.log('Service type clicked:', categoryName, serviceTypeName);
     navigate(`/client/services/${categoryName}/${serviceTypeName}`);
   };
 
@@ -94,6 +101,8 @@ const ClientHome = () => {
     const priorityB = CATEGORY_PRIORITY[b.name as keyof typeof CATEGORY_PRIORITY] || 99;
     return priorityA - priorityB;
   }) : [];
+
+  console.log('Sorted categories:', sortedCategories);
 
   return (
     <PageContainer title="Servicios Disponibles">
@@ -117,62 +126,59 @@ const ClientHome = () => {
           <RecurringServicesList services={recurringServices} />
         </TabsContent>
 
-        <TabsContent value="all" className="pb-16">
+        <TabsContent value="all" className="pb-16 space-y-8">
           {isLoading ? (
-            <div className="space-y-6">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-6 bg-muted w-36 rounded mb-3"></div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {[...Array(10)].map((_, j) => (
-                      <div key={j} className="h-12 bg-muted rounded"></div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Cargando servicios...</span>
             </div>
           ) : error ? (
-            <div className="text-center p-8 text-red-500">
-              Error loading services. Please try again later.
-            </div>
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                No se pudieron cargar los servicios. Por favor, intente de nuevo más tarde.
+              </AlertDescription>
+            </Alert>
           ) : (
-            <div className="space-y-8">
-              {sortedCategories.map((category, index) => (
-                <div key={category.id} className="animate-fade-in mb-6">
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index)}`}>
-                    {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
-                    <h2 className="text-sm font-medium">{category.label}</h2>
-                  </div>
-                  
-                  {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                      {data.serviceTypesByCategory[category.id].map((serviceType) => (
-                        <Card 
-                          key={serviceType.id}
-                          className={`hover:shadow-md hover:translate-y-[-2px] transition-all duration-200 border-l-4 ${getCategoryColor(index)}`}
-                          onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
-                        >
-                          <CardContent className="p-2 flex items-center justify-between cursor-pointer">
-                            <span className="font-medium text-xs">{serviceType.name}</span>
-                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          </CardContent>
-                        </Card>
-                      ))}
+            <>
+              {sortedCategories.length > 0 ? (
+                <>
+                  {sortedCategories.map((category, index) => (
+                    <div key={category.id} className="animate-fade-in mb-8">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4 ${getCategoryColor(index)}`}>
+                        {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
+                        <h2 className="text-sm font-medium">{category.label}</h2>
+                      </div>
+                      
+                      {data.serviceTypesByCategory[category.id]?.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          {data.serviceTypesByCategory[category.id].map((serviceType) => (
+                            <Card 
+                              key={serviceType.id}
+                              className={`hover:shadow-md hover:translate-y-[-2px] transition-all duration-200 border-l-4 ${getCategoryColor(index)}`}
+                              onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
+                            >
+                              <CardContent className="p-3 flex items-center justify-between cursor-pointer">
+                                <span className="font-medium text-xs">{serviceType.name}</span>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-xs">
+                          No hay servicios disponibles en esta categoría
+                        </p>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-muted-foreground text-xs">
-                      No hay servicios disponibles en esta categoría
-                    </p>
-                  )}
-                </div>
-              ))}
-
-              {(!data?.categories || data.categories.length === 0) && (
+                  ))}
+                </>
+              ) : (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No hay categorías disponibles.</p>
                 </div>
               )}
-            </div>
+            </>
           )}
         </TabsContent>
       </Tabs>
