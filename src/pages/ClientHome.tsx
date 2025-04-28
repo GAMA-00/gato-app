@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Home, Scissors, Dog, Dumbbell, Book, Wrench, ArrowRight, Guitar, School, Languages, Bicycle, Camera, Yoga, Tennis, HandHelping } from 'lucide-react';
+import { Home, Scissors, Dog, Dumbbell, Book, Wrench, ArrowRight, Music, School, Globe, Bike, Camera, PenTool, BadmintonBall, HandHelping } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
@@ -17,13 +16,13 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'dumbbell': <Dumbbell className="h-4 w-4" />,
   'book': <Book className="h-4 w-4" />,
   'wrench': <Wrench className="h-4 w-4" />,
-  'guitar': <Guitar className="h-4 w-4" />,
+  'guitar': <Music className="h-4 w-4" />,
   'school': <School className="h-4 w-4" />,
-  'languages': <Languages className="h-4 w-4" />,
-  'bicycle': <Bicycle className="h-4 w-4" />,
+  'languages': <Globe className="h-4 w-4" />,
+  'bicycle': <Bike className="h-4 w-4" />,
   'camera': <Camera className="h-4 w-4" />,
-  'yoga': <Yoga className="h-4 w-4" />,
-  'tennis': <Tennis className="h-4 w-4" />,
+  'yoga': <PenTool className="h-4 w-4" />,
+  'tennis': <BadmintonBall className="h-4 w-4" />,
   'hand-helping': <HandHelping className="h-4 w-4" />
 };
 
