@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { useAuth } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 type Message = {
   id: string;
@@ -19,8 +20,6 @@ type Conversation = {
   clientName: string;
   providerName: string;
   messages: Message[];
-  lastMessage?: string;
-  lastMessageTime?: Date;
   unreadCount: number;
 };
 
@@ -42,25 +41,158 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
   
-  // Load conversations from localStorage
+  // Load messages from Supabase or localStorage as fallback
   useEffect(() => {
-    const savedConversations = localStorage.getItem('gato_conversations');
-    if (savedConversations) {
+    const loadConversations = async () => {
+      if (!user) return;
+      
       try {
-        // Parse the JSON and ensure dates are converted back to Date objects
-        const parsedConversations = JSON.parse(savedConversations, (key, value) => {
-          if (key === 'timestamp' || key === 'lastMessageTime') {
-            return value ? new Date(value) : null;
+        // Try to load from localStorage first as fallback
+        const savedConversations = localStorage.getItem('gato_conversations');
+        if (savedConversations) {
+          try {
+            // Parse the JSON and ensure dates are converted back to Date objects
+            const parsedConversations = JSON.parse(savedConversations, (key, value) => {
+              if (key === 'timestamp') {
+                return value ? new Date(value) : null;
+              }
+              return value;
+            });
+            setConversations(parsedConversations);
+          } catch (error) {
+            console.error('Error parsing conversations:', error);
           }
-          return value;
-        });
-        setConversations(parsedConversations);
+        }
+        
+        // Load from chat_messages table if available
+        if (user.id) {
+          // For clients, get messages where they're receiver or sender
+          if (user.role === 'client') {
+            const { data, error } = await supabase
+              .from('chat_messages')
+              .select('*')
+              .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
+              .order('created_at');
+              
+            if (error) {
+              console.error('Error loading chat messages:', error);
+            } else if (data && data.length > 0) {
+              // Process messages into conversations
+              const conversationsMap = new Map<string, Conversation>();
+              
+              for (const message of data) {
+                const isUserSender = message.sender_id === user.id;
+                const otherPartyId = isUserSender ? message.receiver_id : message.sender_id;
+                
+                // Generate a unique conversation ID between these two users
+                const conversationId = [user.id, otherPartyId].sort().join('_');
+                
+                if (!conversationsMap.has(conversationId)) {
+                  // Need to fetch other party info
+                  const { data: providerData } = await supabase
+                    .from('providers')
+                    .select('name')
+                    .eq('id', otherPartyId)
+                    .single();
+                    
+                  conversationsMap.set(conversationId, {
+                    id: conversationId,
+                    clientId: user.id,
+                    providerId: otherPartyId,
+                    clientName: user.name,
+                    providerName: providerData?.name || 'Provider',
+                    messages: [],
+                    unreadCount: 0
+                  });
+                }
+                
+                // Add message to conversation
+                const conversation = conversationsMap.get(conversationId)!;
+                conversation.messages.push({
+                  id: message.id,
+                  sender: isUserSender ? 'client' : 'provider',
+                  content: message.content,
+                  timestamp: new Date(message.created_at),
+                  isImage: message.is_image || false,
+                  read: message.read || false
+                });
+                
+                // Count unread messages
+                if (!isUserSender && !message.read) {
+                  conversation.unreadCount++;
+                }
+              }
+              
+              setConversations(Array.from(conversationsMap.values()));
+            }
+          } else if (user.role === 'provider') {
+            // Similar logic for providers
+            const { data, error } = await supabase
+              .from('chat_messages')
+              .select('*')
+              .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
+              .order('created_at');
+              
+            if (error) {
+              console.error('Error loading chat messages:', error);
+            } else if (data && data.length > 0) {
+              // Process messages into conversations
+              const conversationsMap = new Map<string, Conversation>();
+              
+              for (const message of data) {
+                const isUserSender = message.sender_id === user.id;
+                const otherPartyId = isUserSender ? message.receiver_id : message.sender_id;
+                
+                // Generate a unique conversation ID between these two users
+                const conversationId = [user.id, otherPartyId].sort().join('_');
+                
+                if (!conversationsMap.has(conversationId)) {
+                  // Need to fetch other party info
+                  const { data: clientData } = await supabase
+                    .from('clients')
+                    .select('name')
+                    .eq('id', otherPartyId)
+                    .single();
+                    
+                  conversationsMap.set(conversationId, {
+                    id: conversationId,
+                    providerId: user.id,
+                    clientId: otherPartyId,
+                    providerName: user.name,
+                    clientName: clientData?.name || 'Client',
+                    messages: [],
+                    unreadCount: 0
+                  });
+                }
+                
+                // Add message to conversation
+                const conversation = conversationsMap.get(conversationId)!;
+                conversation.messages.push({
+                  id: message.id,
+                  sender: isUserSender ? 'provider' : 'client',
+                  content: message.content,
+                  timestamp: new Date(message.created_at),
+                  isImage: message.is_image || false,
+                  read: message.read || false
+                });
+                
+                // Count unread messages
+                if (!isUserSender && !message.read) {
+                  conversation.unreadCount++;
+                }
+              }
+              
+              setConversations(Array.from(conversationsMap.values()));
+            }
+          }
+        }
       } catch (error) {
-        console.error('Error parsing conversations:', error);
-        setConversations([]);
+        console.error('Error loading conversations:', error);
       }
-    }
-  }, []);
+    };
+    
+    loadConversations();
+  }, [user]);
 
   // Save conversations to localStorage when they change
   useEffect(() => {
@@ -111,7 +243,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
     // Create a new conversation
     const newConversation: Conversation = {
-      id: `conv-${Date.now()}`,
+      id: `${user.id}_${providerId}`,
       clientId: user.id,
       providerId: providerId,
       clientName: user.name,
@@ -125,60 +257,106 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     toast.success("Nueva conversación iniciada");
   };
 
-  const sendMessage = (content: string, isImage: boolean = false) => {
+  const sendMessage = async (content: string, isImage: boolean = false) => {
     if (!activeConversation || !user) return;
     
-    // Make sure we handle the admin role as well
-    const senderRole = user.role === 'admin' ? 'admin' : (user.role === 'client' ? 'client' : 'provider');
-    
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: senderRole,
-      content,
-      timestamp: new Date(),
-      isImage,
-      read: false
-    };
-    
-    const updatedMessages = [...activeConversation.messages, newMessage];
-    
-    const updatedConversation = {
-      ...activeConversation,
-      messages: updatedMessages,
-      lastMessage: isImage ? '📷 Imagen' : content,
-      lastMessageTime: new Date(),
-      // Increment unread count for the other party
-      unreadCount: user.role === 'client' ? 1 : 0
-    };
-    
-    setConversations(conversations.map(conv => 
-      conv.id === activeConversation.id ? updatedConversation : conv
-    ));
-    
-    setActiveConversation(updatedConversation);
-    
-    toast.success("Mensaje enviado");
+    try {
+      // Make sure we handle the admin role as well
+      const senderRole = user.role === 'admin' ? 'admin' : (user.role === 'client' ? 'client' : 'provider');
+      
+      // Get sender and receiver IDs based on roles
+      const senderId = user.id;
+      const receiverId = user.role === 'client' ? activeConversation.providerId : activeConversation.clientId;
+      
+      // Insert new message into chat_messages table
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          sender_id: senderId,
+          receiver_id: receiverId,
+          content: content,
+          conversation_id: activeConversation.id,
+          is_image: isImage,
+          read: false
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error sending message:', error);
+        toast.error('Error sending message');
+        return;
+      }
+      
+      // Create the new message for the UI
+      const newMessage: Message = {
+        id: data.id,
+        sender: senderRole,
+        content,
+        timestamp: new Date(),
+        isImage,
+        read: false
+      };
+      
+      const updatedMessages = [...activeConversation.messages, newMessage];
+      
+      const updatedConversation = {
+        ...activeConversation,
+        messages: updatedMessages,
+        // Increment unread count for the other party
+        unreadCount: user.role === 'client' ? 1 : 0
+      };
+      
+      setConversations(conversations.map(conv => 
+        conv.id === activeConversation.id ? updatedConversation : conv
+      ));
+      
+      setActiveConversation(updatedConversation);
+      
+      toast.success("Mensaje enviado");
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
+      toast.error('Error al enviar mensaje');
+    }
   };
   
-  const markAsRead = (conversationId: string) => {
+  const markAsRead = async (conversationId: string) => {
     if (!user) return;
     
-    setConversations(conversations.map(conv => {
-      if (conv.id === conversationId) {
-        // Mark messages as read only if they were sent by the other party
-        const updatedMessages = conv.messages.map(msg => ({
-          ...msg,
-          read: msg.sender !== user.role ? true : msg.read
-        }));
-        
-        return {
-          ...conv, 
-          messages: updatedMessages,
-          unreadCount: 0
-        };
+    try {
+      // Update the database
+      if (user.id) {
+        const { error } = await supabase
+          .from('chat_messages')
+          .update({ read: true })
+          .eq(user.role === 'client' ? 'receiver_id' : 'sender_id', user.id)
+          .eq('conversation_id', conversationId);
+          
+        if (error) {
+          console.error('Error marking messages as read:', error);
+        }
       }
-      return conv;
-    }));
+      
+      // Update the UI
+      setConversations(conversations.map(conv => {
+        if (conv.id === conversationId) {
+          // Mark messages as read only if they were sent by the other party
+          const updatedMessages = conv.messages.map(msg => ({
+            ...msg,
+            read: msg.sender !== user.role ? true : msg.read
+          }));
+          
+          return {
+            ...conv, 
+            messages: updatedMessages,
+            unreadCount: 0
+          };
+        }
+        return conv;
+      }));
+    } catch (error) {
+      console.error('Error in markAsRead:', error);
+    }
   };
 
   return (

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Define the user types with different roles
@@ -10,7 +11,7 @@ export interface User {
   buildingName: string;
   hasPaymentMethod: boolean;
   role: 'client' | 'provider' | 'admin';
-  avatarUrl?: string; // Added avatarUrl as optional property
+  avatarUrl?: string;
   offerBuildings?: string[];
 }
 

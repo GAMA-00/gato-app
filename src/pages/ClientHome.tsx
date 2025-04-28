@@ -28,8 +28,18 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 const ClientHome = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>('all');
-  const { data, isLoading } = useCategories();
+  const { data, isLoading, error } = useCategories();
   const [services, setServices] = useState<Service[]>([]);
+
+  // Log for debugging
+  useEffect(() => {
+    if (error) {
+      console.error('Error loading categories:', error);
+    }
+    if (data) {
+      console.log('Categories loaded:', data);
+    }
+  }, [data, error]);
 
   useEffect(() => {
     const savedServices = localStorage.getItem('gato_services');
@@ -78,6 +88,10 @@ const ClientHome = () => {
                 <div key={i} className="h-32 bg-muted rounded-lg"></div>
               ))}
             </div>
+          ) : error ? (
+            <div className="text-center p-8 text-red-500">
+              Error loading services. Please try again later.
+            </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {data?.categories?.map((category) => (
@@ -87,7 +101,7 @@ const ClientHome = () => {
                       variant="outline" 
                       className="w-full h-auto py-6 flex flex-col items-center gap-2 text-base border-2"
                     >
-                      {CATEGORY_ICONS[category.icon]}
+                      {CATEGORY_ICONS[category.icon] || <Home className="h-5 w-5" />}
                       {category.label}
                     </Button>
                   </DropdownMenuTrigger>
