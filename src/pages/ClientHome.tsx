@@ -67,8 +67,9 @@ const ClientHome = () => {
     }
   }, []);
 
+  // Updated to filter recurring services based on category rather than subcategoryId
   const recurringServices = services.filter(service => {
-    return service.subcategoryId === 'home' || service.category === 'home';
+    return service.category === 'home';
   });
 
   const handleServiceTypeClick = (categoryName: string, serviceTypeName: string) => {
