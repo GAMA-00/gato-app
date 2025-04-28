@@ -71,6 +71,21 @@ const ClientServices = () => {
     }
   });
 
+  // NEW CODE: Group listings by category
+  const listingsByCategory = React.useMemo(() => {
+    const grouped: Record<string, typeof listings> = {};
+    
+    listings.forEach(listing => {
+      const categoryId = listing.categoryId || 'other';
+      if (!grouped[categoryId]) {
+        grouped[categoryId] = [];
+      }
+      grouped[categoryId].push(listing);
+    });
+    
+    return grouped;
+  }, [listings]);
+
   // Calculate final price with commission
   const calculateFinalPrice = (basePrice: number) => {
     return basePrice * (1 + (commissionRate / 100));
