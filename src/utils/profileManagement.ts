@@ -53,26 +53,38 @@ export const createUserProfile = async (userId: string, userData: any) => {
       }
     }
     
-    const profileData = {
-      id: userId,
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone || '',
-      role: userData.role,
-      residencia_id: userData.residenciaId || userData.providerResidenciaIds?.[0] || null,
-      has_payment_method: false,
-      avatar_url: avatarUrl
-    };
-    
-    console.log('Final profile object to insert:', profileData);
-    
-    const { error } = await supabase
-      .from('profiles')
-      .upsert([profileData], { onConflict: 'id' });
+    // Handle insert based on user role
+    if (userData.role === 'client') {
+      const { error } = await supabase
+        .from('clients')
+        .upsert([{
+          id: userId,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone || '',
+          residencia_id: userData.residenciaId || null,
+          has_payment_method: false
+        }], { onConflict: 'id' });
 
-    if (error) {
-      console.error('Error creating profile:', error);
-      throw error;
+      if (error) {
+        console.error('Error creating client profile:', error);
+        throw error;
+      }
+    } else if (userData.role === 'provider') {
+      const { error } = await supabase
+        .from('providers')
+        .upsert([{
+          id: userId,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone || '',
+          about_me: ''
+        }], { onConflict: 'id' });
+
+      if (error) {
+        console.error('Error creating provider profile:', error);
+        throw error;
+      }
     }
     
     console.log('Profile created successfully');

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -55,9 +54,8 @@ const ClientProvidersList = () => {
         .select(`
           *,
           provider:provider_id(
-            profile:id(
-              name
-            )
+            id,
+            name
           )
         `)
         .eq('service_type_id', serviceType.id);
@@ -70,7 +68,7 @@ const ClientProvidersList = () => {
         description: listing.description,
         price: listing.base_price,
         providerId: listing.provider_id,
-        providerName: listing.provider?.profile?.name || 'Proveedor'
+        providerName: listing.provider?.name || 'Proveedor'
       }));
     }
   });

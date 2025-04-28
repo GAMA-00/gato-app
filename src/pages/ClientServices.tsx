@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -45,9 +44,8 @@ const ClientServices = () => {
             )
           ),
           provider:provider_id(
-            profile:id(
-              name
-            )
+            id,
+            name
           )
         `)
         .in('id', listingResidencias.map(lr => lr.listing_id));
@@ -64,7 +62,7 @@ const ClientServices = () => {
         price: listing.base_price,
         duration: listing.duration,
         providerId: listing.provider_id,
-        providerName: listing.provider?.profile?.name || 'Proveedor',
+        providerName: listing.provider?.name || 'Proveedor',
         residenciaIds: [residenciaId],
         createdAt: new Date(listing.created_at)
       }));
