@@ -44,7 +44,7 @@ const ServiceFormFields: React.FC = () => {
   });
 
   // Fetch service categories and types
-  const { data: categoriesData = [] } = useQuery({
+  const { data: categoriesData } = useQuery({
     queryKey: ['service-categories-and-types'],
     queryFn: async () => {
       const { data: categories, error: catError } = await supabase
@@ -89,7 +89,21 @@ const ServiceFormFields: React.FC = () => {
     <div className="space-y-6">
       <FormField
         control={control}
-        name="serviceTypeId" // Changed from subcategoryId to serviceTypeId
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Título del anuncio</FormLabel>
+            <FormControl>
+              <Input placeholder="Ej. Limpieza profesional" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={control}
+        name="subcategoryId" // This will map to service_type_id in the database
         render={({ field }) => (
           <FormItem>
             <FormLabel>¿Qué servicio quieres anunciar?</FormLabel>
@@ -103,7 +117,7 @@ const ServiceFormFields: React.FC = () => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent className="max-h-[300px]">
-                {categoriesData.categories?.map((category) => (
+                {categoriesData?.categories?.map((category) => (
                   <SelectGroup key={category.id}>
                     <SelectLabel>{category.label}</SelectLabel>
                     {categoriesData.serviceTypesByCategory[category.id]?.map((serviceType) => (

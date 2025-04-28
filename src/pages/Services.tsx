@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,100 +21,100 @@ const Services = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ['services', user?.id],
+  const { data: listings = [], isLoading } = useQuery({
+    queryKey: ['listings', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
-        .from('services')
+        .from('listings')
         .select(`
           *,
-          subcategories(*)
+          service_type:service_type_id(
+            name,
+            category:category_id(name)
+          )
         `)
-        .eq('provider_id', user?.id || '');
+        .eq('provider_id', user.id);
         
       if (error) {
-        toast.error('Error cargando servicios: ' + error.message);
+        toast.error('Error loading listings: ' + error.message);
         throw error;
       }
       
-      return data.map(service => ({
-        ...service,
-        id: service.id,
-        name: service.name,
-        subcategoryId: service.subcategory_id,
-        category: service.subcategories?.category_id,
-        duration: service.duration,
-        price: service.base_price,
-        description: service.description,
-        residenciaIds: [], // Manejaremos esto por separado
-        createdAt: new Date(service.created_at),
-        providerId: service.provider_id,
-        providerName: user?.name || ''
+      return data.map(listing => ({
+        id: listing.id,
+        name: listing.title,
+        subcategoryId: listing.service_type_id,
+        category: listing.service_type?.category?.name,
+        duration: listing.duration,
+        price: listing.base_price,
+        description: listing.description,
+        residenciaIds: [], // We'll populate this separately
+        createdAt: new Date(listing.created_at),
+        providerId: listing.provider_id,
+        providerName: user.name || ''
       })) as Service[];
     },
     enabled: !!isAuthenticated && !!user?.id
   });
   
   const { data: residenciaAssociations = [] } = useQuery({
-    queryKey: ['residencia_services'],
+    queryKey: ['listing_residencias'],
     queryFn: async () => {
+      if (!listings.length) return [];
+      
       const { data, error } = await supabase
-        .from('residencia_services')
-        .select('*');
+        .from('listing_residencias')
+        .select('*')
+        .in('listing_id', listings.map(listing => listing.id));
         
       if (error) {
-        toast.error('Error cargando asociaciones de residencias: ' + error.message);
+        toast.error('Error loading residencia associations: ' + error.message);
         throw error;
       }
       
       return data;
     },
-    enabled: !!services.length
+    enabled: listings.length > 0
   });
   
-  const processedServices = React.useMemo(() => {
-    return services.map(service => ({
-      ...service,
+  const processedListings = React.useMemo(() => {
+    return listings.map(listing => ({
+      ...listing,
       residenciaIds: residenciaAssociations
-        .filter(assoc => assoc.service_id === service.id)
+        .filter(assoc => assoc.listing_id === listing.id)
         .map(assoc => assoc.residencia_id)
     }));
-  }, [services, residenciaAssociations]);
+  }, [listings, residenciaAssociations]);
   
-  const createServiceMutation = useMutation({
+  const createListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
-      const { data: subcategory, error: subcategoryError } = await supabase
-        .from('subcategories')
-        .select('category_id')
-        .eq('id', serviceData.subcategoryId)
-        .single();
-        
-      if (subcategoryError) throw subcategoryError;
-      
+      // Create the listing
       const { data, error } = await supabase
-        .from('services')
+        .from('listings')
         .insert({
-          name: serviceData.name || '',
-          subcategory_id: serviceData.subcategoryId,
+          title: serviceData.name || '',
+          service_type_id: serviceData.subcategoryId || '',
           description: serviceData.description || '',
           base_price: serviceData.price || 0,
           duration: serviceData.duration || 60,
-          provider_id: user?.id || '',
-          category: subcategory.category_id
+          provider_id: user?.id || ''
         })
         .select('id')
         .single();
         
       if (error) throw error;
       
+      // Associate with residencias if provided
       if (serviceData.residenciaIds?.length) {
         const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
-          service_id: data.id,
+          listing_id: data.id,
           residencia_id: residenciaId
         }));
         
         const { error: residenciaError } = await supabase
-          .from('residencia_services')
+          .from('listing_residencias')
           .insert(residenciaAssociations);
           
         if (residenciaError) throw residenciaError;
@@ -122,24 +123,25 @@ const Services = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['residencia_services'] });
-      toast.success('Anuncio agregado exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+      queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
+      toast.success('Listing added successfully');
     },
     onError: (error) => {
-      toast.error('Error creando servicio: ' + error.message);
+      toast.error('Error creating listing: ' + error.message);
     }
   });
   
-  const updateServiceMutation = useMutation({
+  const updateListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
-      if (!serviceData.id) throw new Error('Service ID is required');
+      if (!serviceData.id) throw new Error('Listing ID is required');
       
+      // Update the listing
       const { error } = await supabase
-        .from('services')
+        .from('listings')
         .update({
-          name: serviceData.name,
-          subcategory_id: serviceData.subcategoryId,
+          title: serviceData.name,
+          service_type_id: serviceData.subcategoryId,
           description: serviceData.description,
           base_price: serviceData.price,
           duration: serviceData.duration
@@ -148,64 +150,67 @@ const Services = () => {
         
       if (error) throw error;
       
+      // Update residencia associations
+      // First, delete existing associations
       const { error: deleteError } = await supabase
-        .from('residencia_services')
+        .from('listing_residencias')
         .delete()
-        .eq('service_id', serviceData.id);
+        .eq('listing_id', serviceData.id);
         
       if (deleteError) throw deleteError;
       
+      // Then create new ones
       if (serviceData.residenciaIds?.length) {
         const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
-          service_id: serviceData.id!,
+          listing_id: serviceData.id!,
           residencia_id: residenciaId
         }));
         
         const { error: residenciaError } = await supabase
-          .from('residencia_services')
+          .from('listing_residencias')
           .insert(residenciaAssociations);
           
         if (residenciaError) throw residenciaError;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['residencia_services'] });
-      toast.success('Anuncio actualizado exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+      queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
+      toast.success('Listing updated successfully');
     },
     onError: (error) => {
-      toast.error('Error actualizando servicio: ' + error.message);
+      toast.error('Error updating listing: ' + error.message);
     }
   });
   
-  const deleteServiceMutation = useMutation({
+  const deleteListingMutation = useMutation({
     mutationFn: async (service: Service) => {
       const { error } = await supabase
-        .from('services')
+        .from('listings')
         .delete()
         .eq('id', service.id);
         
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      queryClient.invalidateQueries({ queryKey: ['residencia_services'] });
-      toast.success('Anuncio eliminado exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+      queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
+      toast.success('Listing deleted successfully');
     },
     onError: (error) => {
-      toast.error('Error eliminando servicio: ' + error.message);
+      toast.error('Error deleting listing: ' + error.message);
     }
   });
   
-  const filteredServices = processedServices.filter(
+  const filteredListings = processedListings.filter(
     service => 
-      service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.subcategoryId.toLowerCase().includes(searchTerm.toLowerCase())
+      service.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.subcategoryId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const handleAddService = () => {
     if (!isAuthenticated) {
-      toast.error('Debes iniciar sesión para crear un anuncio');
+      toast.error('You must be logged in to create a listing');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
@@ -216,7 +221,7 @@ const Services = () => {
   
   const handleEditService = (service: Service) => {
     if (!isAuthenticated) {
-      toast.error('Debes iniciar sesión para editar un anuncio');
+      toast.error('You must be logged in to edit a listing');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
@@ -227,28 +232,28 @@ const Services = () => {
   
   const handleDeleteService = (service: Service) => {
     if (!isAuthenticated) {
-      toast.error('Debes iniciar sesión para eliminar un anuncio');
+      toast.error('You must be logged in to delete a listing');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
     
-    deleteServiceMutation.mutate(service);
+    deleteListingMutation.mutate(service);
   };
   
   const handleSubmitService = (serviceData: Partial<Service>) => {
     if (!isAuthenticated || !user) {
-      toast.error('Debes iniciar sesión para crear anuncios');
+      toast.error('You must be logged in to create listings');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
     
     if (editingService) {
-      updateServiceMutation.mutate({
+      updateListingMutation.mutate({
         ...serviceData,
         id: editingService.id
       });
     } else {
-      createServiceMutation.mutate(serviceData);
+      createListingMutation.mutate(serviceData);
     }
     
     setIsFormOpen(false);
@@ -282,7 +287,7 @@ const Services = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredServices.map(service => (
+            {filteredListings.map(service => (
               <ServiceCard
                 key={service.id}
                 service={service}
@@ -291,7 +296,7 @@ const Services = () => {
               />
             ))}
             
-            {filteredServices.length === 0 && (
+            {filteredListings.length === 0 && (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground">No se encontraron anuncios. Agrega un nuevo anuncio para comenzar.</p>
               </div>

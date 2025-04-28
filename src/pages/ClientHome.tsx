@@ -80,7 +80,7 @@ const ClientHome = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {data?.categories.map((category) => (
+              {data?.categories?.map((category) => (
                 <DropdownMenu key={category.id}>
                   <DropdownMenuTrigger asChild>
                     <Button 

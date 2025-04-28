@@ -2,19 +2,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface ServiceCategory {
-  id: string;
-  name: string;
-  label: string;
-  icon: string;
-}
-
-interface ServiceType {
-  id: string;
-  category_id: string;
-  name: string;
-}
-
 export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
@@ -42,7 +29,7 @@ export function useCategories() {
         }
         acc[type.category_id].push(type);
         return acc;
-      }, {} as Record<string, ServiceType[]>);
+      }, {} as Record<string, any[]>);
 
       return {
         categories,
