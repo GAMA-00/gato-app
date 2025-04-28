@@ -28,31 +28,49 @@ const ClientProvidersList = () => {
   const { category, subcat } = useParams();
   const navigate = useNavigate();
   
-  // Fetch services from Supabase based on category and name
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ['services-by-category', category, subcat],
+  // Fetch listings from Supabase based on category and service type name
+  const { data: listings = [], isLoading } = useQuery({
+    queryKey: ['listings-by-category', category, subcat],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('services')
+      // First get the service_type_id based on name
+      const { data: serviceTypes, error: stError } = await supabase
+        .from('service_types')
+        .select('id, category:category_id(name)')
+        .eq('name', subcat || '')
+        .limit(1);
+
+      if (stError) throw stError;
+      if (!serviceTypes || serviceTypes.length === 0) return [];
+
+      const serviceType = serviceTypes[0];
+      
+      // Verify that the category matches
+      if (serviceType.category && serviceType.category.name !== category) {
+        return [];
+      }
+
+      // Get all listings for this service type
+      const { data: listingsData, error: listingsError } = await supabase
+        .from('listings')
         .select(`
           *,
-          profiles:provider_id (
-            name
+          provider:provider_id(
+            profile:id(
+              name
+            )
           )
         `)
-        .eq('category', category)
-        .eq('name', subcat);
+        .eq('service_type_id', serviceType.id);
         
-      if (error) throw error;
+      if (listingsError) throw listingsError;
       
-      return data.map(service => ({
-        id: service.id,
-        name: service.name,
-        description: service.description,
-        category: service.category,
-        price: service.base_price,
-        providerId: service.provider_id,
-        providerName: service.profiles?.name || 'Proveedor'
+      return listingsData.map(listing => ({
+        id: listing.id,
+        title: listing.title,
+        description: listing.description,
+        price: listing.base_price,
+        providerId: listing.provider_id,
+        providerName: listing.provider?.profile?.name || 'Proveedor'
       }));
     }
   });
@@ -113,24 +131,24 @@ const ClientProvidersList = () => {
       }
     >
       <div className="max-w-lg mx-auto space-y-4">
-        {services.length === 0 ? (
+        {listings.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
             Aun no hay proveedores de servicio en esta categoría :/
           </div>
         ) : (
-          services.map((service) => (
+          listings.map((listing) => (
             <Card
-              key={service.id}
+              key={listing.id}
               className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/client/book/1/${service.id}`)}
+              onClick={() => navigate(`/client/book/1/${listing.id}`)}
             >
               <CardContent className="p-4">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">{service.name}</span>
-                  <span className="text-sm text-muted-foreground">${service.price.toFixed(2)}</span>
+                  <span className="font-medium">{listing.title}</span>
+                  <span className="text-sm text-muted-foreground">${listing.price.toFixed(2)}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">{service.description}</div>
-                <div className="text-xs mt-2">Ofrecido por: <span className="font-semibold">{service.providerName}</span></div>
+                <div className="text-xs text-muted-foreground">{listing.description}</div>
+                <div className="text-xs mt-2">Ofrecido por: <span className="font-semibold">{listing.providerName}</span></div>
               </CardContent>
             </Card>
           ))

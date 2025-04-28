@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   FormField,
@@ -21,8 +21,6 @@ import {
   SelectGroup,
   SelectLabel
 } from '@/components/ui/select';
-import { SERVICE_CATEGORIES } from '@/lib/data';
-import { SERVICE_SUBCATEGORIES } from '@/lib/subcategories';
 import { Image } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,16 +43,37 @@ const ServiceFormFields: React.FC = () => {
     }
   });
 
-  // Fetch categories and subcategories
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
+  // Fetch service categories and types
+  const { data: categoriesData = [] } = useQuery({
+    queryKey: ['service-categories-and-types'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*, subcategories(*)');
+      const { data: categories, error: catError } = await supabase
+        .from('service_categories')
+        .select('*')
+        .order('name');
       
-      if (error) throw error;
-      return data;
+      if (catError) throw catError;
+      
+      const { data: serviceTypes, error: stError } = await supabase
+        .from('service_types')
+        .select('*')
+        .order('name');
+        
+      if (stError) throw stError;
+      
+      // Group service types by category
+      const serviceTypesByCategory = serviceTypes.reduce((acc, type) => {
+        if (!acc[type.category_id]) {
+          acc[type.category_id] = [];
+        }
+        acc[type.category_id].push(type);
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      return { 
+        categories,
+        serviceTypesByCategory
+      };
     }
   });
 
@@ -70,7 +89,7 @@ const ServiceFormFields: React.FC = () => {
     <div className="space-y-6">
       <FormField
         control={control}
-        name="subcategoryId"
+        name="serviceTypeId" // Changed from subcategoryId to serviceTypeId
         render={({ field }) => (
           <FormItem>
             <FormLabel>¿Qué servicio quieres anunciar?</FormLabel>
@@ -84,12 +103,12 @@ const ServiceFormFields: React.FC = () => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent className="max-h-[300px]">
-                {categories.map((category) => (
+                {categoriesData.categories?.map((category) => (
                   <SelectGroup key={category.id}>
                     <SelectLabel>{category.label}</SelectLabel>
-                    {category.subcategories?.map((subcategory) => (
-                      <SelectItem key={subcategory.id} value={subcategory.id}>
-                        {subcategory.label}
+                    {categoriesData.serviceTypesByCategory[category.id]?.map((serviceType) => (
+                      <SelectItem key={serviceType.id} value={serviceType.id}>
+                        {serviceType.name}
                       </SelectItem>
                     ))}
                   </SelectGroup>

@@ -18,46 +18,55 @@ const ClientServices = () => {
   const { startNewConversation } = useChat();
   const { commissionRate } = useCommissionRate();
   
-  const { data: services = [], isLoading } = useQuery({
+  const { data: listings = [], isLoading } = useQuery({
     queryKey: ['client-services', residenciaId],
     queryFn: async () => {
-      // Query services and related building associations
-      const { data: residenciaServices, error: rsError } = await supabase
-        .from('residencia_services')
-        .select('service_id')
+      // Query listings and related residencia associations
+      const { data: listingResidencias, error: lrError } = await supabase
+        .from('listing_residencias')
+        .select('listing_id')
         .eq('residencia_id', residenciaId);
         
-      if (rsError) throw rsError;
+      if (lrError) throw lrError;
       
-      // Si no hay servicios para esta residencia, devolver array vacío
-      if (!residenciaServices.length) return [];
+      // If no listings for this residencia, return empty array
+      if (!listingResidencias || listingResidencias.length === 0) return [];
       
-      // Obtener los servicios reales
-      const { data: servicesData, error: servicesError } = await supabase
-        .from('services')
+      // Get the actual listings
+      const { data: listingsData, error: listingsError } = await supabase
+        .from('listings')
         .select(`
           *,
-          subcategories(*),
-          profiles:provider_id (
-            name
+          service_type:service_type_id(
+            name,
+            category:category_id(
+              name,
+              label
+            )
+          ),
+          provider:provider_id(
+            profile:id(
+              name
+            )
           )
         `)
-        .in('id', residenciaServices.map(rs => rs.service_id));
+        .in('id', listingResidencias.map(lr => lr.listing_id));
         
-      if (servicesError) throw servicesError;
+      if (listingsError) throw listingsError;
       
-      return servicesData.map(service => ({
-        id: service.id,
-        name: service.name,
-        description: service.description,
-        subcategoryId: service.subcategory_id,
-        category: service.subcategories?.category_id,
-        price: service.base_price,
-        duration: service.duration,
-        providerId: service.provider_id,
-        providerName: service.profiles?.name || 'Proveedor',
+      return listingsData.map(listing => ({
+        id: listing.id,
+        title: listing.title,
+        description: listing.description,
+        categoryId: listing.service_type?.category?.name || '',
+        categoryName: listing.service_type?.category?.label || 'Otros',
+        serviceTypeName: listing.service_type?.name || '',
+        price: listing.base_price,
+        duration: listing.duration,
+        providerId: listing.provider_id,
+        providerName: listing.provider?.profile?.name || 'Proveedor',
         residenciaIds: [residenciaId],
-        createdAt: new Date(service.created_at)
+        createdAt: new Date(listing.created_at)
       }));
     }
   });
@@ -103,13 +112,13 @@ const ClientServices = () => {
     );
   }
 
-  // Group services by category
-  const servicesByCategory = services.reduce((acc, service) => {
-    const categoryId = service.category || '';
+  // Group listings by category
+  const listingsByCategory = listings.reduce((acc, listing) => {
+    const categoryId = listing.categoryId || '';
     if (!acc[categoryId]) {
       acc[categoryId] = [];
     }
-    acc[categoryId].push(service);
+    acc[categoryId].push(listing);
     return acc;
   }, {} as Record<string, any[]>);
 
@@ -118,40 +127,40 @@ const ClientServices = () => {
       title="Servicios Disponibles"
       subtitle="Explora los servicios disponibles en tu residencia"
     >
-      {services.length === 0 ? (
+      {listings.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No hay servicios disponibles en esta residencia todavía.</p>
         </div>
       ) : (
-        Object.entries(servicesByCategory).map(([categoryId, categoryServices]) => (
+        Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => (
           <div key={categoryId} className="mb-8">
             <h2 className="text-xl font-semibold mb-4" style={{ color: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333' }}>
               {SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || 'Otros servicios'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoryServices.map(service => (
-                <Card key={service.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              {categoryListings.map(listing => (
+                <Card key={listing.id} className="overflow-hidden hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-medium">{service.name}</h3>
+                        <h3 className="font-medium">{listing.title}</h3>
                         <p className="text-sm text-muted-foreground mb-2">
-                          Ofrecido por: {service.providerName}
+                          Ofrecido por: {listing.providerName}
                         </p>
-                        <p className="text-sm mb-2">{service.description}</p>
-                        <p className="text-sm font-semibold mb-4">${calculateFinalPrice(service.price).toFixed(2)}</p>
+                        <p className="text-sm mb-2">{listing.description}</p>
+                        <p className="text-sm font-semibold mb-4">${calculateFinalPrice(listing.price).toFixed(2)}</p>
                       </div>
                     </div>
                     <div className="flex space-x-2">
                       <Button
                         className="flex-1"
-                        onClick={() => handleBookService(service.id)}
+                        onClick={() => handleBookService(listing.id)}
                       >
                         Reservar
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => handleContactProvider(service.providerId, service.providerName)}
+                        onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
                       >
                         <MessageSquare className="h-4 w-4" />
                       </Button>

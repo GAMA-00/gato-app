@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -91,14 +92,18 @@ const ClientHome = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56">
-                    {data.subcategoriesByCategory[category.id]?.map((subcategory) => (
+                    {data.serviceTypesByCategory[category.id]?.map((serviceType) => (
                       <DropdownMenuItem
-                        key={subcategory.id}
-                        onClick={() => navigate(`/client/services/${category.name}/${subcategory.name}`)}
+                        key={serviceType.id}
+                        onClick={() => navigate(`/client/services/${category.name}/${serviceType.name}`)}
                       >
-                        {subcategory.label}
+                        {serviceType.name}
                       </DropdownMenuItem>
-                    ))}
+                    )) || (
+                      <DropdownMenuItem disabled>
+                        No hay servicios disponibles
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ))}
