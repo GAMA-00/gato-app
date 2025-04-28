@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Home, Scissors, Dog, Dumbbell, Book, Wrench, ArrowRight, Music, School, Globe, Bike, Camera, PenTool, BadmintonBall, HandHelping } from 'lucide-react';
+import { Home, Scissors, Dog, Dumbbell, Book, Wrench, ArrowRight, Music, School, Globe, Bike, Camera, PenTool } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
@@ -22,8 +23,8 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'bicycle': <Bike className="h-4 w-4" />,
   'camera': <Camera className="h-4 w-4" />,
   'yoga': <PenTool className="h-4 w-4" />,
-  'tennis': <BadmintonBall className="h-4 w-4" />,
-  'hand-helping': <HandHelping className="h-4 w-4" />
+  'tennis': <Dumbbell className="h-4 w-4" />,
+  'hand-helping': <Home className="h-4 w-4" />
 };
 
 // Priority order for categories display
