@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Home, Scissors, Dog, Dumbbell, Book, Wrench } from 'lucide-react';
+import { Home, Scissors, Dog, Dumbbell, Book, Wrench, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
@@ -12,12 +12,12 @@ import { useCategories } from '@/hooks/useCategories';
 import { Service } from '@/lib/types';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  'house': <Home className="h-5 w-5" />,
-  'scissors': <Scissors className="h-5 w-5" />,
-  'dog': <Dog className="h-5 w-5" />,
-  'dumbbell': <Dumbbell className="h-5 w-5" />,
-  'book': <Book className="h-5 w-5" />,
-  'wrench': <Wrench className="h-5 w-5" />
+  'house': <Home className="h-4 w-4" />,
+  'scissors': <Scissors className="h-4 w-4" />,
+  'dog': <Dog className="h-4 w-4" />,
+  'dumbbell': <Dumbbell className="h-4 w-4" />,
+  'book': <Book className="h-4 w-4" />,
+  'wrench': <Wrench className="h-4 w-4" />
 };
 
 const ClientHome = () => {
@@ -58,6 +58,18 @@ const ClientHome = () => {
     navigate(`/client/services/${categoryName}/${serviceTypeName}`);
   };
 
+  const getCategoryColor = (index: number) => {
+    const colors = [
+      'border-blue-500 bg-blue-50 text-blue-700',
+      'border-emerald-500 bg-emerald-50 text-emerald-700',
+      'border-amber-500 bg-amber-50 text-amber-700',
+      'border-purple-500 bg-purple-50 text-purple-700',
+      'border-rose-500 bg-rose-50 text-rose-700',
+      'border-cyan-500 bg-cyan-50 text-cyan-700',
+    ];
+    return colors[index % colors.length];
+  };
+
   return (
     <PageContainer title="Servicios Disponibles">
       <Tabs 
@@ -82,13 +94,13 @@ const ClientHome = () => {
 
         <TabsContent value="all">
           {isLoading ? (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-6 bg-muted w-48 rounded mb-4"></div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, j) => (
-                      <div key={j} className="h-16 bg-muted rounded"></div>
+                  <div className="h-6 bg-muted w-36 rounded mb-3"></div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {[...Array(10)].map((_, j) => (
+                      <div key={j} className="h-12 bg-muted rounded"></div>
                     ))}
                   </div>
                 </div>
@@ -99,31 +111,31 @@ const ClientHome = () => {
               Error loading services. Please try again later.
             </div>
           ) : (
-            <div className="space-y-12">
-              {data?.categories?.map((category) => (
-                <div key={category.id} className="space-y-4">
-                  <div className="flex items-center gap-2 border-b pb-2">
-                    {CATEGORY_ICONS[category.icon] || <Home className="h-5 w-5" />}
-                    <h2 className="text-xl font-medium">{category.label}</h2>
+            <div className="space-y-8">
+              {data?.categories?.map((category, index) => (
+                <div key={category.id} className="animate-fade-in">
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index)}`}>
+                    {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
+                    <h2 className="text-sm font-medium">{category.label}</h2>
                   </div>
                   
                   {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                       {data.serviceTypesByCategory[category.id].map((serviceType) => (
                         <Card 
                           key={serviceType.id}
-                          className="hover:shadow-md transition-all duration-200"
+                          className={`hover:shadow-md hover:translate-y-[-2px] transition-all duration-200 border-l-4 ${getCategoryColor(index)}`}
                           onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
                         >
-                          <CardContent className="p-4 flex items-center justify-between cursor-pointer">
-                            <span className="font-medium">{serviceType.name}</span>
-                            <div className="h-2 w-2 rounded-full bg-primary"></div>
+                          <CardContent className="p-3 flex items-center justify-between cursor-pointer">
+                            <span className="font-medium text-sm">{serviceType.name}</span>
+                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                           </CardContent>
                         </Card>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-xs">
                       No hay servicios disponibles en esta categoría
                     </p>
                   )}
@@ -131,7 +143,7 @@ const ClientHome = () => {
               ))}
 
               {(!data?.categories || data.categories.length === 0) && (
-                <div className="text-center py-12">
+                <div className="text-center py-8">
                   <p className="text-muted-foreground">No hay categorías disponibles.</p>
                 </div>
               )}
