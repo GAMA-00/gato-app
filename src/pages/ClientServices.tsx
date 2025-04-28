@@ -91,87 +91,106 @@ const ClientServices = () => {
         title="Servicios Disponibles"
         subtitle="Explorando servicios disponibles..."
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <Card key={i} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-16 w-full" />
-                  <div className="flex space-x-2 pt-2">
-                    <Skeleton className="h-9 w-full" />
-                    <Skeleton className="h-9 w-10" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="grid gap-8">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map(j => (
+                  <Skeleton key={j} className="h-[200px] rounded-lg" />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </PageContainer>
     );
   }
 
-  // Group listings by category
-  const listingsByCategory = listings.reduce((acc, listing) => {
-    const categoryId = listing.categoryId || '';
-    if (!acc[categoryId]) {
-      acc[categoryId] = [];
-    }
-    acc[categoryId].push(listing);
-    return acc;
-  }, {} as Record<string, any[]>);
-
   return (
     <PageContainer
       title="Servicios Disponibles"
-      subtitle="Explora los servicios disponibles en tu residencia"
+      subtitle="Explora todos los servicios disponibles en tu residencia"
     >
-      {listings.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No hay servicios disponibles en esta residencia todavía.</p>
-        </div>
-      ) : (
-        Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => (
-          <div key={categoryId} className="mb-8">
-            <h2 className="text-xl font-semibold mb-4" style={{ color: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333' }}>
-              {SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || 'Otros servicios'}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="space-y-12">
+        {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => (
+          <section key={categoryId} className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <h2 
+                className="text-2xl font-semibold" 
+                style={{ color: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333' }}
+              >
+                {SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || 'Otros servicios'}
+              </h2>
+              <div className="h-[2px] flex-1" style={{ 
+                background: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#e5e7eb',
+                opacity: 0.3 
+              }} />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {categoryListings.map(listing => (
-                <Card key={listing.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{listing.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Ofrecido por: {listing.providerName}
-                        </p>
-                        <p className="text-sm mb-2">{listing.description}</p>
-                        <p className="text-sm font-semibold mb-4">${calculateFinalPrice(listing.price).toFixed(2)}</p>
-                      </div>
+                <Card 
+                  key={listing.id} 
+                  className="group hover:shadow-lg transition-all duration-300 border-t-4"
+                  style={{ 
+                    borderTopColor: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333'
+                  }}
+                >
+                  <CardContent className="p-6">
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+                        {listing.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {listing.description}
+                      </p>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        className="flex-1"
-                        onClick={() => handleBookService(listing.id)}
-                      >
-                        Reservar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Duración</span>
+                        <span className="font-medium">{listing.duration} minutos</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          Por: <span className="font-medium text-foreground">{listing.providerName}</span>
+                        </div>
+                        <div className="text-lg font-semibold">
+                          ${calculateFinalPrice(listing.price).toFixed(2)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3 pt-2">
+                        <Button
+                          className="flex-1"
+                          onClick={() => handleBookService(listing.id)}
+                        >
+                          Reservar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          </section>
+        ))}
+        
+        {listings.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No hay servicios disponibles en esta residencia todavía.</p>
           </div>
-        ))
-      )}
+        )}
+      </div>
     </PageContainer>
   );
 };
