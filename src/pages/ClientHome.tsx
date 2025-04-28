@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Home, Scissors, Dog, Dumbbell, Book, Wrench, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Home, Scissors, Dog, Dumbbell, Book, Wrench, ArrowRight, Guitar, School, Languages, Bicycle, Camera, Yoga, Tennis, HandHelping } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
@@ -12,12 +11,30 @@ import { useCategories } from '@/hooks/useCategories';
 import { Service } from '@/lib/types';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  'house': <Home className="h-4 w-4" />,
+  'home': <Home className="h-4 w-4" />,
   'scissors': <Scissors className="h-4 w-4" />,
   'dog': <Dog className="h-4 w-4" />,
   'dumbbell': <Dumbbell className="h-4 w-4" />,
   'book': <Book className="h-4 w-4" />,
-  'wrench': <Wrench className="h-4 w-4" />
+  'wrench': <Wrench className="h-4 w-4" />,
+  'guitar': <Guitar className="h-4 w-4" />,
+  'school': <School className="h-4 w-4" />,
+  'languages': <Languages className="h-4 w-4" />,
+  'bicycle': <Bicycle className="h-4 w-4" />,
+  'camera': <Camera className="h-4 w-4" />,
+  'yoga': <Yoga className="h-4 w-4" />,
+  'tennis': <Tennis className="h-4 w-4" />,
+  'hand-helping': <HandHelping className="h-4 w-4" />
+};
+
+// Priority order for categories display
+const CATEGORY_PRIORITY = {
+  'home': 1,
+  'pets': 2,
+  'personal-care': 3,
+  'sports': 4,
+  'classes': 5,
+  'other': 6
 };
 
 const ClientHome = () => {
@@ -70,6 +87,13 @@ const ClientHome = () => {
     return colors[index % colors.length];
   };
 
+  // Sort categories based on priority
+  const sortedCategories = data?.categories ? [...data.categories].sort((a, b) => {
+    const priorityA = CATEGORY_PRIORITY[a.name as keyof typeof CATEGORY_PRIORITY] || 99;
+    const priorityB = CATEGORY_PRIORITY[b.name as keyof typeof CATEGORY_PRIORITY] || 99;
+    return priorityA - priorityB;
+  }) : [];
+
   return (
     <PageContainer title="Servicios Disponibles">
       <Tabs 
@@ -111,8 +135,8 @@ const ClientHome = () => {
               Error loading services. Please try again later.
             </div>
           ) : (
-            <div className="space-y-8">
-              {data?.categories?.map((category, index) => (
+            <div className="space-y-6">
+              {sortedCategories.map((category, index) => (
                 <div key={category.id} className="animate-fade-in">
                   <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index)}`}>
                     {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
@@ -120,16 +144,16 @@ const ClientHome = () => {
                   </div>
                   
                   {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                       {data.serviceTypesByCategory[category.id].map((serviceType) => (
                         <Card 
                           key={serviceType.id}
                           className={`hover:shadow-md hover:translate-y-[-2px] transition-all duration-200 border-l-4 ${getCategoryColor(index)}`}
                           onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
                         >
-                          <CardContent className="p-3 flex items-center justify-between cursor-pointer">
-                            <span className="font-medium text-sm">{serviceType.name}</span>
-                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          <CardContent className="p-2 flex items-center justify-between cursor-pointer">
+                            <span className="font-medium text-xs">{serviceType.name}</span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
                           </CardContent>
                         </Card>
                       ))}
