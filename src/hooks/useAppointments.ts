@@ -11,23 +11,55 @@ export function useAppointments() {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          services (
-            name,
-            base_price,
-            duration
-          ),
-          profiles!appointments_client_id_fkey (
-            name
-          )
-        `)
-        .order('start_time');
-
-      if (error) throw error;
-      return data || [];
+      // Query based on user role
+      if (user.role === 'provider') {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select(`
+            *,
+            listings (
+              title,
+              base_price,
+              duration,
+              service_type_id
+            ),
+            clients:client_id (
+              profiles:id (
+                name,
+                phone
+              )
+            )
+          `)
+          .eq('provider_id', user.id)
+          .order('start_time');
+          
+        if (error) throw error;
+        return data || [];
+      } else {
+        // For clients
+        const { data, error } = await supabase
+          .from('appointments')
+          .select(`
+            *,
+            listings (
+              title,
+              base_price,
+              duration,
+              service_type_id
+            ),
+            providers:provider_id (
+              profiles:id (
+                name,
+                phone
+              )
+            )
+          `)
+          .eq('client_id', user.id)
+          .order('start_time');
+          
+        if (error) throw error;
+        return data || [];
+      }
     },
     enabled: !!user
   });

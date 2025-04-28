@@ -2,18 +2,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Category {
+interface ServiceCategory {
   id: string;
   name: string;
   label: string;
   icon: string;
 }
 
-interface Subcategory {
+interface ServiceType {
   id: string;
   category_id: string;
   name: string;
-  label: string;
 }
 
 export function useCategories() {
@@ -22,32 +21,32 @@ export function useCategories() {
     queryFn: async () => {
       // Fetch categories
       const { data: categories, error: categoriesError } = await supabase
-        .from('categories')
+        .from('service_categories')
         .select('*')
         .order('name');
       
       if (categoriesError) throw categoriesError;
 
-      // Fetch subcategories
-      const { data: subcategories, error: subcategoriesError } = await supabase
-        .from('subcategories')
+      // Fetch service types
+      const { data: serviceTypes, error: serviceTypesError } = await supabase
+        .from('service_types')
         .select('*')
         .order('name');
       
-      if (subcategoriesError) throw subcategoriesError;
+      if (serviceTypesError) throw serviceTypesError;
 
-      // Group subcategories by category
-      const subcategoriesByCategory = subcategories.reduce((acc, sub) => {
-        if (!acc[sub.category_id]) {
-          acc[sub.category_id] = [];
+      // Group service types by category
+      const serviceTypesByCategory = serviceTypes.reduce((acc, type) => {
+        if (!acc[type.category_id]) {
+          acc[type.category_id] = [];
         }
-        acc[sub.category_id].push(sub);
+        acc[type.category_id].push(type);
         return acc;
-      }, {} as Record<string, Subcategory[]>);
+      }, {} as Record<string, ServiceType[]>);
 
       return {
         categories,
-        subcategoriesByCategory
+        serviceTypesByCategory
       };
     }
   });

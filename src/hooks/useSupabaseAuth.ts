@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +30,31 @@ export const useSupabaseAuth = () => {
 
             if (profile) {
               console.log('Profile retrieved:', profile);
+              let hasPaymentMethod = profile.has_payment_method || false;
+              
+              // Fetch additional data based on role
+              if (profile.role === 'client') {
+                const { data: clientData } = await supabase
+                  .from('clients')
+                  .select('has_payment_method')
+                  .eq('id', session.user.id)
+                  .single();
+                
+                if (clientData) {
+                  hasPaymentMethod = clientData.has_payment_method || hasPaymentMethod;
+                }
+              } else if (profile.role === 'provider') {
+                const { data: providerData } = await supabase
+                  .from('providers')
+                  .select('has_payment_method')
+                  .eq('id', session.user.id)
+                  .single();
+                
+                if (providerData) {
+                  hasPaymentMethod = providerData.has_payment_method || hasPaymentMethod;
+                }
+              }
+              
               setAuthUser({
                 id: session.user.id,
                 email: profile.email || '',
@@ -38,7 +62,7 @@ export const useSupabaseAuth = () => {
                 phone: profile.phone || '',
                 buildingId: profile.residencia_id || '',
                 buildingName: '', 
-                hasPaymentMethod: profile.has_payment_method || false,
+                hasPaymentMethod: hasPaymentMethod,
                 role: profile.role as UserRole,
                 avatarUrl: profile.avatar_url 
               });
@@ -82,6 +106,31 @@ export const useSupabaseAuth = () => {
             
             if (profile) {
               console.log('Initial profile loaded:', profile);
+              let hasPaymentMethod = profile.has_payment_method || false;
+              
+              // Fetch additional data based on role
+              if (profile.role === 'client') {
+                const { data: clientData } = await supabase
+                  .from('clients')
+                  .select('has_payment_method')
+                  .eq('id', session.user.id)
+                  .single();
+                
+                if (clientData) {
+                  hasPaymentMethod = clientData.has_payment_method || hasPaymentMethod;
+                }
+              } else if (profile.role === 'provider') {
+                const { data: providerData } = await supabase
+                  .from('providers')
+                  .select('has_payment_method')
+                  .eq('id', session.user.id)
+                  .single();
+                
+                if (providerData) {
+                  hasPaymentMethod = providerData.has_payment_method || hasPaymentMethod;
+                }
+              }
+              
               setAuthUser({
                 id: session.user.id,
                 email: profile.email || '',
@@ -89,7 +138,7 @@ export const useSupabaseAuth = () => {
                 phone: profile.phone || '',
                 buildingId: profile.residencia_id || '',
                 buildingName: '', 
-                hasPaymentMethod: profile.has_payment_method || false,
+                hasPaymentMethod: hasPaymentMethod,
                 role: profile.role as UserRole,
                 avatarUrl: profile.avatar_url 
               });
@@ -156,34 +205,40 @@ export const useSupabaseAuth = () => {
       if (data?.user) {
         console.log('User created successfully:', data.user.id);
         
-        // Create user profile with the actual email
-        const profileData = {
-          id: data.user.id,
-          name: userData.name,
-          email: email, // Store the real email
-          phone: userData.phone || '',
-          role: userData.role,
-          residencia_id: userData.role === 'client' ? userData.residenciaId : null,
-          has_payment_method: false
-        };
+        // Call create_user_profile function to insert into profiles and appropriate role table
+        const { error: functionCallError } = await supabase.rpc('create_user_profile', {
+          user_id: data.user.id,
+          user_name: userData.name,
+          user_email: email, // Store real email in profile
+          user_phone: userData.phone || '',
+          user_role: userData.role,
+          user_residencia_id: userData.residenciaId || null
+        });
         
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([profileData]);
-        
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
+        if (functionCallError) {
+          console.error('Error creating profile:', functionCallError);
           toast.error('Error al crear el perfil de usuario');
           return { 
             data: null, 
-            error: profileError 
+            error: functionCallError 
           };
         }
         
-        // Store the provider's residencia IDs if they're a provider
+        // If user is a provider and has specified residencias, link them
         if (userData.role === 'provider' && userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0) {
-          // Handle provider residencias if needed
-          console.log('Provider residencias:', userData.providerResidenciaIds);
+          // Insert provider residencia associations
+          for (const residenciaId of userData.providerResidenciaIds) {
+            const { error: residenciaError } = await supabase
+              .from('provider_residencias')
+              .insert({
+                provider_id: data.user.id, 
+                residencia_id: residenciaId
+              });
+              
+            if (residenciaError) {
+              console.error('Error linking provider to residencia:', residenciaError);
+            }
+          }
         }
         
         // Now sign in the user immediately

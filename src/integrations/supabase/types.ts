@@ -20,12 +20,12 @@ export type Database = {
           id: string
           last_modified_at: string | null
           last_modified_by: string | null
+          listing_id: string
           notes: string | null
           provider_id: string
           recurrence: string | null
           refund_percentage: number | null
-          residencia_id: string | null
-          service_id: string
+          residencia_id: string
           start_time: string
           status: string
         }
@@ -39,12 +39,12 @@ export type Database = {
           id?: string
           last_modified_at?: string | null
           last_modified_by?: string | null
+          listing_id: string
           notes?: string | null
           provider_id: string
           recurrence?: string | null
           refund_percentage?: number | null
-          residencia_id?: string | null
-          service_id: string
+          residencia_id: string
           start_time: string
           status: string
         }
@@ -58,28 +58,21 @@ export type Database = {
           id?: string
           last_modified_at?: string | null
           last_modified_by?: string | null
+          listing_id?: string
           notes?: string | null
           provider_id?: string
           recurrence?: string | null
           refund_percentage?: number | null
-          residencia_id?: string | null
-          service_id?: string
+          residencia_id?: string
           start_time?: string
           status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_building_id_fkey"
-            columns: ["residencia_id"]
-            isOneToOne: false
-            referencedRelation: "residencias"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "appointments_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
@@ -90,17 +83,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_provider_id_fkey"
-            columns: ["provider_id"]
+            foreignKeyName: "appointments_listing_id_fkey"
+            columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "listings"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: "appointments_provider_id_fkey"
+            columns: ["provider_id"]
             isOneToOne: false
-            referencedRelation: "services"
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
             referencedColumns: ["id"]
           },
         ]
@@ -123,30 +123,6 @@ export type Database = {
           hours_before?: number
           id?: string
           refund_percentage?: number
-        }
-        Relationships: []
-      }
-      categories: {
-        Row: {
-          created_at: string
-          icon: string
-          id: string
-          label: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          icon: string
-          id?: string
-          label: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          icon?: string
-          id?: string
-          label?: string
-          name?: string
         }
         Relationships: []
       }
@@ -198,6 +174,45 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          apartment: string | null
+          created_at: string
+          has_payment_method: boolean | null
+          id: string
+          residencia_id: string | null
+        }
+        Insert: {
+          apartment?: string | null
+          created_at?: string
+          has_payment_method?: boolean | null
+          id: string
+          residencia_id?: string | null
+        }
+        Update: {
+          apartment?: string | null
+          created_at?: string
+          has_payment_method?: boolean | null
+          id?: string
+          residencia_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           client_id: string
@@ -243,6 +258,93 @@ export type Database = {
           },
         ]
       }
+      listing_residencias: {
+        Row: {
+          created_at: string
+          listing_id: string
+          residencia_id: string
+        }
+        Insert: {
+          created_at?: string
+          listing_id: string
+          residencia_id: string
+        }
+        Update: {
+          created_at?: string
+          listing_id?: string
+          residencia_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_residencias_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_residencias_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          base_price: number
+          created_at: string
+          description: string
+          duration: number
+          id: string
+          is_active: boolean | null
+          provider_id: string
+          service_type_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          base_price: number
+          created_at?: string
+          description: string
+          duration: number
+          id?: string
+          is_active?: boolean | null
+          provider_id: string
+          service_type_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          created_at?: string
+          description?: string
+          duration?: number
+          id?: string
+          is_active?: boolean | null
+          provider_id?: string
+          service_type_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           about_me: string | null
@@ -282,35 +384,70 @@ export type Database = {
         }
         Relationships: []
       }
-      residencia_services: {
+      provider_residencias: {
         Row: {
           created_at: string
+          provider_id: string
           residencia_id: string
-          service_id: string
         }
         Insert: {
           created_at?: string
+          provider_id: string
           residencia_id: string
-          service_id: string
         }
         Update: {
           created_at?: string
+          provider_id?: string
           residencia_id?: string
-          service_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "building_services_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: "provider_residencias_provider_id_fkey"
+            columns: ["provider_id"]
             isOneToOne: false
-            referencedRelation: "services"
+            referencedRelation: "providers"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "residencia_services_residencia_id_fkey"
+            foreignKeyName: "provider_residencias_residencia_id_fkey"
             columns: ["residencia_id"]
             isOneToOne: false
             referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      providers: {
+        Row: {
+          about_me: string | null
+          average_rating: number | null
+          created_at: string
+          experience_years: number | null
+          has_payment_method: boolean | null
+          id: string
+        }
+        Insert: {
+          about_me?: string | null
+          average_rating?: number | null
+          created_at?: string
+          experience_years?: number | null
+          has_payment_method?: boolean | null
+          id: string
+        }
+        Update: {
+          about_me?: string | null
+          average_rating?: number | null
+          created_at?: string
+          experience_years?: number | null
+          has_payment_method?: boolean | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "providers_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -336,85 +473,55 @@ export type Database = {
         }
         Relationships: []
       }
-      services: {
+      service_categories: {
         Row: {
-          base_price: number
-          category: string
           created_at: string
-          description: string
-          duration: number
+          icon: string
           id: string
+          label: string
           name: string
-          provider_id: string
-          subcategory_id: string | null
         }
         Insert: {
-          base_price: number
-          category: string
           created_at?: string
-          description: string
-          duration: number
+          icon: string
           id?: string
+          label: string
           name: string
-          provider_id: string
-          subcategory_id?: string | null
         }
         Update: {
-          base_price?: number
-          category?: string
           created_at?: string
-          description?: string
-          duration?: number
+          icon?: string
           id?: string
+          label?: string
           name?: string
-          provider_id?: string
-          subcategory_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "services_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "services_subcategory_id_fkey"
-            columns: ["subcategory_id"]
-            isOneToOne: false
-            referencedRelation: "subcategories"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      subcategories: {
+      service_types: {
         Row: {
           category_id: string
           created_at: string
           id: string
-          label: string
           name: string
         }
         Insert: {
           category_id: string
           created_at?: string
           id?: string
-          label: string
           name: string
         }
         Update: {
           category_id?: string
           created_at?: string
           id?: string
-          label?: string
           name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "subcategories_category_id_fkey"
+            foreignKeyName: "service_types_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "categories"
+            referencedRelation: "service_categories"
             referencedColumns: ["id"]
           },
         ]

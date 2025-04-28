@@ -9,6 +9,7 @@ export const checkPhoneExists = async (phone: string): Promise<boolean> => {
     
     console.log('Checking if phone exists:', phone);
     
+    // Check in the profiles table since that's where we store the phone numbers
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('id')
