@@ -76,13 +76,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_last_modified_by_fkey"
-            columns: ["last_modified_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "appointments_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
@@ -157,22 +150,7 @@ export type Database = {
           receiver_id?: string
           sender_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_receiver_id_fkey"
-            columns: ["receiver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       clients: {
         Row: {
@@ -206,13 +184,6 @@ export type Database = {
           residencia_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "clients_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "clients_residencia_id_fkey"
             columns: ["residencia_id"]
@@ -250,22 +221,7 @@ export type Database = {
           provider_id?: string
           unread_count?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversations_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       listing_residencias: {
         Row: {
@@ -354,45 +310,6 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          about_me: string | null
-          avatar_url: string | null
-          created_at: string
-          email: string
-          has_payment_method: boolean | null
-          id: string
-          name: string
-          phone: string | null
-          residencia_id: string | null
-          role: string
-        }
-        Insert: {
-          about_me?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email: string
-          has_payment_method?: boolean | null
-          id: string
-          name: string
-          phone?: string | null
-          residencia_id?: string | null
-          role: string
-        }
-        Update: {
-          about_me?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email?: string
-          has_payment_method?: boolean | null
-          id?: string
-          name?: string
-          phone?: string | null
-          residencia_id?: string | null
-          role?: string
-        }
-        Relationships: []
-      }
       provider_residencias: {
         Row: {
           created_at: string
@@ -433,7 +350,6 @@ export type Database = {
           created_at: string
           email: string | null
           experience_years: number | null
-          has_payment_method: boolean | null
           id: string
           name: string | null
           phone: string | null
@@ -444,7 +360,6 @@ export type Database = {
           created_at?: string
           email?: string | null
           experience_years?: number | null
-          has_payment_method?: boolean | null
           id: string
           name?: string | null
           phone?: string | null
@@ -455,20 +370,11 @@ export type Database = {
           created_at?: string
           email?: string | null
           experience_years?: number | null
-          has_payment_method?: boolean | null
           id?: string
           name?: string | null
           phone?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "providers_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       residencias: {
         Row: {

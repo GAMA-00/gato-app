@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle, Info } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Residencia } from '@/lib/types';
@@ -18,7 +17,6 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Schema for client and provider validation - simplified
 const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
@@ -54,14 +52,12 @@ const Register = () => {
   const [loadingResidencias, setLoadingResidencias] = useState(true);
   const { user } = useAuth();
   
-  // Redirect if user is already authenticated
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
 
-  // Load residencias
   useEffect(() => {
     const fetchResidencias = async () => {
       try {
@@ -103,7 +99,6 @@ const Register = () => {
     }
   });
 
-  // Watch role to switch form elements
   const role = form.watch('role');
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -116,7 +111,6 @@ const Register = () => {
       setIsSubmitting(true);
       setRegistrationError(null);
       
-      // Basic validation
       if (role === 'client' && !values.residenciaId) {
         toast.error('Debes seleccionar una residencia');
         return;
@@ -127,11 +121,9 @@ const Register = () => {
         return;
       }
 
-      // Show registration status
       toast.info('Iniciando registro, por favor espere...');
       console.log('Datos de registro:', values);
       
-      // Prepare data to send
       const userData = {
         name: values.name,
         phone: values.phone,
@@ -140,7 +132,6 @@ const Register = () => {
         providerResidenciaIds: values.role === 'provider' ? values.providerResidenciaIds : []
       };
       
-      // Attempt registration
       const result = await signUp(values.email, values.password, userData);
       
       if (result.error) {
@@ -156,7 +147,6 @@ const Register = () => {
         
         setRegistrationError(result.error.message || "Error desconocido");
       } else if (result.data?.user) {
-        // Successful registration
         console.log('Registro exitoso!');
         navigate('/payment-setup', { 
           state: { fromClientView: values.role === 'client' } 
@@ -183,14 +173,6 @@ const Register = () => {
             <AlertDescription className="text-sm">{registrationError}</AlertDescription>
           </Alert>
         )}
-        
-        <Alert className="mb-6 bg-blue-50">
-          <Info className="h-4 w-4 mr-2 text-blue-600" />
-          <AlertDescription className="text-sm">
-            Al registrarte, recibirás un correo de verificación. Si no lo recibes después de unos minutos, 
-            intenta con otra dirección de correo electrónico o contacta a soporte.
-          </AlertDescription>
-        </Alert>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

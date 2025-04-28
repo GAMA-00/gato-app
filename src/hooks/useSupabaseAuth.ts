@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -148,13 +147,8 @@ export const useSupabaseAuth = () => {
         role: userData.role as UserRole,
       };
       
-      // Mensaje específico para informar al usuario sobre la confirmación de correo
-      if (authData.user && !authData.user.confirmed_at) {
-        toast.success('¡Cuenta creada! Por favor verifica tu correo electrónico para completar el registro.');
-        toast.info('Si no recibes el correo, puedes intentar con otra dirección de correo o contactar a soporte.');
-      } else {
-        toast.success('¡Cuenta creada con éxito!');
-      }
+      // Ya no esperamos confirmación de correo, siempre indicamos que la cuenta fue creada exitosamente
+      toast.success('¡Cuenta creada con éxito!');
       
       // Establecer el usuario en el contexto de autenticación
       setAuthUser(userObj);
