@@ -90,7 +90,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                 if (!conversationsMap.has(conversationId)) {
                   // Fetch provider info separately to ensure we get their name
                   const { data: otherPartyData } = await supabase
-                    .from('profiles') // Use profiles instead to get name
+                    .from('providers')
                     .select('name')
                     .eq('id', otherPartyId)
                     .single();
@@ -149,7 +149,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                 if (!conversationsMap.has(conversationId)) {
                   // Fetch client info separately to ensure we get their name
                   const { data: otherPartyData } = await supabase
-                    .from('profiles') // Use profiles instead to get name
+                    .from('clients')
                     .select('name')
                     .eq('id', otherPartyId)
                     .single();

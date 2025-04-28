@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,26 +65,7 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // 2. Insertar datos en la tabla de perfiles
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          name: userData.name,
-          email: email,
-          phone: userData.phone || '',
-          role: userData.role,
-          residencia_id: userData.role === 'client' ? userData.residenciaId : null,
-          has_payment_method: false
-        });
-      
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        toast.error('Error al crear el perfil');
-        return { data: null, error: profileError };
-      }
-      
-      // 3. Insertar en la tabla específica según el rol
+      // 2. Insertar datos en la tabla de clientes o proveedores según el rol
       if (userData.role === 'client') {
         const { error: clientError } = await supabase
           .from('clients')
@@ -92,7 +74,8 @@ export const useSupabaseAuth = () => {
             name: userData.name,
             email: email,
             phone: userData.phone || '',
-            residencia_id: userData.residenciaId || null
+            residencia_id: userData.residenciaId || null,
+            has_payment_method: false
           });
         
         if (clientError) {
@@ -184,37 +167,56 @@ export const useSupabaseAuth = () => {
         toast.error('Credenciales inválidas. Por favor verifique su email y contraseña.');
         return { data: null, error: authError || new Error('No user data returned') };
       }
+
+      // Primero intentar con la tabla clients
+      let userData = null;
+      let role: UserRole = 'client';
       
-      // Obtener datos del perfil
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
         .select('*')
         .eq('id', authData.user.id)
         .single();
       
-      if (profileError || !profileData) {
-        console.error('Error fetching profile:', profileError);
-        toast.error('Error al cargar el perfil');
-        return { data: null, error: profileError || new Error('No profile data found') };
+      if (clientError || !clientData) {
+        console.log('Not found in clients, checking providers');
+        
+        // Si no está en clients, buscar en providers
+        const { data: providerData, error: providerError } = await supabase
+          .from('providers')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+          
+        if (providerError || !providerData) {
+          console.error('Error fetching user profile:', providerError || 'No profile found');
+          toast.error('Error al cargar el perfil');
+          return { data: null, error: providerError || new Error('No profile found') };
+        }
+        
+        userData = providerData;
+        role = 'provider';
+      } else {
+        userData = clientData;
       }
       
       // Construir objeto de usuario
-      const userData = {
+      const userObj = {
         id: authData.user.id,
-        email: profileData.email,
-        name: profileData.name,
-        phone: profileData.phone || '',
-        buildingId: profileData.residencia_id || '',
+        email: userData.email || authData.user.email || '',
+        name: userData.name || '',
+        phone: userData.phone || '',
+        buildingId: (userData as any).residencia_id || '',
         buildingName: '', 
-        hasPaymentMethod: profileData.has_payment_method || false,
-        role: profileData.role as UserRole,
-        avatarUrl: profileData.avatar_url || ''
+        hasPaymentMethod: (userData as any).has_payment_method || false,
+        role: role,
+        avatarUrl: (userData as any).avatar_url || ''
       };
       
-      setAuthUser(userData);
+      setAuthUser(userObj);
       console.log('Login successful');
       toast.success('¡Bienvenido de nuevo!');
-      return { data: { user: userData }, error: null };
+      return { data: { user: userObj }, error: null };
       
     } catch (error: any) {
       console.error('Login error caught:', error);
