@@ -1,10 +1,10 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { UserRole } from '@/lib/types';
 import { checkPhoneExists } from '@/utils/phoneValidation';
-import { v4 as uuidv4 } from 'uuid';
 
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
@@ -32,10 +32,47 @@ export const useSupabaseAuth = () => {
       
       console.log('Phone is unique, proceeding with registration');
       
-      // Generate a UUID for the user
-      const userId = uuidv4();
+      // 1. Registrar el usuario en Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        toast.error('Error al crear la cuenta: ' + authError.message);
+        return { data: null, error: authError };
+      }
+
+      if (!authData.user) {
+        console.error('No user returned from auth signup');
+        toast.error('Error al crear la cuenta: No se pudo crear el usuario');
+        return { data: null, error: new Error('No user returned from auth signup') };
+      }
+
+      const userId = authData.user.id;
+      console.log('User created with ID:', userId);
+
+      // 2. Insertar datos en la tabla de perfiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          name: userData.name,
+          email: email,
+          phone: userData.phone || '',
+          role: userData.role,
+          residencia_id: userData.role === 'client' ? userData.residenciaId : null,
+          has_payment_method: false
+        });
       
-      // Insert directly into clients or providers table
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        toast.error('Error al crear el perfil');
+        return { data: null, error: profileError };
+      }
+      
+      // 3. Insertar en la tabla específica según el rol
       if (userData.role === 'client') {
         const { error: clientError } = await supabase
           .from('clients')
@@ -69,7 +106,7 @@ export const useSupabaseAuth = () => {
           return { data: null, error: providerError };
         }
         
-        // If user is a provider and has specified residencias, link them
+        // Si el usuario es proveedor y ha especificado residencias, vincularlas
         if (userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0) {
           for (const residenciaId of userData.providerResidenciaIds) {
             const { error: residenciaError } = await supabase
@@ -81,12 +118,13 @@ export const useSupabaseAuth = () => {
               
             if (residenciaError) {
               console.error('Error linking provider to residencia:', residenciaError);
+              // No detenemos el proceso por este error, pero lo registramos
             }
           }
         }
       }
       
-      // Create user object for frontend
+      // Crear objeto de usuario para el frontend
       const userObj = {
         id: userId,
         email: email,
@@ -98,7 +136,7 @@ export const useSupabaseAuth = () => {
         role: userData.role as UserRole,
       };
       
-      // Set the user in the auth context
+      // Establecer el usuario en el contexto de autenticación
       setAuthUser(userObj);
       
       console.log('User registered successfully');
@@ -122,59 +160,49 @@ export const useSupabaseAuth = () => {
     try {
       console.log('Attempting login with email:', email);
       
-      // Try to find a client with this email
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('id, name, email, phone, residencia_id, has_payment_method')
-        .eq('email', email)
-        .maybeSingle();
+      // Intentar autenticar al usuario
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      if (clientData) {
-        const userData = {
-          id: clientData.id,
-          email: email,
-          name: clientData.name || 'Client',
-          phone: clientData.phone || '',
-          buildingId: clientData.residencia_id || '',
-          buildingName: '', 
-          hasPaymentMethod: clientData.has_payment_method || false,
-          role: 'client' as UserRole,
-          avatarUrl: ''
-        };
-        
-        setAuthUser(userData);
-        console.log('Client login successful');
-        return { data: { user: userData }, error: null };
+      if (authError || !authData.user) {
+        console.error('Login error:', authError);
+        toast.error('Credenciales inválidas. Por favor verifique su email y contraseña.');
+        return { data: null, error: authError || new Error('No user data returned') };
       }
       
-      // If client not found, try provider
-      const { data: providerData } = await supabase
-        .from('providers')
-        .select('id, name, email, phone, has_payment_method')
-        .eq('email', email)
-        .maybeSingle();
+      // Obtener datos del perfil
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
       
-      if (!providerData) {
-        console.log('No user found with this email:', email);
-        toast.error('Usuario no encontrado. Por favor verifique su email.');
-        return { data: null, error: new Error('User not found') };
+      if (profileError || !profileData) {
+        console.error('Error fetching profile:', profileError);
+        toast.error('Error al cargar el perfil');
+        return { data: null, error: profileError || new Error('No profile data found') };
       }
       
+      // Construir objeto de usuario
       const userData = {
-        id: providerData.id,
-        email: email,
-        name: providerData.name || 'Provider',
-        phone: providerData.phone || '',
-        buildingId: '',
+        id: authData.user.id,
+        email: profileData.email,
+        name: profileData.name,
+        phone: profileData.phone || '',
+        buildingId: profileData.residencia_id || '',
         buildingName: '', 
-        hasPaymentMethod: providerData.has_payment_method || false,
-        role: 'provider' as UserRole,
-        avatarUrl: ''
+        hasPaymentMethod: profileData.has_payment_method || false,
+        role: profileData.role as UserRole,
+        avatarUrl: profileData.avatar_url || ''
       };
       
       setAuthUser(userData);
-      console.log('Provider login successful');
+      console.log('Login successful');
+      toast.success('¡Bienvenido de nuevo!');
       return { data: { user: userData }, error: null };
+      
     } catch (error: any) {
       console.error('Login error caught:', error);
       toast.error('Error en el inicio de sesión');
@@ -186,7 +214,10 @@ export const useSupabaseAuth = () => {
 
   const signOut = async () => {
     try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       clearAuthUser();
+      toast.success('Sesión cerrada con éxito');
     } catch (error: any) {
       console.error('Logout error:', error);
       toast.error(error.message);
