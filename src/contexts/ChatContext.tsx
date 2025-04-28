@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { useAuth } from './AuthContext';
@@ -87,9 +88,9 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                 const conversationId = [user.id, otherPartyId].sort().join('_');
                 
                 if (!conversationsMap.has(conversationId)) {
-                  // Need to fetch other party info
-                  const { data: providerData } = await supabase
-                    .from('providers')
+                  // Fetch provider info separately to ensure we get their name
+                  const { data: otherPartyData } = await supabase
+                    .from('profiles') // Use profiles instead to get name
                     .select('name')
                     .eq('id', otherPartyId)
                     .single();
@@ -99,7 +100,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                     clientId: user.id,
                     providerId: otherPartyId,
                     clientName: user.name,
-                    providerName: providerData?.name || 'Provider',
+                    providerName: otherPartyData?.name || 'Provider',
                     messages: [],
                     unreadCount: 0
                   });
@@ -146,9 +147,9 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                 const conversationId = [user.id, otherPartyId].sort().join('_');
                 
                 if (!conversationsMap.has(conversationId)) {
-                  // Need to fetch other party info
-                  const { data: clientData } = await supabase
-                    .from('clients')
+                  // Fetch client info separately to ensure we get their name
+                  const { data: otherPartyData } = await supabase
+                    .from('profiles') // Use profiles instead to get name
                     .select('name')
                     .eq('id', otherPartyId)
                     .single();
@@ -158,7 +159,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                     providerId: user.id,
                     clientId: otherPartyId,
                     providerName: user.name,
-                    clientName: clientData?.name || 'Client',
+                    clientName: otherPartyData?.name || 'Client',
                     messages: [],
                     unreadCount: 0
                   });
@@ -372,9 +373,6 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     </ChatContext.Provider>
   );
 };
-
-// Declare userConversations here to fix the reference
-const userConversations = [];
 
 export const useChat = () => {
   const context = useContext(ChatContext);
