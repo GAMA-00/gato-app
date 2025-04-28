@@ -10,33 +10,25 @@ export const checkPhoneExists = async (phone: string): Promise<boolean> => {
     console.log('Checking if phone exists:', phone);
     
     // Check in the clients table
-    const { count: clientCount, error: clientError } = await supabase
+    const { data: clientData } = await supabase
       .from('clients')
-      .select('*', { count: 'exact', head: true })
-      .eq('phone', phone);
+      .select('id')
+      .eq('phone', phone)
+      .maybeSingle();
     
-    if (clientError) {
-      console.error('Error checking client phone:', clientError);
-      throw clientError;
-    }
-    
-    if (clientCount && clientCount > 0) {
+    if (clientData) {
       console.log('Phone found in clients table');
       return true;
     }
     
     // Check in the providers table
-    const { count: providerCount, error: providerError } = await supabase
+    const { data: providerData } = await supabase
       .from('providers')
-      .select('*', { count: 'exact', head: true })
-      .eq('phone', phone);
+      .select('id')
+      .eq('phone', phone)
+      .maybeSingle();
     
-    if (providerError) {
-      console.error('Error checking provider phone:', providerError);
-      throw providerError;
-    }
-    
-    const exists = providerCount ? providerCount > 0 : false;
+    const exists = !!providerData;
     console.log('Phone already registered?:', exists);
     
     return exists;

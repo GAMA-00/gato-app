@@ -178,22 +178,31 @@ export type Database = {
         Row: {
           apartment: string | null
           created_at: string
+          email: string | null
           has_payment_method: boolean | null
           id: string
+          name: string | null
+          phone: string | null
           residencia_id: string | null
         }
         Insert: {
           apartment?: string | null
           created_at?: string
+          email?: string | null
           has_payment_method?: boolean | null
           id: string
+          name?: string | null
+          phone?: string | null
           residencia_id?: string | null
         }
         Update: {
           apartment?: string | null
           created_at?: string
+          email?: string | null
           has_payment_method?: boolean | null
           id?: string
+          name?: string | null
+          phone?: string | null
           residencia_id?: string | null
         }
         Relationships: [
@@ -422,25 +431,34 @@ export type Database = {
           about_me: string | null
           average_rating: number | null
           created_at: string
+          email: string | null
           experience_years: number | null
           has_payment_method: boolean | null
           id: string
+          name: string | null
+          phone: string | null
         }
         Insert: {
           about_me?: string | null
           average_rating?: number | null
           created_at?: string
+          email?: string | null
           experience_years?: number | null
           has_payment_method?: boolean | null
           id: string
+          name?: string | null
+          phone?: string | null
         }
         Update: {
           about_me?: string | null
           average_rating?: number | null
           created_at?: string
+          email?: string | null
           experience_years?: number | null
           has_payment_method?: boolean | null
           id?: string
+          name?: string | null
+          phone?: string | null
         }
         Relationships: [
           {

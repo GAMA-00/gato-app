@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -124,71 +123,57 @@ export const useSupabaseAuth = () => {
       console.log('Attempting login with email:', email);
       
       // Try to find a client with this email
-      const { data: clientData, error: clientError } = await supabase
+      const { data: clientData } = await supabase
         .from('clients')
-        .select('*')
+        .select('id, name, email, phone, residencia_id, has_payment_method')
         .eq('email', email)
         .maybeSingle();
       
-      if (clientError) {
-        console.error('Error checking client:', clientError);
-        toast.error('Error al verificar cliente');
-        return { data: null, error: clientError };
-      }
-      
-      // If client not found, try provider
-      if (!clientData) {
-        const { data: providerData, error: providerError } = await supabase
-          .from('providers')
-          .select('*')
-          .eq('email', email)
-          .maybeSingle();
-        
-        if (providerError) {
-          console.error('Error checking provider:', providerError);
-          toast.error('Error al verificar proveedor');
-          return { data: null, error: providerError };
-        }
-        
-        if (!providerData) {
-          console.log('No user found with this email:', email);
-          toast.error('Usuario no encontrado. Por favor verifique su email.');
-          return { data: null, error: new Error('User not found') };
-        }
-        
-        // Provider found, create user object
+      if (clientData) {
         const userData = {
-          id: providerData.id || '',
-          email: email, // Use the email from the input as we know it matches
-          name: providerData.name || 'Provider',
-          phone: providerData.phone || '',
-          buildingId: '',
+          id: clientData.id,
+          email: email,
+          name: clientData.name || 'Client',
+          phone: clientData.phone || '',
+          buildingId: clientData.residencia_id || '',
           buildingName: '', 
-          hasPaymentMethod: providerData.has_payment_method || false,
-          role: 'provider' as UserRole,
+          hasPaymentMethod: clientData.has_payment_method || false,
+          role: 'client' as UserRole,
           avatarUrl: ''
         };
         
         setAuthUser(userData);
-        console.log('Provider login successful');
+        console.log('Client login successful');
         return { data: { user: userData }, error: null };
       }
       
-      // Client found, create user object
+      // If client not found, try provider
+      const { data: providerData } = await supabase
+        .from('providers')
+        .select('id, name, email, phone, has_payment_method')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (!providerData) {
+        console.log('No user found with this email:', email);
+        toast.error('Usuario no encontrado. Por favor verifique su email.');
+        return { data: null, error: new Error('User not found') };
+      }
+      
       const userData = {
-        id: clientData.id || '',
-        email: email, // Use the email from the input
-        name: clientData.name || 'Client',
-        phone: clientData.phone || '',
-        buildingId: clientData.residencia_id || '',
+        id: providerData.id,
+        email: email,
+        name: providerData.name || 'Provider',
+        phone: providerData.phone || '',
+        buildingId: '',
         buildingName: '', 
-        hasPaymentMethod: clientData.has_payment_method || false,
-        role: 'client' as UserRole,
+        hasPaymentMethod: providerData.has_payment_method || false,
+        role: 'provider' as UserRole,
         avatarUrl: ''
       };
       
       setAuthUser(userData);
-      console.log('Client login successful');
+      console.log('Provider login successful');
       return { data: { user: userData }, error: null };
     } catch (error: any) {
       console.error('Login error caught:', error);
