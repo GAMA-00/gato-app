@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles, Star, TrendingUp } from 'lucide-react';
+import { ArrowDown, Sparkles, Star, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface Recommendation {
   id: string;
@@ -13,9 +14,13 @@ interface Recommendation {
 
 interface FeaturedRecommendationsProps {
   recommendations: Recommendation[];
+  onViewAllClick: () => void;
 }
 
-const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({ recommendations }) => {
+const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({ 
+  recommendations,
+  onViewAllClick 
+}) => {
   // Si no hay recomendaciones, mostramos datos de ejemplo
   const displayRecommendations = recommendations.length > 0 
     ? recommendations 
@@ -67,29 +72,42 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({ recom
   };
 
   return (
-    <div className="mb-8">
-      <h3 className="text-lg font-medium mb-3 text-navy flex items-center">
-        <Sparkles className="h-5 w-5 mr-2 text-gold-500" />
-        Recomendaciones para ti
-      </h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {displayRecommendations.map((rec) => (
-          <Card 
-            key={rec.id}
-            className={cn(
-              "overflow-hidden border-l-4 transition-all hover:shadow-luxury cursor-pointer", 
-              getColorForType(rec.type)
-            )}
+    <div className="mb-8 relative">
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-xl shadow-luxury border border-purple-100/30 mb-6">
+        <h3 className="text-xl font-medium mb-3 text-navy flex items-center">
+          <Sparkles className="h-5 w-5 mr-2 text-gold-500" />
+          Descubre nuestros servicios exclusivos
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {displayRecommendations.map((rec) => (
+            <Card 
+              key={rec.id}
+              className={cn(
+                "overflow-hidden border-l-4 transition-all hover:shadow-luxury cursor-pointer", 
+                getColorForType(rec.type)
+              )}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <h4 className="font-medium text-navy">{rec.title}</h4>
+                  {getIconForType(rec.type)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{rec.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <div className="flex justify-center mt-6">
+          <Button 
+            onClick={onViewAllClick}
+            className="group flex items-center gap-2 bg-gradient-blue-purple hover:bg-indigo-600 text-white font-medium shadow-luxury"
           >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <h4 className="font-medium text-navy">{rec.title}</h4>
-                {getIconForType(rec.type)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">{rec.description}</p>
-            </CardContent>
-          </Card>
-        ))}
+            Ver todos los servicios
+            <ArrowDown className="h-4 w-4 transition-transform group-hover:animate-bounce" />
+          </Button>
+        </div>
       </div>
     </div>
   );

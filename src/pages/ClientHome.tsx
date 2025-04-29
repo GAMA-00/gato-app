@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -81,6 +80,15 @@ const ClientHome = () => {
     navigate(`/client/services/${categoryName}/${serviceTypeName}`);
   };
 
+  const scrollToAllServices = () => {
+    // Función para hacer scroll a la sección de todos los servicios
+    const tabsElement = document.querySelector('[data-tabs]');
+    if (tabsElement) {
+      tabsElement.scrollIntoView({ behavior: 'smooth' });
+      setActiveTab('all');
+    }
+  };
+
   const getCategoryColor = (index: number) => {
     const colors = [
       'border-indigo-500 bg-indigo-50 text-indigo-700',
@@ -117,13 +125,17 @@ const ClientHome = () => {
       }
     >
       {/* Sección de Recomendaciones */}
-      <FeaturedRecommendations recommendations={[]} />
+      <FeaturedRecommendations 
+        recommendations={[]} 
+        onViewAllClick={scrollToAllServices}
+      />
 
       <Tabs 
         defaultValue="all" 
         className="w-full" 
         value={activeTab} 
         onValueChange={setActiveTab}
+        data-tabs
       >
         <TabsList className="mb-4 w-full sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
           <TabsTrigger value="all" className="flex-1">
