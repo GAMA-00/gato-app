@@ -12,22 +12,13 @@ interface NavItemsProps {
   closeMenu?: () => void;
 }
 
-// Define clear type for navigation items
-interface NavItemType {
-  to: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  badge?: boolean;
-  customBadge?: React.ReactNode;
-}
-
 const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) => {
   const location = useLocation();
   const { hasUnreadMessages } = useChat();
   const { count: recurringServicesCount } = useRecurringServices();
   
   // Remove "Clientes" from providerNavItems
-  const providerNavItems: NavItemType[] = [
+  const providerNavItems = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
@@ -35,7 +26,7 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
-  const clientNavItems: NavItemType[] = [
+  const clientNavItems = [
     { to: '/client', icon: Briefcase, label: 'Servicios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas', 
       customBadge: recurringServicesCount > 0 ? 
