@@ -1,10 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Home, Scissors, PawPrint, Dumbbell, Book, ArrowRight, 
-         Music, Globe, Bike, Camera, Heart, Star, Sparkles } from 'lucide-react';
+         Music, Globe, Bike, Camera, Heart, Sparkles,
+         ClipboardList, Shirt, Utensils, Car, Briefcase,
+         Brush, Syringe, Baby, WashingMachine, Wrench } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import RecurringServicesList from '@/components/client/RecurringServicesList';
 import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
@@ -27,18 +28,31 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'cycling': <Bike className="h-4 w-4" />,
   'photography': <Camera className="h-4 w-4" />,
   'health': <Heart className="h-4 w-4" />,
-  'favorite': <Star className="h-4 w-4" />
+  'favorite': <Heart className="h-4 w-4 text-rose-500" />
 };
 
-// Iconos para tipos de servicios - mapeamos algunos iconos comunes
+// Iconos más específicos para tipos de servicios
 const SERVICE_TYPE_ICONS: Record<string, React.ReactNode> = {
-  // Iconos generales para tipos de servicio
   'limpieza': <Home className="h-3.5 w-3.5 text-indigo-500" />,
   'cuidado': <Heart className="h-3.5 w-3.5 text-rose-500" />,
   'entrenamiento': <Dumbbell className="h-3.5 w-3.5 text-emerald-500" />,
   'clases': <Book className="h-3.5 w-3.5 text-gold-500" />,
   'música': <Music className="h-3.5 w-3.5 text-purple-500" />,
   'mascotas': <PawPrint className="h-3.5 w-3.5 text-cyan-500" />,
+  'corte': <Scissors className="h-3.5 w-3.5 text-blue-500" />,
+  'peluquería': <Scissors className="h-3.5 w-3.5 text-violet-500" />,
+  'salud': <Syringe className="h-3.5 w-3.5 text-red-500" />,
+  'idiomas': <Globe className="h-3.5 w-3.5 text-teal-500" />,
+  'fotografía': <Camera className="h-3.5 w-3.5 text-amber-500" />,
+  'comida': <Utensils className="h-3.5 w-3.5 text-orange-500" />,
+  'ropa': <Shirt className="h-3.5 w-3.5 text-pink-500" />,
+  'auto': <Car className="h-3.5 w-3.5 text-slate-500" />,
+  'bebé': <Baby className="h-3.5 w-3.5 text-sky-500" />,
+  'lavandería': <WashingMachine className="h-3.5 w-3.5 text-blue-400" />,
+  'reparación': <Wrench className="h-3.5 w-3.5 text-zinc-500" />,
+  'administrativo': <ClipboardList className="h-3.5 w-3.5 text-indigo-400" />,
+  'servicios': <Briefcase className="h-3.5 w-3.5 text-neutral-500" />,
+  'arte': <Brush className="h-3.5 w-3.5 text-fuchsia-500" />,
 };
 
 // Prioridad para mostrar categorías
@@ -114,19 +128,28 @@ const ClientHome = () => {
     return colors[index % colors.length];
   };
 
-  // Función para obtener un icono para un tipo de servicio
+  // Función mejorada para obtener un icono para un tipo de servicio
   const getServiceTypeIcon = (serviceName: string) => {
-    // Buscar coincidencias parciales en el nombre del servicio
     const serviceNameLower = serviceName.toLowerCase();
     
+    // Buscar coincidencias más específicas primero
     for (const [key, icon] of Object.entries(SERVICE_TYPE_ICONS)) {
       if (serviceNameLower.includes(key.toLowerCase())) {
         return icon;
       }
     }
     
-    // Si no hay coincidencia, usar un icono por defecto
-    return <Star className="h-3.5 w-3.5 text-gold-400" />;
+    // Si no hay coincidencia, usar un icono por defecto según primera letra
+    const firstChar = serviceNameLower.charAt(0);
+    switch(firstChar) {
+      case 'a': return <Briefcase className="h-3.5 w-3.5 text-amber-500" />;
+      case 'b': return <Baby className="h-3.5 w-3.5 text-blue-500" />;
+      case 'c': return <ClipboardList className="h-3.5 w-3.5 text-cyan-500" />;
+      case 'd': return <Book className="h-3.5 w-3.5 text-emerald-500" />;
+      case 'e': return <Dumbbell className="h-3.5 w-3.5 text-fuchsia-500" />;
+      case 'f': return <Camera className="h-3.5 w-3.5 text-green-500" />;
+      default: return <Sparkles className="h-3.5 w-3.5 text-gold-500" />;
+    }
   };
 
   // Ordenar categorías basadas en prioridad
@@ -145,7 +168,6 @@ const ClientHome = () => {
       title={
         <div className="flex items-center space-x-2">
           <span className="bg-gradient-gold bg-clip-text text-transparent font-semibold">Descubre nuestros servicios exclusivos</span>
-          <Sparkles className="h-5 w-5 text-gold-400" />
         </div>
       }
       subtitle={
@@ -283,7 +305,7 @@ const ClientHome = () => {
 
           {sortedCategories.length === 0 && !isLoading && (
             <div className="text-center py-10 bg-white/50 rounded-xl shadow-luxury border border-purple-100/50">
-              <Star className="h-10 w-10 text-gold-400 mx-auto mb-3 animate-pulse" />
+              <Sparkles className="h-10 w-10 text-gold-400 mx-auto mb-3 animate-pulse" />
               <p className="text-muted-foreground">Servicios premium próximamente disponibles.</p>
             </div>
           )}
