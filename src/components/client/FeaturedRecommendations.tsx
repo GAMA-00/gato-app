@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowDown, Sparkles, TrendingUp } from 'lucide-react';
+import { ArrowDown, Sparkles, Star, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -48,13 +48,13 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
   const getIconForType = (type: string) => {
     switch (type) {
       case 'featured':
-        return <Sparkles className="h-4 w-4 text-gold-500" />;
+        return <Star className="h-4 w-4 text-gold-500" />;
       case 'new':
         return <Sparkles className="h-4 w-4 text-indigo-500" />;
       case 'trending':
         return <TrendingUp className="h-4 w-4 text-purple-500" />;
       default:
-        return <Sparkles className="h-4 w-4 text-gold-500" />;
+        return <Star className="h-4 w-4 text-gold-500" />;
     }
   };
 
@@ -72,9 +72,10 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
   };
 
   return (
-    <div className="relative">
-      <div className="bg-gradient-to-r from-gold-50 to-gold-100 p-4 rounded-xl shadow-gold border border-gold-200/30">
+    <div className="mb-6 relative">
+      <div className="bg-gradient-to-r from-gold-50 to-gold-100 p-4 rounded-xl shadow-gold border border-gold-200/30 mb-4">
         <h3 className="text-xl font-semibold mb-3 text-navy flex items-center">
+          <Sparkles className="h-5 w-5 mr-2 text-gold-500" />
           <span className="bg-gradient-gold bg-clip-text text-transparent">Recomendaciones para ti</span>
         </h3>
         
@@ -98,7 +99,7 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
           ))}
         </div>
         
-        <div className="flex justify-center mt-5">
+        <div className="flex justify-center mt-6">
           <Button 
             onClick={onViewAllClick}
             className="group flex items-center gap-2 bg-gradient-gold hover:shadow-gold text-navy font-semibold shadow-luxury px-5 py-2 text-base"
