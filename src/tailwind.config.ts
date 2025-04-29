@@ -87,6 +87,18 @@ export default {
           900: '#581C87',
           950: '#4C1D95',
         },
+        gold: {
+          50: '#FFFBEB',
+          100: '#FEF3C7',
+          200: '#FDE68A',
+          300: '#FCD34D',
+          400: '#FBBF24',
+          500: '#F59E0B',
+          600: '#D97706',
+          700: '#B45309',
+          800: '#92400E',
+          900: '#78350F',
+        },
       },
       fontFamily: {
 				sans: [
@@ -106,7 +118,9 @@ export default {
 			},
 			boxShadow: {
 				'soft': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
-				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)'
+				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)',
+        'luxury': '0 10px 25px -3px rgba(107, 33, 168, 0.1), 0 4px 10px -2px rgba(107, 33, 168, 0.05)',
+        'gold': '0 10px 25px -3px rgba(217, 119, 6, 0.1), 0 4px 10px -2px rgba(217, 119, 6, 0.05)'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -129,7 +143,13 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+			},
+      backgroundImage: {
+        'gradient-luxury': 'linear-gradient(to right, #8B5CF6, #D946EF)',
+        'gradient-gold': 'linear-gradient(to right, #F59E0B, #D97706)',
+        'gradient-blue-purple': 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+        'pattern-dots': "url(\"data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.05' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E\")",
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],

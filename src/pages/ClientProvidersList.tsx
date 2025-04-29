@@ -3,10 +3,11 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
-import { Book, Home, Scissors, PawPrint, Dumbbell, ArrowLeft, Star } from 'lucide-react';
+import { Book, Home, Scissors, PawPrint, Dumbbell, ArrowLeft, Star, Sparkles, ShieldCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'home': <Home className="h-6 w-6" />,
@@ -69,7 +70,8 @@ const ClientProvidersList = () => {
         description: listing.description,
         price: listing.base_price,
         providerId: listing.provider_id,
-        providerName: listing.provider?.name || 'Proveedor'
+        providerName: listing.provider?.name || 'Proveedor',
+        rating: (Math.random() * 2 + 3).toFixed(1) // Rating simulado entre 3.0 y 5.0
       }));
     }
   });
@@ -83,11 +85,11 @@ const ClientProvidersList = () => {
       <PageContainer
         title={
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600">
               {categoryIcon}
             </div>
             <div>
-              <span className="text-gradient-primary">{titleText}</span>
+              <span className="bg-gradient-blue-purple bg-clip-text text-transparent">{titleText}</span>
               <div className="text-xs text-muted-foreground">{categoryLabel}</div>
             </div>
           </div>
@@ -102,13 +104,14 @@ const ClientProvidersList = () => {
         }
       >
         <div className="max-w-lg mx-auto space-y-4">
-          <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-sm mb-6">
-            <p className="text-sm text-center text-muted-foreground">
+          <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-soft mb-6 relative overflow-hidden">
+            <div className="absolute inset-0 bg-pattern-dots opacity-50"></div>
+            <p className="text-sm text-center text-muted-foreground relative z-10">
               Buscando los mejores proveedores para <span className="font-medium text-navy">{titleText}</span>...
             </p>
           </div>
           {[1, 2, 3].map(i => (
-            <Card key={i} className="overflow-hidden">
+            <Card key={i} className="overflow-hidden border-l-4 border-l-purple-300">
               <CardContent className="p-4">
                 <div className="space-y-2">
                   <Skeleton className="h-5 w-3/4" />
@@ -127,11 +130,11 @@ const ClientProvidersList = () => {
     <PageContainer
       title={
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 shadow-sm">
             {categoryIcon}
           </div>
           <div>
-            <span className="text-gradient-primary">{titleText}</span>
+            <span className="bg-gradient-blue-purple bg-clip-text text-transparent">{titleText}</span>
             <div className="text-xs text-muted-foreground">{categoryLabel}</div>
           </div>
         </div>
@@ -147,14 +150,15 @@ const ClientProvidersList = () => {
     >
       <div className="max-w-lg mx-auto space-y-4">
         {listings.length === 0 ? (
-          <div className="py-12 text-center bg-white/50 rounded-xl shadow-soft border border-purple-100/50">
-            <Star className="h-12 w-12 text-amber-400 mx-auto mb-4 animate-pulse" />
+          <div className="py-12 text-center bg-white/50 rounded-xl shadow-luxury border border-purple-100/50">
+            <Star className="h-12 w-12 text-gold-400 mx-auto mb-4 animate-pulse" />
             <p className="text-muted-foreground">Aun no hay proveedores de servicio en esta categoría</p>
           </div>
         ) : (
           <>
-            <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-sm mb-6">
-              <p className="text-sm text-muted-foreground">
+            <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-luxury border border-purple-100/30 mb-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-pattern-dots opacity-50"></div>
+              <p className="text-sm text-muted-foreground relative z-10">
                 Seleccione el servicio que mejor se adapte a sus necesidades:
               </p>
             </div>
@@ -162,7 +166,7 @@ const ClientProvidersList = () => {
             {listings.map((listing) => (
               <Card
                 key={listing.id}
-                className="overflow-hidden hover:shadow-md transition-all cursor-pointer border-l-4 border-l-indigo-400 group"
+                className="overflow-hidden hover:shadow-luxury transition-all cursor-pointer border-l-4 border-l-indigo-400 group"
                 onClick={() => navigate(`/client/book/1/${listing.id}`)}
               >
                 <CardContent className="p-4 relative">
@@ -170,12 +174,23 @@ const ClientProvidersList = () => {
                   
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-navy group-hover:text-indigo-600 transition-colors">{listing.title}</span>
-                    <span className="text-sm bg-indigo-50 px-2 py-1 rounded text-indigo-700">${listing.price.toFixed(2)}</span>
+                    <span className="text-sm bg-gradient-to-r from-indigo-100 to-purple-100 px-2 py-1 rounded text-indigo-700 font-medium">
+                      ${listing.price.toFixed(2)}
+                    </span>
                   </div>
+                  
                   <div className="text-xs text-muted-foreground mt-1">{listing.description}</div>
-                  <div className="text-xs mt-3 flex items-center">
-                    <span className="text-muted-foreground">Ofrecido por:</span> 
-                    <span className="font-semibold ml-1 text-navy">{listing.providerName}</span>
+                  
+                  <div className="flex justify-between items-center mt-3">
+                    <div className="text-xs flex items-center">
+                      <ShieldCheck className="h-3 w-3 text-indigo-500 mr-1" />
+                      <span className="text-muted-foreground">Proveedor:</span> 
+                      <span className="font-semibold ml-1 text-navy">{listing.providerName}</span>
+                    </div>
+                    <div className="flex items-center bg-gold-50 px-2 py-0.5 rounded text-xs">
+                      <Star className="h-3 w-3 text-gold-500 mr-1" />
+                      <span className="font-medium text-gold-700">{listing.rating}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
