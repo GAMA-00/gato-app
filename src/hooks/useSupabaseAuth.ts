@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +16,7 @@ export const useSupabaseAuth = () => {
     try {
       // Check for phone uniqueness
       if (userData.phone) {
+        console.log('Checking if phone exists:', userData.phone);
         const phoneExists = await checkPhoneExists(userData.phone);
         
         if (phoneExists) {
@@ -28,21 +28,28 @@ export const useSupabaseAuth = () => {
             error: new Error('Phone number already in use')
           };
         }
+        console.log('Phone already registered?:', phoneExists);
       }
       
       console.log('Phone is unique, proceeding with registration');
       
-      // 1. Registrar el usuario en Supabase Auth
+      // 1. Register the user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name: userData.name,
+            role: userData.role,
+            phone: userData.phone || ''
+          }
+        }
       });
 
-      // Verificar si hay un error específico de límite de tasa de correos
+      // Check for specific rate limit error
       if (authError) {
         console.error('Error creating auth user:', authError);
         
-        // Manejo específico para el error de límite de tasa de correos
         if (authError.message.includes('email rate limit exceeded') || 
             authError.status === 429) {
           toast.error('Has enviado demasiados correos de verificación recientemente. Por favor intenta con otro correo o espera unos minutos antes de intentarlo nuevamente.');
@@ -65,7 +72,26 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // 2. Insertar datos en la tabla de clientes o proveedores según el rol
+      // 2. Create profile in the profiles table (central unified table)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          name: userData.name,
+          email: email,
+          phone: userData.phone || '',
+          role: userData.role,
+          building_id: userData.residenciaId || null,
+          has_payment_method: false
+        });
+        
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        toast.error('Error al crear el perfil de usuario');
+        return { data: null, error: profileError };
+      }
+
+      // 3. Keep the existing client/provider specific data for compatibility
       if (userData.role === 'client') {
         const { error: clientError } = await supabase
           .from('clients')
@@ -100,7 +126,7 @@ export const useSupabaseAuth = () => {
           return { data: null, error: providerError };
         }
         
-        // Si el usuario es proveedor y ha especificado residencias, vincularlas
+        // Link provider to residencias if specified
         if (userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0) {
           for (const residenciaId of userData.providerResidenciaIds) {
             const { error: residenciaError } = await supabase
@@ -112,13 +138,13 @@ export const useSupabaseAuth = () => {
               
             if (residenciaError) {
               console.error('Error linking provider to residencia:', residenciaError);
-              // No detenemos el proceso por este error, pero lo registramos
+              // Log but don't stop the process for this error
             }
           }
         }
       }
       
-      // Crear objeto de usuario para el frontend
+      // Create user object for the frontend
       const userObj = {
         id: userId,
         email: email,
@@ -130,10 +156,9 @@ export const useSupabaseAuth = () => {
         role: userData.role as UserRole,
       };
       
-      // Ya no esperamos confirmación de correo, siempre indicamos que la cuenta fue creada exitosamente
       toast.success('¡Cuenta creada con éxito!');
       
-      // Establecer el usuario en el contexto de autenticación
+      // Set the user in the auth context
       setAuthUser(userObj);
       
       console.log('User registered successfully');
@@ -156,7 +181,7 @@ export const useSupabaseAuth = () => {
     try {
       console.log('Attempting login with email:', email);
       
-      // Intentar autenticar al usuario
+      // Try to authenticate the user
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -168,7 +193,34 @@ export const useSupabaseAuth = () => {
         return { data: null, error: authError || new Error('No user data returned') };
       }
 
-      // Primero intentar con la tabla clients
+      // First try to get user from profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+      
+      if (!profileError && profileData) {
+        // User found in profiles table
+        const userObj = {
+          id: authData.user.id,
+          email: profileData.email || authData.user.email || '',
+          name: profileData.name || '',
+          phone: profileData.phone || '',
+          buildingId: profileData.building_id || '',
+          buildingName: '', 
+          hasPaymentMethod: profileData.has_payment_method || false,
+          role: profileData.role as UserRole,
+          avatarUrl: profileData.avatar_url || ''
+        };
+        
+        setAuthUser(userObj);
+        console.log('Login successful');
+        toast.success('¡Bienvenido de nuevo!');
+        return { data: { user: userObj }, error: null };
+      }
+      
+      // Fallback to client/provider tables if not found in profiles
       let userData = null;
       let role: UserRole = 'client';
       
@@ -181,7 +233,7 @@ export const useSupabaseAuth = () => {
       if (clientError || !clientData) {
         console.log('Not found in clients, checking providers');
         
-        // Si no está en clients, buscar en providers
+        // If not in clients, check providers
         const { data: providerData, error: providerError } = await supabase
           .from('providers')
           .select('*')
@@ -200,7 +252,7 @@ export const useSupabaseAuth = () => {
         userData = clientData;
       }
       
-      // Construir objeto de usuario
+      // Create user object for the frontend
       const userObj = {
         id: authData.user.id,
         email: userData.email || authData.user.email || '',

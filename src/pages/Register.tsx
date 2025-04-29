@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -100,6 +101,7 @@ const Register = () => {
   });
 
   const role = form.watch('role');
+  const email = form.watch('email');
 
   const onSubmit = async (values: RegisterFormValues) => {
     if (isSubmitting) {
@@ -140,7 +142,8 @@ const Register = () => {
         if (result.error.message.includes('teléfono ya está en uso')) {
           toast.error('Este número de teléfono ya está registrado. Por favor, utilice otro número.');
         } else if (result.error.message.includes('Email rate limit exceeded')) {
-          setRegistrationError('Has alcanzado el límite de intentos de registro con este correo. Por favor utiliza otra dirección de correo o intenta más tarde.');
+          const suggestedEmail = `${values.email.split('@')[0]}_${Math.floor(Math.random() * 1000)}@${values.email.split('@')[1]}`;
+          setRegistrationError(`Has alcanzado el límite de intentos de registro con este correo. Por favor utiliza otra dirección de correo (por ejemplo: ${suggestedEmail}) o intenta más tarde.`);
         } else {
           toast.error('Error durante el registro: ' + result.error.message);
         }
@@ -241,6 +244,11 @@ const Register = () => {
                       />
                     </div>
                   </FormControl>
+                  {registrationError?.includes('Email rate limit exceeded') && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Sugerencia: Intenta usar otro correo o agrega números al final. Ejemplo: {field.value.split('@')[0]}123@{field.value.split('@')[1]}
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
