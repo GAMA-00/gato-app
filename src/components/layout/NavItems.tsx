@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Calendar, Home, Briefcase, CalendarClock, Award, MessageSquare, Users, Flame } from 'lucide-react';
@@ -12,13 +13,22 @@ interface NavItemsProps {
   closeMenu?: () => void;
 }
 
+// Define the NavItemType to properly type the navigation items
+interface NavItemType {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  badge?: boolean;
+  customBadge?: React.ReactNode;
+}
+
 const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) => {
   const location = useLocation();
   const { hasUnreadMessages } = useChat();
   const { count: recurringServicesCount } = useRecurringServices();
   
   // Remove "Clientes" from providerNavItems
-  const providerNavItems = [
+  const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
@@ -26,7 +36,7 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
-  const clientNavItems = [
+  const clientNavItems: NavItemType[] = [
     { to: '/client', icon: Briefcase, label: 'Servicios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas', 
       customBadge: recurringServicesCount > 0 ? 
