@@ -116,16 +116,6 @@ const ClientHome = () => {
         <span className="text-muted-foreground">Descubre nuestros servicios exclusivos seleccionados para ti</span>
       }
     >
-      <div className="bg-gradient-to-br from-white to-purple-50 p-6 rounded-xl shadow-luxury border border-purple-100/30 mb-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-pattern-dots opacity-50"></div>
-        <div className="relative z-10">
-          <h2 className="text-lg font-medium mb-2 text-navy">Bienvenido a nuestra plataforma exclusiva</h2>
-          <p className="text-sm text-muted-foreground">
-            Encuentra los mejores servicios personalizados y de alta calidad para tu hogar y estilo de vida.
-          </p>
-        </div>
-      </div>
-
       {/* Sección de Recomendaciones */}
       <FeaturedRecommendations recommendations={[]} />
 
@@ -178,7 +168,7 @@ const ClientHome = () => {
                       </div>
                       
                       {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           {data.serviceTypesByCategory[category.id].map((serviceType) => (
                             <Card 
                               key={serviceType.id}
@@ -216,7 +206,7 @@ const ClientHome = () => {
                       </div>
                       
                       {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           {data.serviceTypesByCategory[category.id].map((serviceType) => (
                             <Card 
                               key={serviceType.id}

@@ -72,7 +72,7 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({ recom
         <Sparkles className="h-5 w-5 mr-2 text-gold-500" />
         Recomendaciones para ti
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {displayRecommendations.map((rec) => (
           <Card 
             key={rec.id}
