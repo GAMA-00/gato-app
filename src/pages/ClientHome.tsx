@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -116,12 +117,12 @@ const ClientHome = () => {
     <PageContainer 
       title={
         <div className="flex items-center space-x-2">
-          <span className="bg-gradient-blue-purple bg-clip-text text-transparent font-semibold">Servicios Premium</span>
+          <span className="bg-gradient-gold bg-clip-text text-transparent font-semibold">Descubre nuestros servicios exclusivos</span>
           <Sparkles className="h-5 w-5 text-gold-400" />
         </div>
       }
       subtitle={
-        <span className="text-muted-foreground">Descubre nuestros servicios exclusivos seleccionados para ti</span>
+        <span className="text-muted-foreground">Servicios premium seleccionados para ti</span>
       }
     >
       {/* Sección de Recomendaciones */}

@@ -99,6 +99,30 @@ export default {
           800: '#92400E',
           900: '#78350F',
         },
+        bronze: {
+          50: '#FCF8F2',
+          100: '#F8EBD9',
+          200: '#F2D7B3',
+          300: '#E9BE84',
+          400: '#DEAA60',
+          500: '#D09346',
+          600: '#B67836',
+          700: '#96602C',
+          800: '#7C4D27',
+          900: '#684122',
+        },
+        copper: {
+          50: '#FEF3F0',
+          100: '#FEE5DE',
+          200: '#FDC2B1',
+          300: '#FB9B82',
+          400: '#F87C5A',
+          500: '#F55F33',
+          600: '#E93F1A',
+          700: '#C43116',
+          800: '#9F2918',
+          900: '#832616',
+        },
       },
       fontFamily: {
 				sans: [
@@ -120,7 +144,7 @@ export default {
 				'soft': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
 				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)',
         'luxury': '0 10px 25px -3px rgba(107, 33, 168, 0.1), 0 4px 10px -2px rgba(107, 33, 168, 0.05)',
-        'gold': '0 10px 25px -3px rgba(217, 119, 6, 0.1), 0 4px 10px -2px rgba(217, 119, 6, 0.05)'
+        'gold': '0 10px 25px -3px rgba(217, 119, 6, 0.15), 0 4px 10px -2px rgba(217, 119, 6, 0.1)'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -147,6 +171,8 @@ export default {
       backgroundImage: {
         'gradient-luxury': 'linear-gradient(to right, #8B5CF6, #D946EF)',
         'gradient-gold': 'linear-gradient(to right, #F59E0B, #D97706)',
+        'gradient-copper': 'linear-gradient(to right, #F87C5A, #E93F1A)',
+        'gradient-bronze': 'linear-gradient(to right, #DEAA60, #B67836)',
         'gradient-blue-purple': 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
         'pattern-dots': "url(\"data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.05' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E\")",
       }

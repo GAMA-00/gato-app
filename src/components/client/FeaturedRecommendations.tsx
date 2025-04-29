@@ -73,10 +73,10 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
 
   return (
     <div className="mb-8 relative">
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-xl shadow-luxury border border-purple-100/30 mb-6">
-        <h3 className="text-xl font-medium mb-3 text-navy flex items-center">
-          <Sparkles className="h-5 w-5 mr-2 text-gold-500" />
-          Descubre nuestros servicios exclusivos
+      <div className="bg-gradient-to-r from-gold-50 to-gold-100 p-5 rounded-xl shadow-gold border border-gold-200/30 mb-6">
+        <h3 className="text-2xl font-semibold mb-4 text-navy flex items-center">
+          <Sparkles className="h-6 w-6 mr-2 text-gold-500" />
+          <span className="bg-gradient-gold bg-clip-text text-transparent">Recomendaciones para ti</span>
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -84,7 +84,7 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
             <Card 
               key={rec.id}
               className={cn(
-                "overflow-hidden border-l-4 transition-all hover:shadow-luxury cursor-pointer", 
+                "overflow-hidden border-l-4 transition-all hover:shadow-gold cursor-pointer", 
                 getColorForType(rec.type)
               )}
             >
@@ -99,13 +99,13 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
           ))}
         </div>
         
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-center mt-8">
           <Button 
             onClick={onViewAllClick}
-            className="group flex items-center gap-2 bg-gradient-blue-purple hover:bg-indigo-600 text-white font-medium shadow-luxury"
+            className="group flex items-center gap-2 bg-gradient-gold hover:shadow-gold text-navy font-semibold shadow-luxury px-6 py-2.5 text-lg"
           >
-            Ver todos los servicios
-            <ArrowDown className="h-4 w-4 transition-transform group-hover:animate-bounce" />
+            Explorar todos los servicios
+            <ArrowDown className="h-5 w-5 transition-transform group-hover:animate-bounce" />
           </Button>
         </div>
       </div>
