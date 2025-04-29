@@ -27,7 +27,7 @@ const Navbar = () => {
       <>
         <MobileNav isClientSection={isClientSection} onSwitchView={switchView} />
         <MobileBottomNav isClientSection={isClientSection} />
-        <div className="h-12" /> {/* Reducir el spacer para la cabecera fija */}
+        <div className="h-6" /> {/* Reduced spacer for fixed header */}
         <div className="pb-[72px]" /> {/* Spacer for fixed bottom nav */}
       </>
     );
