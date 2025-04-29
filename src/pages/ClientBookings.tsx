@@ -1,12 +1,14 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CalendarClock, Clock, Calendar, X } from 'lucide-react';
+import { CalendarClock, Clock, Calendar, X, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useRecurringServices } from '@/hooks/useRecurringServices';
 
 // Mock bookings data structure updated
 const MOCK_BOOKINGS = [
@@ -53,9 +55,13 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
       <CardContent className="p-4">
         <div className="flex flex-col space-y-3">
           <div className="flex justify-between items-start">
-            <div>
+            <div className="flex items-center">
               <h3 className="font-medium text-base">{booking.serviceName}</h3>
-              <p className="text-sm text-muted-foreground">{booking.subcategory}</p>
+              {isRecurring && (
+                <div className="flex items-center ml-2 text-red-500">
+                  <Flame className="h-4 w-4" />
+                </div>
+              )}
             </div>
             <div className={cn(
               "px-2 py-1 rounded-full text-xs font-medium",
@@ -64,6 +70,8 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
               {isRecurring ? 'Recurrente' : 'Una vez'}
             </div>
           </div>
+          
+          <p className="text-sm text-muted-foreground">{booking.subcategory}</p>
           
           <div className="flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-2" />
@@ -107,13 +115,24 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
 
 const ClientBookings = () => {
   const navigate = useNavigate();
+  const { count: recurringServicesCount } = useRecurringServices();
   
   const upcomingBookings = MOCK_BOOKINGS.filter(booking => booking.status === 'upcoming');
   const pastBookings = MOCK_BOOKINGS.filter(booking => booking.status === 'completed');
 
   return (
     <PageContainer
-      title="Mis Reservas"
+      title={
+        <div className="flex items-center gap-2">
+          <span>Mis Reservas</span>
+          {recurringServicesCount > 0 && (
+            <div className="flex items-center text-red-500">
+              <Flame className="h-5 w-5" />
+              <span className="font-medium ml-0.5">{Math.min(recurringServicesCount, 5)}</span>
+            </div>
+          )}
+        </div>
+      }
       subtitle="Ver y administrar tus citas"
       action={
         <Button onClick={() => navigate('/client')}>
