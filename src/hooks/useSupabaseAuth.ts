@@ -5,6 +5,19 @@ import { toast } from 'sonner';
 import { UserRole } from '@/lib/types';
 import { checkPhoneExists } from '@/utils/phoneValidation';
 
+// Define a ProfileType to use for type casting
+interface ProfileType {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  role: UserRole;
+  building_id: string | null;
+  has_payment_method: boolean;
+  avatar_url: string | null;
+  created_at: string;
+}
+
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -72,9 +85,10 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // 2. Create profile in the profiles table (central unified table)
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // 2. Create profile in the unified profiles table (central unified table)
+      // Use type assertion to bypass TypeScript's type checking for the profiles table
+      const { error: profileError } = await (supabase
+        .from('profiles') as any)
         .insert({
           id: userId,
           name: userData.name,
@@ -194,8 +208,8 @@ export const useSupabaseAuth = () => {
       }
 
       // First try to get user from profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
+      const { data: profileData, error: profileError } = await (supabase
+        .from('profiles') as any)
         .select('*')
         .eq('id', authData.user.id)
         .single();
