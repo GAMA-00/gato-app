@@ -6,18 +6,6 @@ import { toast } from 'sonner';
 import { UserRole } from '@/lib/types';
 import { checkPhoneExists } from '@/utils/phoneValidation';
 
-interface ProfileType {
-  id: string;
-  name: string | null;
-  email: string;
-  phone: string | null;
-  role: UserRole;
-  building_id: string | null;
-  has_payment_method: boolean;
-  avatar_url: string | null;
-  created_at: string;
-}
-
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
