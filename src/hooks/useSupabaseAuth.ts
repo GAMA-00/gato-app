@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { UserRole } from '@/lib/types';
 import { checkPhoneExists } from '@/utils/phoneValidation';
 
-// Define a ProfileType to use for type casting
 interface ProfileType {
   id: string;
   name: string | null;
@@ -66,7 +65,8 @@ export const useSupabaseAuth = () => {
         
         if (authError.message.includes('email rate limit exceeded') || 
             authError.status === 429) {
-          toast.error('Has enviado demasiados correos de verificación recientemente. Por favor intenta con otro correo o espera unos minutos antes de intentarlo nuevamente.');
+          const suggestedEmail = `${email.split('@')[0]}_${Math.floor(Math.random() * 1000)}@${email.split('@')[1]}`;
+          toast.error(`Has enviado demasiados correos de verificación recientemente. Prueba con otro correo como ${suggestedEmail} o espera unos minutos antes de intentarlo nuevamente.`);
           return { 
             data: null, 
             error: new Error('Email rate limit exceeded. Try with a different email address or wait a few minutes.')
