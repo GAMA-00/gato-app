@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Calendar, Briefcase, CalendarClock, MessageSquare, Award, Flame } from 'lucide-react';
@@ -10,6 +11,15 @@ interface MobileBottomNavProps {
   isClientSection: boolean;
 }
 
+// Define clear type for navigation items
+interface NavItemType {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  badge?: boolean;
+  customBadge?: React.ReactNode;
+}
+
 const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,7 +27,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const { count: recurringServicesCount } = useRecurringServices();
 
   // Remove "Clientes" from providerNavItems
-  const providerNavItems = [
+  const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
@@ -25,7 +35,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
-  const clientNavItems = [
+  const clientNavItems: NavItemType[] = [
     { to: '/client', icon: Briefcase, label: 'Servicios' },
     { 
       to: '/client/bookings', 
