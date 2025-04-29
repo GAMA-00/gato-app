@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -85,27 +86,7 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // 2. Create profile in the unified profiles table (central unified table)
-      // Use type assertion to bypass TypeScript's type checking for the profiles table
-      const { error: profileError } = await (supabase
-        .from('profiles') as any)
-        .insert({
-          id: userId,
-          name: userData.name,
-          email: email,
-          phone: userData.phone || '',
-          role: userData.role,
-          building_id: userData.residenciaId || null,
-          has_payment_method: false
-        });
-        
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        toast.error('Error al crear el perfil de usuario');
-        return { data: null, error: profileError };
-      }
-
-      // 3. Keep the existing client/provider specific data for compatibility
+      // Create client or provider data without using profiles table directly
       if (userData.role === 'client') {
         const { error: clientError } = await supabase
           .from('clients')
@@ -119,7 +100,7 @@ export const useSupabaseAuth = () => {
           });
         
         if (clientError) {
-          console.error('Error creating client:', clientError);
+          console.error('Error creating client profile:', clientError);
           toast.error('Error al crear el cliente');
           return { data: null, error: clientError };
         }
@@ -135,7 +116,7 @@ export const useSupabaseAuth = () => {
           });
         
         if (providerError) {
-          console.error('Error creating provider:', providerError);
+          console.error('Error creating provider profile:', providerError);
           toast.error('Error al crear el proveedor');
           return { data: null, error: providerError };
         }
@@ -207,82 +188,64 @@ export const useSupabaseAuth = () => {
         return { data: null, error: authError || new Error('No user data returned') };
       }
 
-      // First try to get user from profiles table
-      const { data: profileData, error: profileError } = await (supabase
-        .from('profiles') as any)
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-      
-      if (!profileError && profileData) {
-        // User found in profiles table
-        const userObj = {
-          id: authData.user.id,
-          email: profileData.email || authData.user.email || '',
-          name: profileData.name || '',
-          phone: profileData.phone || '',
-          buildingId: profileData.building_id || '',
-          buildingName: '', 
-          hasPaymentMethod: profileData.has_payment_method || false,
-          role: profileData.role as UserRole,
-          avatarUrl: profileData.avatar_url || ''
-        };
-        
-        setAuthUser(userObj);
-        console.log('Login successful');
-        toast.success('¡Bienvenido de nuevo!');
-        return { data: { user: userObj }, error: null };
-      }
-      
-      // Fallback to client/provider tables if not found in profiles
-      let userData = null;
-      let role: UserRole = 'client';
-      
+      // First try to get user data from clients table
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('*')
         .eq('id', authData.user.id)
         .single();
       
-      if (clientError || !clientData) {
-        console.log('Not found in clients, checking providers');
+      if (!clientError && clientData) {
+        // User found in clients table
+        const userObj = {
+          id: authData.user.id,
+          email: clientData.email || authData.user.email || '',
+          name: clientData.name || '',
+          phone: clientData.phone || '',
+          buildingId: clientData.residencia_id || '',
+          buildingName: '', 
+          hasPaymentMethod: clientData.has_payment_method || false,
+          role: 'client' as UserRole,
+          avatarUrl: ''
+        };
         
-        // If not in clients, check providers
-        const { data: providerData, error: providerError } = await supabase
-          .from('providers')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
-          
-        if (providerError || !providerData) {
-          console.error('Error fetching user profile:', providerError || 'No profile found');
-          toast.error('Error al cargar el perfil');
-          return { data: null, error: providerError || new Error('No profile found') };
-        }
-        
-        userData = providerData;
-        role = 'provider';
-      } else {
-        userData = clientData;
+        setAuthUser(userObj);
+        console.log('Login successful as client');
+        toast.success('¡Bienvenido de nuevo!');
+        return { data: { user: userObj }, error: null };
       }
       
-      // Create user object for the frontend
-      const userObj = {
-        id: authData.user.id,
-        email: userData.email || authData.user.email || '',
-        name: userData.name || '',
-        phone: userData.phone || '',
-        buildingId: (userData as any).residencia_id || '',
-        buildingName: '', 
-        hasPaymentMethod: (userData as any).has_payment_method || false,
-        role: role,
-        avatarUrl: (userData as any).avatar_url || ''
-      };
+      // If not in clients, check providers
+      const { data: providerData, error: providerError } = await supabase
+        .from('providers')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (!providerError && providerData) {
+        // User found in providers table
+        const userObj = {
+          id: authData.user.id,
+          email: providerData.email || authData.user.email || '',
+          name: providerData.name || '',
+          phone: providerData.phone || '',
+          buildingId: '',
+          buildingName: '', 
+          hasPaymentMethod: false,
+          role: 'provider' as UserRole,
+          avatarUrl: ''
+        };
+        
+        setAuthUser(userObj);
+        console.log('Login successful as provider');
+        toast.success('¡Bienvenido de nuevo!');
+        return { data: { user: userObj }, error: null };
+      }
       
-      setAuthUser(userObj);
-      console.log('Login successful');
-      toast.success('¡Bienvenido de nuevo!');
-      return { data: { user: userObj }, error: null };
+      // If not found in either table
+      console.error('Error fetching user profile: User not found in clients or providers tables');
+      toast.error('Error al cargar el perfil de usuario');
+      return { data: null, error: new Error('No profile found') };
       
     } catch (error: any) {
       console.error('Login error caught:', error);
