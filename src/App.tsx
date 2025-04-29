@@ -28,7 +28,7 @@ import ClientProvidersList from "./pages/ClientProvidersList";
 // Create a client for React Query
 const queryClient = new QueryClient();
 
-function AppRoutes() {
+const AppRoutes = () => {
   return (
     <>
       <Navbar />
@@ -105,24 +105,22 @@ function AppRoutes() {
       </Routes>
     </>
   );
-}
+};
 
-function App() {
-  return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuthProvider>
-            <ChatProvider>
-              <AppRoutes />
-              <Toaster />
-              <Sonner />
-            </ChatProvider>
-          </AuthProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  );
-}
+const App = () => (
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <ChatProvider>
+            <AppRoutes />
+            <Toaster />
+            <Sonner />
+          </ChatProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
+);
 
 export default App;

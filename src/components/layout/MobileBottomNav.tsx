@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, MessageSquare, Award, Building, Users } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, MessageSquare, Award, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/contexts/ChatContext';
 import { Badge } from '@/components/ui/badge';
-import { Book } from 'lucide-react';
+import { useRecurringServices } from '@/hooks/useRecurringServices';
 
 interface MobileBottomNavProps {
   isClientSection: boolean;
@@ -15,20 +14,31 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { hasUnreadMessages } = useChat();
+  const { count: recurringServicesCount } = useRecurringServices();
 
   // Remove "Clientes" from providerNavItems
   const providerNavItems = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario' },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    // { to: '/clients', icon: Users, label: 'Clientes' },  // Eliminated
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
   const clientNavItems = [
     { to: '/client', icon: Briefcase, label: 'Servicios' },
-    { to: '/client/bookings', icon: CalendarClock, label: 'Reservas' },
+    { 
+      to: '/client/bookings', 
+      icon: CalendarClock, 
+      label: 'Reservas', 
+      badge: hasUnreadMessages,
+      customBadge: recurringServicesCount > 0 ? (
+        <div className="absolute -top-1 -right-1 flex items-center justify-center">
+          <Flame className="h-3.5 w-3.5 text-red-500" />
+          <span className="absolute text-[8px] font-bold text-red-500">{Math.min(recurringServicesCount, 5)}</span>
+        </div>
+      ) : null
+    },
     { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];
 
@@ -96,6 +106,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
                 className="absolute -top-1 -right-1 h-2 w-2 p-0" 
               />
             )}
+            {item.customBadge}
           </button>
         ))}
       </div>
