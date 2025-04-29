@@ -72,14 +72,14 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
   };
 
   return (
-    <div className="mb-8 relative">
-      <div className="bg-gradient-to-r from-gold-50 to-gold-100 p-5 rounded-xl shadow-gold border border-gold-200/30 mb-6">
-        <h3 className="text-2xl font-semibold mb-4 text-navy flex items-center">
-          <Sparkles className="h-6 w-6 mr-2 text-gold-500" />
+    <div className="mb-6 relative">
+      <div className="bg-gradient-to-r from-gold-50 to-gold-100 p-4 rounded-xl shadow-gold border border-gold-200/30 mb-4">
+        <h3 className="text-xl font-semibold mb-3 text-navy flex items-center">
+          <Sparkles className="h-5 w-5 mr-2 text-gold-500" />
           <span className="bg-gradient-gold bg-clip-text text-transparent">Recomendaciones para ti</span>
         </h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {displayRecommendations.map((rec) => (
             <Card 
               key={rec.id}
@@ -88,24 +88,24 @@ const FeaturedRecommendations: React.FC<FeaturedRecommendationsProps> = ({
                 getColorForType(rec.type)
               )}
             >
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-start justify-between">
-                  <h4 className="font-medium text-navy">{rec.title}</h4>
+                  <h4 className="font-medium text-navy text-sm">{rec.title}</h4>
                   {getIconForType(rec.type)}
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">{rec.description}</p>
+                <p className="text-xs text-muted-foreground mt-1.5">{rec.description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
         
-        <div className="flex justify-center mt-8">
+        <div className="flex justify-center mt-6">
           <Button 
             onClick={onViewAllClick}
-            className="group flex items-center gap-2 bg-gradient-gold hover:shadow-gold text-navy font-semibold shadow-luxury px-6 py-2.5 text-lg"
+            className="group flex items-center gap-2 bg-gradient-gold hover:shadow-gold text-navy font-semibold shadow-luxury px-5 py-2 text-base"
           >
             Explorar todos los servicios
-            <ArrowDown className="h-5 w-5 transition-transform group-hover:animate-bounce" />
+            <ArrowDown className="h-4 w-4 transition-transform group-hover:animate-bounce" />
           </Button>
         </div>
       </div>

@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Iconos para categorías
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'home': <Home className="h-4 w-4" />,
   'personal-care': <Scissors className="h-4 w-4" />,
@@ -29,7 +30,18 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'favorite': <Star className="h-4 w-4" />
 };
 
-// Priority order for categories display
+// Iconos para tipos de servicios - mapeamos algunos iconos comunes
+const SERVICE_TYPE_ICONS: Record<string, React.ReactNode> = {
+  // Iconos generales para tipos de servicio
+  'limpieza': <Home className="h-3.5 w-3.5 text-indigo-500" />,
+  'cuidado': <Heart className="h-3.5 w-3.5 text-rose-500" />,
+  'entrenamiento': <Dumbbell className="h-3.5 w-3.5 text-emerald-500" />,
+  'clases': <Book className="h-3.5 w-3.5 text-gold-500" />,
+  'música': <Music className="h-3.5 w-3.5 text-purple-500" />,
+  'mascotas': <PawPrint className="h-3.5 w-3.5 text-cyan-500" />,
+};
+
+// Prioridad para mostrar categorías
 const CATEGORY_PRIORITY = {
   'home': 1,
   'pets': 2,
@@ -45,7 +57,7 @@ const ClientHome = () => {
   const { data, isLoading, error } = useCategories();
   const [services, setServices] = useState<Service[]>([]);
 
-  // Log for debugging
+  // Log para depuración
   useEffect(() => {
     if (error) {
       console.error('Error loading categories:', error);
@@ -71,7 +83,7 @@ const ClientHome = () => {
     }
   }, []);
 
-  // Updated to filter recurring services based on category rather than subcategoryId
+  // Filtrar servicios recurrentes basados en categoría
   const recurringServices = services.filter(service => {
     return service.category === 'home';
   });
@@ -102,7 +114,22 @@ const ClientHome = () => {
     return colors[index % colors.length];
   };
 
-  // Sort categories based on priority
+  // Función para obtener un icono para un tipo de servicio
+  const getServiceTypeIcon = (serviceName: string) => {
+    // Buscar coincidencias parciales en el nombre del servicio
+    const serviceNameLower = serviceName.toLowerCase();
+    
+    for (const [key, icon] of Object.entries(SERVICE_TYPE_ICONS)) {
+      if (serviceNameLower.includes(key.toLowerCase())) {
+        return icon;
+      }
+    }
+    
+    // Si no hay coincidencia, usar un icono por defecto
+    return <Star className="h-3.5 w-3.5 text-gold-400" />;
+  };
+
+  // Ordenar categorías basadas en prioridad
   const sortedCategories = data?.categories ? [...data.categories].sort((a, b) => {
     const priorityA = CATEGORY_PRIORITY[a.name as keyof typeof CATEGORY_PRIORITY] || 99;
     const priorityB = CATEGORY_PRIORITY[b.name as keyof typeof CATEGORY_PRIORITY] || 99;
@@ -148,16 +175,16 @@ const ClientHome = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="recurring" className="pb-16 animate-fade-in">
+        <TabsContent value="recurring" className="pb-14 animate-fade-in">
           <RecurringServicesList services={recurringServices} />
         </TabsContent>
 
-        <TabsContent value="all" className="pb-16 animate-fade-in">
+        <TabsContent value="all" className="pb-14 animate-fade-in">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="flex flex-col items-center justify-center py-10 space-y-4">
               <div className="relative">
-                <div className="w-16 h-16 rounded-full border-4 border-purple-200 animate-spin border-t-indigo-500"></div>
-                <Loader2 className="h-8 w-8 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                <div className="w-14 h-14 rounded-full border-4 border-purple-200 animate-spin border-t-indigo-500"></div>
+                <Loader2 className="h-6 w-6 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
               </div>
               <span className="text-muted-foreground">Cargando servicios exclusivos...</span>
             </div>
@@ -169,19 +196,19 @@ const ClientHome = () => {
               </AlertDescription>
             </Alert>
           ) : (
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col md:flex-row gap-4">
               {/* Columna izquierda */}
-              <div className="flex-1 space-y-6 animate-fade-in">
+              <div className="flex-1 space-y-5 animate-fade-in">
                 {leftColumnCategories.length > 0 ? (
                   leftColumnCategories.map((category, index) => (
-                    <div key={category.id} className="mb-6">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4 ${getCategoryColor(index * 2)} shadow-sm`}>
+                    <div key={category.id} className="mb-5">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index * 2)} shadow-sm`}>
                         {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
                         <h2 className="text-sm font-medium">{category.label}</h2>
                       </div>
                       
                       {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                           {data.serviceTypesByCategory[category.id].map((serviceType) => (
                             <Card 
                               key={serviceType.id}
@@ -191,8 +218,11 @@ const ClientHome = () => {
                               )}
                               onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
                             >
-                              <CardContent className="p-3 flex items-center justify-between cursor-pointer">
-                                <span className="font-medium text-sm">{serviceType.name}</span>
+                              <CardContent className="p-2.5 flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-1.5">
+                                  {getServiceTypeIcon(serviceType.name)}
+                                  <span className="font-medium text-sm">{serviceType.name}</span>
+                                </div>
                                 <ArrowRight className="h-3 w-3 text-indigo-400" />
                               </CardContent>
                             </Card>
@@ -209,17 +239,17 @@ const ClientHome = () => {
               </div>
 
               {/* Columna derecha */}
-              <div className="flex-1 space-y-6 animate-fade-in animation-delay-200">
+              <div className="flex-1 space-y-5 animate-fade-in animation-delay-200">
                 {rightColumnCategories.length > 0 ? (
                   rightColumnCategories.map((category, index) => (
-                    <div key={category.id} className="mb-6">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4 ${getCategoryColor(index * 2 + 1)} shadow-sm`}>
+                    <div key={category.id} className="mb-5">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index * 2 + 1)} shadow-sm`}>
                         {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
                         <h2 className="text-sm font-medium">{category.label}</h2>
                       </div>
                       
                       {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                           {data.serviceTypesByCategory[category.id].map((serviceType) => (
                             <Card 
                               key={serviceType.id}
@@ -229,8 +259,11 @@ const ClientHome = () => {
                               )}
                               onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
                             >
-                              <CardContent className="p-3 flex items-center justify-between cursor-pointer">
-                                <span className="font-medium text-sm">{serviceType.name}</span>
+                              <CardContent className="p-2.5 flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-1.5">
+                                  {getServiceTypeIcon(serviceType.name)}
+                                  <span className="font-medium text-sm">{serviceType.name}</span>
+                                </div>
                                 <ArrowRight className="h-3 w-3 text-indigo-400" />
                               </CardContent>
                             </Card>
@@ -249,8 +282,8 @@ const ClientHome = () => {
           )}
 
           {sortedCategories.length === 0 && !isLoading && (
-            <div className="text-center py-12 bg-white/50 rounded-xl shadow-luxury border border-purple-100/50">
-              <Star className="h-12 w-12 text-gold-400 mx-auto mb-4 animate-pulse" />
+            <div className="text-center py-10 bg-white/50 rounded-xl shadow-luxury border border-purple-100/50">
+              <Star className="h-10 w-10 text-gold-400 mx-auto mb-3 animate-pulse" />
               <p className="text-muted-foreground">Servicios premium próximamente disponibles.</p>
             </div>
           )}
