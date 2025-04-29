@@ -11,7 +11,6 @@ interface NavItemProps {
   isActive: boolean;
   onClick?: () => void;
   badge?: boolean;
-  customBadge?: React.ReactNode;
 }
 
 const NavItem = ({ 
@@ -20,8 +19,7 @@ const NavItem = ({
   label, 
   isActive,
   onClick,
-  badge,
-  customBadge
+  badge
 }: NavItemProps) => (
   <Link
     to={to}
@@ -34,12 +32,9 @@ const NavItem = ({
     onClick={onClick}
   >
     <Icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
-    <span className="flex-grow">{label}</span>
+    <span>{label}</span>
     {badge && (
       <Badge variant="destructive" className="absolute right-2 top-2 h-2 w-2 p-0" />
-    )}
-    {customBadge && (
-      <div className="flex items-center ml-auto">{customBadge}</div>
     )}
   </Link>
 );

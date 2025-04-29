@@ -6,6 +6,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Home, Scissors, PawPrint, Dumbbell, Book, ArrowRight, 
          Music, Globe, Bike, Camera, Heart, Star, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import RecurringServicesList from '@/components/client/RecurringServicesList';
+import RecurringServicesIndicator from '@/components/client/RecurringServicesIndicator';
 import FeaturedRecommendations from '@/components/client/FeaturedRecommendations';
 import { useCategories } from '@/hooks/useCategories';
 import { Service } from '@/lib/types';
@@ -28,8 +30,9 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'favorite': <Star className="h-4 w-4" />
 };
 
-// Iconos para tipos de servicios
+// Iconos para tipos de servicios - mapeamos algunos iconos comunes
 const SERVICE_TYPE_ICONS: Record<string, React.ReactNode> = {
+  // Iconos generales para tipos de servicio
   'limpieza': <Home className="h-3.5 w-3.5 text-indigo-500" />,
   'cuidado': <Heart className="h-3.5 w-3.5 text-rose-500" />,
   'entrenamiento': <Dumbbell className="h-3.5 w-3.5 text-emerald-500" />,
@@ -50,8 +53,9 @@ const CATEGORY_PRIORITY = {
 
 const ClientHome = () => {
   const navigate = useNavigate();
-  const [services, setServices] = useState<Service[]>([]);
+  const [activeTab, setActiveTab] = useState<string>('all');
   const { data, isLoading, error } = useCategories();
+  const [services, setServices] = useState<Service[]>([]);
 
   // Log para depuración
   useEffect(() => {
@@ -79,9 +83,23 @@ const ClientHome = () => {
     }
   }, []);
 
+  // Filtrar servicios recurrentes basados en categoría
+  const recurringServices = services.filter(service => {
+    return service.category === 'home';
+  });
+
   const handleServiceTypeClick = (categoryName: string, serviceTypeName: string) => {
     console.log('Service type clicked:', categoryName, serviceTypeName);
     navigate(`/client/services/${categoryName}/${serviceTypeName}`);
+  };
+
+  const scrollToAllServices = () => {
+    // Función para hacer scroll a la sección de todos los servicios
+    const tabsElement = document.querySelector('[data-tabs]');
+    if (tabsElement) {
+      tabsElement.scrollIntoView({ behavior: 'smooth' });
+      setActiveTab('all');
+    }
   };
 
   const getCategoryColor = (index: number) => {
@@ -137,124 +155,140 @@ const ClientHome = () => {
       {/* Sección de Recomendaciones */}
       <FeaturedRecommendations 
         recommendations={[]} 
-        onViewAllClick={() => {
-          const servicesSection = document.getElementById('all-services');
-          if (servicesSection) {
-            servicesSection.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
+        onViewAllClick={scrollToAllServices}
       />
 
-      {/* Ahora tenemos una única sección de 'Todos los servicios' */}
-      <div id="all-services" className="pb-14 animate-fade-in">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-10 space-y-4">
-            <div className="relative">
-              <div className="w-14 h-14 rounded-full border-4 border-purple-200 animate-spin border-t-indigo-500"></div>
-              <Loader2 className="h-6 w-6 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-            </div>
-            <span className="text-muted-foreground">Cargando servicios exclusivos...</span>
-          </div>
-        ) : error ? (
-          <Alert variant="destructive" className="animate-fade-in">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              No se pudieron cargar los servicios. Por favor, intente de nuevo más tarde.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Columna izquierda */}
-            <div className="flex-1 space-y-5 animate-fade-in">
-              {leftColumnCategories.length > 0 ? (
-                leftColumnCategories.map((category, index) => (
-                  <div key={category.id} className="mb-5">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index * 2)} shadow-sm`}>
-                      {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
-                      <h2 className="text-sm font-medium">{category.label}</h2>
-                    </div>
-                    
-                    {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {data.serviceTypesByCategory[category.id].map((serviceType) => (
-                          <Card 
-                            key={serviceType.id}
-                            className={cn(
-                              "hover:shadow-luxury hover:translate-y-[-2px] transition-all duration-200 border-l-4",
-                              getCategoryColor(index * 2)
-                            )}
-                            onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
-                          >
-                            <CardContent className="p-2.5 flex items-center justify-between cursor-pointer">
-                              <div className="flex items-center gap-1.5">
-                                {getServiceTypeIcon(serviceType.name)}
-                                <span className="font-medium text-sm">{serviceType.name}</span>
-                              </div>
-                              <ArrowRight className="h-3 w-3 text-indigo-400" />
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-xs">
-                        No hay servicios disponibles en esta categoría
-                      </p>
-                    )}
-                  </div>
-                ))
-              ) : null}
-            </div>
+      <Tabs 
+        defaultValue="all" 
+        className="w-full" 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+        data-tabs
+      >
+        <TabsList className="mb-4 w-full sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
+          <TabsTrigger value="all" className="flex-1">
+            Todos los servicios
+          </TabsTrigger>
+          <TabsTrigger value="recurring" className="flex items-center gap-2 flex-1">
+            Recurrente
+            <RecurringServicesIndicator count={recurringServices.length} />
+          </TabsTrigger>
+        </TabsList>
 
-            {/* Columna derecha */}
-            <div className="flex-1 space-y-5 animate-fade-in animation-delay-200">
-              {rightColumnCategories.length > 0 ? (
-                rightColumnCategories.map((category, index) => (
-                  <div key={category.id} className="mb-5">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index * 2 + 1)} shadow-sm`}>
-                      {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
-                      <h2 className="text-sm font-medium">{category.label}</h2>
-                    </div>
-                    
-                    {data.serviceTypesByCategory[category.id]?.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {data.serviceTypesByCategory[category.id].map((serviceType) => (
-                          <Card 
-                            key={serviceType.id}
-                            className={cn(
-                              "hover:shadow-luxury hover:translate-y-[-2px] transition-all duration-200 border-l-4",
-                              getCategoryColor(index * 2 + 1)
-                            )}
-                            onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
-                          >
-                            <CardContent className="p-2.5 flex items-center justify-between cursor-pointer">
-                              <div className="flex items-center gap-1.5">
-                                {getServiceTypeIcon(serviceType.name)}
-                                <span className="font-medium text-sm">{serviceType.name}</span>
-                              </div>
-                              <ArrowRight className="h-3 w-3 text-indigo-400" />
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-xs">
-                        No hay servicios disponibles en esta categoría
-                      </p>
-                    )}
-                  </div>
-                ))
-              ) : null}
-            </div>
-          </div>
-        )}
+        <TabsContent value="recurring" className="pb-14 animate-fade-in">
+          <RecurringServicesList services={recurringServices} />
+        </TabsContent>
 
-        {sortedCategories.length === 0 && !isLoading && (
-          <div className="text-center py-10 bg-white/50 rounded-xl shadow-luxury border border-purple-100/50">
-            <Star className="h-10 w-10 text-gold-400 mx-auto mb-3 animate-pulse" />
-            <p className="text-muted-foreground">Servicios premium próximamente disponibles.</p>
-          </div>
-        )}
-      </div>
+        <TabsContent value="all" className="pb-14 animate-fade-in">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-10 space-y-4">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full border-4 border-purple-200 animate-spin border-t-indigo-500"></div>
+                <Loader2 className="h-6 w-6 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+              </div>
+              <span className="text-muted-foreground">Cargando servicios exclusivos...</span>
+            </div>
+          ) : error ? (
+            <Alert variant="destructive" className="animate-fade-in">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                No se pudieron cargar los servicios. Por favor, intente de nuevo más tarde.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Columna izquierda */}
+              <div className="flex-1 space-y-5 animate-fade-in">
+                {leftColumnCategories.length > 0 ? (
+                  leftColumnCategories.map((category, index) => (
+                    <div key={category.id} className="mb-5">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index * 2)} shadow-sm`}>
+                        {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
+                        <h2 className="text-sm font-medium">{category.label}</h2>
+                      </div>
+                      
+                      {data.serviceTypesByCategory[category.id]?.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {data.serviceTypesByCategory[category.id].map((serviceType) => (
+                            <Card 
+                              key={serviceType.id}
+                              className={cn(
+                                "hover:shadow-luxury hover:translate-y-[-2px] transition-all duration-200 border-l-4",
+                                getCategoryColor(index * 2)
+                              )}
+                              onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
+                            >
+                              <CardContent className="p-2.5 flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-1.5">
+                                  {getServiceTypeIcon(serviceType.name)}
+                                  <span className="font-medium text-sm">{serviceType.name}</span>
+                                </div>
+                                <ArrowRight className="h-3 w-3 text-indigo-400" />
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-xs">
+                          No hay servicios disponibles en esta categoría
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : null}
+              </div>
+
+              {/* Columna derecha */}
+              <div className="flex-1 space-y-5 animate-fade-in animation-delay-200">
+                {rightColumnCategories.length > 0 ? (
+                  rightColumnCategories.map((category, index) => (
+                    <div key={category.id} className="mb-5">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${getCategoryColor(index * 2 + 1)} shadow-sm`}>
+                        {CATEGORY_ICONS[category.icon] || <Home className="h-4 w-4" />}
+                        <h2 className="text-sm font-medium">{category.label}</h2>
+                      </div>
+                      
+                      {data.serviceTypesByCategory[category.id]?.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {data.serviceTypesByCategory[category.id].map((serviceType) => (
+                            <Card 
+                              key={serviceType.id}
+                              className={cn(
+                                "hover:shadow-luxury hover:translate-y-[-2px] transition-all duration-200 border-l-4",
+                                getCategoryColor(index * 2 + 1)
+                              )}
+                              onClick={() => handleServiceTypeClick(category.name, serviceType.name)}
+                            >
+                              <CardContent className="p-2.5 flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-1.5">
+                                  {getServiceTypeIcon(serviceType.name)}
+                                  <span className="font-medium text-sm">{serviceType.name}</span>
+                                </div>
+                                <ArrowRight className="h-3 w-3 text-indigo-400" />
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-xs">
+                          No hay servicios disponibles en esta categoría
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {sortedCategories.length === 0 && !isLoading && (
+            <div className="text-center py-10 bg-white/50 rounded-xl shadow-luxury border border-purple-100/50">
+              <Star className="h-10 w-10 text-gold-400 mx-auto mb-3 animate-pulse" />
+              <p className="text-muted-foreground">Servicios premium próximamente disponibles.</p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 };
