@@ -24,10 +24,12 @@ import {
 import { Image } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '../ui/alert';
 
 const ServiceFormFields: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
   const selectedResidencias = watch('residenciaIds') || [];
+  const selectedSubcategoryId = watch('subcategoryId');
 
   // Fetch residencias from Supabase
   const { data: residencias = [] } = useQuery({
@@ -44,13 +46,13 @@ const ServiceFormFields: React.FC = () => {
   });
 
   // Fetch service categories and types
-  const { data: categoriesData } = useQuery({
+  const { data: categoriesData, isLoading: loadingCategories } = useQuery({
     queryKey: ['service-categories-and-types'],
     queryFn: async () => {
       const { data: categories, error: catError } = await supabase
         .from('service_categories')
         .select('*')
-        .order('name');
+        .order('label');
       
       if (catError) throw catError;
       
@@ -110,6 +112,7 @@ const ServiceFormFields: React.FC = () => {
             <Select
               onValueChange={field.onChange}
               value={field.value || ''}
+              disabled={loadingCategories}
             >
               <FormControl>
                 <SelectTrigger>
@@ -184,6 +187,12 @@ const ServiceFormFields: React.FC = () => {
           </FormItem>
         )}
       />
+
+      <Alert variant="warning" className="mb-4">
+        <AlertDescription>
+          Para tu seguridad, tu anuncio solo será visible en las residencias que selecciones a continuación.
+        </AlertDescription>
+      </Alert>
 
       <FormField
         control={control}
