@@ -61,6 +61,14 @@ export default {
           DEFAULT: 'hsl(var(--neutral-gray))',
           hover: 'hsl(var(--neutral-gray-hover))',
         },
+        // Colores personalizados para la nueva UI
+        luxury: {
+          white: '#FFFFFF',
+          gray: '#F5F5F5',
+          beige: '#F7F1E1',
+          navy: '#1C2D4F',
+          'gray-dark': '#EAEAEA',
+        },
       },
       fontFamily: {
 				sans: [
@@ -80,7 +88,9 @@ export default {
 			},
 			boxShadow: {
 				'soft': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
-				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)'
+				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)',
+        // Sombra para elementos de lujo
+        'luxury': '0 8px 20px -4px rgba(28, 45, 79, 0.1)'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -98,11 +108,33 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+        'fade-in': {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(10px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)'
+          }
+        },
+        'scale-in': {
+          '0%': {
+            opacity: '0',
+            transform: 'scale(0.95)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'scale(1)'
+          }
+        }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-in': 'fade-in 0.3s ease-out',
+        'scale-in': 'scale-in 0.2s ease-out'
 			}
     },
   },

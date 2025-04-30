@@ -6,7 +6,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate('/client');
+    navigate('/client'); // Ahora redirige a nuestra nueva vista de categorías
   }, [navigate]);
 
   // Return null since we're immediately redirecting

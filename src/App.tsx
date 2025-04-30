@@ -25,6 +25,12 @@ import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/auth/RequireAuth";
 import ClientProvidersList from "./pages/ClientProvidersList";
 
+// Nuevas páginas
+import ClientCategoryView from "./pages/ClientCategoryView";
+import ClientCategoryDetails from "./pages/ClientCategoryDetails";
+import ClientBookingFlow from "./pages/ClientBookingFlow";
+import ClientResultsView from "./pages/ClientResultsView";
+
 // Create a client for React Query
 const queryClient = new QueryClient();
 
@@ -41,7 +47,7 @@ const AppRoutes = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/payment-setup" element={<PaymentSetup />} />
         
-        {/* Provider routes - Now accessible without authentication */}
+        {/* Provider routes */}
         <Route path="/dashboard" element={
           <RequireAuth providerOnly={true}>
             <Dashboard />
@@ -68,12 +74,29 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         
-        {/* Client routes - Allow access without authentication */}
+        {/* Client routes - Nuevas rutas para la UI/UX */}
         <Route path="/client" element={
           <RequireAuth clientOnly={true}>
-            <ClientHome />
+            <ClientCategoryView />
           </RequireAuth>
         } />
+        <Route path="/client/category/:categoryName" element={
+          <RequireAuth clientOnly={true}>
+            <ClientCategoryDetails />
+          </RequireAuth>
+        } />
+        <Route path="/client/booking/:categoryName/:serviceId" element={
+          <RequireAuth clientOnly={true}>
+            <ClientBookingFlow />
+          </RequireAuth>
+        } />
+        <Route path="/client/results/:categoryName/:serviceId" element={
+          <RequireAuth clientOnly={true}>
+            <ClientResultsView />
+          </RequireAuth>
+        } />
+        
+        {/* Rutas existentes del cliente */}
         <Route path="/client/services/:category/:subcat" element={
           <RequireAuth clientOnly={true}>
             <ClientProvidersList />
