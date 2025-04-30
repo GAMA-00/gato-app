@@ -28,34 +28,3 @@ export const supabase = createClient<Database>(
     }
   }
 );
-
-// Debug helper to detect rate limit errors during signup
-export const debugSignUp = async (email: string, password: string, userData: any) => {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: userData }
-    });
-    
-    if (error) {
-      console.error('Signup debug error:', {
-        message: error.message,
-        status: error.status,
-        name: error.name
-      });
-      
-      if (error.status === 429) {
-        // Rate limit error handling
-        console.warn('Rate limit detected. Clearing any partial auth state...');
-        // Make sure we don't leave partial state
-        await supabase.auth.signOut();
-      }
-    }
-    
-    return { data, error };
-  } catch (e) {
-    console.error('Unexpected signup error:', e);
-    return { data: null, error: e as Error };
-  }
-};

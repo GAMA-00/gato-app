@@ -1,4 +1,5 @@
-import { supabase, debugSignUp } from '@/integrations/supabase/client';
+
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { checkPhoneExists } from '@/utils/phoneValidation';
 import { UserRole } from '@/lib/types';
@@ -126,26 +127,7 @@ export const linkProviderToResidencias = async (
 };
 
 /**
- * Delete a user from Supabase Auth
- */
-export const deleteAuthUser = async (userId: string): Promise<AuthResult> => {
-  try {
-    // Warning: This requires admin privileges and can only be used server-side
-    // For client-side, we'll use a special approach to clean up user data
-    
-    // Instead let's just log out the current user
-    await supabase.auth.signOut();
-    
-    console.log('Signed out user after error to prevent orphaned records');
-    return { data: { success: true }, error: null };
-  } catch (error) {
-    console.error('Error during auth user cleanup:', error);
-    return { data: null, error: error as Error };
-  }
-};
-
-/**
- * Perform user signup with Supabase Auth with improved error handling
+ * Perform user signup with Supabase Auth
  */
 export const signUpWithSupabase = async (
   email: string,
@@ -158,29 +140,29 @@ export const signUpWithSupabase = async (
 ): Promise<AuthResult> => {
   console.log('Creating auth user with email:', email);
   
-  // Use our debug helper for better error tracking
-  const { data: authData, error: authError } = await debugSignUp(email, password, {
-    name: userData.name,
-    role: userData.role,
-    phone: userData.phone || ''
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name: userData.name,
+        role: userData.role,
+        phone: userData.phone || ''
+      }
+    }
   });
 
   if (authError) {
     console.error('Error creating auth user:', authError);
     
     // Check for rate limit error
-    if (authError.message?.includes('email rate limit exceeded') || 
-        (authError as any).status === 429) {
-      
-      // Generate a suggestion with a random number to help avoid rate limits
-      const randomNum = Math.floor(Math.random() * 10000);
-      const emailParts = email.split('@');
-      const suggestedEmail = `${emailParts[0]}${randomNum}@${emailParts[1]}`;
-      
-      toast.error(`Has enviado demasiadas solicitudes de registro. Prueba con otro correo como ${suggestedEmail} o espera unos minutos antes de intentarlo nuevamente.`);
+    if (authError.message.includes('email rate limit exceeded') || 
+        authError.status === 429) {
+      const suggestedEmail = `${email.split('@')[0]}_${Math.floor(Math.random() * 1000)}@${email.split('@')[1]}`;
+      toast.error(`Has enviado demasiados correos de verificación recientemente. Prueba con otro correo como ${suggestedEmail} o espera unos minutos antes de intentarlo nuevamente.`);
       return { 
         data: null, 
-        error: new Error(`Email rate limit exceeded. Try with a different email address like ${suggestedEmail} or wait a few minutes.`)
+        error: new Error('Email rate limit exceeded. Try with a different email address or wait a few minutes.')
       };
     }
     
@@ -188,98 +170,13 @@ export const signUpWithSupabase = async (
     return { data: null, error: authError };
   }
 
-  if (!authData?.user) {
+  if (!authData.user) {
     console.error('No user returned from auth signup');
     toast.error('Error al crear la cuenta: No se pudo crear el usuario');
     return { data: null, error: new Error('No user returned from auth signup') };
   }
 
   return { data: authData, error: null };
-};
-
-/**
- * Manual registration function that bypasses Supabase Auth
- * For emergency use when regular signup is failing
- */
-export const manualRegistration = async (
-  userData: {
-    name: string;
-    email: string;
-    phone?: string;
-    role: UserRole;
-    residenciaId?: string;
-    providerResidenciaIds?: string[];
-  }
-): Promise<AuthResult> => {
-  console.log('Manual registration attempt for:', userData.email);
-  
-  try {
-    // Generate a temporary UUID for the user
-    // NOTE: In a real implementation, we would need to handle this properly
-    // This is just for emergency/debugging purposes
-    const tempUserId = crypto.randomUUID(); 
-    
-    // Based on the role, create the appropriate profile
-    if (userData.role === 'client') {
-      const { error } = await supabase
-        .from('clients')
-        .insert({
-          id: tempUserId,
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone || '',
-          residencia_id: userData.residenciaId || null,
-          has_payment_method: false
-        });
-      
-      if (error) {
-        console.error('Manual client creation failed:', error);
-        return { data: null, error };
-      }
-    } else if (userData.role === 'provider') {
-      const { error: providerError } = await supabase
-        .from('providers')
-        .insert({
-          id: tempUserId,
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone || '',
-          about_me: ''
-        });
-      
-      if (providerError) {
-        console.error('Manual provider creation failed:', providerError);
-        return { data: null, error: providerError };
-      }
-      
-      // Link provider to residencias if specified
-      if (userData.providerResidenciaIds?.length) {
-        for (const residenciaId of userData.providerResidenciaIds) {
-          await supabase
-            .from('provider_residencias')
-            .insert({
-              provider_id: tempUserId, 
-              residencia_id: residenciaId
-            });
-        }
-      }
-    }
-    
-    return { 
-      data: { 
-        user: {
-          id: tempUserId,
-          email: userData.email,
-          name: userData.name,
-          role: userData.role,
-        } 
-      }, 
-      error: null 
-    };
-  } catch (error) {
-    console.error('Manual registration failed:', error);
-    return { data: null, error: error as Error };
-  }
 };
 
 /**
@@ -335,58 +232,4 @@ export const fetchProviderData = async (userId: string): Promise<AuthResult> => 
   }
   
   return { data: providerData, error: null };
-};
-
-/**
- * Cleanup all stale user data
- * For emergency use when auth is stuck
- */
-export const cleanupStaleUserData = async (email: string): Promise<boolean> => {
-  try {
-    console.log('Attempting to clean up stale user data for:', email);
-    
-    // Find any existing clients with this email
-    const { data: clientsData } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('email', email);
-      
-    // Find any existing providers with this email  
-    const { data: providersData } = await supabase
-      .from('providers')
-      .select('id')
-      .eq('email', email);
-    
-    // Clean up client records if found
-    if (clientsData?.length) {
-      for (const client of clientsData) {
-        console.log('Cleaning up client record:', client.id);
-        await supabase.from('clients').delete().eq('id', client.id);
-      }
-    }
-    
-    // Clean up provider records if found
-    if (providersData?.length) {
-      for (const provider of providersData) {
-        console.log('Cleaning up provider record:', provider.id);
-        
-        // First remove provider_residencias links
-        await supabase
-          .from('provider_residencias')
-          .delete()
-          .eq('provider_id', provider.id);
-          
-        // Then remove the provider
-        await supabase.from('providers').delete().eq('id', provider.id);
-      }
-    }
-    
-    // Sign out any current session to ensure clean state
-    await supabase.auth.signOut();
-    
-    return true;
-  } catch (error) {
-    console.error('Error during cleanup:', error);
-    return false;
-  }
 };

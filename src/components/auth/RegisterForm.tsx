@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle, Info } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
@@ -21,9 +21,7 @@ export const registerSchema = z.object({
   role: z.enum(['client', 'provider']),
   providerResidenciaIds: z.array(z.string()).optional(),
   residenciaId: z.string().optional(),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  cleanupFirst: z.boolean().optional().default(false),
-  useManualRegistration: z.boolean().optional().default(false),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
 }).refine(
   (data) => {
     if (data.role === 'client') {
@@ -53,11 +51,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   loadingResidencias,
   onRegisterSuccess
 }) => {
-  const { signUp, manualSignUp, isLoading, hasRateLimitError } = useSupabaseAuth();
+  const { signUp, isLoading } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
-  const [registrationMode, setRegistrationMode] = useState<'normal' | 'advanced'>('normal');
-  const [debugMode, setDebugMode] = useState(false);
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -68,16 +64,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       role: 'client',
       providerResidenciaIds: [],
       residenciaId: '',
-      password: '',
-      cleanupFirst: false,
-      useManualRegistration: false
+      password: ''
     }
   });
 
   const role = form.watch('role');
   const email = form.watch('email');
-  const useManualRegistration = form.watch('useManualRegistration');
-  const cleanupFirst = form.watch('cleanupFirst');
 
   const onSubmit = async (values: RegisterFormValues) => {
     if (isSubmitting) {
@@ -106,14 +98,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         phone: values.phone,
         role: values.role,
         residenciaId: values.role === 'client' ? values.residenciaId : null,
-        providerResidenciaIds: values.role === 'provider' ? values.providerResidenciaIds : [],
-        cleanupFirst: values.cleanupFirst
+        providerResidenciaIds: values.role === 'provider' ? values.providerResidenciaIds : []
       };
       
-      // Choose between normal and manual registration
-      const result = values.useManualRegistration 
-        ? await manualSignUp(values.email, values.password, userData) 
-        : await signUp(values.email, values.password, userData);
+      const result = await signUp(values.email, values.password, userData);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
@@ -121,9 +109,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         if (result.error.message.includes('teléfono ya está en uso')) {
           setRegistrationError('Este número de teléfono ya está registrado. Por favor, utilice otro número.');
         } else if (result.error.message.includes('Email rate limit exceeded')) {
-          const randomNum = Math.floor(Math.random() * 10000);
-          const suggestedEmail = `${values.email.split('@')[0]}_${randomNum}@${values.email.split('@')[1]}`;
-          setRegistrationError(`Has alcanzado el límite de intentos de registro con este correo. Prueba con otro correo como ${suggestedEmail}, activa "Limpiar datos antiguos" o usa el "Modo avanzado".`);
+          const suggestedEmail = `${values.email.split('@')[0]}_${Math.floor(Math.random() * 1000)}@${values.email.split('@')[1]}`;
+          setRegistrationError(`Has alcanzado el límite de intentos de registro con este correo. Por favor utiliza otra dirección de correo (por ejemplo: ${suggestedEmail}) o intenta más tarde.`);
         } else {
           setRegistrationError(result.error.message || "Error desconocido");
         }
@@ -144,76 +131,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
   };
 
-  const toggleDebugMode = () => {
-    setDebugMode(!debugMode);
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Tabs value={registrationMode} onValueChange={(val) => setRegistrationMode(val as 'normal' | 'advanced')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="normal">Registro Normal</TabsTrigger>
-            <TabsTrigger value="advanced">Opciones Avanzadas</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="normal">
-            {registrationError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                <AlertDescription className="text-sm">{registrationError}</AlertDescription>
-              </Alert>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="advanced">
-            <Alert>
-              <Info className="h-4 w-4 mr-2" />
-              <AlertDescription>
-                <p className="text-sm mb-3">Opciones avanzadas para problemas de registro:</p>
-                
-                <div className="flex items-start space-x-2 mb-2">
-                  <Checkbox
-                    id="cleanup"
-                    checked={cleanupFirst}
-                    onCheckedChange={(val) => form.setValue('cleanupFirst', !!val)}
-                  />
-                  <div>
-                    <label htmlFor="cleanup" className="text-sm font-medium cursor-pointer">
-                      Limpiar datos antiguos
-                    </label>
-                    <p className="text-xs text-muted-foreground">
-                      Elimina cualquier registro previo asociado a este email antes de crear el nuevo usuario
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="manual-reg"
-                    checked={useManualRegistration}
-                    onCheckedChange={(val) => form.setValue('useManualRegistration', !!val)}
-                  />
-                  <div>
-                    <label htmlFor="manual-reg" className="text-sm font-medium cursor-pointer">
-                      Registro Manual (Emergencia)
-                    </label>
-                    <p className="text-xs text-muted-foreground">
-                      Crea el registro directamente en la base de datos sin pasar por Auth. Para uso solo si el registro normal falla persistentemente.
-                    </p>
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-            
-            {registrationError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                <AlertDescription className="text-sm">{registrationError}</AlertDescription>
-              </Alert>
-            )}
-          </TabsContent>
-        </Tabs>
+        {registrationError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription className="text-sm">{registrationError}</AlertDescription>
+          </Alert>
+        )}
         
         <FormField
           control={form.control}
@@ -356,7 +282,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           ) : (
             <div className="flex items-center">
               <UserPlus className="mr-2 h-4 w-4" />
-              {useManualRegistration ? 'Crear Cuenta (Modo Manual)' : 'Crear Cuenta'}
+              Crear Cuenta
             </div>
           )}
         </Button>
@@ -367,30 +293,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               Inicia sesión
             </Link>
           </p>
-        </div>
-        
-        {debugMode && (
-          <div className="mt-4 p-3 border rounded bg-gray-50 text-xs">
-            <h4 className="font-bold">Debug Info:</h4>
-            <pre>
-              {JSON.stringify({
-                email,
-                role,
-                useManualRegistration,
-                cleanupFirst
-              }, null, 2)}
-            </pre>
-          </div>
-        )}
-        
-        <div className="text-center mt-2">
-          <button 
-            type="button"
-            onClick={toggleDebugMode}
-            className="text-xs text-gray-400 hover:text-gray-600"
-          >
-            {debugMode ? 'Ocultar debug' : '••••'}
-          </button>
         </div>
       </form>
     </Form>
