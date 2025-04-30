@@ -27,13 +27,13 @@ const ClientCategoryView = () => {
   // Mapeo de iconos según el nombre de la categoría
   const getCategoryIcon = (iconName: string) => {
     switch (iconName) {
-      case 'home': return <Home size={32} />;
-      case 'scissors': return <Scissors size={32} />;
-      case 'paw-print': return <PawPrint size={32} />;
-      case 'dumbbell': return <Dumbbell size={32} />;
-      case 'book': return <Book size={32} />;
-      case 'globe': return <Globe size={32} />;
-      default: return <Globe size={32} />;
+      case 'home': return <Home size={24} />; // Reducido de 32 a 24
+      case 'scissors': return <Scissors size={24} />;
+      case 'paw-print': return <PawPrint size={24} />;
+      case 'dumbbell': return <Dumbbell size={24} />;
+      case 'book': return <Book size={24} />;
+      case 'globe': return <Globe size={24} />;
+      default: return <Globe size={24} />;
     }
   };
 
@@ -47,9 +47,9 @@ const ClientCategoryView = () => {
         title="Explora nuestras categorías de servicio"
         subtitle="Selecciona una categoría para ver los servicios disponibles"
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
+            <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
       </PageContainer>
@@ -61,17 +61,14 @@ const ClientCategoryView = () => {
       title="Explora nuestras categorías de servicio"
       subtitle="Selecciona una categoría para ver los servicios disponibles"
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categories.map((category) => (
           <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-            <Card className="flex flex-col items-center p-6 hover:shadow-luxury transition-shadow cursor-pointer bg-luxury-white">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-4">
+            <Card className="flex flex-col items-center p-4 hover:shadow-luxury transition-shadow cursor-pointer bg-luxury-white h-24 justify-center">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-2">
                 {getCategoryIcon(category.icon)}
               </div>
-              <h3 className="text-center font-medium">{category.label}</h3>
-              <p className="text-xs text-center text-muted-foreground mt-1">
-                Servicios de {category.label.toLowerCase()}
-              </p>
+              <h3 className="text-center font-medium text-sm">{category.label}</h3>
             </Card>
           </div>
         ))}
