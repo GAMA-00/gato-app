@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -11,12 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 // Mapeo de iconos por categoría
 const categoryIcons: Record<string, React.ReactNode> = {
-  'home': <Home size={32} />,
-  'personal-care': <Scissors size={32} />,
-  'pets': <PawPrint size={32} />,
-  'sports': <Dumbbell size={32} />,
-  'classes': <Book size={32} />,
-  'other': <Globe size={32} />,
+  'home': <Home size={24} />,
+  'personal-care': <Scissors size={24} />,
+  'pets': <PawPrint size={24} />,
+  'sports': <Dumbbell size={24} />,
+  'classes': <Book size={24} />,
+  'other': <Globe size={24} />,
 };
 
 const ClientCategoryDetails = () => {
@@ -88,9 +87,9 @@ const ClientCategoryDetails = () => {
           </Button>
         }
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-40 rounded-lg" />
+            <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
       </PageContainer>
@@ -104,7 +103,7 @@ const ClientCategoryDetails = () => {
           <div className="w-10 h-10 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy">
             {categoryIcon}
           </div>
-          <span>Servicios de {categoryLabel}</span>
+          <span>{categoryLabel}</span>
         </div>
       }
       subtitle={
@@ -118,22 +117,17 @@ const ClientCategoryDetails = () => {
         </Button>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => (
           <Card 
             key={service.id}
-            className="p-6 hover:shadow-luxury transition-all cursor-pointer bg-luxury-white border-luxury-gray"
+            className="flex flex-col items-center p-4 hover:shadow-luxury transition-shadow cursor-pointer bg-luxury-white h-24 justify-center"
             onClick={() => handleServiceSelect(service.id)}
           >
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center bg-luxury-beige text-luxury-navy mb-4">
-                {categoryIcon}
-              </div>
-              <h3 className="font-medium text-center">{service.name}</h3>
-              <p className="text-sm text-center text-muted-foreground mt-2">
-                Servicio de {categoryLabel.toLowerCase()}
-              </p>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-2">
+              {categoryIcon}
             </div>
+            <h3 className="text-center font-medium text-sm">{service.name}</h3>
           </Card>
         ))}
       </div>
