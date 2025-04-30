@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { useResidencias } from '@/hooks/useResidencias';
 import { UserRole } from '@/lib/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -32,7 +34,14 @@ const Register = () => {
       title="Crear Cuenta"
       subtitle="Regístrate para agendar u ofrecer servicios"
     >
-      <div className="max-w-md mx-auto mt-8">
+      <div className="max-w-md mx-auto mt-4 mb-6">
+        <Alert variant="warning" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            Si tienes problemas al registrarte, prueba las "Opciones Avanzadas" para solucionar el problema.
+          </AlertDescription>
+        </Alert>
+        
         <RegisterForm 
           residencias={residencias}
           loadingResidencias={loadingResidencias}
