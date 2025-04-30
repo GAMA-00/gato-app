@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -280,19 +279,22 @@ const ClientBookingFlow = () => {
         {renderStepContent()}
       </Card>
 
-      {/* Botones de navegación */}
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={handleBack}>
+      {/* Botones de navegación - Ajustados para mejor visualización en móvil */}
+      <div className="flex flex-col sm:flex-row justify-between gap-4 sm:gap-0 mt-8 pb-20 sm:pb-8">
+        <Button variant="outline" onClick={handleBack} className="w-full sm:w-auto">
           <ArrowLeft size={16} className="mr-2" />
           Anterior
         </Button>
         
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={handleSkip}>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="ghost" onClick={handleSkip} className="w-full sm:w-auto">
             Omitir paso
           </Button>
           
-          <Button onClick={handleNext} className="bg-luxury-navy hover:bg-luxury-navy/90">
+          <Button 
+            onClick={handleNext} 
+            className="bg-luxury-navy hover:bg-luxury-navy/90 w-full sm:w-auto"
+          >
             {currentStep === steps.length ? 'Buscar profesionales' : 'Siguiente'}
             <ArrowRight size={16} className="ml-2" />
           </Button>
