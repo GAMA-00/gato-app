@@ -7,12 +7,7 @@ import { UserRole } from '@/lib/types';
 import {
   checkPhoneUniqueness,
   signUpWithSupabase,
-  createClient,
-  createProvider,
-  linkProviderToResidencias,
-  signInWithSupabase,
-  fetchClientData,
-  fetchProviderData
+  fetchUserProfile,
 } from '@/utils/authUtils';
 
 export const useSupabaseAuth = () => {
@@ -20,7 +15,7 @@ export const useSupabaseAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * User signup handler
+   * User signup handler - Updated to use the unified profiles table
    */
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Starting registration process with email:', email);
@@ -63,36 +58,36 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // Create client or provider data without using profiles table directly
-      if (userData.role === 'client') {
-        const { error: clientError } = await createClient(
-          userId,
-          userData.name,
-          email,
-          userData.phone || '',
-          userData.residenciaId
-        );
-        
-        if (clientError) {
-          setIsLoading(false);
-          return { data: null, error: clientError };
-        }
-      } else if (userData.role === 'provider') {
-        const { error: providerError } = await createProvider(
-          userId,
-          userData.name,
-          email,
-          userData.phone || ''
-        );
-        
-        if (providerError) {
-          setIsLoading(false);
-          return { data: null, error: providerError };
-        }
-        
-        // Link provider to residencias if specified
-        if (userData.providerResidenciaIds && userData.providerResidenciaIds.length > 0) {
-          await linkProviderToResidencias(userId, userData.providerResidenciaIds);
+      // Insert data into the profiles table - using the auth.uid() as id
+      const profile = {
+        id: userId, // Using auth.uid() as the id
+        name: userData.name,
+        email: email,
+        phone: userData.phone || '',
+        role: userData.role,
+        building_id: userData.role === 'client' ? userData.residenciaId : null,
+        has_payment_method: false
+      };
+
+      // Insert the profile data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert(profile);
+      
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        toast.error('Error al crear el perfil de usuario');
+        setIsLoading(false);
+        return { data: null, error: profileError };
+      }
+
+      // If user is a provider and specified residencias, link them
+      if (userData.role === 'provider' && userData.providerResidenciaIds?.length > 0) {
+        for (const residenciaId of userData.providerResidenciaIds) {
+          await supabase.from('provider_residencias').insert({
+            provider_id: userId,
+            residencia_id: residenciaId
+          });
         }
       }
       
@@ -102,7 +97,7 @@ export const useSupabaseAuth = () => {
         email: email,
         name: userData.name,
         phone: userData.phone || '',
-        buildingId: userData.residenciaId || '',
+        buildingId: userData.role === 'client' ? userData.residenciaId || '' : '',
         buildingName: '', 
         hasPaymentMethod: false,
         role: userData.role as UserRole,
@@ -129,70 +124,51 @@ export const useSupabaseAuth = () => {
   };
 
   /**
-   * User sign in handler
+   * User sign in handler - Updated to use the unified profiles table
    */
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
       // Try to authenticate the user
-      const { data: authData, error: authError } = await signInWithSupabase(email, password);
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
       if (authError || !authData.user) {
         setIsLoading(false);
-        return { data: null, error: authError };
+        toast.error('Credenciales inválidas. Por favor verifique su email y contraseña.');
+        return { data: null, error: authError || new Error('No user data returned') };
       }
 
-      // First try to get user data from clients table
-      const { data: clientData, error: clientError } = await fetchClientData(authData.user.id);
+      // Get user profile from the unified profiles table
+      const { data: profileData, error: profileError } = await fetchUserProfile(authData.user.id);
       
-      if (!clientError && clientData) {
-        // User found in clients table
-        const userObj = {
-          id: authData.user.id,
-          email: clientData.email || authData.user.email || '',
-          name: clientData.name || '',
-          phone: clientData.phone || '',
-          buildingId: clientData.residencia_id || '',
-          buildingName: '', 
-          hasPaymentMethod: clientData.has_payment_method || false,
-          role: 'client' as UserRole,
-          avatarUrl: ''
-        };
-        
-        setAuthUser(userObj);
-        console.log('Login successful as client');
-        toast.success('¡Bienvenido de nuevo!');
-        return { data: { user: userObj }, error: null };
+      if (profileError || !profileData) {
+        console.error('Error fetching user profile:', profileError);
+        toast.error('Error al cargar el perfil de usuario');
+        setIsLoading(false);
+        return { data: null, error: profileError || new Error('No profile found') };
       }
       
-      // If not in clients, check providers
-      const { data: providerData, error: providerError } = await fetchProviderData(authData.user.id);
+      // Create user object for frontend
+      const userObj = {
+        id: authData.user.id,
+        email: profileData.email || authData.user.email || '',
+        name: profileData.name || '',
+        phone: profileData.phone || '',
+        buildingId: profileData.building_id || '',
+        buildingName: '', 
+        hasPaymentMethod: profileData.has_payment_method || false,
+        role: profileData.role as UserRole,
+        avatarUrl: profileData.avatar_url || ''
+      };
       
-      if (!providerError && providerData) {
-        // User found in providers table
-        const userObj = {
-          id: authData.user.id,
-          email: providerData.email || authData.user.email || '',
-          name: providerData.name || '',
-          phone: providerData.phone || '',
-          buildingId: '',
-          buildingName: '', 
-          hasPaymentMethod: false,
-          role: 'provider' as UserRole,
-          avatarUrl: ''
-        };
-        
-        setAuthUser(userObj);
-        console.log('Login successful as provider');
-        toast.success('¡Bienvenido de nuevo!');
-        return { data: { user: userObj }, error: null };
-      }
+      setAuthUser(userObj);
+      console.log('Login successful as', profileData.role);
+      toast.success('¡Bienvenido de nuevo!');
       
-      // If not found in either table
-      console.error('Error fetching user profile: User not found in clients or providers tables');
-      toast.error('Error al cargar el perfil de usuario');
-      return { data: null, error: new Error('No profile found') };
-      
+      return { data: { user: userObj }, error: null };
     } catch (error: any) {
       console.error('Login error caught:', error);
       toast.error('Error en el inicio de sesión');

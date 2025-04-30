@@ -3,26 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
 export async function updateUserProfile(userId: string, data: any) {
-  const { role, ...profileData } = data;
-  
   try {
-    if (role === 'client') {
-      // Update client data
-      const { error } = await supabase
-        .from('clients')
-        .update(profileData)
-        .eq('id', userId);
-        
-      if (error) throw error;
-    } else if (role === 'provider') {
-      // Update provider data
-      const { error } = await supabase
-        .from('providers')
-        .update(profileData)
-        .eq('id', userId);
-        
-      if (error) throw error;
-    }
+    // Update profile data in the unified profiles table
+    const { error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', userId);
+      
+    if (error) throw error;
     
     return { success: true };
   } catch (error: any) {
@@ -33,38 +21,15 @@ export async function updateUserProfile(userId: string, data: any) {
 
 export async function fetchUserProfile(userId: string) {
   try {
-    // First check if user is a client
-    const { data: clientData, error: clientError } = await supabase
-      .from('clients')
+    const { data: profileData, error } = await supabase
+      .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
       
-    if (!clientError && clientData) {
-      // User is a client
-      return {
-        ...clientData,
-        role: 'client' as UserRole,
-      };
-    }
+    if (error) throw error;
     
-    // If not a client, check if user is a provider
-    const { data: providerData, error: providerError } = await supabase
-      .from('providers')
-      .select('*')
-      .eq('id', userId)
-      .single();
-      
-    if (!providerError && providerData) {
-      // User is a provider
-      return {
-        ...providerData,
-        role: 'provider' as UserRole,
-      };
-    }
-    
-    // If not found in either table
-    return null;
+    return profileData;
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return null;
