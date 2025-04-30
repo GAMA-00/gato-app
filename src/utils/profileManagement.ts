@@ -4,9 +4,9 @@ import { UserRole } from '@/lib/types';
 
 export async function updateUserProfile(userId: string, data: any) {
   try {
-    // Update profile data in the unified profiles table
+    // Update profile data in the unified users table
     const { error } = await supabase
-      .from('profiles')
+      .from('users')
       .update(data)
       .eq('id', userId);
       
@@ -22,7 +22,7 @@ export async function updateUserProfile(userId: string, data: any) {
 export async function fetchUserProfile(userId: string) {
   try {
     const { data: profileData, error } = await supabase
-      .from('profiles')
+      .from('users')
       .select('*')
       .eq('id', userId)
       .single();
@@ -39,7 +39,7 @@ export async function fetchUserProfile(userId: string) {
 export async function deleteUserProfile(userId: string) {
   try {
     // Due to the cascade delete setup, we only need to delete the user from auth
-    // and the profile tables will be automatically cleaned up
+    // and the users table will be automatically cleaned up
     const { error } = await supabase.auth.admin.deleteUser(userId);
     
     if (error) throw error;

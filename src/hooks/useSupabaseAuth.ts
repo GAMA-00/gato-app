@@ -15,7 +15,7 @@ export const useSupabaseAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * User signup handler - Updated to use the unified profiles table
+   * User signup handler - Updated to use the unified users table
    */
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Starting registration process with email:', email);
@@ -58,7 +58,7 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // Insert data into the profiles table - using the auth.uid() as id
+      // Insert data into the users table - using the auth.uid() as id
       const profile = {
         id: userId, // Using auth.uid() as the id
         name: userData.name,
@@ -71,11 +71,11 @@ export const useSupabaseAuth = () => {
 
       // Insert the profile data
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .insert(profile);
       
       if (profileError) {
-        console.error('Error creating profile:', profileError);
+        console.error('Error creating user profile:', profileError);
         toast.error('Error al crear el perfil de usuario');
         setIsLoading(false);
         return { data: null, error: profileError };
@@ -124,7 +124,7 @@ export const useSupabaseAuth = () => {
   };
 
   /**
-   * User sign in handler - Updated to use the unified profiles table
+   * User sign in handler - Updated to use the unified users table
    */
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -141,7 +141,7 @@ export const useSupabaseAuth = () => {
         return { data: null, error: authError || new Error('No user data returned') };
       }
 
-      // Get user profile from the unified profiles table
+      // Get user profile from the unified users table
       const { data: profileData, error: profileError } = await fetchUserProfile(authData.user.id);
       
       if (profileError || !profileData) {

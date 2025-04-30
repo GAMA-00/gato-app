@@ -112,7 +112,7 @@ export const signInWithSupabase = async (email: string, password: string): Promi
  */
 export const fetchUserProfile = async (userId: string): Promise<AuthResult> => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('users')
     .select('*')
     .eq('id', userId)
     .single();

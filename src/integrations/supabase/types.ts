@@ -471,6 +471,50 @@ export type Database = {
         }
         Relationships: []
       }
+      users: {
+        Row: {
+          avatar_url: string | null
+          building_id: string | null
+          created_at: string | null
+          email: string | null
+          has_payment_method: boolean | null
+          id: string
+          name: string | null
+          phone: string | null
+          role: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          building_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          has_payment_method?: boolean | null
+          id: string
+          name?: string | null
+          phone?: string | null
+          role: string
+        }
+        Update: {
+          avatar_url?: string | null
+          building_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          has_payment_method?: boolean | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
