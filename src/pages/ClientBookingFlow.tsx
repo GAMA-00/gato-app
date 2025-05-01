@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -5,7 +6,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Calendar, Clock, Check } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 
 interface BookingStep {
@@ -21,16 +21,14 @@ const ClientBookingFlow = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [frequency, setFrequency] = useState<string>('once');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [duration, setDuration] = useState<number>(60);
   const [timePreference, setTimePreference] = useState<string>('flexible');
   const [timeSlot, setTimeSlot] = useState<string>('');
   
-  // Definición de los pasos del flujo de reserva
+  // Definición de los pasos del flujo de reserva (eliminando el paso de duración)
   const steps: BookingStep[] = [
     { id: 1, name: 'Frecuencia', completed: currentStep > 1, current: currentStep === 1 },
     { id: 2, name: 'Día', completed: currentStep > 2, current: currentStep === 2 },
-    { id: 3, name: 'Duración', completed: currentStep > 3, current: currentStep === 3 },
-    { id: 4, name: 'Hora', completed: currentStep > 4, current: currentStep === 4 },
+    { id: 3, name: 'Hora', completed: currentStep > 3, current: currentStep === 3 },
   ];
 
   // Manejo de la selección de frecuencia
@@ -45,11 +43,6 @@ const ClientBookingFlow = () => {
     } else {
       setSelectedDays([...selectedDays, day]);
     }
-  };
-
-  // Manejo de la duración del servicio
-  const handleDurationChange = (value: number[]) => {
-    setDuration(value[0]);
   };
 
   // Manejo de la preferencia de hora
@@ -72,7 +65,6 @@ const ClientBookingFlow = () => {
         state: {
           frequency,
           selectedDays,
-          duration,
           timePreference,
           timeSlot
         }
@@ -169,33 +161,6 @@ const ClientBookingFlow = () => {
         );
 
       case 3:
-        return (
-          <div className="animate-fade-in">
-            <h3 className="text-lg font-medium mb-6">¿Cuánto tiempo necesitas para tu servicio?</h3>
-            <div className="mb-10">
-              <div className="text-center mb-8 text-3xl font-medium text-luxury-navy">
-                {duration} minutos
-              </div>
-              <Slider
-                defaultValue={[60]}
-                min={30}
-                max={180}
-                step={15}
-                onValueChange={handleDurationChange}
-                className="max-w-md mx-auto"
-              />
-              <div className="flex justify-between max-w-md mx-auto mt-2 text-sm text-muted-foreground">
-                <span>30min</span>
-                <span>1h</span>
-                <span>1h30</span>
-                <span>2h</span>
-                <span>3h</span>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4:
         return (
           <div className="animate-fade-in">
             <h3 className="text-lg font-medium mb-6">¿A qué hora prefieres tu servicio?</h3>
