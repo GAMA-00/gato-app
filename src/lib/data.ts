@@ -8,7 +8,7 @@ export const SERVICE_CATEGORIES: Record<ServiceCategory, { label: string, color:
   'sports': { label: 'Deportes', color: '#16A34A' },
   'classes': { label: 'Clases', color: '#F59E0B' },
   'cleaning': { label: 'Limpieza', color: '#4F46E5' },
-  'car-wash': { label: 'Lavado de Autos', color: '#3B82F6' },
+  'car-wash': { label: 'Lavacar', color: '#3B82F6' },
   'gardening': { label: 'Jardinería', color: '#16A34A' },
   'maintenance': { label: 'Mantenimiento', color: '#F59E0B' },
   'other': { label: 'Otros', color: '#6B7280' }
