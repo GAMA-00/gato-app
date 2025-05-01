@@ -56,21 +56,37 @@ export const signUpWithSupabase = async (
         name: userData.name,
         role: userData.role,
         phone: userData.phone || ''
-      }
+      },
+      emailRedirectTo: window.location.origin
     }
   });
 
   if (authError) {
     console.error('Error creating auth user:', authError);
     
-    // Check for rate limit error
+    // Mejorado: Detecta varios tipos de errores relacionados con límites de tasa
     if (authError.message.includes('email rate limit exceeded') || 
+        authError.message.includes('rate limit') ||
         authError.status === 429) {
-      const suggestedEmail = `${email.split('@')[0]}_${Math.floor(Math.random() * 1000)}@${email.split('@')[1]}`;
-      toast.error(`Has enviado demasiados correos de verificación recientemente. Prueba con otro correo como ${suggestedEmail} o espera unos minutos antes de intentarlo nuevamente.`);
+      // Genera una sugerencia de correo alternativo
+      const username = email.split('@')[0];
+      const domain = email.split('@')[1];
+      const randomSuffix = Math.floor(Math.random() * 1000);
+      const suggestedEmail = `${username}_${randomSuffix}@${domain}`;
+      
+      toast.error(`Has enviado demasiados correos de verificación recientemente. Prueba con otro correo como ${suggestedEmail} o espera unos minutos.`);
       return { 
         data: null, 
         error: new Error('Email rate limit exceeded. Try with a different email address or wait a few minutes.')
+      };
+    }
+    
+    // Verifica si el error es por usuario ya registrado
+    if (authError.message.includes('already registered')) {
+      toast.error('Este correo ya está registrado. Por favor inicia sesión o utiliza otro correo.');
+      return {
+        data: null,
+        error: new Error('User already registered. Please login or use a different email.')
       };
     }
     
@@ -101,6 +117,15 @@ export const signInWithSupabase = async (email: string, password: string): Promi
   
   if (authError || !authData.user) {
     console.error('Login error:', authError);
+    
+    // Mensaje de error más amigable para credenciales inválidas
+    if (authError?.message.includes('Invalid login credentials')) {
+      return { 
+        data: null, 
+        error: new Error('El correo o la contraseña son incorrectos. Por favor verifica tus credenciales.') 
+      };
+    }
+    
     return { data: null, error: authError || new Error('No user data returned') };
   }
 

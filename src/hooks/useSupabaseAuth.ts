@@ -58,30 +58,10 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // Insert data into the users table - using the auth.uid() as id
-      const profile = {
-        id: userId, // Using auth.uid() as the id
-        name: userData.name,
-        email: email,
-        phone: userData.phone || '',
-        role: userData.role,
-        building_id: userData.role === 'client' ? userData.residenciaId : null,
-        has_payment_method: false
-      };
+      // Si llegamos hasta aquí, significa que el usuario ya se creó en la tabla users
+      // mediante el trigger handle_new_user(), no necesitamos insertar manualmente
 
-      // Insert the profile data
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert(profile);
-      
-      if (profileError) {
-        console.error('Error creating user profile:', profileError);
-        toast.error('Error al crear el perfil de usuario');
-        setIsLoading(false);
-        return { data: null, error: profileError };
-      }
-
-      // If user is a provider and specified residencias, link them
+      // Si el usuario es un proveedor y especificó residencias, vincularlos
       if (userData.role === 'provider' && userData.providerResidenciaIds?.length > 0) {
         for (const residenciaId of userData.providerResidenciaIds) {
           await supabase.from('provider_residencias').insert({
@@ -91,7 +71,7 @@ export const useSupabaseAuth = () => {
         }
       }
       
-      // Create user object for the frontend
+      // Crear objeto de usuario para el frontend
       const userObj = {
         id: userId,
         email: email,
@@ -105,7 +85,7 @@ export const useSupabaseAuth = () => {
       
       toast.success('¡Cuenta creada con éxito!');
       
-      // Set the user in the auth context
+      // Establecer el usuario en el contexto de autenticación
       setAuthUser(userObj);
       
       console.log('User registered successfully');
