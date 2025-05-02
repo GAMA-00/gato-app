@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,7 @@ import { ChatProvider } from "./contexts/ChatContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/auth/RequireAuth";
 import ClientProvidersList from "./pages/ClientProvidersList";
+import ProviderRegister from "./pages/ProviderRegister";
 
 // Nuevas páginas
 import ClientCategoryView from "./pages/ClientCategoryView";
@@ -45,6 +45,7 @@ const AppRoutes = () => {
         {/* Auth Routes - These maintain the client context */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/register-provider" element={<ProviderRegister />} />
         <Route path="/payment-setup" element={<PaymentSetup />} />
         
         {/* Provider routes */}

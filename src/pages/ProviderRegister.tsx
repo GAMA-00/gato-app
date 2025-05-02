@@ -9,7 +9,7 @@ import { useResidencias } from '@/hooks/useResidencias';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 
-const Register = () => {
+const ProviderRegister = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { residencias, isLoading: loadingResidencias } = useResidencias();
@@ -24,7 +24,7 @@ const Register = () => {
     toast.info('¡Registro exitoso! Configurando tu cuenta...');
     
     navigate('/payment-setup', { 
-      state: { fromClientView: true } 
+      state: { fromClientView: false } 
     });
   };
 
@@ -51,8 +51,8 @@ const Register = () => {
 
   return (
     <PageContainer
-      title="Crear Cuenta de Cliente"
-      subtitle="Regístrate para agendar servicios en tu residencia"
+      title="Crear Cuenta de Proveedor"
+      subtitle="Regístrate para ofrecer tus servicios"
     >
       <div className="max-w-md mx-auto mt-8">
         <RegisterForm 
@@ -60,13 +60,13 @@ const Register = () => {
           loadingResidencias={loadingResidencias}
           onRegisterSuccess={handleRegisterSuccess}
           onGoogleSignIn={handleGoogleSignIn}
-          userRole="client"
+          userRole="provider"
         />
         
         <div className="mt-6 text-center">
-          <p className="text-muted-foreground mb-2">¿Eres un proveedor de servicios?</p>
+          <p className="text-muted-foreground mb-2">¿Buscas servicios para tu residencia?</p>
           <Button variant="outline" asChild>
-            <Link to="/register-provider">Regístrate como Proveedor</Link>
+            <Link to="/register">Regístrate como Cliente</Link>
           </Button>
         </div>
       </div>
@@ -74,4 +74,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default ProviderRegister;

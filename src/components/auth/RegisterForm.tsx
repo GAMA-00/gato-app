@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -14,26 +15,21 @@ import { Separator } from '@/components/ui/separator';
 import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
+// Esquema modificado que no incluye la selección de rol
 export const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
   phone: z.string().min(8, 'Número de teléfono inválido'),
-  role: z.enum(['client', 'provider']),
   providerResidenciaIds: z.array(z.string()).optional(),
   residenciaId: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
 }).refine(
   (data) => {
-    if (data.role === 'client') {
-      return !!data.residenciaId;
-    }
-    if (data.role === 'provider') {
-      return !!data.providerResidenciaIds && data.providerResidenciaIds.length > 0;
-    }
-    return false;
+    // La validación dependerá del contexto del formulario
+    return true;
   },
   {
-    message: "Debe seleccionar al menos una residencia",
+    message: "Campo requerido",
     path: ["residenciaId"],
   }
 );
@@ -45,32 +41,42 @@ interface RegisterFormProps {
   loadingResidencias: boolean;
   onRegisterSuccess?: (userData: any) => void;
   onGoogleSignIn?: () => void;
+  userRole: UserRole; // Ahora recibimos el rol como prop
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   residencias,
   loadingResidencias,
   onRegisterSuccess,
-  onGoogleSignIn
+  onGoogleSignIn,
+  userRole
 }) => {
   const { signUp, isLoading } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   
+  // Refinamos el esquema según el rol del usuario
+  const formSchema = z.object({
+    name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+    email: z.string().email('Correo electrónico inválido'),
+    phone: z.string().min(8, 'Número de teléfono inválido'),
+    providerResidenciaIds: userRole === 'provider' ? z.array(z.string()).min(1, 'Selecciona al menos una residencia') : z.array(z.string()).optional(),
+    residenciaId: userRole === 'client' ? z.string().min(1, 'Selecciona una residencia') : z.string().optional(),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+  });
+  
   const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       email: '',
       phone: '',
-      role: 'client',
       providerResidenciaIds: [],
       residenciaId: '',
       password: ''
     }
   });
 
-  const role = form.watch('role');
   const email = form.watch('email');
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -83,12 +89,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       setIsSubmitting(true);
       setRegistrationError(null);
       
-      if (role === 'client' && !values.residenciaId) {
+      if (userRole === 'client' && !values.residenciaId) {
         setRegistrationError('Debes seleccionar una residencia');
         return;
       }
       
-      if (role === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
+      if (userRole === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
         setRegistrationError('Debes seleccionar al menos una residencia');
         return;
       }
@@ -98,9 +104,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const userData = {
         name: values.name,
         phone: values.phone,
-        role: values.role,
-        residenciaId: values.role === 'client' ? values.residenciaId : null,
-        providerResidenciaIds: values.role === 'provider' ? values.providerResidenciaIds : []
+        role: userRole, // Usamos el rol predefinido
+        residenciaId: userRole === 'client' ? values.residenciaId : null,
+        providerResidenciaIds: userRole === 'provider' ? values.providerResidenciaIds : []
       };
       
       const result = await signUp(values.email, values.password, userData);
@@ -122,8 +128,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         console.log('Registro exitoso!');
         if (onRegisterSuccess) {
           onRegisterSuccess({ 
-            user: result.data.user, 
-            role: values.role as UserRole 
+            user: result.data.user
           });
         }
       } 
@@ -173,32 +178,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             </div>
           </div>
         )}
-        
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo de usuario</FormLabel>
-              <FormControl>
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value}
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="client">Cliente</SelectItem>
-                    <SelectItem value="provider">Proveedor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}
@@ -271,13 +250,24 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           )}
         />
 
-        <ResidenceFields 
-          role={role} 
-          residencias={residencias} 
-          isSubmitting={isSubmitting} 
-          loadingResidencias={loadingResidencias} 
-          form={form} 
-        />
+        {/* Mostramos campos específicos según el rol */}
+        {userRole === 'client' && (
+          <ClientResidenceField 
+            residencias={residencias} 
+            isSubmitting={isSubmitting} 
+            loadingResidencias={loadingResidencias} 
+            form={form} 
+          />
+        )}
+        
+        {userRole === 'provider' && (
+          <ProviderResidencesField 
+            residencias={residencias} 
+            isSubmitting={isSubmitting} 
+            loadingResidencias={loadingResidencias} 
+            form={form} 
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -332,104 +322,112 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   );
 };
 
-interface ResidenceFieldsProps {
-  role: string;
+// Componente para la selección de residencia de cliente
+interface ClientResidenceFieldProps {
   residencias: Residencia[];
   isSubmitting: boolean;
   loadingResidencias: boolean;
   form: any;
 }
 
-const ResidenceFields: React.FC<ResidenceFieldsProps> = ({ 
-  role, 
+const ClientResidenceField: React.FC<ClientResidenceFieldProps> = ({ 
   residencias, 
   isSubmitting, 
   loadingResidencias,
   form 
 }) => {
-  if (role === 'client') {
-    return (
-      <FormField
-        control={form.control}
-        name="residenciaId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Seleccione su Residencia</FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value || ''}
-                  disabled={isSubmitting || loadingResidencias}
-                >
-                  <SelectTrigger className="pl-10">
-                    <SelectValue placeholder={loadingResidencias ? "Cargando..." : "Elija una residencia"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {residencias.map((residencia) => (
-                      <SelectItem key={residencia.id} value={residencia.id}>
-                        {residencia.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    );
-  }
+  return (
+    <FormField
+      control={form.control}
+      name="residenciaId"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Seleccione su Residencia</FormLabel>
+          <FormControl>
+            <div className="relative">
+              <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value || ''}
+                disabled={isSubmitting || loadingResidencias}
+              >
+                <SelectTrigger className="pl-10">
+                  <SelectValue placeholder={loadingResidencias ? "Cargando..." : "Elija una residencia"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {residencias.map((residencia) => (
+                    <SelectItem key={residencia.id} value={residencia.id}>
+                      {residencia.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+};
 
-  if (role === 'provider') {
-    return (
-      <FormField
-        control={form.control}
-        name="providerResidenciaIds"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Residencias donde ofreces tus servicios</FormLabel>
-            {loadingResidencias ? (
-              <div className="flex items-center justify-center p-4 border rounded-md">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span>Cargando residencias...</span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 p-4 border rounded-md">
-                {residencias.length === 0 ? (
-                  <p className="text-sm text-gray-500">No hay residencias disponibles</p>
-                ) : (
-                  residencias.map((residencia) => (
-                    <div key={residencia.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`residencia-checkbox-${residencia.id}`}
-                        checked={field.value?.includes(residencia.id)}
-                        onCheckedChange={(checked) => {
-                          const checkedArr = Array.isArray(field.value) ? field.value : [];
-                          if (checked) {
-                            field.onChange([...checkedArr, residencia.id]);
-                          } else {
-                            field.onChange(checkedArr.filter((id: string) => id !== residencia.id));
-                          }
-                        }}
-                        disabled={isSubmitting}
-                      />
-                      <label htmlFor={`residencia-checkbox-${residencia.id}`} className="text-sm font-medium">
-                        {residencia.name}
-                      </label>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    );
-  }
+// Componente para la selección de residencias de proveedor
+interface ProviderResidencesFieldProps {
+  residencias: Residencia[];
+  isSubmitting: boolean;
+  loadingResidencias: boolean;
+  form: any;
+}
 
-  return null;
+const ProviderResidencesField: React.FC<ProviderResidencesFieldProps> = ({ 
+  residencias, 
+  isSubmitting, 
+  loadingResidencias,
+  form 
+}) => {
+  return (
+    <FormField
+      control={form.control}
+      name="providerResidenciaIds"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Residencias donde ofreces tus servicios</FormLabel>
+          {loadingResidencias ? (
+            <div className="flex items-center justify-center p-4 border rounded-md">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span>Cargando residencias...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 p-4 border rounded-md">
+              {residencias.length === 0 ? (
+                <p className="text-sm text-gray-500">No hay residencias disponibles</p>
+              ) : (
+                residencias.map((residencia) => (
+                  <div key={residencia.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`residencia-checkbox-${residencia.id}`}
+                      checked={field.value?.includes(residencia.id)}
+                      onCheckedChange={(checked) => {
+                        const checkedArr = Array.isArray(field.value) ? field.value : [];
+                        if (checked) {
+                          field.onChange([...checkedArr, residencia.id]);
+                        } else {
+                          field.onChange(checkedArr.filter((id: string) => id !== residencia.id));
+                        }
+                      }}
+                      disabled={isSubmitting}
+                    />
+                    <label htmlFor={`residencia-checkbox-${residencia.id}`} className="text-sm font-medium">
+                      {residencia.name}
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
 };
