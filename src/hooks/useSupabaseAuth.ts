@@ -58,9 +58,6 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // Si llegamos hasta aquí, significa que el usuario ya se creó en la tabla users
-      // mediante el trigger handle_new_user(), no necesitamos insertar manualmente
-
       // Si el usuario es un proveedor y especificó residencias, vincularlos
       if (userData.role === 'provider' && userData.providerResidenciaIds?.length > 0) {
         for (const residenciaId of userData.providerResidenciaIds) {
@@ -104,7 +101,7 @@ export const useSupabaseAuth = () => {
   };
 
   /**
-   * User sign in handler - Updated to use the unified users table
+   * User sign in handler - Updated to handle Google OAuth
    */
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -157,6 +154,27 @@ export const useSupabaseAuth = () => {
       setIsLoading(false);
     }
   };
+  
+  /**
+   * Handle OAuth sign in (Google, etc.)
+   */
+  const signInWithOAuth = async (provider: 'google') => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/payment-setup`
+        }
+      });
+      
+      setIsLoading(false);
+      return { data, error };
+    } catch (error: any) {
+      setIsLoading(false);
+      return { data: null, error };
+    }
+  };
 
   /**
    * User sign out handler
@@ -176,6 +194,7 @@ export const useSupabaseAuth = () => {
   return {
     signUp,
     signIn,
+    signInWithOAuth,
     signOut,
     isLoading
   };

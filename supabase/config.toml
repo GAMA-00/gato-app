@@ -1,1 +1,27 @@
+
+# This is the project configuration for the Supabase platform.
 project_id = "jckynopecuexfamepmoh"
+[api]
+# Port to use for the API URL.
+port = 54321
+# Enable API development mode to use the latest API features.
+[api.develop]
+enabled = true
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[storage]
+file_size_limit = "50MiB"
+
+[auth]
+# For accepting signups using Google OAuth
+enabled_providers = ["google"]
+# Redirect URL for OAuth signups
+redirect_url = "http://localhost:3000/payment-setup"
