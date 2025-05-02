@@ -64,24 +64,24 @@ export const signUpWithSupabase = async (
   if (authError) {
     console.error('Error creating auth user:', authError);
     
-    // Mejorado: Detecta varios tipos de errores relacionados con límites de tasa
+    // Enhanced error detection
     if (authError.message.includes('email rate limit exceeded') || 
         authError.message.includes('rate limit') ||
         authError.status === 429) {
-      // Genera una sugerencia de correo alternativo
+      // Suggest an alternative email
       const username = email.split('@')[0];
       const domain = email.split('@')[1];
       const randomSuffix = Math.floor(Math.random() * 1000);
       const suggestedEmail = `${username}_${randomSuffix}@${domain}`;
       
-      toast.error(`Has enviado demasiados correos de verificación recientemente. Prueba con otro correo como ${suggestedEmail} o espera unos minutos.`);
+      toast.error(`Has alcanzado el límite de intentos de registro con este correo. Prueba con otro correo como ${suggestedEmail} o espera unos minutos.`);
       return { 
         data: null, 
         error: new Error('Email rate limit exceeded. Try with a different email address or wait a few minutes.')
       };
     }
     
-    // Verifica si el error es por usuario ya registrado
+    // Check if user already registered
     if (authError.message.includes('already registered')) {
       toast.error('Este correo ya está registrado. Por favor inicia sesión o utiliza otro correo.');
       return {
@@ -118,7 +118,7 @@ export const signInWithSupabase = async (email: string, password: string): Promi
   if (authError || !authData.user) {
     console.error('Login error:', authError);
     
-    // Mensaje de error más amigable para credenciales inválidas
+    // More user-friendly error message for invalid credentials
     if (authError?.message.includes('Invalid login credentials')) {
       return { 
         data: null, 

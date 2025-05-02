@@ -58,7 +58,7 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // Si el usuario es un proveedor y especificó residencias, vincularlos
+      // If the user is a provider and specified residencias, link them
       if (userData.role === 'provider' && userData.providerResidenciaIds?.length > 0) {
         for (const residenciaId of userData.providerResidenciaIds) {
           await supabase.from('provider_residencias').insert({
@@ -67,8 +67,16 @@ export const useSupabaseAuth = () => {
           });
         }
       }
+
+      // If the user is a client and specified a residencia, update the user record
+      if (userData.role === 'client' && userData.residenciaId) {
+        await supabase
+          .from('users')
+          .update({ building_id: userData.residenciaId })
+          .eq('id', userId);
+      }
       
-      // Crear objeto de usuario para el frontend
+      // Create user object for frontend
       const userObj = {
         id: userId,
         email: email,
@@ -82,7 +90,7 @@ export const useSupabaseAuth = () => {
       
       toast.success('¡Cuenta creada con éxito!');
       
-      // Establecer el usuario en el contexto de autenticación
+      // Set user in the authentication context
       setAuthUser(userObj);
       
       console.log('User registered successfully');
