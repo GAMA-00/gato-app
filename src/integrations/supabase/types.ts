@@ -310,6 +310,59 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          account_holder: string | null
+          account_number: string | null
+          bank_name: string | null
+          card_number: string | null
+          cardholder_name: string | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          method_type: string
+          sinpe_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          card_number?: string | null
+          cardholder_name?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          method_type: string
+          sinpe_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          card_number?: string | null
+          cardholder_name?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          method_type?: string
+          sinpe_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_residencias: {
         Row: {
           created_at: string

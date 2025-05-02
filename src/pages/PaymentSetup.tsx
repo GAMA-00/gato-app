@@ -81,40 +81,73 @@ const PaymentSetup = () => {
     }
   });
 
-  const handleClientSubmit = (values: CreditCardFormValues) => {
-    // En una aplicación real, aquí enviaríamos la información a un procesador de pagos
-    // Simulamos una actualización exitosa
-    updateUserPaymentMethod(true);
+  const handleClientSubmit = async (values: CreditCardFormValues) => {
+    if (!user?.id) {
+      toast.error('Usuario no autenticado');
+      return;
+    }
     
-    toast.success('Método de pago registrado exitosamente');
-    
-    // Navigate to client home if we came from client view, or to the default dashboard otherwise
-    navigate(fromClientView ? '/client' : '/dashboard');
+    try {
+      // Insert the payment method into the new payment_methods table
+      const { error } = await supabase.from('payment_methods').insert({
+        user_id: user.id,
+        method_type: 'card',
+        cardholder_name: values.cardholderName,
+        card_number: values.cardNumber,
+        expiry_date: values.expiryDate
+      });
+      
+      if (error) throw error;
+      
+      // Update the user's has_payment_method flag
+      await supabase
+        .from('users')
+        .update({ has_payment_method: true })
+        .eq('id', user.id);
+      
+      updateUserPaymentMethod(true);
+      toast.success('Método de pago registrado exitosamente');
+      
+      // Navigate to client home if we came from client view, or to the default dashboard otherwise
+      navigate(fromClientView ? '/client' : '/dashboard');
+    } catch (error: any) {
+      console.error('Error al guardar método de pago:', error);
+      toast.error('Error al guardar la información de pago');
+    }
   };
 
-  const handleProviderSubmit = (values: BankAccountFormValues) => {
-    // Update provider payment information in the database
-    const updatePaymentInfo = async () => {
-      try {
-        if (user?.id) {
-          // In a real app, we would store the bank details securely
-          // For this demo, we're just marking that they have a payment method
-          await supabase
-            .from('users')
-            .update({ has_payment_method: true })
-            .eq('id', user.id);
-            
-          updateUserPaymentMethod(true);
-          toast.success('Información bancaria registrada exitosamente');
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error("Error updating payment info:", error);
-        toast.error('Error al guardar información bancaria');
-      }
-    };
+  const handleProviderSubmit = async (values: BankAccountFormValues) => {
+    if (!user?.id) {
+      toast.error('Usuario no autenticado');
+      return;
+    }
     
-    updatePaymentInfo();
+    try {
+      // Insert the payment method into the new payment_methods table
+      const { error } = await supabase.from('payment_methods').insert({
+        user_id: user.id,
+        method_type: 'bank',
+        account_holder: values.accountHolder,
+        bank_name: values.bankName,
+        account_number: values.accountNumber,
+        sinpe_number: values.sinpeNumber
+      });
+      
+      if (error) throw error;
+      
+      // Update the user's has_payment_method flag
+      await supabase
+        .from('users')
+        .update({ has_payment_method: true })
+        .eq('id', user.id);
+      
+      updateUserPaymentMethod(true);
+      toast.success('Información bancaria registrada exitosamente');
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error("Error al guardar información bancaria:", error);
+      toast.error('Error al guardar información bancaria');
+    }
   };
 
   return (
