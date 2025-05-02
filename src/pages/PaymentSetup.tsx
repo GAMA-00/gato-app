@@ -78,7 +78,8 @@ const PaymentSetup = () => {
       accountNumber: '',
       bankName: '',
       sinpeNumber: ''
-    }
+    },
+    mode: 'onBlur'
   });
 
   const handleClientSubmit = async (values: CreditCardFormValues) => {
