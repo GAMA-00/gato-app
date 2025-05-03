@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,6 +31,8 @@ import ClientCategoryView from "./pages/ClientCategoryView";
 import ClientCategoryDetails from "./pages/ClientCategoryDetails";
 import ClientBookingFlow from "./pages/ClientBookingFlow";
 import ClientResultsView from "./pages/ClientResultsView";
+import ProviderProfile from "./pages/ProviderProfile";
+import BookingSummary from "./pages/BookingSummary";
 
 // Create a client for React Query
 const queryClient = new QueryClient();
@@ -75,7 +78,7 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         
-        {/* Client routes - Nuevas rutas para la UI/UX */}
+        {/* Client routes - Nuevas rutas y actualizaciones */}
         <Route path="/client" element={
           <RequireAuth clientOnly={true}>
             <ClientCategoryView />
@@ -94,6 +97,16 @@ const AppRoutes = () => {
         <Route path="/client/results/:categoryName/:serviceId" element={
           <RequireAuth clientOnly={true}>
             <ClientResultsView />
+          </RequireAuth>
+        } />
+        <Route path="/client/provider/:providerId" element={
+          <RequireAuth clientOnly={true}>
+            <ProviderProfile />
+          </RequireAuth>
+        } />
+        <Route path="/client/booking-summary" element={
+          <RequireAuth clientOnly={true} requirePaymentMethod={true}>
+            <BookingSummary />
           </RequireAuth>
         } />
         

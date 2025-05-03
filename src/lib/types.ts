@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -131,4 +130,54 @@ export interface ProviderAchievements {
   nextLevel: AchievementLevel | null;
   pointsToNextLevel: number;
   achievements: Achievement[];
+}
+
+export interface ProviderProfile {
+  id: string;
+  name: string;
+  avatar?: string;
+  rating: number;
+  ratingCount: number;
+  aboutMe: string;
+  galleryImages: string[];
+  experienceYears: number;
+  hasCertifications: boolean;
+  handlesDangerousDogs: boolean;
+  servicesCompleted: number;
+  isVerified: boolean;
+  joinDate: Date;
+  detailedRatings: {
+    service: number;
+    valueForMoney: number;
+    friendliness: number;
+    materials: number;
+    professionalism: number;
+    punctuality: number;
+  };
+  reviews: {
+    id: string;
+    clientName: string;
+    date: Date;
+    rating: number;
+    comment: string;
+  }[];
+}
+
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  services: ProviderService[];
+}
+
+export interface ProviderService {
+  id: string;
+  name: string;
+  options: ServicePriceOption[];
+}
+
+export interface ServicePriceOption {
+  id: string;
+  size: string;
+  price: number;
+  duration: number;
 }

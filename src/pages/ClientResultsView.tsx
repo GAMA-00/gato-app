@@ -1,116 +1,76 @@
 
 import React from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Calendar, Clock, CheckCircle, Badge as BadgeIcon } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Clock, Star, ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-
-interface Professional {
-  id: string;
-  name: string;
-  avatar: string;
-  rating: number;
-  completedServices: number;
-  tags: string[];
-  images: string[];
-  minPrice: number;
-}
-
-// Datos de ejemplo para profesionales
-const mockProfessionals: Professional[] = [
-  {
-    id: '1',
-    name: 'Laura Martínez',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
-    rating: 4.8,
-    completedServices: 124,
-    tags: ['Agenda actualizada', 'Clientes recurrentes'],
-    images: [
-      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee',
-      'https://images.unsplash.com/photo-1587300003388-59208cc962cb',
-      'https://images.unsplash.com/photo-1444212477490-ca407925329e'
-    ],
-    minPrice: 30
-  },
-  {
-    id: '2',
-    name: 'Carlos Sánchez',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e',
-    rating: 4.7,
-    completedServices: 97,
-    tags: ['Perfil de empresa', 'Agenda actualizada'],
-    images: [
-      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee',
-      'https://images.unsplash.com/photo-1587300003388-59208cc962cb'
-    ],
-    minPrice: 35
-  },
-  {
-    id: '3',
-    name: 'Elena Gutiérrez',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
-    rating: 4.9,
-    completedServices: 215,
-    tags: ['Clientes recurrentes', 'Perfil verificado'],
-    images: [
-      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee',
-      'https://images.unsplash.com/photo-1587300003388-59208cc962cb',
-      'https://images.unsplash.com/photo-1444212477490-ca407925329e'
-    ],
-    minPrice: 40
-  }
-];
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ClientResultsView = () => {
   const { categoryName, serviceId } = useParams<{ categoryName: string; serviceId: string }>();
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const bookingPrefs = location.state || {};
   
-  // Extraer los datos de la reserva pasados por location state
-  const bookingDetails = location.state || {
-    frequency: 'once',
-    selectedDays: [],
-    duration: 60,
-    timePreference: 'flexible',
-    timeSlot: ''
-  };
-
-  // Manejar la selección de un profesional
-  const handleSelectProfessional = (professionalId: string) => {
-    navigate(`/client/confirmation/${categoryName}/${serviceId}/${professionalId}`, {
-      state: { ...bookingDetails }
-    });
-  };
-
-  // Volver a la pantalla de reserva
+  // Consultar proveedores disponibles
+  const { data: providers = [], isLoading } = useQuery({
+    queryKey: ['available-providers', serviceId, categoryName],
+    queryFn: async () => {
+      // Obtener todos los proveedores que ofrezcan este servicio
+      const { data: listings, error } = await supabase
+        .from('listings')
+        .select(`
+          *,
+          provider:provider_id(
+            id, 
+            name, 
+            about_me,
+            experience_years,
+            average_rating,
+            users!inner(
+              avatar_url,
+              created_at
+            )
+          )
+        `)
+        .eq('service_type_id', serviceId);
+        
+      if (error) throw error;
+      
+      return listings.map(listing => ({
+        id: listing.provider.id,
+        name: listing.provider.name || 'Proveedor',
+        avatar: listing.provider.users?.avatar_url,
+        serviceId: listing.id,
+        serviceName: listing.title,
+        price: listing.base_price,
+        duration: listing.duration,
+        rating: listing.provider.average_rating || 0,
+        experience: listing.provider.experience_years || 0,
+        aboutMe: listing.provider.about_me || '',
+        createdAt: listing.provider.users?.created_at || new Date().toISOString()
+      }));
+    }
+  });
+  
   const handleBack = () => {
     navigate(`/client/booking/${categoryName}/${serviceId}`);
   };
-
-  // Función para mostrar las estrellas según la calificación
-  const renderStars = (rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-    
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={`full-${i}`} size={16} className="fill-luxury-navy text-luxury-navy" />);
-    }
-    
-    if (halfStar) {
-      stars.push(<Star key="half" size={16} className="fill-luxury-navy text-luxury-navy" />);
-    }
-    
-    const remainingStars = 5 - stars.length;
-    for (let i = 0; i < remainingStars; i++) {
-      stars.push(<Star key={`empty-${i}`} size={16} className="text-luxury-gray" />);
-    }
-    
-    return stars;
+  
+  const handleProviderSelect = (provider: any) => {
+    navigate(`/client/provider/${provider.id}`, {
+      state: {
+        bookingData: {
+          ...bookingPrefs,
+          serviceId: serviceId,
+          categoryName: categoryName
+        }
+      }
+    });
   };
 
   return (
@@ -127,78 +87,137 @@ const ClientResultsView = () => {
         </Button>
       }
     >
-      <div className="space-y-8 animate-fade-in">
-        {mockProfessionals.map((professional) => (
-          <Card key={professional.id} className="overflow-hidden bg-luxury-white shadow-luxury">
-            <div className="p-6">
-              {/* Información del profesional */}
-              <div className="flex items-center gap-4 mb-4">
-                <Avatar className="w-16 h-16 border-2 border-luxury-gray">
-                  <AvatarImage src={professional.avatar} alt={professional.name} />
-                  <AvatarFallback>{professional.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-medium">{professional.name}</h3>
-                  <div className="flex items-center mt-1">
-                    {renderStars(professional.rating)}
-                    <span className="ml-1 text-sm text-muted-foreground">({professional.rating})</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {professional.completedServices} servicios completados
-                  </p>
+      <div className="max-w-2xl mx-auto">
+        {/* Resumen de la reserva */}
+        <Card className="mb-6 bg-luxury-beige border-0">
+          <CardContent className="p-4">
+            <h3 className="font-medium mb-2">Tu reserva</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+              {bookingPrefs.frequency && (
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-luxury-navy" />
+                  <span>
+                    {bookingPrefs.frequency === 'once' ? 'Una vez' : 
+                     bookingPrefs.frequency === 'weekly' ? 'Semanal' : 
+                     bookingPrefs.frequency === 'biweekly' ? 'Quincenal' : 
+                     'Personalizada'}
+                  </span>
                 </div>
-              </div>
+              )}
               
-              {/* Tags del profesional */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {professional.tags.map((tag, index) => (
-                  <Badge key={index} variant="outline" className="bg-luxury-beige text-luxury-navy border-none">
-                    <CheckCircle size={12} className="mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              {bookingPrefs.selectedDays?.length > 0 && (
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-luxury-navy" />
+                  <span>
+                    {bookingPrefs.selectedDays.map((day: number) => 
+                      ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][day]
+                    ).join(', ')}
+                  </span>
+                </div>
+              )}
               
-              {/* Galería de imágenes */}
-              <div className="mt-6">
-                <h4 className="text-sm font-medium mb-2">Trabajos anteriores</h4>
-                <Carousel className="w-full">
-                  <CarouselContent>
-                    {professional.images.map((image, index) => (
-                      <CarouselItem key={index} className="basis-1/3">
-                        <div className="p-1">
-                          <div className="aspect-square rounded-md overflow-hidden">
-                            <img 
-                              src={image} 
-                              alt={`Trabajo ${index + 1}`} 
-                              className="w-full h-full object-cover"
-                            />
+              {bookingPrefs.timeSlot && (
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-2 text-luxury-navy" />
+                  <span>
+                    {bookingPrefs.timePreference === 'flexible' 
+                      ? `Entre ${bookingPrefs.timeSlot}h` 
+                      : `A las ${bookingPrefs.timeSlot}`}
+                  </span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        {isLoading ? (
+          // Esqueleto para carga
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex p-4">
+                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <div className="ml-4 flex-1 space-y-2">
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-3 w-1/4" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                    <Skeleton className="h-10 w-24" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          providers.length === 0 ? (
+            // No hay proveedores disponibles
+            <div className="text-center py-8">
+              <User className="h-16 w-16 mx-auto text-muted-foreground opacity-20 mb-2" />
+              <p className="text-lg font-medium">No hay profesionales disponibles</p>
+              <p className="text-muted-foreground mb-6">
+                No encontramos profesionales para este servicio en este momento.
+              </p>
+              <Button onClick={handleBack}>
+                Volver a detalles de reserva
+              </Button>
+            </div>
+          ) : (
+            // Lista de proveedores
+            <div className="space-y-4">
+              {providers.map((provider) => (
+                <Card 
+                  key={provider.id}
+                  className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleProviderSelect(provider)}
+                >
+                  <CardContent className="p-0">
+                    <div className="flex p-4">
+                      {/* Avatar */}
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={provider.avatar} alt={provider.name} />
+                        <AvatarFallback>
+                          {provider.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      {/* Información */}
+                      <div className="ml-4 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium">{provider.name}</h3>
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                            <span className="font-medium">{provider.rating.toFixed(1)}</span>
                           </div>
                         </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious />
-                  <CarouselNext />
-                </Carousel>
-              </div>
-              
-              {/* Precio y botón de reserva */}
-              <div className="flex items-center justify-between mt-6">
-                <div>
-                  <p className="text-sm text-muted-foreground">Precio desde:</p>
-                  <p className="text-xl font-medium text-luxury-navy">${professional.minPrice}/h</p>
-                </div>
-                <Button 
-                  onClick={() => handleSelectProfessional(professional.id)}
-                  className="bg-luxury-navy hover:bg-luxury-navy/90"
-                >
-                  Seleccionar
-                </Button>
-              </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {provider.experience} {provider.experience === 1 ? 'año' : 'años'} de experiencia
+                        </p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{provider.serviceName}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {Math.floor(provider.duration / 60)}h {provider.duration % 60}min
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            <div className="mr-2 text-right">
+                              <span className="font-medium">${provider.price.toFixed(2)}</span>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </Card>
-        ))}
+          )
+        )}
       </div>
     </PageContainer>
   );
