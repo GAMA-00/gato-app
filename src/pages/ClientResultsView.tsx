@@ -25,6 +25,16 @@ interface ProcessedProvider {
   createdAt: string;
 }
 
+// Interface for provider data returned from supabase
+interface ProviderData {
+  id?: string;
+  name?: string;
+  about_me?: string;
+  experience_years?: number;
+  average_rating?: number;
+  users?: any; // This could be an array or object
+}
+
 const ClientResultsView = () => {
   const { categoryName, serviceId } = useParams<{ categoryName: string; serviceId: string }>();
   const navigate = useNavigate();
@@ -58,7 +68,7 @@ const ClientResultsView = () => {
       
       return listings.map(listing => {
         // Extraemos los datos del provider de forma segura
-        const provider = listing.provider || {};
+        const provider = listing.provider as ProviderData || {};
         
         // Safely access nested users data with proper type checking
         let avatarUrl = null;
@@ -74,8 +84,8 @@ const ClientResultsView = () => {
               avatarUrl = usersData[0]?.avatar_url || null;
               createdAt = usersData[0]?.created_at || createdAt;
             } else if (typeof usersData === 'object') {
-              avatarUrl = usersData.avatar_url || null;
-              createdAt = usersData.created_at || createdAt;
+              avatarUrl = (usersData as any).avatar_url || null;
+              createdAt = (usersData as any).created_at || createdAt;
             }
           }
         }

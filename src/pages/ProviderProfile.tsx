@@ -30,6 +30,25 @@ interface ProviderService {
   options: ServiceOption[];
 }
 
+// Interface for provider data returned from supabase
+interface ProviderData {
+  id?: string;
+  name?: string;
+  about_me?: string;
+  average_rating?: number;
+  created_at?: string;
+  users?: any; // This could be an array or object
+}
+
+// Interface for service type data from supabase
+interface ServiceTypeData {
+  name?: string;
+  category?: {
+    name?: string;
+    label?: string;
+  };
+}
+
 const ProviderProfilePage = () => {
   const { providerId } = useParams<{ providerId: string }>();
   const navigate = useNavigate();
@@ -69,9 +88,9 @@ const ProviderProfilePage = () => {
         userAvatar = userData[0]?.avatar_url || null;
         createdAt = new Date(userData[0]?.created_at || data.created_at || new Date());
       } else if (typeof userData === 'object') {
-        userName = userData.name || '';
-        userAvatar = userData.avatar_url || null;
-        createdAt = new Date(userData.created_at || data.created_at || new Date());
+        userName = (userData as any).name || '';
+        userAvatar = (userData as any).avatar_url || null;
+        createdAt = new Date((userData as any).created_at || data.created_at || new Date());
       }
       
       // Format provider data for the UI
@@ -126,7 +145,7 @@ const ProviderProfilePage = () => {
       const servicesByCategory: Record<string, ServiceCategoryGroup> = {};
       
       data.forEach(listing => {
-        const serviceType = listing.service_type || {};
+        const serviceType = listing.service_type as ServiceTypeData || {};
         const category = serviceType.category || {};
         // Safe access with fallbacks
         const categoryName = category?.name || 'other';
