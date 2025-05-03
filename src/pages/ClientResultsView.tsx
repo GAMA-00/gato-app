@@ -10,13 +10,28 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Definición de tipo para proveedor procesado
+interface ProcessedProvider {
+  id: string;
+  name: string;
+  avatar: string | null;
+  serviceId: string;
+  serviceName: string;
+  price: number;
+  duration: number;
+  rating: number;
+  experience: number;
+  aboutMe: string;
+  createdAt: string;
+}
+
 const ClientResultsView = () => {
   const { categoryName, serviceId } = useParams<{ categoryName: string; serviceId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const bookingPrefs = location.state || {};
   
-  // Consultar proveedores disponibles con manejo seguro de los campos avatar_url y created_at
+  // Consultar proveedores disponibles con manejo seguro de los campos
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['available-providers', serviceId, categoryName],
     queryFn: async () => {
@@ -42,25 +57,24 @@ const ClientResultsView = () => {
       if (error) throw error;
       
       return listings.map(listing => {
-        // Extraemos los datos del provider y manejamos de manera segura los campos users
+        // Extraemos los datos del provider de forma segura
         const provider = listing.provider || {};
-        const users = provider.users ? provider.users[0] || {} : {};
+        const users = provider.users ? 
+          (Array.isArray(provider.users) && provider.users.length > 0 ? provider.users[0] : {}) : {};
         
         return {
-          id: provider.id,
+          id: provider.id || '',
           name: provider.name || 'Proveedor',
-          // Accedemos de manera segura al avatar_url
           avatar: users.avatar_url || null,
-          serviceId: listing.id,
-          serviceName: listing.title,
-          price: listing.base_price,
-          duration: listing.duration,
+          serviceId: listing.id || '',
+          serviceName: listing.title || '',
+          price: listing.base_price || 0,
+          duration: listing.duration || 0,
           rating: provider.average_rating || 0,
           experience: provider.experience_years || 0,
           aboutMe: provider.about_me || '',
-          // Accedemos de manera segura al created_at
           createdAt: users.created_at || new Date().toISOString()
-        };
+        } as ProcessedProvider;
       });
     }
   });
@@ -69,7 +83,7 @@ const ClientResultsView = () => {
     navigate(`/client/booking/${categoryName}/${serviceId}`);
   };
   
-  const handleProviderSelect = (provider: any) => {
+  const handleProviderSelect = (provider: ProcessedProvider) => {
     navigate(`/client/provider/${provider.id}`, {
       state: {
         bookingData: {
@@ -183,7 +197,7 @@ const ClientResultsView = () => {
                     <div className="flex p-4">
                       {/* Avatar */}
                       <Avatar className="h-16 w-16">
-                        <AvatarImage src={provider.avatar} alt={provider.name} />
+                        <AvatarImage src={provider.avatar || undefined} alt={provider.name} />
                         <AvatarFallback>
                           {provider.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>

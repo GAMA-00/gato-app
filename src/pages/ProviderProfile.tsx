@@ -16,8 +16,22 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { ServiceCategoryGroup, ProviderProfile } from '@/lib/types';
 
-const ProviderProfile = () => {
+interface ServiceOption {
+  id: string;
+  size: string;
+  price: number;
+  duration: number;
+}
+
+interface ProviderService {
+  id: string;
+  name: string;
+  options: ServiceOption[];
+}
+
+const ProviderProfilePage = () => {
   const { providerId } = useParams<{ providerId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,11 +59,13 @@ const ProviderProfile = () => {
       if (error) throw error;
       
       // Manejar de forma segura el acceso a los datos de usuario
-      const userData = data.users && data.users.length > 0 ? data.users[0] : {};
+      const userData = data.users && Array.isArray(data.users) && data.users.length > 0 
+        ? data.users[0] 
+        : {};
       
       // Format provider data for the UI
       return {
-        id: data.id,
+        id: data.id || '',
         name: data.name || userData.name || 'Proveedor',
         avatar: userData.avatar_url || null,
         rating: data.average_rating || 0,
@@ -61,7 +77,7 @@ const ProviderProfile = () => {
         handlesDangerousDogs: false, 
         servicesCompleted: 0, 
         isVerified: true, 
-        joinDate: new Date(userData.created_at || data.created_at),
+        joinDate: new Date(userData.created_at || data.created_at || new Date()),
         detailedRatings: {
           service: 0,
           valueForMoney: 0,
@@ -71,13 +87,13 @@ const ProviderProfile = () => {
           punctuality: 0
         },
         reviews: [] 
-      };
+      } as ProviderProfile;
     },
     enabled: !!providerId
   });
   
   // Fetch provider's services
-  const { data: services = [], isLoading: loadingServices } = useQuery({
+  const { data: serviceCategories = [], isLoading: loadingServices } = useQuery({
     queryKey: ['provider-services', providerId],
     queryFn: async () => {
       if (!providerId) return [];
@@ -96,7 +112,7 @@ const ProviderProfile = () => {
       if (error) throw error;
       
       // Group services by category
-      const servicesByCategory: any = {};
+      const servicesByCategory: Record<string, ServiceCategoryGroup> = {};
       
       data.forEach(listing => {
         const serviceType = listing.service_type || {};
@@ -112,7 +128,7 @@ const ProviderProfile = () => {
           };
         }
         
-        servicesByCategory[categoryName].services.push({
+        const service: ProviderService = {
           id: listing.id,
           name: listing.title,
           options: [{
@@ -121,7 +137,9 @@ const ProviderProfile = () => {
             price: listing.base_price,
             duration: listing.duration
           }]
-        });
+        };
+        
+        servicesByCategory[categoryName].services.push(service);
       });
       
       return Object.values(servicesByCategory);
@@ -139,7 +157,7 @@ const ProviderProfile = () => {
     let selectedService = null;
     let selectedOption = null;
     
-    for (const category of services) {
+    for (const category of serviceCategories) {
       for (const service of category.services) {
         if (service.id === serviceId) {
           selectedService = service;
@@ -234,7 +252,7 @@ const ProviderProfile = () => {
           
           <TabsContent value="services" className="space-y-6">
             <ProviderServices 
-              categories={services}
+              categories={serviceCategories}
               isLoading={loadingServices} 
               onServiceSelect={handleServiceSelection}
               bookingMode={!!bookingData}
@@ -262,4 +280,4 @@ const ProviderProfile = () => {
   );
 };
 
-export default ProviderProfile;
+export default ProviderProfilePage;

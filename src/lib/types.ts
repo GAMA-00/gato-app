@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -166,18 +167,14 @@ export interface ProviderProfile {
 export interface ServiceCategoryGroup {
   id: string;
   name: string;
-  services: ProviderService[];
-}
-
-export interface ProviderService {
-  id: string;
-  name: string;
-  options: ServicePriceOption[];
-}
-
-export interface ServicePriceOption {
-  id: string;
-  size: string;
-  price: number;
-  duration: number;
+  services: {
+    id: string;
+    name: string;
+    options: {
+      id: string;
+      size: string;
+      price: number;
+      duration: number;
+    }[];
+  }[];
 }

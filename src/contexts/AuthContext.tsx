@@ -12,6 +12,7 @@ export interface User {
   hasPaymentMethod: boolean;
   role: 'client' | 'provider' | 'admin';
   avatarUrl?: string;
+  apartment?: string;
   offerBuildings?: string[];
 }
 
