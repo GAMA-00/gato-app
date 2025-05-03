@@ -31,4 +31,6 @@ export interface ProviderData {
   experience_years?: number;
   average_rating?: number;
   users?: any; // This could be an array or object
+  email?: string;
+  phone?: string;
 }

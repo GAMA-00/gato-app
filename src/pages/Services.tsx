@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,7 +90,41 @@ const Services = () => {
   
   const createListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
-      // Create the listing
+      if (!user?.id) throw new Error('User ID is required');
+      
+      // First, check if the provider record exists
+      const { data: providerExists, error: providerCheckError } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+      
+      // If provider check fails for any reason other than "not found", throw error
+      if (providerCheckError && !providerCheckError.message.includes('No rows found')) {
+        throw providerCheckError;
+      }
+      
+      // If provider doesn't exist, create it
+      if (!providerExists) {
+        const { error: createProviderError } = await supabase
+          .from('providers')
+          .insert({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone || null,
+            about_me: '',
+            experience_years: 0,
+            average_rating: null
+          });
+          
+        if (createProviderError) {
+          toast.error('Error creating provider profile: ' + createProviderError.message);
+          throw createProviderError;
+        }
+      }
+      
+      // Now create the listing
       const { data, error } = await supabase
         .from('listings')
         .insert({
@@ -99,7 +133,7 @@ const Services = () => {
           description: serviceData.description || '',
           base_price: serviceData.price || 0,
           duration: serviceData.duration || 60,
-          provider_id: user?.id || ''
+          provider_id: user.id
         })
         .select('id')
         .single();
