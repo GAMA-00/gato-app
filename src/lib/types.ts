@@ -163,7 +163,7 @@ export interface ProviderProfile {
   }[];
 }
 
-export interface ServiceCategory {
+export interface ServiceCategoryGroup {
   id: string;
   name: string;
   services: ProviderService[];

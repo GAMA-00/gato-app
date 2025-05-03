@@ -40,8 +40,10 @@ const BookingSummary = () => {
           start_time: bookingData.startTime || new Date(),
           end_time: bookingData.endTime || new Date(Date.now() + bookingData.duration * 60000),
           status: 'pending',
-          residencia_id: user.residenciaId || null,
-          apartment: user.apartment || null,
+          // Usar propiedad building_id en lugar de residenciaId
+          residencia_id: user.building_id || null,
+          // Asumimos que apartment es una propiedad opcional para el usuario
+          apartment: user.apartment || '',
           notes: bookingData.notes || ''
         })
         .select();

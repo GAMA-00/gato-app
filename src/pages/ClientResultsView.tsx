@@ -16,7 +16,7 @@ const ClientResultsView = () => {
   const location = useLocation();
   const bookingPrefs = location.state || {};
   
-  // Consultar proveedores disponibles
+  // Consultar proveedores disponibles con manejo seguro de los campos avatar_url y created_at
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['available-providers', serviceId, categoryName],
     queryFn: async () => {
@@ -31,7 +31,7 @@ const ClientResultsView = () => {
             about_me,
             experience_years,
             average_rating,
-            users!inner(
+            users(
               avatar_url,
               created_at
             )
@@ -41,19 +41,27 @@ const ClientResultsView = () => {
         
       if (error) throw error;
       
-      return listings.map(listing => ({
-        id: listing.provider.id,
-        name: listing.provider.name || 'Proveedor',
-        avatar: listing.provider.users?.avatar_url,
-        serviceId: listing.id,
-        serviceName: listing.title,
-        price: listing.base_price,
-        duration: listing.duration,
-        rating: listing.provider.average_rating || 0,
-        experience: listing.provider.experience_years || 0,
-        aboutMe: listing.provider.about_me || '',
-        createdAt: listing.provider.users?.created_at || new Date().toISOString()
-      }));
+      return listings.map(listing => {
+        // Extraemos los datos del provider y manejamos de manera segura los campos users
+        const provider = listing.provider || {};
+        const users = provider.users ? provider.users[0] || {} : {};
+        
+        return {
+          id: provider.id,
+          name: provider.name || 'Proveedor',
+          // Accedemos de manera segura al avatar_url
+          avatar: users.avatar_url || null,
+          serviceId: listing.id,
+          serviceName: listing.title,
+          price: listing.base_price,
+          duration: listing.duration,
+          rating: provider.average_rating || 0,
+          experience: provider.experience_years || 0,
+          aboutMe: provider.about_me || '',
+          // Accedemos de manera segura al created_at
+          createdAt: users.created_at || new Date().toISOString()
+        };
+      });
     }
   });
   

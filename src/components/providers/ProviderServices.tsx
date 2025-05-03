@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,10 @@ import { ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDuration } from '@/lib/utils';
+import { ServiceCategoryGroup } from '@/lib/types';
 
 interface ProviderServicesProps {
-  categories: any[];
+  categories: ServiceCategoryGroup[];
   isLoading: boolean;
   onServiceSelect: (serviceId: string, optionId: string) => void;
   bookingMode?: boolean;

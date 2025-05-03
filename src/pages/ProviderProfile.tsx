@@ -23,7 +23,7 @@ const ProviderProfile = () => {
   const location = useLocation();
   const { bookingData } = location.state || {};
   
-  // Fetch provider data
+  // Fetch provider data con manejo seguro de users y estructura de datos
   const { data: provider, isLoading } = useQuery({
     queryKey: ['provider', providerId],
     queryFn: async () => {
@@ -31,27 +31,37 @@ const ProviderProfile = () => {
       
       const { data, error } = await supabase
         .from('providers')
-        .select('*, users!inner(*)')
+        .select(`
+          *,
+          users(
+            name,
+            avatar_url,
+            created_at
+          )
+        `)
         .eq('id', providerId)
         .single();
         
       if (error) throw error;
       
+      // Manejar de forma segura el acceso a los datos de usuario
+      const userData = data.users && data.users.length > 0 ? data.users[0] : {};
+      
       // Format provider data for the UI
       return {
         id: data.id,
-        name: data.name || data.users.name || 'Proveedor',
-        avatar: data.users.avatar_url,
+        name: data.name || userData.name || 'Proveedor',
+        avatar: userData.avatar_url || null,
         rating: data.average_rating || 0,
-        ratingCount: 0, // This would come from a count of reviews
+        ratingCount: 0, 
         aboutMe: data.about_me || 'No hay información disponible',
-        galleryImages: [], // This would come from a gallery table
+        galleryImages: [], 
         experienceYears: data.experience_years || 0,
-        hasCertifications: false, // This would come from a certifications table
-        handlesDangerousDogs: false, // This would need to be added to the providers table
-        servicesCompleted: 0, // This would come from completed appointments count
-        isVerified: true, // This would be a verification status
-        joinDate: new Date(data.created_at),
+        hasCertifications: false, 
+        handlesDangerousDogs: false, 
+        servicesCompleted: 0, 
+        isVerified: true, 
+        joinDate: new Date(userData.created_at || data.created_at),
         detailedRatings: {
           service: 0,
           valueForMoney: 0,
@@ -60,7 +70,7 @@ const ProviderProfile = () => {
           professionalism: 0,
           punctuality: 0
         },
-        reviews: [] // This would come from a reviews table
+        reviews: [] 
       };
     },
     enabled: !!providerId
@@ -89,8 +99,10 @@ const ProviderProfile = () => {
       const servicesByCategory: any = {};
       
       data.forEach(listing => {
-        const categoryName = listing.service_type?.category?.name || 'other';
-        const categoryLabel = listing.service_type?.category?.label || 'Otros';
+        const serviceType = listing.service_type || {};
+        const category = serviceType.category || {};
+        const categoryName = category.name || 'other';
+        const categoryLabel = category.label || 'Otros';
         
         if (!servicesByCategory[categoryName]) {
           servicesByCategory[categoryName] = {
