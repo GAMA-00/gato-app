@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -58,16 +57,28 @@ const ProviderProfilePage = () => {
         
       if (error) throw error;
       
-      // Manejar de forma segura el acceso a los datos de usuario
-      const userData = data.users && Array.isArray(data.users) && data.users.length > 0 
-        ? data.users[0] 
-        : {};
+      // Safe access to potentially undefined values
+      const userData = data.users || {};
+      let userName = '';
+      let userAvatar = null;
+      let createdAt = new Date();
+      
+      // Handle both array and object cases for users data
+      if (Array.isArray(userData) && userData.length > 0) {
+        userName = userData[0]?.name || '';
+        userAvatar = userData[0]?.avatar_url || null;
+        createdAt = new Date(userData[0]?.created_at || data.created_at || new Date());
+      } else if (typeof userData === 'object') {
+        userName = userData.name || '';
+        userAvatar = userData.avatar_url || null;
+        createdAt = new Date(userData.created_at || data.created_at || new Date());
+      }
       
       // Format provider data for the UI
       return {
         id: data.id || '',
-        name: data.name || userData.name || 'Proveedor',
-        avatar: userData.avatar_url || null,
+        name: data.name || userName || 'Proveedor',
+        avatar: userAvatar,
         rating: data.average_rating || 0,
         ratingCount: 0, 
         aboutMe: data.about_me || 'No hay información disponible',
@@ -77,7 +88,7 @@ const ProviderProfilePage = () => {
         handlesDangerousDogs: false, 
         servicesCompleted: 0, 
         isVerified: true, 
-        joinDate: new Date(userData.created_at || data.created_at || new Date()),
+        joinDate: createdAt,
         detailedRatings: {
           service: 0,
           valueForMoney: 0,
@@ -117,8 +128,9 @@ const ProviderProfilePage = () => {
       data.forEach(listing => {
         const serviceType = listing.service_type || {};
         const category = serviceType.category || {};
-        const categoryName = category.name || 'other';
-        const categoryLabel = category.label || 'Otros';
+        // Safe access with fallbacks
+        const categoryName = category?.name || 'other';
+        const categoryLabel = category?.label || 'Otros';
         
         if (!servicesByCategory[categoryName]) {
           servicesByCategory[categoryName] = {
@@ -142,7 +154,7 @@ const ProviderProfilePage = () => {
         servicesByCategory[categoryName].services.push(service);
       });
       
-      return Object.values(servicesByCategory);
+      return Object.values(servicesByCategory) as ServiceCategoryGroup[];
     },
     enabled: !!providerId
   });
