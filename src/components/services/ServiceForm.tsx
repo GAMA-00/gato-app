@@ -24,7 +24,21 @@ const serviceFormSchema = z.object({
   duration: z.coerce.number().min(15, { message: 'Duration must be at least 15 minutes.' }),
   price: z.coerce.number().min(1, { message: 'Price must be at least $1.' }),
   description: z.string().optional(),
-  residenciaIds: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos una residencia.' })
+  residenciaIds: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos una residencia.' }),
+  // Nuevos campos para el perfil del proveedor
+  aboutMe: z.string().optional(),
+  profileImage: z.any().optional(),
+  galleryImages: z.array(z.any()).optional(),
+  experienceYears: z.coerce.number().min(0).optional(),
+  hasCertifications: z.boolean().optional(),
+  handlesDangerousDogs: z.boolean().optional(),
+  serviceSizes: z.array(
+    z.object({
+      size: z.string(),
+      price: z.union([z.string(), z.number()]),
+      duration: z.union([z.string(), z.number()])
+    })
+  ).optional()
 });
 
 type ServiceFormValues = z.infer<typeof serviceFormSchema>;
@@ -52,14 +66,34 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       duration: initialData.duration,
       price: initialData.price,
       description: initialData.description,
-      residenciaIds: initialData.residenciaIds
+      residenciaIds: initialData.residenciaIds,
+      aboutMe: initialData.aboutMe || '',
+      experienceYears: initialData.experienceYears || 0,
+      hasCertifications: initialData.hasCertifications || false,
+      handlesDangerousDogs: initialData.handlesDangerousDogs || false,
+      serviceSizes: initialData.serviceSizes || [
+        { size: 'Pequeño', price: '', duration: 30 },
+        { size: 'Mediano', price: '', duration: 45 },
+        { size: 'Grande', price: '', duration: 60 },
+        { size: 'Gigante', price: '', duration: 90 }
+      ]
     } : {
       name: '',
       subcategoryId: '',
       duration: 60,
       price: 50,
       description: '',
-      residenciaIds: []
+      residenciaIds: [],
+      aboutMe: '',
+      experienceYears: 0,
+      hasCertifications: false,
+      handlesDangerousDogs: false,
+      serviceSizes: [
+        { size: 'Pequeño', price: '', duration: 30 },
+        { size: 'Mediano', price: '', duration: 45 },
+        { size: 'Grande', price: '', duration: 60 },
+        { size: 'Gigante', price: '', duration: 90 }
+      ]
     }
   });
   
@@ -96,22 +130,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
               <ScrollArea className="flex-grow px-1">
                 <div className="space-y-6 pb-6">
                   <ServiceFormFields />
-                  
-                  <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-sm">
-                    <div className="flex items-start gap-2">
-                      <InfoIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div className="space-y-2">
-                        <p className="font-medium">Información importante sobre precios</p>
-                        <p className="text-muted-foreground">
-                          La tarifa que estableces será exactamente el ingreso que recibes por hora de servicio. 
-                          Como plataforma, cobramos un 20% adicional al cliente que aparecerá en el listado de anuncios.
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Ejemplo: Si estableces $100/hora como tu tarifa, el cliente verá $120/hora en el listado.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </ScrollArea>
               

@@ -11,6 +11,12 @@ export type ServiceCategory =
   | 'maintenance'
   | 'other';
 
+export interface ServiceSize {
+  size: string;
+  price: string | number;
+  duration: string | number;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -23,6 +29,14 @@ export interface Service {
   residenciaIds: string[];
   providerId: string;
   providerName: string;
+  // Nuevos campos para el perfil del proveedor
+  aboutMe?: string;
+  profileImage?: File;
+  galleryImages?: File[];
+  experienceYears?: number;
+  hasCertifications?: boolean;
+  handlesDangerousDogs?: boolean;
+  serviceSizes?: ServiceSize[];
 }
 
 export interface Client {

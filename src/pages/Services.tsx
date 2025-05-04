@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -78,14 +79,39 @@ const Services = () => {
     enabled: listings.length > 0
   });
   
+  // Fetch provider profile data for additional fields
+  const { data: providerData } = useQuery({
+    queryKey: ['provider-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('providers')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching provider data:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!isAuthenticated && !!user?.id
+  });
+  
   const processedListings = React.useMemo(() => {
     return listings.map(listing => ({
       ...listing,
       residenciaIds: residenciaAssociations
         .filter(assoc => assoc.listing_id === listing.id)
-        .map(assoc => assoc.residencia_id)
+        .map(assoc => assoc.residencia_id),
+      // Add provider profile data if available
+      aboutMe: providerData?.about_me || '',
+      experienceYears: providerData?.experience_years || 0,
     }));
-  }, [listings, residenciaAssociations]);
+  }, [listings, residenciaAssociations, providerData]);
   
   const createListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
@@ -96,7 +122,7 @@ const Services = () => {
         .from('providers')
         .select('id')
         .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid the error
+        .maybeSingle();
       
       // If provider check fails for any reason other than "not found", throw error
       if (providerCheckError && !providerCheckError.message.includes('No rows found')) {
@@ -112,14 +138,39 @@ const Services = () => {
             name: user.name,
             email: user.email,
             phone: user.phone || null,
-            about_me: '',
-            experience_years: 0,
+            about_me: serviceData.aboutMe || '',
+            experience_years: serviceData.experienceYears || 0,
             average_rating: null
           });
           
         if (createProviderError) {
           toast.error('Error creating provider profile: ' + createProviderError.message);
           throw createProviderError;
+        }
+      } else {
+        // Update provider data if it exists
+        const { error: updateProviderError } = await supabase
+          .from('providers')
+          .update({
+            about_me: serviceData.aboutMe,
+            experience_years: serviceData.experienceYears
+          })
+          .eq('id', user.id);
+          
+        if (updateProviderError) {
+          console.error('Error updating provider info:', updateProviderError);
+        }
+      }
+      
+      // Process service size options if available
+      let basePrice = serviceData.price || 0;
+      let baseDuration = serviceData.duration || 60;
+      
+      if (serviceData.serviceSizes && serviceData.serviceSizes.length > 0) {
+        const mediumOption = serviceData.serviceSizes.find(s => s.size === 'Mediano');
+        if (mediumOption) {
+          basePrice = Number(mediumOption.price) || basePrice;
+          baseDuration = Number(mediumOption.duration) || baseDuration;
         }
       }
       
@@ -130,12 +181,12 @@ const Services = () => {
           title: serviceData.name || '',
           service_type_id: serviceData.subcategoryId || '',
           description: serviceData.description || '',
-          base_price: serviceData.price || 0,
-          duration: serviceData.duration || 60,
+          base_price: basePrice,
+          duration: baseDuration,
           provider_id: user.id
         })
         .select()
-        .maybeSingle(); // Use maybeSingle to avoid the error
+        .maybeSingle();
         
       if (error) throw error;
       
@@ -153,21 +204,51 @@ const Services = () => {
         if (residenciaError) throw residenciaError;
       }
       
+      // TODO: Handle file uploads for profile image and gallery images
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });
       queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
-      toast.success('Listing added successfully');
+      queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
+      toast.success('Anuncio creado exitosamente');
     },
     onError: (error) => {
-      toast.error('Error creating listing: ' + (error as Error).message);
+      toast.error('Error al crear el anuncio: ' + (error as Error).message);
     }
   });
   
   const updateListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
       if (!serviceData.id) throw new Error('Listing ID is required');
+      
+      // Update provider info if available
+      if (user?.id && (serviceData.aboutMe !== undefined || serviceData.experienceYears !== undefined)) {
+        const { error: updateProviderError } = await supabase
+          .from('providers')
+          .update({
+            about_me: serviceData.aboutMe,
+            experience_years: serviceData.experienceYears
+          })
+          .eq('id', user.id);
+          
+        if (updateProviderError) {
+          console.error('Error updating provider info:', updateProviderError);
+        }
+      }
+      
+      // Process service size options if available
+      let basePrice = serviceData.price || 0;
+      let baseDuration = serviceData.duration || 60;
+      
+      if (serviceData.serviceSizes && serviceData.serviceSizes.length > 0) {
+        const mediumOption = serviceData.serviceSizes.find(s => s.size === 'Mediano');
+        if (mediumOption) {
+          basePrice = Number(mediumOption.price) || basePrice;
+          baseDuration = Number(mediumOption.duration) || baseDuration;
+        }
+      }
       
       // Update the listing
       const { error } = await supabase
@@ -176,8 +257,8 @@ const Services = () => {
           title: serviceData.name,
           service_type_id: serviceData.subcategoryId,
           description: serviceData.description,
-          base_price: serviceData.price,
-          duration: serviceData.duration
+          base_price: basePrice,
+          duration: baseDuration
         })
         .eq('id', serviceData.id);
         
@@ -205,14 +286,17 @@ const Services = () => {
           
         if (residenciaError) throw residenciaError;
       }
+      
+      // TODO: Handle file uploads for profile image and gallery images
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });
       queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
-      toast.success('Listing updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
+      toast.success('Anuncio actualizado exitosamente');
     },
     onError: (error) => {
-      toast.error('Error updating listing: ' + (error as Error).message);
+      toast.error('Error al actualizar el anuncio: ' + (error as Error).message);
     }
   });
   
@@ -228,10 +312,10 @@ const Services = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });
       queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
-      toast.success('Listing deleted successfully');
+      toast.success('Anuncio eliminado exitosamente');
     },
     onError: (error) => {
-      toast.error('Error deleting listing: ' + (error as Error).message);
+      toast.error('Error al eliminar el anuncio: ' + (error as Error).message);
     }
   });
   
@@ -243,7 +327,7 @@ const Services = () => {
   
   const handleAddService = () => {
     if (!isAuthenticated) {
-      toast.error('You must be logged in to create a listing');
+      toast.error('Debes iniciar sesión para crear un anuncio');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
@@ -254,7 +338,7 @@ const Services = () => {
   
   const handleEditService = (service: Service) => {
     if (!isAuthenticated) {
-      toast.error('You must be logged in to edit a listing');
+      toast.error('Debes iniciar sesión para editar un anuncio');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
@@ -265,7 +349,7 @@ const Services = () => {
   
   const handleDeleteService = (service: Service) => {
     if (!isAuthenticated) {
-      toast.error('You must be logged in to delete a listing');
+      toast.error('Debes iniciar sesión para eliminar un anuncio');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
@@ -275,7 +359,7 @@ const Services = () => {
   
   const handleSubmitService = (serviceData: Partial<Service>) => {
     if (!isAuthenticated || !user) {
-      toast.error('You must be logged in to create listings');
+      toast.error('Debes iniciar sesión para crear anuncios');
       navigate('/login', { state: { from: '/services' } });
       return;
     }
