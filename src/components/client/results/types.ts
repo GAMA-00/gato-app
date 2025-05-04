@@ -33,4 +33,42 @@ export interface ProviderData {
   users?: any; // This could be an array or object
   email?: string;
   phone?: string;
+  achievements?: Achievement[];
+  servicesCompleted?: number;
+  isVerified?: boolean;
+  certifications?: boolean;
+  handlesDangerousDogs?: boolean;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  level: string;
+  points: number;
+  description: string;
+}
+
+export interface ProviderReview {
+  id: string;
+  clientName: string;
+  date: string;
+  rating: number;
+  comment: string;
+}
+
+export interface DetailedRatings {
+  service: number;
+  valueForMoney: number;
+  friendliness: number;
+  materials: number;
+  professionalism: number;
+  punctuality: number;
+}
+
+export interface ServiceOption {
+  id: string;
+  name: string;
+  size: string;
+  price: number;
+  duration: number;
 }

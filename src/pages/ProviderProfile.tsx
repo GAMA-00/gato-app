@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { ServiceCategoryGroup, ProviderProfile } from '@/lib/types';
+import { ProviderData } from '@/components/client/results/types';
 
 interface ServiceOption {
   id: string;
@@ -28,16 +30,6 @@ interface ProviderService {
   id: string;
   name: string;
   options: ServiceOption[];
-}
-
-// Interface for provider data returned from supabase
-interface ProviderData {
-  id?: string;
-  name?: string;
-  about_me?: string;
-  average_rating?: number;
-  created_at?: string;
-  users?: any; // This could be an array or object
 }
 
 // Interface for service type data from supabase
@@ -72,25 +64,31 @@ const ProviderProfilePage = () => {
           )
         `)
         .eq('id', providerId)
-        .single();
+        .maybeSingle();
         
       if (error) throw error;
       
-      // Safe access to potentially undefined values
+      if (!data) {
+        toast.error('No se encontró el proveedor');
+        return null;
+      }
+      
+      // Safe access to potentially undefined values with proper type assertions
       const userData = data.users || {};
       let userName = '';
       let userAvatar = null;
       let createdAt = new Date();
       
-      // Handle both array and object cases for users data
       if (Array.isArray(userData) && userData.length > 0) {
-        userName = userData[0]?.name || '';
-        userAvatar = userData[0]?.avatar_url || null;
-        createdAt = new Date(userData[0]?.created_at || data.created_at || new Date());
+        const user = userData[0] as { name?: string; avatar_url?: string; created_at?: string };
+        userName = user?.name || '';
+        userAvatar = user?.avatar_url || null;
+        createdAt = new Date(user?.created_at || data.created_at || new Date());
       } else if (typeof userData === 'object') {
-        userName = (userData as any).name || '';
-        userAvatar = (userData as any).avatar_url || null;
-        createdAt = new Date((userData as any).created_at || data.created_at || new Date());
+        const user = userData as { name?: string; avatar_url?: string; created_at?: string };
+        userName = user?.name || '';
+        userAvatar = user?.avatar_url || null;
+        createdAt = new Date(user?.created_at || data.created_at || new Date());
       }
       
       // Format provider data for the UI
@@ -146,7 +144,7 @@ const ProviderProfilePage = () => {
       
       data.forEach(listing => {
         const serviceType = listing.service_type as ServiceTypeData || {};
-        const category = serviceType.category || {};
+        const category = serviceType?.category || {};
         // Safe access with fallbacks
         const categoryName = category?.name || 'other';
         const categoryLabel = category?.label || 'Otros';
@@ -159,15 +157,41 @@ const ProviderProfilePage = () => {
           };
         }
         
+        // Create options for different pet sizes
+        const basePrice = listing.base_price || 0;
+        const baseDuration = listing.duration || 60;
+        
+        const options = [
+          {
+            id: `${listing.id}-small`,
+            size: 'Perro pequeño',
+            price: basePrice,
+            duration: baseDuration
+          },
+          {
+            id: `${listing.id}-medium`,
+            size: 'Perro mediano',
+            price: Math.round(basePrice * 1.15),
+            duration: Math.round(baseDuration * 1.2)
+          },
+          {
+            id: `${listing.id}-large`,
+            size: 'Perro grande',
+            price: Math.round(basePrice * 1.5),
+            duration: Math.round(baseDuration * 1.5)
+          },
+          {
+            id: `${listing.id}-giant`,
+            size: 'Perro gigante',
+            price: Math.round(basePrice * 2),
+            duration: Math.round(baseDuration * 1.8)
+          }
+        ];
+        
         const service: ProviderService = {
           id: listing.id,
           name: listing.title,
-          options: [{
-            id: `${listing.id}-default`,
-            size: 'Estándar',
-            price: listing.base_price,
-            duration: listing.duration
-          }]
+          options: options
         };
         
         servicesByCategory[categoryName].services.push(service);
@@ -214,7 +238,8 @@ const ProviderProfilePage = () => {
           price: selectedOption.price,
           duration: selectedOption.duration,
           providerId,
-          providerName: provider?.name
+          providerName: provider?.name,
+          petSize: selectedOption.size
         }
       }
     });

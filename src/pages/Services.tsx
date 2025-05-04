@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -97,7 +96,7 @@ const Services = () => {
         .from('providers')
         .select('id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid the error
       
       // If provider check fails for any reason other than "not found", throw error
       if (providerCheckError && !providerCheckError.message.includes('No rows found')) {
@@ -135,13 +134,13 @@ const Services = () => {
           duration: serviceData.duration || 60,
           provider_id: user.id
         })
-        .select('id')
-        .single();
+        .select()
+        .maybeSingle(); // Use maybeSingle to avoid the error
         
       if (error) throw error;
       
       // Associate with residencias if provided
-      if (serviceData.residenciaIds?.length) {
+      if (serviceData.residenciaIds?.length && data?.id) {
         const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
           listing_id: data.id,
           residencia_id: residenciaId
@@ -162,7 +161,7 @@ const Services = () => {
       toast.success('Listing added successfully');
     },
     onError: (error) => {
-      toast.error('Error creating listing: ' + error.message);
+      toast.error('Error creating listing: ' + (error as Error).message);
     }
   });
   
@@ -213,7 +212,7 @@ const Services = () => {
       toast.success('Listing updated successfully');
     },
     onError: (error) => {
-      toast.error('Error updating listing: ' + error.message);
+      toast.error('Error updating listing: ' + (error as Error).message);
     }
   });
   
@@ -232,7 +231,7 @@ const Services = () => {
       toast.success('Listing deleted successfully');
     },
     onError: (error) => {
-      toast.error('Error deleting listing: ' + error.message);
+      toast.error('Error deleting listing: ' + (error as Error).message);
     }
   });
   

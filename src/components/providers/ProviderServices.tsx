@@ -82,26 +82,26 @@ const ProviderServices = ({
               
               <CollapsibleContent>
                 <Separator className="my-0" />
-                <div className="p-4 space-y-4">
+                <div className="p-4 space-y-6">
                   {category.services.map(service => (
-                    <div key={service.id} className="space-y-2">
-                      <h4 className="font-medium">{service.name}</h4>
+                    <div key={service.id} className="space-y-3">
+                      <h4 className="font-medium text-lg">{service.name}</h4>
                       
                       <div className="grid grid-cols-1 gap-2">
                         {service.options.map(option => (
                           <div 
                             key={option.id} 
-                            className="flex items-center justify-between p-2 rounded-md bg-muted"
+                            className="flex items-center justify-between p-3 rounded-md bg-muted/80 hover:bg-muted"
                           >
                             <div className="flex-1">
-                              <p>{option.size}</p>
+                              <p className="font-medium">{option.size}</p>
                               <div className="flex items-center text-sm text-muted-foreground">
                                 <span>{formatDuration(option.duration)}</span>
                               </div>
                             </div>
                             
                             <div className="flex items-center gap-3">
-                              <span className="font-medium">${option.price.toFixed(2)}</span>
+                              <span className="text-lg font-semibold">${option.price.toFixed(2)}</span>
                               
                               {bookingMode && (
                                 <Button 
