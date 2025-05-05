@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,8 +20,6 @@ import ServiceFormFooter from './ServiceFormFooter';
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: 'Service name must be at least 2 characters.' }),
   subcategoryId: z.string().min(1, { message: 'Debe seleccionar una subcategoría.' }),
-  duration: z.coerce.number().min(15, { message: 'Duration must be at least 15 minutes.' }),
-  price: z.coerce.number().min(1, { message: 'Price must be at least $1.' }),
   description: z.string().optional(),
   residenciaIds: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos una residencia.' }),
   // Nuevos campos para el perfil del proveedor
@@ -62,8 +61,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     defaultValues: initialData ? {
       name: initialData.name,
       subcategoryId: initialData.subcategoryId,
-      duration: initialData.duration,
-      price: initialData.price,
       description: initialData.description,
       residenciaIds: initialData.residenciaIds,
       aboutMe: initialData.aboutMe || '',
@@ -76,8 +73,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     } : {
       name: '',
       subcategoryId: '',
-      duration: 60,
-      price: 50,
       description: '',
       residenciaIds: [],
       aboutMe: '',
@@ -99,9 +94,17 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       duration: variant.duration
     })) || [];
 
+    // Extract price and duration from first service variant for base values
+    const baseVariant = formattedServiceVariants[0] || { price: 0, duration: 0 };
+    const basePrice = Number(baseVariant.price);
+    const baseDuration = Number(baseVariant.duration);
+
     onSubmit({
       ...initialData,
       ...values,
+      // Add these fields for compatibility with existing code
+      price: basePrice,
+      duration: baseDuration,
       serviceVariants: formattedServiceVariants
     });
     onClose();

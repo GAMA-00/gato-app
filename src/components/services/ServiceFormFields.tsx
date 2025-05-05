@@ -36,11 +36,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Button } from '../ui/button';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent } from '../ui/card';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const ServiceFormFields: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
@@ -50,6 +50,7 @@ const ServiceFormFields: React.FC = () => {
   const serviceVariants = watch('serviceVariants') || [
     { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
+  const isMobile = useIsMobile();
 
   // Fetch residencias from Supabase
   const { data: residencias = [] } = useQuery({
@@ -153,10 +154,10 @@ const ServiceFormFields: React.FC = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full mb-4">
-          <TabsTrigger value="basic">Información básica</TabsTrigger>
-          <TabsTrigger value="profile">Perfil profesional</TabsTrigger>
-          <TabsTrigger value="service">Detalles del servicio</TabsTrigger>
+        <TabsList className={`${isMobile ? 'flex flex-col gap-1 h-auto p-1' : 'grid grid-cols-3'} w-full mb-4`}>
+          <TabsTrigger className={isMobile ? 'w-full' : ''} value="basic">Información básica</TabsTrigger>
+          <TabsTrigger className={isMobile ? 'w-full' : ''} value="profile">Perfil profesional</TabsTrigger>
+          <TabsTrigger className={isMobile ? 'w-full' : ''} value="service">Detalles del servicio</TabsTrigger>
         </TabsList>
         
         <TabsContent value="basic" className="space-y-6">
@@ -207,42 +208,6 @@ const ServiceFormFields: React.FC = () => {
               </FormItem>
             )}
           />
-
-          <div className="grid sm:grid-cols-2 gap-6">
-            <FormField
-              control={control}
-              name="duration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duración predeterminada (mins)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="15" step="15" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Esta duración se usará como base para calcular los tiempos por tamaño
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Costo predeterminado ($)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" step="1" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Este precio se usará como base para calcular los precios por tamaño
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
 
           <FormField
             control={control}
@@ -336,68 +301,62 @@ const ServiceFormFields: React.FC = () => {
               )}
             />
 
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1">
-                <AccordionTrigger className="text-sm">Información profesional adicional</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4 pt-2">
-                    <FormField
-                      control={control}
-                      name="experienceYears"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Años de experiencia</FormLabel>
-                          <FormControl>
-                            <Input type="number" min="0" max="50" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+            <div className="space-y-4 pt-2">
+              <h4 className="text-sm font-medium mb-2">Información profesional adicional</h4>
+              <FormField
+                control={control}
+                name="experienceYears"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Años de experiencia</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="0" max="50" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={control}
+                name="hasCertifications"
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="hasCertifications"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
                     />
-                    
-                    <FormField
-                      control={control}
-                      name="hasCertifications"
-                      render={({ field }) => (
-                        <div className="flex items-center gap-2">
-                          <Checkbox 
-                            id="hasCertifications"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <label
-                            htmlFor="hasCertifications"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Tengo certificaciones profesionales
-                          </label>
-                        </div>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={control}
-                      name="handlesDangerousDogs"
-                      render={({ field }) => (
-                        <div className="flex items-center gap-2">
-                          <Checkbox 
-                            id="handlesDangerousDogs"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <label
-                            htmlFor="handlesDangerousDogs"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Atiendo a mascotas potencialmente peligrosas
-                          </label>
-                        </div>
-                      )}
-                    />
+                    <label
+                      htmlFor="hasCertifications"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Tengo certificaciones profesionales
+                    </label>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                )}
+              />
+              
+              <FormField
+                control={control}
+                name="handlesDangerousDogs"
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="handlesDangerousDogs"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                    <label
+                      htmlFor="handlesDangerousDogs"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Atiendo a mascotas potencialmente peligrosas
+                    </label>
+                  </div>
+                )}
+              />
+            </div>
           </div>
 
           {/* Sección de imágenes de trabajos anteriores */}
