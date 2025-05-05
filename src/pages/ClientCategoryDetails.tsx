@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
@@ -22,6 +23,10 @@ const ClientCategoryDetails = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
   const navigate = useNavigate();
   
+  useEffect(() => {
+    console.log("ClientCategoryDetails rendered with category:", categoryName);
+  }, [categoryName]);
+  
   // Obtener la información de la categoría
   const { data: categoryInfo, isLoading: loadingCategory } = useQuery({
     queryKey: ['category-info', categoryName],
@@ -34,7 +39,12 @@ const ClientCategoryDetails = () => {
         .eq('name', categoryName)
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching category:", error);
+        throw error;
+      }
+      
+      console.log("Category info fetched:", data);
       return data;
     },
     enabled: !!categoryName
@@ -42,7 +52,7 @@ const ClientCategoryDetails = () => {
   
   // Obtener los servicios de la categoría
   const { data: services = [], isLoading: loadingServices } = useQuery({
-    queryKey: ['category-services', categoryName],
+    queryKey: ['category-services', categoryName, categoryInfo?.id],
     queryFn: async () => {
       if (!categoryName || !categoryInfo) return [];
       
@@ -52,7 +62,12 @@ const ClientCategoryDetails = () => {
         .eq('category_id', categoryInfo.id)
         .order('name');
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching services:", error);
+        throw error;
+      }
+      
+      console.log("Services fetched:", data);
       return data;
     },
     enabled: !!categoryName && !!categoryInfo
@@ -60,6 +75,7 @@ const ClientCategoryDetails = () => {
 
   // Manejar la selección de un servicio
   const handleServiceSelect = (serviceId: string) => {
+    console.log("Service selected:", serviceId, "Category:", categoryName);
     navigate(`/client/booking/${categoryName}/${serviceId}`);
   };
 
@@ -117,11 +133,11 @@ const ClientCategoryDetails = () => {
         </Button>
       }
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => (
           <Card 
             key={service.id}
-            className="flex flex-col items-center p-4 hover:shadow-luxury transition-shadow cursor-pointer bg-luxury-white h-24 justify-center"
+            className="flex flex-col items-center p-4 hover:shadow-md transition-shadow cursor-pointer bg-luxury-white h-24 justify-center"
             onClick={() => handleServiceSelect(service.id)}
           >
             <div className="w-12 h-12 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-2">

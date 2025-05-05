@@ -12,6 +12,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
     queryFn: async () => {
       if (!serviceId) return [];
       
+      console.log("Fetching providers for service ID:", serviceId, "and category:", categoryName);
+      
       // Obtener el ID de la residencia del cliente actual
       let clientResidenciaId = null;
       if (user?.id) {
@@ -22,10 +24,11 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           .maybeSingle();
           
         clientResidenciaId = clientData?.residencia_id;
+        console.log("Cliente residencia ID:", clientResidenciaId);
       }
       
       // Obtener todos los proveedores que ofrezcan este servicio
-      let query = supabase
+      const { data: listings, error } = await supabase
         .from('listings')
         .select(`
           *,
@@ -53,20 +56,23 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         .eq('service_type_id', serviceId)
         .eq('is_active', true);
         
-      const { data: listings, error } = await query;
-        
-      if (error) throw error;
+      if (error) {
+        console.error("Error al obtener listings:", error);
+        throw error;
+      }
+      
+      console.log("Listings encontrados:", listings?.length);
       
       // Filtrar los anuncios por residencia si el cliente tiene una residencia asociada
-      const filteredListings = listings.filter(listing => {
-        // Si el cliente no tiene residencia, mostrar todos los anuncios
-        if (!clientResidenciaId) return true;
-        
-        // Verificar si el proveedor ofrece servicio en la misma residencia del cliente
-        return listing.listing_residencias.some(
-          (lr: any) => lr.residencia_id === clientResidenciaId
-        );
-      });
+      const filteredListings = clientResidenciaId 
+        ? listings.filter(listing => 
+            listing.listing_residencias.some(
+              (lr: any) => lr.residencia_id === clientResidenciaId
+            )
+          )
+        : listings;
+      
+      console.log("Listings filtrados por residencia:", filteredListings?.length);
       
       return filteredListings.map(listing => {
         // Extraemos los datos del provider de forma segura

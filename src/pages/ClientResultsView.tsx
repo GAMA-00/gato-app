@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,10 @@ const ClientResultsView = () => {
   const bookingPrefs = location.state || {};
   const { user } = useAuth();
   
+  useEffect(() => {
+    console.log("ClientResultsView rendered with params:", { categoryName, serviceId });
+  }, [categoryName, serviceId]);
+  
   // Obtener información de la residencia del cliente
   const { data: clientResidenciaInfo } = useQuery({
     queryKey: ['client-residencia-info', user?.id],
@@ -33,6 +37,7 @@ const ClientResultsView = () => {
         .maybeSingle();
         
       if (error) throw error;
+      console.log("Client residencia info:", data);
       return data;
     },
     enabled: !!user?.id
@@ -40,6 +45,11 @@ const ClientResultsView = () => {
   
   // Use the custom hook to query providers
   const { data: providers = [], isLoading } = useProvidersQuery(serviceId || '', categoryName || '');
+  
+  // Log providers data for debugging
+  useEffect(() => {
+    console.log("Providers data:", providers);
+  }, [providers]);
   
   const handleBack = () => {
     navigate(`/client/booking/${categoryName}/${serviceId}`);

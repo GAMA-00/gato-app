@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +15,14 @@ interface ProvidersListProps {
 }
 
 const ProvidersList = ({ providers, isLoading, onProviderSelect, onBack }: ProvidersListProps) => {
+  // Log para depuración
+  useEffect(() => {
+    console.log("ProvidersList rendered with", providers.length, "providers");
+    if (providers.length > 0) {
+      console.log("First provider:", providers[0]);
+    }
+  }, [providers]);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
