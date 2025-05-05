@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, DollarSign, Edit } from 'lucide-react';
+import { Clock, DollarSign, Edit, Trash2 } from 'lucide-react';
 import { Service } from '@/lib/types';
 
 interface ServiceCardProps {
@@ -11,13 +11,14 @@ interface ServiceCardProps {
   onDelete: (service: Service) => void;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ service, onEdit }) => {
-  // Mostrar hasta 3 variantes o servicios como máximo
-  const variantsToShow = service.serviceVariants && service.serviceVariants.length > 0 
-    ? service.serviceVariants.slice(0, 3) 
-    : [];
+const ServiceCard: React.FC<ServiceCardProps> = ({ service, onEdit, onDelete }) => {
+  // Ensure serviceVariants is an array before attempting to process it
+  const serviceVariants = Array.isArray(service.serviceVariants) ? service.serviceVariants : [];
   
-  const hasMoreVariants = service.serviceVariants && service.serviceVariants.length > 3;
+  // Mostrar hasta 3 variantes o servicios como máximo
+  const variantsToShow = serviceVariants.length > 0 ? serviceVariants.slice(0, 3) : [];
+  
+  const hasMoreVariants = serviceVariants.length > 3;
   
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -45,7 +46,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onEdit }) => {
             
             {hasMoreVariants && (
               <p className="text-xs text-center text-muted-foreground">
-                + {service.serviceVariants!.length - 3} servicios más
+                + {serviceVariants.length - 3} servicios más
               </p>
             )}
           </div>
@@ -63,14 +64,22 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onEdit }) => {
         )}
       </CardContent>
       
-      <CardFooter className="bg-muted/20 px-6 py-4">
+      <CardFooter className="bg-muted/20 px-6 py-4 flex justify-between">
         <Button 
           variant="outline" 
           onClick={() => onEdit(service)}
-          className="w-full"
+          className="flex-1 mr-2"
         >
           <Edit className="mr-2 h-4 w-4" />
-          Editar Anuncio
+          Editar
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={() => onDelete(service)}
+          className="flex-shrink-0"
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
         </Button>
       </CardFooter>
     </Card>
