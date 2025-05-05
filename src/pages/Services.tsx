@@ -12,6 +12,27 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+// Define the shape of the listings data returned from Supabase
+interface ListingData {
+  id: string;
+  title: string;
+  service_type_id: string;
+  base_price: number;
+  duration: number;
+  description: string;
+  provider_id: string;
+  created_at: string;
+  service_type?: {
+    name: string;
+    category?: {
+      name: string;
+    }
+  };
+  is_active: boolean;
+  updated_at: string;
+  service_variants: any; // This is the new property we added to the database
+}
+
 const Services = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -41,12 +62,12 @@ const Services = () => {
         throw error;
       }
       
-      return data.map(listing => {
+      return (data as ListingData[]).map(listing => {
         // Parse service variants if available
         let serviceVariants: ServiceVariant[] = [];
         try {
           if (listing.service_variants) {
-            serviceVariants = JSON.parse(listing.service_variants);
+            serviceVariants = JSON.parse(JSON.stringify(listing.service_variants));
           }
         } catch (e) {
           console.error("Error parsing service variants:", e);
@@ -196,7 +217,8 @@ const Services = () => {
           description: serviceData.description || '',
           base_price: basePrice,
           duration: baseDuration,
-          provider_id: user.id
+          provider_id: user.id,
+          service_variants: serviceData.serviceVariants || null
         })
         .select()
         .maybeSingle();
@@ -286,7 +308,7 @@ const Services = () => {
           description: serviceData.description,
           base_price: basePrice,
           duration: baseDuration,
-          service_variants: serviceData.serviceVariants ? JSON.stringify(serviceData.serviceVariants) : null
+          service_variants: serviceData.serviceVariants || null
         })
         .eq('id', serviceData.id);
         

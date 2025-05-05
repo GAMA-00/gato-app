@@ -266,6 +266,7 @@ export type Database = {
           is_active: boolean | null
           provider_id: string
           service_type_id: string
+          service_variants: Json | null
           title: string
           updated_at: string
         }
@@ -278,6 +279,7 @@ export type Database = {
           is_active?: boolean | null
           provider_id: string
           service_type_id: string
+          service_variants?: Json | null
           title: string
           updated_at?: string
         }
@@ -290,6 +292,7 @@ export type Database = {
           is_active?: boolean | null
           provider_id?: string
           service_type_id?: string
+          service_variants?: Json | null
           title?: string
           updated_at?: string
         }
