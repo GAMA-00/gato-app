@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,7 +120,7 @@ const Profile = () => {
                 <div className="flex flex-col md:flex-row gap-8 items-start">
                   <div className="flex flex-col items-center">
                     <Avatar className="h-28 w-28 mb-4">
-                      <AvatarImage src={user.avatar_url || ''} alt={user.name} />
+                      <AvatarImage src={user.avatarUrl || ''} alt={user.name} />
                       <AvatarFallback className="text-2xl">
                         {user.name?.substring(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>

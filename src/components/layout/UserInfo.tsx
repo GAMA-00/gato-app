@@ -8,9 +8,10 @@ import { LogIn, LogOut, CreditCard, UserCircle } from 'lucide-react';
 
 interface UserInfoProps {
   isClientSection: boolean;
+  onSwitchView?: () => void;
 }
 
-const UserInfo = ({ isClientSection }: UserInfoProps) => {
+const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
