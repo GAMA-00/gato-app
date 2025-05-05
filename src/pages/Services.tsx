@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
-import { Service } from '@/lib/types';
+import { Service, ServiceVariant } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,19 +41,32 @@ const Services = () => {
         throw error;
       }
       
-      return data.map(listing => ({
-        id: listing.id,
-        name: listing.title,
-        subcategoryId: listing.service_type_id,
-        category: listing.service_type?.category?.name,
-        duration: listing.duration,
-        price: listing.base_price,
-        description: listing.description,
-        residenciaIds: [], // We'll populate this separately
-        createdAt: new Date(listing.created_at),
-        providerId: listing.provider_id,
-        providerName: user.name || ''
-      })) as Service[];
+      return data.map(listing => {
+        // Parse service variants if available
+        let serviceVariants: ServiceVariant[] = [];
+        try {
+          if (listing.service_variants) {
+            serviceVariants = JSON.parse(listing.service_variants);
+          }
+        } catch (e) {
+          console.error("Error parsing service variants:", e);
+        }
+        
+        return {
+          id: listing.id,
+          name: listing.title,
+          subcategoryId: listing.service_type_id,
+          category: listing.service_type?.category?.name,
+          duration: listing.duration,
+          price: listing.base_price,
+          description: listing.description,
+          residenciaIds: [], // We'll populate this separately
+          createdAt: new Date(listing.created_at),
+          providerId: listing.provider_id,
+          providerName: user.name || '',
+          serviceVariants: serviceVariants
+        };
+      }) as Service[];
     },
     enabled: !!isAuthenticated && !!user?.id
   });
@@ -162,15 +174,16 @@ const Services = () => {
         }
       }
       
-      // Process service size options if available
+      // Process service variants if available
       let basePrice = serviceData.price || 0;
       let baseDuration = serviceData.duration || 60;
       
-      if (serviceData.serviceSizes && serviceData.serviceSizes.length > 0) {
-        const mediumOption = serviceData.serviceSizes.find(s => s.size === 'Mediano');
-        if (mediumOption) {
-          basePrice = Number(mediumOption.price) || basePrice;
-          baseDuration = Number(mediumOption.duration) || baseDuration;
+      if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0) {
+        // Usar el primer servicio como base
+        const baseService = serviceData.serviceVariants[0];
+        if (baseService) {
+          basePrice = Number(baseService.price) || basePrice;
+          baseDuration = Number(baseService.duration) || baseDuration;
         }
       }
       
@@ -189,6 +202,19 @@ const Services = () => {
         .maybeSingle();
         
       if (error) throw error;
+      
+      // Guardar las variantes de servicio en formato JSON en la descripción o en un nuevo campo
+      if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0 && data?.id) {
+        // Opción: actualizar el listado para incluir los service_variants como JSON
+        const { error: variantsError } = await supabase
+          .from('listings')
+          .update({
+            service_variants: JSON.stringify(serviceData.serviceVariants)
+          })
+          .eq('id', data.id);
+          
+        if (variantsError) throw variantsError;
+      }
       
       // Associate with residencias if provided
       if (serviceData.residenciaIds?.length && data?.id) {
@@ -238,15 +264,16 @@ const Services = () => {
         }
       }
       
-      // Process service size options if available
+      // Process service variants if available
       let basePrice = serviceData.price || 0;
       let baseDuration = serviceData.duration || 60;
       
-      if (serviceData.serviceSizes && serviceData.serviceSizes.length > 0) {
-        const mediumOption = serviceData.serviceSizes.find(s => s.size === 'Mediano');
-        if (mediumOption) {
-          basePrice = Number(mediumOption.price) || basePrice;
-          baseDuration = Number(mediumOption.duration) || baseDuration;
+      if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0) {
+        // Usar el primer servicio como base
+        const baseService = serviceData.serviceVariants[0];
+        if (baseService) {
+          basePrice = Number(baseService.price) || basePrice;
+          baseDuration = Number(baseService.duration) || baseDuration;
         }
       }
       
@@ -258,7 +285,8 @@ const Services = () => {
           service_type_id: serviceData.subcategoryId,
           description: serviceData.description,
           base_price: basePrice,
-          duration: baseDuration
+          duration: baseDuration,
+          service_variants: serviceData.serviceVariants ? JSON.stringify(serviceData.serviceVariants) : null
         })
         .eq('id', serviceData.id);
         

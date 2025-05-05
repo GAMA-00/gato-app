@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -11,8 +10,9 @@ export type ServiceCategory =
   | 'maintenance'
   | 'other';
 
-export interface ServiceSize {
-  size: string;
+export interface ServiceVariant {
+  id?: string;
+  name: string;
   price: string | number;
   duration: string | number;
 }
@@ -36,7 +36,7 @@ export interface Service {
   experienceYears?: number;
   hasCertifications?: boolean;
   handlesDangerousDogs?: boolean;
-  serviceSizes?: ServiceSize[];
+  serviceVariants?: ServiceVariant[]; // Reemplaza serviceSizes con serviceVariants
 }
 
 export interface Client {

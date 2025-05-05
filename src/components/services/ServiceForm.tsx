@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form } from '@/components/ui/form';
-import { Service, ServiceSize } from '@/lib/types';
+import { Service, ServiceVariant } from '@/lib/types';
 import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
 
@@ -31,9 +30,10 @@ const serviceFormSchema = z.object({
   experienceYears: z.coerce.number().min(0).optional(),
   hasCertifications: z.boolean().optional(),
   handlesDangerousDogs: z.boolean().optional(),
-  serviceSizes: z.array(
+  serviceVariants: z.array(
     z.object({
-      size: z.string(),
+      id: z.string().optional(),
+      name: z.string().min(1, { message: 'El nombre del servicio es obligatorio' }),
       price: z.union([z.string(), z.number()]),
       duration: z.union([z.string(), z.number()])
     })
@@ -70,11 +70,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: initialData.experienceYears || 0,
       hasCertifications: initialData.hasCertifications || false,
       handlesDangerousDogs: initialData.handlesDangerousDogs || false,
-      serviceSizes: initialData.serviceSizes || [
-        { size: 'Pequeño', price: '', duration: 30 },
-        { size: 'Mediano', price: '', duration: 45 },
-        { size: 'Grande', price: '', duration: 60 },
-        { size: 'Gigante', price: '', duration: 90 }
+      serviceVariants: initialData.serviceVariants || [
+        { name: 'Servicio básico', price: initialData.price, duration: initialData.duration }
       ]
     } : {
       name: '',
@@ -87,27 +84,25 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: 0,
       hasCertifications: false,
       handlesDangerousDogs: false,
-      serviceSizes: [
-        { size: 'Pequeño', price: '', duration: 30 },
-        { size: 'Mediano', price: '', duration: 45 },
-        { size: 'Grande', price: '', duration: 60 },
-        { size: 'Gigante', price: '', duration: 90 }
+      serviceVariants: [
+        { name: 'Servicio básico', price: 50, duration: 60 }
       ]
     }
   });
   
   const handleSubmit = (values: ServiceFormValues) => {
-    // Ensure serviceSizes meets the ServiceSize interface requirements
-    const formattedServiceSizes: ServiceSize[] = values.serviceSizes?.map(size => ({
-      size: size.size,
-      price: size.price,
-      duration: size.duration
+    // Ensure serviceVariants meets the ServiceVariant interface requirements
+    const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
+      id: variant.id,
+      name: variant.name,
+      price: variant.price,
+      duration: variant.duration
     })) || [];
 
     onSubmit({
       ...initialData,
       ...values,
-      serviceSizes: formattedServiceSizes
+      serviceVariants: formattedServiceVariants
     });
     onClose();
   };

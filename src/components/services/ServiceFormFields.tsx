@@ -27,7 +27,10 @@ import {
   Award,
   CheckCircle,
   AlertTriangle,
-  Info as InfoIcon
+  Info as InfoIcon,
+  Plus,
+  Trash2,
+  MoveVertical
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,17 +38,17 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+import { Button } from '../ui/button';
+import { v4 as uuidv4 } from 'uuid';
+import { Card, CardContent } from '../ui/card';
 
 const ServiceFormFields: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
   const selectedResidencias = watch('residenciaIds') || [];
   const selectedSubcategoryId = watch('subcategoryId');
   const aboutMe = watch('aboutMe') || '';
-  const serviceSizes = watch('serviceSizes') || [
-    { size: 'Pequeño', price: '', duration: 30 },
-    { size: 'Mediano', price: '', duration: 45 },
-    { size: 'Grande', price: '', duration: 60 },
-    { size: 'Gigante', price: '', duration: 90 }
+  const serviceVariants = watch('serviceVariants') || [
+    { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
 
   // Fetch residencias from Supabase
@@ -104,10 +107,47 @@ const ServiceFormFields: React.FC = () => {
     }
   };
 
-  const handleServiceSizeChange = (index: number, field: string, value: string | number) => {
-    const updatedSizes = [...serviceSizes];
-    updatedSizes[index] = { ...updatedSizes[index], [field]: value };
-    setValue('serviceSizes', updatedSizes);
+  const handleAddServiceVariant = () => {
+    const newVariant = {
+      id: uuidv4(),
+      name: '',
+      price: '',
+      duration: 60
+    };
+    setValue('serviceVariants', [...serviceVariants, newVariant]);
+  };
+
+  const handleRemoveServiceVariant = (index: number) => {
+    if (serviceVariants.length <= 1) {
+      return; // Mantener al menos una variante
+    }
+    const updatedVariants = [...serviceVariants];
+    updatedVariants.splice(index, 1);
+    setValue('serviceVariants', updatedVariants);
+  };
+
+  const handleServiceVariantChange = (index: number, field: string, value: string | number) => {
+    const updatedVariants = [...serviceVariants];
+    updatedVariants[index] = { ...updatedVariants[index], [field]: value };
+    setValue('serviceVariants', updatedVariants);
+  };
+
+  const handleMoveVariant = (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) || 
+      (direction === 'down' && index === serviceVariants.length - 1)
+    ) {
+      return;
+    }
+
+    const updatedVariants = [...serviceVariants];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Intercambiar posiciones
+    [updatedVariants[index], updatedVariants[newIndex]] = 
+    [updatedVariants[newIndex], updatedVariants[index]];
+    
+    setValue('serviceVariants', updatedVariants);
   };
 
   return (
@@ -434,39 +474,116 @@ const ServiceFormFields: React.FC = () => {
           </div>
 
           <div className="border rounded-lg p-4">
-            <h3 className="font-medium mb-3">Opciones de servicio por tamaño</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium">Catálogo de servicios</h3>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={handleAddServiceVariant}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Agregar servicio
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Define precios y duración según el tamaño de la mascota
+              Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones
             </p>
             
-            <div className="space-y-3">
-              {serviceSizes.map((sizeOption, index) => (
-                <div key={index} className="grid grid-cols-3 gap-3 items-center">
-                  <div className="col-span-1">
-                    <p className="text-sm font-medium">{sizeOption.size}</p>
-                  </div>
-                  <div className="col-span-1">
-                    <Input
-                      type="number"
-                      min="1"
-                      placeholder="Precio"
-                      value={sizeOption.price}
-                      onChange={(e) => handleServiceSizeChange(index, 'price', e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Input
-                      type="number"
-                      min="15"
-                      step="5"
-                      placeholder="Minutos"
-                      value={sizeOption.duration}
-                      onChange={(e) => handleServiceSizeChange(index, 'duration', e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
+            <div className="space-y-4">
+              {serviceVariants.map((variant, index) => (
+                <Card key={variant.id || index} className="border">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-12 gap-3">
+                      <div className="col-span-12 mb-2">
+                        <FormField
+                          control={control}
+                          name={`serviceVariants.${index}.name`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Nombre del servicio</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Ej. Corte básico" 
+                                  value={variant.name}
+                                  onChange={(e) => handleServiceVariantChange(index, 'name', e.target.value)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="col-span-5">
+                        <FormField
+                          control={control}
+                          name={`serviceVariants.${index}.price`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Precio ($)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  min="1" 
+                                  placeholder="Precio" 
+                                  value={variant.price}
+                                  onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="col-span-5">
+                        <FormField
+                          control={control}
+                          name={`serviceVariants.${index}.duration`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Duración (min)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  min="15" 
+                                  step="5" 
+                                  placeholder="Minutos" 
+                                  value={variant.duration}
+                                  onChange={(e) => handleServiceVariantChange(index, 'duration', e.target.value)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="col-span-2 flex items-end justify-end space-x-1">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleMoveVariant(index, 'up')}
+                          disabled={index === 0}
+                          className="h-8 w-8"
+                        >
+                          <MoveVertical className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive/90"
+                          onClick={() => handleRemoveServiceVariant(index)}
+                          disabled={serviceVariants.length <= 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
