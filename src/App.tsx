@@ -20,6 +20,7 @@ import ClientBookings from "./pages/ClientBookings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PaymentSetup from "./pages/PaymentSetup";
+import Profile from "./pages/Profile";
 import { ChatProvider } from "./contexts/ChatContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/auth/RequireAuth";
@@ -50,6 +51,11 @@ const AppRoutes = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/register-provider" element={<ProviderRegister />} />
         <Route path="/payment-setup" element={<PaymentSetup />} />
+        <Route path="/profile" element={
+          <RequireAuth>
+            <Profile />
+          </RequireAuth>
+        } />
         
         {/* Provider routes */}
         <Route path="/dashboard" element={
