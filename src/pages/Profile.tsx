@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +23,13 @@ const profileSchema = z.object({
   phone: z.string().min(8, 'Número de teléfono no válido').optional(),
 });
 
+const supportSchema = z.object({
+  subject: z.string().min(3, 'El asunto debe tener al menos 3 caracteres'),
+  message: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres'),
+});
+
 type ProfileFormValues = z.infer<typeof profileSchema>;
+type SupportFormValues = z.infer<typeof supportSchema>;
 
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();
@@ -30,7 +37,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<ProfileFormValues>({
+  const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: user?.name || '',
@@ -38,8 +45,16 @@ const Profile = () => {
       phone: user?.phone || ''
     }
   });
+  
+  const supportForm = useForm<SupportFormValues>({
+    resolver: zodResolver(supportSchema),
+    defaultValues: {
+      subject: '',
+      message: ''
+    }
+  });
 
-  const onSubmit = async (values: ProfileFormValues) => {
+  const onSubmitProfile = async (values: ProfileFormValues) => {
     if (!user?.id) return;
     
     setIsLoading(true);
@@ -65,6 +80,14 @@ const Profile = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const onSubmitSupport = (values: SupportFormValues) => {
+    toast({
+      title: "Mensaje enviado",
+      description: "Tu mensaje ha sido enviado correctamente. Te responderemos a la brevedad."
+    });
+    supportForm.reset();
   };
 
   // Redirigir si no está autenticado
@@ -129,10 +152,10 @@ const Profile = () => {
                   </div>
                   
                   <div className="flex-1">
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <Form {...profileForm}>
+                      <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4">
                         <FormField
-                          control={form.control}
+                          control={profileForm.control}
                           name="name"
                           render={({ field }) => (
                             <FormItem>
@@ -146,7 +169,7 @@ const Profile = () => {
                         />
                         
                         <FormField
-                          control={form.control}
+                          control={profileForm.control}
                           name="email"
                           render={({ field }) => (
                             <FormItem>
@@ -160,7 +183,7 @@ const Profile = () => {
                         />
                         
                         <FormField
-                          control={form.control}
+                          control={profileForm.control}
                           name="phone"
                           render={({ field }) => (
                             <FormItem>
@@ -290,20 +313,43 @@ const Profile = () => {
                 <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <FormLabel>Asunto</FormLabel>
-                    <Input placeholder="Describe brevemente tu problema" />
-                  </div>
-                  <div>
-                    <FormLabel>Mensaje</FormLabel>
-                    <Textarea 
-                      placeholder="Explica con detalle tu consulta o problema" 
-                      className="min-h-[150px]"
+                <Form {...supportForm}>
+                  <form onSubmit={supportForm.handleSubmit(onSubmitSupport)} className="space-y-4">
+                    <FormField
+                      control={supportForm.control}
+                      name="subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Asunto</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Describe brevemente tu problema" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <Button>Enviar mensaje</Button>
-                </div>
+                    
+                    <FormField
+                      control={supportForm.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mensaje</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Explica con detalle tu consulta o problema" 
+                              className="min-h-[150px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button type="submit">Enviar mensaje</Button>
+                  </form>
+                </Form>
               </CardContent>
               <CardFooter className="flex-col items-start">
                 <h3 className="text-sm font-medium">Contacto directo</h3>
