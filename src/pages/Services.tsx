@@ -33,6 +33,15 @@ interface ListingData {
   service_variants: any; // This is the new property we added to the database
 }
 
+// Add interface for provider data to fix the TypeScript error
+interface ProviderData {
+  id: string;
+  about_me?: string;
+  experience_years?: number;
+  certification_files?: string | null;
+  // Add other provider fields as needed
+}
+
 const Services = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -153,7 +162,7 @@ const Services = () => {
       // First, check if the provider record exists
       const { data: providerExists, error: providerCheckError } = await supabase
         .from('providers')
-        .select('id')
+        .select('id, certification_files')
         .eq('id', user.id)
         .maybeSingle();
       
@@ -217,7 +226,9 @@ const Services = () => {
           throw createProviderError;
         }
       } else {
-        // Update provider data if it exists
+        // Update provider data if it exists - Fixed TypeScript error by properly typing providerExists
+        const providerExistsData = providerExists as ProviderData;
+        
         const { error: updateProviderError } = await supabase
           .from('providers')
           .update({
@@ -225,7 +236,7 @@ const Services = () => {
             experience_years: serviceData.experienceYears,
             certification_files: certificationFilesUrls.length 
               ? JSON.stringify(certificationFilesUrls) 
-              : providerExists.certification_files // Preserve existing files if no new ones
+              : providerExistsData.certification_files // Now properly typed
           })
           .eq('id', user.id);
           
