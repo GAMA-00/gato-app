@@ -91,6 +91,16 @@ const ProviderProfilePage = () => {
         createdAt = new Date(user?.created_at || data.created_at || new Date());
       }
       
+      // Parse certification files if available
+      let certificationFiles = [];
+      try {
+        if (data.certification_files) {
+          certificationFiles = JSON.parse(JSON.stringify(data.certification_files));
+        }
+      } catch (e) {
+        console.error("Error parsing certification files:", e);
+      }
+      
       // Format provider data for the UI
       return {
         id: data.id || '',
@@ -101,7 +111,8 @@ const ProviderProfilePage = () => {
         aboutMe: data.about_me || 'No hay información disponible',
         galleryImages: [], 
         experienceYears: data.experience_years || 0,
-        hasCertifications: false, 
+        hasCertifications: certificationFiles.length > 0, 
+        certificationFiles: certificationFiles,
         handlesDangerousDogs: false, 
         servicesCompleted: 0, 
         isVerified: true, 

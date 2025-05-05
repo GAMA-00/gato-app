@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   FormField,
@@ -22,7 +22,7 @@ import {
   SelectLabel
 } from '@/components/ui/select';
 import { 
-  Image,
+  File,
   Upload,
   Award,
   CheckCircle,
@@ -30,7 +30,9 @@ import {
   Info as InfoIcon,
   Plus,
   Trash2,
-  MoveVertical
+  MoveVertical,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,17 +43,21 @@ import { Button } from '../ui/button';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent } from '../ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '../ui/badge';
+import { toast } from 'sonner';
 
 const ServiceFormFields: React.FC = () => {
-  const { control, setValue, watch } = useFormContext();
+  const { control, setValue, watch, getValues } = useFormContext();
   const selectedResidencias = watch('residenciaIds') || [];
   const selectedSubcategoryId = watch('subcategoryId');
   const aboutMe = watch('aboutMe') || '';
+  const hasCertifications = watch('hasCertifications');
+  const certificationFiles = watch('certificationFiles') || [];
   const serviceVariants = watch('serviceVariants') || [
     { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
   const isMobile = useIsMobile();
-
+  
   // Fetch residencias from Supabase
   const { data: residencias = [] } = useQuery({
     queryKey: ['residencias'],
@@ -151,13 +157,54 @@ const ServiceFormFields: React.FC = () => {
     setValue('serviceVariants', updatedVariants);
   };
 
+  const handleCertificationFile = async (file: File) => {
+    if (!file) return;
+    
+    // Validate file type and size
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Tipo de archivo no permitido. Use PDF o imágenes (JPG, PNG)');
+      return;
+    }
+    
+    if (file.size > maxSize) {
+      toast.error('El archivo es demasiado grande. Máximo 5MB');
+      return;
+    }
+    
+    // Add file to form state
+    const newFiles = [...certificationFiles, {
+      id: uuidv4(),
+      file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+    }];
+    
+    setValue('certificationFiles', newFiles);
+  };
+  
+  const removeCertificationFile = (id: string) => {
+    const newFiles = certificationFiles.filter(f => f.id !== id);
+    setValue('certificationFiles', newFiles);
+  };
+  
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className={`${isMobile ? 'flex flex-col gap-1 h-auto p-1' : 'grid grid-cols-3'} w-full mb-4`}>
-          <TabsTrigger className={isMobile ? 'w-full' : ''} value="basic">Información básica</TabsTrigger>
-          <TabsTrigger className={isMobile ? 'w-full' : ''} value="profile">Perfil profesional</TabsTrigger>
-          <TabsTrigger className={isMobile ? 'w-full' : ''} value="service">Detalles del servicio</TabsTrigger>
+        <TabsList className="flex flex-col gap-1 h-auto p-1 w-full mb-4">
+          <TabsTrigger className="w-full" value="basic">Información básica</TabsTrigger>
+          <TabsTrigger className="w-full" value="profile">Perfil profesional</TabsTrigger>
+          <TabsTrigger className="w-full" value="service">Detalles del servicio</TabsTrigger>
         </TabsList>
         
         <TabsContent value="basic" className="space-y-6">
@@ -302,7 +349,7 @@ const ServiceFormFields: React.FC = () => {
             />
 
             <div className="space-y-4 pt-2">
-              <h4 className="text-sm font-medium mb-2">Información profesional adicional</h4>
+              <h4 className="text-sm font-medium mb-2">Información profesional</h4>
               <FormField
                 control={control}
                 name="experienceYears"
@@ -321,19 +368,76 @@ const ServiceFormFields: React.FC = () => {
                 control={control}
                 name="hasCertifications"
                 render={({ field }) => (
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="hasCertifications"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                    <label
-                      htmlFor="hasCertifications"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Tengo certificaciones profesionales
-                    </label>
-                  </div>
+                  <FormItem className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Checkbox 
+                        id="hasCertifications"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                      <label
+                        htmlFor="hasCertifications"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Tengo certificaciones profesionales
+                      </label>
+                    </div>
+                    
+                    {field.value && (
+                      <div className="ml-6 space-y-3 border-l-2 pl-4 border-muted">
+                        <FormLabel className="text-sm">Adjunta tus certificaciones</FormLabel>
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap gap-3 mb-2">
+                            {certificationFiles.map((certFile) => (
+                              <div 
+                                key={certFile.id} 
+                                className="relative bg-muted/50 rounded-md p-2 pr-8 flex items-center gap-2 border"
+                              >
+                                <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                <div className="max-w-[150px] overflow-hidden">
+                                  <div className="text-xs font-medium truncate">{certFile.name}</div>
+                                  <div className="text-[10px] text-muted-foreground">{formatFileSize(certFile.size)}</div>
+                                </div>
+                                <button 
+                                  type="button" 
+                                  className="absolute top-1 right-1 text-muted-foreground hover:text-destructive"
+                                  onClick={() => removeCertificationFile(certFile.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                                {certFile.preview && (
+                                  <button 
+                                    type="button" 
+                                    className="absolute bottom-1 right-1 text-muted-foreground hover:text-primary"
+                                    onClick={() => window.open(certFile.preview, '_blank')}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <label className="flex items-center gap-2 cursor-pointer p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors inline-block">
+                            <Upload className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">Subir certificado</span>
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleCertificationFile(file);
+                              }}
+                            />
+                          </label>
+                          <FormDescription className="text-xs">
+                            Formatos aceptados: PDF, JPG, PNG (máx 5MB)
+                          </FormDescription>
+                        </div>
+                      </div>
+                    )}
+                  </FormItem>
                 )}
               />
               
@@ -369,7 +473,7 @@ const ServiceFormFields: React.FC = () => {
                 <FormControl>
                   <div>
                     <label className="flex items-center gap-2 cursor-pointer mb-2 p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
-                      <Image className="h-4 w-4 text-muted-foreground" />
+                      <Upload className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">Agregar imágenes</span>
                       <input
                         type="file"

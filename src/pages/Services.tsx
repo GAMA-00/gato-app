@@ -162,6 +162,41 @@ const Services = () => {
         throw providerCheckError;
       }
       
+      // Upload certification files if provided
+      let certificationFilesUrls = [];
+      if (serviceData.hasCertifications && serviceData.certificationFiles?.length) {
+        try {
+          for (const fileObj of serviceData.certificationFiles) {
+            const file = fileObj.file;
+            if (!file) continue;
+            
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('certifications')
+              .upload(fileName, file);
+              
+            if (uploadError) throw uploadError;
+            
+            // Get public URL
+            const { data: publicUrlData } = supabase.storage
+              .from('certifications')
+              .getPublicUrl(fileName);
+              
+            certificationFilesUrls.push({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              url: publicUrlData.publicUrl
+            });
+          }
+        } catch (error) {
+          console.error('Error uploading certification files:', error);
+          toast.error('Error al subir certificados');
+        }
+      }
+      
       // If provider doesn't exist, create it
       if (!providerExists) {
         const { error: createProviderError } = await supabase
@@ -173,6 +208,7 @@ const Services = () => {
             phone: user.phone || null,
             about_me: serviceData.aboutMe || '',
             experience_years: serviceData.experienceYears || 0,
+            certification_files: certificationFilesUrls.length ? JSON.stringify(certificationFilesUrls) : null,
             average_rating: null
           });
           
@@ -186,7 +222,10 @@ const Services = () => {
           .from('providers')
           .update({
             about_me: serviceData.aboutMe,
-            experience_years: serviceData.experienceYears
+            experience_years: serviceData.experienceYears,
+            certification_files: certificationFilesUrls.length 
+              ? JSON.stringify(certificationFilesUrls) 
+              : providerExists.certification_files // Preserve existing files if no new ones
           })
           .eq('id', user.id);
           
@@ -263,13 +302,91 @@ const Services = () => {
     mutationFn: async (serviceData: Partial<Service>) => {
       if (!serviceData.id) throw new Error('Listing ID is required');
       
+      // Upload certification files if provided and hasCertifications is true
+      let certificationFilesUrls = [];
+      if (serviceData.hasCertifications && serviceData.certificationFiles?.length) {
+        try {
+          // For update, only process new files (those with a file property)
+          const newFilesToUpload = serviceData.certificationFiles.filter(fileObj => fileObj.file);
+          
+          for (const fileObj of newFilesToUpload) {
+            const file = fileObj.file;
+            if (!file) continue;
+            
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user?.id}/${crypto.randomUUID()}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('certifications')
+              .upload(fileName, file);
+              
+            if (uploadError) throw uploadError;
+            
+            // Get public URL
+            const { data: publicUrlData } = supabase.storage
+              .from('certifications')
+              .getPublicUrl(fileName);
+              
+            certificationFilesUrls.push({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              url: publicUrlData.publicUrl
+            });
+          }
+          
+          // Preserve existing files that don't have a file property (already uploaded)
+          const existingFiles = serviceData.certificationFiles
+            .filter(fileObj => !fileObj.file && fileObj.url)
+            .map(fileObj => ({
+              name: fileObj.name,
+              type: fileObj.type,
+              size: fileObj.size,
+              url: fileObj.url
+            }));
+            
+          certificationFilesUrls = [...existingFiles, ...certificationFilesUrls];
+        } catch (error) {
+          console.error('Error uploading certification files:', error);
+          toast.error('Error al subir certificados');
+        }
+      }
+      
       // Update provider info if available
-      if (user?.id && (serviceData.aboutMe !== undefined || serviceData.experienceYears !== undefined)) {
+      if (user?.id && (serviceData.aboutMe !== undefined || 
+                        serviceData.experienceYears !== undefined || 
+                        serviceData.hasCertifications !== undefined)) {
+        // Get current provider data to avoid overwriting existing certification files if none were provided
+        let finalCertificationFiles = null;
+        
+        if (serviceData.hasCertifications) {
+          if (certificationFilesUrls.length > 0) {
+            // New files uploaded
+            finalCertificationFiles = JSON.stringify(certificationFilesUrls);
+          } else if (certificationFilesUrls.length === 0 && serviceData.certificationFiles?.length === 0) {
+            // No files at all - keep as null
+            finalCertificationFiles = null;
+          } else {
+            // No new files but keep existing files - get from provider record
+            const { data: providerData } = await supabase
+              .from('providers')
+              .select('certification_files')
+              .eq('id', user.id)
+              .maybeSingle();
+              
+            finalCertificationFiles = providerData?.certification_files || null;
+          }
+        } else {
+          // Not certified, clear files
+          finalCertificationFiles = null;
+        }
+        
         const { error: updateProviderError } = await supabase
           .from('providers')
           .update({
             about_me: serviceData.aboutMe,
-            experience_years: serviceData.experienceYears
+            experience_years: serviceData.experienceYears,
+            certification_files: finalCertificationFiles
           })
           .eq('id', user.id);
           

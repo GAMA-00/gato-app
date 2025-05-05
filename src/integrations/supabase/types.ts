@@ -403,6 +403,7 @@ export type Database = {
         Row: {
           about_me: string | null
           average_rating: number | null
+          certification_files: Json | null
           created_at: string
           email: string | null
           experience_years: number | null
@@ -413,6 +414,7 @@ export type Database = {
         Insert: {
           about_me?: string | null
           average_rating?: number | null
+          certification_files?: Json | null
           created_at?: string
           email?: string | null
           experience_years?: number | null
@@ -423,6 +425,7 @@ export type Database = {
         Update: {
           about_me?: string | null
           average_rating?: number | null
+          certification_files?: Json | null
           created_at?: string
           email?: string | null
           experience_years?: number | null

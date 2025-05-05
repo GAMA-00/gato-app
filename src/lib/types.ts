@@ -157,6 +157,7 @@ export interface ProviderProfile {
   galleryImages: string[];
   experienceYears: number;
   hasCertifications: boolean;
+  certificationFiles?: any[]; // Added certificationFiles field
   handlesDangerousDogs: boolean;
   servicesCompleted: number;
   isVerified: boolean;
