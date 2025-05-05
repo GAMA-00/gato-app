@@ -6,10 +6,10 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate('/client'); // Redirecciona a la nueva vista de categorías
+    navigate('/client'); // Redirecciona a la vista de categorías del cliente
   }, [navigate]);
 
-  // Return null since we're immediately redirecting
+  // Retornamos null ya que estamos redireccionando inmediatamente
   return null;
 };
 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProviderCard from './ProviderCard';
 import { ProcessedProvider } from './types';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface ProvidersListProps {
   providers: ProcessedProvider[];
@@ -63,8 +64,5 @@ const ProvidersList = ({ providers, isLoading, onProviderSelect, onBack }: Provi
     </div>
   );
 };
-
-// Import needed for the component to work
-import { Card, CardContent } from '@/components/ui/card';
 
 export default ProvidersList;
