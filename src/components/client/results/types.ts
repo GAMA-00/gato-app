@@ -13,6 +13,9 @@ export interface ProcessedProvider {
   experience: number;
   aboutMe: string;
   createdAt: string;
+  isAvailable?: boolean; // Nuevo campo para indicar disponibilidad
+  category?: string;     // Categoría del servicio
+  subcategory?: string;  // Subcategoría del servicio
 }
 
 export interface BookingPreferences {

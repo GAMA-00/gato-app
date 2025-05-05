@@ -2,8 +2,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, ChevronRight } from 'lucide-react';
+import { Star, ChevronRight, Clock } from 'lucide-react';
 import { ProcessedProvider } from './types';
+import { Badge } from '@/components/ui/badge';
 
 interface ProviderCardProps {
   provider: ProcessedProvider;
@@ -37,14 +38,27 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
               </div>
             </div>
             
-            <p className="text-sm text-muted-foreground mb-2">
-              {provider.experience} {provider.experience === 1 ? 'año' : 'años'} de experiencia
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-muted-foreground">
+                {provider.experience} {provider.experience === 1 ? 'año' : 'años'} de experiencia
+              </p>
+              
+              {provider.isAvailable ? (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  Disponible
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                  Disponible más tarde
+                </Badge>
+              )}
+            </div>
             
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{provider.serviceName}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
                   {Math.floor(provider.duration / 60)}h {provider.duration % 60}min
                 </span>
               </div>
