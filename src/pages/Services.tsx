@@ -208,6 +208,11 @@ const Services = () => {
         }
       }
       
+      // Convert serviceVariants to JSON string for storage
+      const serviceVariantsJson = serviceData.serviceVariants 
+        ? JSON.stringify(serviceData.serviceVariants) 
+        : null;
+      
       // Now create the listing
       const { data, error } = await supabase
         .from('listings')
@@ -218,25 +223,12 @@ const Services = () => {
           base_price: basePrice,
           duration: baseDuration,
           provider_id: user.id,
-          service_variants: serviceData.serviceVariants || null
+          service_variants: serviceVariantsJson
         })
         .select()
         .maybeSingle();
         
       if (error) throw error;
-      
-      // Guardar las variantes de servicio en formato JSON en la descripción o en un nuevo campo
-      if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0 && data?.id) {
-        // Opción: actualizar el listado para incluir los service_variants como JSON
-        const { error: variantsError } = await supabase
-          .from('listings')
-          .update({
-            service_variants: JSON.stringify(serviceData.serviceVariants)
-          })
-          .eq('id', data.id);
-          
-        if (variantsError) throw variantsError;
-      }
       
       // Associate with residencias if provided
       if (serviceData.residenciaIds?.length && data?.id) {
@@ -299,6 +291,11 @@ const Services = () => {
         }
       }
       
+      // Convert serviceVariants to JSON string for storage
+      const serviceVariantsJson = serviceData.serviceVariants 
+        ? JSON.stringify(serviceData.serviceVariants) 
+        : null;
+      
       // Update the listing
       const { error } = await supabase
         .from('listings')
@@ -308,7 +305,7 @@ const Services = () => {
           description: serviceData.description,
           base_price: basePrice,
           duration: baseDuration,
-          service_variants: serviceData.serviceVariants || null
+          service_variants: serviceVariantsJson
         })
         .eq('id', serviceData.id);
         
