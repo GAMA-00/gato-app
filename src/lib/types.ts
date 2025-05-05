@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -35,6 +36,7 @@ export interface Service {
   galleryImages?: File[];
   experienceYears?: number;
   hasCertifications?: boolean;
+  certificationFiles?: any[]; // Added certificationFiles field
   handlesDangerousDogs?: boolean;
   serviceVariants?: ServiceVariant[]; // Reemplaza serviceSizes con serviceVariants
 }
