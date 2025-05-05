@@ -26,7 +26,8 @@ import {
   Upload,
   Award,
   CheckCircle,
-  AlertTriangle 
+  AlertTriangle,
+  Info as InfoIcon
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

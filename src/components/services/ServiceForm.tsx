@@ -12,8 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form } from '@/components/ui/form';
-import { Service } from '@/lib/types';
-import { InfoIcon } from 'lucide-react';
+import { Service, ServiceSize } from '@/lib/types';
 import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
 
@@ -98,9 +97,17 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   });
   
   const handleSubmit = (values: ServiceFormValues) => {
+    // Ensure serviceSizes meets the ServiceSize interface requirements
+    const formattedServiceSizes: ServiceSize[] = values.serviceSizes?.map(size => ({
+      size: size.size,
+      price: size.price,
+      duration: size.duration
+    })) || [];
+
     onSubmit({
       ...initialData,
-      ...values
+      ...values,
+      serviceSizes: formattedServiceSizes
     });
     onClose();
   };
