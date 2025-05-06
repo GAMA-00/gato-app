@@ -8,8 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Book, Home, Scissors } from 'lucide-react';
 
-// Map de iconos a componentes - usando solo los iconos originales especificados
-const iconMap: Record<string, React.ElementType> = {
+// Use proper typing for the icon map
+const iconMap: Record<string, React.FC<any>> = {
   'Book': Book,
   'Home': Home, 
   'Scissors': Scissors
@@ -32,7 +32,7 @@ const ClientCategoryView = () => {
   });
 
   const getCategoryIcon = (iconName: string) => {
-    // Si el iconName existe en nuestro map, usarlo; si no, usar Book como fallback
+    // If the iconName exists in our map, use it; if not, use Book as fallback
     const IconComponent = iconMap[iconName] || Book;
     return <IconComponent size={24} />;
   };
@@ -63,23 +63,23 @@ const ClientCategoryView = () => {
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categories.map((category) => {
-          // Determinar el icono basado en el nombre de la categoría
-          let IconComponent = Book; // Default fallback
+          // Determine the icon based on the category name
+          let CategoryIcon = Book; // Default fallback using proper component reference
           
-          // Intentar coincidir la categoría con un icono apropiado
+          // Try to match the category with an appropriate icon
           if (category.name === 'home' || category.name.includes('home')) {
-            IconComponent = Home;
+            CategoryIcon = Home;
           } else if (category.name === 'personal-care' || category.name.includes('care')) {
-            IconComponent = Scissors;
+            CategoryIcon = Scissors;
           } else if (category.icon && iconMap[category.icon]) {
-            IconComponent = iconMap[category.icon];
+            CategoryIcon = iconMap[category.icon];
           }
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
               <Card className="flex flex-col items-center p-4 hover:shadow-luxury transition-shadow cursor-pointer bg-luxury-white h-24 justify-center">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-2">
-                  <IconComponent size={24} />
+                  <CategoryIcon size={24} />
                 </div>
                 <h3 className="text-center font-medium text-sm">{category.label}</h3>
               </Card>

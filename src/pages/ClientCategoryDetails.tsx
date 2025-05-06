@@ -10,8 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
-// Mapeo de iconos por categoría
-const categoryIcons: Record<string, React.ReactNode> = {
+// Define proper icon typing
+const categoryIcons: Record<string, React.ReactElement> = {
   'home': <Home size={24} />,
   'personal-care': <Scissors size={24} />,
   'classes': <Book size={24} />
@@ -25,7 +25,7 @@ const ClientCategoryDetails = () => {
     console.log("ClientCategoryDetails rendered with category:", categoryName);
   }, [categoryName]);
   
-  // Obtener la información de la categoría
+  // Obtain category information
   const { data: categoryInfo, isLoading: loadingCategory } = useQuery({
     queryKey: ['category-info', categoryName],
     queryFn: async () => {
@@ -49,7 +49,7 @@ const ClientCategoryDetails = () => {
     enabled: !!categoryName
   });
   
-  // Obtener los servicios de la categoría
+  // Get services for this category
   const { data: services = [], isLoading: loadingServices } = useQuery({
     queryKey: ['category-services', categoryName, categoryInfo?.id],
     queryFn: async () => {
@@ -73,29 +73,28 @@ const ClientCategoryDetails = () => {
     enabled: !!categoryName && !!categoryInfo
   });
 
-  // Manejar la selección de un servicio
+  // Handle service selection
   const handleServiceSelect = (serviceId: string) => {
     console.log("Service selected:", serviceId, "Category:", categoryName);
     navigate(`/client/booking/${categoryName}/${serviceId}`);
   };
 
-  // Volver a la página de categorías
+  // Go back to categories page
   const handleBack = () => {
     navigate('/client');
   };
 
   const isLoading = loadingCategory || loadingServices;
   
-  // Determinar el icono correcto para esta categoría
-  let categoryIcon = <Book size={24} />; // Default fallback
+  // Determine the correct icon for this category - ensuring proper React Element type
+  let categoryIcon = <Book size={24} />; // Default fallback as React Element
   
-  // Intentar coincidir la categoría con un icono apropiado
   if (categoryName) {
     if (categoryName === 'home' || categoryName.includes('home')) {
       categoryIcon = <Home size={24} />;
     } else if (categoryName === 'personal-care' || categoryName.includes('care')) {
       categoryIcon = <Scissors size={24} />;
-    } else if (categoryIcons[categoryName]) {
+    } else if (categoryName && categoryIcons[categoryName]) {
       categoryIcon = categoryIcons[categoryName];
     }
   }
