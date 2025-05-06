@@ -1,10 +1,10 @@
 
 import { createRoot } from 'react-dom/client';
-import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import App from './App.tsx';
 import './index.css';
 
-// Usar TooltipProvider al nivel más alto de la aplicación
+// Use TooltipProvider at the highest level of the application
 createRoot(document.getElementById("root")!).render(
   <TooltipProvider>
     <App />
