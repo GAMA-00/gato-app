@@ -1,54 +1,50 @@
 
-import React, { useState } from 'react';
-import { Check, X, Calendar, MapPin } from 'lucide-react';
-import { format, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import React from 'react';
+import { Check, X, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Appointment, Client, Service, RecurrencePattern, OrderStatus } from '@/lib/types';
 import { MOCK_SERVICES, MOCK_CLIENTS } from '@/lib/data';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// Use localStorage for job requests
-const getJobRequests = () => {
-  try {
-    const savedAppointments = localStorage.getItem('gato_appointments');
-    if (!savedAppointments) return [];
-    
-    const appointments = JSON.parse(savedAppointments, (key, value) => {
-      if (key === 'startTime' || key === 'endTime' || key === 'createdAt') {
-        return new Date(value);
-      }
-      return value;
-    });
-    
-    // Filter pending appointments (requests)
-    const requests = appointments
-      .filter((app: any) => app.status === 'pending')
-      .map((app: any) => ({
-        id: app.id,
-        appointment: app
-      }));
-      
-    return requests;
-  } catch (error) {
-    console.error('Error parsing appointments:', error);
-    return [];
+// Mock job requests (in a real app, this would come from props or API)
+const JOB_REQUESTS = [
+  {
+    id: 'req-1',
+    appointment: {
+      id: 'pending-1',
+      serviceId: '1',
+      clientId: '1',
+      providerId: 'provider-1',
+      startTime: new Date(new Date().setHours(10, 0)),
+      endTime: new Date(new Date().setHours(12, 0)),
+      status: 'pending' as OrderStatus,
+      recurrence: 'none' as RecurrencePattern,
+      notes: 'Solicitud de cliente nuevo',
+      createdAt: new Date(),
+      residencia: 'Torre Norte',
+      apartment: '703'
+    }
+  },
+  {
+    id: 'req-2',
+    appointment: {
+      id: 'pending-2',
+      serviceId: '3',
+      clientId: '2',
+      providerId: 'provider-1',
+      startTime: new Date(new Date().setHours(14, 30)),
+      endTime: new Date(new Date().setHours(16, 0)),
+      status: 'pending' as OrderStatus,
+      recurrence: 'none' as RecurrencePattern,
+      notes: 'Solicitud especial de limpieza',
+      createdAt: new Date(),
+      residencia: 'Edificio Azul',
+      apartment: '1204'
+    }
   }
-};
-
-const formatTimeSlot = (startTime: Date, endTime: Date) => {
-  return (
-    <div className="flex flex-col">
-      <div className="text-sm font-medium">
-        {format(startTime, "d 'de' MMMM", { locale: es })}
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
-      </div>
-    </div>
-  );
-};
+];
 
 interface JobRequestProps {
   request: {
@@ -60,34 +56,9 @@ interface JobRequestProps {
 }
 
 const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDecline }) => {
-  const [processing, setProcessing] = useState<string | null>(null);
-  const service = MOCK_SERVICES.find(s => s.id === request.appointment.serviceId) || {
-    name: request.appointment.serviceName || 'Servicio',
-    price: 0,
-  };
-  const client = MOCK_CLIENTS.find(c => c.id === request.appointment.clientId) || {
-    name: request.appointment.clientName || 'Cliente',
-    address: request.appointment.building || '',
-  };
+  const service = MOCK_SERVICES.find(s => s.id === request.appointment.serviceId)!;
+  const client = MOCK_CLIENTS.find(c => c.id === request.appointment.clientId)!;
   const isMobile = useIsMobile();
-  
-  const handleAccept = async () => {
-    setProcessing('accept');
-    try {
-      await onAccept(request.id);
-    } finally {
-      setProcessing(null);
-    }
-  };
-  
-  const handleDecline = async () => {
-    setProcessing('decline');
-    try {
-      await onDecline(request.id);
-    } finally {
-      setProcessing(null);
-    }
-  };
   
   return (
     <div className="p-4 border-b last:border-b-0">
@@ -106,16 +77,12 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
           <div className="flex flex-col space-y-1">
             <div className="flex items-center text-sm">
               <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              {formatTimeSlot(
-                request.appointment.startTime,
-                request.appointment.endTime
-              )}
+              <span className="font-medium">{format(request.appointment.startTime, 'EEE, MMM d')}</span>
+              <span className="mx-1">•</span>
+              <span>{format(request.appointment.startTime, 'h:mm a')} - {format(request.appointment.endTime, 'h:mm a')}</span>
             </div>
-            <div className="flex items-center text-sm">
-              <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <span className="text-xs text-orange-700 font-medium">
-                {request.appointment.building} {request.appointment.apartment && `- #${request.appointment.apartment}`}
-              </span>
+            <div className="bg-orange-100 text-orange-700 text-xs font-medium rounded-full px-2 py-0.5 self-start">
+              {request.appointment.residencia} - #{request.appointment.apartment}
             </div>
           </div>
           
@@ -130,21 +97,19 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
               variant="outline" 
               size="sm" 
               className="flex-1 text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
-              onClick={handleDecline}
-              disabled={!!processing}
+              onClick={() => onDecline(request.id)}
             >
               <X className="h-4 w-4 mr-1" />
-              {processing === 'decline' ? 'Procesando...' : 'Rechazar'}
+              Rechazar
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               className="flex-1 text-green-500 border-green-200 hover:bg-green-50 hover:text-green-600"
-              onClick={handleAccept}
-              disabled={!!processing}
+              onClick={() => onAccept(request.id)}
             >
               <Check className="h-4 w-4 mr-1" />
-              {processing === 'accept' ? 'Procesando...' : 'Aceptar'}
+              Aceptar
             </Button>
           </div>
         </div>
@@ -156,10 +121,10 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
               <p className="text-sm text-muted-foreground">{client.name}</p>
             </div>
             <div className="text-sm text-right">
-              {formatTimeSlot(
-                request.appointment.startTime,
-                request.appointment.endTime
-              )}
+              <div className="font-medium">{format(request.appointment.startTime, 'EEE, MMM d')}</div>
+              <div className="text-muted-foreground">
+                {format(request.appointment.startTime, 'h:mm a')} - {format(request.appointment.endTime, 'h:mm a')}
+              </div>
             </div>
           </div>
           
@@ -168,28 +133,26 @@ const JobRequestItem: React.FC<JobRequestProps> = ({ request, onAccept, onDeclin
               ${service.price}
             </div>
             <div className="bg-orange-100 text-orange-700 text-xs font-medium rounded-full px-2 py-0.5">
-              {request.appointment.building} {request.appointment.apartment && `- #${request.appointment.apartment}`}
+              {request.appointment.residencia} - #{request.appointment.apartment}
             </div>
             <div className="ml-auto flex gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
-                onClick={handleDecline}
-                disabled={!!processing}
+                onClick={() => onDecline(request.id)}
               >
                 <X className="h-4 w-4 mr-1" />
-                {processing === 'decline' ? 'Procesando...' : 'Rechazar'}
+                Rechazar
               </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="text-green-500 border-green-200 hover:bg-green-50 hover:text-green-600"
-                onClick={handleAccept}
-                disabled={!!processing}
+                onClick={() => onAccept(request.id)}
               >
                 <Check className="h-4 w-4 mr-1" />
-                {processing === 'accept' ? 'Procesando...' : 'Aceptar'}
+                Aceptar
               </Button>
             </div>
           </div>
@@ -214,82 +177,18 @@ const JobRequests: React.FC<JobRequestsProps> = ({
   onAcceptRequest,
   onDeclineRequest 
 }) => {
-  const [jobRequests, setJobRequests] = useState(() => getJobRequests());
-  
-  const handleAccept = async (requestId: string) => {
-    const request = jobRequests.find(req => req.id === requestId);
+  const handleAccept = (requestId: string) => {
+    const request = JOB_REQUESTS.find(req => req.id === requestId);
     if (request) {
-      try {
-        // Update status in localStorage
-        const savedAppointments = localStorage.getItem('gato_appointments');
-        if (savedAppointments) {
-          const appointments = JSON.parse(savedAppointments, (key, value) => {
-            if (key === 'startTime' || key === 'endTime' || key === 'createdAt') {
-              return new Date(value);
-            }
-            return value;
-          });
-          
-          const updatedAppointments = appointments.map((app: any) => {
-            if (app.id === requestId) {
-              return { ...app, status: 'confirmed' };
-            }
-            return app;
-          });
-          
-          localStorage.setItem('gato_appointments', JSON.stringify(updatedAppointments));
-        }
-        
-        // Remove from job requests list
-        setJobRequests(prev => prev.filter(r => r.id !== requestId));
-        
-        // Call parent handler
-        onAcceptRequest(request);
-        
-        return Promise.resolve();
-      } catch (error) {
-        console.error('Error accepting request:', error);
-        return Promise.reject(error);
-      }
+      onAcceptRequest(request);
     }
   };
   
-  const handleDecline = async (requestId: string) => {
-    try {
-      // Update status in localStorage
-      const savedAppointments = localStorage.getItem('gato_appointments');
-      if (savedAppointments) {
-        const appointments = JSON.parse(savedAppointments, (key, value) => {
-          if (key === 'startTime' || key === 'endTime' || key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-        
-        const updatedAppointments = appointments.map((app: any) => {
-          if (app.id === requestId) {
-            return { ...app, status: 'rejected' };
-          }
-          return app;
-        });
-        
-        localStorage.setItem('gato_appointments', JSON.stringify(updatedAppointments));
-      }
-      
-      // Remove from job requests list
-      setJobRequests(prev => prev.filter(r => r.id !== requestId));
-      
-      // Call parent handler
-      onDeclineRequest(requestId);
-      
-      return Promise.resolve();
-    } catch (error) {
-      console.error('Error declining request:', error);
-      return Promise.reject(error);
-    }
+  const handleDecline = (requestId: string) => {
+    onDeclineRequest(requestId);
   };
   
-  if (jobRequests.length === 0) {
+  if (JOB_REQUESTS.length === 0) {
     return (
       <Card className="mb-6">
         <CardHeader className="pb-3">
@@ -312,11 +211,11 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center">
           <Calendar className="mr-2 h-5 w-5 text-orange-500" />
-          Solicitudes de Servicio ({jobRequests.length})
+          Solicitudes de Servicio ({JOB_REQUESTS.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {jobRequests.map(request => (
+        {JOB_REQUESTS.map(request => (
           <JobRequestItem
             key={request.id}
             request={request}

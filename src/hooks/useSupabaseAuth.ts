@@ -84,7 +84,6 @@ export const useSupabaseAuth = () => {
         phone: userData.phone || '',
         buildingId: userData.role === 'client' ? userData.residenciaId || '' : '',
         buildingName: '', 
-        building: userData.buildingName || '', // Add the building property
         hasPaymentMethod: false,
         role: userData.role as UserRole,
       };
@@ -145,7 +144,6 @@ export const useSupabaseAuth = () => {
         phone: profileData.phone || '',
         buildingId: profileData.building_id || '',
         buildingName: '', 
-        building: profileData.buildingName || profileData.building_id || '', // Add the building property
         hasPaymentMethod: profileData.has_payment_method || false,
         role: profileData.role as UserRole,
         avatarUrl: profileData.avatar_url || ''
