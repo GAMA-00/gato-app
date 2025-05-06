@@ -39,6 +39,7 @@ import RequireAuth from '@/components/auth/RequireAuth';
 
 // Context
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ChatProvider } from '@/contexts/ChatContext';
 
 const queryClient = new QueryClient();
 
@@ -170,12 +171,14 @@ function App() {
     <div className="min-h-screen">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <ThemeProvider defaultTheme="light">
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-            <Toaster richColors position="top-center" />
-          </ThemeProvider>
+          <ChatProvider>
+            <ThemeProvider defaultTheme="light">
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+              <Toaster richColors position="top-center" />
+            </ThemeProvider>
+          </ChatProvider>
         </AuthProvider>
       </QueryClientProvider>
     </div>
