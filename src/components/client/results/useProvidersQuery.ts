@@ -37,11 +37,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             name, 
             about_me,
             experience_years,
-            average_rating,
-            users(
-              avatar_url,
-              created_at
-            )
+            average_rating
           ),
           service_type:service_type_id(
             name,
@@ -61,43 +57,24 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         throw error;
       }
       
-      console.log("Listings encontrados:", listings?.length);
+      console.log("Listings encontrados:", listings?.length, listings);
       
       // Filtrar los anuncios por residencia si el cliente tiene una residencia asociada
-      const filteredListings = clientResidenciaId 
-        ? listings.filter(listing => 
-            listing.listing_residencias.some(
-              (lr: any) => lr.residencia_id === clientResidenciaId
-            )
-          )
-        : listings;
+      let filteredListings = listings;
       
-      console.log("Listings filtrados por residencia:", filteredListings?.length);
+      if (clientResidenciaId) {
+        filteredListings = listings.filter(listing => 
+          listing.listing_residencias.some(
+            (lr: any) => lr.residencia_id === clientResidenciaId
+          )
+        );
+        console.log("Listings filtrados por residencia:", filteredListings?.length);
+      }
       
       return filteredListings.map(listing => {
         // Extraemos los datos del provider de forma segura
         const provider = listing.provider as any || {};
         
-        // Safely access nested users data with proper type checking
-        let avatarUrl = null;
-        let createdAt = new Date().toISOString();
-        
-        if (provider && typeof provider === 'object') {
-          // Check if users exists and handle it accordingly
-          const usersData = provider.users;
-          
-          if (usersData) {
-            // Handle both array and object cases for users
-            if (Array.isArray(usersData) && usersData.length > 0) {
-              avatarUrl = usersData[0]?.avatar_url || null;
-              createdAt = usersData[0]?.created_at || createdAt;
-            } else if (typeof usersData === 'object') {
-              avatarUrl = (usersData as any).avatar_url || null;
-              createdAt = (usersData as any).created_at || createdAt;
-            }
-          }
-        }
-
         // Obtener la categoría y subcategoría de forma segura
         let categoryName = '';
         let subcategoryName = '';
@@ -109,18 +86,21 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           }
         }
         
+        // For debugging
+        console.log("Processing listing:", listing.title, "provider:", provider?.name, "category:", categoryName, "subcategory:", subcategoryName);
+        
         return {
           id: provider?.id || '',
           name: provider?.name || 'Proveedor',
-          avatar: avatarUrl,
+          avatar: null, // Los avatares vienen de la tabla users, pero removimos esa referencia por ahora
           serviceId: listing.id || '',
           serviceName: listing.title || '',
           price: listing.base_price || 0,
           duration: listing.duration || 0,
-          rating: provider?.average_rating || 0,
+          rating: provider?.average_rating || 3.5, // Default rating if not available
           experience: provider?.experience_years || 0,
           aboutMe: provider?.about_me || '',
-          createdAt: createdAt,
+          createdAt: listing.created_at || new Date().toISOString(),
           category: categoryName,
           subcategory: subcategoryName,
           // Incluir información sobre disponibilidad (por ahora asumimos disponible)

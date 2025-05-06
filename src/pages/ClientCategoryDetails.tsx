@@ -8,6 +8,7 @@ import { ArrowLeft, Home, Scissors, PawPrint, Dumbbell, Book, Globe } from 'luci
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 // Mapeo de iconos por categoría
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -41,6 +42,7 @@ const ClientCategoryDetails = () => {
         
       if (error) {
         console.error("Error fetching category:", error);
+        toast.error("Error al cargar la categoría");
         throw error;
       }
       
@@ -64,6 +66,7 @@ const ClientCategoryDetails = () => {
         
       if (error) {
         console.error("Error fetching services:", error);
+        toast.error("Error al cargar los servicios");
         throw error;
       }
       

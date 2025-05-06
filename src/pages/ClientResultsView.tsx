@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ClientResultsView = () => {
   const { categoryName, serviceId } = useParams<{ categoryName: string; serviceId: string }>();
@@ -41,6 +42,28 @@ const ClientResultsView = () => {
       return data;
     },
     enabled: !!user?.id
+  });
+  
+  // Obtenemos información del servicio para verificar que existe
+  const { data: serviceInfo } = useQuery({
+    queryKey: ['service-type-info', serviceId],
+    queryFn: async () => {
+      if (!serviceId) return null;
+      
+      const { data, error } = await supabase
+        .from('service_types')
+        .select('name, category_id')
+        .eq('id', serviceId)
+        .maybeSingle();
+        
+      if (error) {
+        toast.error("Error al obtener información del servicio");
+        throw error;
+      }
+      
+      return data;
+    },
+    enabled: !!serviceId
   });
   
   // Use the custom hook to query providers
@@ -83,10 +106,12 @@ const ClientResultsView = () => {
             <span>Volver a detalles de reserva</span>
           </Button>
           
-          <Badge variant="outline" className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            {residenciaName}
-          </Badge>
+          <div className="flex items-center">
+            <Badge variant="outline" className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {residenciaName}
+            </Badge>
+          </div>
         </div>
       }
     >
