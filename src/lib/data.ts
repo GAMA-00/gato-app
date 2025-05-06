@@ -1,6 +1,6 @@
 
 import { Home, Scissors, PawPrint, Dumbbell, Book, Globe, Car, Sprout, Sparkles, Wrench } from 'lucide-react';
-import { Appointment, Client, Service } from '@/lib/types';
+import { Appointment, Client, Service, ServiceCategory } from '@/lib/types';
 
 export const RESIDENCIAS = [
   {
@@ -92,7 +92,8 @@ export const MOCK_SERVICES: Service[] = [
     description: 'Servicio de limpieza profunda',
     price: 25,
     duration: 60,
-    categoryId: 'home'
+    category: 'home',
+    subcategoryId: 'cleaning-service'
   },
   {
     id: '2',
@@ -100,7 +101,8 @@ export const MOCK_SERVICES: Service[] = [
     description: 'Corte y estilo a domicilio',
     price: 35,
     duration: 45,
-    categoryId: 'personal-care'
+    category: 'personal-care',
+    subcategoryId: 'hair-styling'
   },
   {
     id: '3',
@@ -108,7 +110,8 @@ export const MOCK_SERVICES: Service[] = [
     description: 'Paseo y cuidado de mascotas',
     price: 20,
     duration: 30,
-    categoryId: 'pets'
+    category: 'pets',
+    subcategoryId: 'pet-walking'
   }
 ];
 
@@ -157,8 +160,8 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     serviceId: '1',
     clientId: '1',
     providerId: '1',
-    startTime: new Date(new Date().setHours(10, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(11, 0, 0, 0)),
+    startTime: new Date(),
+    endTime: new Date(new Date().setHours(new Date().getHours() + 1)),
     status: 'confirmed',
     recurrence: 'none',
     notes: '',
@@ -169,9 +172,9 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     serviceId: '2',
     clientId: '2',
     providerId: '2',
-    startTime: new Date(new Date().setDate(new Date().getDate() + 1)).setHours(14, 0, 0, 0),
-    endTime: new Date(new Date().setDate(new Date().getDate() + 1)).setHours(14, 45, 0, 0),
-    status: 'scheduled',
+    startTime: new Date(new Date().setDate(new Date().getDate() + 1)),
+    endTime: new Date(new Date().setDate(new Date().getDate() + 1)),
+    status: 'pending',
     recurrence: 'weekly',
     notes: 'Primera visita',
     createdAt: new Date('2023-03-02')
@@ -181,8 +184,8 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     serviceId: '3',
     clientId: '3',
     providerId: '1',
-    startTime: new Date(new Date().setDate(new Date().getDate() + 2)).setHours(16, 30, 0, 0),
-    endTime: new Date(new Date().setDate(new Date().getDate() + 2)).setHours(17, 0, 0, 0),
+    startTime: new Date(new Date().setDate(new Date().getDate() + 2)),
+    endTime: new Date(new Date().setDate(new Date().getDate() + 2)),
     status: 'completed',
     recurrence: 'none',
     notes: 'Mascota grande',
@@ -198,6 +201,8 @@ export const ACHIEVEMENT_LEVELS = [
     maxPoints: 499,
     color: '#CD7F32',
     benefits: ['Perfil destacado', 'Acceso a clientes premium'],
+    description: 'Nivel inicial para proveedores nuevos',
+    icon: 'Trophy'
   },
   {
     level: 2,
@@ -206,6 +211,8 @@ export const ACHIEVEMENT_LEVELS = [
     maxPoints: 1999,
     color: '#C0C0C0',
     benefits: ['Comisión reducida 2%', 'Posicionamiento prioritario'],
+    description: 'Proveedores con experiencia moderada',
+    icon: 'Award'
   },
   {
     level: 3,
@@ -214,6 +221,8 @@ export const ACHIEVEMENT_LEVELS = [
     maxPoints: 4999,
     color: '#FFD700',
     benefits: ['Comisión reducida 5%', 'Badge exclusivo', 'Soporte prioritario'],
+    description: 'Proveedores experimentados con alta calificación',
+    icon: 'Medal'
   },
   {
     level: 4,
@@ -222,6 +231,8 @@ export const ACHIEVEMENT_LEVELS = [
     maxPoints: Infinity,
     color: '#E5E4E2',
     benefits: ['Comisión reducida 10%', 'Acceso a eventos exclusivos', 'Programa de referidos'],
+    description: 'Proveedores elite con máxima confianza',
+    icon: 'Star'
   },
 ];
 

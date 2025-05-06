@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -87,7 +86,7 @@ const ClientServices = () => {
         const hasCertifications = listing.provider?.certification_files 
           ? (typeof listing.provider.certification_files === 'string' 
               ? JSON.parse(listing.provider.certification_files).length > 0
-              : listing.provider.certification_files.length > 0)
+              : Array.isArray(listing.provider.certification_files) && listing.provider.certification_files.length > 0)
           : false;
           
         return {
@@ -110,7 +109,7 @@ const ClientServices = () => {
           serviceVariants: listing.service_variants 
             ? (typeof listing.service_variants === 'string'
                 ? JSON.parse(listing.service_variants) 
-                : listing.service_variants)
+                : Array.isArray(listing.service_variants) ? listing.service_variants : [])
             : []
         };
       });
