@@ -6,6 +6,21 @@ import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Home, Scissors, PawPrint, Dumbbell, Book, Globe, Car, Flower, Wrench, MoreHorizontal } from 'lucide-react';
+
+// Map of icon names to components
+const iconMap: Record<string, React.ElementType> = {
+  'Home': Home,
+  'Scissors': Scissors,
+  'PawPrint': PawPrint,
+  'Dumbbell': Dumbbell,
+  'Book': Book,
+  'Globe': Globe,
+  'Car': Car,
+  'Flower': Flower,
+  'Wrench': Wrench,
+  'MoreHorizontal': MoreHorizontal
+};
 
 const ClientCategoryView = () => {
   const navigate = useNavigate();
@@ -23,10 +38,9 @@ const ClientCategoryView = () => {
     }
   });
 
-  // Importamos los iconos dinámicamente
   const getCategoryIcon = (iconName: string) => {
-    const IconComponent = categories.find(cat => cat.name === iconName)?.icon || 'globe';
-    return <span className="text-2xl">{IconComponent}</span>;
+    const IconComponent = iconMap[iconName] || iconMap['Globe'];
+    return <IconComponent size={24} />;
   };
 
   const handleCategoryClick = (categoryName: string) => {
@@ -55,9 +69,9 @@ const ClientCategoryView = () => {
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categories.map((category) => {
-          const IconComponent = category.icon ? 
-            React.createElement(category.icon, { size: 24 }) : 
-            <span className="text-2xl">{category.name.charAt(0)}</span>;
+          const IconComponent = category.icon && iconMap[category.icon] ? 
+            getCategoryIcon(category.icon) : 
+            <span className="text-2xl">{category.name.charAt(0).toUpperCase()}</span>;
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>

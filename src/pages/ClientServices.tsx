@@ -4,13 +4,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SERVICE_CATEGORIES } from '@/lib/data';
 import { MessageSquare } from 'lucide-react';
 import { useChat } from '@/contexts/ChatContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useCommissionRate } from '@/hooks/useCommissionRate';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SERVICE_CATEGORIES } from '@/lib/data';
 
 const ClientServices = () => {
   const { residenciaId } = useParams();
@@ -60,8 +60,8 @@ const ClientServices = () => {
         categoryId: listing.service_type?.category?.name || '',
         categoryName: listing.service_type?.category?.label || 'Otros',
         serviceTypeName: listing.service_type?.name || '',
-        price: listing.base_price,
-        duration: listing.duration,
+        price: typeof listing.base_price === 'number' ? listing.base_price : 0,
+        duration: typeof listing.duration === 'number' ? listing.duration : 0,
         providerId: listing.provider_id,
         providerName: listing.provider?.name || 'Proveedor',
         residenciaIds: [residenciaId],
@@ -70,7 +70,7 @@ const ClientServices = () => {
     }
   });
 
-  // NEW CODE: Group listings by category
+  // Group listings by category
   const listingsByCategory = React.useMemo(() => {
     const grouped: Record<string, typeof listings> = {};
     

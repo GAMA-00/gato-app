@@ -328,6 +328,7 @@ export const generateMockAppointments = (): Appointment[] => {
   return appointments;
 };
 
+// Define MOCK_APPOINTMENTS once
 export const MOCK_APPOINTMENTS: Appointment[] = generateMockAppointments();
 
 // Calculate dashboard stats
@@ -502,5 +503,4 @@ export const getProviderAchievements = (): ProviderAchievements => {
   };
 };
 
-// Exportar MOCK_APPOINTMENTS para evitar errores
-export const MOCK_APPOINTMENTS: Appointment[] = generateMockAppointments();
+// Removed duplicate MOCK_APPOINTMENTS export
