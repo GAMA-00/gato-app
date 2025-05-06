@@ -42,146 +42,144 @@ import { AuthProvider } from '@/contexts/AuthContext';
 
 const queryClient = new QueryClient();
 
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="*" element={<NotFound />} />
+      
+      {/* Client Routes */}
+      <Route path="/client" element={
+        <RequireAuth>
+          <RootLayout><ClientHome /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/messages" element={
+        <RequireAuth>
+          <RootLayout><ClientMessages /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/services" element={
+        <RequireAuth>
+          <RootLayout><ClientServices /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/services/:category" element={
+        <RequireAuth>
+          <RootLayout><ClientCategoryView /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/services/:category/:subcategory" element={
+        <RequireAuth>
+          <RootLayout><ClientCategoryDetails /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/results" element={
+        <RequireAuth>
+          <RootLayout><ClientResultsView /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/providers" element={
+        <RequireAuth>
+          <RootLayout><ClientProvidersList /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/service/:providerId/:serviceId" element={
+        <RequireAuth>
+          <RootLayout><ClientServiceDetail /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/booking/:providerId/:serviceId" element={
+        <RequireAuth>
+          <RootLayout><ClientBooking /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/booking-summary" element={
+        <RequireAuth>
+          <RootLayout><BookingSummary /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/client/bookings" element={
+        <RequireAuth>
+          <RootLayout><ClientBookings /></RootLayout>
+        </RequireAuth>
+      } />
+      
+      {/* Provider Routes */}
+      <Route path="/provider/register" element={<ProviderRegister />} />
+      <Route path="/dashboard" element={
+        <RequireAuth>
+          <RootLayout><Dashboard /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/calendar" element={
+        <RequireAuth>
+          <RootLayout><Calendar /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/services" element={
+        <RequireAuth>
+          <RootLayout><Services /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/clients" element={
+        <RequireAuth>
+          <RootLayout><Clients /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/messages" element={
+        <RequireAuth>
+          <RootLayout><Messages /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/profile" element={
+        <RequireAuth>
+          <RootLayout><Profile /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/payment-setup" element={
+        <RequireAuth>
+          <RootLayout><PaymentSetup /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/achievements" element={
+        <RequireAuth>
+          <RootLayout><Achievements /></RootLayout>
+        </RequireAuth>
+      } />
+      <Route path="/provider/:providerId" element={
+        <RootLayout><ProviderProfile /></RootLayout>
+      } />
+      
+      {/* Add new BookingConfirmation route */}
+      <Route path="/client/booking-confirmation" element={
+        <RequireAuth>
+          <RootLayout>
+            <BookingConfirmation />
+          </RootLayout>
+        </RequireAuth>
+      } />
+    </Routes>
+  );
+}
+
 function App() {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return <div>Cargando...</div>;
-  }
-  
   return (
     <div className="min-h-screen">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="*" element={<NotFound />} />
-              
-              {/* Client Routes */}
-              <Route path="/client" element={
-                <RequireAuth>
-                  <RootLayout><ClientHome /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/messages" element={
-                <RequireAuth>
-                  <RootLayout><ClientMessages /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/services" element={
-                <RequireAuth>
-                  <RootLayout><ClientServices /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/services/:category" element={
-                <RequireAuth>
-                  <RootLayout><ClientCategoryView /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/services/:category/:subcategory" element={
-                <RequireAuth>
-                  <RootLayout><ClientCategoryDetails /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/results" element={
-                <RequireAuth>
-                  <RootLayout><ClientResultsView /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/providers" element={
-                <RequireAuth>
-                  <RootLayout><ClientProvidersList /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/service/:providerId/:serviceId" element={
-                <RequireAuth>
-                  <RootLayout><ClientServiceDetail /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/booking/:providerId/:serviceId" element={
-                <RequireAuth>
-                  <RootLayout><ClientBooking /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/booking-summary" element={
-                <RequireAuth>
-                  <RootLayout><BookingSummary /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/client/bookings" element={
-                <RequireAuth>
-                  <RootLayout><ClientBookings /></RootLayout>
-                </RequireAuth>
-              } />
-              
-              {/* Provider Routes */}
-              <Route path="/provider/register" element={<ProviderRegister />} />
-              <Route path="/dashboard" element={
-                <RequireAuth>
-                  <RootLayout><Dashboard /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/calendar" element={
-                <RequireAuth>
-                  <RootLayout><Calendar /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/services" element={
-                <RequireAuth>
-                  <RootLayout><Services /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/clients" element={
-                <RequireAuth>
-                  <RootLayout><Clients /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/messages" element={
-                <RequireAuth>
-                  <RootLayout><Messages /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/profile" element={
-                <RequireAuth>
-                  <RootLayout><Profile /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/payment-setup" element={
-                <RequireAuth>
-                  <RootLayout><PaymentSetup /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/achievements" element={
-                <RequireAuth>
-                  <RootLayout><Achievements /></RootLayout>
-                </RequireAuth>
-              } />
-              <Route path="/provider/:providerId" element={
-                <RootLayout><ProviderProfile /></RootLayout>
-              } />
-              
-              {/* Add new BookingConfirmation route */}
-              <Route path="/client/booking-confirmation" element={
-                <RequireAuth>
-                  <RootLayout>
-                    <BookingConfirmation />
-                  </RootLayout>
-                </RequireAuth>
-              } />
-              
-            </Routes>
-          </BrowserRouter>
+          <ThemeProvider defaultTheme="light">
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+            <Toaster richColors position="top-center" />
+          </ThemeProvider>
         </AuthProvider>
-        <Toaster richColors position="top-center" />
       </QueryClientProvider>
     </div>
   );
 }
-
-// Add this hook to fix the error in App.tsx
-import { useAuth } from '@/contexts/AuthContext';
 
 export default App;
