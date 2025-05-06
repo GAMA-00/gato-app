@@ -164,20 +164,22 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+// Corrección de la estructura del App para resolver el problema de TooltipProvider
+const App = () => {
+  return (
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ChatProvider>
+            {/* Quitamos TooltipProvider de aquí y lo movemos dentro de los componentes que lo necesitan */}
             <AppRoutes />
             <Toaster />
             <Sonner />
           </ChatProvider>
         </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </BrowserRouter>
-);
+      </QueryClientProvider>
+    </BrowserRouter>
+  );
+};
 
 export default App;
