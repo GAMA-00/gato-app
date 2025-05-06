@@ -13,6 +13,33 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { ProviderData } from '@/components/client/results/types';
+
+// Define interfaces for our data structures
+interface ServiceTypeData {
+  name: string;
+  category?: {
+    name: string;
+  };
+}
+
+interface ClientResidencia {
+  name: string;
+  address: string;
+}
+
+interface ServiceDetailData {
+  id: string;
+  title: string;
+  description: string;
+  base_price: number;
+  duration: number;
+  is_active: boolean;
+  provider: ProviderData;
+  service_type: ServiceTypeData;
+  clientResidencia?: ClientResidencia | null;
+  recurringClients?: number;
+}
 
 const ClientServiceDetail = () => {
   const { providerId, serviceId } = useParams<{ providerId: string; serviceId: string }>();
@@ -38,7 +65,7 @@ const ClientServiceDetail = () => {
             about_me,
             experience_years,
             average_rating,
-            hasCertifications,
+            certification_files,
             email,
             phone
           ),
@@ -74,12 +101,21 @@ const ClientServiceDetail = () => {
       // Mock data for recurring clients
       const recurringClients = Math.floor(Math.random() * 10);
       
+      // Process provider data to include hasCertifications
+      const provider = listing.provider || {};
+      const hasCertifications = provider.certification_files && 
+                               Array.isArray(provider.certification_files) && 
+                               provider.certification_files.length > 0;
+      
       return {
         ...listing,
-        provider: listing.provider,
+        provider: {
+          ...provider,
+          hasCertifications
+        },
         clientResidencia,
         recurringClients
-      };
+      } as ServiceDetailData;
     },
     enabled: !!serviceId && !!providerId
   });
@@ -154,9 +190,10 @@ const ClientServiceDetail = () => {
     );
   }
   
+  // Safely access nested properties
   const provider = serviceDetails.provider || {};
-  const serviceType = serviceDetails.service_type || {};
-  const category = serviceType.category || {};
+  const serviceType = serviceDetails.service_type || { name: '', category: { name: '' } };
+  const category = serviceType.category || { name: '' };
   
   return (
     <PageContainer

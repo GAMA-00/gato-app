@@ -38,7 +38,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             about_me,
             experience_years,
             average_rating,
-            hasCertifications
+            certification_files
           ),
           service_type:service_type_id(
             name,
@@ -83,6 +83,11 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         // Extraemos los datos del provider de forma segura
         const provider = listing.provider as any || {};
         
+        // Check if the provider has certifications based on certification_files
+        const hasCertifications = provider.certification_files && 
+                                 Array.isArray(provider.certification_files) && 
+                                 provider.certification_files.length > 0;
+        
         // Obtener la categoría y subcategoría de forma segura
         let categoryName = '';
         let subcategoryName = '';
@@ -113,7 +118,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           subcategory: subcategoryName,
           // Add new fields
           serviceImage: 'https://placehold.co/800x400?text=Servicio&font=montserrat', // Placeholder image for now
-          hasCertifications: provider?.hasCertifications || false,
+          hasCertifications: hasCertifications,
           recurringClients: getRecurringClientsCount(provider?.id || ''),
           // Incluir información sobre disponibilidad (por ahora asumimos disponible)
           isAvailable: true 
