@@ -146,13 +146,9 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       const recurringClients = Math.floor(Math.random() * 10);
       const servicesCompleted = Math.floor(Math.random() * 50) + 10;
       
-      // Only use placeholder images if no real images were uploaded
+      // NO usar imágenes de ejemplo, dejar el array vacío si no hay imágenes reales
       if (galleryImages.length === 0) {
-        galleryImages = [
-          'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
-          'https://images.unsplash.com/photo-1518770660439-4636190af475',
-          'https://images.unsplash.com/photo-1461749280684-dccba630e2f6'
-        ];
+        galleryImages = []; // Array vacío, sin imágenes de ejemplo
       }
       
       return {
