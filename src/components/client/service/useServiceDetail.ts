@@ -69,6 +69,8 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       
       // Process certification files
       let certificationFiles: CertificationFile[] = [];
+      let galleryImages: string[] = [];
+      
       if (providerData.certification_files) {
         try {
           // Parse certification_files if it's a string
@@ -83,6 +85,16 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
               type: file.type || file.contentType || 'application/pdf',
               size: file.size || 0
             }));
+            
+            // Extract image files from certification_files for gallery
+            galleryImages = filesData
+              .filter((file: any) => {
+                const fileUrl = file.url || file.downloadUrl || '';
+                const fileType = file.type || file.contentType || '';
+                return fileType.startsWith('image/') || 
+                       fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+              })
+              .map((file: any) => file.url || file.downloadUrl || '');
           }
         } catch (error) {
           console.error("Error parsing certification files:", error);
@@ -134,22 +146,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       const recurringClients = Math.floor(Math.random() * 10);
       const servicesCompleted = Math.floor(Math.random() * 50) + 10;
       
-      // Process gallery images
-      let galleryImages: string[] = [];
-      
-      // Extract image files from certification_files
-      if (certificationFiles.length > 0) {
-        // Filter only image files
-        const imageFiles = certificationFiles.filter(file => {
-          const isImageType = file.type.startsWith('image/');
-          const isImageExtension = file.url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-          return isImageType || isImageExtension;
-        });
-        
-        galleryImages = imageFiles.map(file => file.url);
-      }
-      
-      // If no real images were found, use quality placeholder images
+      // Only use placeholder images if no real images were uploaded
       if (galleryImages.length === 0) {
         galleryImages = [
           'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',

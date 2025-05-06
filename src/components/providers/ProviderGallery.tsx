@@ -11,17 +11,14 @@ interface ProviderGalleryProps {
 }
 
 const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
-  // Placeholder images for demo purposes
-  const demoImages = [
-    'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
-    'https://images.unsplash.com/photo-1518770660439-4636190af475',
-    'https://images.unsplash.com/photo-1461749280684-dccba630e2f6',
-    'https://placehold.co/600x400?text=Trabajo+4',
-    'https://placehold.co/600x400?text=Trabajo+5',
-  ];
-  
-  // Use provider images if available, otherwise use demo images
-  const images = provider.galleryImages.length > 0 ? provider.galleryImages : demoImages;
+  // Use provider images if available, otherwise use placeholder images
+  const images = provider.galleryImages && provider.galleryImages.length > 0 
+    ? provider.galleryImages 
+    : [
+        'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
+        'https://images.unsplash.com/photo-1518770660439-4636190af475',
+        'https://images.unsplash.com/photo-1461749280684-dccba630e2f6'
+      ];
 
   return (
     <Card>
