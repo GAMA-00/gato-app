@@ -10,12 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
-// Mapeo de iconos originales por categoría
+// Mapeo de iconos por categoría
 const categoryIcons: Record<string, React.ReactNode> = {
   'home': <Home size={24} />,
   'personal-care': <Scissors size={24} />,
-  'classes': <Book size={24} />,
-  'other': <Book size={24} /> // Usamos Book como fallback para otras categorías
+  'classes': <Book size={24} />
 };
 
 const ClientCategoryDetails = () => {
@@ -86,10 +85,21 @@ const ClientCategoryDetails = () => {
   };
 
   const isLoading = loadingCategory || loadingServices;
-  // Determinar el icono correcto para esta categoría basado en la clave del categoryName
-  const categoryIcon = categoryName && categoryIcons[categoryName] ? 
-    categoryIcons[categoryName] : 
-    <Book size={24} />; // Fallback to Book icon
+  
+  // Determinar el icono correcto para esta categoría
+  let categoryIcon = <Book size={24} />; // Default fallback
+  
+  // Intentar coincidir la categoría con un icono apropiado
+  if (categoryName) {
+    if (categoryName === 'home' || categoryName.includes('home')) {
+      categoryIcon = <Home size={24} />;
+    } else if (categoryName === 'personal-care' || categoryName.includes('care')) {
+      categoryIcon = <Scissors size={24} />;
+    } else if (categoryIcons[categoryName]) {
+      categoryIcon = categoryIcons[categoryName];
+    }
+  }
+  
   const categoryLabel = categoryInfo?.label || '';
 
   if (isLoading) {

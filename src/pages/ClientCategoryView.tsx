@@ -63,16 +63,23 @@ const ClientCategoryView = () => {
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categories.map((category) => {
-          // Usar el icono especificado en la base de datos o un fallback
-          const iconComponent = category.icon && iconMap[category.icon] 
-            ? getCategoryIcon(category.icon) 
-            : <Book size={24} />;
+          // Determinar el icono basado en el nombre de la categoría
+          let IconComponent = Book; // Default fallback
+          
+          // Intentar coincidir la categoría con un icono apropiado
+          if (category.name === 'home' || category.name.includes('home')) {
+            IconComponent = Home;
+          } else if (category.name === 'personal-care' || category.name.includes('care')) {
+            IconComponent = Scissors;
+          } else if (category.icon && iconMap[category.icon]) {
+            IconComponent = iconMap[category.icon];
+          }
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
               <Card className="flex flex-col items-center p-4 hover:shadow-luxury transition-shadow cursor-pointer bg-luxury-white h-24 justify-center">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-2">
-                  {iconComponent}
+                  <IconComponent size={24} />
                 </div>
                 <h3 className="text-center font-medium text-sm">{category.label}</h3>
               </Card>
