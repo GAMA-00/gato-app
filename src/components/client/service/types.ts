@@ -1,11 +1,8 @@
-
-import { ProviderData } from '@/components/client/results/types';
-
-export interface ServiceTypeData {
+export interface ServiceVariant {
+  id: string;
   name: string;
-  category?: {
-    name: string;
-  };
+  price: number;
+  duration: number;
 }
 
 export interface ClientResidencia {
@@ -13,11 +10,11 @@ export interface ClientResidencia {
   address: string;
 }
 
-export interface ServiceVariant {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
+export interface CertificationFile {
+  name?: string;
+  url: string;
+  type: string;
+  size?: number;
 }
 
 export interface ServiceDetailData {
@@ -26,12 +23,19 @@ export interface ServiceDetailData {
   description: string;
   base_price: number;
   duration: number;
-  is_active: boolean;
   provider: ProviderData;
-  service_type: ServiceTypeData;
-  clientResidencia?: ClientResidencia | null;
+  service_type: {
+    name: string;
+    category?: {
+      name: string;
+      label?: string;
+    }
+  };
+  clientResidencia?: ClientResidencia;
+  serviceVariants: ServiceVariant[];
+  galleryImages: string[];
   recurringClients?: number;
-  serviceVariants?: ServiceVariant[];
-  galleryImages?: string[];
   servicesCompleted?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }

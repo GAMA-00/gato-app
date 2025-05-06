@@ -17,6 +17,7 @@ import ProviderInfoCard from '@/components/client/service/ProviderInfoCard';
 import ProviderBio from '@/components/client/service/ProviderBio';
 import ServiceDescription from '@/components/client/service/ServiceDescription';
 import PriceInformation from '@/components/client/service/PriceInformation';
+import ProviderCertifications from '@/components/client/service/ProviderCertifications';
 
 const ClientServiceDetail = () => {
   const { providerId, serviceId } = useParams<{ providerId: string; serviceId: string }>();
@@ -134,15 +135,26 @@ const ClientServiceDetail = () => {
             clientResidencia={serviceDetails.clientResidencia} 
           />
           
-          {/* Gallery */}
+          {/* Gallery - Showing all images */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Galería de trabajos</CardTitle>
             </CardHeader>
             <CardContent>
-              <ServiceGallery images={serviceDetails.galleryImages || []} />
+              <ServiceGallery 
+                images={serviceDetails.galleryImages || []} 
+                showExpandButton={true}
+                maxPreview={6}
+              />
             </CardContent>
           </Card>
+          
+          {/* PDF Certifications */}
+          {serviceDetails.provider.certificationFiles && (
+            <ProviderCertifications 
+              certifications={serviceDetails.provider.certificationFiles}
+            />
+          )}
           
           {/* Provider Bio */}
           <ProviderBio aboutMe={serviceDetails.provider.about_me} />

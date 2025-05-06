@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ServiceDetailData } from './types';
+import { ServiceDetailData, CertificationFile } from './types';
 import { ProviderData } from '@/components/client/results/types';
 import { useEffect } from 'react';
 
@@ -35,7 +35,8 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           service_type:service_type_id(
             name,
             category:category_id(
-              name
+              name,
+              label
             )
           )
         `)
@@ -63,11 +64,32 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         clientResidencia = clientData?.residencias;
       }
       
-      // Process provider data to include hasCertifications
+      // Process provider data to include hasCertifications and parsed certification files
       const providerData = listing.provider as ProviderData || {};
-      const hasCertifications = providerData.certification_files && 
-                             Array.isArray(providerData.certification_files) && 
-                             providerData.certification_files.length > 0;
+      
+      // Process certification files
+      let certificationFiles: CertificationFile[] = [];
+      if (providerData.certification_files) {
+        try {
+          // Parse certification_files if it's a string
+          const filesData = typeof providerData.certification_files === 'string' 
+            ? JSON.parse(providerData.certification_files) 
+            : providerData.certification_files;
+          
+          if (Array.isArray(filesData)) {
+            certificationFiles = filesData.map((file: any) => ({
+              name: file.name || file.fileName || 'Documento',
+              url: file.url || file.downloadUrl || '',
+              type: file.type || file.contentType || 'application/pdf',
+              size: file.size || 0
+            }));
+          }
+        } catch (error) {
+          console.error("Error parsing certification files:", error);
+        }
+      }
+      
+      const hasCertifications = certificationFiles.length > 0;
       
       // Parse service variants from JSON string if needed
       let serviceVariants = [];
@@ -112,31 +134,19 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       const recurringClients = Math.floor(Math.random() * 10);
       const servicesCompleted = Math.floor(Math.random() * 50) + 10;
       
-      // Use real gallery images if available, or placeholders
-      let galleryImages = [];
+      // Process gallery images
+      let galleryImages: string[] = [];
       
-      // Look for gallery images in provider's certification_files if available
-      if (providerData.certification_files) {
-        try {
-          const certFiles = typeof providerData.certification_files === 'string' 
-            ? JSON.parse(providerData.certification_files) 
-            : providerData.certification_files;
-            
-          // Filter only images (files that are not PDFs or other documents)
-          const imageFiles = Array.isArray(certFiles) ? certFiles.filter((file: any) => {
-            const fileType = file.type || '';
-            return fileType.startsWith('image/') || 
-                  (file.url && 
-                   (file.url.endsWith('.jpg') || 
-                    file.url.endsWith('.jpeg') || 
-                    file.url.endsWith('.png') || 
-                    file.url.endsWith('.webp')));
-          }) : [];
-          
-          galleryImages = imageFiles.map((file: any) => file.url);
-        } catch (error) {
-          console.error("Error parsing certification files for gallery images:", error);
-        }
+      // Extract image files from certification_files
+      if (certificationFiles.length > 0) {
+        // Filter only image files
+        const imageFiles = certificationFiles.filter(file => {
+          const isImageType = file.type.startsWith('image/');
+          const isImageExtension = file.url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+          return isImageType || isImageExtension;
+        });
+        
+        galleryImages = imageFiles.map(file => file.url);
       }
       
       // If no real images were found, use quality placeholder images
@@ -153,6 +163,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         provider: {
           ...providerData,
           hasCertifications,
+          certificationFiles,
           servicesCompleted
         },
         clientResidencia,
