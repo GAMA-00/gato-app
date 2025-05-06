@@ -19,6 +19,8 @@ export interface ProcessedProvider {
   serviceImage?: string | null; // Image for the service
   hasCertifications?: boolean;  // Whether the provider has certifications
   recurringClients?: number;    // Number of recurring clients
+  servicesCompleted?: number;   // Number of services completed
+  galleryImages?: string[];     // Gallery images
 }
 
 export interface BookingPreferences {
