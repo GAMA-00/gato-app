@@ -13,9 +13,9 @@ interface ProviderGalleryProps {
 const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
   // Placeholder images for demo purposes
   const demoImages = [
-    'https://placehold.co/600x400?text=Trabajo+1',
-    'https://placehold.co/600x400?text=Trabajo+2',
-    'https://placehold.co/600x400?text=Trabajo+3',
+    'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
+    'https://images.unsplash.com/photo-1518770660439-4636190af475',
+    'https://images.unsplash.com/photo-1461749280684-dccba630e2f6',
     'https://placehold.co/600x400?text=Trabajo+4',
     'https://placehold.co/600x400?text=Trabajo+5',
   ];
@@ -26,7 +26,7 @@ const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle>Galería</CardTitle>
+        <CardTitle>Galería de trabajos</CardTitle>
         
         <Button variant="ghost" size="sm" className="text-luxury-navy">
           Ver todos <ChevronRight className="h-4 w-4 ml-1" />
