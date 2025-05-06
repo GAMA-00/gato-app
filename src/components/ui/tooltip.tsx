@@ -4,14 +4,14 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
 
-// Creamos un componente TooltipProvider que acepta children
-const TooltipProvider = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <TooltipPrimitive.Provider>
-      {children}
-    </TooltipPrimitive.Provider>
-  )
-}
+// Modified TooltipProvider to accept all props from the original component
+const TooltipProvider = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Provider>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>
+>(({ ...props }, ref) => (
+  <TooltipPrimitive.Provider ref={ref} {...props} />
+))
+TooltipProvider.displayName = "TooltipProvider"
 
 const Tooltip = TooltipPrimitive.Root
 
