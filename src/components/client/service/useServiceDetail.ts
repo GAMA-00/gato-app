@@ -69,16 +69,36 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
                              Array.isArray(providerData.certification_files) && 
                              providerData.certification_files.length > 0;
       
-      // Create service variants from the JSON data or use default
+      // Parse service variants from JSON string if needed
       let serviceVariants = [];
-      if (listing.service_variants && Array.isArray(listing.service_variants) && listing.service_variants.length > 0) {
-        serviceVariants = listing.service_variants.map((variant: any, index: number) => ({
-          id: variant.id || `variant-${index}`,
-          name: variant.name || `Opción ${index + 1}`,
-          price: parseFloat(variant.price) || listing.base_price,
-          duration: parseInt(variant.duration) || listing.duration
-        }));
-      } else {
+      if (listing.service_variants) {
+        try {
+          // Check if it's already an object or needs parsing
+          const variantsData = typeof listing.service_variants === 'string' 
+            ? JSON.parse(listing.service_variants) 
+            : listing.service_variants;
+            
+          if (Array.isArray(variantsData) && variantsData.length > 0) {
+            serviceVariants = variantsData.map((variant: any, index: number) => ({
+              id: variant.id || `variant-${index}`,
+              name: variant.name || `Opción ${index + 1}`,
+              price: parseFloat(variant.price) || listing.base_price,
+              duration: parseInt(variant.duration) || listing.duration
+            }));
+          }
+        } catch (error) {
+          console.error("Error parsing service variants:", error);
+          // Create default variant if parsing fails
+          serviceVariants = [{
+            id: 'default-variant',
+            name: listing.title,
+            price: listing.base_price,
+            duration: listing.duration
+          }];
+        }
+      }
+      
+      if (serviceVariants.length === 0) {
         // Create default variant if none exist
         serviceVariants = [{
           id: 'default-variant',
@@ -88,16 +108,45 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         }];
       }
       
-      // Mock data
+      // Mock data for recurring clients and services completed
       const recurringClients = Math.floor(Math.random() * 10);
       const servicesCompleted = Math.floor(Math.random() * 50) + 10;
       
-      // Mock gallery images for demo (replace with actual gallery images)
-      const galleryImages = [
-        'https://placehold.co/800x600?text=Servicio+1',
-        'https://placehold.co/800x600?text=Servicio+2',
-        'https://placehold.co/800x600?text=Servicio+3'
-      ];
+      // Use real gallery images if available, or placeholders
+      let galleryImages = [];
+      
+      // Look for gallery images in provider's certification_files if available
+      if (providerData.certification_files) {
+        try {
+          const certFiles = typeof providerData.certification_files === 'string' 
+            ? JSON.parse(providerData.certification_files) 
+            : providerData.certification_files;
+            
+          // Filter only images (files that are not PDFs or other documents)
+          const imageFiles = Array.isArray(certFiles) ? certFiles.filter((file: any) => {
+            const fileType = file.type || '';
+            return fileType.startsWith('image/') || 
+                  (file.url && 
+                   (file.url.endsWith('.jpg') || 
+                    file.url.endsWith('.jpeg') || 
+                    file.url.endsWith('.png') || 
+                    file.url.endsWith('.webp')));
+          }) : [];
+          
+          galleryImages = imageFiles.map((file: any) => file.url);
+        } catch (error) {
+          console.error("Error parsing certification files for gallery images:", error);
+        }
+      }
+      
+      // If no real images were found, use quality placeholder images
+      if (galleryImages.length === 0) {
+        galleryImages = [
+          'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
+          'https://images.unsplash.com/photo-1518770660439-4636190af475',
+          'https://images.unsplash.com/photo-1461749280684-dccba630e2f6'
+        ];
+      }
       
       return {
         ...listing,

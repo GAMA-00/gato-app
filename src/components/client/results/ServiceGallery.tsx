@@ -37,6 +37,10 @@ const ServiceGallery = ({ images, className = '' }: ServiceGalleryProps) => {
                 src={image} 
                 alt={`Imagen de servicio ${index + 1}`}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback si la imagen no carga correctamente
+                  e.currentTarget.src = 'https://placehold.co/800x600?text=Servicio';
+                }}
               />
             </div>
           </CarouselItem>

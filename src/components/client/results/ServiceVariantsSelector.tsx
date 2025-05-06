@@ -35,6 +35,21 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   
   const isSelected = (id: string) => selectedVariants.some(v => v.id === id);
 
+  if (!variants || variants.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Servicios disponibles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-2 text-muted-foreground">
+            <p>Este proveedor no ha especificado opciones para este servicio.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
