@@ -80,8 +80,8 @@ const ClientResultsView = () => {
   
   const handleProviderSelect = (provider: ProcessedProvider) => {
     console.log("Selected provider:", provider);
-    // Corregimos la navegación para usar la ruta correcta definida en App.tsx
-    navigate(`/client/provider/${provider.id}`, {
+    // Corregimos la navegación para usar la ruta correcta que muestra detalles del servicio
+    navigate(`/client/service/${provider.id}/${provider.serviceId}`, {
       state: {
         bookingData: {
           ...bookingPrefs,

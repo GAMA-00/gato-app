@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
@@ -63,12 +63,22 @@ const ClientServiceDetail = () => {
   const { user } = useAuth();
   
   const [selectedVariants, setSelectedVariants] = useState<ServiceVariant[]>([]);
+
+  useEffect(() => {
+    console.log("ClientServiceDetail rendered with params:", { providerId, serviceId });
+    console.log("Booking data from state:", bookingData);
+  }, [providerId, serviceId, bookingData]);
   
   // Fetch provider and service details
-  const { data: serviceDetails, isLoading } = useQuery({
+  const { data: serviceDetails, isLoading, error } = useQuery({
     queryKey: ['service-detail', serviceId, providerId],
     queryFn: async () => {
-      if (!serviceId || !providerId) return null;
+      if (!serviceId || !providerId) {
+        console.error("Missing serviceId or providerId:", { serviceId, providerId });
+        return null;
+      }
+      
+      console.log("Fetching listing details for:", { serviceId, providerId });
       
       // Get listing details
       const { data: listing, error } = await supabase
@@ -101,6 +111,8 @@ const ClientServiceDetail = () => {
         toast.error("Error al obtener detalles del servicio");
         throw error;
       }
+      
+      console.log("Listing data:", listing);
       
       // Get client residence info
       let clientResidencia = null;
@@ -164,8 +176,16 @@ const ClientServiceDetail = () => {
         servicesCompleted
       } as ServiceDetailData;
     },
-    enabled: !!serviceId && !!providerId
+    enabled: !!serviceId && !!providerId,
+    retry: 1
   });
+
+  useEffect(() => {
+    if (error) {
+      console.error("Error in service details query:", error);
+      toast.error("No se pudo cargar la información del servicio");
+    }
+  }, [error]);
   
   const handleBack = () => {
     navigate(-1);
