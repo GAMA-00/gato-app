@@ -102,15 +102,15 @@ const ClientServiceDetail = () => {
       const recurringClients = Math.floor(Math.random() * 10);
       
       // Process provider data to include hasCertifications
-      const provider = listing.provider || {};
-      const hasCertifications = provider.certification_files && 
-                               Array.isArray(provider.certification_files) && 
-                               provider.certification_files.length > 0;
+      const providerData = listing.provider as ProviderData || {};
+      const hasCertifications = providerData.certification_files && 
+                               Array.isArray(providerData.certification_files) && 
+                               providerData.certification_files.length > 0;
       
       return {
         ...listing,
         provider: {
-          ...provider,
+          ...providerData,
           hasCertifications
         },
         clientResidencia,
@@ -191,8 +191,8 @@ const ClientServiceDetail = () => {
   }
   
   // Safely access nested properties
-  const provider = serviceDetails.provider || {};
-  const serviceType = serviceDetails.service_type || { name: '', category: { name: '' } };
+  const provider = serviceDetails?.provider || {};
+  const serviceType = serviceDetails?.service_type || { name: '', category: { name: '' } };
   const category = serviceType.category || { name: '' };
   
   return (
