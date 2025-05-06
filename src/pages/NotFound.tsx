@@ -1,9 +1,11 @@
 
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.error(
@@ -12,14 +14,34 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
+  const handleGoHome = () => {
+    navigate("/client");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
+      <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
         <h1 className="text-4xl font-bold mb-4">404</h1>
         <p className="text-xl text-gray-600 mb-4">¡Ups! Página no encontrada</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Regresar al Inicio
-        </a>
+        <p className="text-gray-500 mb-6">
+          No pudimos encontrar la página que estás buscando. La ruta{" "}
+          <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+            {location.pathname}
+          </span>{" "}
+          no existe.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={handleGoBack} variant="outline">
+            Regresar
+          </Button>
+          <Button onClick={handleGoHome}>
+            Ir al Inicio
+          </Button>
+        </div>
       </div>
     </div>
   );

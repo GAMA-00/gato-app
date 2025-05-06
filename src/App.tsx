@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -108,6 +109,12 @@ const AppRoutes = () => {
         <Route path="/client/provider/:providerId" element={
           <RequireAuth clientOnly={true}>
             <ProviderProfile />
+          </RequireAuth>
+        } />
+        {/* Ruta correcta para los detalles del servicio */}
+        <Route path="/client/service/:providerId/:serviceId" element={
+          <RequireAuth clientOnly={true}>
+            <ClientServiceDetail />
           </RequireAuth>
         } />
         <Route path="/client/booking-summary" element={
