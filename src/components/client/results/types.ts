@@ -13,9 +13,12 @@ export interface ProcessedProvider {
   experience: number;
   aboutMe: string;
   createdAt: string;
-  isAvailable?: boolean; // Campo para indicar disponibilidad
-  category?: string;     // Categoría del servicio
-  subcategory?: string;  // Subcategoría del servicio
+  isAvailable?: boolean;       // Campo para indicar disponibilidad
+  category?: string;           // Categoría del servicio
+  subcategory?: string;        // Subcategoría del servicio
+  serviceImage?: string | null; // Image for the service
+  hasCertifications?: boolean;  // Whether the provider has certifications
+  recurringClients?: number;    // Number of recurring clients
 }
 
 export interface BookingPreferences {
@@ -40,6 +43,7 @@ export interface ProviderData {
   servicesCompleted?: number;
   isVerified?: boolean;
   certifications?: boolean;
+  hasCertifications?: boolean;
   handlesDangerousDogs?: boolean;
 }
 

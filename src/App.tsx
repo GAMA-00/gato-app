@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,6 +33,7 @@ import ClientBookingFlow from "./pages/ClientBookingFlow";
 import ClientResultsView from "./pages/ClientResultsView";
 import ProviderProfile from "./pages/ProviderProfile";
 import BookingSummary from "./pages/BookingSummary";
+import ClientServiceDetail from "./pages/ClientServiceDetail";
 
 // Create a client for React Query
 const queryClient = new QueryClient();

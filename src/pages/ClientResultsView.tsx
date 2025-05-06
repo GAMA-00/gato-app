@@ -79,7 +79,7 @@ const ClientResultsView = () => {
   };
   
   const handleProviderSelect = (provider: ProcessedProvider) => {
-    navigate(`/client/provider/${provider.id}`, {
+    navigate(`/client/service/${provider.id}/${provider.serviceId}`, {
       state: {
         bookingData: {
           ...bookingPrefs,

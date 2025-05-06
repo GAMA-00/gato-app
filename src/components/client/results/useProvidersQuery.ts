@@ -37,7 +37,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             name, 
             about_me,
             experience_years,
-            average_rating
+            average_rating,
+            hasCertifications
           ),
           service_type:service_type_id(
             name,
@@ -70,6 +71,13 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         );
         console.log("Listings filtrados por residencia:", filteredListings?.length);
       }
+
+      // Get appointments count to calculate recurring clients (mock data for now)
+      // In a real implementation, you would query the appointments table
+      const getRecurringClientsCount = (providerId: string) => {
+        // Mock data - in a real application, this would be a database query
+        return Math.floor(Math.random() * 10);
+      };
       
       return filteredListings.map(listing => {
         // Extraemos los datos del provider de forma segura
@@ -103,6 +111,10 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           createdAt: listing.created_at || new Date().toISOString(),
           category: categoryName,
           subcategory: subcategoryName,
+          // Add new fields
+          serviceImage: 'https://placehold.co/800x400?text=Servicio&font=montserrat', // Placeholder image for now
+          hasCertifications: provider?.hasCertifications || false,
+          recurringClients: getRecurringClientsCount(provider?.id || ''),
           // Incluir información sobre disponibilidad (por ahora asumimos disponible)
           isAvailable: true 
         } as ProcessedProvider;
