@@ -66,7 +66,7 @@ const ClientCategoryView = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categories.map((category) => {
           // Get the icon component from our service categories
-          const CategoryIcon = SERVICE_CATEGORIES[category.name as keyof typeof SERVICE_CATEGORIES]?.icon || null;
+          const CategoryIcon = SERVICE_CATEGORIES[category.name as keyof typeof SERVICE_CATEGORIES]?.icon;
           
           return (
             <Card 

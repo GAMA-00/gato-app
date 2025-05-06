@@ -85,7 +85,9 @@ const ClientServices = () => {
       return listingsData.map(listing => {
         // Check if provider has certifications
         const hasCertifications = listing.provider?.certification_files 
-          ? JSON.parse(listing.provider.certification_files).length > 0
+          ? (typeof listing.provider.certification_files === 'string' 
+              ? JSON.parse(listing.provider.certification_files).length > 0
+              : listing.provider.certification_files.length > 0)
           : false;
           
         return {
@@ -106,7 +108,9 @@ const ClientServices = () => {
           residenciaIds: [residenciaId],
           createdAt: new Date(listing.created_at),
           serviceVariants: listing.service_variants 
-            ? JSON.parse(listing.service_variants) 
+            ? (typeof listing.service_variants === 'string'
+                ? JSON.parse(listing.service_variants) 
+                : listing.service_variants)
             : []
         };
       });
@@ -156,8 +160,8 @@ const ClientServices = () => {
     navigate('/client/messages');
   };
 
-  const getCategoryIcon = (iconName: string) => {
-    const IconComponent = SERVICE_CATEGORIES[iconName as keyof typeof SERVICE_CATEGORIES]?.icon;
+  const getCategoryIcon = (categoryId: string) => {
+    const IconComponent = SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.icon;
     return IconComponent ? <IconComponent className="h-5 w-5" /> : null;
   };
 
