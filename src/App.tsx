@@ -1,7 +1,6 @@
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
@@ -164,14 +163,13 @@ const AppRoutes = () => {
   );
 };
 
-// Corrección de la estructura del App para resolver el problema de TooltipProvider
+// Componente principal que define la estructura de la aplicación
 const App = () => {
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ChatProvider>
-            {/* Quitamos TooltipProvider de aquí y lo movemos dentro de los componentes que lo necesitan */}
             <AppRoutes />
             <Toaster />
             <Sonner />
