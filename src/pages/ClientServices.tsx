@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -126,77 +127,84 @@ const ClientServices = () => {
       subtitle="Explora todos los servicios disponibles en tu residencia"
     >
       <div className="space-y-12">
-        {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => (
-          <section key={categoryId} className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <h2 
-                className="text-2xl font-semibold" 
-                style={{ color: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333' }}
-              >
-                {SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || 'Otros servicios'}
-              </h2>
-              <div className="h-[2px] flex-1" style={{ 
-                background: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#e5e7eb',
-                opacity: 0.3 
-              }} />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categoryListings.map(listing => (
-                <Card 
-                  key={listing.id} 
-                  className="group hover:shadow-lg transition-all duration-300 border-t-4"
-                  style={{ 
-                    borderTopColor: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333'
-                  }}
+        {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => {
+          // Obtener la información de categoría o usar valores predeterminados
+          const categoryInfo = SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES];
+          const categoryLabel = categoryInfo?.label || 'Otros servicios';
+          const categoryColor = categoryInfo?.color || '#333';
+          
+          return (
+            <section key={categoryId} className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <h2 
+                  className="text-2xl font-semibold" 
+                  style={{ color: categoryColor }}
                 >
-                  <CardContent className="p-6">
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                        {listing.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {listing.description}
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Duración</span>
-                        <span className="font-medium">{listing.duration} minutos</span>
+                  {categoryLabel}
+                </h2>
+                <div className="h-[2px] flex-1" style={{ 
+                  background: categoryColor,
+                  opacity: 0.3 
+                }} />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categoryListings.map(listing => (
+                  <Card 
+                    key={listing.id} 
+                    className="group hover:shadow-lg transition-all duration-300 border-t-4"
+                    style={{ 
+                      borderTopColor: categoryColor
+                    }}
+                  >
+                    <CardContent className="p-6">
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+                          {listing.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {listing.description}
+                        </p>
                       </div>
                       
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                          Por: <span className="font-medium text-foreground">{listing.providerName}</span>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Duración</span>
+                          <span className="font-medium">{String(listing.duration)} minutos</span>
                         </div>
-                        <div className="text-lg font-semibold">
-                          ${calculateFinalPrice(listing.price).toFixed(2)}
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-muted-foreground">
+                            Por: <span className="font-medium text-foreground">{listing.providerName}</span>
+                          </div>
+                          <div className="text-lg font-semibold">
+                            ${calculateFinalPrice(listing.price ? Number(listing.price) : 0).toFixed(2)}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 pt-2">
+                          <Button
+                            className="flex-1"
+                            onClick={() => handleBookService(listing.id)}
+                          >
+                            Reservar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center space-x-3 pt-2">
-                        <Button
-                          className="flex-1"
-                          onClick={() => handleBookService(listing.id)}
-                        >
-                          Reservar
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          );
+        })}
         
         {listings.length === 0 && (
           <div className="text-center py-12">

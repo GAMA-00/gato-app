@@ -1,17 +1,69 @@
+
 import { Service, Client, Appointment, ServiceCategory, AppointmentStatus, Achievement, AchievementLevel, AchievementLevelInfo, ProviderAchievements } from './types';
+import { Home, Scissors, PawPrint, Dumbbell, Book, Globe, Car, Flower, Wrench, MoreHorizontal } from 'lucide-react';
 
 // Service Categories with colors
-export const SERVICE_CATEGORIES: Record<ServiceCategory, { label: string, color: string }> = {
-  'home': { label: 'Hogar', color: '#4F46E5' },
-  'personal-care': { label: 'Cuidado Personal', color: '#10B981' },
-  'pets': { label: 'Mascotas', color: '#3B82F6' },
-  'sports': { label: 'Deportes', color: '#16A34A' },
-  'classes': { label: 'Clases', color: '#F59E0B' },
-  'cleaning': { label: 'Limpieza', color: '#4F46E5' },
-  'car-wash': { label: 'Lavacar', color: '#3B82F6' },
-  'gardening': { label: 'Jardinería', color: '#16A34A' },
-  'maintenance': { label: 'Mantenimiento', color: '#F59E0B' },
-  'other': { label: 'Otros', color: '#6B7280' }
+export const SERVICE_CATEGORIES: Record<ServiceCategory, { label: string, color: string, bgColor: string, icon: any }> = {
+  'home': { 
+    label: 'Hogar', 
+    color: '#4F46E5', 
+    bgColor: '#eef2ff',
+    icon: Home
+  },
+  'personal-care': { 
+    label: 'Cuidado Personal', 
+    color: '#10B981', 
+    bgColor: '#ecfdf5',
+    icon: Scissors
+  },
+  'pets': { 
+    label: 'Mascotas', 
+    color: '#3B82F6', 
+    bgColor: '#eff6ff',
+    icon: PawPrint
+  },
+  'sports': { 
+    label: 'Deportes', 
+    color: '#16A34A', 
+    bgColor: '#f0fdf4',
+    icon: Dumbbell
+  },
+  'classes': { 
+    label: 'Clases', 
+    color: '#F59E0B', 
+    bgColor: '#fffbeb',
+    icon: Book
+  },
+  'cleaning': { 
+    label: 'Limpieza', 
+    color: '#4F46E5', 
+    bgColor: '#eef2ff',
+    icon: Home
+  },
+  'car-wash': { 
+    label: 'Lavacar', 
+    color: '#3B82F6', 
+    bgColor: '#eff6ff',
+    icon: Car
+  },
+  'gardening': { 
+    label: 'Jardinería', 
+    color: '#16A34A', 
+    bgColor: '#f0fdf4',
+    icon: Flower
+  },
+  'maintenance': { 
+    label: 'Mantenimiento', 
+    color: '#F59E0B', 
+    bgColor: '#fffbeb',
+    icon: Wrench
+  },
+  'other': { 
+    label: 'Otros', 
+    color: '#6B7280', 
+    bgColor: '#f9fafb',
+    icon: MoreHorizontal
+  }
 };
 
 // Appointment Statuses
@@ -449,3 +501,6 @@ export const getProviderAchievements = (): ProviderAchievements => {
     achievements: ACHIEVEMENTS
   };
 };
+
+// Exportar MOCK_APPOINTMENTS para evitar errores
+export const MOCK_APPOINTMENTS: Appointment[] = generateMockAppointments();
