@@ -47,6 +47,7 @@ export interface ProviderData {
   certifications?: boolean;
   hasCertifications?: boolean;
   certification_files?: any[];
+  created_at?: string;
   handlesDangerousDogs?: boolean;
 }
 

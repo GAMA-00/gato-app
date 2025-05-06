@@ -1,8 +1,18 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ProcessedProvider } from './types';
+import { ProcessedProvider, ProviderData } from './types';
 import { useAuth } from '@/contexts/AuthContext';
+
+interface ListingWithProvider {
+  id: string;
+  title: string;
+  description: string;
+  base_price: number;
+  duration: number;
+  is_active: boolean;
+  provider: ProviderData;
+}
 
 export const useProvidersQuery = (serviceTypeId: string, categoryName: string) => {
   const { user } = useAuth();
@@ -48,7 +58,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       console.log(`Found ${listings.length} active listings`);
       
       // Process and return the providers with their service details
-      const providers: ProcessedProvider[] = listings.map(listing => {
+      const providers: ProcessedProvider[] = (listings as ListingWithProvider[]).map(listing => {
         const provider = listing.provider || {};
         const hasCertifications = provider.certification_files && 
                                 Array.isArray(provider.certification_files) && 
