@@ -11,14 +11,26 @@ interface ProviderGalleryProps {
 }
 
 const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
-  // Use provider images if available, otherwise use placeholder images
+  // Solo usar las imágenes que el proveedor ha subido
   const images = provider.galleryImages && provider.galleryImages.length > 0 
     ? provider.galleryImages 
-    : [
-        'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
-        'https://images.unsplash.com/photo-1518770660439-4636190af475',
-        'https://images.unsplash.com/photo-1461749280684-dccba630e2f6'
-      ];
+    : [];
+
+  // Si no hay imágenes, mostrar un mensaje en lugar de usar imágenes de ejemplo
+  if (images.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle>Galería de trabajos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 text-muted-foreground">
+            Este proveedor aún no ha subido imágenes de sus trabajos.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

@@ -53,8 +53,9 @@ const ServiceGallery = ({
                   alt={`Imagen de servicio ${index + 1}`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    // Fallback si la imagen no carga correctamente
-                    e.currentTarget.src = 'https://placehold.co/800x600?text=Servicio';
+                    // En caso de error, mostrar un mensaje en lugar de una imagen predeterminada
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.innerHTML = '<div class="flex items-center justify-center h-full bg-muted/30 text-sm text-muted-foreground">Imagen no disponible</div>';
                   }}
                 />
                 {showExpandButton && (
@@ -78,6 +79,10 @@ const ServiceGallery = ({
                             src={img}
                             alt={`Imagen completa ${idx + 1}`}
                             className="w-full h-auto rounded-md object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.parentElement!.innerHTML = '<div class="flex items-center justify-center h-16 bg-muted/30 text-sm text-muted-foreground">Imagen no disponible</div>';
+                            }}
                           />
                         ))}
                       </div>
@@ -107,6 +112,10 @@ const ServiceGallery = ({
                         src={img}
                         alt={`Imagen completa ${idx + 1}`}
                         className="w-full h-auto rounded-md object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement!.innerHTML = '<div class="flex items-center justify-center h-16 bg-muted/30 text-sm text-muted-foreground">Imagen no disponible</div>';
+                        }}
                       />
                     ))}
                   </div>
