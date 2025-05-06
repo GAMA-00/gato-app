@@ -67,12 +67,12 @@ function AppRoutes() {
           <RootLayout><ClientServices /></RootLayout>
         </RequireAuth>
       } />
-      <Route path="/client/services/:category" element={
+      <Route path="/client/services/:categoryId" element={
         <RequireAuth>
-          <RootLayout><ClientCategoryView /></RootLayout>
+          <RootLayout><ClientServices /></RootLayout>
         </RequireAuth>
       } />
-      <Route path="/client/services/:category/:subcategory" element={
+      <Route path="/client/category/:categoryName" element={
         <RequireAuth>
           <RootLayout><ClientCategoryDetails /></RootLayout>
         </RequireAuth>
