@@ -27,7 +27,7 @@ import RequireAuth from "./components/auth/RequireAuth";
 import ClientProvidersList from "./pages/ClientProvidersList";
 import ProviderRegister from "./pages/ProviderRegister";
 
-// Nuevas páginas
+// Páginas actualizadas - versión final
 import ClientCategoryView from "./pages/ClientCategoryView";
 import ClientCategoryDetails from "./pages/ClientCategoryDetails";
 import ClientBookingFlow from "./pages/ClientBookingFlow";
@@ -37,7 +37,14 @@ import BookingSummary from "./pages/BookingSummary";
 import ClientServiceDetail from "./pages/ClientServiceDetail";
 
 // Create a client for React Query
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Desactivar refetch automático al enfocar la ventana
+      retry: 1, // Solo intentar una vez en caso de error
+    },
+  },
+});
 
 const AppRoutes = () => {
   return (
