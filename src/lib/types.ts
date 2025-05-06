@@ -94,6 +94,7 @@ export interface Appointment {
   notes: string;
   createdAt: Date;
   residencia?: string;
+  building?: string; // Added building field
   apartment?: string;
   serviceName?: string;
   clientName?: string;

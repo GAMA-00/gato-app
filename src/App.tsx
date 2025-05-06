@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
@@ -37,13 +38,12 @@ import RootLayout from '@/components/layout/RootLayout';
 import RequireAuth from '@/components/auth/RequireAuth';
 
 // Context
-import { AuthContextProvider } from '@/contexts/AuthContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const queryClient = new QueryClient();
 
 function App() {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
     return <div>Cargando...</div>;
@@ -52,7 +52,7 @@ function App() {
   return (
     <div className="min-h-screen">
       <QueryClientProvider client={queryClient}>
-        <AuthContextProvider>
+        <AuthProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -62,57 +62,57 @@ function App() {
               
               {/* Client Routes */}
               <Route path="/client" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientHome /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/messages" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientMessages /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/services" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientServices /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/services/:category" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientCategoryView /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/services/:category/:subcategory" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientCategoryDetails /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/results" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientResultsView /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/providers" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientProvidersList /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/service/:providerId/:serviceId" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientServiceDetail /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/booking/:providerId/:serviceId" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientBooking /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/booking-summary" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><BookingSummary /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/client/bookings" element={
-                <RequireAuth roles={['client']}>
+                <RequireAuth>
                   <RootLayout><ClientBookings /></RootLayout>
                 </RequireAuth>
               } />
@@ -120,49 +120,47 @@ function App() {
               {/* Provider Routes */}
               <Route path="/provider/register" element={<ProviderRegister />} />
               <Route path="/dashboard" element={
-                <RequireAuth roles={['provider', 'admin']}>
+                <RequireAuth>
                   <RootLayout><Dashboard /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/calendar" element={
-                <RequireAuth roles={['provider', 'admin']}>
+                <RequireAuth>
                   <RootLayout><Calendar /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/services" element={
-                <RequireAuth roles={['provider', 'admin']}>
+                <RequireAuth>
                   <RootLayout><Services /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/clients" element={
-                <RequireAuth roles={['provider', 'admin']}>
+                <RequireAuth>
                   <RootLayout><Clients /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/messages" element={
-                <RequireAuth roles={['provider', 'admin']}>
+                <RequireAuth>
                   <RootLayout><Messages /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/profile" element={
-                <RequireAuth roles={['provider', 'admin', 'client']}>
+                <RequireAuth>
                   <RootLayout><Profile /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/payment-setup" element={
-                <RequireAuth roles={['provider', 'admin']}>
+                <RequireAuth>
                   <RootLayout><PaymentSetup /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/achievements" element={
-                <RequireAuth roles={['provider', 'admin']}>
+                <RequireAuth>
                   <RootLayout><Achievements /></RootLayout>
                 </RequireAuth>
               } />
               <Route path="/provider/:providerId" element={
-                
-                  <RootLayout><ProviderProfile /></RootLayout>
-                
+                <RootLayout><ProviderProfile /></RootLayout>
               } />
               
               {/* Add new BookingConfirmation route */}
@@ -176,11 +174,14 @@ function App() {
               
             </Routes>
           </BrowserRouter>
-        </AuthContextProvider>
+        </AuthProvider>
         <Toaster richColors position="top-center" />
       </QueryClientProvider>
     </div>
   );
 }
+
+// Add this hook to fix the error in App.tsx
+import { useAuth } from '@/contexts/AuthContext';
 
 export default App;

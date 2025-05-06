@@ -9,6 +9,7 @@ export interface User {
   phone: string;
   buildingId: string;
   buildingName: string;
+  building: string; // Added building field
   hasPaymentMethod: boolean;
   role: 'client' | 'provider' | 'admin';
   avatarUrl?: string;
@@ -49,12 +50,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Login function
   const login = (userData: User) => {
+    // Ensure building property exists based on buildingName if not provided
+    if (!userData.building && userData.buildingName) {
+      userData.building = userData.buildingName;
+    }
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
   // Register function
   const register = (userData: User) => {
+    // Ensure building property exists based on buildingName if not provided
+    if (!userData.building && userData.buildingName) {
+      userData.building = userData.buildingName;
+    }
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
