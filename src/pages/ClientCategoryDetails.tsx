@@ -4,17 +4,17 @@ import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, Home, Scissors } from 'lucide-react';
+import { ArrowLeft, Book, Home, Scissors, LucideIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
-// Define proper icon typing
-const categoryIcons: Record<string, React.ReactElement> = {
-  'home': <Home size={24} />,
-  'personal-care': <Scissors size={24} />,
-  'classes': <Book size={24} />
+// Define proper icon typing using LucideIcon
+const categoryIconComponents: Record<string, LucideIcon> = {
+  'home': Home,
+  'personal-care': Scissors,
+  'classes': Book
 };
 
 const ClientCategoryDetails = () => {
@@ -86,16 +86,16 @@ const ClientCategoryDetails = () => {
 
   const isLoading = loadingCategory || loadingServices;
   
-  // Determine the correct icon for this category - ensuring proper React Element type
-  let categoryIcon = <Book size={24} />; // Default fallback as React Element
+  // Determine the correct icon for this category with proper typing
+  let CategoryIcon: LucideIcon = Book; // Default fallback with proper typing
   
   if (categoryName) {
     if (categoryName === 'home' || categoryName.includes('home')) {
-      categoryIcon = <Home size={24} />;
+      CategoryIcon = Home;
     } else if (categoryName === 'personal-care' || categoryName.includes('care')) {
-      categoryIcon = <Scissors size={24} />;
-    } else if (categoryName && categoryIcons[categoryName]) {
-      categoryIcon = categoryIcons[categoryName];
+      CategoryIcon = Scissors;
+    } else if (categoryIconComponents[categoryName]) {
+      CategoryIcon = categoryIconComponents[categoryName];
     }
   }
   
@@ -130,7 +130,7 @@ const ClientCategoryDetails = () => {
       title={
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy">
-            {categoryIcon}
+            <CategoryIcon size={24} />
           </div>
           <span>{categoryLabel}</span>
         </div>
@@ -154,7 +154,7 @@ const ClientCategoryDetails = () => {
             onClick={() => handleServiceSelect(service.id)}
           >
             <div className="w-12 h-12 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-2">
-              {categoryIcon}
+              <CategoryIcon size={24} />
             </div>
             <h3 className="text-center font-medium text-sm">{service.name}</h3>
           </Card>

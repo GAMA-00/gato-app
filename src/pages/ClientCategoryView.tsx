@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -6,10 +5,10 @@ import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Home, Scissors } from 'lucide-react';
+import { Book, Home, Scissors, LucideIcon } from 'lucide-react';
 
-// Use proper typing for the icon map
-const iconMap: Record<string, React.FC<any>> = {
+// Fixed type definition for the iconMap using the LucideIcon type
+const iconMap: Record<string, LucideIcon> = {
   'Book': Book,
   'Home': Home, 
   'Scissors': Scissors
@@ -63,23 +62,22 @@ const ClientCategoryView = () => {
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categories.map((category) => {
-          // Determine the icon based on the category name
-          let CategoryIcon = Book; // Default fallback using proper component reference
+          // Determine the icon based on the category name or icon property
+          let IconComponent: LucideIcon = Book; // Default fallback with proper typing
           
-          // Try to match the category with an appropriate icon
           if (category.name === 'home' || category.name.includes('home')) {
-            CategoryIcon = Home;
+            IconComponent = Home;
           } else if (category.name === 'personal-care' || category.name.includes('care')) {
-            CategoryIcon = Scissors;
+            IconComponent = Scissors;
           } else if (category.icon && iconMap[category.icon]) {
-            CategoryIcon = iconMap[category.icon];
+            IconComponent = iconMap[category.icon];
           }
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
               <Card className="flex flex-col items-center p-4 hover:shadow-luxury transition-shadow cursor-pointer bg-luxury-white h-24 justify-center">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-2">
-                  <CategoryIcon size={24} />
+                  <IconComponent size={24} />
                 </div>
                 <h3 className="text-center font-medium text-sm">{category.label}</h3>
               </Card>
