@@ -157,7 +157,8 @@ const ClientServices = () => {
   };
 
   const getCategoryIcon = (iconName: string) => {
-    return SERVICE_CATEGORIES[iconName as keyof typeof SERVICE_CATEGORIES]?.icon || 'Globe';
+    const IconComponent = SERVICE_CATEGORIES[iconName as keyof typeof SERVICE_CATEGORIES]?.icon;
+    return IconComponent ? <IconComponent className="h-5 w-5" /> : null;
   };
 
   if (isLoading) {
@@ -193,9 +194,13 @@ const ClientServices = () => {
     );
   }
 
+  const CategoryTitle = categoryId ? 
+    SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || "Servicios" : 
+    "Todos los servicios";
+
   return (
     <PageContainer
-      title={categoryId ? SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || "Servicios" : "Todos los servicios"}
+      title={CategoryTitle}
       subtitle={categoryId ? "Servicios disponibles en esta categoría" : "Explora todos los servicios disponibles"}
     >
       <div className="flex flex-col gap-4 mb-6">
@@ -243,103 +248,107 @@ const ClientServices = () => {
       </div>
       
       <div className="space-y-12 animate-fade-in">
-        {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => (
-          <section key={categoryId} className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <h2 
-                className="text-2xl font-semibold flex items-center gap-2" 
-                style={{ color: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333' }}
-              >
-                {getCategoryIcon(categoryId)}
-                <span>{SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || 'Otros servicios'}</span>
-              </h2>
-              <div className="h-[2px] flex-1" style={{ 
-                background: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#e5e7eb',
-                opacity: 0.3 
-              }} />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categoryListings.map(listing => (
-                <Card 
-                  key={listing.id} 
-                  className="group hover:shadow-lg transition-all duration-300 border-t-4 overflow-hidden"
-                  style={{ 
-                    borderTopColor: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333'
-                  }}
+        {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => {
+          const CategoryIcon = SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.icon;
+          
+          return (
+            <section key={categoryId} className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <h2 
+                  className="text-2xl font-semibold flex items-center gap-2" 
+                  style={{ color: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333' }}
                 >
-                  <CardContent className="p-0">
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={undefined} alt={listing.providerName} />
-                          <AvatarFallback>
-                            {listing.providerName.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex gap-1 items-center">
-                          {listing.providerRating && (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                              ★ {listing.providerRating.toFixed(1)}
-                            </Badge>
-                          )}
-                          {listing.hasCertifications && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              Certificado
-                            </Badge>
-                          )}
+                  {CategoryIcon && <CategoryIcon className="h-5 w-5" />}
+                  <span>{SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.label || 'Otros servicios'}</span>
+                </h2>
+                <div className="h-[2px] flex-1" style={{ 
+                  background: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#e5e7eb',
+                  opacity: 0.3 
+                }} />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categoryListings.map(listing => (
+                  <Card 
+                    key={listing.id} 
+                    className="group hover:shadow-lg transition-all duration-300 border-t-4 overflow-hidden"
+                    style={{ 
+                      borderTopColor: SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES]?.color || '#333'
+                    }}
+                  >
+                    <CardContent className="p-0">
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={undefined} alt={listing.providerName} />
+                            <AvatarFallback>
+                              {listing.providerName.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex gap-1 items-center">
+                            {listing.providerRating && (
+                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                ★ {listing.providerRating.toFixed(1)}
+                              </Badge>
+                            )}
+                            {listing.hasCertifications && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                Certificado
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="mb-4">
-                        <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                          {listing.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {listing.description}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Por: <span className="font-medium text-foreground">{listing.providerName}</span>
-                        </p>
                         
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">
-                            Duración: <span className="font-medium text-foreground">{listing.duration} min</span>
-                          </div>
-                          <div className="text-lg font-semibold">
-                            ${calculateFinalPrice(listing.price).toFixed(2)}
+                        <div className="mb-4">
+                          <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+                            {listing.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {listing.description}
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            Por: <span className="font-medium text-foreground">{listing.providerName}</span>
+                          </p>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-muted-foreground">
+                              Duración: <span className="font-medium text-foreground">{listing.duration} min</span>
+                            </div>
+                            <div className="text-lg font-semibold">
+                              ${calculateFinalPrice(listing.price).toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex items-center p-4 space-x-3">
-                      <Button
-                        className="flex-1"
-                        onClick={() => handleBookService(listing.providerId, listing.id)}
-                      >
-                        Reservar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
-                        title="Contactar proveedor"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        ))}
+                      
+                      <Separator />
+                      
+                      <div className="flex items-center p-4 space-x-3">
+                        <Button
+                          className="flex-1"
+                          onClick={() => handleBookService(listing.providerId, listing.id)}
+                        >
+                          Reservar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
+                          title="Contactar proveedor"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          );
+        })}
         
         {listings.length === 0 && (
           <div className="text-center py-12">

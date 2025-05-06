@@ -1,3 +1,4 @@
+
 import { Home, Scissors, PawPrint, Dumbbell, Book, Globe, Car, Sprout, Sparkles, Wrench } from 'lucide-react';
 
 export const RESIDENCIAS = [
@@ -24,60 +25,60 @@ export const SERVICE_CATEGORIES = {
     label: 'Hogar', 
     color: '#4f46e5', 
     bgColor: '#eef2ff',
-    icon: <Home className="h-5 w-5" />
+    icon: Home
   },
   'personal-care': { 
     label: 'Cuidado Personal', 
     color: '#ec4899', 
     bgColor: '#fce7f3',
-    icon: <Scissors className="h-5 w-5" />
+    icon: Scissors
   },
   'pets': { 
     label: 'Mascotas', 
     color: '#f59e0b', 
     bgColor: '#fef3c7',
-    icon: <PawPrint className="h-5 w-5" />
+    icon: PawPrint
   },
   'sports': { 
     label: 'Deportes', 
     color: '#10b981', 
     bgColor: '#d1fae5',
-    icon: <Dumbbell className="h-5 w-5" />
+    icon: Dumbbell
   },
   'classes': { 
     label: 'Clases', 
     color: '#3b82f6', 
     bgColor: '#dbeafe',
-    icon: <Book className="h-5 w-5" />
+    icon: Book
   },
   'car-wash': { 
     label: 'Lavado de Autos', 
     color: '#8b5cf6', 
     bgColor: '#ede9fe',
-    icon: <Car className="h-5 w-5" />
+    icon: Car
   },
   'gardening': { 
     label: 'Jardinería', 
     color: '#059669', 
     bgColor: '#d1fae5',
-    icon: <Sprout className="h-5 w-5" />
+    icon: Sprout
   },
   'cleaning': { 
     label: 'Limpieza', 
     color: '#0ea5e9', 
     bgColor: '#e0f2fe',
-    icon: <Sparkles className="h-5 w-5" />
+    icon: Sparkles
   },
   'maintenance': { 
     label: 'Mantenimiento', 
     color: '#d97706', 
     bgColor: '#fef3c7',
-    icon: <Wrench className="h-5 w-5" />
+    icon: Wrench
   },
   'other': { 
     label: 'Otros', 
     color: '#6b7280', 
     bgColor: '#f3f4f6',
-    icon: <Globe className="h-5 w-5" />
+    icon: Globe
   }
 };
