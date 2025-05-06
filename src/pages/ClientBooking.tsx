@@ -1,24 +1,46 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { ServiceVariant } from '@/components/client/service/types';
+import RecommendedTimeSlots from '@/components/client/booking/RecommendedTimeSlots';
+import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
 import { Service } from '@/lib/types';
+import { MOCK_APPOINTMENTS } from '@/lib/data';
+
+interface TimeSlot {
+  startTime: Date;
+  endTime: Date;
+  isRecommended: boolean;
+}
 
 const ClientBooking = () => {
-  const { buildingId, serviceId } = useParams();
+  const { providerId, serviceId } = useParams<{ providerId: string; serviceId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const bookingData = location.state?.bookingData || {};
   const { user } = useAuth();
+  
   const [service, setService] = useState<Service | null>(null);
-  const [startTime, setStartTime] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<any[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   const [commissionRate, setCommissionRate] = useState(20); // Default commission rate
+  const [selectedVariants, setSelectedVariants] = useState<ServiceVariant[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]); // This would normally be loaded from the database
 
   useEffect(() => {
+    console.log("ClientBooking rendered with params:", { providerId, serviceId });
+    console.log("Booking data from state:", bookingData);
+    
+    // Get selected variants from location state
+    if (bookingData?.selectedVariants) {
+      setSelectedVariants(bookingData.selectedVariants);
+    }
+    
+    // Load service details
     const savedServices = localStorage.getItem('gato_services');
     if (savedServices) {
       try {
@@ -36,7 +58,7 @@ const ClientBooking = () => {
       }
     }
     
-    // Load appointments from localStorage
+    // Load appointments from localStorage or mock data
     const savedAppointments = localStorage.getItem('gato_appointments');
     if (savedAppointments) {
       try {
@@ -49,11 +71,13 @@ const ClientBooking = () => {
         setAppointments(parsedAppointments);
       } catch (error) {
         console.error('Error parsing appointments:', error);
-        setAppointments([]);
+        setAppointments(MOCK_APPOINTMENTS);
       }
+    } else {
+      setAppointments(MOCK_APPOINTMENTS);
     }
     
-    // Load commission rate from localStorage (in a real app this would come from Supabase)
+    // Load commission rate from localStorage
     const savedSettings = localStorage.getItem('gato_system_settings');
     if (savedSettings) {
       try {
@@ -63,30 +87,33 @@ const ClientBooking = () => {
         console.error('Error parsing system settings:', error);
       }
     }
-  }, [serviceId]);
+  }, [serviceId, bookingData, providerId]);
 
-  const handleDateChange = (date: Date) => {
-    setStartTime(date);
+  const handleBack = () => {
+    navigate(-1);
   };
   
-  // Calculate final price with commission
-  const calculateFinalPrice = (basePrice: number) => {
-    return basePrice * (1 + (commissionRate / 100));
+  const handleSelectTimeSlot = (slot: TimeSlot) => {
+    setSelectedTimeSlot(slot);
   };
 
   const handleBookAppointment = () => {
-    if (!user || !service) return;
+    if (!user || !service || !selectedTimeSlot) {
+      toast.error("Por favor selecciona una fecha y hora para continuar");
+      return;
+    }
 
-    const endTime = new Date(startTime.getTime() + service.duration * 60000);
-
+    const endTime = selectedTimeSlot.endTime;
+    
+    // Create new appointment request
     const newAppointment = {
       id: Date.now().toString(),
       serviceId: service.id,
       clientId: user.id,
-      providerId: service.providerId,
-      startTime: startTime,
+      providerId: service.providerId || providerId,
+      startTime: selectedTimeSlot.startTime,
       endTime: endTime,
-      status: 'scheduled',
+      status: 'pending', // Set as "pending" for provider confirmation
       recurrence: 'none',
       notes: '',
       createdAt: new Date(),
@@ -96,16 +123,38 @@ const ClientBooking = () => {
       clientName: user.name
     };
 
+    // In a real implementation, we would save to the database
+    // For now, we'll just add to local storage
     const updatedAppointments = [...appointments, newAppointment];
     localStorage.setItem('gato_appointments', JSON.stringify(updatedAppointments));
-    setAppointments(updatedAppointments);
-
-    navigate('/client/bookings');
+    
+    // Navigate to confirmation page
+    navigate('/client/booking-confirmation', {
+      state: {
+        bookingData: {
+          service,
+          provider: {
+            id: service.providerId || providerId,
+            name: service.providerName || 'Proveedor de servicio'
+          },
+          selectedVariants: selectedVariants.length > 0 ? selectedVariants : null,
+          selectedTimeSlot
+        }
+      }
+    });
   };
 
   if (!service) {
     return (
       <PageContainer title="Reserva de Servicio" subtitle="Servicio no encontrado">
+        <Button 
+          variant="ghost" 
+          onClick={handleBack} 
+          className="mb-4 flex items-center text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft size={16} className="mr-1" />
+          <span>Volver</span>
+        </Button>
         <div className="text-center py-8">
           <p className="text-muted-foreground">El servicio seleccionado no existe.</p>
         </div>
@@ -113,33 +162,53 @@ const ClientBooking = () => {
     );
   }
 
-  const finalPrice = calculateFinalPrice(service.price);
-
+  // Filter provider's appointments only
+  const providerAppointments = appointments.filter(
+    app => app.providerId === service.providerId || app.providerId === providerId
+  );
+  
   return (
-    <PageContainer title="Reserva de Servicio" subtitle={service.name}>
-      <Card className="max-w-md mx-auto">
-        <CardContent className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Confirmar Reserva</h2>
-          <div className="mb-4">
-            <p>Servicio: {service.name}</p>
-            <p>Descripción: {service.description}</p>
-            <p>Duración: {service.duration} minutos</p>
-            <p>Precio: ${finalPrice.toFixed(2)}</p>
-          </div>
-          <div className="mb-4">
-            <p className="font-semibold">Seleccionar Fecha y Hora:</p>
-            <input
-              type="datetime-local"
-              value={format(startTime, "yyyy-MM-dd'T'HH:mm")}
-              onChange={(e) => handleDateChange(new Date(e.target.value))}
-              className="w-full rounded-md border-gray-200 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-            />
-          </div>
-          <Button className="w-full" onClick={handleBookAppointment}>
-            Reservar
-          </Button>
-        </CardContent>
-      </Card>
+    <PageContainer
+      title="Reserva de Servicio" 
+      subtitle={service.name}
+      action={
+        <Button 
+          variant="ghost" 
+          onClick={handleBack} 
+          className="flex items-center text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft size={16} className="mr-1" />
+          <span>Volver</span>
+        </Button>
+      }
+    >
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+        {/* Left Column: Time slot selection */}
+        <div className="md:col-span-2">
+          <RecommendedTimeSlots
+            serviceDuration={
+              selectedVariants.reduce((sum, v) => sum + Number(v.duration || 0), 0) || 
+              service.duration || 60
+            }
+            onSelectTimeSlot={handleSelectTimeSlot}
+            selectedTimeSlot={selectedTimeSlot}
+            providerAppointments={providerAppointments}
+          />
+        </div>
+        
+        {/* Right Column: Booking summary */}
+        <div>
+          <BookingSummaryCard
+            selectedVariants={selectedVariants}
+            selectedTimeSlot={selectedTimeSlot}
+            providerId={providerId || service.providerId}
+            serviceId={serviceId || service.id}
+            onSchedule={handleBookAppointment}
+            basePrice={service.price}
+            commissionRate={commissionRate}
+          />
+        </div>
+      </div>
     </PageContainer>
   );
 };
