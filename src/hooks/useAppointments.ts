@@ -33,7 +33,10 @@ export function useAppointments() {
           .eq('provider_id', user.id)
           .order('start_time');
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching provider appointments:", error);
+          throw error;
+        }
         return data || [];
       } else {
         // For clients
@@ -57,7 +60,10 @@ export function useAppointments() {
           .eq('client_id', user.id)
           .order('start_time');
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching client appointments:", error);
+          throw error;
+        }
         return data || [];
       }
     },

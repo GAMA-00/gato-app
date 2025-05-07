@@ -21,23 +21,40 @@ export function useStats() {
 
       const { data: appointments, error: appointmentsError } = await supabase
         .from('appointments')
-        .select('*')
+        .select('*, listings(base_price)')
         .eq(queryField, user.id)
         .gte('start_time', monthStart.toISOString());
 
-      if (appointmentsError) throw appointmentsError;
+      if (appointmentsError) {
+        console.error("Error fetching appointments for stats:", appointmentsError);
+        throw appointmentsError;
+      }
 
+      // Count today's appointments
       const todayAppointments = appointments.filter(
-        app => new Date(app.start_time) >= today
+        app => {
+          const appDate = new Date(app.start_time);
+          return appDate >= today && app.status !== 'cancelled';
+        }
       ).length;
 
+      // Count this week's appointments
       const weekAppointments = appointments.filter(
-        app => new Date(app.start_time) >= weekStart
+        app => {
+          const appDate = new Date(app.start_time);
+          return appDate >= weekStart && app.status !== 'cancelled';
+        }
       ).length;
 
-      // Will be implemented with real payment data
-      const monthRevenue = appointments.reduce((acc, app) => acc + 0, 0); 
+      // Calculate month revenue from confirmed and completed appointments
+      const monthRevenue = appointments
+        .filter(app => ['confirmed', 'completed'].includes(app.status))
+        .reduce((acc, app) => {
+          const price = app.listings?.base_price || 0;
+          return acc + parseFloat(price);
+        }, 0);
       
+      // Count unique clients or providers
       let activeClients = 0;
       if (user.role === 'provider') {
         // Count unique clients for this provider

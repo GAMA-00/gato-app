@@ -22,7 +22,7 @@ import RequireAuth from "./components/auth/RequireAuth";
 import ClientProvidersList from "./pages/ClientProvidersList";
 import ProviderRegister from "./pages/ProviderRegister";
 
-// Páginas actualizadas - versión final
+// Updated pages - final version
 import ClientCategoryView from "./pages/ClientCategoryView";
 import ClientCategoryDetails from "./pages/ClientCategoryDetails";
 import ClientBookingFlow from "./pages/ClientBookingFlow";
@@ -37,8 +37,8 @@ import ClientBookings from "./pages/ClientBookings";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false, // Desactivar refetch automático al enfocar la ventana
-      retry: 1, // Solo intentar una vez en caso de error
+      refetchOnWindowFocus: false, // Disable auto refetch when window is focused
+      retry: 1, // Only try once in case of error
     },
   },
 });
@@ -48,7 +48,7 @@ const AppRoutes = () => {
     <>
       <Navbar />
       <Routes>
-        {/* Landing page - Redirect to client category view (versión final) */}
+        {/* Landing page - Redirect to client category view (final version) */}
         <Route path="/" element={<Navigate to="/client" replace />} />
         
         {/* Auth Routes - These maintain the client context */}
@@ -89,13 +89,13 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         
-        {/* Client routes - Rutas actualizadas de la versión final */}
+        {/* Client routes - Updated routes of the final version */}
         <Route path="/client" element={<ClientCategoryView />} />
         <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
         <Route path="/client/booking/:categoryName/:serviceId" element={<ClientBookingFlow />} />
         <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
         <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
-        {/* Ruta correcta para los detalles del servicio */}
+        {/* Correct route for service details */}
         <Route path="/client/service/:providerId/:serviceId" element={<ClientServiceDetail />} />
         <Route path="/client/booking-summary" element={
           <RequireAuth clientOnly={true} requirePaymentMethod={true}>
@@ -125,7 +125,7 @@ const AppRoutes = () => {
   );
 };
 
-// Componente principal que define la estructura de la aplicación
+// Main component that defines the application structure
 const App = () => {
   return (
     <BrowserRouter>

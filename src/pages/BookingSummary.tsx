@@ -19,7 +19,7 @@ const BookingSummary = () => {
   const queryClient = useQueryClient();
   const { bookingData } = location.state || {};
   
-  // Si no hay datos de reserva, redirigir a la página principal
+  // If no booking data, redirect to the main page
   if (!bookingData || !user) {
     React.useEffect(() => {
       toast.error("Información de reserva no encontrada");
@@ -28,23 +28,33 @@ const BookingSummary = () => {
     return null;
   }
   
-  // Mutación para crear reserva
+  // Mutation to create appointment
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
+      // Calculate end time based on start time and duration
+      const startTime = bookingData.startTime ? new Date(bookingData.startTime) : new Date();
+      const durationMinutes = bookingData.duration || 60;
+      const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+      
+      console.log("Creating appointment with times:", {
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        duration: durationMinutes
+      });
+      
       const { data, error } = await supabase
         .from('appointments')
         .insert({
           client_id: user.id,
           provider_id: bookingData.providerId,
           listing_id: bookingData.serviceId,
-          start_time: bookingData.startTime || new Date(),
-          end_time: bookingData.endTime || new Date(Date.now() + bookingData.duration * 60000),
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(), // Ensure end_time is properly calculated
           status: 'pending',
-          // Usar propiedad buildingId (no building_id) y manejar caso en que sea indefinido
-          residencia_id: user.buildingId || null,
-          // Manejar caso en que apartment sea indefinido
+          residencia_id: user.building_id || null,
           apartment: user.apartment || '',
-          notes: bookingData.notes || ''
+          notes: bookingData.notes || '',
+          recurrence: bookingData.frequency || 'once'
         })
         .select();
         
@@ -57,6 +67,7 @@ const BookingSummary = () => {
       navigate('/client/bookings');
     },
     onError: (error) => {
+      console.error("Error creating appointment:", error);
       toast.error("Error al crear la reserva: " + error.message);
     }
   });
@@ -69,7 +80,7 @@ const BookingSummary = () => {
     createAppointmentMutation.mutate();
   };
   
-  // Formato de fecha si existe
+  // Format date if exists
   const formattedDate = bookingData.startTime
     ? new Date(bookingData.startTime).toLocaleDateString('es-ES', {
         weekday: 'long',
@@ -78,7 +89,7 @@ const BookingSummary = () => {
       })
     : 'Flexible';
     
-  // Formato de hora si existe
+  // Format time if exists
   const formattedTime = bookingData.startTime
     ? new Date(bookingData.startTime).toLocaleTimeString('es-ES', {
         hour: '2-digit',
@@ -105,7 +116,7 @@ const BookingSummary = () => {
           <CardContent className="pt-6">
             <h2 className="text-xl font-semibold mb-6">Resumen del servicio</h2>
             
-            {/* Datos del servicio */}
+            {/* Service data */}
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Servicio:</span>
@@ -161,13 +172,13 @@ const BookingSummary = () => {
             
             <Separator className="my-6" />
             
-            {/* Precio */}
+            {/* Price */}
             <div className="flex justify-between text-lg font-semibold mb-6">
               <span>Precio total:</span>
               <span className="text-luxury-navy">${bookingData.price?.toFixed(2) || '0.00'}</span>
             </div>
             
-            {/* Botones de acción */}
+            {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
                 variant="outline" 

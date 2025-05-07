@@ -6,9 +6,8 @@ import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequests from '@/components/calendar/JobRequests';
 import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
-import { MOCK_APPOINTMENTS } from '@/lib/data';
 import { toast } from "@/components/ui/use-toast";
-import { Appointment } from '@/lib/types';
+import { useAppointments } from '@/hooks/useAppointments';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,33 +20,15 @@ import {
 const Calendar = () => {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [showCompleted, setShowCompleted] = useState(true);
-  const [appointments, setAppointments] = useState<Appointment[]>(MOCK_APPOINTMENTS);
+  const { data: appointments = [] } = useAppointments();
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   
-  const handleAddAppointment = () => {
-    console.log('Agregar cita');
-  };
-
-  const handleAcceptRequest = (request: any) => {
-    const newAppointment = {
-      ...request.appointment,
-      status: 'confirmed'
-    };
-    
-    setAppointments(prev => [...prev, newAppointment]);
-    
-    toast({
-      title: "Solicitud aceptada",
-      description: "La cita ha sido agregada a tu calendario.",
-    });
-  };
-
-  const handleDeclineRequest = (requestId: string) => {
-    toast({
-      title: "Solicitud rechazada",
-      description: "La solicitud ha sido eliminada de tu lista.",
-    });
-  };
+  // Filter appointments based on status filters
+  const filteredAppointments = appointments.filter((appointment: any) => {
+    if (statusFilter.length === 0) return true;
+    if (!showCompleted && appointment.status === 'completed') return false;
+    return statusFilter.includes(appointment.status);
+  });
 
   return (
     <PageContainer 
@@ -66,16 +47,16 @@ const Calendar = () => {
               <DropdownMenuLabel>Estado</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem
-                checked={statusFilter.includes('scheduled')}
+                checked={statusFilter.includes('pending')}
                 onCheckedChange={() => {
                   setStatusFilter(prev => 
-                    prev.includes('scheduled') 
-                      ? prev.filter(s => s !== 'scheduled') 
-                      : [...prev, 'scheduled']
+                    prev.includes('pending') 
+                      ? prev.filter(s => s !== 'pending') 
+                      : [...prev, 'pending']
                   );
                 }}
               >
-                Programada
+                Pendiente
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={statusFilter.includes('confirmed')}
@@ -108,11 +89,7 @@ const Calendar = () => {
         {showBlockedTimeSlots && (
           <BlockedTimeSlots />
         )}
-        <JobRequests 
-          onAcceptRequest={handleAcceptRequest}
-          onDeclineRequest={handleDeclineRequest}
-        />
-        <CalendarView appointments={appointments} />
+        <CalendarView appointments={filteredAppointments} />
       </div>
     </PageContainer>
   );

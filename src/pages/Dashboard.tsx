@@ -8,7 +8,7 @@ import { Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useStats } from '@/hooks/useStats';
-import { startOfToday, startOfTomorrow, endOfTomorrow, isSameDay } from 'date-fns';
+import { startOfToday, startOfTomorrow, endOfTomorrow, startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -19,16 +19,25 @@ const Dashboard = () => {
   const tomorrow = startOfTomorrow();
   const tomorrowEnd = endOfTomorrow();
   
+  // Filter appointments by day
   const todaysAppointments = appointments
-    .filter(app => isSameDay(new Date(app.start_time), today))
+    .filter(app => {
+      const appDate = new Date(app.start_time);
+      return isSameDay(appDate, today) && app.status !== 'cancelled';
+    })
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
     
   const tomorrowsAppointments = appointments
     .filter(app => {
-      const date = new Date(app.start_time);
-      return date >= tomorrow && date <= tomorrowEnd;
+      const appDate = new Date(app.start_time);
+      return isSameDay(appDate, tomorrow) && app.status !== 'cancelled';
     })
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+  // Filter pending appointments for providers
+  const pendingAppointments = user?.role === 'provider' ? appointments
+    .filter(app => app.status === 'pending')
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) : [];
 
   if (isLoadingAppointments || isLoadingStats) {
     return (
@@ -49,24 +58,30 @@ const Dashboard = () => {
       className="pt-0"
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-6">
+        {user?.role === 'provider' && pendingAppointments.length > 0 && (
           <AppointmentList
-            appointments={todaysAppointments}
-            title="Citas de Hoy"
+            appointments={pendingAppointments}
+            title="Solicitudes Pendientes"
             icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para hoy"
+            emptyMessage="No hay solicitudes pendientes"
+            isPending={true}
           />
+        )}
 
-          <AppointmentList
-            appointments={tomorrowsAppointments}
-            title="Citas de Mañana"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para mañana"
-          />
-        </div>
+        <AppointmentList
+          appointments={todaysAppointments}
+          title="Citas de Hoy"
+          icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+          emptyMessage="No hay citas programadas para hoy"
+        />
 
-        <QuickStats />
-        
+        <AppointmentList
+          appointments={tomorrowsAppointments}
+          title="Citas de Mañana"
+          icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+          emptyMessage="No hay citas programadas para mañana"
+        />
+
         {stats && <DashboardStats stats={stats} />}
       </div>
     </PageContainer>

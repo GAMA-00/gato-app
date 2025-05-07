@@ -5,40 +5,41 @@ import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Appointment, Client, Service } from '@/lib/types';
-import { MOCK_SERVICES, MOCK_CLIENTS } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
-// Mapeo de estatus a colores 
+// Status color mapping
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Verde
-  scheduled:    { bg: "#FEC6A1", border: "#FF9100", text: "#924C00" }, // Naranja
-  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" }        // Gris
+  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Green
+  pending:      { bg: "#FEC6A1", border: "#FF9100", text: "#924C00" }, // Orange
+  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" },       // Gray
+  rejected:     { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }, // Red
+  cancelled:    { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }  // Red
 };
 
 interface CalendarAppointmentProps {
-  appointment: Appointment;
-  service: Service;
-  client: Client;
+  appointment: any;
   expanded: boolean;
   onClick: () => void;
 }
 
 const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   appointment,
-  service,
-  client,
   expanded,
   onClick
 }) => {
-  const startHour = appointment.startTime.getHours();
-  const startMinutes = appointment.startTime.getMinutes();
-  const durationMinutes = (appointment.endTime.getTime() - appointment.startTime.getTime()) / (1000 * 60);
+  const startHour = new Date(appointment.start_time).getHours();
+  const startMinutes = new Date(appointment.start_time).getMinutes();
+  const startTime = new Date(appointment.start_time);
+  const endTime = new Date(appointment.end_time);
+  const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
-  const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['scheduled'];
-
-  // Mostrar solo la dirección del cliente como ubicación (primer parte)
-  const location = client.address.split(',')[0];
+  const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
+  
+  // Display client/provider name and listing title
+  const personName = appointment.clients?.profiles?.name || 
+                    appointment.providers?.profiles?.name ||
+                    'Usuario';
+  const serviceName = appointment.listings?.title || 'Servicio';
 
   return (
     <div
@@ -54,7 +55,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
         color: statusColor.text,
         fontWeight: 500
       }}
-      title={service.name}
+      title={serviceName}
       onClick={onClick}
       tabIndex={0}
       role="button"
@@ -65,7 +66,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
           expanded ? "text-base mb-1" : "text-xs"
         )}
         style={{ color: statusColor.text }}>
-        {location}
+        {personName}
       </div>
       <div 
         className={cn(
@@ -73,22 +74,27 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
           expanded ? "text-sm font-medium" : "text-[10px] font-normal"
         )}
         style={{ color: statusColor.text }}>
-        {client.name}
-      </div>
-      <div 
-        className={cn(
-          "truncate text-muted-foreground",
-          expanded ? "text-xs mt-1" : "text-[9px] mt-0.5"
-        )}
-        style={{ fontWeight: 400 }}>
-        {service.name}
+        {serviceName}
       </div>
       {expanded &&
         <div className="text-[11px] mt-1 text-gray-400">
-          {/* Puedes agregar más detalles si hay campos extra requeridos */}
           <span>
-            {format(appointment.startTime, "HH:mm")} - {format(appointment.endTime, "HH:mm")}
+            {format(new Date(appointment.start_time), "HH:mm")} - {format(new Date(appointment.end_time), "HH:mm")}
           </span>
+          <div className="mt-1 pt-1 border-t text-xs">
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-[10px]",
+              statusColor.bg,
+              statusColor.text
+            )}>
+              {appointment.status === 'confirmed' ? 'Confirmada' : 
+               appointment.status === 'pending' ? 'Pendiente' :
+               appointment.status === 'completed' ? 'Completada' :
+               appointment.status === 'rejected' ? 'Rechazada' :
+               appointment.status === 'cancelled' ? 'Cancelada' : 
+               'Desconocido'}
+            </span>
+          </div>
         </div>
       }
     </div>
@@ -97,7 +103,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
 
 interface CalendarDayProps {
   date: Date;
-  appointments: Appointment[];
+  appointments: any[];
   isCurrentMonth: boolean;
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
@@ -111,8 +117,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   setExpandedId
 }) => {
   const dayAppointments = appointments.filter(appointment => 
-    isSameDay(appointment.startTime, date) && 
-    appointment.endTime.getHours() <= 20
+    isSameDay(new Date(appointment.start_time), date) && 
+    new Date(appointment.end_time).getHours() <= 20
   );
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
   const isCurrentDay = isToday(date);
@@ -143,14 +149,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           </div>
         ))}
         {dayAppointments.map(appointment => {
-          const service = MOCK_SERVICES.find(s => s.id === appointment.serviceId)!;
-          const client = MOCK_CLIENTS.find(c => c.id === appointment.clientId)!;
           return (
             <CalendarAppointment
               key={appointment.id}
               appointment={appointment}
-              service={service}
-              client={client}
               expanded={expandedId === appointment.id}
               onClick={() => setExpandedId(expandedId === appointment.id ? null : appointment.id)}
             />
@@ -162,7 +164,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 };
 
 interface CalendarViewProps {
-  appointments: Appointment[];
+  appointments: any[];
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
