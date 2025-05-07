@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -63,15 +64,7 @@ const ClientCategoryView = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categories.map((category) => {
           // Determine the icon based on the category name or icon property
-          let IconComponent: LucideIcon = Book; // Default fallback with proper typing
-          
-          if (category.name === 'home' || category.name.includes('home')) {
-            IconComponent = Home;
-          } else if (category.name === 'personal-care' || category.name.includes('care')) {
-            IconComponent = Scissors;
-          } else if (category.icon && iconMap[category.icon]) {
-            IconComponent = iconMap[category.icon];
-          }
+          const IconComponent = iconMap[category.icon] || Book;
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>

@@ -101,20 +101,23 @@ const ClientCategoryDetails = () => {
   
   const categoryLabel = categoryInfo?.label || '';
 
+  // Create the back button as a React element
+  const backButton = (
+    <Button 
+      variant="ghost" 
+      onClick={handleBack} 
+      className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
+    >
+      <ArrowLeft size={16} className="mr-1" />
+      <span>Volver a categorías</span>
+    </Button>
+  );
+
   if (isLoading) {
     return (
       <PageContainer
         title="Cargando servicios..."
-        subtitle={
-          <Button 
-            variant="ghost" 
-            onClick={handleBack} 
-            className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft size={16} className="mr-1" />
-            <span>Volver a categorías</span>
-          </Button>
-        }
+        subtitle={backButton}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto">
           {[1, 2, 3, 4].map((i) => (
@@ -135,16 +138,7 @@ const ClientCategoryDetails = () => {
           <span>{categoryLabel}</span>
         </div>
       }
-      subtitle={
-        <Button 
-          variant="ghost" 
-          onClick={handleBack} 
-          className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={16} className="mr-1" />
-          <span>Volver a categorías</span>
-        </Button>
-      }
+      subtitle={backButton}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => (

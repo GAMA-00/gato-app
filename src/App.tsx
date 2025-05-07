@@ -12,10 +12,6 @@ import Achievements from "./pages/Achievements";
 import Messages from "./pages/Messages";
 import ClientMessages from "./pages/ClientMessages";
 import NotFound from "./pages/NotFound";
-import ClientHome from "./pages/ClientHome";
-import ClientServices from "./pages/ClientServices";
-import ClientBooking from "./pages/ClientBooking";
-import ClientBookings from "./pages/ClientBookings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PaymentSetup from "./pages/PaymentSetup";
@@ -34,6 +30,8 @@ import ClientResultsView from "./pages/ClientResultsView";
 import ProviderProfile from "./pages/ProviderProfile";
 import BookingSummary from "./pages/BookingSummary";
 import ClientServiceDetail from "./pages/ClientServiceDetail";
+import ClientServices from "./pages/ClientServices";
+import ClientBookings from "./pages/ClientBookings";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -50,7 +48,7 @@ const AppRoutes = () => {
     <>
       <Navbar />
       <Routes>
-        {/* Landing page - Redirect to client home */}
+        {/* Landing page - Redirect to client category view (versión final) */}
         <Route path="/" element={<Navigate to="/client" replace />} />
         
         {/* Auth Routes - These maintain the client context */}
@@ -91,38 +89,14 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         
-        {/* Client routes - Nuevas rutas y actualizaciones */}
-        <Route path="/client" element={
-          <RequireAuth clientOnly={true}>
-            <ClientCategoryView />
-          </RequireAuth>
-        } />
-        <Route path="/client/category/:categoryName" element={
-          <RequireAuth clientOnly={true}>
-            <ClientCategoryDetails />
-          </RequireAuth>
-        } />
-        <Route path="/client/booking/:categoryName/:serviceId" element={
-          <RequireAuth clientOnly={true}>
-            <ClientBookingFlow />
-          </RequireAuth>
-        } />
-        <Route path="/client/results/:categoryName/:serviceId" element={
-          <RequireAuth clientOnly={true}>
-            <ClientResultsView />
-          </RequireAuth>
-        } />
-        <Route path="/client/provider/:providerId" element={
-          <RequireAuth clientOnly={true}>
-            <ProviderProfile />
-          </RequireAuth>
-        } />
+        {/* Client routes - Rutas actualizadas de la versión final */}
+        <Route path="/client" element={<ClientCategoryView />} />
+        <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
+        <Route path="/client/booking/:categoryName/:serviceId" element={<ClientBookingFlow />} />
+        <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
+        <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
         {/* Ruta correcta para los detalles del servicio */}
-        <Route path="/client/service/:providerId/:serviceId" element={
-          <RequireAuth clientOnly={true}>
-            <ClientServiceDetail />
-          </RequireAuth>
-        } />
+        <Route path="/client/service/:providerId/:serviceId" element={<ClientServiceDetail />} />
         <Route path="/client/booking-summary" element={
           <RequireAuth clientOnly={true} requirePaymentMethod={true}>
             <BookingSummary />
@@ -130,26 +104,14 @@ const AppRoutes = () => {
         } />
         
         {/* Rutas existentes del cliente */}
-        <Route path="/client/services/:category/:subcat" element={
-          <RequireAuth clientOnly={true}>
-            <ClientProvidersList />
-          </RequireAuth>
-        } />
-        <Route path="/client/services/:buildingId" element={
-          <RequireAuth clientOnly={true}>
-            <ClientServices />
-          </RequireAuth>
-        } />
+        <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
+        <Route path="/client/services/:buildingId" element={<ClientServices />} />
         <Route path="/client/book/:buildingId/:serviceId" element={
           <RequireAuth clientOnly={true} requirePaymentMethod={true}>
             <ClientBooking />
           </RequireAuth>
         } />
-        <Route path="/client/bookings" element={
-          <RequireAuth clientOnly={true}>
-            <ClientBookings />
-          </RequireAuth>
-        } />
+        <Route path="/client/bookings" element={<ClientBookings />} />
         <Route path="/client/messages" element={
           <RequireAuth clientOnly={true} strictAuth={true}>
             <ClientMessages />
