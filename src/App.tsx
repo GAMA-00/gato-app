@@ -108,7 +108,7 @@ const AppRoutes = () => {
         <Route path="/client/services/:buildingId" element={<ClientServices />} />
         <Route path="/client/book/:buildingId/:serviceId" element={
           <RequireAuth clientOnly={true} requirePaymentMethod={true}>
-            <ClientBooking />
+            <ClientBookings />
           </RequireAuth>
         } />
         <Route path="/client/bookings" element={<ClientBookings />} />
