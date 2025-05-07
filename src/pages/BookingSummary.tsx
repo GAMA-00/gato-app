@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,7 +50,7 @@ const BookingSummary = () => {
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(), // Ensure end_time is properly calculated
           status: 'pending',
-          residencia_id: user.building_id || null,
+          residencia_id: user.buildingId || null,
           apartment: user.apartment || '',
           notes: bookingData.notes || '',
           recurrence: bookingData.frequency || 'once'

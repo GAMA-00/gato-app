@@ -51,7 +51,8 @@ export function useStats() {
         .filter(app => ['confirmed', 'completed'].includes(app.status))
         .reduce((acc, app) => {
           const price = app.listings?.base_price || 0;
-          return acc + parseFloat(price);
+          // Convert the numeric value to string before parsing to ensure consistency
+          return acc + parseFloat(price.toString());
         }, 0);
       
       // Count unique clients or providers
