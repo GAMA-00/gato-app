@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ const BookingSummary = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { bookingData } = location.state || {};
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // If no booking data, redirect to the main page
   if (!bookingData || !user) {
@@ -26,6 +28,27 @@ const BookingSummary = () => {
     }, []);
     return null;
   }
+  
+  // Validate that we have required data before showing the form
+  const hasRequiredData = !!(
+    bookingData.serviceName &&
+    bookingData.providerName &&
+    bookingData.duration &&
+    typeof bookingData.price === 'number'
+  );
+
+  // Format price safely to avoid NaN
+  const formattedPrice = typeof bookingData.price === 'number' && !isNaN(bookingData.price)
+    ? bookingData.price.toFixed(2)
+    : '0.00';
+  
+  // Format duration to hours and minutes (HH:MM)
+  const formatDurationHHMM = (minutes) => {
+    if (!minutes || isNaN(minutes)) return '00:00';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  };
   
   // Mutation to create appointment
   const createAppointmentMutation = useMutation({
@@ -38,7 +61,8 @@ const BookingSummary = () => {
       console.log("Creating appointment with times:", {
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        duration: durationMinutes
+        duration: durationMinutes,
+        price: bookingData.price
       });
       
       const { data, error } = await supabase
@@ -68,6 +92,7 @@ const BookingSummary = () => {
     onError: (error) => {
       console.error("Error creating appointment:", error);
       toast.error("Error al crear la reserva: " + error.message);
+      setIsSubmitting(false);
     }
   });
   
@@ -76,6 +101,19 @@ const BookingSummary = () => {
   };
   
   const handleConfirm = () => {
+    // Validate required data
+    if (!hasRequiredData) {
+      toast.error("Faltan datos necesarios para completar la reserva");
+      return;
+    }
+    
+    // Validate date if required
+    if (bookingData.requiresScheduling && !bookingData.startTime) {
+      toast.error("Por favor selecciona una fecha y hora para el servicio");
+      return;
+    }
+
+    setIsSubmitting(true);
     createAppointmentMutation.mutate();
   };
   
@@ -119,14 +157,14 @@ const BookingSummary = () => {
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Servicio:</span>
-                <span className="font-medium">{bookingData.serviceName}</span>
+                <span className="font-medium">{bookingData.serviceName || 'No especificado'}</span>
               </div>
               
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Proveedor:</span>
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-1 text-luxury-navy" />
-                  <span className="font-medium">{bookingData.providerName}</span>
+                  <span className="font-medium">{bookingData.providerName || 'No especificado'}</span>
                 </div>
               </div>
               
@@ -134,7 +172,11 @@ const BookingSummary = () => {
                 <span className="text-muted-foreground">Duración:</span>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-1 text-luxury-navy" />
-                  <span className="font-medium">{formatDuration(bookingData.duration)}</span>
+                  <span className="font-medium">
+                    {bookingData.duration 
+                      ? formatDurationHHMM(bookingData.duration) 
+                      : '00:00'}
+                  </span>
                 </div>
               </div>
               
@@ -174,7 +216,7 @@ const BookingSummary = () => {
             {/* Price */}
             <div className="flex justify-between text-lg font-semibold mb-6">
               <span>Precio total:</span>
-              <span className="text-luxury-navy">${bookingData.price?.toFixed(2) || '0.00'}</span>
+              <span className="text-luxury-navy">${formattedPrice}</span>
             </div>
             
             {/* Action buttons */}
@@ -183,15 +225,16 @@ const BookingSummary = () => {
                 variant="outline" 
                 className="flex-1" 
                 onClick={handleBack}
+                disabled={isSubmitting}
               >
                 Volver
               </Button>
               <Button 
                 className="flex-1 bg-luxury-navy hover:bg-luxury-navy/90" 
                 onClick={handleConfirm}
-                disabled={createAppointmentMutation.isPending}
+                disabled={isSubmitting || !hasRequiredData}
               >
-                {createAppointmentMutation.isPending ? 'Enviando...' : 'Confirmar Reserva'}
+                {isSubmitting ? 'Enviando...' : 'Confirmar Reserva'}
               </Button>
             </div>
           </CardContent>

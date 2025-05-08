@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -45,18 +44,31 @@ const ClientServiceDetail = () => {
     const servicesToBook = selectedVariants.length > 0 ? selectedVariants : 
       (serviceDetails?.serviceVariants ? [serviceDetails.serviceVariants[0]] : []);
     
-    toast.success("¡Servicio agendado con éxito!");
+    // Calculate total price and duration from selected variants
+    const totalPrice = servicesToBook.reduce((sum, v) => sum + Number(v.price), 0);
+    const totalDuration = servicesToBook.reduce((sum, v) => sum + Number(v.duration), 0);
+    
+    // Ensure we have valid price and duration
+    if (isNaN(totalPrice) || isNaN(totalDuration)) {
+      toast.error("Error al calcular el precio o duración del servicio");
+      return;
+    }
+    
+    toast.success("¡Preparando servicio para reserva!");
     navigate('/client/booking-summary', {
       state: {
-        provider: serviceDetails?.provider,
-        service: {
-          id: serviceDetails?.id,
-          name: serviceDetails?.title,
-          price: selectedVariants.reduce((sum, v) => sum + v.price, 0) || serviceDetails?.base_price,
-          duration: selectedVariants.reduce((sum, v) => sum + v.duration, 0) || serviceDetails?.duration
-        },
-        selectedVariants: servicesToBook,
-        bookingData
+        bookingData: {
+          serviceId: serviceDetails?.id,
+          serviceName: serviceDetails?.title,
+          providerId: serviceDetails?.provider?.id,
+          providerName: serviceDetails?.provider?.name,
+          price: totalPrice,
+          duration: totalDuration,
+          startTime: bookingData.startTime || null,
+          notes: bookingData.notes || '',
+          frequency: bookingData.frequency || 'once',
+          requiresScheduling: !bookingData.startTime && true
+        }
       }
     });
   };
@@ -110,6 +122,19 @@ const ClientServiceDetail = () => {
       </PageContainer>
     );
   }
+
+  // Calculate default selection and price
+  const defaultVariant = serviceDetails.serviceVariants?.[0];
+  const defaultPrice = defaultVariant?.price || serviceDetails.base_price || 0;
+  const defaultDuration = defaultVariant?.duration || serviceDetails.duration || 0;
+  
+  // Ensure we have variants for display and selection
+  const variants = serviceDetails.serviceVariants || [{
+    id: 'default',
+    name: serviceDetails.title || 'Servicio básico',
+    price: defaultPrice,
+    duration: defaultDuration
+  }];
   
   return (
     <PageContainer
@@ -167,7 +192,7 @@ const ClientServiceDetail = () => {
           
           {/* Service Variants/Options */}
           <ServiceVariantsSelector 
-            variants={serviceDetails.serviceVariants || []} 
+            variants={variants} 
             onSelectVariant={setSelectedVariants} 
           />
         </div>
@@ -175,8 +200,7 @@ const ClientServiceDetail = () => {
         {/* Right Column: Booking Summary */}
         <div className="space-y-6">
           <BookingSummary
-            selectedVariants={selectedVariants.length > 0 ? selectedVariants : 
-              (serviceDetails.serviceVariants ? [serviceDetails.serviceVariants[0]] : [])}
+            selectedVariants={selectedVariants.length > 0 ? selectedVariants : [variants[0]]}
             onSchedule={handleSchedule}
           />
           
