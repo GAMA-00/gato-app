@@ -1,12 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { formatDuration } from '@/lib/utils';
 import PageContainer from '@/components/layout/PageContainer';
 import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,7 +17,7 @@ import { es } from 'date-fns/locale';
 const BookingSummary = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const { bookingData } = location.state || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,8 +31,17 @@ const BookingSummary = () => {
   );
   const [isFlexible, setIsFlexible] = useState(!bookingData?.startTime);
   
+  // Verificar autenticación al cargar el componente
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      toast.error("Debes iniciar sesión para reservar un servicio");
+      navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
+      return;
+    }
+  }, [isAuthenticated, user]);
+  
   // If no booking data, redirect to the main page
-  if (!bookingData || !user) {
+  if (!bookingData) {
     React.useEffect(() => {
       toast.error("Información de reserva no encontrada");
       navigate('/client');
@@ -62,9 +70,41 @@ const BookingSummary = () => {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
   
+  // Query para verificar el client_id del usuario actual
+  const { data: clientData, isLoading: isLoadingClient } = useQuery({
+    queryKey: ['client-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data: clientData, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching client data:", error);
+        return null;
+      }
+      
+      return clientData;
+    },
+    enabled: !!user?.id
+  });
+  
   // Mutation to create appointment
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
+      // Verificar si el usuario está autenticado y es cliente
+      if (!user?.id) {
+        throw new Error("Debes iniciar sesión para reservar un servicio");
+      }
+      
+      // Verificar si el usuario existe como cliente en la base de datos
+      if (!clientData) {
+        throw new Error("Tu perfil de cliente no se encuentra registrado correctamente");
+      }
+      
       // Calculate start time based on selected date and time
       let startTime;
       
@@ -82,12 +122,16 @@ const BookingSummary = () => {
       const durationMinutes = bookingData.duration || 60;
       const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
       
-      console.log("Creating appointment with times:", {
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
+      console.log("Creating appointment with data:", {
+        client_id: user.id,
+        provider_id: bookingData.providerId,
+        listing_id: bookingData.serviceId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
         duration: durationMinutes,
         price: bookingData.price,
-        isFlexible
+        isFlexible,
+        status: 'pending'
       });
       
       const { data, error } = await supabase
@@ -114,9 +158,9 @@ const BookingSummary = () => {
       toast.success("Reserva solicitada con éxito");
       navigate('/client/bookings');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error creating appointment:", error);
-      toast.error("Error al crear la reserva: " + error.message);
+      toast.error(`Error al crear la reserva: ${error.message}`);
       setIsSubmitting(false);
     }
   });
@@ -126,13 +170,20 @@ const BookingSummary = () => {
   };
   
   const handleConfirm = () => {
-    // Validate required data
+    // Validar autenticación
+    if (!isAuthenticated || !user) {
+      toast.error("Debes iniciar sesión para reservar un servicio");
+      navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
+      return;
+    }
+    
+    // Validar datos requeridos
     if (!hasRequiredData) {
       toast.error("Faltan datos necesarios para completar la reserva");
       return;
     }
     
-    // Validate date if required
+    // Validar fecha si es requerida
     if (!isFlexible && (!selectedDate || !selectedTime)) {
       toast.error("Por favor selecciona una fecha y hora para el servicio");
       return;
@@ -247,6 +298,17 @@ const BookingSummary = () => {
               <span className="text-luxury-navy">${formattedPrice}</span>
             </div>
             
+            {/* User verification */}
+            {isLoadingClient ? (
+              <div className="text-center my-4 text-muted-foreground">
+                Verificando tu información...
+              </div>
+            ) : !clientData && isAuthenticated ? (
+              <div className="p-3 mb-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md text-sm">
+                No pudimos verificar tu perfil de cliente. Por favor contacta a soporte.
+              </div>
+            ) : null}
+            
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
@@ -260,7 +322,7 @@ const BookingSummary = () => {
               <Button 
                 className="flex-1 bg-luxury-navy hover:bg-luxury-navy/90" 
                 onClick={handleConfirm}
-                disabled={isSubmitting || !hasRequiredData}
+                disabled={isSubmitting || !hasRequiredData || (!isAuthenticated || !user) || (isLoadingClient || !clientData && isAuthenticated)}
               >
                 {isSubmitting ? 'Enviando...' : 'Confirmar Reserva'}
               </Button>

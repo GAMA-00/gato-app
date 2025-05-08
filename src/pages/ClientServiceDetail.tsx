@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -40,6 +41,17 @@ const ClientServiceDetail = () => {
   };
   
   const handleSchedule = () => {
+    if (!user || !user.id) {
+      toast.warning("Debes iniciar sesión para agendar un servicio");
+      navigate('/login', { 
+        state: { 
+          redirectTo: `/client/service/${providerId}/${serviceId}`,
+          bookingData
+        } 
+      });
+      return;
+    }
+    
     // Use selected variants or the default service if none selected
     const servicesToBook = selectedVariants.length > 0 ? selectedVariants : 
       (serviceDetails?.serviceVariants ? [serviceDetails.serviceVariants[0]] : []);
