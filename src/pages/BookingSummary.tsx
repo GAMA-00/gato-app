@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
 import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
 import { format } from 'date-fns';
@@ -70,39 +70,12 @@ const BookingSummary = () => {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
   
-  // Query para verificar el client_id del usuario actual
-  const { data: clientData, isLoading: isLoadingClient } = useQuery({
-    queryKey: ['client-profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data: clientData, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-        
-      if (error) {
-        console.error("Error fetching client data:", error);
-        return null;
-      }
-      
-      return clientData;
-    },
-    enabled: !!user?.id
-  });
-  
   // Mutation to create appointment
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
-      // Verificar si el usuario está autenticado y es cliente
+      // Verificar si el usuario está autenticado
       if (!user?.id) {
         throw new Error("Debes iniciar sesión para reservar un servicio");
-      }
-      
-      // Verificar si el usuario existe como cliente en la base de datos
-      if (!clientData) {
-        throw new Error("Tu perfil de cliente no se encuentra registrado correctamente");
       }
       
       // Calculate start time based on selected date and time
@@ -298,17 +271,6 @@ const BookingSummary = () => {
               <span className="text-luxury-navy">${formattedPrice}</span>
             </div>
             
-            {/* User verification */}
-            {isLoadingClient ? (
-              <div className="text-center my-4 text-muted-foreground">
-                Verificando tu información...
-              </div>
-            ) : !clientData && isAuthenticated ? (
-              <div className="p-3 mb-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md text-sm">
-                No pudimos verificar tu perfil de cliente. Por favor contacta a soporte.
-              </div>
-            ) : null}
-            
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
@@ -322,7 +284,7 @@ const BookingSummary = () => {
               <Button 
                 className="flex-1 bg-luxury-navy hover:bg-luxury-navy/90" 
                 onClick={handleConfirm}
-                disabled={isSubmitting || !hasRequiredData || (!isAuthenticated || !user) || (isLoadingClient || !clientData && isAuthenticated)}
+                disabled={isSubmitting || !hasRequiredData || (!isAuthenticated || !user)}
               >
                 {isSubmitting ? 'Enviando...' : 'Confirmar Reserva'}
               </Button>
