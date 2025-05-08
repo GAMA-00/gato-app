@@ -11,6 +11,9 @@ import PageContainer from '@/components/layout/PageContainer';
 import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const BookingSummary = () => {
   const location = useLocation();
@@ -19,6 +22,15 @@ const BookingSummary = () => {
   const queryClient = useQueryClient();
   const { bookingData } = location.state || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados para fecha y hora
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    bookingData?.startTime ? new Date(bookingData.startTime) : undefined
+  );
+  const [selectedTime, setSelectedTime] = useState<string | undefined>(
+    bookingData?.startTime ? format(new Date(bookingData.startTime), 'HH:mm') : undefined
+  );
+  const [isFlexible, setIsFlexible] = useState(!bookingData?.startTime);
   
   // If no booking data, redirect to the main page
   if (!bookingData || !user) {
@@ -53,8 +65,20 @@ const BookingSummary = () => {
   // Mutation to create appointment
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
+      // Calculate start time based on selected date and time
+      let startTime;
+      
+      if (!isFlexible && selectedDate && selectedTime) {
+        // Parse selected time
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        startTime = new Date(selectedDate);
+        startTime.setHours(hours, minutes, 0, 0);
+      } else {
+        // If flexible, use current date as placeholder
+        startTime = new Date();
+      }
+      
       // Calculate end time based on start time and duration
-      const startTime = bookingData.startTime ? new Date(bookingData.startTime) : new Date();
       const durationMinutes = bookingData.duration || 60;
       const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
       
@@ -62,7 +86,8 @@ const BookingSummary = () => {
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         duration: durationMinutes,
-        price: bookingData.price
+        price: bookingData.price,
+        isFlexible
       });
       
       const { data, error } = await supabase
@@ -72,7 +97,7 @@ const BookingSummary = () => {
           provider_id: bookingData.providerId,
           listing_id: bookingData.serviceId,
           start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(), // Ensure end_time is properly calculated
+          end_time: endTime.toISOString(),
           status: 'pending',
           residencia_id: user.buildingId || null,
           apartment: user.apartment || '',
@@ -108,7 +133,7 @@ const BookingSummary = () => {
     }
     
     // Validate date if required
-    if (bookingData.requiresScheduling && !bookingData.startTime) {
+    if (!isFlexible && (!selectedDate || !selectedTime)) {
       toast.error("Por favor selecciona una fecha y hora para el servicio");
       return;
     }
@@ -118,20 +143,13 @@ const BookingSummary = () => {
   };
   
   // Format date if exists
-  const formattedDate = bookingData.startTime
-    ? new Date(bookingData.startTime).toLocaleDateString('es-ES', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long'
-      })
+  const formattedDate = !isFlexible && selectedDate
+    ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
     : 'Flexible';
     
   // Format time if exists
-  const formattedTime = bookingData.startTime
-    ? new Date(bookingData.startTime).toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+  const formattedTime = !isFlexible && selectedTime
+    ? selectedTime
     : 'Horario flexible';
 
   return (
@@ -149,6 +167,16 @@ const BookingSummary = () => {
       }
     >
       <div className="max-w-lg mx-auto">
+        {/* Date and Time Selector */}
+        <DateTimeSelector 
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          selectedTime={selectedTime}
+          onTimeChange={setSelectedTime}
+          isFlexible={isFlexible}
+          onFlexibleChange={setIsFlexible}
+        />
+        
         <Card className="shadow-md">
           <CardContent className="pt-6">
             <h2 className="text-xl font-semibold mb-6">Resumen del servicio</h2>
