@@ -70,6 +70,20 @@ const BookingSummary = () => {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
   
+  // Normalize recurrence value to match database constraints
+  const normalizeRecurrenceValue = (value) => {
+    // Map front-end values to database-allowed values
+    const recurrenceMap = {
+      'once': null,     // For 'once', we'll use null in the database
+      'weekly': 'weekly',
+      'biweekly': 'biweekly',
+      'monthly': 'monthly',
+      'daily': 'daily'
+    };
+    
+    return recurrenceMap[value] || null;
+  };
+  
   // Mutation to create appointment
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
@@ -95,6 +109,9 @@ const BookingSummary = () => {
       const durationMinutes = bookingData.duration || 60;
       const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
       
+      // Normalize the recurrence value
+      const normalizedRecurrence = normalizeRecurrenceValue(bookingData.frequency);
+      
       console.log("Creating appointment with data:", {
         client_id: user.id,
         provider_id: bookingData.providerId,
@@ -104,7 +121,8 @@ const BookingSummary = () => {
         duration: durationMinutes,
         price: bookingData.price,
         isFlexible,
-        status: 'pending'
+        status: 'pending',
+        recurrence: normalizedRecurrence
       });
       
       const { data, error } = await supabase
@@ -119,7 +137,7 @@ const BookingSummary = () => {
           residencia_id: user.buildingId || null,
           apartment: user.apartment || '',
           notes: bookingData.notes || '',
-          recurrence: bookingData.frequency || 'once'
+          recurrence: normalizedRecurrence
         })
         .select();
         
@@ -133,7 +151,16 @@ const BookingSummary = () => {
     },
     onError: (error: any) => {
       console.error("Error creating appointment:", error);
-      toast.error(`Error al crear la reserva: ${error.message}`);
+      
+      // Mensajes de error más amigables y específicos
+      if (error.message.includes('recurrence_check')) {
+        toast.error("Error: El tipo de recurrencia seleccionado no es válido.");
+      } else if (error.message.includes('foreign key')) {
+        toast.error("Error: Hay un problema con tu perfil de usuario. Por favor contacta a soporte.");
+      } else {
+        toast.error(`Error al crear la reserva: ${error.message}`);
+      }
+      
       setIsSubmitting(false);
     }
   });
@@ -252,6 +279,7 @@ const BookingSummary = () => {
                     bookingData.frequency === 'once' ? 'Una vez' : 
                     bookingData.frequency === 'weekly' ? 'Semanal' :
                     bookingData.frequency === 'biweekly' ? 'Quincenal' : 
+                    bookingData.frequency === 'monthly' ? 'Mensual' :
                     bookingData.frequency
                   }</span>
                 </div>
