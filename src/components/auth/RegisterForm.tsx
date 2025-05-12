@@ -3,13 +3,20 @@ import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle, Building } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import ClientResidenceField from './ClientResidenceField';
@@ -337,115 +344,5 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         </div>
       </form>
     </Form>
-  );
-};
-
-// Componente para la selección de residencia de cliente
-interface ClientResidenceFieldProps {
-  residencias: Residencia[];
-  isSubmitting: boolean;
-  loadingResidencias: boolean;
-  form: any;
-}
-
-const ClientResidenceField: React.FC<ClientResidenceFieldProps> = ({ 
-  residencias, 
-  isSubmitting, 
-  loadingResidencias,
-  form 
-}) => {
-  return (
-    <FormField
-      control={form.control}
-      name="residenciaId"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Seleccione su Residencia</FormLabel>
-          <FormControl>
-            <div className="relative">
-              <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value || ''}
-                disabled={isSubmitting || loadingResidencias}
-              >
-                <SelectTrigger className="pl-10">
-                  <SelectValue placeholder={loadingResidencias ? "Cargando..." : "Elija una residencia"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {residencias.map((residencia) => (
-                    <SelectItem key={residencia.id} value={residencia.id}>
-                      {residencia.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-};
-
-// Componente para la selección de residencias de proveedor
-interface ProviderResidencesFieldProps {
-  residencias: Residencia[];
-  isSubmitting: boolean;
-  loadingResidencias: boolean;
-  form: any;
-}
-
-const ProviderResidencesField: React.FC<ProviderResidencesFieldProps> = ({ 
-  residencias, 
-  isSubmitting, 
-  loadingResidencias,
-  form 
-}) => {
-  return (
-    <FormField
-      control={form.control}
-      name="providerResidenciaIds"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Residencias donde ofreces tus servicios</FormLabel>
-          {loadingResidencias ? (
-            <div className="flex items-center justify-center p-4 border rounded-md">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span>Cargando residencias...</span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 p-4 border rounded-md">
-              {residencias.length === 0 ? (
-                <p className="text-sm text-gray-500">No hay residencias disponibles</p>
-              ) : (
-                residencias.map((residencia) => (
-                  <div key={residencia.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`residencia-checkbox-${residencia.id}`}
-                      checked={field.value?.includes(residencia.id)}
-                      onCheckedChange={(checked) => {
-                        const checkedArr = Array.isArray(field.value) ? field.value : [];
-                        if (checked) {
-                          field.onChange([...checkedArr, residencia.id]);
-                        } else {
-                          field.onChange(checkedArr.filter((id: string) => id !== residencia.id));
-                        }
-                      }}
-                      disabled={isSubmitting}
-                    />
-                    <label htmlFor={`residencia-checkbox-${residencia.id}`} className="text-sm font-medium">
-                      {residencia.name}
-                    </label>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
   );
 };
