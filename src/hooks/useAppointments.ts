@@ -7,11 +7,11 @@ export function useAppointments() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['appointments', user?.id],
+    queryKey: ['appointments', user?.id, user?.role],
     queryFn: async () => {
       if (!user) return [];
       
-      // Query based on user role
+      // Query based on user role - strict separation
       if (user.role === 'provider') {
         const { data, error } = await supabase
           .from('appointments')
@@ -38,7 +38,7 @@ export function useAppointments() {
           throw error;
         }
         return data || [];
-      } else {
+      } else if (user.role === 'client') {
         // For clients
         const { data, error } = await supabase
           .from('appointments')
@@ -66,6 +66,9 @@ export function useAppointments() {
         }
         return data || [];
       }
+      
+      // If role doesn't match, return empty array
+      return [];
     },
     enabled: !!user
   });

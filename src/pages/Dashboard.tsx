@@ -51,39 +51,79 @@ const Dashboard = () => {
     );
   }
 
+  // Only show the right content based on user role
+  const renderDashboardContent = () => {
+    // For providers, show pending requests and stats
+    if (user?.role === 'provider') {
+      return (
+        <div className="space-y-6">
+          {pendingAppointments.length > 0 && (
+            <AppointmentList
+              appointments={pendingAppointments}
+              title="Solicitudes Pendientes"
+              icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+              emptyMessage="No hay solicitudes pendientes"
+              isPending={true}
+            />
+          )}
+
+          <AppointmentList
+            appointments={todaysAppointments}
+            title="Citas de Hoy"
+            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+            emptyMessage="No hay citas programadas para hoy"
+          />
+
+          <AppointmentList
+            appointments={tomorrowsAppointments}
+            title="Citas de Mañana"
+            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+            emptyMessage="No hay citas programadas para mañana"
+          />
+
+          {stats && <DashboardStats stats={stats} />}
+        </div>
+      );
+    }
+    
+    // For clients, only show their appointments (no stats)
+    else if (user?.role === 'client') {
+      return (
+        <div className="space-y-6">
+          <AppointmentList
+            appointments={todaysAppointments}
+            title="Mis Citas de Hoy"
+            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+            emptyMessage="No hay citas programadas para hoy"
+          />
+
+          <AppointmentList
+            appointments={tomorrowsAppointments}
+            title="Mis Citas de Mañana"
+            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
+            emptyMessage="No hay citas programadas para mañana"
+          />
+        </div>
+      );
+    }
+    
+    // If no role or unknown role, show empty state
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No hay información disponible</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <PageContainer 
       title="Inicio" 
       subtitle="Bienvenido de nuevo"
       className="pt-0"
     >
-      <div className="space-y-6">
-        {user?.role === 'provider' && pendingAppointments.length > 0 && (
-          <AppointmentList
-            appointments={pendingAppointments}
-            title="Solicitudes Pendientes"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay solicitudes pendientes"
-            isPending={true}
-          />
-        )}
-
-        <AppointmentList
-          appointments={todaysAppointments}
-          title="Citas de Hoy"
-          icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-          emptyMessage="No hay citas programadas para hoy"
-        />
-
-        <AppointmentList
-          appointments={tomorrowsAppointments}
-          title="Citas de Mañana"
-          icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-          emptyMessage="No hay citas programadas para mañana"
-        />
-
-        {stats && <DashboardStats stats={stats} />}
-      </div>
+      {renderDashboardContent()}
     </PageContainer>
   );
 };

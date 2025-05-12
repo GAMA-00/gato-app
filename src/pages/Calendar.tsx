@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useNavigate } from 'react-router-dom';
 
 const Calendar = () => {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -23,6 +24,14 @@ const Calendar = () => {
   const { data: appointments = [], isLoading } = useAppointments();
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect clients away from provider pages
+  React.useEffect(() => {
+    if (user && user.role === 'client') {
+      navigate('/client');
+    }
+  }, [user, navigate]);
   
   // Filter appointments based on status filters
   const filteredAppointments = appointments.filter((appointment: any) => {
@@ -30,6 +39,11 @@ const Calendar = () => {
     if (!showCompleted && appointment.status === 'completed') return false;
     return statusFilter.includes(appointment.status);
   });
+
+  // If user is not a provider, don't render this page
+  if (user && user.role !== 'provider') {
+    return null;
+  }
 
   return (
     <PageContainer 
@@ -80,21 +94,17 @@ const Calendar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          {user?.role === 'provider' && (
-            <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
-              {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
-            </Button>
-          )}
+          <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
+            {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
+          </Button>
         </div>
       }
     >
       <div className="space-y-6">
-        {/* Mostrar las solicitudes de citas pendientes solo para proveedores */}
-        {user?.role === 'provider' && (
-          <JobRequests />
-        )}
+        {/* Mostrar las solicitudes de citas pendientes para proveedores */}
+        <JobRequests />
         
-        {showBlockedTimeSlots && user?.role === 'provider' && (
+        {showBlockedTimeSlots && (
           <BlockedTimeSlots />
         )}
         

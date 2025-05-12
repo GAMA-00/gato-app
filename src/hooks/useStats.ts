@@ -8,7 +8,7 @@ export function useStats() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['stats', user?.id],
+    queryKey: ['stats', user?.id, user?.role],
     queryFn: async () => {
       if (!user) return null;
 
@@ -16,62 +16,109 @@ export function useStats() {
       const weekStart = startOfWeek(today);
       const monthStart = startOfMonth(today);
 
-      // Query based on user role
-      const queryField = user.role === 'provider' ? 'provider_id' : 'client_id';
-
-      const { data: appointments, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select('*, listings(base_price)')
-        .eq(queryField, user.id)
-        .gte('start_time', monthStart.toISOString());
-
-      if (appointmentsError) {
-        console.error("Error fetching appointments for stats:", appointmentsError);
-        throw appointmentsError;
-      }
-
-      // Count today's appointments
-      const todayAppointments = appointments.filter(
-        app => {
-          const appDate = new Date(app.start_time);
-          return appDate >= today && app.status !== 'cancelled';
-        }
-      ).length;
-
-      // Count this week's appointments
-      const weekAppointments = appointments.filter(
-        app => {
-          const appDate = new Date(app.start_time);
-          return appDate >= weekStart && app.status !== 'cancelled';
-        }
-      ).length;
-
-      // Calculate month revenue from confirmed and completed appointments
-      const monthRevenue = appointments
-        .filter(app => ['confirmed', 'completed'].includes(app.status))
-        .reduce((acc, app) => {
-          const price = app.listings?.base_price || 0;
-          // Convert the numeric value to string before parsing to ensure consistency
-          return acc + parseFloat(price.toString());
-        }, 0);
-      
-      // Count unique clients or providers
-      let activeClients = 0;
+      // Only query data specific to the user's role
       if (user.role === 'provider') {
+        // For providers, only show appointments where they are the provider
+        const { data: appointments, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('*, listings(base_price)')
+          .eq('provider_id', user.id)
+          .gte('start_time', monthStart.toISOString());
+
+        if (appointmentsError) {
+          console.error("Error fetching provider appointments for stats:", appointmentsError);
+          throw appointmentsError;
+        }
+
+        // Count today's appointments
+        const todayAppointments = appointments.filter(
+          app => {
+            const appDate = new Date(app.start_time);
+            return appDate >= today && app.status !== 'cancelled';
+          }
+        ).length;
+
+        // Count this week's appointments
+        const weekAppointments = appointments.filter(
+          app => {
+            const appDate = new Date(app.start_time);
+            return appDate >= weekStart && app.status !== 'cancelled';
+          }
+        ).length;
+
+        // Calculate month revenue from confirmed and completed appointments
+        const monthRevenue = appointments
+          .filter(app => ['confirmed', 'completed'].includes(app.status))
+          .reduce((acc, app) => {
+            const price = app.listings?.base_price || 0;
+            return acc + parseFloat(price.toString());
+          }, 0);
+        
         // Count unique clients for this provider
         const uniqueClients = new Set(appointments.map(app => app.client_id));
-        activeClients = uniqueClients.size;
-      } else {
+        const activeClients = uniqueClients.size;
+
+        return {
+          todayAppointments,
+          weekAppointments,
+          monthRevenue,
+          activeClients
+        };
+      } else if (user.role === 'client') {
+        // For clients, only show appointments where they are the client
+        const { data: appointments, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('*, listings(base_price)')
+          .eq('client_id', user.id)
+          .gte('start_time', monthStart.toISOString());
+
+        if (appointmentsError) {
+          console.error("Error fetching client appointments for stats:", appointmentsError);
+          throw appointmentsError;
+        }
+
+        // Count today's appointments
+        const todayAppointments = appointments.filter(
+          app => {
+            const appDate = new Date(app.start_time);
+            return appDate >= today && app.status !== 'cancelled';
+          }
+        ).length;
+
+        // Count this week's appointments
+        const weekAppointments = appointments.filter(
+          app => {
+            const appDate = new Date(app.start_time);
+            return appDate >= weekStart && app.status !== 'cancelled';
+          }
+        ).length;
+
+        // Calculate month spending from confirmed and completed appointments
+        const monthRevenue = appointments
+          .filter(app => ['confirmed', 'completed'].includes(app.status))
+          .reduce((acc, app) => {
+            const price = app.listings?.base_price || 0;
+            return acc + parseFloat(price.toString());
+          }, 0);
+        
         // For clients, count unique providers they've booked with
         const uniqueProviders = new Set(appointments.map(app => app.provider_id));
-        activeClients = uniqueProviders.size;
+        const activeClients = uniqueProviders.size;
+
+        return {
+          todayAppointments,
+          weekAppointments,
+          monthRevenue,
+          activeClients
+        };
       }
 
+      // Return default empty stats if role doesn't match
       return {
-        todayAppointments,
-        weekAppointments,
-        monthRevenue,
-        activeClients
+        todayAppointments: 0,
+        weekAppointments: 0,
+        monthRevenue: 0,
+        activeClients: 0
       };
     },
     enabled: !!user
