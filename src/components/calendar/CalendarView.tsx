@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -9,11 +8,11 @@ import { cn } from '@/lib/utils';
 
 // Status color mapping
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Green
-  pending:      { bg: "#FEC6A1", border: "#FF9100", text: "#924C00" }, // Orange
-  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" },       // Gray
-  rejected:     { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }, // Red
-  cancelled:    { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }  // Red
+  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Verde
+  pending:      { bg: "#FFF3E0", border: "#FF9100", text: "#924C00" }, // Naranja
+  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" },       // Gris
+  rejected:     { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }, // Rojo
+  cancelled:    { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }  // Rojo
 };
 
 interface CalendarAppointmentProps {

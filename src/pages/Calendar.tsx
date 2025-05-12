@@ -8,6 +8,7 @@ import JobRequests from '@/components/calendar/JobRequests';
 import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
 import { toast } from "@/components/ui/use-toast";
 import { useAppointments } from '@/hooks/useAppointments';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ const Calendar = () => {
   const [showCompleted, setShowCompleted] = useState(true);
   const { data: appointments = [] } = useAppointments();
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
+  const { user } = useAuth();
   
   // Filter appointments based on status filters
   const filteredAppointments = appointments.filter((appointment: any) => {
@@ -86,6 +88,11 @@ const Calendar = () => {
       }
     >
       <div className="space-y-6">
+        {/* Mostrar las solicitudes de citas pendientes solo para proveedores */}
+        {user?.role === 'provider' && (
+          <JobRequests />
+        )}
+        
         {showBlockedTimeSlots && (
           <BlockedTimeSlots />
         )}
