@@ -29,7 +29,6 @@ const BookingSummary = () => {
   const [selectedTime, setSelectedTime] = useState<string | undefined>(
     bookingData?.startTime ? format(new Date(bookingData.startTime), 'HH:mm') : undefined
   );
-  const [isFlexible, setIsFlexible] = useState(!bookingData?.startTime);
   
   // Verificar autenticación al cargar el componente
   useEffect(() => {
@@ -92,18 +91,16 @@ const BookingSummary = () => {
         throw new Error("Debes iniciar sesión para reservar un servicio");
       }
       
-      // Calculate start time based on selected date and time
-      let startTime;
-      
-      if (!isFlexible && selectedDate && selectedTime) {
-        // Parse selected time
-        const [hours, minutes] = selectedTime.split(':').map(Number);
-        startTime = new Date(selectedDate);
-        startTime.setHours(hours, minutes, 0, 0);
-      } else {
-        // If flexible, use current date as placeholder
-        startTime = new Date();
+      // Ensure we have date and time selected
+      if (!selectedDate || !selectedTime) {
+        throw new Error("Debes seleccionar una fecha y hora para el servicio");
       }
+      
+      // Calculate start time based on selected date and time
+      // Parse selected time
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const startTime = new Date(selectedDate);
+      startTime.setHours(hours, minutes, 0, 0);
       
       // Calculate end time based on start time and duration
       const durationMinutes = bookingData.duration || 60;
@@ -120,7 +117,6 @@ const BookingSummary = () => {
         end_time: endTime.toISOString(),
         duration: durationMinutes,
         price: bookingData.price,
-        isFlexible,
         status: 'pending',
         recurrence: normalizedRecurrence
       });
@@ -183,8 +179,8 @@ const BookingSummary = () => {
       return;
     }
     
-    // Validar fecha si es requerida
-    if (!isFlexible && (!selectedDate || !selectedTime)) {
+    // Validar que se haya seleccionado fecha y hora
+    if (!selectedDate || !selectedTime) {
       toast.error("Por favor selecciona una fecha y hora para el servicio");
       return;
     }
@@ -194,14 +190,12 @@ const BookingSummary = () => {
   };
   
   // Format date if exists
-  const formattedDate = !isFlexible && selectedDate
+  const formattedDate = selectedDate
     ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
-    : 'Flexible';
+    : 'No seleccionada';
     
   // Format time if exists
-  const formattedTime = !isFlexible && selectedTime
-    ? selectedTime
-    : 'Horario flexible';
+  const formattedTime = selectedTime || 'No seleccionada';
 
   return (
     <PageContainer
@@ -218,14 +212,12 @@ const BookingSummary = () => {
       }
     >
       <div className="max-w-lg mx-auto">
-        {/* Date and Time Selector */}
+        {/* Date and Time Selector - Now always required */}
         <DateTimeSelector 
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           selectedTime={selectedTime}
           onTimeChange={setSelectedTime}
-          isFlexible={isFlexible}
-          onFlexibleChange={setIsFlexible}
         />
         
         <Card className="shadow-md">
@@ -312,7 +304,7 @@ const BookingSummary = () => {
               <Button 
                 className="flex-1 bg-luxury-navy hover:bg-luxury-navy/90" 
                 onClick={handleConfirm}
-                disabled={isSubmitting || !hasRequiredData || (!isAuthenticated || !user)}
+                disabled={isSubmitting || !hasRequiredData || (!isAuthenticated || !user) || !selectedDate || !selectedTime}
               >
                 {isSubmitting ? 'Enviando...' : 'Confirmar Reserva'}
               </Button>

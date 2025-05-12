@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -76,10 +75,10 @@ const ClientServiceDetail = () => {
           providerName: serviceDetails?.provider?.name,
           price: totalPrice,
           duration: totalDuration,
-          startTime: bookingData.startTime || null,
+          startTime: null,
           notes: bookingData.notes || '',
           frequency: bookingData.frequency || 'once',
-          requiresScheduling: !bookingData.startTime && true
+          requiresScheduling: true
         }
       }
     });

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, CalendarDays, Clock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +22,6 @@ const ClientBookingFlow = () => {
     frequency: 'once',
     selectedDays: [],
     timeSlot: '9am-12pm',
-    timePreference: 'flexible'
   });
   
   // Obtener información del servicio
@@ -66,10 +64,6 @@ const ClientBookingFlow = () => {
   
   const handleTimeSlotChange = (value: string) => {
     setBookingPrefs(prev => ({ ...prev, timeSlot: value }));
-  };
-  
-  const handleTimePreferenceChange = (value: string) => {
-    setBookingPrefs(prev => ({ ...prev, timePreference: value }));
   };
   
   const handleBack = () => {
@@ -156,24 +150,6 @@ const ClientBookingFlow = () => {
                   <SelectItem value="6pm-9pm">Noche (6pm - 9pm)</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            
-            <div>
-              <Label className="text-base">¿Qué tan flexible es tu horario?</Label>
-              <RadioGroup
-                value={bookingPrefs.timePreference}
-                onValueChange={handleTimePreferenceChange}
-                className="flex flex-col space-y-1 mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="flexible" id="flexible" />
-                  <Label htmlFor="flexible" className="font-normal">Soy flexible, cualquier hora dentro del rango</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="specific" id="specific" />
-                  <Label htmlFor="specific" className="font-normal">Necesito una hora específica (a coordinar)</Label>
-                </div>
-              </RadioGroup>
             </div>
           </div>
         </div>

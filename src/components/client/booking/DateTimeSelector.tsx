@@ -15,17 +15,13 @@ interface DateTimeSelectorProps {
   onDateChange: (date: Date | undefined) => void;
   selectedTime: string | undefined;
   onTimeChange: (time: string) => void;
-  isFlexible: boolean;
-  onFlexibleChange: (isFlexible: boolean) => void;
 }
 
 const DateTimeSelector = ({
   selectedDate,
   onDateChange,
   selectedTime,
-  onTimeChange,
-  isFlexible,
-  onFlexibleChange
+  onTimeChange
 }: DateTimeSelectorProps) => {
   // Generar horarios disponibles (en un caso real, estos vendrían de la BD)
   const availableTimes = [
@@ -40,79 +36,63 @@ const DateTimeSelector = ({
         <CardTitle className="text-lg">Fecha y hora</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span>¿Fecha flexible?</span>
-          <Button
-            variant={isFlexible ? "default" : "outline"}
-            size="sm"
-            onClick={() => onFlexibleChange(!isFlexible)}
-            className={isFlexible ? "bg-luxury-navy hover:bg-luxury-navy/90" : ""}
-          >
-            {isFlexible ? "Sí" : "No"}
-          </Button>
+        {/* Date Selector */}
+        <div>
+          <label className="text-sm text-muted-foreground mb-2 block">Fecha</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? (
+                  format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
+                ) : (
+                  <span>Seleccionar fecha</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={onDateChange}
+                disabled={(date) => date < new Date() || date > addDays(new Date(), 30)}
+                initialFocus
+                locale={es}
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-        
-        {!isFlexible && (
-          <>
-            {/* Date Selector */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Fecha</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? (
-                      format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
-                    ) : (
-                      <span>Seleccionar fecha</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={onDateChange}
-                    disabled={(date) => date < new Date() || date > addDays(new Date(), 30)}
-                    initialFocus
-                    locale={es}
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
 
-            {/* Time Selector */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Hora</label>
-              <Select value={selectedTime} onValueChange={onTimeChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar hora">
-                    {selectedTime ? (
-                      <div className="flex items-center">
-                        <Clock className="mr-2 h-4 w-4" />
-                        {selectedTime}
-                      </div>
-                    ) : (
-                      "Seleccionar hora"
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTimes.map((time) => (
-                    <SelectItem key={time} value={time}>{time}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        )}
+        {/* Time Selector */}
+        <div>
+          <label className="text-sm text-muted-foreground mb-2 block">Hora</label>
+          <Select value={selectedTime} onValueChange={onTimeChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Seleccionar hora">
+                {selectedTime ? (
+                  <div className="flex items-center">
+                    <Clock className="mr-2 h-4 w-4" />
+                    {selectedTime}
+                  </div>
+                ) : (
+                  "Seleccionar hora"
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {availableTimes.map((time) => (
+                <SelectItem key={time} value={time}>{time}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardContent>
     </Card>
   );
