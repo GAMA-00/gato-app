@@ -4,21 +4,30 @@ import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, Home, Scissors, LucideIcon, Users, Briefcase, Utensils, Wrench } from 'lucide-react';
+import { ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
-// Updated icon map matching the one in ClientCategoryView
-const categoryIconComponents: Record<string, LucideIcon> = {
-  'home': Home,
-  'personal-care': Scissors,
+// Mapa de iconos específico para cada categoría
+const iconMap: Record<string, LucideIcon> = {
   'classes': Book,
-  'services': Wrench,
-  'food': Utensils,
-  'business': Briefcase,
-  'community': Users
+  'personal-care': Scissors,
+  'sports': Dumbbell,
+  'home': Home,
+  'pets': Dog,
+  'other': Globe,
+};
+
+// Nombres de categorías en español
+const categoryLabels: Record<string, string> = {
+  'classes': 'Clases',
+  'personal-care': 'Cuidado Personal',
+  'sports': 'Deportes',
+  'home': 'Hogar',
+  'pets': 'Mascotas',
+  'other': 'Otros',
 };
 
 const ClientCategoryDetails = () => {
@@ -90,20 +99,11 @@ const ClientCategoryDetails = () => {
 
   const isLoading = loadingCategory || loadingServices;
   
-  // Determine the correct icon for this category
-  let CategoryIcon: LucideIcon = Book; // Default fallback
+  // Determinar el icono correcto para esta categoría
+  const CategoryIcon = categoryName ? iconMap[categoryName] || Book : Book;
   
-  if (categoryName) {
-    if (categoryName === 'home' || categoryName.includes('home')) {
-      CategoryIcon = Home;
-    } else if (categoryName === 'personal-care' || categoryName.includes('care')) {
-      CategoryIcon = Scissors;
-    } else if (categoryIconComponents[categoryName]) {
-      CategoryIcon = categoryIconComponents[categoryName];
-    }
-  }
-  
-  const categoryLabel = categoryInfo?.label || '';
+  // Determinar la etiqueta en español
+  const displayLabel = categoryName ? categoryLabels[categoryName] || categoryInfo?.label || '' : '';
 
   // Create the back button as a React element
   const backButton = (
@@ -123,9 +123,9 @@ const ClientCategoryDetails = () => {
         title="Cargando servicios..."
         subtitle={backButton}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-4 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-28 rounded-lg" />
+            <Skeleton key={i} className="h-32 rounded-lg" />
           ))}
         </div>
       </PageContainer>
@@ -136,25 +136,25 @@ const ClientCategoryDetails = () => {
     <PageContainer
       title={
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
             <CategoryIcon size={24} />
           </div>
-          <span>{categoryLabel}</span>
+          <span>{displayLabel}</span>
         </div>
       }
       subtitle={backButton}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2 md:px-4 max-w-5xl mx-auto animate-fade-in">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-4 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => (
           <Card 
             key={service.id}
-            className="flex flex-col items-center p-5 hover:shadow-luxury transition-all cursor-pointer bg-luxury-white h-28 justify-center group"
+            className="flex flex-col items-center p-6 hover:shadow-lg transition-all cursor-pointer bg-white h-32 justify-center group"
             onClick={() => handleServiceSelect(service.id)}
           >
-            <div className="w-14 h-14 rounded-full flex items-center justify-center bg-luxury-gray text-luxury-navy mb-3 group-hover:bg-luxury-beige transition-colors">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-gray-100 mb-3 group-hover:bg-gray-200 transition-colors">
               <CategoryIcon size={28} />
             </div>
-            <h3 className="text-center font-medium text-sm md:text-base">{service.name}</h3>
+            <h3 className="text-center font-medium">{service.name}</h3>
           </Card>
         ))}
       </div>
