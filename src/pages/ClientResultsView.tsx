@@ -32,8 +32,8 @@ const ClientResultsView = () => {
       if (!user?.id) return null;
       
       const { data, error } = await supabase
-        .from('clients')
-        .select('residencia_id, residencias(name, address)')
+        .from('users')
+        .select('residencia_id, condominium_id, condominiums:condominium_id(name), residencias:residencia_id(name, address)')
         .eq('id', user.id)
         .maybeSingle();
         
@@ -94,7 +94,12 @@ const ClientResultsView = () => {
     });
   };
 
-  const residenciaName = clientResidenciaInfo?.residencias?.name || 'Todas las ubicaciones';
+  // Display both residencia name and condominium name if available
+  const locationDisplay = clientResidenciaInfo?.residencias 
+    ? (clientResidenciaInfo.condominiums 
+        ? `${clientResidenciaInfo.residencias.name} - ${clientResidenciaInfo.condominiums.name}`
+        : clientResidenciaInfo.residencias.name)
+    : 'Todas las ubicaciones';
 
   return (
     <PageContainer
@@ -113,7 +118,7 @@ const ClientResultsView = () => {
           <div className="flex items-center">
             <Badge variant="outline" className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              {residenciaName}
+              {locationDisplay}
             </Badge>
           </div>
         </div>

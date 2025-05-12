@@ -23,13 +23,21 @@ export async function fetchUserProfile(userId: string) {
   try {
     const { data: profileData, error } = await supabase
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        residencias:residencia_id(name),
+        condominiums:condominium_id(name)
+      `)
       .eq('id', userId)
       .single();
       
     if (error) throw error;
     
-    return profileData;
+    return {
+      ...profileData,
+      buildingName: profileData.residencias?.name || '',
+      condominiumName: profileData.condominiums?.name || ''
+    };
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return null;

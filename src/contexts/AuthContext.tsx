@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Define the user types with different roles
@@ -6,12 +7,16 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  buildingId: string;
+  buildingId: string;  // This field name is kept for backward compatibility
+  residenciaId?: string; // New field name
   buildingName: string;
   hasPaymentMethod: boolean;
   role: 'client' | 'provider' | 'admin';
   avatarUrl?: string;
   apartment?: string;
+  houseNumber?: string;
+  condominiumId?: string; 
+  condominiumName?: string;
   offerBuildings?: string[];
 }
 
@@ -48,12 +53,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Login function
   const login = (userData: User) => {
+    // For backward compatibility, ensure residenciaId is set
+    if (userData.buildingId && !userData.residenciaId) {
+      userData.residenciaId = userData.buildingId;
+    }
+    
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
   // Register function
   const register = (userData: User) => {
+    // For backward compatibility, ensure residenciaId is set
+    if (userData.buildingId && !userData.residenciaId) {
+      userData.residenciaId = userData.buildingId;
+    }
+    
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };

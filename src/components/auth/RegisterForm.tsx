@@ -1,27 +1,29 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Phone, User, UserPlus, Building, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import ClientResidenceField from './ClientResidenceField';
+import ProviderResidencesField from './ProviderResidencesField';
 
-// Esquema modificado que no incluye la selección de rol
+// Esquema modificado que incluye los nuevos campos
 export const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
   phone: z.string().min(8, 'Número de teléfono inválido'),
   providerResidenciaIds: z.array(z.string()).optional(),
   residenciaId: z.string().optional(),
+  condominiumId: z.string().optional(),
+  houseNumber: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
 }).refine(
   (data) => {
@@ -62,6 +64,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     phone: z.string().min(8, 'Número de teléfono inválido'),
     providerResidenciaIds: userRole === 'provider' ? z.array(z.string()).min(1, 'Selecciona al menos una residencia') : z.array(z.string()).optional(),
     residenciaId: userRole === 'client' ? z.string().min(1, 'Selecciona una residencia') : z.string().optional(),
+    condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
+    houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
   });
   
@@ -73,6 +77,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       phone: '',
       providerResidenciaIds: [],
       residenciaId: '',
+      condominiumId: '',
+      houseNumber: '',
       password: ''
     }
   });
@@ -94,6 +100,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         return;
       }
       
+      if (userRole === 'client' && !values.condominiumId) {
+        setRegistrationError('Debes seleccionar un condominio');
+        return;
+      }
+      
+      if (userRole === 'client' && !values.houseNumber) {
+        setRegistrationError('Debes ingresar el número de casa');
+        return;
+      }
+      
       if (userRole === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
         setRegistrationError('Debes seleccionar al menos una residencia');
         return;
@@ -104,8 +120,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const userData = {
         name: values.name,
         phone: values.phone,
-        role: userRole, // Usamos el rol predefinido
+        role: userRole,
         residenciaId: userRole === 'client' ? values.residenciaId : null,
+        condominiumId: userRole === 'client' ? values.condominiumId : null,
+        houseNumber: userRole === 'client' ? values.houseNumber : null,
         providerResidenciaIds: userRole === 'provider' ? values.providerResidenciaIds : []
       };
       
@@ -184,13 +202,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nombre Completo</FormLabel>
+              <FormLabel className="text-base font-medium">Nombre Completo</FormLabel>
               <FormControl>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Tu nombre completo"
-                    className="pl-10"
+                    className="pl-10 h-12 text-base"
                     {...field}
                     disabled={isSubmitting}
                   />
@@ -206,13 +224,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Correo Electrónico</FormLabel>
+              <FormLabel className="text-base font-medium">Correo Electrónico</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="correo@ejemplo.com"
-                    className="pl-10"
+                    className="pl-10 h-12 text-base"
                     {...field}
                     disabled={isSubmitting}
                   />
@@ -233,13 +251,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Número de Teléfono</FormLabel>
+              <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="+52 1234567890"
-                    className="pl-10"
+                    className="pl-10 h-12 text-base"
                     {...field}
                     disabled={isSubmitting}
                   />
@@ -274,14 +292,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Contraseña</FormLabel>
+              <FormLabel className="text-base font-medium">Contraseña</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="password"
                     placeholder="••••••"
-                    className="pl-10"
+                    className="pl-10 h-12 text-base"
                     {...field}
                     disabled={isSubmitting}
                   />
@@ -294,7 +312,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
         <Button 
           type="submit" 
-          className="w-full bg-navy text-white hover:bg-navy-hover"
+          className="w-full bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
           disabled={isSubmitting || isLoading}
         >
           {isSubmitting || isLoading ? (
@@ -311,8 +329,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         </Button>
 
         <div className="text-center">
-          <p>¿Ya tienes una cuenta? {' '}
-            <Link to="/login" className="text-navy hover:underline">
+          <p className="text-base">¿Ya tienes una cuenta? {' '}
+            <Link to="/login" className="text-navy hover:underline font-medium">
               Inicia sesión
             </Link>
           </p>

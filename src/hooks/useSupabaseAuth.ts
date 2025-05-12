@@ -58,6 +58,31 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
+      // Update the user with additional data
+      const updateData: any = {
+        name: userData.name,
+        email: email,
+        phone: userData.phone || '',
+        role: userData.role
+      };
+
+      // If the user is a client, add residencia, condominium and house number
+      if (userData.role === 'client') {
+        updateData.residencia_id = userData.residenciaId || null;
+        updateData.condominium_id = userData.condominiumId || null;
+        updateData.house_number = userData.houseNumber || '';
+      }
+
+      // Update the user record
+      const { error: updateError } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId);
+        
+      if (updateError) {
+        console.error('Error updating user data:', updateError);
+      }
+
       // If the user is a provider and specified residencias, link them
       if (userData.role === 'provider' && userData.providerResidenciaIds?.length > 0) {
         for (const residenciaId of userData.providerResidenciaIds) {
@@ -66,14 +91,6 @@ export const useSupabaseAuth = () => {
             residencia_id: residenciaId
           });
         }
-      }
-
-      // If the user is a client and specified a residencia, update the user record
-      if (userData.role === 'client' && userData.residenciaId) {
-        await supabase
-          .from('users')
-          .update({ building_id: userData.residenciaId })
-          .eq('id', userId);
       }
       
       // Create user object for frontend

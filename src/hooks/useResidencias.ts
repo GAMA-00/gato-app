@@ -42,3 +42,50 @@ export function useResidencias() {
 
   return { residencias, isLoading, error };
 }
+
+// Added new hook to fetch condominiums for a specific residencia
+export function useCondominiums(residenciaId: string | undefined) {
+  const [condominiums, setCondominiums] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchCondominiums = async () => {
+      if (!residenciaId) {
+        setCondominiums([]);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        console.log('Consultando condominios desde Supabase para residencia:', residenciaId);
+        
+        const { data, error } = await supabase
+          .from('condominiums')
+          .select('id, name')
+          .eq('residencia_id', residenciaId)
+          .order('name');
+        
+        if (error) {
+          console.error('Error al cargar condominios:', error);
+          toast.error('Error al cargar los condominios');
+          setError(error);
+          return;
+        }
+        
+        console.log('Condominios cargados:', data);
+        setCondominiums(data || []);
+      } catch (error: any) {
+        console.error('Error al cargar condominios:', error);
+        toast.error('Error al cargar los condominios');
+        setError(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchCondominiums();
+  }, [residenciaId]);
+
+  return { condominiums, isLoading, error };
+}

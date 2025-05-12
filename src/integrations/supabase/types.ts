@@ -193,6 +193,35 @@ export type Database = {
           },
         ]
       }
+      condominiums: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          residencia_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          residencia_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          residencia_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condominiums_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           client_id: string
@@ -533,43 +562,56 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
-          building_id: string | null
+          condominium_id: string | null
           created_at: string | null
           email: string | null
           has_payment_method: boolean | null
+          house_number: string | null
           id: string
           name: string | null
           phone: string | null
+          residencia_id: string | null
           role: string
         }
         Insert: {
           avatar_url?: string | null
-          building_id?: string | null
+          condominium_id?: string | null
           created_at?: string | null
           email?: string | null
           has_payment_method?: boolean | null
+          house_number?: string | null
           id: string
           name?: string | null
           phone?: string | null
+          residencia_id?: string | null
           role: string
         }
         Update: {
           avatar_url?: string | null
-          building_id?: string | null
+          condominium_id?: string | null
           created_at?: string | null
           email?: string | null
           has_payment_method?: boolean | null
+          house_number?: string | null
           id?: string
           name?: string | null
           phone?: string | null
+          residencia_id?: string | null
           role?: string
         }
         Relationships: [
           {
             foreignKeyName: "users_building_id_fkey"
-            columns: ["building_id"]
+            columns: ["residencia_id"]
             isOneToOne: false
             referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
             referencedColumns: ["id"]
           },
         ]
