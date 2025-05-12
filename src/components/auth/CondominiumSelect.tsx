@@ -35,6 +35,12 @@ export const CondominiumSelect: React.FC<CondominiumSelectProps> = ({
     enabled: !!residenciaId
   });
 
+  // List of predefined condominiums for "Colinas de Montealegre"
+  const condominiumNames = [
+    'El Carao', 'La Ceiba', 'Guayaquil', 'Ilang-Ilang', 'Nogal', 
+    'Guayacán Real', 'Cedro Alto', 'Roble Sabana', 'Alamo', 'Guaitil'
+  ];
+
   return (
     <FormField
       control={form.control}
@@ -65,6 +71,12 @@ export const CondominiumSelect: React.FC<CondominiumSelectProps> = ({
                     {condominiums.map((condominium: any) => (
                       <SelectItem key={condominium.id} value={condominium.id} className="text-base">
                         {condominium.name}
+                      </SelectItem>
+                    ))}
+                    {/* Fallback to show predefined list if database doesn't return results */}
+                    {condominiums.length === 0 && residenciaId && condominiumNames.map((name, index) => (
+                      <SelectItem key={`static-${index}`} value={`static-${index}`} className="text-base">
+                        {name}
                       </SelectItem>
                     ))}
                   </SelectContent>

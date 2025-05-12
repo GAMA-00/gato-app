@@ -2,7 +2,7 @@
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Building } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 interface HouseNumberInputProps {
   form: any;
@@ -10,10 +10,10 @@ interface HouseNumberInputProps {
   disabled?: boolean;
 }
 
-export const HouseNumberInput: React.FC<HouseNumberInputProps> = ({
-  form,
+const HouseNumberInput: React.FC<HouseNumberInputProps> = ({ 
+  form, 
   isSubmitting = false,
-  disabled = false
+  disabled = false 
 }) => {
   return (
     <FormField
@@ -24,10 +24,9 @@ export const HouseNumberInput: React.FC<HouseNumberInputProps> = ({
           <FormLabel className="text-base font-medium">Número de Casa</FormLabel>
           <FormControl>
             <div className="relative">
-              <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Home className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                type="text"
-                placeholder="Ej: 42"
+                placeholder="Número o identificador de su casa"
                 className="pl-10 h-12 text-base"
                 {...field}
                 disabled={isSubmitting || disabled}
