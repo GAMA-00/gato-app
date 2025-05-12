@@ -40,6 +40,12 @@ const Calendar = () => {
     return statusFilter.includes(appointment.status);
   });
 
+  // Log the appointments to debug
+  React.useEffect(() => {
+    console.log("All appointments:", appointments);
+    console.log("Pending appointments:", appointments.filter((app: any) => app.status === 'pending'));
+  }, [appointments]);
+
   // If user is not a provider, don't render this page
   if (user && user.role !== 'provider') {
     return null;
@@ -101,7 +107,7 @@ const Calendar = () => {
       }
     >
       <div className="space-y-6">
-        {/* Mostrar las solicitudes de citas pendientes para proveedores */}
+        {/* Always render JobRequests for providers - it will handle empty state internally */}
         <JobRequests />
         
         {showBlockedTimeSlots && (

@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface JobRequestsProps {
   onAcceptRequest?: (request: any) => void;
@@ -20,11 +21,17 @@ const JobRequests: React.FC<JobRequestsProps> = ({
 }) => {
   const { data: appointments = [], isLoading } = useAppointments();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  // Only show component for providers
+  if (user?.role !== 'provider') return null;
   
   // Filter pending appointments only
   const pendingRequests = appointments.filter((appointment: any) => 
     appointment.status === 'pending'
   );
+  
+  console.log("Pending requests in component:", pendingRequests);
   
   const handleAccept = async (request: any) => {
     try {
@@ -81,9 +88,9 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       });
     }
   };
-  
-  // Si no hay solicitudes pendientes, no renderizar este componente
-  if (pendingRequests.length === 0) {
+
+  // If no pending requests and not loading, don't render
+  if (pendingRequests.length === 0 && !isLoading) {
     return null;
   }
 

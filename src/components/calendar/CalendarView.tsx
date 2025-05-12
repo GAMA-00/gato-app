@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -51,7 +50,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
         top: `${startHour * 60 + startMinutes}px`,
         height: expanded ? undefined : `${Math.max(durationMinutes, 36)}px`,
         background: expanded ? '#fff' : statusColor.bg,
-        borderLeft: `4px solid ${statusColor.border}`,
+        borderLeftColor: statusColor.border,
         color: statusColor.text,
         fontWeight: 500
       }}

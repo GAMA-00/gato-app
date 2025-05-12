@@ -37,6 +37,9 @@ export function useAppointments() {
           console.error("Error fetching provider appointments:", error);
           throw error;
         }
+        
+        // Log the data to check what we're getting
+        console.log("Provider appointments:", data);
         return data || [];
       } else if (user.role === 'client') {
         // For clients
@@ -70,6 +73,7 @@ export function useAppointments() {
       // If role doesn't match, return empty array
       return [];
     },
-    enabled: !!user
+    enabled: !!user,
+    refetchInterval: 30000, // Refresh every 30 seconds to check for new requests
   });
 }
