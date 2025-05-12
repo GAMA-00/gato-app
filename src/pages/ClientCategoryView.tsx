@@ -64,9 +64,9 @@ const ClientCategoryView = () => {
       <PageContainer
         title="Explora nuestras categorías de servicio"
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 px-3 md:px-4 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-24 md:h-32 rounded-lg" />
+            <Skeleton key={i} className="h-28 md:h-36 rounded-lg" />
           ))}
         </div>
       </PageContainer>
@@ -77,7 +77,7 @@ const ClientCategoryView = () => {
     <PageContainer
       title="Explora nuestras categorías de servicio"
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 px-3 md:px-4 max-w-4xl mx-auto animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {
           const category = categories.find(c => c.name === categoryName);
           if (!category) return null;
@@ -87,9 +87,9 @@ const ClientCategoryView = () => {
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-              <Card className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-24' : 'h-32'}`}>
-                <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full flex items-center justify-center bg-gray-100 mb-2 group-hover:bg-gray-200 transition-colors`}>
-                  <IconComponent size={isMobile ? 22 : 28} />
+              <Card className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}>
+                <div className={`${isMobile ? 'w-14 h-14' : 'w-18 h-18'} rounded-full flex items-center justify-center bg-gray-100 mb-2 group-hover:bg-gray-200 transition-colors`}>
+                  <IconComponent size={isMobile ? 24 : 30} />
                 </div>
                 <h3 className="text-center font-medium text-sm md:text-base">{categoryLabels[category.name] || category.label}</h3>
               </Card>
