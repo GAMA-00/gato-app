@@ -82,7 +82,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
   
-  // If there are no pending requests, don't render this component
+  // Si no hay solicitudes pendientes, no renderizar este componente
   if (pendingRequests.length === 0) {
     return null;
   }
