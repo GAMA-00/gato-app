@@ -88,7 +88,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
   }
 
   return (
-    <Card>
+    <Card className="mb-6">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center">
           <Calendar className="h-5 w-5 mr-2 text-primary" />
@@ -103,7 +103,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
             {pendingRequests.map((request: any) => (
-              <div key={request.id} className="border rounded-lg p-3">
+              <div key={request.id} className="border rounded-lg p-3 bg-amber-50 border-amber-200">
                 <div className="flex justify-between mb-1">
                   <span className="font-medium">{request.listings?.title || 'Servicio'}</span>
                   <span className="text-sm text-muted-foreground">
@@ -129,14 +129,14 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                     onClick={() => handleDecline(request.id)}
                     variant="outline"
                     size="sm"
-                    className="flex items-center"
+                    className="flex items-center border-red-200 hover:bg-red-50 text-red-600"
                   >
                     <X className="w-4 h-4 mr-1" /> Rechazar
                   </Button>
                   <Button 
                     onClick={() => handleAccept(request)}
                     size="sm"
-                    className="flex items-center"
+                    className="flex items-center bg-green-600 hover:bg-green-700"
                   >
                     <Check className="w-4 h-4 mr-1" /> Aceptar
                   </Button>

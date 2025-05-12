@@ -6,7 +6,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequests from '@/components/calendar/JobRequests';
 import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
-import { toast } from "@/components/ui/use-toast";
 import { useAppointments } from '@/hooks/useAppointments';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -21,7 +20,7 @@ import {
 const Calendar = () => {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [showCompleted, setShowCompleted] = useState(true);
-  const { data: appointments = [] } = useAppointments();
+  const { data: appointments = [], isLoading } = useAppointments();
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
   
@@ -81,9 +80,11 @@ const Calendar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
-            {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
-          </Button>
+          {user?.role === 'provider' && (
+            <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
+              {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
+            </Button>
+          )}
         </div>
       }
     >
@@ -93,9 +94,10 @@ const Calendar = () => {
           <JobRequests />
         )}
         
-        {showBlockedTimeSlots && (
+        {showBlockedTimeSlots && user?.role === 'provider' && (
           <BlockedTimeSlots />
         )}
+        
         <CalendarView appointments={filteredAppointments} />
       </div>
     </PageContainer>

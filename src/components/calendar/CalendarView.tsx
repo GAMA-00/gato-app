@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -83,8 +84,9 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
           <div className="mt-1 pt-1 border-t text-xs">
             <span className={cn(
               "px-2 py-0.5 rounded-full text-[10px]",
-              statusColor.bg,
-              statusColor.text
+              appointment.status === 'pending' ? "bg-amber-50 text-amber-800" :
+              appointment.status === 'confirmed' ? "bg-green-50 text-green-800" :
+              "bg-gray-50 text-gray-700"
             )}>
               {appointment.status === 'confirmed' ? 'Confirmada' : 
                appointment.status === 'pending' ? 'Pendiente' :
