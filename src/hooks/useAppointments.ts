@@ -24,10 +24,10 @@ export function useAppointments() {
               service_type_id
             ),
             clients:client_id (
-              profiles:id (
-                name,
-                phone
-              )
+              id,
+              name,
+              email,
+              phone
             )
           `)
           .eq('provider_id', user.id)
@@ -54,10 +54,10 @@ export function useAppointments() {
               service_type_id
             ),
             providers:provider_id (
-              profiles:id (
-                name,
-                phone
-              )
+              id,
+              name,
+              email,
+              phone
             )
           `)
           .eq('client_id', user.id)

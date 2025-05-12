@@ -19,7 +19,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
   onAcceptRequest,
   onDeclineRequest
 }) => {
-  const { data: appointments = [], isLoading } = useAppointments();
+  const { data: appointments = [], isLoading, isError } = useAppointments();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
@@ -89,11 +89,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
 
-  // If no pending requests and not loading, don't render
-  if (pendingRequests.length === 0 && !isLoading) {
-    return null;
-  }
-
+  // Always render the section, even if there are no pending requests
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
@@ -107,6 +103,10 @@ const JobRequests: React.FC<JobRequestsProps> = ({
           <div className="flex justify-center my-4">
             <span className="loading loading-spinner"></span>
           </div>
+        ) : isError ? (
+          <div className="text-center py-6 text-red-500">
+            <p>Error al cargar solicitudes</p>
+          </div>
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
             {pendingRequests.map((request: any) => (
@@ -119,7 +119,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                 </div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm">
-                    {request.clients?.profiles?.name || 'Cliente'}
+                    {request.clients?.name || 'Cliente'}
                   </span>
                   <span className="text-sm">
                     {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}

@@ -107,7 +107,7 @@ const Calendar = () => {
       }
     >
       <div className="space-y-6">
-        {/* Always render JobRequests for providers - it will handle empty state internally */}
+        {/* Always render JobRequests for providers */}
         <JobRequests />
         
         {showBlockedTimeSlots && (
