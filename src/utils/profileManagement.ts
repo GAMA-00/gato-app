@@ -36,7 +36,8 @@ export async function fetchUserProfile(userId: string) {
     return {
       ...profileData,
       buildingName: profileData.residencias?.name || '',
-      condominiumName: profileData.condominiums?.name || ''
+      condominiumName: profileData.condominiums?.name || '',
+      houseNumber: profileData.house_number || ''
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);

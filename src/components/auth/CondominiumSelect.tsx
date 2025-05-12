@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -57,28 +56,30 @@ export const CondominiumSelect: React.FC<CondominiumSelectProps> = ({
                 <Select 
                   onValueChange={field.onChange} 
                   value={field.value || ''}
-                  disabled={isSubmitting || !residenciaId || condominiums.length === 0}
+                  disabled={isSubmitting || !residenciaId}
                 >
                   <SelectTrigger className="pl-10 h-12 text-base">
                     <SelectValue placeholder={!residenciaId ? 
                       "Primero seleccione una residencia" : 
-                      condominiums.length === 0 ? 
-                      "No hay condominios disponibles" : 
                       "Elija un condominio"} 
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {condominiums.map((condominium: any) => (
-                      <SelectItem key={condominium.id} value={condominium.id} className="text-base">
-                        {condominium.name}
-                      </SelectItem>
-                    ))}
-                    {/* Fallback to show predefined list if database doesn't return results */}
-                    {condominiums.length === 0 && residenciaId && condominiumNames.map((name, index) => (
-                      <SelectItem key={`static-${index}`} value={`static-${index}`} className="text-base">
-                        {name}
-                      </SelectItem>
-                    ))}
+                    {condominiums.length > 0 ? (
+                      // Show condominiums from database if available
+                      condominiums.map((condominium: any) => (
+                        <SelectItem key={condominium.id} value={condominium.id} className="text-base">
+                          {condominium.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      // Otherwise show predefined list for Colinas de Montealegre
+                      condominiumNames.map((name, index) => (
+                        <SelectItem key={`static-${index}`} value={`static-${index}`} className="text-base">
+                          {name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               )}

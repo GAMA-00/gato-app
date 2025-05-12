@@ -1,28 +1,21 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle, Building } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import ClientResidenceField from './ClientResidenceField';
 import ProviderResidencesField from './ProviderResidencesField';
 
-// Esquema modificado que incluye los nuevos campos
+// Esquema modificado para incluir confirmación de contraseña
 export const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
@@ -31,15 +24,13 @@ export const registerSchema = z.object({
   residenciaId: z.string().optional(),
   condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  passwordConfirm: z.string().min(6, 'La confirmación debe tener al menos 6 caracteres')
 }).refine(
-  (data) => {
-    // La validación dependerá del contexto del formulario
-    return true;
-  },
+  (data) => data.password === data.passwordConfirm,
   {
-    message: "Campo requerido",
-    path: ["residenciaId"],
+    message: "Las contraseñas no coinciden. Por favor, inténtelo de nuevo.",
+    path: ["passwordConfirm"],
   }
 );
 
@@ -73,8 +64,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     residenciaId: userRole === 'client' ? z.string().min(1, 'Selecciona una residencia') : z.string().optional(),
     condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
     houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
-    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
-  });
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    passwordConfirm: z.string().min(1, 'Por favor confirme su contraseña')
+  }).refine(
+    (data) => data.password === data.passwordConfirm,
+    {
+      message: "Las contraseñas no coinciden. Por favor, inténtelo de nuevo.",
+      path: ["passwordConfirm"],
+    }
+  );
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(formSchema),
@@ -86,11 +84,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       residenciaId: '',
       condominiumId: '',
       houseNumber: '',
-      password: ''
+      password: '',
+      passwordConfirm: ''
     }
   });
-
-  const email = form.watch('email');
 
   const onSubmit = async (values: RegisterFormValues) => {
     if (isSubmitting) {
@@ -119,6 +116,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       
       if (userRole === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
         setRegistrationError('Debes seleccionar al menos una residencia');
+        return;
+      }
+
+      // Verifica que las contraseñas coincidan
+      if (values.password !== values.passwordConfirm) {
+        setRegistrationError('Las contraseñas no coinciden. Por favor, inténtelo de nuevo.');
         return;
       }
 
@@ -300,6 +303,30 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-base font-medium">Contraseña</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="password"
+                    placeholder="••••••"
+                    className="pl-10 h-12 text-base"
+                    {...field}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Nuevo campo para confirmar contraseña */}
+        <FormField
+          control={form.control}
+          name="passwordConfirm"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-medium">Confirmar Contraseña</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
