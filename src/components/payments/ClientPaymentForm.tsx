@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CalendarRange, CreditCard } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -43,7 +43,11 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
 
   const handleClientSubmit = async (values: CreditCardFormValues) => {
     if (!userId) {
-      toast.error("Usuario no autenticado");
+      toast({
+        title: "Error",
+        description: "Usuario no autenticado",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -99,12 +103,19 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
         .eq('id', userId);
       
       onSuccess(true);
-      toast.success("¡Método de pago registrado exitosamente!");
+      toast({
+        title: "¡Éxito!",
+        description: "Método de pago registrado exitosamente",
+      });
       onSubmit();
     } catch (error: any) {
       console.error('Error al guardar método de pago:', error);
       setError(`Error al guardar la información de pago: ${error.message || 'Intente nuevamente'}`);
-      toast.error("Error al guardar la información de pago");
+      toast({
+        title: "Error",
+        description: "Error al guardar la información de pago",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
