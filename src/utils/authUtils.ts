@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { checkPhoneExists } from '@/utils/phoneValidation';
 import { UserRole } from '@/lib/types';
 
@@ -58,6 +58,7 @@ export const signUpWithSupabase = async (
   console.log('Creating auth user with email:', email);
   
   try {
+    // Registrar usuario en Supabase Auth con metadata
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -88,7 +89,11 @@ export const signUpWithSupabase = async (
         const randomSuffix = Math.floor(Math.random() * 1000);
         const suggestedEmail = `${username}_${randomSuffix}@${domain}`;
         
-        toast.error(`Has alcanzado el límite de intentos de registro con este correo. Prueba con otro correo como ${suggestedEmail} o espera unos minutos.`);
+        toast({
+          title: "Error",
+          description: `Has alcanzado el límite de intentos de registro con este correo. Prueba con otro correo como ${suggestedEmail} o espera unos minutos.`,
+          variant: "destructive"
+        });
         return { 
           data: null, 
           error: new Error('Email rate limit exceeded. Try with a different email address or wait a few minutes.')
@@ -97,46 +102,38 @@ export const signUpWithSupabase = async (
       
       // Check if user already registered
       if (authError.message.includes('already registered')) {
-        toast.error('Este correo ya está registrado. Por favor inicia sesión o utiliza otro correo.');
+        toast({
+          title: "Error",
+          description: "Este correo ya está registrado. Por favor inicia sesión o utiliza otro correo.",
+          variant: "destructive"
+        });
         return {
           data: null,
           error: new Error('User already registered. Please login or use a different email.')
         };
       }
       
-      toast.error('Error al crear la cuenta: ' + authError.message);
+      toast({
+        title: "Error",
+        description: 'Error al crear la cuenta: ' + authError.message,
+        variant: "destructive"
+      });
       return { data: null, error: authError };
     }
 
     if (!authData.user) {
       console.error('No user returned from auth signup');
-      toast.error('Error al crear la cuenta: No se pudo crear el usuario');
+      toast({
+        title: "Error",
+        description: 'Error al crear la cuenta: No se pudo crear el usuario',
+        variant: "destructive"
+      });
       return { data: null, error: new Error('No user returned from auth signup') };
     }
 
-    // Now that we have created the auth user, manually insert into the users table
-    const userId = authData.user.id;
-    console.log('Auth user created with ID:', userId, 'Now creating user record');
-    
-    const { error: userInsertError } = await supabase.from('users').insert({
-      id: userId,
-      name: userData.name,
-      email: email,
-      phone: userData.phone || '',
-      role: userData.role,
-      residencia_id: userData.residenciaId || null,
-      condominium_id: userData.condominiumId || null,
-      house_number: userData.houseNumber || '',
-      has_payment_method: false
-    });
-
-    if (userInsertError) {
-      console.error('Error inserting into users table:', userInsertError);
-      toast.warning('Cuenta de autenticación creada, pero hubo un problema guardando los datos adicionales.');
-      // We don't return error here as auth user is created successfully
-    }
-    
     // Handle role-specific operations
+    const userId = authData.user.id;
+    
     if (userData.role === 'client') {
       // Insert into clients table
       const { error: clientError } = await supabase.from('clients').insert({
@@ -149,7 +146,11 @@ export const signUpWithSupabase = async (
       
       if (clientError) {
         console.error('Error inserting into clients table:', clientError);
-        toast.warning('Hubo un problema al registrar los datos del cliente.');
+        toast({
+          title: "Advertencia",
+          description: 'Hubo un problema al registrar los datos del cliente.',
+          variant: "default"
+        });
       }
     } else if (userData.role === 'provider') {
       // Insert into providers table
@@ -162,7 +163,11 @@ export const signUpWithSupabase = async (
       
       if (providerError) {
         console.error('Error inserting into providers table:', providerError);
-        toast.warning('Hubo un problema al registrar los datos del proveedor.');
+        toast({
+          title: "Advertencia",
+          description: 'Hubo un problema al registrar los datos del proveedor.',
+          variant: "default"
+        });
       }
       
       // If provider has residencias, insert them
@@ -190,58 +195,20 @@ export const signUpWithSupabase = async (
 };
 
 /**
- * Handle sign in with Supabase
+ * Fetch user info directly from auth metadata
  */
-export const signInWithSupabase = async (email: string, password: string): Promise<AuthResult> => {
-  console.log('Attempting login with email:', email);
-  
+export const fetchUserFromAuth = async (userId: string): Promise<AuthResult> => {
   try {
-    // Try to authenticate the user
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { data: userData, error } = await supabase.auth.getUser();
     
-    if (authError || !authData.user) {
-      console.error('Login error:', authError);
-      
-      // More user-friendly error message for invalid credentials
-      if (authError?.message.includes('Invalid login credentials')) {
-        return { 
-          data: null, 
-          error: new Error('El correo o la contraseña son incorrectos. Por favor verifica tus credenciales.') 
-        };
-      }
-      
-      return { data: null, error: authError || new Error('No user data returned') };
-    }
-
-    return { data: authData, error: null };
-  } catch (error: any) {
-    console.error('Exception during login:', error);
-    return { data: null, error };
-  }
-};
-
-/**
- * Fetch user profile data from the unified users table
- */
-export const fetchUserProfile = async (userId: string): Promise<AuthResult> => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return { data: null, error };
+    if (error || !userData.user) {
+      console.error('Error fetching user from auth:', error);
+      return { data: null, error: error || new Error('No user found') };
     }
     
-    return { data, error: null };
+    return { data: userData.user, error: null };
   } catch (error: any) {
-    console.error('Exception fetching profile:', error);
+    console.error('Exception fetching auth user:', error);
     return { data: null, error };
   }
 };

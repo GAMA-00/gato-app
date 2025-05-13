@@ -2,12 +2,11 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { UserRole } from '@/lib/types';
 import {
   checkPhoneUniqueness,
-  signUpWithSupabase,
-  fetchUserProfile,
+  signUpWithSupabase
 } from '@/utils/authUtils';
 
 export const useSupabaseAuth = () => {
@@ -28,7 +27,11 @@ export const useSupabaseAuth = () => {
         
         if (!isPhoneUnique) {
           console.log('Phone number already registered');
-          toast.error('Este número de teléfono ya está registrado. Por favor use un número diferente.');
+          toast({
+            title: "Error",
+            description: "Este número de teléfono ya está registrado. Por favor use un número diferente.",
+            variant: "destructive"
+          });
           setIsLoading(false);
           return { 
             data: null, 
@@ -67,7 +70,11 @@ export const useSupabaseAuth = () => {
           errorMessage = 'Demasiados intentos. Por favor espere unos minutos e intente nuevamente.';
         }
         
-        toast.error(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
         setIsLoading(false);
         return { data: null, error: authError };
       }
@@ -89,7 +96,10 @@ export const useSupabaseAuth = () => {
         houseNumber: userData.houseNumber || '',
       };
       
-      toast.success('¡Cuenta creada con éxito!');
+      toast({
+        title: "¡Éxito!",
+        description: "¡Cuenta creada con éxito!",
+      });
       
       // Establecer usuario en el contexto de autenticación
       setAuthUser(userObj);
@@ -100,7 +110,11 @@ export const useSupabaseAuth = () => {
       };
     } catch (error: any) {
       console.error('Unexpected registration error:', error);
-      toast.error('Error inesperado durante el registro. Por favor intente nuevamente.');
+      toast({
+        title: "Error",
+        description: "Error inesperado durante el registro. Por favor intente nuevamente.",
+        variant: "destructive"
+      });
       return { data: null, error };
     } finally {
       setIsLoading(false);
@@ -108,7 +122,7 @@ export const useSupabaseAuth = () => {
   };
 
   /**
-   * User sign in handler
+   * User sign in handler - Actualizado para no depender de la tabla users
    */
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -121,41 +135,48 @@ export const useSupabaseAuth = () => {
       
       if (authError || !authData.user) {
         setIsLoading(false);
-        toast.error('Credenciales inválidas. Por favor verifique su email y contraseña.');
+        toast({
+          title: "Error",
+          description: "Credenciales inválidas. Por favor verifique su email y contraseña.",
+          variant: "destructive"
+        });
         return { data: null, error: authError || new Error('No user data returned') };
       }
 
-      // Get user profile from the users table
-      const { data: profileData, error: profileError } = await fetchUserProfile(authData.user.id);
+      // Get user metadata from auth
+      const { id, user_metadata, email: userEmail, app_metadata } = authData.user;
       
-      if (profileError || !profileData) {
-        console.error('Error fetching user profile:', profileError);
-        toast.error('Error al cargar el perfil de usuario');
-        setIsLoading(false);
-        return { data: null, error: profileError || new Error('No profile found') };
-      }
+      // Try to determine user role from metadata
+      let userRole = (user_metadata?.role || app_metadata?.role) as UserRole || 'client';
       
-      // Create user object for frontend
+      // Create user object for frontend with available data
       const userObj = {
-        id: authData.user.id,
-        email: profileData.email || authData.user.email || '',
-        name: profileData.name || '',
-        phone: profileData.phone || '',
-        residenciaId: profileData.residencia_id || '',
+        id: id,
+        email: userEmail || email,
+        name: user_metadata?.name || '',
+        phone: user_metadata?.phone || '',
+        residenciaId: user_metadata?.residenciaId || '',
         buildingName: '', 
-        hasPaymentMethod: profileData.has_payment_method || false,
-        role: profileData.role as UserRole,
-        avatarUrl: profileData.avatar_url || '',
+        hasPaymentMethod: user_metadata?.has_payment_method || false,
+        role: userRole,
+        avatarUrl: user_metadata?.avatar_url || '',
       };
       
       setAuthUser(userObj);
-      console.log('Login successful as', profileData.role);
-      toast.success('¡Bienvenido de nuevo!');
+      console.log('Login successful as', userRole);
+      toast({
+        title: "¡Bienvenido!",
+        description: "¡Bienvenido de nuevo!",
+      });
       
       return { data: { user: userObj }, error: null };
     } catch (error: any) {
       console.error('Login error caught:', error);
-      toast.error('Error en el inicio de sesión');
+      toast({
+        title: "Error",
+        description: "Error en el inicio de sesión",
+        variant: "destructive"
+      });
       return { data: null, error };
     } finally {
       setIsLoading(false);
@@ -191,10 +212,17 @@ export const useSupabaseAuth = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       clearAuthUser();
-      toast.success('Sesión cerrada con éxito');
+      toast({
+        title: "Sesión cerrada",
+        description: "Sesión cerrada con éxito",
+      });
     } catch (error: any) {
       console.error('Logout error:', error);
-      toast.error(error.message);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   };
 

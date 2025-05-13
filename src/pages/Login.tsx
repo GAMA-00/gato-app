@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 // Validation schema
 const loginSchema = z.object({
@@ -80,14 +80,25 @@ const Login = () => {
       if (error) {
         console.error('Error al iniciar sesión con Google:', error);
         setLoginError(error.message);
-        toast.error('Error al iniciar sesión con Google: ' + error.message);
+        toast({
+          title: "Error",
+          description: 'Error al iniciar sesión con Google: ' + error.message,
+          variant: "destructive"
+        });
       } else {
-        toast.info('Redirigiendo a Google para autenticación...');
+        toast({
+          title: "Redirigiendo",
+          description: "Redirigiendo a Google para autenticación...",
+        });
       }
     } catch (error: any) {
       console.error('Error inesperado:', error);
       setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
-      toast.error('Error inesperado durante el inicio de sesión');
+      toast({
+        title: "Error",
+        description: "Error inesperado durante el inicio de sesión",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
