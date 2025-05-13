@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email TEXT NOT NULL,
   phone TEXT,
   role TEXT NOT NULL CHECK (role IN ('client', 'provider', 'admin')),
-  building_id UUID REFERENCES public.residencias(id),
+  residencia_id UUID REFERENCES public.residencias(id),
   has_payment_method BOOLEAN DEFAULT false,
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
@@ -39,7 +39,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
   -- Insert from clients
-  INSERT INTO public.profiles (id, name, email, phone, role, building_id, has_payment_method)
+  INSERT INTO public.profiles (id, name, email, phone, role, residencia_id, has_payment_method)
   SELECT c.id, c.name, c.email, c.phone, 'client', c.residencia_id, c.has_payment_method
   FROM public.clients c
   LEFT JOIN public.profiles p ON c.id = p.id
