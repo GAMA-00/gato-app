@@ -62,3 +62,7 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
+
+-- Drop the obsolete function and trigger that caused the "building_id" error
+DROP FUNCTION IF EXISTS public.handle_user_role_insert() CASCADE;
+DROP TRIGGER IF EXISTS on_user_created ON public.users;
