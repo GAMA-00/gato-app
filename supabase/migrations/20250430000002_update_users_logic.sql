@@ -8,39 +8,48 @@ AS $$
 DECLARE
   default_role TEXT := 'client';
 BEGIN
-  -- Obtenemos el rol desde los metadatos o usamos el valor por defecto
+  -- Get role from metadata or use default
   IF NEW.raw_user_meta_data->>'role' IS NOT NULL THEN
     default_role := NEW.raw_user_meta_data->>'role';
   END IF;
 
-  -- Insertamos en la tabla users con manejo de posibles errores
+  -- Insert into users table with error handling
   BEGIN
     INSERT INTO public.users (
       id, 
       name, 
       email, 
       role, 
-      phone
+      phone,
+      residencia_id,
+      condominium_id,
+      house_number
     ) VALUES (
       NEW.id,
       COALESCE(NEW.raw_user_meta_data->>'name', ''),
       NEW.email,
       default_role,
-      COALESCE(NEW.raw_user_meta_data->>'phone', '')
+      COALESCE(NEW.raw_user_meta_data->>'phone', ''),
+      NULLIF(NEW.raw_user_meta_data->>'residenciaId', '')::uuid,
+      NULLIF(NEW.raw_user_meta_data->>'condominiumId', '')::uuid,
+      COALESCE(NEW.raw_user_meta_data->>'houseNumber', '')
     );
   EXCEPTION
     WHEN unique_violation THEN
-      -- Si ya existe, actualizamos
+      -- If already exists, update
       UPDATE public.users
       SET
         name = COALESCE(NEW.raw_user_meta_data->>'name', name),
         email = COALESCE(NEW.email, email),
         role = default_role,
-        phone = COALESCE(NEW.raw_user_meta_data->>'phone', phone)
+        phone = COALESCE(NEW.raw_user_meta_data->>'phone', phone),
+        residencia_id = COALESCE(NULLIF(NEW.raw_user_meta_data->>'residenciaId', '')::uuid, residencia_id),
+        condominium_id = COALESCE(NULLIF(NEW.raw_user_meta_data->>'condominiumId', '')::uuid, condominium_id),
+        house_number = COALESCE(NEW.raw_user_meta_data->>'houseNumber', house_number)
       WHERE id = NEW.id;
     WHEN others THEN
-      -- Registramos cualquier otro error pero permitimos que el usuario se cree
-      RAISE LOG 'Error al insertar usuario en users: %', SQLERRM;
+      -- Log any other error but allow user creation
+      RAISE LOG 'Error inserting user in users table: %', SQLERRM;
   END;
   
   RETURN NEW;

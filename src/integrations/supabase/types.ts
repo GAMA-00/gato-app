@@ -601,17 +601,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "users_building_id_fkey"
-            columns: ["residencia_id"]
-            isOneToOne: false
-            referencedRelation: "residencias"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "users_condominium_id_fkey"
             columns: ["condominium_id"]
             isOneToOne: false
             referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
             referencedColumns: ["id"]
           },
         ]

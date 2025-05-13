@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Banknote, Wallet } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 // Bank account schema for providers
@@ -41,7 +41,11 @@ export const ProviderPaymentForm = ({ userId, userName, onSuccess, onSubmit }: P
 
   const handleProviderSubmit = async (values: BankAccountFormValues) => {
     if (!userId) {
-      toast.error('Usuario no autenticado');
+      toast({
+        title: "Error",
+        description: "Usuario no autenticado",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -65,11 +69,18 @@ export const ProviderPaymentForm = ({ userId, userName, onSuccess, onSubmit }: P
         .eq('id', userId);
       
       onSuccess(true);
-      toast.success('Información bancaria registrada exitosamente');
+      toast({
+        title: "Éxito",
+        description: "Información bancaria registrada exitosamente"
+      });
       onSubmit();
     } catch (error: any) {
       console.error("Error al guardar información bancaria:", error);
-      toast.error('Error al guardar información bancaria');
+      toast({
+        title: "Error",
+        description: "Error al guardar información bancaria",
+        variant: "destructive"
+      });
     }
   };
 
