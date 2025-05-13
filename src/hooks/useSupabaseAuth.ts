@@ -185,7 +185,7 @@ export const useSupabaseAuth = () => {
         email: profileData.email || authData.user.email || '',
         name: profileData.name || '',
         phone: profileData.phone || '',
-        buildingId: profileData.building_id || '',
+        buildingId: profileData.residencia_id || '',
         buildingName: '', 
         hasPaymentMethod: profileData.has_payment_method || false,
         role: profileData.role as UserRole,
