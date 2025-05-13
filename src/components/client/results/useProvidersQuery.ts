@@ -13,6 +13,7 @@ interface ListingWithProvider {
   duration: number;
   is_active: boolean;
   provider: ProviderData;
+  listing_residencias?: { residencia_id: string }[];
 }
 
 export const useProvidersQuery = (serviceTypeId: string, categoryName: string) => {
@@ -70,10 +71,10 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       console.log(`Found ${listings?.length || 0} active listings`);
       
       // Filter listings based on residencia_id if user is logged in
-      let filteredListings = listings || [];
+      let filteredListings = listings as ListingWithProvider[] || [];
       
       if (user?.residenciaId) {
-        filteredListings = listings.filter(listing => {
+        filteredListings = filteredListings.filter(listing => {
           // If no residencias are specified, it means the provider serves all residencias
           if (!listing.listing_residencias || listing.listing_residencias.length === 0) {
             return true;
@@ -88,10 +89,12 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       
       // Process and return the providers with their service details
       const providers: ProcessedProvider[] = filteredListings.map(listing => {
-        const provider = listing.provider || {};
-        const hasCertifications = provider.certification_files && 
-                                Array.isArray(provider.certification_files) && 
-                                provider.certification_files.length > 0;
+        // Safely access provider data with appropriate type checking
+        const provider = listing.provider as ProviderData || {};
+        
+        // Safely check if provider has certifications
+        const certFiles = provider.certification_files || [];
+        const hasCertifications = Array.isArray(certFiles) && certFiles.length > 0;
                                 
         // Generate a random number of recurring clients and services completed for demo
         const recurringClients = Math.floor(Math.random() * 10);
