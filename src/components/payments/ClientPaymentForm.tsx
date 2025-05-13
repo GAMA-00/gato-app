@@ -7,8 +7,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CalendarRange, CreditCard } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Credit card form schema for clients
 const creditCardSchema = z.object({
@@ -27,6 +28,8 @@ interface ClientPaymentFormProps {
 }
 
 export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPaymentFormProps) => {
+  const [error, setError] = React.useState<string | null>(null);
+  
   const clientForm = useForm<CreditCardFormValues>({
     resolver: zodResolver(creditCardSchema),
     defaultValues: {
@@ -39,40 +42,86 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
 
   const handleClientSubmit = async (values: CreditCardFormValues) => {
     if (!userId) {
-      toast.error('Usuario no autenticado');
+      toast({
+        title: "Error",
+        description: "Usuario no autenticado",
+        variant: "destructive",
+      });
       return;
     }
     
+    setError(null);
+    
     try {
-      // Insert the payment method into the new payment_methods table
+      console.log("Guardando método de pago para el usuario:", userId);
+      
+      // Verificar primero que el usuario exista en la tabla users
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      if (userCheckError || !existingUser) {
+        console.error("El usuario no existe en la tabla users:", userCheckError || "No se encontró el usuario");
+        
+        // Si el usuario existe en auth pero no en users, intentamos crearlo
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            role: 'client',
+            has_payment_method: false
+          });
+          
+        if (insertError) {
+          throw new Error(`No se pudo crear el registro de usuario: ${insertError.message}`);
+        }
+      }
+      
+      // Una vez que nos aseguramos que el usuario existe, insertamos el método de pago
       const { error } = await supabase.from('payment_methods').insert({
         user_id: userId,
         method_type: 'card',
         cardholder_name: values.cardholderName,
-        card_number: values.cardNumber,
+        card_number: values.cardNumber.substring(values.cardNumber.length - 4), // Solo guardamos los últimos 4 dígitos por seguridad
         expiry_date: values.expiryDate
       });
       
       if (error) throw error;
       
-      // Update the user's has_payment_method flag
+      // Actualizar el flag has_payment_method del usuario
       await supabase
         .from('users')
         .update({ has_payment_method: true })
         .eq('id', userId);
       
       onSuccess(true);
-      toast.success('Método de pago registrado exitosamente');
+      toast({
+        title: "¡Éxito!",
+        description: "Método de pago registrado exitosamente",
+      });
       onSubmit();
     } catch (error: any) {
       console.error('Error al guardar método de pago:', error);
-      toast.error('Error al guardar la información de pago');
+      setError(`Error al guardar la información de pago: ${error.message || 'Intente nuevamente'}`);
+      toast({
+        title: "Error",
+        description: "Error al guardar la información de pago",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <Form {...clientForm}>
       <form onSubmit={clientForm.handleSubmit(handleClientSubmit)} className="space-y-6">
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <FormField
           control={clientForm.control}
           name="cardNumber"
