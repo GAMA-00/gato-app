@@ -34,7 +34,7 @@ export const checkPhoneUniqueness = async (phone: string): Promise<boolean> => {
     return !phoneExists;
   } catch (error) {
     console.error('Error checking phone uniqueness:', error);
-    // Si hay error al verificar, asumimos que el teléfono es único para no bloquear el registro
+    // If there's an error checking, assume the phone is unique to not block registration
     return true;
   }
 };
@@ -49,6 +49,10 @@ export const signUpWithSupabase = async (
     name: string; 
     role: UserRole; 
     phone?: string;
+    residenciaId?: string;
+    condominiumId?: string;
+    houseNumber?: string;
+    providerResidenciaIds?: string[];
   }
 ): Promise<AuthResult> => {
   console.log('Creating auth user with email:', email);
@@ -61,7 +65,11 @@ export const signUpWithSupabase = async (
         data: {
           name: userData.name,
           role: userData.role,
-          phone: userData.phone || ''
+          phone: userData.phone || '',
+          residenciaId: userData.residenciaId || '',
+          condominiumId: userData.condominiumId || '',
+          houseNumber: userData.houseNumber || '',
+          providerResidenciaIds: userData.providerResidenciaIds || []
         },
         emailRedirectTo: window.location.origin
       }
@@ -148,7 +156,7 @@ export const signInWithSupabase = async (email: string, password: string): Promi
 };
 
 /**
- * Fetch user profile data
+ * Fetch user profile data from the unified users table
  */
 export const fetchUserProfile = async (userId: string): Promise<AuthResult> => {
   try {
