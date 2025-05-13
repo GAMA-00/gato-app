@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ProviderCard from './ProviderCard';
 import { ProcessedProvider } from './types';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from '@/components/ui/use-toast';
 
 interface ProvidersListProps {
   providers: ProcessedProvider[];
@@ -51,9 +52,15 @@ const ProvidersList = ({ providers, isLoading, onProviderSelect, onBack }: Provi
         <User className="h-16 w-16 mx-auto text-muted-foreground opacity-20 mb-2" />
         <p className="text-lg font-medium">No hay profesionales disponibles</p>
         <p className="text-muted-foreground mb-6">
-          No encontramos profesionales para este servicio en este momento.
+          No encontramos profesionales para este servicio en esta ubicación.
         </p>
-        <Button onClick={onBack}>
+        <Button onClick={() => {
+          toast({
+            title: "Sugerencia",
+            description: "Prueba ver servicios sin iniciar sesión para ver todos los profesionales disponibles en todas las ubicaciones."
+          });
+          onBack();
+        }}>
           Volver a detalles de reserva
         </Button>
       </div>

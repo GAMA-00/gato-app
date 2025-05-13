@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProcessedProvider, ProviderData } from './types';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 interface ListingWithProvider {
   id: string;
@@ -26,7 +27,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       }
       
       console.log(`Fetching providers for service type: ${serviceTypeId} in category: ${categoryName}`);
-      console.log(`Client residencia ID: ${user?.residenciaId || user?.buildingId || 'Not set'}`);
+      console.log(`Client residencia ID: ${user?.residenciaId || 'Not set'}`);
       
       // First get listings for this service type
       let query = supabase
@@ -46,6 +47,9 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
             certification_files,
             created_at
           ),
+          listing_residencias (
+            residencia_id
+          ),
           is_active
         `)
         .eq('service_type_id', serviceTypeId)
@@ -55,44 +59,35 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
         
       if (listingsError) {
         console.error("Error fetching listings:", listingsError);
+        toast({
+          title: "Error al cargar profesionales",
+          description: "No pudimos cargar los profesionales disponibles. Inténtalo de nuevo más tarde.",
+          variant: "destructive"
+        });
         return [];
       }
       
-      console.log(`Found ${listings.length} active listings`);
+      console.log(`Found ${listings?.length || 0} active listings`);
       
-      // For each listing, check if the provider serves the client's residencia
-      const filteredListings = [];
+      // Filter listings based on residencia_id if user is logged in
+      let filteredListings = listings || [];
       
-      for (const listing of listings) {
-        // Skip listings without a provider
-        if (!listing.provider) continue;
-        
-        // Check if the provider serves the client's residencia
-        if (user?.residenciaId || user?.buildingId) {
-          const residenciaId = user.residenciaId || user.buildingId;
-          
-          const { data: providerResidencias } = await supabase
-            .from('provider_residencias')
-            .select('residencia_id')
-            .eq('provider_id', listing.provider.id);
-            
-          // Only include providers that serve the client's residencia
-          const servesResidencia = providerResidencias?.some(pr => pr.residencia_id === residenciaId);
-          
-          if (!servesResidencia) {
-            console.log(`Provider ${listing.provider.name} does not serve residencia ${residenciaId}`);
-            continue;
+      if (user?.residenciaId) {
+        filteredListings = listings.filter(listing => {
+          // If no residencias are specified, it means the provider serves all residencias
+          if (!listing.listing_residencias || listing.listing_residencias.length === 0) {
+            return true;
           }
-          console.log(`Provider ${listing.provider.name} serves residencia ${residenciaId}`);
-        }
+          
+          // Check if the provider serves the client's residencia
+          return listing.listing_residencias.some(lr => lr.residencia_id === user.residenciaId);
+        });
         
-        filteredListings.push(listing);
+        console.log(`Filtered to ${filteredListings.length} listings that serve client's residencia`);
       }
       
-      console.log(`Filtered to ${filteredListings.length} listings that serve client's residencia`);
-      
       // Process and return the providers with their service details
-      const providers: ProcessedProvider[] = (filteredListings as ListingWithProvider[]).map(listing => {
+      const providers: ProcessedProvider[] = filteredListings.map(listing => {
         const provider = listing.provider || {};
         const hasCertifications = provider.certification_files && 
                                 Array.isArray(provider.certification_files) && 
