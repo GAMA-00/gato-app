@@ -16,6 +16,7 @@ import * as z from 'zod';
 import { UserCircle, CreditCard, FileText, Shield, HelpCircle, Settings } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import { updateUserProfile } from '@/utils/profileManagement';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -36,6 +37,7 @@ const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -104,56 +106,56 @@ const Profile = () => {
       title="Mi Perfil" 
       subtitle="Administra tu información personal y preferencias"
     >
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto py-2 px-2 md:py-6 md:px-6">
         <Tabs defaultValue="personal-info" className="w-full">
-          <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-6">
-            <TabsTrigger value="personal-info" className="flex flex-col items-center gap-1 py-2">
-              <UserCircle className="h-5 w-5" />
-              <span className="text-xs">Información</span>
+          <TabsList className={`flex flex-wrap gap-1 mb-4 p-1 overflow-x-auto ${isMobile ? 'justify-start' : 'grid grid-cols-3 md:grid-cols-6'}`}>
+            <TabsTrigger value="personal-info" className="flex flex-col items-center gap-1 py-2 flex-1 min-w-[70px]">
+              <UserCircle className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="text-[10px] md:text-xs">Información</span>
             </TabsTrigger>
-            <TabsTrigger value="payment" className="flex flex-col items-center gap-1 py-2">
-              <CreditCard className="h-5 w-5" />
-              <span className="text-xs">Pagos</span>
+            <TabsTrigger value="payment" className="flex flex-col items-center gap-1 py-2 flex-1 min-w-[70px]">
+              <CreditCard className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="text-[10px] md:text-xs">Pagos</span>
             </TabsTrigger>
-            <TabsTrigger value="documents" className="flex flex-col items-center gap-1 py-2">
-              <FileText className="h-5 w-5" />
-              <span className="text-xs">Documentos</span>
+            <TabsTrigger value="documents" className="flex flex-col items-center gap-1 py-2 flex-1 min-w-[70px]">
+              <FileText className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="text-[10px] md:text-xs">Documentos</span>
             </TabsTrigger>
-            <TabsTrigger value="verification" className="flex flex-col items-center gap-1 py-2">
-              <Shield className="h-5 w-5" />
-              <span className="text-xs">Verificación</span>
+            <TabsTrigger value="verification" className="flex flex-col items-center gap-1 py-2 flex-1 min-w-[70px]">
+              <Shield className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="text-[10px] md:text-xs">Verificación</span>
             </TabsTrigger>
-            <TabsTrigger value="support" className="flex flex-col items-center gap-1 py-2">
-              <HelpCircle className="h-5 w-5" />
-              <span className="text-xs">Soporte</span>
+            <TabsTrigger value="support" className="flex flex-col items-center gap-1 py-2 flex-1 min-w-[70px]">
+              <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="text-[10px] md:text-xs">Soporte</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex flex-col items-center gap-1 py-2">
-              <Settings className="h-5 w-5" />
-              <span className="text-xs">Configuración</span>
+            <TabsTrigger value="settings" className="flex flex-col items-center gap-1 py-2 flex-1 min-w-[70px]">
+              <Settings className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="text-[10px] md:text-xs">Config</span>
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="personal-info">
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
+          <TabsContent value="personal-info" className="animate-scale-in">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Información Personal</CardTitle>
                 <CardDescription>Actualiza tus datos personales</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col md:flex-row gap-8 items-start">
-                  <div className="flex flex-col items-center">
-                    <Avatar className="h-28 w-28 mb-4">
+                <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-start">
+                  <div className="flex flex-col items-center self-center mb-4 md:mb-0">
+                    <Avatar className="h-20 w-20 md:h-28 md:w-28 mb-3">
                       <AvatarImage src={user.avatarUrl || ''} alt={user.name} />
                       <AvatarFallback className="text-2xl">
                         {user.name?.substring(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <Button variant="outline" size="sm">Cambiar foto</Button>
+                    <Button variant="outline" size="sm" className="text-xs">Cambiar foto</Button>
                   </div>
                   
-                  <div className="flex-1">
+                  <div className="flex-1 w-full">
                     <Form {...profileForm}>
-                      <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4">
+                      <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-3 md:space-y-4">
                         <FormField
                           control={profileForm.control}
                           name="name"
@@ -196,7 +198,7 @@ const Profile = () => {
                           )}
                         />
                         
-                        <Button type="submit" disabled={isLoading}>
+                        <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
                           {isLoading ? "Guardando..." : "Guardar cambios"}
                         </Button>
                       </form>
@@ -207,37 +209,37 @@ const Profile = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="payment">
-            <Card>
-              <CardHeader>
-                <CardTitle>Información de Pago</CardTitle>
+          <TabsContent value="payment" className="animate-scale-in">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Información de Pago</CardTitle>
                 <CardDescription>Gestiona tus métodos de pago y revisa tu historial</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {user.hasPaymentMethod ? (
-                  <div className="bg-muted p-4 rounded-md flex justify-between items-center">
+                  <div className="bg-muted p-3 md:p-4 rounded-md flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <CreditCard className="h-10 w-10 text-primary" />
+                      <CreditCard className="h-8 w-8 md:h-10 md:w-10 text-primary" />
                       <div>
-                        <p className="font-medium">Tarjeta registrada</p>
-                        <p className="text-sm text-muted-foreground">**** **** **** 1234</p>
+                        <p className="font-medium text-sm md:text-base">Tarjeta registrada</p>
+                        <p className="text-xs md:text-sm text-muted-foreground">**** **** **** 1234</p>
                       </div>
                     </div>
                     <Button variant="outline" size="sm">Editar</Button>
                   </div>
                 ) : (
-                  <div className="bg-amber-50 text-amber-600 border border-amber-200 p-4 rounded-md">
-                    <p className="font-medium">No tienes métodos de pago registrados</p>
-                    <p className="text-sm">Agrega un método de pago para facilitar tus reservas</p>
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate('/payment-setup')}>
+                  <div className="bg-amber-50 text-amber-600 border border-amber-200 p-3 md:p-4 rounded-md">
+                    <p className="font-medium text-sm md:text-base">No tienes métodos de pago registrados</p>
+                    <p className="text-xs md:text-sm">Agrega un método de pago para facilitar tus reservas</p>
+                    <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={() => navigate('/payment-setup')}>
                       Agregar método de pago
                     </Button>
                   </div>
                 )}
                 
-                <div className="pt-4">
-                  <h3 className="font-medium mb-2">Historial de transacciones</h3>
-                  <div className="text-center py-8 text-muted-foreground text-sm">
+                <div className="pt-2 md:pt-4">
+                  <h3 className="font-medium text-sm md:text-base mb-2">Historial de transacciones</h3>
+                  <div className="text-center py-6 md:py-8 text-muted-foreground text-xs md:text-sm">
                     No hay transacciones recientes
                   </div>
                 </div>
@@ -245,76 +247,76 @@ const Profile = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <CardTitle>Documentación</CardTitle>
+          <TabsContent value="documents" className="animate-scale-in">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Documentación</CardTitle>
                 <CardDescription>Información legal y documentos importantes</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-md hover:bg-muted transition-colors cursor-pointer">
-                    <h3 className="font-medium">Términos y Condiciones</h3>
-                    <p className="text-sm text-muted-foreground">Última actualización: 01/01/2025</p>
+                <div className="space-y-3 md:space-y-4">
+                  <div className="p-3 md:p-4 border rounded-md hover:bg-muted transition-colors cursor-pointer">
+                    <h3 className="font-medium text-sm md:text-base">Términos y Condiciones</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground">Última actualización: 01/01/2025</p>
                   </div>
                   
-                  <div className="p-4 border rounded-md hover:bg-muted transition-colors cursor-pointer">
-                    <h3 className="font-medium">Política de Privacidad</h3>
-                    <p className="text-sm text-muted-foreground">Última actualización: 01/01/2025</p>
+                  <div className="p-3 md:p-4 border rounded-md hover:bg-muted transition-colors cursor-pointer">
+                    <h3 className="font-medium text-sm md:text-base">Política de Privacidad</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground">Última actualización: 01/01/2025</p>
                   </div>
                   
-                  <div className="p-4 border rounded-md hover:bg-muted transition-colors cursor-pointer">
-                    <h3 className="font-medium">Reglamento de Servicios</h3>
-                    <p className="text-sm text-muted-foreground">Última actualización: 01/01/2025</p>
+                  <div className="p-3 md:p-4 border rounded-md hover:bg-muted transition-colors cursor-pointer">
+                    <h3 className="font-medium text-sm md:text-base">Reglamento de Servicios</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground">Última actualización: 01/01/2025</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="verification">
-            <Card>
-              <CardHeader>
-                <CardTitle>Documentos Verificados</CardTitle>
+          <TabsContent value="verification" className="animate-scale-in">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Documentos Verificados</CardTitle>
                 <CardDescription>Estado de tus documentos de verificación</CardDescription>
               </CardHeader>
               <CardContent>
                 {user.role === 'provider' ? (
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-md flex justify-between items-center">
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="p-3 md:p-4 border rounded-md flex justify-between items-center">
                       <div>
-                        <h3 className="font-medium">Documento de identidad</h3>
-                        <p className="text-sm text-emerald-600">Verificado</p>
+                        <h3 className="font-medium text-sm md:text-base">Documento de identidad</h3>
+                        <p className="text-xs md:text-sm text-emerald-600">Verificado</p>
                       </div>
                       <Button variant="outline" size="sm">Ver</Button>
                     </div>
                     
-                    <div className="p-4 border rounded-md flex justify-between items-center">
+                    <div className="p-3 md:p-4 border rounded-md flex justify-between items-center">
                       <div>
-                        <h3 className="font-medium">Certificación profesional</h3>
-                        <p className="text-sm text-amber-600">Pendiente</p>
+                        <h3 className="font-medium text-sm md:text-base">Certificación profesional</h3>
+                        <p className="text-xs md:text-sm text-amber-600">Pendiente</p>
                       </div>
                       <Button variant="outline" size="sm">Subir</Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Esta sección está disponible solo para proveedores de servicios.</p>
+                  <div className="text-center py-6 md:py-8">
+                    <p className="text-xs md:text-sm text-muted-foreground">Esta sección está disponible solo para proveedores de servicios.</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="support">
-            <Card>
-              <CardHeader>
-                <CardTitle>Soporte</CardTitle>
+          <TabsContent value="support" className="animate-scale-in">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Soporte</CardTitle>
                 <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte</CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...supportForm}>
-                  <form onSubmit={supportForm.handleSubmit(onSubmitSupport)} className="space-y-4">
+                  <form onSubmit={supportForm.handleSubmit(onSubmitSupport)} className="space-y-3 md:space-y-4">
                     <FormField
                       control={supportForm.control}
                       name="subject"
@@ -338,7 +340,7 @@ const Profile = () => {
                           <FormControl>
                             <Textarea 
                               placeholder="Explica con detalle tu consulta o problema" 
-                              className="min-h-[150px]"
+                              className="min-h-[100px] md:min-h-[150px]"
                               {...field}
                             />
                           </FormControl>
@@ -347,58 +349,58 @@ const Profile = () => {
                       )}
                     />
                     
-                    <Button type="submit">Enviar mensaje</Button>
+                    <Button type="submit" className="w-full md:w-auto">Enviar mensaje</Button>
                   </form>
                 </Form>
               </CardContent>
-              <CardFooter className="flex-col items-start">
-                <h3 className="text-sm font-medium">Contacto directo</h3>
-                <p className="text-sm text-muted-foreground">
+              <CardFooter className="flex-col items-start text-xs md:text-sm pt-3 pb-4">
+                <h3 className="font-medium">Contacto directo</h3>
+                <p className="text-muted-foreground">
                   También puedes contactarnos en soporte@gato.com o al teléfono +1 234 567 890
                 </p>
               </CardFooter>
             </Card>
           </TabsContent>
           
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración</CardTitle>
+          <TabsContent value="settings" className="animate-scale-in">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Configuración</CardTitle>
                 <CardDescription>Personaliza tu experiencia en la plataforma</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                   <div>
-                    <h3 className="font-medium mb-2">Preferencias de idioma</h3>
-                    <select className="w-full p-2 border rounded">
+                    <h3 className="font-medium text-sm md:text-base mb-2">Preferencias de idioma</h3>
+                    <select className="w-full p-2 border rounded text-sm">
                       <option value="es">Español</option>
                       <option value="en">English</option>
                     </select>
                   </div>
                   
                   <div>
-                    <h3 className="font-medium mb-2">Seguridad</h3>
-                    <Button variant="outline">Cambiar contraseña</Button>
+                    <h3 className="font-medium text-sm md:text-base mb-2">Seguridad</h3>
+                    <Button variant="outline" size="sm">Cambiar contraseña</Button>
                   </div>
                   
                   <div>
-                    <h3 className="font-medium mb-2">Notificaciones</h3>
+                    <h3 className="font-medium text-sm md:text-base mb-2">Notificaciones</h3>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm">Notificaciones por correo</label>
+                        <label className="text-xs md:text-sm">Notificaciones por correo</label>
                         <input type="checkbox" className="toggle" defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
-                        <label className="text-sm">Notificaciones de la aplicación</label>
+                        <label className="text-xs md:text-sm">Notificaciones de la aplicación</label>
                         <input type="checkbox" className="toggle" defaultChecked />
                       </div>
                     </div>
                   </div>
                   
                   <div>
-                    <h3 className="font-medium mb-2 text-red-500">Zona de peligro</h3>
+                    <h3 className="font-medium text-sm md:text-base mb-2 text-red-500">Zona de peligro</h3>
                     <div className="space-y-2">
-                      <Button variant="destructive">Eliminar mi cuenta</Button>
+                      <Button variant="destructive" size="sm">Eliminar mi cuenta</Button>
                     </div>
                   </div>
                 </div>
