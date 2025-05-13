@@ -7,8 +7,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  buildingId: string;  // This field name is kept for backward compatibility
-  residenciaId?: string; // New field name
+  residenciaId: string;  // Usando solo residenciaId como estándar
   buildingName: string;
   hasPaymentMethod: boolean;
   role: 'client' | 'provider' | 'admin';
@@ -53,22 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Login function
   const login = (userData: User) => {
-    // For backward compatibility, ensure residenciaId is set
-    if (userData.buildingId && !userData.residenciaId) {
-      userData.residenciaId = userData.buildingId;
-    }
-    
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
   // Register function
   const register = (userData: User) => {
-    // For backward compatibility, ensure residenciaId is set
-    if (userData.buildingId && !userData.residenciaId) {
-      userData.residenciaId = userData.buildingId;
-    }
-    
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };

@@ -81,7 +81,6 @@ export const useSupabaseAuth = () => {
         email: email,
         name: userData.name,
         phone: userData.phone || '',
-        buildingId: userData.role === 'client' ? userData.residenciaId || '' : '',
         residenciaId: userData.role === 'client' ? userData.residenciaId || '' : '',
         buildingName: '', 
         hasPaymentMethod: false,
@@ -142,12 +141,11 @@ export const useSupabaseAuth = () => {
         email: profileData.email || authData.user.email || '',
         name: profileData.name || '',
         phone: profileData.phone || '',
-        buildingId: profileData.residencia_id || '',
+        residenciaId: profileData.residencia_id || '',
         buildingName: '', 
         hasPaymentMethod: profileData.has_payment_method || false,
         role: profileData.role as UserRole,
         avatarUrl: profileData.avatar_url || '',
-        residenciaId: profileData.residencia_id || ''
       };
       
       setAuthUser(userObj);
