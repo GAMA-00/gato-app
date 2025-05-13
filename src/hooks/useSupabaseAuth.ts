@@ -39,7 +39,7 @@ export const useSupabaseAuth = () => {
       
       console.log('Phone is unique, proceeding with registration');
       
-      // Register the user in Supabase Auth
+      // Register the user in Supabase Auth with improved error handling
       const { data: authData, error: authError } = await signUpWithSupabase(
         email, 
         password, 
@@ -51,6 +51,19 @@ export const useSupabaseAuth = () => {
       );
 
       if (authError) {
+        console.error('Auth error during signup:', authError);
+        // Presentar mensaje de error más detallado al usuario
+        let errorMessage = 'Error en el registro. Por favor intente nuevamente.';
+        
+        if (authError.message.includes('already registered')) {
+          errorMessage = 'Este correo electrónico ya está registrado. Por favor use otro o inicie sesión.';
+        } else if (authError.message.includes('password')) {
+          errorMessage = 'La contraseña debe tener al menos 6 caracteres.';
+        } else if (authError.message.includes('rate limit')) {
+          errorMessage = 'Demasiados intentos. Por favor espere unos minutos e intente nuevamente.';
+        }
+        
+        toast.error(errorMessage);
         setIsLoading(false);
         return { data: null, error: authError };
       }
@@ -58,7 +71,7 @@ export const useSupabaseAuth = () => {
       const userId = authData.user.id;
       console.log('User created with ID:', userId);
 
-      // Update the user with additional data
+      // Datos a actualizar en la tabla users
       const updateData: any = {
         name: userData.name,
         email: email,
@@ -66,34 +79,45 @@ export const useSupabaseAuth = () => {
         role: userData.role
       };
 
-      // If the user is a client, add residencia, condominium and house number
+      // Si el usuario es un cliente, agregar residencia, condominio y número de casa
       if (userData.role === 'client') {
         updateData.residencia_id = userData.residenciaId || null;
         updateData.condominium_id = userData.condominiumId || null;
         updateData.house_number = userData.houseNumber || '';
       }
 
-      // Update the user record
-      const { error: updateError } = await supabase
-        .from('users')
-        .update(updateData)
-        .eq('id', userId);
-        
-      if (updateError) {
-        console.error('Error updating user data:', updateError);
+      try {
+        // Intentar actualizar el registro de usuario
+        const { error: updateError } = await supabase
+          .from('users')
+          .update(updateData)
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error('Error updating user data:', updateError);
+          toast.warning('Cuenta creada, pero hubo un problema actualizando detalles adicionales.');
+        }
+      } catch (updateError) {
+        console.error('Exception updating user data:', updateError);
+        toast.warning('Cuenta creada, pero hubo un problema actualizando detalles adicionales.');
       }
 
-      // If the user is a provider and specified residencias, link them
+      // Si el usuario es un proveedor con residencias específicas, vincularlas
       if (userData.role === 'provider' && userData.providerResidenciaIds?.length > 0) {
-        for (const residenciaId of userData.providerResidenciaIds) {
-          await supabase.from('provider_residencias').insert({
-            provider_id: userId,
-            residencia_id: residenciaId
-          });
+        try {
+          for (const residenciaId of userData.providerResidenciaIds) {
+            await supabase.from('provider_residencias').insert({
+              provider_id: userId,
+              residencia_id: residenciaId
+            });
+          }
+        } catch (providerError) {
+          console.error('Error linking provider residencias:', providerError);
+          toast.warning('Cuenta de proveedor creada, pero hubo un problema vinculando residencias.');
         }
       }
       
-      // Create user object for frontend
+      // Crear objeto de usuario para el frontend
       const userObj = {
         id: userId,
         email: email,
@@ -103,11 +127,13 @@ export const useSupabaseAuth = () => {
         buildingName: '', 
         hasPaymentMethod: false,
         role: userData.role as UserRole,
+        condominiumId: userData.condominiumId || '',
+        houseNumber: userData.houseNumber || '',
       };
       
       toast.success('¡Cuenta creada con éxito!');
       
-      // Set user in the authentication context
+      // Establecer usuario en el contexto de autenticación
       setAuthUser(userObj);
       
       console.log('User registered successfully');
@@ -118,7 +144,7 @@ export const useSupabaseAuth = () => {
       };
     } catch (error: any) {
       console.error('Unexpected registration error:', error);
-      toast.error(error.message || 'Error en el registro');
+      toast.error('Error inesperado durante el registro. Por favor intente nuevamente.');
       return { data: null, error };
     } finally {
       setIsLoading(false);
