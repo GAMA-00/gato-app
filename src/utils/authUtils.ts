@@ -114,6 +114,74 @@ export const signUpWithSupabase = async (
       return { data: null, error: new Error('No user returned from auth signup') };
     }
 
+    // Now that we have created the auth user, manually insert into the users table
+    const userId = authData.user.id;
+    console.log('Auth user created with ID:', userId, 'Now creating user record');
+    
+    const { error: userInsertError } = await supabase.from('users').insert({
+      id: userId,
+      name: userData.name,
+      email: email,
+      phone: userData.phone || '',
+      role: userData.role,
+      residencia_id: userData.residenciaId || null,
+      condominium_id: userData.condominiumId || null,
+      house_number: userData.houseNumber || '',
+      has_payment_method: false
+    });
+
+    if (userInsertError) {
+      console.error('Error inserting into users table:', userInsertError);
+      toast.warning('Cuenta de autenticación creada, pero hubo un problema guardando los datos adicionales.');
+      // We don't return error here as auth user is created successfully
+    }
+    
+    // Handle role-specific operations
+    if (userData.role === 'client') {
+      // Insert into clients table
+      const { error: clientError } = await supabase.from('clients').insert({
+        id: userId,
+        name: userData.name,
+        email: email,
+        phone: userData.phone || '',
+        residencia_id: userData.residenciaId || null
+      });
+      
+      if (clientError) {
+        console.error('Error inserting into clients table:', clientError);
+        toast.warning('Hubo un problema al registrar los datos del cliente.');
+      }
+    } else if (userData.role === 'provider') {
+      // Insert into providers table
+      const { error: providerError } = await supabase.from('providers').insert({
+        id: userId,
+        name: userData.name,
+        email: email,
+        phone: userData.phone || ''
+      });
+      
+      if (providerError) {
+        console.error('Error inserting into providers table:', providerError);
+        toast.warning('Hubo un problema al registrar los datos del proveedor.');
+      }
+      
+      // If provider has residencias, insert them
+      if (userData.providerResidenciaIds?.length) {
+        for (const residenciaId of userData.providerResidenciaIds) {
+          const { error: providerResidenciaError } = await supabase
+            .from('provider_residencias')
+            .insert({
+              provider_id: userId,
+              residencia_id: residenciaId
+            });
+          
+          if (providerResidenciaError) {
+            console.error('Error inserting into provider_residencias:', providerResidenciaError);
+          }
+        }
+      }
+    }
+
     return { data: authData, error: null };
   } catch (error: any) {
     console.error('Exception during auth signup:', error);

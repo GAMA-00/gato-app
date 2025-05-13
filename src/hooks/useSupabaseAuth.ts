@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +15,7 @@ export const useSupabaseAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * User signup handler - Updated to use the unified users table
+   * User signup handler - Updated to use direct inserts without relying on triggers
    */
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Starting registration process with email:', email);
@@ -38,14 +39,18 @@ export const useSupabaseAuth = () => {
       
       console.log('Phone is unique, proceeding with registration');
       
-      // Register the user in Supabase Auth with improved error handling
+      // Register the user in Supabase Auth and users table
       const { data: authData, error: authError } = await signUpWithSupabase(
         email, 
         password, 
         {
           name: userData.name,
           role: userData.role,
-          phone: userData.phone
+          phone: userData.phone,
+          residenciaId: userData.residenciaId,
+          condominiumId: userData.condominiumId,
+          houseNumber: userData.houseNumber,
+          providerResidenciaIds: userData.providerResidenciaIds
         }
       );
 
@@ -68,53 +73,7 @@ export const useSupabaseAuth = () => {
       }
 
       const userId = authData.user.id;
-      console.log('User created with ID:', userId);
-
-      // Datos a actualizar en la tabla users
-      const updateData: any = {
-        name: userData.name,
-        email: email,
-        phone: userData.phone || '',
-        role: userData.role
-      };
-
-      // Si el usuario es un cliente, agregar residencia, condominio y número de casa
-      if (userData.role === 'client') {
-        updateData.residencia_id = userData.residenciaId || null;
-        updateData.condominium_id = userData.condominiumId || null;
-        updateData.house_number = userData.houseNumber || '';
-      }
-
-      try {
-        // Intentar actualizar el registro de usuario
-        const { error: updateError } = await supabase
-          .from('users')
-          .update(updateData)
-          .eq('id', userId);
-          
-        if (updateError) {
-          console.error('Error updating user data:', updateError);
-          toast.warning('Cuenta creada, pero hubo un problema actualizando detalles adicionales.');
-        }
-      } catch (updateError) {
-        console.error('Exception updating user data:', updateError);
-        toast.warning('Cuenta creada, pero hubo un problema actualizando detalles adicionales.');
-      }
-
-      // Si el usuario es un proveedor con residencias específicas, vincularlas
-      if (userData.role === 'provider' && userData.providerResidenciaIds?.length > 0) {
-        try {
-          for (const residenciaId of userData.providerResidenciaIds) {
-            await supabase.from('provider_residencias').insert({
-              provider_id: userId,
-              residencia_id: residenciaId
-            });
-          }
-        } catch (providerError) {
-          console.error('Error linking provider residencias:', providerError);
-          toast.warning('Cuenta de proveedor creada, pero hubo un problema vinculando residencias.');
-        }
-      }
+      console.log('User registered successfully with ID:', userId);
       
       // Crear objeto de usuario para el frontend
       const userObj = {
@@ -123,6 +82,7 @@ export const useSupabaseAuth = () => {
         name: userData.name,
         phone: userData.phone || '',
         buildingId: userData.role === 'client' ? userData.residenciaId || '' : '',
+        residenciaId: userData.role === 'client' ? userData.residenciaId || '' : '',
         buildingName: '', 
         hasPaymentMethod: false,
         role: userData.role as UserRole,
@@ -134,8 +94,6 @@ export const useSupabaseAuth = () => {
       
       // Establecer usuario en el contexto de autenticación
       setAuthUser(userObj);
-      
-      console.log('User registered successfully');
       
       return { 
         data: { user: userObj }, 
@@ -151,7 +109,7 @@ export const useSupabaseAuth = () => {
   };
 
   /**
-   * User sign in handler - Updated to handle Google OAuth
+   * User sign in handler
    */
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -168,7 +126,7 @@ export const useSupabaseAuth = () => {
         return { data: null, error: authError || new Error('No user data returned') };
       }
 
-      // Get user profile from the unified users table
+      // Get user profile from the users table
       const { data: profileData, error: profileError } = await fetchUserProfile(authData.user.id);
       
       if (profileError || !profileData) {
@@ -188,7 +146,8 @@ export const useSupabaseAuth = () => {
         buildingName: '', 
         hasPaymentMethod: profileData.has_payment_method || false,
         role: profileData.role as UserRole,
-        avatarUrl: profileData.avatar_url || ''
+        avatarUrl: profileData.avatar_url || '',
+        residenciaId: profileData.residencia_id || ''
       };
       
       setAuthUser(userObj);
