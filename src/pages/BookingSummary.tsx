@@ -130,7 +130,7 @@ const BookingSummary = () => {
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           status: 'pending',
-          residencia_id: user.buildingId || null,
+          residencia_id: user.residenciaId || null,
           apartment: user.apartment || '',
           notes: bookingData.notes || '',
           recurrence: normalizedRecurrence
