@@ -29,6 +29,7 @@ interface ClientPaymentFormProps {
 
 export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPaymentFormProps) => {
   const [error, setError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const clientForm = useForm<CreditCardFormValues>({
     resolver: zodResolver(creditCardSchema),
@@ -51,6 +52,7 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
     }
     
     setError(null);
+    setIsSubmitting(true);
     
     try {
       console.log("Guardando método de pago para el usuario:", userId);
@@ -75,6 +77,7 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
           });
           
         if (insertError) {
+          console.error("Error al crear registro de usuario:", insertError);
           throw new Error(`No se pudo crear el registro de usuario: ${insertError.message}`);
         }
       }
@@ -88,7 +91,10 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
         expiry_date: values.expiryDate
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error al guardar método de pago:", error);
+        throw error;
+      }
       
       // Actualizar el flag has_payment_method del usuario
       await supabase
@@ -110,6 +116,8 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
         description: "Error al guardar la información de pago",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -201,8 +209,17 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
           />
         </div>
         
-        <Button type="submit" className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover">
-          Guardar
+        <Button 
+          type="submit" 
+          className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></span>
+              Procesando...
+            </>
+          ) : "Guardar"}
         </Button>
       </form>
     </Form>
