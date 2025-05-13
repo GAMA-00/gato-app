@@ -122,7 +122,7 @@ export const useSupabaseAuth = () => {
   };
 
   /**
-   * User sign in handler - Actualizado para no depender de la tabla users
+   * User sign in handler - Updated to fetch residencia_id from clients table
    */
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -149,21 +149,60 @@ export const useSupabaseAuth = () => {
       // Try to determine user role from metadata
       let userRole = (user_metadata?.role || app_metadata?.role) as UserRole || 'client';
       
-      // Create user object for frontend with available data
+      // Fetch additional user data from clients or providers table based on role
+      let residenciaId = user_metadata?.residenciaId || '';
+      let buildingName = '';
+      let hasPaymentMethod = user_metadata?.has_payment_method || false;
+      let condominiumId = user_metadata?.condominiumId || '';
+      let houseNumber = user_metadata?.houseNumber || '';
+      
+      // If role is client, get additional data from clients table
+      if (userRole === 'client') {
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('residencia_id, has_payment_method, apartment')
+          .eq('id', id)
+          .single();
+          
+        if (!clientError && clientData) {
+          console.log('Client data fetched:', clientData);
+          residenciaId = clientData.residencia_id || residenciaId;
+          hasPaymentMethod = clientData.has_payment_method || hasPaymentMethod;
+          
+          // If we have a residencia_id, fetch the building name
+          if (residenciaId) {
+            const { data: residenciaData } = await supabase
+              .from('residencias')
+              .select('name')
+              .eq('id', residenciaId)
+              .single();
+              
+            if (residenciaData) {
+              buildingName = residenciaData.name;
+            }
+          }
+        } else {
+          console.warn('Could not fetch client data:', clientError);
+        }
+      }
+      
+      // Create user object for frontend
       const userObj = {
         id: id,
         email: userEmail || email,
         name: user_metadata?.name || '',
         phone: user_metadata?.phone || '',
-        residenciaId: user_metadata?.residenciaId || '',
-        buildingName: '', 
-        hasPaymentMethod: user_metadata?.has_payment_method || false,
+        residenciaId: residenciaId,
+        buildingName: buildingName, 
+        hasPaymentMethod: hasPaymentMethod,
         role: userRole,
         avatarUrl: user_metadata?.avatar_url || '',
+        condominiumId: condominiumId,
+        houseNumber: houseNumber,
       };
       
       setAuthUser(userObj);
-      console.log('Login successful as', userRole);
+      console.log('Login successful as', userRole, 'with residenciaId:', residenciaId);
       toast({
         title: "¡Bienvenido!",
         description: "¡Bienvenido de nuevo!",

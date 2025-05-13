@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,25 +29,34 @@ const BookingSummary = () => {
     bookingData?.startTime ? format(new Date(bookingData.startTime), 'HH:mm') : undefined
   );
   
-  // Verificar autenticación al cargar el componente
+  // Verify we have both auth and booking data
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      toast.error("Debes iniciar sesión para reservar un servicio");
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para reservar un servicio",
+        variant: "destructive"
+      });
       navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
       return;
     }
-  }, [isAuthenticated, user]);
-  
-  // If no booking data, redirect to the main page
-  if (!bookingData) {
-    React.useEffect(() => {
-      toast.error("Información de reserva no encontrada");
+
+    if (!bookingData) {
+      toast({
+        title: "Error",
+        description: "Información de reserva no encontrada",
+        variant: "destructive"
+      });
       navigate('/client');
-    }, []);
+    }
+  }, [isAuthenticated, user, bookingData]);
+  
+  // If no booking data, return early
+  if (!bookingData) {
     return null;
   }
   
-  // Validate that we have required data before showing the form
+  // Validate required data
   const hasRequiredData = !!(
     bookingData.serviceName &&
     bookingData.providerName &&
@@ -71,9 +79,8 @@ const BookingSummary = () => {
   
   // Normalize recurrence value to match database constraints
   const normalizeRecurrenceValue = (value) => {
-    // Map front-end values to database-allowed values
     const recurrenceMap = {
-      'once': null,     // For 'once', we'll use null in the database
+      'once': null,
       'weekly': 'weekly',
       'biweekly': 'biweekly',
       'monthly': 'monthly',
@@ -86,7 +93,7 @@ const BookingSummary = () => {
   // Mutation to create appointment
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
-      // Verificar si el usuario está autenticado
+      // Check authentication
       if (!user?.id) {
         throw new Error("Debes iniciar sesión para reservar un servicio");
       }
@@ -96,18 +103,64 @@ const BookingSummary = () => {
         throw new Error("Debes seleccionar una fecha y hora para el servicio");
       }
       
-      // Calculate start time based on selected date and time
-      // Parse selected time
+      // Parse selected time and calculate start/end times
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const startTime = new Date(selectedDate);
       startTime.setHours(hours, minutes, 0, 0);
       
-      // Calculate end time based on start time and duration
       const durationMinutes = bookingData.duration || 60;
       const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
       
       // Normalize the recurrence value
       const normalizedRecurrence = normalizeRecurrenceValue(bookingData.frequency);
+      
+      // Check if we have a valid residencia_id
+      const residencia_id = user.residenciaId || null;
+      
+      // Check if residencia_id is required but missing
+      if (!residencia_id) {
+        console.warn("Creating appointment without residencia_id. User profile may need updating.");
+        
+        // Try to fetch residencia_id from clients table
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('residencia_id')
+          .eq('id', user.id)
+          .single();
+          
+        if (!clientError && clientData?.residencia_id) {
+          console.log('Found residencia_id in clients table:', clientData.residencia_id);
+          
+          // Create appointment with this residencia_id
+          const { data, error } = await supabase
+            .from('appointments')
+            .insert({
+              client_id: user.id,
+              provider_id: bookingData.providerId,
+              listing_id: bookingData.serviceId,
+              start_time: startTime.toISOString(),
+              end_time: endTime.toISOString(),
+              status: 'pending',
+              residencia_id: clientData.residencia_id,
+              apartment: user.apartment || '',
+              notes: bookingData.notes || '',
+              recurrence: normalizedRecurrence
+            })
+            .select();
+            
+          if (error) throw error;
+          return data;
+        } else {
+          // If we can't find a residencia_id, try to set up the residencia_id first
+          console.error("No residencia_id found for user. Redirecting to profile update.");
+          toast({
+            title: "Información incompleta",
+            description: "Por favor actualiza tu perfil con tu información de residencia antes de reservar.",
+            variant: "destructive"
+          });
+          throw new Error("Por favor actualiza tu perfil con tu información de residencia antes de reservar.");
+        }
+      }
       
       console.log("Creating appointment with data:", {
         client_id: user.id,
@@ -115,9 +168,10 @@ const BookingSummary = () => {
         listing_id: bookingData.serviceId,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
-        duration: durationMinutes,
-        price: bookingData.price,
         status: 'pending',
+        residencia_id: residencia_id,
+        apartment: user.apartment || '',
+        notes: bookingData.notes || '',
         recurrence: normalizedRecurrence
       });
       
@@ -130,7 +184,7 @@ const BookingSummary = () => {
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           status: 'pending',
-          residencia_id: user.residenciaId || null,
+          residencia_id: residencia_id,
           apartment: user.apartment || '',
           notes: bookingData.notes || '',
           recurrence: normalizedRecurrence
@@ -142,19 +196,42 @@ const BookingSummary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      toast.success("Reserva solicitada con éxito");
+      toast({
+        title: "Éxito",
+        description: "Reserva solicitada con éxito"
+      });
       navigate('/client/bookings');
     },
     onError: (error: any) => {
       console.error("Error creating appointment:", error);
       
-      // Mensajes de error más amigables y específicos
+      // More friendly and specific error messages
       if (error.message.includes('recurrence_check')) {
-        toast.error("Error: El tipo de recurrencia seleccionado no es válido.");
+        toast({
+          title: "Error",
+          description: "Error: El tipo de recurrencia seleccionado no es válido.",
+          variant: "destructive"
+        });
       } else if (error.message.includes('foreign key')) {
-        toast.error("Error: Hay un problema con tu perfil de usuario. Por favor contacta a soporte.");
+        toast({
+          title: "Error",
+          description: "Error: Hay un problema con tu perfil de usuario. Por favor contacta a soporte.",
+          variant: "destructive"
+        });
+      } else if (error.message.includes('residencia_id')) {
+        toast({
+          title: "Error", 
+          description: "No se pudo identificar tu residencia. Por favor actualiza tu perfil.",
+          variant: "destructive"
+        });
+        // Consider redirecting to profile update page
+        // navigate('/profile');
       } else {
-        toast.error(`Error al crear la reserva: ${error.message}`);
+        toast({
+          title: "Error",
+          description: `Error al crear la reserva: ${error.message}`,
+          variant: "destructive"
+        });
       }
       
       setIsSubmitting(false);
@@ -166,22 +243,34 @@ const BookingSummary = () => {
   };
   
   const handleConfirm = () => {
-    // Validar autenticación
+    // Validate authentication
     if (!isAuthenticated || !user) {
-      toast.error("Debes iniciar sesión para reservar un servicio");
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para reservar un servicio",
+        variant: "destructive"
+      });
       navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
       return;
     }
     
-    // Validar datos requeridos
+    // Validate required data
     if (!hasRequiredData) {
-      toast.error("Faltan datos necesarios para completar la reserva");
+      toast({
+        title: "Error",
+        description: "Faltan datos necesarios para completar la reserva",
+        variant: "destructive"
+      });
       return;
     }
     
-    // Validar que se haya seleccionado fecha y hora
+    // Validate date and time selection
     if (!selectedDate || !selectedTime) {
-      toast.error("Por favor selecciona una fecha y hora para el servicio");
+      toast({
+        title: "Error",
+        description: "Por favor selecciona una fecha y hora para el servicio",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -212,7 +301,7 @@ const BookingSummary = () => {
       }
     >
       <div className="max-w-lg mx-auto">
-        {/* Date and Time Selector - Now always required */}
+        {/* Date and Time Selector */}
         <DateTimeSelector 
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
