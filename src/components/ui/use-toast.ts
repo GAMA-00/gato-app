@@ -1,5 +1,5 @@
 
 // Re-export the toast hook and toast function from the hooks directory
-import { useToast as useToastHook, toast } from "@/hooks/use-toast";
-export { toast } from "@/hooks/use-toast";
-export const useToast = useToastHook;
+import { useToast, toast, type Toast } from "@/hooks/use-toast";
+
+export { useToast, toast, type Toast };
