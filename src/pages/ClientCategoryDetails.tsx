@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -137,8 +138,8 @@ const ClientCategoryDetails = () => {
     <PageContainer
       title={
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
-            <CategoryIcon size={24} />
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-black text-white">
+            <CategoryIcon size={24} className="text-white" />
           </div>
           <span>{displayLabel}</span>
         </div>
@@ -149,13 +150,13 @@ const ClientCategoryDetails = () => {
         {services.map((service) => (
           <Card 
             key={service.id}
-            className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
+            className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-black text-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
             onClick={() => handleServiceSelect(service.id)}
           >
-            <div className={`${isMobile ? 'w-14 h-14' : 'w-18 h-18'} rounded-full flex items-center justify-center bg-gray-100 mb-2 group-hover:bg-gray-200 transition-colors`}>
-              <CategoryIcon size={isMobile ? 24 : 30} />
+            <div className={`${isMobile ? 'w-14 h-14' : 'w-18 h-18'} rounded-full flex items-center justify-center bg-black/40 mb-2 group-hover:bg-black/60 transition-colors`}>
+              <CategoryIcon size={isMobile ? 24 : 30} className="text-white" />
             </div>
-            <h3 className="text-center font-medium text-sm md:text-base">{service.name}</h3>
+            <h3 className="text-center font-medium text-sm md:text-base text-white">{service.name}</h3>
           </Card>
         ))}
       </div>
