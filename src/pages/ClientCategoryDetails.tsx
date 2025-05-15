@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,7 +8,7 @@ import {
   ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
-  Hand, Eclipse, Sprout, HeartPlus, Shapes, Camera
+  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,7 +74,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Cuidado infantil': Baby,
   'Costura': Shirt,
   'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': HeartPlus, // Added Cuidado Adulto mayor
+  'Cuidado Adulto mayor': HeartPulse, // Updated to HeartPulse instead of HeartPlus
   'Niñera': Shapes,      // Added Niñera
   'Fotografo': Camera    // Added Fotografo
 };
