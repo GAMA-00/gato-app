@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon } from 'lucide-react';
+import { ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +19,11 @@ const iconMap: Record<string, LucideIcon> = {
   'home': Home,
   'pets': Dog,
   'other': Globe,
+};
+
+// Mapa de iconos específico para tipos de servicio especiales
+const serviceIconMap: Record<string, LucideIcon> = {
+  'Lavacar': Car,
 };
 
 // Nombres de categorías en español
@@ -145,16 +150,21 @@ const ClientCategoryDetails = () => {
       subtitle={backButton}
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
-        {services.map((service) => (
-          <Card 
-            key={service.id}
-            className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
-            onClick={() => handleServiceSelect(service.id)}
-          >
-            <CategoryIcon size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-[#1A1A1A] mb-3" />
-            <h3 className="text-center font-semibold text-sm md:text-base text-[#1A1A1A]">{service.name}</h3>
-          </Card>
-        ))}
+        {services.map((service) => {
+          // Determinar el icono para este servicio específico
+          const ServiceIcon = serviceIconMap[service.name] || CategoryIcon;
+          
+          return (
+            <Card 
+              key={service.id}
+              className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
+              onClick={() => handleServiceSelect(service.id)}
+            >
+              <ServiceIcon size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-[#1A1A1A] mb-3" />
+              <h3 className="text-center font-semibold text-sm md:text-base text-[#1A1A1A]">{service.name}</h3>
+            </Card>
+          );
+        })}
       </div>
       
       {services.length === 0 && (

@@ -29,24 +29,6 @@ export function useCategories() {
           throw serviceTypesError;
         }
 
-        // Add client-side entry for Lavacar under home category if it doesn't exist
-        const homeCategory = categories.find(cat => cat.name === 'home');
-        if (homeCategory) {
-          const lavacarExists = serviceTypes.some(
-            type => type.name.toLowerCase() === 'lavacar' && type.category_id === homeCategory.id
-          );
-          
-          if (!lavacarExists) {
-            console.log('Adding client-side Lavacar service type to home category');
-            serviceTypes.push({
-              id: 'lavacar-temp-id',
-              name: 'Lavacar',
-              category_id: homeCategory.id,
-              created_at: new Date().toISOString()
-            });
-          }
-        }
-
         // Group service types by category
         const serviceTypesByCategory = serviceTypes.reduce((acc, type) => {
           if (!acc[type.category_id]) {
