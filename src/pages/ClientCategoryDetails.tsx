@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -8,7 +7,7 @@ import {
   ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
-  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera
+  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, SoapDispenserDroplet, HeartHandshake, PawPrint
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +21,7 @@ const iconMap: Record<string, LucideIcon> = {
   'personal-care': Scissors,
   'sports': Dumbbell,
   'home': Home,
-  'pets': Dog,
+  'pets': PawPrint,  // Updated to PawPrint
   'other': Globe,
 };
 
@@ -45,8 +44,10 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Idiomas': Languages,  // Updated to Languages
   'Pintura': Palette,    // Added Pintura with Palette icon
   'Instrumentos': Guitar, // Added Instrumentos with Guitar icon
-  'Tutorias primaria': GraduationCap, // Added Tutorias primaria
-  'Tutorias secundaria': GraduationCap, // Added Tutorias secundaria
+  'Tutorías Primaria': GraduationCap,  // Updated name
+  'Tutorías Secundaria': GraduationCap,  // Updated name
+  'Tutorias primaria': GraduationCap,  // Keep for backward compatibility
+  'Tutorias secundaria': GraduationCap,  // Keep for backward compatibility
   
   // Cuidado Personal
   'Peluquería': Scissors,
@@ -57,6 +58,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Fisioterapia': PersonStanding, // Added Fisioterapia
   'Manicurista': Hand,   // Added Manicurista
   'Masajista': PersonStanding, // Added Masajista
+  'Depilación': SoapDispenserDroplet,  // Added Depilación
   
   // Deportes
   'Natación': Waves,
@@ -66,17 +68,18 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Tenis': Eclipse,      // Added Tenis
   
   // Mascotas
-  'Paseo': Dog,
-  'Veterinario': Dog,
+  'Paseo': PawPrint,  // Updated to PawPrint
+  'Veterinario': PawPrint,  // Updated to PawPrint
   'Peluquería canina': Scissors,
   
   // Otros servicios
   'Cuidado infantil': Baby,
   'Costura': Shirt,
   'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': HeartPulse, // Updated to HeartPulse instead of HeartPlus
+  'Cuidado Adulto mayor': HeartHandshake, // Updated to HeartHandshake instead of HeartPlus
   'Niñera': Shapes,      // Added Niñera
-  'Fotografo': Camera    // Added Fotografo
+  'Fotógrafo': Camera,  // Corrected spelling
+  'Fotografo': Camera    // Keep for backward compatibility
 };
 
 // Nombres de categorías en español
