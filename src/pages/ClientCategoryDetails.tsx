@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -5,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
-  Music, Paintbrush, Chef, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
+  Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -37,7 +38,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   // Clases
   'Música': Music,
   'Arte': Paintbrush,
-  'Cocina': Chef,
+  'Cocina': ChefHat,
   'Computación': Laptop,
   'Idiomas': GraduationCap,
   
