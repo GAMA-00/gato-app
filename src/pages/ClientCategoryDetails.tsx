@@ -148,7 +148,7 @@ const ClientCategoryDetails = () => {
         {services.map((service) => (
           <Card 
             key={service.id}
-            className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-[#5C504A] text-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
+            className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-[#F8EAE4] text-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
             onClick={() => handleServiceSelect(service.id)}
           >
             <CategoryIcon size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-white mb-3" />
