@@ -112,7 +112,7 @@ const ClientCategoryDetails = () => {
     <Button 
       variant="ghost" 
       onClick={handleBack} 
-      className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
+      className="p-0 h-auto flex items-center text-white hover:text-white/80"
     >
       <ArrowLeft size={16} className="mr-1" />
       <span>Volver a categorías</span>
@@ -148,18 +148,18 @@ const ClientCategoryDetails = () => {
         {services.map((service) => (
           <Card 
             key={service.id}
-            className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-[#8A7E78] text-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
+            className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
             onClick={() => handleServiceSelect(service.id)}
           >
-            <CategoryIcon size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-white mb-3" />
-            <h3 className="text-center font-semibold text-sm md:text-base text-white">{service.name}</h3>
+            <CategoryIcon size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-[#2A2A2A] mb-3" />
+            <h3 className="text-center font-semibold text-sm md:text-base text-[#2A2A2A]">{service.name}</h3>
           </Card>
         ))}
       </div>
       
       {services.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No hay servicios disponibles en esta categoría.</p>
+          <p className="text-white">No hay servicios disponibles en esta categoría.</p>
         </div>
       )}
     </PageContainer>

@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    --background: 30 20% 96%;
+    --background: 0 0% 16%; /* #2A2A2A */
     --foreground: 0 0% 20%;
     
     --heading: 0 0% 13%;
