@@ -27,7 +27,7 @@ const NavItem = ({ to, icon: Icon, label, isActive, onClick, badge, customBadge 
       onClick={onClick}
     >
       <Icon className="h-6 w-6" />
-      <span>{label}</span>
+      <span className="truncate">{label}</span>
       {badge && (
         <Badge 
           variant="destructive" 

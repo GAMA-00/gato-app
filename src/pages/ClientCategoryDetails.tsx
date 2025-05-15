@@ -110,11 +110,11 @@ const ClientCategoryDetails = () => {
   // Create the back button as a React element
   const backButton = (
     <Button 
-      variant="ghost" 
+      variant="outline" 
       onClick={handleBack} 
-      className="p-0 h-auto flex items-center text-white hover:text-white/80"
+      className="px-4 py-2 h-auto border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#FEEBCB]/50 hover:text-[#1A1A1A]"
     >
-      <ArrowLeft size={16} className="mr-1" />
+      <ArrowLeft size={16} className="mr-2" />
       <span>Volver a categorías</span>
     </Button>
   );
@@ -138,8 +138,8 @@ const ClientCategoryDetails = () => {
     <PageContainer
       title={
         <div className="flex items-center space-x-3">
-          <CategoryIcon size={32} strokeWidth={2.5} className="text-white" />
-          <span className="font-semibold">{displayLabel}</span>
+          <CategoryIcon size={32} strokeWidth={2.5} className="text-[#1A1A1A]" />
+          <span className="font-semibold text-[#1A1A1A]">{displayLabel}</span>
         </div>
       }
       subtitle={backButton}
@@ -151,15 +151,15 @@ const ClientCategoryDetails = () => {
             className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
             onClick={() => handleServiceSelect(service.id)}
           >
-            <CategoryIcon size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-[#2A2A2A] mb-3" />
-            <h3 className="text-center font-semibold text-sm md:text-base text-[#2A2A2A]">{service.name}</h3>
+            <CategoryIcon size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-[#1A1A1A] mb-3" />
+            <h3 className="text-center font-semibold text-sm md:text-base text-[#1A1A1A]">{service.name}</h3>
           </Card>
         ))}
       </div>
       
       {services.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-white">No hay servicios disponibles en esta categoría.</p>
+          <p className="text-[#1A1A1A]">No hay servicios disponibles en esta categoría.</p>
         </div>
       )}
     </PageContainer>

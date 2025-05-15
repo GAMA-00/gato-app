@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, ArrowLeft } from 'lucide-react';
 import { useChat } from '@/contexts/ChatContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useCommissionRate } from '@/hooks/useCommissionRate';
@@ -99,11 +99,28 @@ const ClientServices = () => {
     navigate('/client/messages');
   };
 
+  // Handle back navigation
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  // Back button component
+  const backButton = (
+    <Button 
+      variant="outline" 
+      onClick={handleBack} 
+      className="px-4 py-2 h-auto border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#FEEBCB]/50 hover:text-[#1A1A1A]"
+    >
+      <ArrowLeft size={16} className="mr-2" />
+      <span>Volver a servicios</span>
+    </Button>
+  );
+
   if (isLoading) {
     return (
       <PageContainer
         title="Servicios Disponibles"
-        subtitle="Explorando servicios disponibles..."
+        subtitle={backButton}
       >
         <div className="grid gap-8">
           {[1, 2, 3].map(i => (
@@ -124,14 +141,18 @@ const ClientServices = () => {
   return (
     <PageContainer
       title="Servicios Disponibles"
-      subtitle="Explora todos los servicios disponibles en tu residencia"
+      subtitle={
+        <div className="mt-2">
+          {backButton}
+        </div>
+      }
     >
       <div className="space-y-12">
         {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => {
           // Obtener la información de categoría o usar valores predeterminados
           const categoryInfo = SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES];
           const categoryLabel = categoryInfo?.label || 'Otros servicios';
-          const categoryColor = categoryInfo?.color || '#333';
+          const categoryColor = categoryInfo?.color || '#1A1A1A';
           
           return (
             <section key={categoryId} className="space-y-6">
