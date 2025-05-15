@@ -8,7 +8,7 @@ import {
   ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
-  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, Shower, HeartHandshake, PawPrint
+  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, ShowerHead, HeartHandshake, PawPrint
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,7 +59,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Fisioterapia': PersonStanding, // Added Fisioterapia
   'Manicurista': Hand,   // Added Manicurista
   'Masajista': PersonStanding, // Added Masajista
-  'Depilación': Shower,  // Changed from SoapDispenserDroplet to Shower
+  'Depilación': ShowerHead,  // Changed from Shower to ShowerHead
   
   // Deportes
   'Natación': Waves,
