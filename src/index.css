@@ -85,7 +85,6 @@
   
   * {
     @apply border-border;
-    scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
   }
   
@@ -93,11 +92,25 @@
     display: none; /* Chrome, Safari, Opera */
   }
   
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
   body {
     @apply bg-background text-foreground font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-size: 16px; /* Base font size increased */
+    height: 100%;
+    position: relative;
+  }
+  
+  #root {
+    height: 100%;
+    position: relative;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -225,6 +238,11 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
+  
+  /* Adjust for mobile bottom navigation */
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
+  }
 }
 
 /* Calendar specific styles */
@@ -280,6 +298,11 @@
   }
   
   button, a {
-    @apply min-h-12 min-w-12; /* Aumentar área de toque */
+    @apply min-h-10 min-w-10; /* Aumentar área de toque */
+  }
+  
+  /* Ensure bottom padding for content to account for navigation */
+  main, .main-content {
+    padding-bottom: 4.5rem !important;
   }
 }

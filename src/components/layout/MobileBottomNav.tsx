@@ -88,13 +88,13 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t py-3 px-4 shadow-md">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t py-2 px-4 shadow-md">
       <div className="flex justify-around items-center">
         {navItems.map((item) => (
           <button
             key={item.to}
             onClick={() => navigate(item.to)}
-            className="flex flex-col items-center gap-2 relative p-2"
+            className="flex flex-col items-center gap-1 relative p-2"
           >
             <item.icon 
               className={cn(
@@ -104,7 +104,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
             />
             <span 
               className={cn(
-                "text-sm font-medium",
+                "text-xs font-medium",
                 isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
               )}
             >

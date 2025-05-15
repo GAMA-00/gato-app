@@ -1,16 +1,10 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, DollarSign, ShoppingCart, Calendar } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react';
+import { ServiceVariant } from '@/components/client/service/types';
 import { Separator } from '@/components/ui/separator';
-
-interface ServiceVariant {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-}
 
 interface BookingSummaryProps {
   selectedVariants: ServiceVariant[];
@@ -19,66 +13,50 @@ interface BookingSummaryProps {
 
 const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) => {
   // Calculate totals
-  const totalAmount = selectedVariants.reduce((sum, variant) => sum + variant.price, 0);
-  const totalDuration = selectedVariants.reduce((sum, variant) => sum + variant.duration, 0);
+  const totalPrice = selectedVariants.reduce((sum, variant) => sum + Number(variant.price), 0);
+  const totalDuration = selectedVariants.reduce((sum, variant) => sum + Number(variant.duration), 0);
   
-  if (selectedVariants.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Resumen de reserva</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 text-muted-foreground text-center">
-            <ShoppingCart className="h-12 w-12 opacity-20 mb-2" />
-            <p>No has seleccionado ningún servicio</p>
-            <p className="text-sm mt-2">Selecciona los servicios que deseas agendar</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}${mins > 0 ? `h ${mins}m` : 'h'}`;
+  };
+  
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>Resumen de reserva</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {selectedVariants.map(variant => (
-            <div key={variant.id} className="flex justify-between">
-              <div>
-                <p className="font-medium">{variant.name}</p>
-                <p className="text-sm text-muted-foreground flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
-                  {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
-                </p>
-              </div>
-              <p className="font-medium">${variant.price.toFixed(2)}</p>
+    <Card className="shadow-sm sticky top-4">
+      <CardContent className="p-6">
+        {selectedVariants.map((variant, index) => (
+          <div key={variant.id || index} className="mb-5">
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="font-medium">{variant.name}</h3>
+              <span className="font-semibold">${Number(variant.price).toFixed(2)}</span>
             </div>
-          ))}
-          
-          <Separator className="my-3" />
-          
-          <div className="flex justify-between font-medium">
-            <div>
-              <p>Total</p>
-              <p className="text-sm text-muted-foreground flex items-center">
-                <Clock className="h-3 w-3 mr-1" />
-                {Math.floor(totalDuration / 60) > 0 ? `${Math.floor(totalDuration / 60)}h ` : ''}
-                {totalDuration % 60 > 0 ? `${totalDuration % 60}min` : ''}
-              </p>
+            <div className="flex items-center text-muted-foreground">
+              <Clock size={16} className="mr-1" />
+              <span className="text-sm">{formatDuration(Number(variant.duration))}</span>
             </div>
-            <p className="text-lg">${totalAmount.toFixed(2)}</p>
           </div>
+        ))}
+        
+        <Separator className="my-4" />
+        
+        <div className="flex justify-between items-center mb-1 font-bold">
+          <span className="text-lg">Total</span>
+          <span className="text-lg">${totalPrice.toFixed(2)}</span>
+        </div>
+        <div className="flex items-center text-muted-foreground">
+          <Clock size={16} className="mr-1" />
+          <span>{formatDuration(totalDuration)}</span>
         </div>
       </CardContent>
-      <CardFooter className="bg-muted/10 p-4">
-        <Button onClick={onSchedule} className="w-full bg-green-600 hover:bg-green-700 text-white">
-          <Calendar className="mr-2 h-4 w-4" />
-          Agendar servicio
+      <CardFooter>
+        <Button 
+          onClick={onSchedule} 
+          className="w-full bg-[#4CAF50] hover:bg-[#43A047] text-white font-medium"
+          size="lg"
+        >
+          <Calendar className="mr-2" /> Agendar servicio
         </Button>
       </CardFooter>
     </Card>

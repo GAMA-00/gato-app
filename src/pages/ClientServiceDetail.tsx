@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -161,7 +162,7 @@ const ClientServiceDetail = () => {
         </Button>
       }
     >
-      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in pb-24 md:pb-0">
         {/* Left Column: Provider Info and Service Details */}
         <div className="md:col-span-2 space-y-6">
           {/* Provider Info Card */}
