@@ -31,7 +31,7 @@
     --muted: 30 10% 93%;
     --muted-foreground: 0 0% 30%; /* #4D4D4D */
     
-    --accent: 36 90% 42%; /* #D97706 */
+    --accent: 0 0% 50%; /* #808080 - Medium gray */
     --accent-foreground: 0 0% 98%;
     
     --destructive: 0 74% 42%; /* #B91C1C - rojo suave */
@@ -39,7 +39,7 @@
     
     --border: 0 0% 88%; /* #E0E0E0 */
     --input: 0 0% 88%; /* #E0E0E0 */
-    --ring: 36 90% 42%; /* #D97706 */
+    --ring: 0 0% 50%; /* #808080 - Changed to match accent */
 
     --radius: 0.75rem; /* 12px */
   }
