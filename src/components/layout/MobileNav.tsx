@@ -36,7 +36,11 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
       <div className="flex items-center gap-3">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="relative">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="relative bg-white text-black border border-gray-100 rounded-lg shadow-sm"
+            >
               <Menu className="h-5 w-5" />
               {hasUnreadMessages && (
                 <Badge variant="destructive" className="absolute -top-1 -right-1 h-2 w-2 p-0" />
