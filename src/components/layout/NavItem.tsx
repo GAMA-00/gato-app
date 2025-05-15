@@ -19,19 +19,19 @@ const NavItem = ({ to, icon: Icon, label, isActive, onClick, badge, customBadge 
     <Link
       to={to}
       className={cn(
-        "flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-md transition-colors relative",
+        "flex items-center gap-4 px-4 py-3 text-base font-medium rounded-lg transition-colors relative",
         isActive
-          ? "bg-muted text-primary"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          ? "bg-[#FEEBCB] text-[#1A1A1A]"
+          : "text-[#4D4D4D] hover:text-[#1A1A1A] hover:bg-[#FEEBCB]/50"
       )}
       onClick={onClick}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-6 w-6" />
       <span>{label}</span>
       {badge && (
         <Badge 
           variant="destructive" 
-          className="h-2 w-2 p-0 absolute -top-1 left-7" 
+          className="h-3 w-3 p-0 absolute -top-1 left-7" 
         />
       )}
       {customBadge}

@@ -22,15 +22,15 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-2" : "pl-64", 
-      "min-h-screen bg-background", 
+      isMobile ? "pt-4" : "pl-64", 
+      "min-h-screen bg-[#FAF9F6]", 
       className
     )}>
       <div className={cn("p-4 md:p-8 max-w-7xl animate-fade-in")}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-1 text-white">{title}</h1>
-            {subtitle && <div className="text-white/70">{subtitle}</div>}
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2 text-[#1A1A1A]">{title}</h1>
+            {subtitle && <div className="text-[#4D4D4D] text-lg">{subtitle}</div>}
           </div>
           {action && <div className="flex-shrink-0">{action}</div>}
         </div>

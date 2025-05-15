@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Calendar, Briefcase, CalendarClock, MessageSquare, Award, Flame } from 'lucide-react';
@@ -43,8 +44,8 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
       badge: hasUnreadMessages,
       customBadge: recurringServicesCount > 0 ? (
         <div className="absolute -top-1 -right-1 flex items-center justify-center">
-          <Flame className="h-3.5 w-3.5 text-red-500" />
-          <span className="absolute text-[8px] font-bold text-red-500">{Math.min(recurringServicesCount, 5)}</span>
+          <Flame className="h-4 w-4 text-destructive" />
+          <span className="absolute text-[10px] font-bold text-destructive">{Math.min(recurringServicesCount, 5)}</span>
         </div>
       ) : null
     },
@@ -87,24 +88,24 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t py-2 px-4">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t py-3 px-4 shadow-md">
       <div className="flex justify-around items-center">
         {navItems.map((item) => (
           <button
             key={item.to}
             onClick={() => navigate(item.to)}
-            className="flex flex-col items-center gap-1 relative"
+            className="flex flex-col items-center gap-2 relative p-2"
           >
             <item.icon 
               className={cn(
-                "h-5 w-5",
-                isNavItemActive(item.to) ? "text-primary" : "text-muted-foreground"
+                "h-6 w-6",
+                isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
               )} 
             />
             <span 
               className={cn(
-                "text-[10px]",
-                isNavItemActive(item.to) ? "text-primary" : "text-muted-foreground"
+                "text-sm font-medium",
+                isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
               )}
             >
               {item.label}
@@ -112,7 +113,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
             {item.badge && (
               <Badge 
                 variant="destructive" 
-                className="absolute -top-1 -right-1 h-2 w-2 p-0" 
+                className="absolute -top-1 -right-1 h-3 w-3 p-0" 
               />
             )}
             {item.customBadge}

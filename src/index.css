@@ -1,15 +1,14 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 16%; /* #2A2A2A */
-    --foreground: 0 0% 20%;
+    --background: 37 33% 97%; /* #FAF9F6 */
+    --foreground: 0 0% 10%; /* #1A1A1A */
     
-    --heading: 0 0% 13%;
-    --subtitle: 0 0% 45%;
+    --heading: 0 0% 10%; /* #1A1A1A */
+    --subtitle: 0 0% 30%; /* #4D4D4D */
     
     --navy: 230 18% 22%; /* #32323D */
     --navy-hover: 230 18% 17%;
@@ -17,32 +16,32 @@
     --neutral-gray: 15 5% 62%; /* #A7A195 */
     --neutral-gray-hover: 15 5% 57%;
     
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 13%;
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 0 0% 10%; /* #1A1A1A */
     
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 13%;
+    --popover-foreground: 0 0% 10%;
     
-    --primary: var(--navy);
+    --primary: 36 90% 42%; /* #D97706 - naranja dorado */
     --primary-foreground: 0 0% 98%;
     
     --secondary: 30 20% 96%;
-    --secondary-foreground: 0 0% 13%;
+    --secondary-foreground: 0 0% 10%;
     
     --muted: 30 10% 93%;
-    --muted-foreground: 0 0% 45%;
+    --muted-foreground: 0 0% 30%; /* #4D4D4D */
     
-    --accent: var(--neutral-gray);
-    --accent-foreground: 0 0% 13%;
+    --accent: 36 90% 42%; /* #D97706 */
+    --accent-foreground: 0 0% 98%;
     
-    --destructive: 0 70% 50%;
+    --destructive: 0 74% 42%; /* #B91C1C - rojo suave */
     --destructive-foreground: 0 0% 98%;
     
-    --border: 30 15% 85%;
-    --input: 30 15% 85%;
-    --ring: 35 70% 65%;
+    --border: 0 0% 88%; /* #E0E0E0 */
+    --input: 0 0% 88%; /* #E0E0E0 */
+    --ring: 36 90% 42%; /* #D97706 */
 
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* 12px */
   }
 
   .dark {
@@ -98,14 +97,25 @@
     @apply bg-background text-foreground font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-size: 16px; /* Base font size increased */
   }
   
   h1, h2, h3, h4, h5, h6 {
     @apply text-heading;
+    font-size: 1.125rem; /* Minimum 18px for headings */
+  }
+  
+  h1 {
+    font-size: 1.5rem; /* 24px */
+  }
+  
+  h2 {
+    font-size: 1.25rem; /* 20px */
   }
   
   .subtitle {
     @apply text-subtitle;
+    font-size: 1rem; /* 16px */
   }
 }
 
@@ -181,10 +191,29 @@
   
   .text-heading {
     color: hsl(var(--heading));
+    font-size: 1.125rem; /* 18px minimum */
   }
 
   .text-subtitle {
     color: hsl(var(--subtitle));
+    font-size: 1rem; /* 16px minimum */
+  }
+  
+  /* New utility classes for accessibility */
+  .accessible-button {
+    @apply py-3 px-4 rounded-xl text-base font-medium shadow-md;
+  }
+  
+  .accessible-card {
+    @apply rounded-xl border border-border shadow-md p-4;
+  }
+  
+  .increased-spacing {
+    @apply space-y-4 md:space-y-6;
+  }
+  
+  .accessible-input {
+    @apply text-base py-3 px-4 rounded-xl;
   }
   
   /* Hide scrollbar */
@@ -201,14 +230,17 @@
 /* Calendar specific styles */
 .calendar-day {
   transition: all 0.2s ease;
+  @apply text-base; /* Increased text size */
 }
 
 .calendar-day:hover {
   transform: translateY(-2px);
+  @apply bg-[#FEEBCB]; /* Use highlight color */
 }
 
 .appointment-card {
   transition: all 0.3s ease;
+  @apply rounded-xl; /* Increased border radius */
 }
 
 .appointment-card:hover {
@@ -244,5 +276,10 @@
   
   body {
     @apply overflow-x-hidden;
+    font-size: 16px; /* Base font size for mobile */
+  }
+  
+  button, a {
+    @apply min-h-12 min-w-12; /* Aumentar área de toque */
   }
 }

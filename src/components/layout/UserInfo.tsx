@@ -34,13 +34,13 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
 
   if (!isAuthenticated) {
     return (
-      <div className="mt-auto p-4">
+      <div className="mt-auto p-5">
         <Button 
           variant="outline" 
-          className="w-full justify-start bg-white"
+          className="w-full justify-start bg-white text-base py-3"
           onClick={handleLogin}
         >
-          <LogIn className="mr-2 h-4 w-4" />
+          <LogIn className="mr-3 h-5 w-5" />
           Iniciar Sesión
         </Button>
       </div>
@@ -48,46 +48,46 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
   }
 
   return (
-    <div className="mt-auto border-t p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <Avatar>
-          <AvatarFallback className="bg-golden-whisker text-heading">
+    <div className="mt-auto border-t p-5">
+      <div className="flex items-center gap-4 mb-4">
+        <Avatar className="h-12 w-12">
+          <AvatarFallback className="bg-primary text-primary-foreground text-lg">
             {user?.name?.substring(0, 2).toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">{user?.name}</p>
-          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+          <p className="font-medium text-base truncate">{user?.name}</p>
+          <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
         </div>
       </div>
       
       {!user?.hasPaymentMethod && (
         <Button 
           variant="outline" 
-          className="w-full mb-2 justify-start text-amber-600 border-amber-200 hover:bg-amber-50 text-xs py-1.5 px-3 bg-white"
+          className="w-full mb-3 justify-start text-destructive border-destructive/20 hover:bg-destructive/10 text-base py-3"
           onClick={handlePaymentSetup}
         >
-          <CreditCard className="mr-2 h-3.5 w-3.5 shrink-0" />
+          <CreditCard className="mr-3 h-5 w-5 shrink-0" />
           Añadir método de pago
         </Button>
       )}
       
       <Button 
         variant="outline" 
-        className="w-full mb-2 justify-start text-sm bg-white"
+        className="w-full mb-3 justify-start text-base py-3 bg-white"
         onClick={handleProfileNavigation}
       >
-        <UserCircle className="mr-2 h-4 w-4" />
+        <UserCircle className="mr-3 h-5 w-5" />
         Mi Perfil
       </Button>
       
       <Button 
         variant="outline" 
-        size="sm" 
-        className="w-full justify-start text-muted-foreground bg-white"
+        size="default" 
+        className="w-full justify-start text-[#4D4D4D] bg-white text-base py-3"
         onClick={handleLogout}
       >
-        <LogOut className="mr-2 h-4 w-4" />
+        <LogOut className="mr-3 h-5 w-5" />
         Cerrar Sesión
       </Button>
     </div>

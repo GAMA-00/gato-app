@@ -64,9 +64,9 @@ const ClientCategoryView = () => {
       <PageContainer
         title="Explora nuestras categorías de servicio"
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-28 md:h-36 rounded-lg" />
+            <Skeleton key={i} className="h-32 md:h-40 rounded-xl" />
           ))}
         </div>
       </PageContainer>
@@ -77,7 +77,7 @@ const ClientCategoryView = () => {
     <PageContainer
       title="Explora nuestras categorías de servicio"
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {
           const category = categories.find(c => c.name === categoryName);
           if (!category) return null;
@@ -87,9 +87,9 @@ const ClientCategoryView = () => {
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-              <Card className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-[#616161] justify-center group ${isMobile ? 'h-28' : 'h-36'}`}>
-                <IconComponent size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-white mb-3" />
-                <h3 className="text-center font-semibold text-sm md:text-base text-white">{categoryLabels[category.name] || category.label}</h3>
+              <Card className={`flex flex-col items-center p-5 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-32' : 'h-40'}`}>
+                <IconComponent size={isMobile ? 36 : 48} strokeWidth={2} className="text-[#1A1A1A] mb-4" />
+                <h3 className="text-center font-semibold text-lg md:text-xl text-[#1A1A1A]">{categoryLabels[category.name] || category.label}</h3>
               </Card>
             </div>
           );

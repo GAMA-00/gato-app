@@ -19,6 +19,15 @@ export default {
       }
     },
     extend: {
+      fontSize: {
+        xs: ['14px', { lineHeight: '20px' }],
+        sm: ['15px', { lineHeight: '22px' }],
+        base: ['16px', { lineHeight: '24px' }],
+        lg: ['18px', { lineHeight: '26px' }],
+        xl: ['20px', { lineHeight: '28px' }],
+        '2xl': ['22px', { lineHeight: '32px' }],
+        '3xl': ['24px', { lineHeight: '36px' }],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -61,13 +70,13 @@ export default {
           DEFAULT: 'hsl(var(--neutral-gray))',
           hover: 'hsl(var(--neutral-gray-hover))',
         },
-        // Colores personalizados para la nueva UI
+        // Colores personalizados para la nueva UI accesible
         luxury: {
           white: '#FFFFFF',
-          gray: '#F5F5F5',
-          beige: '#F7F1E1',
-          navy: '#1C2D4F',
-          'gray-dark': '#EAEAEA',
+          gray: '#FAF9F6', // Fondo general blanco cálido
+          beige: '#FEEBCB', // Color de selección
+          navy: '#1A1A1A', // Texto principal oscuro
+          'gray-dark': '#4D4D4D', // Texto secundario
         },
       },
       fontFamily: {
@@ -84,14 +93,21 @@ export default {
       borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+        xl: '0.75rem', // 12px
+        '2xl': '1rem', // 16px
 			},
 			boxShadow: {
 				'soft': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
 				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)',
-        // Sombra para elementos de lujo
         'luxury': '0 8px 20px -4px rgba(28, 45, 79, 0.1)'
 			},
+      minHeight: {
+        '12': '3rem', // 48px para áreas de toque
+      },
+      minWidth: {
+        '12': '3rem', // 48px para áreas de toque
+      },
 			keyframes: {
 				'accordion-down': {
 					from: {
@@ -133,9 +149,12 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in': 'fade-in 0.3s ease-out',
-        'scale-in': 'scale-in 0.2s ease-out'
-			}
+        'fade-in': 'fade-in 0.4s ease-out',
+        'scale-in': 'scale-in 0.3s ease-out'
+			},
+      spacing: {
+        '18': '4.5rem', // 72px
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],
