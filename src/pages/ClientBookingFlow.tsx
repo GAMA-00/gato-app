@@ -90,7 +90,7 @@ const ClientBookingFlow = () => {
           className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft size={16} className="mr-1" />
-          <span>Volver a servicios</span>
+          <span>Volver</span>
         </Button>
       }
     >
