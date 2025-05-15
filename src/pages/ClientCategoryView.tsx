@@ -73,7 +73,7 @@ const ClientCategoryView = () => {
     );
   }
 
-  // Define consistent icon size
+  // Define consistent icon size and stroke width for ALL icons
   const iconSize = isMobile ? 36 : 48;
   const strokeWidth = 2;
 
