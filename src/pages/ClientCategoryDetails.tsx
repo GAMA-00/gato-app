@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { 
   ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
-  GraduationCap, Bike, Waves, Sparkles
+  GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
+  Hand, Eclipse, Sprout, HeartPlus, Shapes, Camera
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,26 +33,36 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Plomería': Wrench,
   'Electricista': Wrench,
   'Mantenimiento': Wrench,
-  'Jardinería': Flower,
+  'Jardinería': Sprout,  // Updated to Sprout
+  'Planchado': Shirt,    // Updated to Shirt
   
   // Clases
   'Música': Music,
   'Arte': Paintbrush,
   'Cocina': ChefHat,
   'Computación': Laptop,
-  'Idiomas': GraduationCap,
+  'Idiomas': Languages,  // Updated to Languages
+  'Pintura': Palette,    // Added Pintura with Palette icon
+  'Instrumentos': Guitar, // Added Instrumentos with Guitar icon
+  'Tutorias primaria': GraduationCap, // Added Tutorias primaria
+  'Tutorias secundaria': GraduationCap, // Added Tutorias secundaria
   
   // Cuidado Personal
   'Peluquería': Scissors,
-  'Manicure': Sparkles,
+  'Manicure': Hand,      // Updated to Hand
   'Pedicure': Sparkles,
   'Maquillaje': User,
-  'Masaje': Heart,
+  'Masaje': PersonStanding, // Updated to PersonStanding
+  'Fisioterapia': PersonStanding, // Added Fisioterapia
+  'Manicurista': Hand,   // Added Manicurista
+  'Masajista': PersonStanding, // Added Masajista
   
   // Deportes
   'Natación': Waves,
   'Ciclismo': Bike,
   'Entrenamiento': Dumbbell,
+  'Mantenimiento bicicletas': Bike, // Added Mantenimiento bicicletas
+  'Tenis': Eclipse,      // Added Tenis
   
   // Mascotas
   'Paseo': Dog,
@@ -61,7 +71,11 @@ const serviceIconMap: Record<string, LucideIcon> = {
   
   // Otros servicios
   'Cuidado infantil': Baby,
-  'Costura': Shirt
+  'Costura': Shirt,
+  'Chef privado': ChefHat, // Added Chef privado
+  'Cuidado Adulto mayor': HeartPlus, // Added Cuidado Adulto mayor
+  'Niñera': Shapes,      // Added Niñera
+  'Fotografo': Camera    // Added Fotografo
 };
 
 // Nombres de categorías en español
