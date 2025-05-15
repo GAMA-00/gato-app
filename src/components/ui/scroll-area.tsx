@@ -16,7 +16,7 @@ const ScrollArea = React.forwardRef<
     <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit] overflow-y-auto">
       {children}
     </ScrollAreaPrimitive.Viewport>
-    {/* We're hiding the scrollbar but keeping the component structure */}
+    <ScrollBar />
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
 ))
@@ -29,10 +29,17 @@ const ScrollBar = React.forwardRef<
   <ScrollAreaPrimitive.ScrollAreaScrollbar
     ref={ref}
     orientation={orientation}
-    className="hidden" /* Hide the scrollbar */
+    className={cn(
+      "flex touch-none select-none transition-colors",
+      orientation === "vertical" &&
+        "h-full w-2.5 border-l border-l-transparent p-[1px]",
+      orientation === "horizontal" &&
+        "h-2.5 border-t border-t-transparent p-[1px]",
+      className
+    )}
     {...props}
   >
-    <ScrollAreaPrimitive.ScrollAreaThumb className="hidden" /* Hide the thumb */ />
+    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName

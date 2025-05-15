@@ -23,7 +23,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-4 pb-20" : "pl-64", 
+      isMobile ? "pt-4 pb-24" : "pl-64", 
       "min-h-screen bg-[#FAF9F6] w-full overflow-y-auto", 
       className
     )}>
@@ -35,7 +35,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
           </div>
           {action && <div className="flex-shrink-0">{action}</div>}
         </div>
-        <div className="animate-slide-up">
+        <div className="animate-slide-up pb-12">
           {children}
         </div>
       </div>

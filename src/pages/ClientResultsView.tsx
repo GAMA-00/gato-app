@@ -94,33 +94,20 @@ const ClientResultsView = () => {
     });
   };
 
-  // Display both residencia name and condominium name if available
-  const locationDisplay = clientResidenciaInfo?.residencias 
-    ? (clientResidenciaInfo.condominiums 
-        ? `${clientResidenciaInfo.residencias.name} - ${clientResidenciaInfo.condominiums.name}`
-        : clientResidenciaInfo.residencias.name)
-    : 'Todas las ubicaciones';
-
   return (
     <PageContainer
       title="Profesionales disponibles"
       subtitle={
-        <div className="flex justify-between items-center w-full">
+        <div className="flex items-center w-full">
           <Button 
-            variant="ghost" 
+            variant="outline"
             onClick={handleBack} 
-            className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
+            className="flex items-center text-[#1A1A1A] truncate px-4 py-2"
+            size="sm"
           >
-            <ArrowLeft size={16} className="mr-1" />
-            <span>Volver a detalles de reserva</span>
+            <ArrowLeft size={16} className="mr-2 flex-shrink-0" />
+            <span className="truncate">Volver a detalles de reserva</span>
           </Button>
-          
-          <div className="flex items-center">
-            <Badge variant="outline" className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {locationDisplay}
-            </Badge>
-          </div>
         </div>
       }
     >

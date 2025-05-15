@@ -24,7 +24,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
   };
   
   return (
-    <Card className="shadow-sm sticky top-4">
+    <Card className="shadow-sm sticky top-4 mb-6">
       <CardContent className="p-6">
         {selectedVariants.map((variant, index) => (
           <div key={variant.id || index} className="mb-5">
