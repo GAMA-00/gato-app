@@ -60,7 +60,7 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
               <div className="p-4">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  className="w-full justify-start bg-white"
                   onClick={handleLogin}
                 >
                   <LogIn className="mr-2 h-4 w-4" />
@@ -71,7 +71,7 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
             
             <Button 
               variant="outline" 
-              className="mx-4 mb-4 justify-start text-sm px-4 py-3 h-auto whitespace-normal" 
+              className="mx-4 mb-4 justify-start text-sm px-4 py-3 h-auto whitespace-normal bg-white border border-amber-200" 
               onClick={onSwitchView}
             >
               <Repeat2 className="mr-2 h-5 w-5 shrink-0" />

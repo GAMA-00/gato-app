@@ -37,7 +37,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
       <div className="mt-auto p-4">
         <Button 
           variant="outline" 
-          className="w-full justify-start"
+          className="w-full justify-start bg-white"
           onClick={handleLogin}
         >
           <LogIn className="mr-2 h-4 w-4" />
@@ -64,7 +64,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
       {!user?.hasPaymentMethod && (
         <Button 
           variant="outline" 
-          className="w-full mb-2 justify-start text-amber-600 border-amber-200 hover:bg-amber-50 text-xs py-1.5 px-3"
+          className="w-full mb-2 justify-start text-amber-600 border-amber-200 hover:bg-amber-50 text-xs py-1.5 px-3 bg-white"
           onClick={handlePaymentSetup}
         >
           <CreditCard className="mr-2 h-3.5 w-3.5 shrink-0" />
@@ -74,7 +74,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
       
       <Button 
         variant="outline" 
-        className="w-full mb-2 justify-start text-sm"
+        className="w-full mb-2 justify-start text-sm bg-white"
         onClick={handleProfileNavigation}
       >
         <UserCircle className="mr-2 h-4 w-4" />
@@ -84,7 +84,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
       <Button 
         variant="outline" 
         size="sm" 
-        className="w-full justify-start text-muted-foreground"
+        className="w-full justify-start text-muted-foreground bg-white"
         onClick={handleLogout}
       >
         <LogOut className="mr-2 h-4 w-4" />
