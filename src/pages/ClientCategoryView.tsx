@@ -63,6 +63,7 @@ const ClientCategoryView = () => {
     return (
       <PageContainer
         title="Explora nuestras categorías de servicio"
+        className="pt-1" // Reducir el padding superior
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -80,6 +81,7 @@ const ClientCategoryView = () => {
   return (
     <PageContainer
       title="Explora nuestras categorías de servicio"
+      className="pt-1" // Reducir el padding superior
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {

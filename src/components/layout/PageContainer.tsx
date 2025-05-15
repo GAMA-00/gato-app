@@ -23,7 +23,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-4 pb-24" : "pl-64", 
+      isMobile ? "pt-1 pb-24" : "pl-64 pt-1", 
       "min-h-screen bg-[#FAF9F6] w-full overflow-y-auto", 
       className
     )}>

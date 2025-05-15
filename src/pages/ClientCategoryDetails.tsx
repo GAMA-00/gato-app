@@ -1,10 +1,13 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car } from 'lucide-react';
+import { 
+  ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
+  Music, Paintbrush, Chef, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
+  GraduationCap, Bike, Waves, Sparkles
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +26,41 @@ const iconMap: Record<string, LucideIcon> = {
 
 // Mapa de iconos específico para tipos de servicio especiales
 const serviceIconMap: Record<string, LucideIcon> = {
+  // Hogar
   'Lavacar': Car,
+  'Limpieza': Sparkles,
+  'Plomería': Wrench,
+  'Electricista': Wrench,
+  'Mantenimiento': Wrench,
+  'Jardinería': Flower,
+  
+  // Clases
+  'Música': Music,
+  'Arte': Paintbrush,
+  'Cocina': Chef,
+  'Computación': Laptop,
+  'Idiomas': GraduationCap,
+  
+  // Cuidado Personal
+  'Peluquería': Scissors,
+  'Manicure': Sparkles,
+  'Pedicure': Sparkles,
+  'Maquillaje': User,
+  'Masaje': Heart,
+  
+  // Deportes
+  'Natación': Waves,
+  'Ciclismo': Bike,
+  'Entrenamiento': Dumbbell,
+  
+  // Mascotas
+  'Paseo': Dog,
+  'Veterinario': Dog,
+  'Peluquería canina': Scissors,
+  
+  // Otros servicios
+  'Cuidado infantil': Baby,
+  'Costura': Shirt
 };
 
 // Nombres de categorías en español
@@ -148,6 +185,7 @@ const ClientCategoryDetails = () => {
         </div>
       }
       subtitle={backButton}
+      className="pt-1"
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => {

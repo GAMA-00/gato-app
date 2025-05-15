@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -121,6 +120,7 @@ const ClientServices = () => {
       <PageContainer
         title="Servicios Disponibles"
         subtitle={backButton}
+        className="pt-1"
       >
         <div className="grid gap-8">
           {[1, 2, 3].map(i => (
@@ -146,6 +146,7 @@ const ClientServices = () => {
           {backButton}
         </div>
       }
+      className="pt-1"
     >
       <div className="space-y-12">
         {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => {
