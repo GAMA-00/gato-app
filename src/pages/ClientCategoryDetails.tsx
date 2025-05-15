@@ -115,7 +115,7 @@ const ClientCategoryDetails = () => {
       className="px-4 py-2 h-auto border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#FEEBCB]/50 hover:text-[#1A1A1A]"
     >
       <ArrowLeft size={16} className="mr-2" />
-      <span>Volver a categorías</span>
+      <span>Volver</span>
     </Button>
   );
 

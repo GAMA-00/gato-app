@@ -1,9 +1,8 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import BookingSummaryCard from '@/components/client/results/BookingSummaryCard';
 import ProvidersList from '@/components/client/results/ProvidersList';
 import { useProvidersQuery } from '@/components/client/results/useProvidersQuery';
@@ -106,7 +105,7 @@ const ClientResultsView = () => {
             size="sm"
           >
             <ArrowLeft size={16} className="mr-2 flex-shrink-0" />
-            <span className="truncate">Volver a detalles de reserva</span>
+            <span className="truncate">Volver</span>
           </Button>
         </div>
       }
