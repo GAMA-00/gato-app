@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,7 +8,7 @@ import {
   ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
-  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, SoapDispenserDroplet, HeartHandshake, PawPrint
+  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, Shower, HeartHandshake, PawPrint
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,7 +59,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Fisioterapia': PersonStanding, // Added Fisioterapia
   'Manicurista': Hand,   // Added Manicurista
   'Masajista': PersonStanding, // Added Masajista
-  'Depilación': SoapDispenserDroplet,  // Added Depilación
+  'Depilación': Shower,  // Changed from SoapDispenserDroplet to Shower
   
   // Deportes
   'Natación': Waves,
@@ -76,7 +77,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Cuidado infantil': Baby,
   'Costura': Shirt,
   'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': HeartHandshake, // Updated to HeartHandshake instead of HeartPlus
+  'Cuidado Adulto mayor': HeartHandshake, // Updated to HeartHandshake
   'Niñera': Shapes,      // Added Niñera
   'Fotógrafo': Camera,  // Corrected spelling
   'Fotografo': Camera    // Keep for backward compatibility
