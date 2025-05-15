@@ -87,7 +87,7 @@ const ClientCategoryView = () => {
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-              <Card className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-[#F8EAE4] text-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}>
+              <Card className={`flex flex-col items-center p-3 md:p-6 hover:shadow-lg transition-all cursor-pointer bg-[#8A7E78] text-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}>
                 <IconComponent size={isMobile ? 32 : 40} strokeWidth={2.5} className="text-white mb-3" />
                 <h3 className="text-center font-semibold text-sm md:text-base text-white">{categoryLabels[category.name] || category.label}</h3>
               </Card>
