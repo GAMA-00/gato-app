@@ -24,7 +24,7 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
   };
   
   return (
-    <div className="w-full h-16 fixed top-0 left-0 z-50 border-b glassmorphism py-2 px-4 flex items-center justify-between">
+    <div className="w-full h-16 fixed top-0 left-0 z-50 border-b bg-white py-2 px-4 flex items-center justify-between">
       <div className="flex items-center">
         <img 
           src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png" 

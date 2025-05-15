@@ -10,7 +10,7 @@ interface DesktopNavProps {
 
 const DesktopNav = ({ isClientSection, onSwitchView }: DesktopNavProps) => {
   return (
-    <div className="w-64 h-screen fixed left-0 top-0 border-r glassmorphism py-8 px-4 flex flex-col gap-8">
+    <div className="w-64 h-screen fixed left-0 top-0 border-r bg-white py-8 px-4 flex flex-col gap-8">
       <div className="px-4 flex flex-col gap-2">
         <img 
           src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png" 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Calendar, Briefcase, CalendarClock, MessageSquare, Award, Flame } from 'lucide-react';
@@ -88,7 +87,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t py-2 px-4">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t py-2 px-4">
       <div className="flex justify-around items-center">
         {navItems.map((item) => (
           <button
