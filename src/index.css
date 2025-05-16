@@ -1,46 +1,45 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 37 33% 97%; /* #FAF9F6 */
-    --foreground: 0 0% 10%; /* #1A1A1A */
+    --background: 37 33% 97%; /* #FAF9F6 - luxury-gray */
+    --foreground: 20 9% 33%; /* #5C504A - luxury-navy */
     
-    --heading: 0 0% 10%; /* #1A1A1A */
-    --subtitle: 0 0% 30%; /* #4D4D4D */
+    --heading: 20 9% 33%; /* #5C504A - luxury-navy */
+    --subtitle: 22 5% 50%; /* #867E76 - luxury-gray-dark */
     
-    --navy: 230 18% 22%; /* #32323D */
-    --navy-hover: 230 18% 17%;
+    --navy: 20 9% 33%; /* #5C504A - luxury-navy */
+    --navy-hover: 20 9% 25%;
     
-    --neutral-gray: 15 5% 62%; /* #A7A195 */
-    --neutral-gray-hover: 15 5% 57%;
+    --neutral-gray: 22 5% 50%; /* #867E76 - luxury-gray-dark */
+    --neutral-gray-hover: 22 5% 45%;
     
-    --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 0 0% 10%; /* #1A1A1A */
+    --card: 0 0% 100%; /* #FFFFFF - luxury-white */
+    --card-foreground: 20 9% 33%; /* #5C504A - luxury-navy */
     
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 20 9% 33%; /* #5C504A */
     
-    --primary: 0 0% 50%; /* #808080 - Changed from orange to medium gray */
+    --primary: 22 5% 50%; /* #867E76 - luxury-gray-dark */
     --primary-foreground: 0 0% 98%;
     
-    --secondary: 30 20% 96%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 34 33% 93%; /* #F5EEE7 - luxury-beige */
+    --secondary-foreground: 20 9% 33%; /* #5C504A */
     
-    --muted: 30 10% 93%;
-    --muted-foreground: 0 0% 30%; /* #4D4D4D */
+    --muted: 34 33% 93%; /* #F5EEE7 */
+    --muted-foreground: 22 5% 50%; /* #867E76 */
     
-    --accent: 0 0% 50%; /* #808080 - Medium gray */
-    --accent-foreground: 0 0% 98%;
+    --accent: 34 33% 93%; /* #F5EEE7 */
+    --accent-foreground: 20 9% 33%; /* #5C504A */
     
     --destructive: 0 74% 42%; /* #B91C1C - rojo suave */
     --destructive-foreground: 0 0% 98%;
     
-    --border: 0 0% 88%; /* #E0E0E0 */
-    --input: 0 0% 88%; /* #E0E0E0 */
-    --ring: 0 0% 50%; /* #808080 - Changed to match accent */
+    --border: 30 16% 90%; /* #E9E5E1 - light beige border */
+    --input: 30 16% 90%; /* #E9E5E1 */
+    --ring: 22 5% 50%; /* #867E76 */
 
     --radius: 0.75rem; /* 12px */
   }
@@ -254,7 +253,7 @@
 
 .calendar-day:hover {
   transform: translateY(-2px);
-  @apply bg-[#FEEBCB]; /* Use highlight color */
+  @apply bg-luxury-beige; /* Use highlight color */
 }
 
 .appointment-card {

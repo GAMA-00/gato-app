@@ -3,10 +3,11 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
-import { Book, Home, Scissors, PawPrint, Dumbbell, ArrowLeft, Star, Sparkles, ShieldCheck, Filter } from 'lucide-react';
+import { Book, Home, Scissors, PawPrint, Dumbbell, ArrowLeft, Star, Shield, Filter } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -134,19 +135,19 @@ const ClientProvidersList = () => {
     return (
       <PageContainer
         title={
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-luxury-beige/70">
               {categoryIcon}
             </div>
             <div>
-              <span className="bg-gradient-blue-purple bg-clip-text text-transparent">{titleText}</span>
-              <div className="text-xs text-muted-foreground">{categoryLabel}</div>
+              <span className="text-luxury-navy font-medium">{titleText}</span>
+              <div className="text-xs text-luxury-gray-dark">{categoryLabel}</div>
             </div>
           </div>
         }
         subtitle={
           <button
-            className="text-sm text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+            className="text-sm text-luxury-navy/80 hover:text-luxury-navy flex items-center gap-1 transition-colors"
             onClick={() => navigate('/client')}
           >
             <ArrowLeft className="h-4 w-4" /> Volver a categorías
@@ -154,14 +155,18 @@ const ClientProvidersList = () => {
         }
       >
         <div className="max-w-lg mx-auto space-y-4">
-          <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-soft mb-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-pattern-dots opacity-50"></div>
-            <p className="text-sm text-center text-muted-foreground relative z-10">
-              Buscando los mejores proveedores para <span className="font-medium text-navy">{titleText}</span>...
-            </p>
-          </div>
+          <Card className="bg-luxury-white border border-neutral-100 overflow-hidden">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-center relative">
+                <p className="text-sm text-luxury-gray-dark">
+                  Cargando servicios para {residenciaInfo}...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
           {[1, 2, 3].map(i => (
-            <Card key={i} className="overflow-hidden border-l-4 border-l-purple-300">
+            <Card key={i} className="overflow-hidden bg-luxury-white border border-neutral-100">
               <CardContent className="p-4">
                 <div className="space-y-2">
                   <Skeleton className="h-5 w-3/4" />
@@ -179,19 +184,19 @@ const ClientProvidersList = () => {
   return (
     <PageContainer
       title={
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-luxury-beige/70">
             {categoryIcon}
           </div>
           <div>
-            <span className="bg-gradient-blue-purple bg-clip-text text-transparent">{titleText}</span>
-            <div className="text-xs text-muted-foreground">{categoryLabel}</div>
+            <span className="text-luxury-navy font-medium">{titleText}</span>
+            <div className="text-xs text-luxury-gray-dark">{categoryLabel}</div>
           </div>
         </div>
       }
       subtitle={
         <button
-          className="text-sm text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+          className="text-sm text-luxury-navy/80 hover:text-luxury-navy flex items-center gap-1 transition-colors"
           onClick={() => navigate('/client')}
         >
           <ArrowLeft className="h-4 w-4" /> Volver a categorías
@@ -199,92 +204,100 @@ const ClientProvidersList = () => {
       }
     >
       <div className="max-w-lg mx-auto space-y-4">
-        <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-luxury border border-purple-100/30 mb-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-pattern-dots opacity-50"></div>
-          <div className="flex justify-between items-center relative z-10">
-            <p className="text-sm text-muted-foreground">
-              Mostrando servicios para:
-            </p>
-            <Badge variant="outline" className="flex items-center gap-1 bg-white/70">
-              <Filter className="h-3 w-3" />
-              {residenciaInfo}
-            </Badge>
-          </div>
-        </div>
+        <Card className="bg-luxury-white border border-neutral-100 overflow-hidden shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-luxury-navy">
+                Mostrando servicios para:
+              </p>
+              <Badge variant="outline" className="flex items-center gap-1 bg-luxury-beige/50 border-luxury-beige text-luxury-navy">
+                <Filter className="h-3 w-3" />
+                {residenciaInfo}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
         
         {listings.length === 0 ? (
-          <div className="py-12 text-center bg-white/50 rounded-xl shadow-luxury border border-purple-100/50">
-            <Star className="h-12 w-12 text-gold-400 mx-auto mb-4 animate-pulse" />
-            <p className="text-muted-foreground">Aun no hay proveedores de servicio en esta categoría</p>
-            {clientData?.residencia_id && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">No se encontraron servicios en tu residencia.</p>
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/client/category/' + category)}
-                  className="text-sm"
-                >
-                  Ver todas las categorías
-                </Button>
-              </div>
-            )}
-          </div>
+          <Card className="bg-luxury-white border border-neutral-100 overflow-hidden shadow-sm">
+            <CardContent className="p-8 text-center">
+              <Star className="h-12 w-12 text-luxury-beige mx-auto mb-4" />
+              <p className="text-luxury-gray-dark">Aun no hay proveedores de servicio en esta categoría</p>
+              {clientData?.residencia_id && (
+                <div className="mt-4">
+                  <p className="text-sm text-luxury-gray-dark mb-2">No se encontraron servicios en tu residencia.</p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate('/client/category/' + category)}
+                    className="text-sm bg-luxury-white border-luxury-navy/20 text-luxury-navy hover:bg-luxury-beige/50"
+                  >
+                    Ver todas las categorías
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         ) : (
           <>
-            <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-luxury border border-purple-100/30 mb-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-pattern-dots opacity-50"></div>
-              <p className="text-sm text-muted-foreground relative z-10">
-                Seleccione el servicio que mejor se adapte a sus necesidades:
-              </p>
-            </div>
+            <Card className="bg-luxury-white border border-neutral-100 overflow-hidden shadow-sm">
+              <CardContent className="p-4">
+                <p className="text-sm text-luxury-navy">
+                  Seleccione el servicio que mejor se adapte a sus necesidades:
+                </p>
+              </CardContent>
+            </Card>
             
             {listings.map((listing) => (
               <Card
                 key={listing.id}
-                className="overflow-hidden hover:shadow-luxury transition-all cursor-pointer border-l-4 border-l-indigo-400 group"
+                className="overflow-hidden shadow-sm transition-all cursor-pointer border border-neutral-100 group hover:shadow-luxury bg-luxury-white"
                 onClick={() => navigate(`/client/book/1/${listing.id}`)}
               >
                 <CardContent className="p-4 relative">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-transparent to-indigo-50/50 rounded-bl-xl"></div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-navy group-hover:text-indigo-600 transition-colors">{listing.title}</span>
-                    <span className="text-sm bg-gradient-to-r from-indigo-100 to-purple-100 px-2 py-1 rounded text-indigo-700 font-medium">
-                      ${listing.price.toFixed(2)}
-                    </span>
+                  <div className="flex items-start mb-3">
+                    {/* Provider Avatar */}
+                    <Avatar className="h-12 w-12 border border-neutral-100">
+                      <AvatarFallback className="bg-luxury-beige text-luxury-navy">
+                        {listing.providerName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="ml-3 flex-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-luxury-navy group-hover:text-luxury-navy/80 transition-colors">{listing.title}</span>
+                        <div className="bg-yellow-50 px-2 py-1 rounded-md flex items-center">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                          <span className="font-medium text-xs text-yellow-700">{typeof listing.rating === 'number' ? listing.rating.toFixed(1) : listing.rating}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-luxury-gray-dark mt-1">{listing.description}</div>
+                      
+                      <div className="flex justify-between items-center mt-3">
+                        <div className="flex items-center">
+                          <Shield className="h-3 w-3 text-luxury-navy mr-1" />
+                          <span className="text-xs text-luxury-gray-dark">Proveedor:</span> 
+                          <span className="font-semibold text-xs ml-1 text-luxury-navy">{listing.providerName}</span>
+                          <span className="text-xs text-luxury-gray-dark ml-1">
+                            ({listing.providerExperience} {listing.providerExperience === 1 ? 'año' : 'años'})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="text-xs text-muted-foreground mt-1">{listing.description}</div>
-                  
-                  <div className="flex justify-between items-center mt-3">
+                  <div className="flex justify-between items-center border-t border-neutral-100 pt-3">
+                    <Badge variant="outline" className={`text-xs ${listing.isAvailable ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                      {listing.isAvailable ? 'Disponible' : 'Disponible más tarde'}
+                    </Badge>
+                    
                     <div className="flex items-center">
-                      <ShieldCheck className="h-3 w-3 text-indigo-500 mr-1" />
-                      <span className="text-xs text-muted-foreground">Proveedor:</span> 
-                      <span className="font-semibold text-xs ml-1 text-navy">{listing.providerName}</span>
-                      <span className="text-xs text-muted-foreground ml-1">
-                        ({listing.providerExperience} {listing.providerExperience === 1 ? 'año' : 'años'})
+                      <span className="text-xs text-luxury-gray-dark mr-3">
+                        {Math.floor(listing.duration / 60) > 0 ? `${Math.floor(listing.duration / 60)}h ` : ''}
+                        {listing.duration % 60 > 0 ? `${listing.duration % 60}min` : ''}
                       </span>
+                      <span className="font-medium text-base text-luxury-navy">${listing.price.toFixed(2)}</span>
                     </div>
-                    <div className="flex items-center bg-gold-50 px-2 py-0.5 rounded text-xs">
-                      <Star className="h-3 w-3 text-gold-500 mr-1" />
-                      <span className="font-medium text-gold-700">{typeof listing.rating === 'number' ? listing.rating.toFixed(1) : listing.rating}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between mt-2">
-                    {listing.isAvailable ? (
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                        Disponible
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                        Disponible más tarde
-                      </Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {Math.floor(listing.duration / 60) > 0 ? `${Math.floor(listing.duration / 60)}h ` : ''}
-                      {listing.duration % 60 > 0 ? `${listing.duration % 60}min` : ''}
-                    </span>
                   </div>
                 </CardContent>
               </Card>

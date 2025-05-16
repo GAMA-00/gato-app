@@ -1,26 +1,23 @@
-
 // Types for the client results view components
 
 export interface ProcessedProvider {
   id: string;
   name: string;
-  avatar: string | null;
-  serviceId: string;
-  serviceName: string;
+  avatar?: string | null;
+  rating: number;
   price: number;
   duration: number;
-  rating: number;
-  experience: number;
-  aboutMe: string;
-  createdAt: string;
-  isAvailable?: boolean;       // Campo para indicar disponibilidad
-  category?: string;           // Categoría del servicio
-  subcategory?: string;        // Subcategoría del servicio
-  serviceImage?: string | null; // Image for the service
-  hasCertifications?: boolean;  // Whether the provider has certifications
-  recurringClients?: number;    // Number of recurring clients
-  servicesCompleted?: number;   // Number of services completed
-  galleryImages?: string[];     // Gallery images
+  serviceName: string;
+  serviceId: string;
+  aboutMe?: string;
+  experience?: number;
+  hasCertifications?: boolean;
+  servicesCompleted?: number;
+  recurringClients?: number; // New field for recurring clients
+  experienceLevel?: number; // New field for experience level (1-4)
+  isVerified?: boolean;
+  ratingCount?: number; // New field to track number of reviews
+  galleryImages?: string[]; // New field for gallery images
 }
 
 export interface BookingPreferences {
@@ -33,22 +30,18 @@ export interface BookingPreferences {
 
 // Interface for provider data returned from supabase
 export interface ProviderData {
-  id?: string;
+  id: string;
   name?: string;
   about_me?: string;
   experience_years?: number;
   average_rating?: number;
-  users?: any; // This could be an array or object
-  email?: string;
-  phone?: string;
-  achievements?: Achievement[];
-  servicesCompleted?: number;
-  isVerified?: boolean;
-  certifications?: boolean;
+  servicesCompleted?: number; // New field for services completed
   hasCertifications?: boolean;
-  certification_files?: any[];
-  created_at?: string;
-  handlesDangerousDogs?: boolean;
+  certificationFiles?: any[]; // Array of certification file objects
+  recurringClients?: number; // New field for recurring clients
+  ratingCount?: number; // Number of ratings
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
 export interface Achievement {

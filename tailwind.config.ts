@@ -72,11 +72,11 @@ export default {
         },
         // Colores personalizados para la nueva UI accesible
         luxury: {
-          white: '#FFFFFF',
-          gray: '#FAF9F6', // Fondo general blanco cálido
-          beige: '#FEEBCB', // Color de selección
-          navy: '#1A1A1A', // Texto principal oscuro
-          'gray-dark': '#4D4D4D', // Texto secundario
+          white: '#FFFFFF', // Pure white background
+          gray: '#FAF9F6', // Warm white background
+          beige: '#F5EEE7', // Luxury beige for cards
+          navy: '#5C504A', // Soft black for text and icons
+          'gray-dark': '#867E76', // Text secondary
         },
       },
       fontFamily: {
@@ -100,7 +100,7 @@ export default {
 			boxShadow: {
 				'soft': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
 				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)',
-        'luxury': '0 8px 20px -4px rgba(28, 45, 79, 0.1)'
+        'luxury': '0 8px 20px -4px rgba(92, 80, 74, 0.08)'
 			},
       minHeight: {
         '12': '3rem', // 48px para áreas de toque
