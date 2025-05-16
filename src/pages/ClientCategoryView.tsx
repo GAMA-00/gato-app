@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -93,9 +94,9 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Ajuste específico para Scissors en móvil según requerimiento
+          // Ahora usando un tamaño fijo de 40px para scissors
           const categoryIconSize = isPersonalCare 
-            ? (isMobile ? 36 : 36) // En móvil: 36px, desktop se mantiene en 36px
+            ? 40 // Tamaño fijo de 40px para scissors, tanto en móvil como en desktop
             : iconSize;
           const categoryStrokeWidth = isPersonalCare 
             ? (isMobile ? 2.25 : 2) // En móvil: 2.25, desktop se mantiene en 2
