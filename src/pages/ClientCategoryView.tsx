@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -102,7 +103,7 @@ const ClientCategoryView = () => {
                     className="text-[#1A1A1A]" 
                   />
                 </div>
-                <h3 className={`text-center font-semibold ${textSizeClass} text-[#1A1A1A] line-clamp-2`}>
+                <h3 className={`text-center font-semibold ${textSizeClass} text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto px-2`}>
                   {categoryLabels[category.name] || category.label}
                 </h3>
               </Card>
