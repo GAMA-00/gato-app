@@ -8,7 +8,7 @@ import {
   ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
-  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, ShowerHead, HeartHandshake, PawPrint
+  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, ShowerHead, HeartHandshake, PawPrint, BicepsFlexed
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,12 +59,14 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Fisioterapia': PersonStanding, // Added Fisioterapia
   'Manicurista': Hand,   // Added Manicurista
   'Masajista': PersonStanding, // Added Masajista
-  'Depilación': ShowerHead,  // Changed from Shower to ShowerHead
+  'Depilación': Scissors,  // Changed from ShowerHead to Scissors as requested
   
   // Deportes
   'Natación': Waves,
   'Ciclismo': Bike,
   'Entrenamiento': Dumbbell,
+  'Pilates': BicepsFlexed,  // Added Pilates with BicepsFlexed icon
+  'Yoga': BicepsFlexed,     // Added Yoga with BicepsFlexed icon
   'Mantenimiento bicicletas': Bike, // Added Mantenimiento bicicletas
   'Tenis': Eclipse,      // Added Tenis
   
@@ -77,7 +79,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Cuidado infantil': Baby,
   'Costura': Shirt,
   'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': HeartHandshake, // Updated to HeartHandshake
+  'Cuidado Adulto mayor': HeartHandshake, // Changed from Heart to HeartHandshake as requested
   'Niñera': Shapes,      // Added Niñera
   'Fotógrafo': Camera,  // Corrected spelling
   'Fotografo': Camera    // Keep for backward compatibility
