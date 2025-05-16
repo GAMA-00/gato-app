@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -84,11 +85,11 @@ const ClientBookingFlow = () => {
       title={serviceInfo?.name || 'Detalles de reserva'}
       subtitle={
         <Button 
-          variant="ghost" 
+          variant="outline" 
           onClick={handleBack} 
-          className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
+          className="px-4 py-2 h-auto border-luxury-navy/10 text-luxury-navy hover:bg-luxury-beige/50 hover:text-luxury-navy"
         >
-          <ArrowLeft size={16} className="mr-1" />
+          <ArrowLeft size={16} className="mr-2" />
           <span>Volver</span>
         </Button>
       }
@@ -144,7 +145,7 @@ const ClientBookingFlow = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="6am-12md">Mañana (6am - 12md)</SelectItem>
-                  <SelectItem value="12pm-5pm">Tarde (12pm - 5pm)</SelectItem>
+                  <SelectItem value="1pm-5pm">Tarde (1pm - 5pm)</SelectItem>
                   <SelectItem value="6pm-9pm">Noche (6pm - 9pm)</SelectItem>
                 </SelectContent>
               </Select>
