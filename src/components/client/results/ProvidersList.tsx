@@ -28,7 +28,7 @@ const ProvidersList = ({ providers, isLoading, onProviderSelect, onBack }: Provi
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <Card key={i} className="bg-app-card border-app-border">
+          <Card key={i} className="bg-[#F2F2F2] border-app-border">
             <CardContent className="p-0">
               <div className="flex p-4">
                 <Skeleton className="h-16 w-16 rounded-full" />

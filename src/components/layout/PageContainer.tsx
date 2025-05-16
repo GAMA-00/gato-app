@@ -23,8 +23,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
   return (
     <div className={cn(
       isMobile ? "pt-1 pb-24" : "pl-64 pt-1", 
-      "min-h-screen w-full overflow-y-auto", 
-      className || "bg-app-background"
+      "min-h-screen w-full overflow-y-auto bg-white", // Default white background
+      className
     )}>
       <div className={cn("p-4 md:p-8 max-w-7xl animate-fade-in")}>
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">

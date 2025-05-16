@@ -8,7 +8,7 @@ interface ProviderBioProps {
 
 const ProviderBio = ({ aboutMe }: ProviderBioProps) => {
   return (
-    <Card>
+    <Card className="bg-[#F2F2F2]">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Sobre mí</CardTitle>
       </CardHeader>

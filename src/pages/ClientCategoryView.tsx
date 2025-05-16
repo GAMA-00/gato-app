@@ -74,8 +74,8 @@ const ClientCategoryView = () => {
     );
   }
 
-  // Define consistent icon size and stroke width for ALL icons
-  const iconSize = isMobile ? 40 : 58; // Tamaño más grande para iconos
+  // Define consistent icon size and stroke width for ALL icons - REDUCED sizes
+  const iconSize = isMobile ? 32 : 40; // Tamaño reducido para iconos
   const strokeWidth = 1.8;
 
   return (
@@ -93,9 +93,9 @@ const ClientCategoryView = () => {
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-              <Card className={`flex flex-col items-center justify-center p-6 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-36' : 'h-48'}`}>
+              <Card className={`flex flex-col items-center justify-center p-6 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-32' : 'h-40'}`}>
                 <IconComponent size={iconSize} strokeWidth={strokeWidth} className="text-[#1A1A1A] mb-4" />
-                <h3 className="text-center font-semibold text-xl md:text-2xl text-[#1A1A1A]">{categoryLabels[category.name] || category.label}</h3>
+                <h3 className="text-center font-semibold text-lg md:text-xl text-[#1A1A1A]">{categoryLabels[category.name] || category.label}</h3>
               </Card>
             </div>
           );

@@ -186,6 +186,7 @@ const ClientCategoryDetails = () => {
       <PageContainer
         title="Cargando servicios..."
         subtitle={backButton}
+        className="bg-white" // Fondo blanco
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -201,13 +202,13 @@ const ClientCategoryDetails = () => {
       title={
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-lg bg-luxury-beige/70">
-            <CategoryIcon size={32} strokeWidth={2.5} className="text-luxury-navy" />
+            <CategoryIcon size={32} strokeWidth={2} className="text-luxury-navy" />
           </div>
           <span className="font-semibold text-luxury-navy">{displayLabel}</span>
         </div>
       }
       subtitle={backButton}
-      className="pt-1"
+      className="pt-1 bg-white" // Fondo blanco
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => {
@@ -217,7 +218,7 @@ const ClientCategoryDetails = () => {
           return (
             <Card 
               key={service.id}
-              className={`flex flex-col items-center p-3 md:p-6 hover:shadow-luxury transition-all cursor-pointer bg-luxury-white justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
+              className={`flex flex-col items-center p-3 md:p-6 hover:shadow-luxury transition-all cursor-pointer bg-[#F2F2F2] justify-center group ${isMobile ? 'h-28' : 'h-36'}`} // Tarjetas más oscuras
               onClick={() => handleServiceSelect(service.id)}
             >
               <div className="p-2 rounded-full bg-luxury-beige/50 mb-3 group-hover:bg-luxury-beige transition-colors">

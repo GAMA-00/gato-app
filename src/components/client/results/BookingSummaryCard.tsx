@@ -10,7 +10,7 @@ interface BookingSummaryCardProps {
 
 const BookingSummaryCard = ({ bookingPrefs }: BookingSummaryCardProps) => {
   return (
-    <Card className="mb-6 bg-app-cardAlt border-app-border">
+    <Card className="mb-6 bg-[#F2F2F2] border-app-border">
       <CardContent className="p-4">
         <h3 className="font-medium mb-2 text-app-text">Tu reserva</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">

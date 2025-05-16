@@ -19,7 +19,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   return (
     <Card 
       key={provider.id}
-      className="overflow-hidden hover:shadow-luxury transition-shadow cursor-pointer animate-fade-in bg-luxury-white border border-neutral-100"
+      className="overflow-hidden hover:shadow-luxury transition-shadow cursor-pointer animate-fade-in bg-[#F2F2F2] border border-neutral-100"
       onClick={() => onClick(provider)}
     >
       <CardContent className="p-4">
