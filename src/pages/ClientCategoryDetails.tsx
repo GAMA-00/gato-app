@@ -5,7 +5,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  ArrowLeft, Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon, Car,
+  ArrowLeft, Book, Home, Scissors, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
   Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, ShowerHead, HeartHandshake, PawPrint, BicepsFlexed
