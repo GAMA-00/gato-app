@@ -63,7 +63,7 @@ const ClientCategoryView = () => {
     return (
       <PageContainer
         title="Explora nuestras categorías de servicio"
-        className="pt-1 bg-white" // Fondo blanco
+        className="pt-0 bg-white" // Fondo blanco sin padding superior
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -78,12 +78,12 @@ const ClientCategoryView = () => {
   const iconSize = isMobile ? 32 : 40; // Tamaño reducido para iconos
   const strokeWidth = 1.8;
 
-  console.log('isMobile value:', isMobile); // Logging to verify isMobile is working
+  console.log('isMobile value:', isMobile); // Logging para verificar el valor de isMobile
   
   return (
     <PageContainer
       title="Explora nuestras categorías de servicio"
-      className="pt-0 bg-white" // Cambiado de pt-1 a pt-0 para reducir el espacio superior
+      className="pt-0 bg-white" // Sin padding superior
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {
@@ -96,15 +96,15 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Aumentamos el tamaño del icono de Scissors a 48px para Cuidado Personal
-          const categoryIconSize = isPersonalCare ? 48 : iconSize;
+          // Tamaño incrementado a 60px para el icono de Scissors en Cuidado Personal
+          const categoryIconSize = isPersonalCare ? 60 : iconSize;
           
           // Stroke width diferente según el dispositivo para scissors
           const categoryStrokeWidth = isPersonalCare 
             ? (isMobile ? 2.25 : 2) // En móvil: 2.25, desktop se mantiene en 2
             : strokeWidth;
             
-          console.log('Category:', category.name, 'Icon size:', categoryIconSize, 'Stroke:', categoryStrokeWidth); // Debugging
+          console.log('Category:', category.name, 'Icon size:', categoryIconSize, 'Stroke:', categoryStrokeWidth); // Debugging mejorado
             
           const textSizeClass = 'text-base md:text-lg'; // Texto consistente para todas las categorías
           
