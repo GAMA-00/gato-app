@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -82,7 +83,7 @@ const ClientCategoryView = () => {
   return (
     <PageContainer
       title="Explora nuestras categorías de servicio"
-      className="pt-1 bg-white" // Fondo blanco
+      className="pt-0 bg-white" // Cambiado de pt-1 a pt-0 para reducir el espacio superior
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {
@@ -95,8 +96,8 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Tamaño fijo de 40px para scissors en ambas vistas
-          const categoryIconSize = isPersonalCare ? 40 : iconSize;
+          // Aumentamos el tamaño del icono de Scissors a 48px para Cuidado Personal
+          const categoryIconSize = isPersonalCare ? 48 : iconSize;
           
           // Stroke width diferente según el dispositivo para scissors
           const categoryStrokeWidth = isPersonalCare 
