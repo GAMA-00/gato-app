@@ -26,7 +26,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
       "min-h-screen w-full overflow-y-auto bg-white",
       className
     )}>
-      <div className={cn("p-2 md:p-6 max-w-7xl animate-fade-in")}>
+      {/* Reducido el padding superior en p-2 a p-1 en móvil */}
+      <div className={cn("p-1 md:p-6 max-w-7xl animate-fade-in")}>
         <div className={cn("flex flex-col md:flex-row md:items-center justify-between mb-1 md:mb-3 gap-1",
           isMobile ? "mt-0" : "" // Menor margen superior en móvil
         )}>

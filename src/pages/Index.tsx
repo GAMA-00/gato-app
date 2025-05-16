@@ -9,8 +9,8 @@ const Index = () => {
     // Forzar recarga completa para actualizar estilos
     const forceRefresh = () => {
       console.log("Forcing a complete refresh with timestamp...");
-      // Agregamos un timestamp para asegurar que no use caché
-      window.location.href = `/client?t=${new Date().getTime()}`;
+      // Agregamos un timestamp diferente para asegurar que no use caché
+      window.location.href = `/client?t=${Date.now()}`;
     };
     
     // Ejecutar inmediatamente para una recarga completa
