@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -78,6 +77,8 @@ const ClientCategoryView = () => {
   const iconSize = isMobile ? 32 : 40; // Tamaño reducido para iconos
   const strokeWidth = 1.8;
 
+  console.log('isMobile value:', isMobile); // Logging to verify isMobile is working
+  
   return (
     <PageContainer
       title="Explora nuestras categorías de servicio"
@@ -94,13 +95,16 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Ahora usando un tamaño fijo de 40px para scissors
-          const categoryIconSize = isPersonalCare 
-            ? 40 // Tamaño fijo de 40px para scissors, tanto en móvil como en desktop
-            : iconSize;
+          // Tamaño fijo de 40px para scissors en ambas vistas
+          const categoryIconSize = isPersonalCare ? 40 : iconSize;
+          
+          // Stroke width diferente según el dispositivo para scissors
           const categoryStrokeWidth = isPersonalCare 
             ? (isMobile ? 2.25 : 2) // En móvil: 2.25, desktop se mantiene en 2
             : strokeWidth;
+            
+          console.log('Category:', category.name, 'Icon size:', categoryIconSize, 'Stroke:', categoryStrokeWidth); // Debugging
+            
           const textSizeClass = 'text-base md:text-lg'; // Texto consistente para todas las categorías
           
           return (
