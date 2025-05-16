@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -74,9 +73,9 @@ const ClientCategoryView = () => {
     );
   }
 
-  // Define consistent icon size and stroke width for icons with better desktop spacing
-  const iconSize = isMobile ? 32 : 48; // Aumentado para desktop
-  const strokeWidth = 1.8;
+  // Define consistent icon size and stroke width for all icons
+  const iconSize = isMobile ? 32 : 48; // Consistent size for all icons
+  const strokeWidth = isMobile ? 2 : 1.8; // Consistent stroke width
   
   return (
     <PageContainer
@@ -91,17 +90,6 @@ const ClientCategoryView = () => {
           // Obtener el icono según el nombre de la categoría
           const IconComponent = iconMap[category.name] || Book;
           
-          // Ajustes específicos para ciertos iconos por categoría
-          const isPersonalCare = category.name === 'personal-care';
-          
-          // Tamaño para el icono de Scissors en Cuidado Personal
-          const categoryIconSize = isPersonalCare ? (isMobile ? 100 : 110) : iconSize;
-          
-          // Stroke width diferente según el dispositivo para scissors
-          const categoryStrokeWidth = isPersonalCare 
-            ? (isMobile ? 2.8 : 2.2) // Más fino en desktop para scissors
-            : strokeWidth;
-            
           const textSizeClass = isMobile ? 'text-base' : 'text-lg'; // Texto más grande en desktop
           
           return (
@@ -109,8 +97,8 @@ const ClientCategoryView = () => {
               <Card className={`flex flex-col items-center justify-center ${isMobile ? 'p-6' : 'p-8'} hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-32' : 'h-48'}`}>
                 <div className="flex items-center justify-center mb-4">
                   <IconComponent 
-                    size={categoryIconSize}
-                    strokeWidth={categoryStrokeWidth}
+                    size={iconSize}
+                    strokeWidth={strokeWidth}
                     className="text-[#1A1A1A]" 
                   />
                 </div>
