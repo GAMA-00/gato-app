@@ -22,15 +22,15 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-0 pb-24" : "pl-64 pt-0", // Padding superior eliminado completamente
+      isMobile ? "pt-0 pb-24" : "pl-64 pt-0", // Padding superior eliminado
       "min-h-screen w-full overflow-y-auto bg-white",
       className
     )}>
-      <div className={cn("p-4 md:p-8 max-w-7xl animate-fade-in")}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-5 gap-2">
+      <div className={cn("p-2 md:p-6 max-w-7xl animate-fade-in")}>
+        <div className={cn("flex flex-col md:flex-row md:items-center justify-between mb-2 md:mb-3 gap-1")}>
           {/* Reducido aún más el margin-bottom y gap */}
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-app-text">{title}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-0 text-app-text">{title}</h1>
             {subtitle && <div className="text-app-text/70 text-lg">{subtitle}</div>}
           </div>
           {action && <div className="flex-shrink-0">{action}</div>}

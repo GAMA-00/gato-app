@@ -96,12 +96,12 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Tamaño incrementado a 60px para el icono de Scissors en Cuidado Personal
-          const categoryIconSize = isPersonalCare ? 60 : iconSize;
+          // Tamaño incrementado a 80px para el icono de Scissors en Cuidado Personal
+          const categoryIconSize = isPersonalCare ? 80 : iconSize;
           
           // Stroke width diferente según el dispositivo para scissors
           const categoryStrokeWidth = isPersonalCare 
-            ? (isMobile ? 2.25 : 2) // En móvil: 2.25, desktop se mantiene en 2
+            ? (isMobile ? 2.5 : 2.2) // En móvil: 2.5, desktop se mantiene en 2.2
             : strokeWidth;
             
           console.log('Category:', category.name, 'Icon size:', categoryIconSize, 'Stroke:', categoryStrokeWidth); // Debugging mejorado

@@ -12,8 +12,8 @@ const Index = () => {
       window.location.href = '/client';
     };
     
-    // Redirecciona a la vista de categorías del cliente con un pequeño delay
-    setTimeout(forceRefresh, 100);
+    // Ejecutar inmediatamente para una recarga completa
+    forceRefresh();
   }, [navigate]);
 
   // Retornamos un mensaje de carga mientras se redirecciona
