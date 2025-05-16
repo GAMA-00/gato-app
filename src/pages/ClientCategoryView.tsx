@@ -15,7 +15,7 @@ const iconMap: Record<string, LucideIcon> = {
   'personal-care': Scissors,
   'sports': Dumbbell,
   'home': Home,
-  'pets': PawPrint, // Cambiado de Dog a PawPrint
+  'pets': PawPrint,
   'other': Globe,
 };
 
@@ -94,10 +94,10 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Calculamos tamaños específicos por categoría si es necesario
-          const categoryIconSize = isPersonalCare ? (isMobile ? 38 : 48) : iconSize;
-          const categoryStrokeWidth = isPersonalCare ? 1.5 : strokeWidth;
-          const textSizeClass = isPersonalCare ? 'text-sm md:text-base' : 'text-base md:text-lg';
+          // Calculamos tamaños específicos por categoría si es necesario - SCISSORS ICON INCREASED SIZE
+          const categoryIconSize = isPersonalCare ? (isMobile ? 44 : 56) : iconSize;
+          const categoryStrokeWidth = isPersonalCare ? 1.2 : strokeWidth;
+          const textSizeClass = isPersonalCare ? 'text-xs md:text-sm' : 'text-base md:text-lg';
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
