@@ -10,7 +10,7 @@ const Index = () => {
     const forceRefresh = () => {
       console.log("Forcing a complete refresh with timestamp...");
       // Agregamos un timestamp diferente para asegurar que no use caché
-      window.location.href = `/client?t=${Date.now()}`;
+      window.location.href = `/client?t=${Date.now()}&refresh=true`;
     };
     
     // Ejecutar inmediatamente para una recarga completa

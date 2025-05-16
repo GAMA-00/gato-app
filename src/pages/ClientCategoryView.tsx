@@ -63,7 +63,7 @@ const ClientCategoryView = () => {
     return (
       <PageContainer
         title="Explora nuestras categorías de servicio"
-        className="pt-0 bg-white" // Fondo blanco sin padding superior
+        className="pt-0 bg-white"
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -74,16 +74,14 @@ const ClientCategoryView = () => {
     );
   }
 
-  // Define consistent icon size and stroke width for ALL icons - REDUCED sizes
-  const iconSize = isMobile ? 32 : 40; // Tamaño reducido para iconos
+  // Define consistent icon size and stroke width for icons with better desktop spacing
+  const iconSize = isMobile ? 32 : 48; // Aumentado para desktop
   const strokeWidth = 1.8;
-
-  console.log('isMobile value:', isMobile); // Logging para verificar el valor de isMobile
   
   return (
     <PageContainer
       title="Explora nuestras categorías de servicio"
-      className="pt-0 bg-white" // Sin padding superior
+      className="pt-0 bg-white"
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {
@@ -96,27 +94,27 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Tamaño incrementado a 100px para el icono de Scissors en Cuidado Personal
-          const categoryIconSize = isPersonalCare ? 100 : iconSize;
+          // Tamaño para el icono de Scissors en Cuidado Personal
+          const categoryIconSize = isPersonalCare ? (isMobile ? 100 : 110) : iconSize;
           
           // Stroke width diferente según el dispositivo para scissors
           const categoryStrokeWidth = isPersonalCare 
-            ? (isMobile ? 2.8 : 2.5) // En móvil: 2.8, desktop se mantiene en 2.5
+            ? (isMobile ? 2.8 : 2.2) // Más fino en desktop para scissors
             : strokeWidth;
             
-          console.log('Category:', category.name, 'Icon size:', categoryIconSize, 'Stroke:', categoryStrokeWidth); // Debugging mejorado
-            
-          const textSizeClass = 'text-base md:text-lg'; // Texto consistente para todas las categorías
+          const textSizeClass = isMobile ? 'text-base' : 'text-lg'; // Texto más grande en desktop
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-              <Card className={`flex flex-col items-center justify-center p-6 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-32' : 'h-40'}`}>
-                <IconComponent 
-                  size={categoryIconSize}
-                  strokeWidth={categoryStrokeWidth}
-                  className="text-[#1A1A1A] mb-4" 
-                />
-                <h3 className={`text-center font-semibold ${textSizeClass} text-[#1A1A1A]`}>
+              <Card className={`flex flex-col items-center justify-center ${isMobile ? 'p-6' : 'p-8'} hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-32' : 'h-48'}`}>
+                <div className="flex items-center justify-center mb-4">
+                  <IconComponent 
+                    size={categoryIconSize}
+                    strokeWidth={categoryStrokeWidth}
+                    className="text-[#1A1A1A]" 
+                  />
+                </div>
+                <h3 className={`text-center font-semibold ${textSizeClass} text-[#1A1A1A] line-clamp-2`}>
                   {categoryLabels[category.name] || category.label}
                 </h3>
               </Card>
