@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Home, Scissors, Dog, Globe, Dumbbell, LucideIcon } from 'lucide-react';
+import { Book, Home, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mapa de iconos específico para cada categoría
@@ -15,7 +15,7 @@ const iconMap: Record<string, LucideIcon> = {
   'personal-care': Scissors,
   'sports': Dumbbell,
   'home': Home,
-  'pets': Dog,
+  'pets': PawPrint, // Cambiado de Dog a PawPrint
   'other': Globe,
 };
 
@@ -91,11 +91,20 @@ const ClientCategoryView = () => {
           // Obtener el icono según el nombre de la categoría
           const IconComponent = iconMap[category.name] || Book;
           
+          // Verificar si es la categoría "personal-care" para ajustar el texto y el icono
+          const isPersonalCare = category.name === 'personal-care';
+          
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
               <Card className={`flex flex-col items-center justify-center p-6 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-32' : 'h-40'}`}>
-                <IconComponent size={iconSize} strokeWidth={strokeWidth} className="text-[#1A1A1A] mb-4" />
-                <h3 className="text-center font-semibold text-lg md:text-xl text-[#1A1A1A]">{categoryLabels[category.name] || category.label}</h3>
+                <IconComponent 
+                  size={iconSize} 
+                  strokeWidth={strokeWidth} 
+                  className="text-[#1A1A1A] mb-4" 
+                />
+                <h3 className={`text-center font-semibold ${isPersonalCare ? 'text-base md:text-lg' : 'text-lg md:text-xl'} text-[#1A1A1A]`}>
+                  {categoryLabels[category.name] || category.label}
+                </h3>
               </Card>
             </div>
           );
