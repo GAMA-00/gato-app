@@ -4,83 +4,35 @@
 
 @layer base {
   :root {
-    --background: 37 33% 97%; /* #FAF9F6 - luxury-gray */
-    --foreground: 20 9% 33%; /* #5C504A - luxury-navy */
+    --background: 0 0% 95%;      /* #F2F2F2 - fondo general */
+    --foreground: 240 5% 12%;    /* #1C1C1E - texto principal */
     
-    --heading: 20 9% 33%; /* #5C504A - luxury-navy */
-    --subtitle: 22 5% 50%; /* #867E76 - luxury-gray-dark */
+    --card: 0 0% 98%;            /* #FAFAFA - fondo de tarjetas */
+    --card-foreground: 240 5% 12%;
     
-    --navy: 20 9% 33%; /* #5C504A - luxury-navy */
-    --navy-hover: 20 9% 25%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 240 5% 12%;
     
-    --neutral-gray: 22 5% 50%; /* #867E76 - luxury-gray-dark */
-    --neutral-gray-hover: 22 5% 45%;
-    
-    --card: 0 0% 100%; /* #FFFFFF - luxury-white */
-    --card-foreground: 20 9% 33%; /* #5C504A - luxury-navy */
-    
-    --popover: 0 0% 100%; /* #FFFFFF */
-    --popover-foreground: 20 9% 33%; /* #5C504A */
-    
-    --primary: 22 5% 50%; /* #867E76 - luxury-gray-dark */
+    --primary: 240 5% 12%;
     --primary-foreground: 0 0% 98%;
     
-    --secondary: 34 33% 93%; /* #F5EEE7 - luxury-beige */
-    --secondary-foreground: 20 9% 33%; /* #5C504A */
+    --secondary: 0 0% 96%;       /* #F5F5F5 - fondo alternativo */
+    --secondary-foreground: 240 5% 12%;
     
-    --muted: 34 33% 93%; /* #F5EEE7 */
-    --muted-foreground: 22 5% 50%; /* #867E76 */
+    --muted: 0 0% 96%;
+    --muted-foreground: 240 5% 40%;
     
-    --accent: 34 33% 93%; /* #F5EEE7 */
-    --accent-foreground: 20 9% 33%; /* #5C504A */
+    --accent: 0 0% 96%;
+    --accent-foreground: 240 5% 12%;
     
-    --destructive: 0 74% 42%; /* #B91C1C - rojo suave */
+    --destructive: 0 84% 60%;    /* Rojo para acciones destructivas */
     --destructive-foreground: 0 0% 98%;
     
-    --border: 30 16% 90%; /* #E9E5E1 - light beige border */
-    --input: 30 16% 90%; /* #E9E5E1 */
-    --ring: 22 5% 50%; /* #867E76 */
+    --border: 0 0% 88%;          /* #E0E0E0 - bordes suaves */
+    --input: 0 0% 88%;
+    --ring: 240 5% 12%;
 
-    --radius: 0.75rem; /* 12px */
-  }
-
-  .dark {
-    --background: 0 0% 15%; /* Smoky Grey for dark mode */
-    --foreground: 30 20% 96%;
-    
-    --heading: 30 20% 96%; /* Light color for dark mode titles */
-    --subtitle: 0 0% 75%; /* Light grey for dark mode subtitles */
-    
-    --navy: 230 18% 22%; /* #32323D */
-    --navy-hover: 230 18% 17%;
-    
-    --neutral-gray: 15 5% 62%; /* #A7A195 */
-    --neutral-gray-hover: 15 5% 57%;
-    
-    --card: 0 0% 20%;
-    --card-foreground: 30 20% 96%;
-    
-    --popover: 0 0% 20%;
-    --popover-foreground: 30 20% 96%;
-    
-    --primary: var(--navy);
-    --primary-foreground: 0 0% 13%;
-    
-    --secondary: 0 0% 25%;
-    --secondary-foreground: 30 20% 96%;
-    
-    --muted: 0 0% 25%;
-    --muted-foreground: 0 0% 65%;
-    
-    --accent: var(--neutral-gray);
-    --accent-foreground: 0 0% 13%;
-    
-    --destructive: 0 60% 30%;
-    --destructive-foreground: 0 0% 95%;
-    
-    --border: 0 0% 30%;
-    --input: 0 0% 30%;
-    --ring: 35 70% 65%;
+    --radius: 0.75rem;           /* Bordes redondeados */
   }
   
   * {
@@ -100,10 +52,10 @@
   }
   
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-app-background text-app-text font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 16px; /* Base font size increased */
+    font-size: 16px;
     height: 100%;
     position: relative;
   }
@@ -114,22 +66,24 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply text-heading;
-    font-size: 1.125rem; /* Minimum 18px for headings */
+    @apply text-app-text;
+    font-size: 1.125rem;
   }
   
   h1 {
-    font-size: 1.5rem; /* 24px */
+    font-size: 1.5rem;
   }
   
   h2 {
-    font-size: 1.25rem; /* 20px */
+    font-size: 1.25rem;
   }
   
   .subtitle {
-    @apply text-subtitle;
-    font-size: 1rem; /* 16px */
+    @apply text-app-text/80;
+    font-size: 1rem;
   }
+
+  /* Existing base styles */
 }
 
 /* Animations */
@@ -149,6 +103,7 @@
 }
 
 @layer utilities {
+  /* Existing utility classes */
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out forwards;
   }
@@ -170,63 +125,12 @@
   }
   
   /* Actualizando los gradientes para usar la nueva paleta de colores */
-  .luxury-gradient {
-    background: linear-gradient(to right, #d7cdb4 0%, #eae3d0 100%);
+  .app-card {
+    @apply bg-app-card rounded-xl border border-app-border shadow-card;
   }
   
-  .navy-gradient {
-    background: linear-gradient(to right, #32323D 0%, #3F3F4E 100%);
-  }
-  
-  .gold-accent {
-    color: #A7A195;
-  }
-  
-  .navy-accent {
-    color: #32323D;
-  }
-  
-  .premium-shadow {
-    box-shadow: 0 10px 30px -5px rgba(169, 150, 113, 0.15);
-  }
-  
-  .navy-shadow {
-    box-shadow: 0 10px 30px -5px rgba(50, 50, 61, 0.15);
-  }
-  
-  .luxury-border {
-    border-color: rgba(167, 161, 149, 0.3);
-  }
-  
-  .navy-border {
-    border-color: rgba(50, 50, 61, 0.3);
-  }
-  
-  .text-heading {
-    color: hsl(var(--heading));
-    font-size: 1.125rem; /* 18px minimum */
-  }
-
-  .text-subtitle {
-    color: hsl(var(--subtitle));
-    font-size: 1rem; /* 16px minimum */
-  }
-  
-  /* New utility classes for accessibility */
-  .accessible-button {
-    @apply py-3 px-4 rounded-xl text-base font-medium shadow-md;
-  }
-  
-  .accessible-card {
-    @apply rounded-xl border border-border shadow-md p-4;
-  }
-  
-  .increased-spacing {
-    @apply space-y-4 md:space-y-6;
-  }
-  
-  .accessible-input {
-    @apply text-base py-3 px-4 rounded-xl;
+  .app-card-alt {
+    @apply bg-app-cardAlt rounded-xl border border-app-border shadow-card;
   }
   
   /* Hide scrollbar */
@@ -248,17 +152,17 @@
 /* Calendar specific styles */
 .calendar-day {
   transition: all 0.2s ease;
-  @apply text-base; /* Increased text size */
+  @apply text-base;
 }
 
 .calendar-day:hover {
   transform: translateY(-2px);
-  @apply bg-luxury-beige; /* Use highlight color */
+  @apply bg-app-cardAlt;
 }
 
 .appointment-card {
   transition: all 0.3s ease;
-  @apply rounded-xl; /* Increased border radius */
+  @apply rounded-xl;
 }
 
 .appointment-card:hover {
@@ -266,6 +170,9 @@
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
+/* Existing calendar and appointment styles */
+
+/* Page transition styles */
 .page-transition-enter {
   opacity: 0;
   transform: translateY(10px);

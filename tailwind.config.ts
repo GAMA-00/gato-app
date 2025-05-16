@@ -63,21 +63,22 @@ export default {
           foreground: 'hsl(var(--card-foreground))'
         },
         navy: {
-          DEFAULT: 'hsl(var(--navy))',
-          hover: 'hsl(var(--navy-hover))',
+          DEFAULT: '#1C1C1E',
+          hover: '#000000',
         },
         'neutral-gray': {
-          DEFAULT: 'hsl(var(--neutral-gray))',
-          hover: 'hsl(var(--neutral-gray-hover))',
+          DEFAULT: '#8A8A8E',
+          hover: '#6E6E73',
         },
-        // Colores personalizados para la nueva UI accesible
-        luxury: {
-          white: '#FFFFFF', // Pure white background
-          gray: '#FAF9F6', // Warm white background
-          beige: '#F5EEE7', // Luxury beige for cards
-          navy: '#5C504A', // Soft black for text and icons
-          'gray-dark': '#867E76', // Text secondary
-        },
+        app: {
+          background: '#F2F2F2',    // Fondo general (casi blanco)
+          card: '#FAFAFA',          // Fondo de tarjetas (beige/gris claro)
+          cardAlt: '#F5F5F5',       // Fondo alternativo para tarjetas
+          text: '#1C1C1E',          // Texto principal (casi negro)
+          textAlt: '#000000',       // Texto alternativo (negro puro)
+          border: '#E0E0E0',        // Borde suave para tarjetas
+          shadow: 'rgba(0, 0, 0, 0.05)' // Sombra sutil
+        }
       },
       fontFamily: {
 				sans: [
@@ -100,7 +101,7 @@ export default {
 			boxShadow: {
 				'soft': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
 				'medium': '0 10px 40px -5px rgba(0, 0, 0, 0.1)',
-        'luxury': '0 8px 20px -4px rgba(92, 80, 74, 0.08)'
+        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
 			},
       minHeight: {
         '12': '3rem', // 48px para áreas de toque

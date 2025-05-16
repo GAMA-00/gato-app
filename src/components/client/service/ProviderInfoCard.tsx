@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, BadgeCheck, Users, MapPin, Shield } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProviderExperienceLevel from '@/components/client/results/ProviderExperienceLevel';
-import { ProviderData } from '@/components/client/results/types';
+import { ProviderData } from '@/components/client/service/types';
 import { ClientResidencia } from './types';
 
 interface ProviderInfoCardProps {
@@ -23,18 +23,18 @@ const ProviderInfoCard = ({
   const hasCertifications = provider?.certificationFiles && provider.certificationFiles.length > 0;
   
   return (
-    <Card className="bg-luxury-white border border-neutral-100">
+    <Card className="bg-app-card border border-app-border">
       <CardContent className="pt-6">
         <div className="flex items-start">
-          <Avatar className="h-16 w-16 border border-neutral-100">
+          <Avatar className="h-16 w-16 border border-app-border">
             <AvatarImage src={undefined} alt={provider?.name} />
-            <AvatarFallback className="bg-luxury-beige text-luxury-navy">
+            <AvatarFallback className="bg-app-cardAlt text-app-text">
               {provider?.name?.substring(0, 2).toUpperCase() || 'P'}
             </AvatarFallback>
           </Avatar>
           
           <div className="ml-4 space-y-2">
-            <h3 className="text-lg font-semibold text-luxury-navy">{provider?.name}</h3>
+            <h3 className="text-lg font-semibold text-app-text">{provider?.name}</h3>
             
             <div className="flex items-center">
               <div className="bg-yellow-50 px-2 py-1 rounded-md flex items-center">

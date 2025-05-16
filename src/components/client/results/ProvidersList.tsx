@@ -28,7 +28,7 @@ const ProvidersList = ({ providers, isLoading, onProviderSelect, onBack }: Provi
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <Card key={i}>
+          <Card key={i} className="bg-app-card border-app-border">
             <CardContent className="p-0">
               <div className="flex p-4">
                 <Skeleton className="h-16 w-16 rounded-full" />
@@ -49,9 +49,9 @@ const ProvidersList = ({ providers, isLoading, onProviderSelect, onBack }: Provi
   if (providers.length === 0) {
     return (
       <div className="text-center py-8">
-        <User className="h-16 w-16 mx-auto text-muted-foreground opacity-20 mb-2" />
-        <p className="text-lg font-medium">No hay profesionales disponibles</p>
-        <p className="text-muted-foreground mb-6">
+        <User className="h-16 w-16 mx-auto text-app-text/20 mb-2" />
+        <p className="text-lg font-medium text-app-text">No hay profesionales disponibles</p>
+        <p className="text-app-text/70 mb-6">
           No encontramos profesionales para este servicio en esta ubicación.
         </p>
         <Button onClick={() => {
