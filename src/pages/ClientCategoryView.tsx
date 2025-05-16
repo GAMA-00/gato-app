@@ -94,10 +94,10 @@ const ClientCategoryView = () => {
           // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
           
-          // Calculamos tamaños específicos por categoría si es necesario - SCISSORS ICON INCREASED SIZE
-          const categoryIconSize = isPersonalCare ? (isMobile ? 44 : 56) : iconSize;
-          const categoryStrokeWidth = isPersonalCare ? 1.2 : strokeWidth;
-          const textSizeClass = isPersonalCare ? 'text-xs md:text-sm' : 'text-base md:text-lg';
+          // Tamaños ajustados para que coincidan con los de la página de service types
+          const categoryIconSize = isPersonalCare ? (isMobile ? 30 : 36) : iconSize;
+          const categoryStrokeWidth = isPersonalCare ? 2 : strokeWidth;
+          const textSizeClass = 'text-base md:text-lg'; // Texto consistente para todas las categorías
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
