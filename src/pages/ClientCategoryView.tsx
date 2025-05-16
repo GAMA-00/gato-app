@@ -91,18 +91,23 @@ const ClientCategoryView = () => {
           // Obtener el icono según el nombre de la categoría
           const IconComponent = iconMap[category.name] || Book;
           
-          // Verificar si es la categoría "personal-care" para ajustar el texto y el icono
+          // Ajustes específicos para ciertos iconos por categoría
           const isPersonalCare = category.name === 'personal-care';
+          
+          // Calculamos tamaños específicos por categoría si es necesario
+          const categoryIconSize = isPersonalCare ? (isMobile ? 38 : 48) : iconSize;
+          const categoryStrokeWidth = isPersonalCare ? 1.5 : strokeWidth;
+          const textSizeClass = isPersonalCare ? 'text-sm md:text-base' : 'text-base md:text-lg';
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
               <Card className={`flex flex-col items-center justify-center p-6 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-32' : 'h-40'}`}>
                 <IconComponent 
-                  size={iconSize} 
-                  strokeWidth={strokeWidth} 
+                  size={categoryIconSize}
+                  strokeWidth={categoryStrokeWidth}
                   className="text-[#1A1A1A] mb-4" 
                 />
-                <h3 className={`text-center font-semibold ${isPersonalCare ? 'text-base md:text-lg' : 'text-lg md:text-xl'} text-[#1A1A1A]`}>
+                <h3 className={`text-center font-semibold ${textSizeClass} text-[#1A1A1A]`}>
                   {categoryLabels[category.name] || category.label}
                 </h3>
               </Card>
