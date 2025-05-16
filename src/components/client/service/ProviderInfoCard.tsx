@@ -19,28 +19,28 @@ const ProviderInfoCard = ({
   recurringClients, 
   clientResidencia 
 }: ProviderInfoCardProps) => {
-  const experienceYears = provider.experience_years || 0;
-  const hasCertifications = provider.certificationFiles && provider.certificationFiles.length > 0;
+  const experienceYears = provider?.experience_years || 0;
+  const hasCertifications = provider?.certificationFiles && provider.certificationFiles.length > 0;
   
   return (
     <Card className="bg-luxury-white border border-neutral-100">
       <CardContent className="pt-6">
         <div className="flex items-start">
           <Avatar className="h-16 w-16 border border-neutral-100">
-            <AvatarImage src={undefined} alt={provider.name} />
+            <AvatarImage src={undefined} alt={provider?.name} />
             <AvatarFallback className="bg-luxury-beige text-luxury-navy">
-              {provider.name?.substring(0, 2).toUpperCase() || 'P'}
+              {provider?.name?.substring(0, 2).toUpperCase() || 'P'}
             </AvatarFallback>
           </Avatar>
           
           <div className="ml-4 space-y-2">
-            <h3 className="text-lg font-semibold text-luxury-navy">{provider.name}</h3>
+            <h3 className="text-lg font-semibold text-luxury-navy">{provider?.name}</h3>
             
             <div className="flex items-center">
               <div className="bg-yellow-50 px-2 py-1 rounded-md flex items-center">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                <span className="font-medium text-yellow-700">{provider.average_rating?.toFixed(1) || "Nuevo"}</span>
-                {provider.ratingCount > 0 && (
+                <span className="font-medium text-yellow-700">{provider?.average_rating?.toFixed(1) || "Nuevo"}</span>
+                {provider?.ratingCount && provider.ratingCount > 0 && (
                   <span className="text-muted-foreground text-sm ml-1">({provider.ratingCount} reseñas)</span>
                 )}
               </div>
@@ -67,7 +67,7 @@ const ProviderInfoCard = ({
               )}
               
               {/* Services Completed Badge */}
-              {provider.servicesCompleted && provider.servicesCompleted > 0 && (
+              {provider?.servicesCompleted && provider.servicesCompleted > 0 && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 flex items-center gap-1">
                   <Users className="h-3 w-3" />
                   {provider.servicesCompleted} servicios completados

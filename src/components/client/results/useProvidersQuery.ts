@@ -89,8 +89,8 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       
       // Process and return the providers with their service details
       const providers: ProcessedProvider[] = filteredListings.map(listing => {
-        // Safely access provider data with appropriate type checking
-        const provider = listing.provider as ProviderData || {};
+        // Make sure provider is not undefined
+        const provider = listing.provider || {} as ProviderData;
         
         // Safely check if provider has certifications
         const certFiles = provider.certification_files || [];

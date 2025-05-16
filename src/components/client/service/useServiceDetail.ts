@@ -65,13 +65,13 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       }
       
       // Process provider data to include hasCertifications and parsed certification files
-      const providerData = listing.provider as ProviderData || {};
+      const providerData = listing.provider || {} as ProviderData;
       
       // Process certification files
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
-      if (providerData.certification_files) {
+      if (providerData && providerData.certification_files) {
         try {
           // Parse certification_files if it's a string
           const filesData = typeof providerData.certification_files === 'string' 

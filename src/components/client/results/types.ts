@@ -1,3 +1,4 @@
+
 // Types for the client results view components
 
 export interface ProcessedProvider {
@@ -42,6 +43,8 @@ export interface ProviderData {
   ratingCount?: number; // Number of ratings
   contactEmail?: string;
   contactPhone?: string;
+  certification_files?: any; // Add this to match what's in the database
+  created_at?: string; // Add this to match database field
 }
 
 export interface Achievement {

@@ -26,8 +26,9 @@ export interface ServiceTypeData {
   }
 }
 
+// Update this interface to match the one in results/types.ts
 export interface ProviderData {
-  id?: string;
+  id: string; // Make sure this is required in both interfaces
   name?: string;
   about_me?: string;
   experience_years?: number;
@@ -40,6 +41,7 @@ export interface ProviderData {
   created_at?: string;
   servicesCompleted?: number;
   isVerified?: boolean;
+  certification_files?: any; // Add this to match database field
 }
 
 export interface ServiceDetailData {
