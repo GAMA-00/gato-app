@@ -42,6 +42,7 @@ export interface ProviderData {
   servicesCompleted?: number;
   isVerified?: boolean;
   certification_files?: any; // Add this to match database field
+  ratingCount?: number; // Add the missing ratingCount field
 }
 
 export interface ServiceDetailData {
