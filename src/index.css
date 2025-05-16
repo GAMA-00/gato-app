@@ -4,10 +4,10 @@
 
 @layer base {
   :root {
-    --background: 0 0% 95%;      /* #F2F2F2 - fondo general */
+    --background: 0 0% 100%;     /* #FFFFFF - fondo blanco */
     --foreground: 240 5% 12%;    /* #1C1C1E - texto principal */
     
-    --card: 0 0% 98%;            /* #FAFAFA - fondo de tarjetas */
+    --card: 0 0% 95%;            /* #F2F2F2 - fondo de tarjetas más oscuro */
     --card-foreground: 240 5% 12%;
     
     --popover: 0 0% 98%;
@@ -16,7 +16,7 @@
     --primary: 240 5% 12%;
     --primary-foreground: 0 0% 98%;
     
-    --secondary: 0 0% 96%;       /* #F5F5F5 - fondo alternativo */
+    --secondary: 0 0% 94%;       /* #F0F0F0 - fondo alternativo */
     --secondary-foreground: 240 5% 12%;
     
     --muted: 0 0% 96%;

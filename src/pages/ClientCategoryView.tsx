@@ -29,8 +29,8 @@ const categoryLabels: Record<string, string> = {
   'other': 'Otros',
 };
 
-// Orden específico para las categorías
-const categoryOrder = ['classes', 'personal-care', 'sports', 'home', 'pets', 'other'];
+// Nuevo orden específico para las categorías
+const categoryOrder = ['home', 'pets', 'classes', 'personal-care', 'sports', 'other'];
 
 const ClientCategoryView = () => {
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ const ClientCategoryView = () => {
     return (
       <PageContainer
         title="Explora nuestras categorías de servicio"
-        className="pt-1" // Reducir el padding superior
+        className="pt-1 bg-white" // Fondo blanco
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -75,13 +75,13 @@ const ClientCategoryView = () => {
   }
 
   // Define consistent icon size and stroke width for ALL icons
-  const iconSize = isMobile ? 36 : 48;
-  const strokeWidth = 2;
+  const iconSize = isMobile ? 40 : 58; // Tamaño más grande para iconos
+  const strokeWidth = 1.8;
 
   return (
     <PageContainer
       title="Explora nuestras categorías de servicio"
-      className="pt-1" // Reducir el padding superior
+      className="pt-1 bg-white" // Fondo blanco
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {
@@ -93,9 +93,9 @@ const ClientCategoryView = () => {
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-              <Card className={`flex flex-col items-center p-5 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-white justify-center group ${isMobile ? 'h-32' : 'h-40'}`}>
+              <Card className={`flex flex-col items-center justify-center p-6 md:p-8 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-36' : 'h-48'}`}>
                 <IconComponent size={iconSize} strokeWidth={strokeWidth} className="text-[#1A1A1A] mb-4" />
-                <h3 className="text-center font-semibold text-lg md:text-xl text-[#1A1A1A]">{categoryLabels[category.name] || category.label}</h3>
+                <h3 className="text-center font-semibold text-xl md:text-2xl text-[#1A1A1A]">{categoryLabels[category.name] || category.label}</h3>
               </Card>
             </div>
           );

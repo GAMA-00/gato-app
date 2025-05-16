@@ -71,9 +71,9 @@ export default {
           hover: '#6E6E73',
         },
         app: {
-          background: '#F2F2F2',    // Fondo general (casi blanco)
-          card: '#FAFAFA',          // Fondo de tarjetas (beige/gris claro)
-          cardAlt: '#F5F5F5',       // Fondo alternativo para tarjetas
+          background: '#FFFFFF',    // Cambiado a blanco
+          card: '#F2F2F2',          // Tarjetas más oscuras (gris claro)
+          cardAlt: '#F0F0F0',       // Alternativo un poco más oscuro
           text: '#1C1C1E',          // Texto principal (casi negro)
           textAlt: '#000000',       // Texto alternativo (negro puro)
           border: '#E0E0E0',        // Borde suave para tarjetas

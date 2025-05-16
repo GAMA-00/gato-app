@@ -2,7 +2,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PageContainerProps {
   children: React.ReactNode;
@@ -24,8 +23,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
   return (
     <div className={cn(
       isMobile ? "pt-1 pb-24" : "pl-64 pt-1", 
-      "min-h-screen bg-app-background w-full overflow-y-auto", 
-      className
+      "min-h-screen w-full overflow-y-auto", 
+      className || "bg-app-background"
     )}>
       <div className={cn("p-4 md:p-8 max-w-7xl animate-fade-in")}>
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
