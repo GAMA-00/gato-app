@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -21,7 +20,7 @@ const ClientBookingFlow = () => {
   const [bookingPrefs, setBookingPrefs] = useState<BookingPreferences>({
     frequency: 'once',
     selectedDays: [],
-    timeSlot: '9am-12pm',
+    timeSlot: '6am-12md',
   });
   
   // Obtener información del servicio
@@ -144,9 +143,8 @@ const ClientBookingFlow = () => {
                   <SelectValue placeholder="Selecciona un horario" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="9am-12pm">Mañana (9am - 12pm)</SelectItem>
-                  <SelectItem value="12pm-3pm">Mediodía (12pm - 3pm)</SelectItem>
-                  <SelectItem value="3pm-6pm">Tarde (3pm - 6pm)</SelectItem>
+                  <SelectItem value="6am-12md">Mañana (6am - 12md)</SelectItem>
+                  <SelectItem value="12pm-5pm">Tarde (12pm - 5pm)</SelectItem>
                   <SelectItem value="6pm-9pm">Noche (6pm - 9pm)</SelectItem>
                 </SelectContent>
               </Select>
