@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -15,7 +16,6 @@ import { useServiceDetail } from '@/components/client/service/useServiceDetail';
 import ProviderInfoCard from '@/components/client/service/ProviderInfoCard';
 import ProviderBio from '@/components/client/service/ProviderBio';
 import ServiceDescription from '@/components/client/service/ServiceDescription';
-import PriceInformation from '@/components/client/service/PriceInformation';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
 
 const ClientServiceDetail = () => {
@@ -215,11 +215,7 @@ const ClientServiceDetail = () => {
             onSchedule={handleSchedule}
           />
           
-          {/* Price Information */}
-          <PriceInformation 
-            basePrice={serviceDetails.base_price} 
-            duration={serviceDetails.duration} 
-          />
+          {/* Removed PriceInformation component */}
         </div>
       </div>
     </PageContainer>
