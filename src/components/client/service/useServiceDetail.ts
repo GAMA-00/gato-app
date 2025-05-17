@@ -71,18 +71,24 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
-      // First check if the listing has gallery images stored as a JSON field
-      if (listing.service_variants?.gallery_images) {
+      // First check if the listing has gallery images stored in the service_variants field
+      if (listing.service_variants) {
         try {
-          // Try to access gallery_images through service_variants
-          const imagesData = typeof listing.service_variants.gallery_images === 'string' 
-            ? JSON.parse(listing.service_variants.gallery_images) 
-            : listing.service_variants.gallery_images;
+          // Try to access service_variants and check if it has a gallery_images property
+          const serviceVariants = typeof listing.service_variants === 'string' 
+            ? JSON.parse(listing.service_variants) 
+            : listing.service_variants;
           
-          if (Array.isArray(imagesData)) {
-            galleryImages = imagesData.map((image: any) => 
-              typeof image === 'string' ? image : (image.url || image.downloadUrl || '')
-            ).filter(Boolean);
+          if (serviceVariants && typeof serviceVariants === 'object' && 'gallery_images' in serviceVariants) {
+            const imagesData = typeof serviceVariants.gallery_images === 'string'
+              ? JSON.parse(serviceVariants.gallery_images)
+              : serviceVariants.gallery_images;
+              
+            if (Array.isArray(imagesData)) {
+              galleryImages = imagesData.map((image: any) => 
+                typeof image === 'string' ? image : (image.url || image.downloadUrl || '')
+              ).filter(Boolean);
+            }
           }
         } catch (error) {
           console.error("Error parsing gallery images:", error);
