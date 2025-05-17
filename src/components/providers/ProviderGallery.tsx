@@ -17,12 +17,10 @@ const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
   if (provider.galleryImages && provider.galleryImages.length > 0) {
     images = provider.galleryImages;
   } 
-  // Otherwise check for images in certification_files
-  else if (provider.certification_files) {
+  // Otherwise check for images in certificationFiles
+  else if (provider.certificationFiles) {
     try {
-      const filesData = typeof provider.certification_files === 'string'
-        ? JSON.parse(provider.certification_files)
-        : provider.certification_files;
+      const filesData = provider.certificationFiles;
       
       if (Array.isArray(filesData)) {
         images = filesData

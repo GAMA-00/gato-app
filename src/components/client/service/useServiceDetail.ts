@@ -71,13 +71,13 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
-      // First check if the listing itself has gallery_images
-      if (listing && listing.gallery_images) {
+      // First check if the listing has gallery images stored as a JSON field
+      if (listing.service_variants?.gallery_images) {
         try {
-          // Parse gallery_images if it's a string
-          const imagesData = typeof listing.gallery_images === 'string' 
-            ? JSON.parse(listing.gallery_images) 
-            : listing.gallery_images;
+          // Try to access gallery_images through service_variants
+          const imagesData = typeof listing.service_variants.gallery_images === 'string' 
+            ? JSON.parse(listing.service_variants.gallery_images) 
+            : listing.service_variants.gallery_images;
           
           if (Array.isArray(imagesData)) {
             galleryImages = imagesData.map((image: any) => 
