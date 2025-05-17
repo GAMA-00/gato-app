@@ -71,7 +71,26 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
-      if (providerData && providerData.certification_files) {
+      // First check if the listing itself has gallery_images
+      if (listing && listing.gallery_images) {
+        try {
+          // Parse gallery_images if it's a string
+          const imagesData = typeof listing.gallery_images === 'string' 
+            ? JSON.parse(listing.gallery_images) 
+            : listing.gallery_images;
+          
+          if (Array.isArray(imagesData)) {
+            galleryImages = imagesData.map((image: any) => 
+              typeof image === 'string' ? image : (image.url || image.downloadUrl || '')
+            ).filter(Boolean);
+          }
+        } catch (error) {
+          console.error("Error parsing gallery images:", error);
+        }
+      }
+      
+      // If no images found in listing, try fetching from provider certification files as fallback
+      if (galleryImages.length === 0 && providerData && providerData.certification_files) {
         try {
           // Parse certification_files if it's a string
           const filesData = typeof providerData.certification_files === 'string' 
@@ -100,6 +119,32 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           console.error("Error parsing certification files:", error);
         }
       }
+      
+      // As a last resort, if we have the listing ID, try to fetch images from storage
+      if (galleryImages.length === 0 && listing.id) {
+        try {
+          const { data: storageData, error: storageError } = await supabase
+            .storage
+            .from('listing_images')
+            .list(`${listing.id}/`);
+          
+          if (!storageError && storageData && storageData.length > 0) {
+            galleryImages = storageData
+              .filter(item => !item.id.endsWith('/'))
+              .map(item => {
+                const { data } = supabase
+                  .storage
+                  .from('listing_images')
+                  .getPublicUrl(`${listing.id}/${item.name}`);
+                return data.publicUrl;
+              });
+          }
+        } catch (error) {
+          console.error("Error fetching images from storage:", error);
+        }
+      }
+      
+      console.log("Gallery images found:", galleryImages);
       
       const hasCertifications = certificationFiles.length > 0;
       
@@ -145,11 +190,6 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       // Mock data for recurring clients and services completed
       const recurringClients = Math.floor(Math.random() * 10);
       const servicesCompleted = Math.floor(Math.random() * 50) + 10;
-      
-      // NO usar imágenes de ejemplo, dejar el array vacío si no hay imágenes reales
-      if (galleryImages.length === 0) {
-        galleryImages = []; // Array vacío, sin imágenes de ejemplo
-      }
       
       return {
         ...listing,

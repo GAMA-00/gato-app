@@ -25,8 +25,11 @@ const ServiceGallery = ({
   maxPreview = 3
 }: ServiceGalleryProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  // Filter out any undefined or empty strings
-  const validImages = images.filter(Boolean);
+  
+  // Filter out any undefined, null, or empty strings
+  const validImages = images?.filter(Boolean) || [];
+  
+  console.log("ServiceGallery rendering with images:", validImages);
   
   if (validImages.length === 0) {
     return (
@@ -53,7 +56,7 @@ const ServiceGallery = ({
                   alt={`Imagen de servicio ${index + 1}`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    // En caso de error, mostrar un mensaje en lugar de una imagen predeterminada
+                    console.error("Error loading image:", image);
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.parentElement!.innerHTML = '<div class="flex items-center justify-center h-full bg-luxury-gray/30 text-sm text-luxury-gray-dark">Imagen no disponible</div>';
                   }}
