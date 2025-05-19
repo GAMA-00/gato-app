@@ -50,14 +50,19 @@ export function useAppointments() {
         
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
+          // Ensure we have objects even if they're empty
           const clientData = appointment.clients || {};
           const userData = appointment.users || {};
+          
+          // Safely access avatar_url with optional chaining
+          const clientAvatarUrl = clientData?.avatar_url;
+          const userAvatarUrl = userData?.avatar_url;
           
           return {
             ...appointment,
             clients: {
               ...clientData,
-              avatar_url: clientData.avatar_url || userData?.avatar_url
+              avatar_url: clientAvatarUrl || userAvatarUrl || null
             }
           };
         });
@@ -102,14 +107,19 @@ export function useAppointments() {
         
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
+          // Ensure we have objects even if they're empty
           const providerData = appointment.providers || {};
           const userData = appointment.users || {};
+          
+          // Safely access avatar_url with optional chaining
+          const providerAvatarUrl = providerData?.avatar_url;
+          const userAvatarUrl = userData?.avatar_url;
           
           return {
             ...appointment,
             providers: {
               ...providerData,
-              avatar_url: providerData.avatar_url || userData?.avatar_url
+              avatar_url: providerAvatarUrl || userAvatarUrl || null
             }
           };
         });
