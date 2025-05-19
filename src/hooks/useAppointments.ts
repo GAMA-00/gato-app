@@ -11,7 +11,7 @@ export function useAppointments() {
     queryFn: async () => {
       if (!user) return [];
       
-      // Query based on user role - strict separation
+      // Query basada en el rol del usuario - separación estricta
       if (user.role === 'provider') {
         const { data, error } = await supabase
           .from('appointments')
@@ -35,6 +35,9 @@ export function useAppointments() {
             residencias (
               name,
               address
+            ),
+            users:client_id (
+              avatar_url
             )
           `)
           .eq('provider_id', user.id)
@@ -45,11 +48,22 @@ export function useAppointments() {
           throw error;
         }
         
-        // Log the data to check what we're getting
-        console.log("Provider appointments:", data);
-        return data || [];
+        // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
+        const enhancedData = data?.map(appointment => {
+          return {
+            ...appointment,
+            clients: {
+              ...(appointment.clients || {}),
+              avatar_url: appointment.clients?.avatar_url || appointment.users?.avatar_url
+            }
+          };
+        });
+        
+        // Log de los datos para verificar
+        console.log("Provider appointments enhanced:", enhancedData);
+        return enhancedData || [];
       } else if (user.role === 'client') {
-        // For clients
+        // Para clientes
         const { data, error } = await supabase
           .from('appointments')
           .select(`
@@ -70,6 +84,9 @@ export function useAppointments() {
             residencias (
               name,
               address
+            ),
+            users:provider_id (
+              avatar_url
             )
           `)
           .eq('client_id', user.id)
@@ -79,13 +96,26 @@ export function useAppointments() {
           console.error("Error fetching client appointments:", error);
           throw error;
         }
-        return data || [];
+        
+        // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
+        const enhancedData = data?.map(appointment => {
+          return {
+            ...appointment,
+            providers: {
+              ...(appointment.providers || {}),
+              avatar_url: appointment.providers?.avatar_url || appointment.users?.avatar_url
+            }
+          };
+        });
+        
+        return enhancedData || [];
       }
       
-      // If role doesn't match, return empty array
+      // Si el rol no coincide, devolver array vacío
       return [];
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refresh every 30 seconds to check for new requests
+    refetchInterval: 30000, // Refrescar cada 30 segundos para comprobar nuevas solicitudes
+    retry: 3, // Reintentar 3 veces en caso de error
   });
 }

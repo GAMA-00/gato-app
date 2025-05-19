@@ -2,9 +2,9 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Check, X, MapPin, Home, Clock } from 'lucide-react';
+import { Calendar, Check, X, MapPin, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,10 +24,10 @@ const JobRequests: React.FC<JobRequestsProps> = ({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
-  // Only show component for providers
+  // Solo mostrar componente para proveedores
   if (user?.role !== 'provider') return null;
   
-  // Filter pending appointments only
+  // Filtrar solicitudes pendientes
   const pendingRequests = appointments.filter((appointment: any) => 
     appointment.status === 'pending'
   );
@@ -43,10 +43,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         
       if (error) throw error;
       
-      toast({
-        title: "Solicitud aceptada",
-        description: "La cita ha sido agregada a tu calendario.",
-      });
+      toast.success("Solicitud aceptada");
       
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       
@@ -54,11 +51,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         onAcceptRequest(request);
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error(`Error: ${error.message}`);
     }
   };
   
@@ -71,10 +64,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         
       if (error) throw error;
       
-      toast({
-        title: "Solicitud rechazada",
-        description: "La solicitud ha sido rechazada.",
-      });
+      toast.success("Solicitud rechazada");
       
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       
@@ -82,15 +72,10 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         onDeclineRequest(requestId);
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error(`Error: ${error.message}`);
     }
   };
 
-  // Always render the section, even if there are no pending requests
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
@@ -102,7 +87,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center my-4">
-            <span className="loading loading-spinner"></span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : isError ? (
           <div className="text-center py-6 text-red-500">
@@ -111,43 +96,43 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
             {pendingRequests.map((request: any) => (
-              <div key={request.id} className="border rounded-lg p-3 bg-amber-50 border-amber-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <Avatar className="h-10 w-10 border border-amber-200">
+              <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
+                <div className="flex items-start gap-3 mb-3">
+                  <Avatar className="h-10 w-10 border border-amber-200 flex-shrink-0">
                     <AvatarImage src={request.clients?.avatar_url} alt={request.clients?.name || 'Cliente'} />
                     <AvatarFallback className="bg-amber-100 text-amber-800">
-                      {(request.clients?.name || 'C').substring(0, 2).toUpperCase()}
+                      {request.clients?.name ? request.clients.name.substring(0, 2).toUpperCase() : 'CL'}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <div className="font-medium">{request.clients?.name || 'Cliente'}</div>
-                    <div className="text-sm text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{request.clients?.name || 'Cliente'}</div>
+                    <div className="text-sm text-muted-foreground truncate">
                       {request.listings?.title || 'Servicio'}
                     </div>
                   </div>
                 </div>
                 
-                <div className="space-y-2 mb-3 text-sm">
+                <div className="space-y-3 mb-3 text-sm">
                   <div className="flex items-start">
-                    <Clock className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <div>{format(new Date(request.start_time), 'PPP')}</div>
-                      <div className="text-muted-foreground">
+                    <Clock className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="truncate">{format(new Date(request.start_time), 'PPP')}</div>
+                      <div className="text-muted-foreground truncate">
                         {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
                       </div>
                     </div>
                   </div>
                   
                   <div className="flex items-start">
-                    <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <div>
+                    <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="truncate">
                         {request.residencias?.name || 'Residencia no especificada'}
                       </div>
-                      {(request.clients?.condominium_name || request.apartment) && (
-                        <div className="text-muted-foreground">
-                          {request.clients?.condominium_name && `${request.clients.condominium_name}, `}
-                          {request.apartment && `Casa/Apto: ${request.apartment}`}
+                      {(request.clients?.condominium_name || request.apartment || request.clients?.house_number) && (
+                        <div className="text-muted-foreground truncate">
+                          {request.clients?.condominium_name && `${request.clients.condominium_name}`}
+                          {request.apartment && `, Apto: ${request.apartment}`}
                           {request.clients?.house_number && ` #${request.clients.house_number}`}
                         </div>
                       )}
@@ -156,13 +141,13 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                 </div>
                 
                 {request.notes && (
-                  <div className="text-sm bg-amber-100 p-2 rounded-md mb-3">
+                  <div className="text-sm bg-amber-100 p-3 rounded-md mb-3 overflow-hidden">
                     <span className="font-medium">Notas: </span> 
-                    {request.notes}
+                    <span className="break-words">{request.notes}</span>
                   </div>
                 )}
                 
-                <div className="flex justify-end space-x-2 mt-2">
+                <div className="flex justify-end gap-2 mt-3">
                   <Button 
                     onClick={() => handleDecline(request.id)}
                     variant="outline"

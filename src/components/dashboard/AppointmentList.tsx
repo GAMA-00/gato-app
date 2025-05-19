@@ -79,16 +79,14 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
             {appointments.map((appointment) => (
               <div key={appointment.id} className="p-4 border-b last:border-0">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-                  <div className="flex items-center">
+                  <div className="flex items-center min-w-0">
                     <Avatar className="w-10 h-10 mr-3 flex-shrink-0">
                       <AvatarImage 
-                        src={appointment.clients?.avatar_url || appointment.providers?.avatar_url} 
-                        alt={appointment.clients?.name || appointment.providers?.name || 'Usuario'} 
+                        src={appointment.clients?.avatar_url || appointment.providers?.avatar_url || '/placeholder.svg'} 
+                        alt={(appointment.clients?.name || appointment.providers?.name || 'Usuario')} 
                       />
                       <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                        {(appointment.clients?.name?.charAt(0) || 
-                          appointment.providers?.name?.charAt(0) || 
-                          'U')}
+                        {((appointment.clients?.name || appointment.providers?.name || 'U')?.charAt(0))}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
@@ -111,7 +109,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center justify-end">
                       <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                      <span className="truncate">
+                      <span className="truncate max-w-[200px]">
                         {appointment.residencias?.name || 'Sin residencia'}
                         {appointment.apartment ? `, Apt ${appointment.apartment}` : ''}
                       </span>
