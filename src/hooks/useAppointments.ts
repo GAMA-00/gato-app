@@ -50,11 +50,14 @@ export function useAppointments() {
         
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
+          const clientData = appointment.clients || {};
+          const userData = appointment.users || {};
+          
           return {
             ...appointment,
             clients: {
-              ...(appointment.clients || {}),
-              avatar_url: appointment.clients?.avatar_url || appointment.users?.avatar_url
+              ...clientData,
+              avatar_url: clientData.avatar_url || userData?.avatar_url
             }
           };
         });
@@ -99,11 +102,14 @@ export function useAppointments() {
         
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
+          const providerData = appointment.providers || {};
+          const userData = appointment.users || {};
+          
           return {
             ...appointment,
             providers: {
-              ...(appointment.providers || {}),
-              avatar_url: appointment.providers?.avatar_url || appointment.users?.avatar_url
+              ...providerData,
+              avatar_url: providerData.avatar_url || userData?.avatar_url
             }
           };
         });
