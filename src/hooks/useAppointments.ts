@@ -56,17 +56,17 @@ export function useAppointments() {
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
           // Ensure we have objects even if they're empty
-          const clientData = appointment.clients || {} as AvatarData;
-          const userData = appointment.users || {} as AvatarData;
+          const clientData = appointment.clients || {};
+          const userData = appointment.users || {};
           
-          // Safely access avatar_url with optional chaining and type assertion
-          const clientAvatarUrl = clientData.avatar_url;
-          const userAvatarUrl = userData.avatar_url;
+          // Safely access avatar_url with optional chaining and nullish coalescing
+          const clientAvatarUrl = clientData?.avatar_url;
+          const userAvatarUrl = userData?.avatar_url;
           
           return {
             ...appointment,
             clients: {
-              ...clientData,
+              ...(appointment.clients || {}),
               avatar_url: clientAvatarUrl || userAvatarUrl || null
             }
           };
@@ -113,17 +113,17 @@ export function useAppointments() {
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
           // Ensure we have objects even if they're empty
-          const providerData = appointment.providers || {} as AvatarData;
-          const userData = appointment.users || {} as AvatarData;
+          const providerData = appointment.providers || {};
+          const userData = appointment.users || {};
           
-          // Safely access avatar_url with optional chaining and type assertion
-          const providerAvatarUrl = providerData.avatar_url;
-          const userAvatarUrl = userData.avatar_url;
+          // Safely access avatar_url with optional chaining and nullish coalescing
+          const providerAvatarUrl = providerData?.avatar_url;
+          const userAvatarUrl = userData?.avatar_url;
           
           return {
             ...appointment,
             providers: {
-              ...providerData,
+              ...(appointment.providers || {}),
               avatar_url: providerAvatarUrl || userAvatarUrl || null
             }
           };
