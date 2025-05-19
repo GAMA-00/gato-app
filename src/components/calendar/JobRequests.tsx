@@ -129,10 +129,9 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                       <div className="truncate">
                         {request.residencias?.name || 'Residencia no especificada'}
                       </div>
-                      {(request.clients?.condominium_name || request.apartment || request.clients?.house_number) && (
+                      {(request.apartment || request.clients?.house_number) && (
                         <div className="text-muted-foreground truncate">
-                          {request.clients?.condominium_name && `${request.clients.condominium_name}`}
-                          {request.apartment && `, Apto: ${request.apartment}`}
+                          {request.apartment && `Apto: ${request.apartment}`}
                           {request.clients?.house_number && ` #${request.clients.house_number}`}
                         </div>
                       )}

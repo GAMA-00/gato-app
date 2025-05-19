@@ -33,21 +33,19 @@ export function useAppointments() {
               duration,
               service_type_id
             ),
-            clients:client_id (
+            clients:users!appointments_client_id_fkey (
               id,
               name,
               email,
               phone,
               avatar_url,
               house_number,
-              condominium_name:condominiums(name)
+              condominium_id,
+              residencia_id
             ),
             residencias (
               name,
               address
-            ),
-            users:client_id (
-              avatar_url
             )
           `)
           .eq('provider_id', user.id)
@@ -58,24 +56,17 @@ export function useAppointments() {
           throw error;
         }
         
-        // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
+        console.log("Provider appointments raw data:", data);
+        
+        // Enriquecer los datos con información correcta
         const enhancedData = data?.map(appointment => {
           // Ensure we have valid objects
           const clientData = isObject(appointment.clients) ? appointment.clients : {};
-          const userData = isObject(appointment.users) ? appointment.users : {};
-          
-          // Safely access avatar_url with optional chaining and nullish coalescing
-          const clientAvatarUrl = 'avatar_url' in clientData ? clientData.avatar_url : null;
-          const userAvatarUrl = 'avatar_url' in userData ? userData.avatar_url : null;
-          
-          // First check if clients is an object before spreading to avoid TypeScript error
-          const clientBase = isObject(appointment.clients) ? appointment.clients : {};
           
           return {
             ...appointment,
             clients: {
-              ...clientBase,
-              avatar_url: clientAvatarUrl || userAvatarUrl || null
+              ...clientData
             }
           };
         });
@@ -95,7 +86,7 @@ export function useAppointments() {
               duration,
               service_type_id
             ),
-            providers:provider_id (
+            providers:users!appointments_provider_id_fkey (
               id,
               name,
               email,
@@ -105,9 +96,6 @@ export function useAppointments() {
             residencias (
               name,
               address
-            ),
-            users:provider_id (
-              avatar_url
             )
           `)
           .eq('client_id', user.id)
@@ -118,28 +106,22 @@ export function useAppointments() {
           throw error;
         }
         
-        // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
+        console.log("Client appointments raw data:", data);
+        
+        // Enriquecer los datos con información correcta
         const enhancedData = data?.map(appointment => {
           // Ensure we have valid objects
           const providerData = isObject(appointment.providers) ? appointment.providers : {};
-          const userData = isObject(appointment.users) ? appointment.users : {};
-          
-          // Safely access avatar_url with optional chaining and nullish coalescing
-          const providerAvatarUrl = 'avatar_url' in providerData ? providerData.avatar_url : null;
-          const userAvatarUrl = 'avatar_url' in userData ? userData.avatar_url : null;
-          
-          // First check if providers is an object before spreading to avoid TypeScript error
-          const providerBase = isObject(appointment.providers) ? appointment.providers : {};
           
           return {
             ...appointment,
             providers: {
-              ...providerBase,
-              avatar_url: providerAvatarUrl || userAvatarUrl || null
+              ...providerData
             }
           };
         });
         
+        console.log("Client appointments enhanced:", enhancedData);
         return enhancedData || [];
       }
       
