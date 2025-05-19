@@ -68,13 +68,14 @@ export function useAppointments() {
           const clientAvatarUrl = 'avatar_url' in clientData ? clientData.avatar_url : null;
           const userAvatarUrl = 'avatar_url' in userData ? userData.avatar_url : null;
           
+          // First check if clients is an object before spreading to avoid TypeScript error
+          const clientBase = isObject(appointment.clients) ? appointment.clients : {};
+          
           return {
             ...appointment,
-            clients: isObject(appointment.clients) ? {
-              ...appointment.clients,
+            clients: {
+              ...clientBase,
               avatar_url: clientAvatarUrl || userAvatarUrl || null
-            } : {
-              avatar_url: null
             }
           };
         });
@@ -127,13 +128,14 @@ export function useAppointments() {
           const providerAvatarUrl = 'avatar_url' in providerData ? providerData.avatar_url : null;
           const userAvatarUrl = 'avatar_url' in userData ? userData.avatar_url : null;
           
+          // First check if providers is an object before spreading to avoid TypeScript error
+          const providerBase = isObject(appointment.providers) ? appointment.providers : {};
+          
           return {
             ...appointment,
-            providers: isObject(appointment.providers) ? {
-              ...appointment.providers,
+            providers: {
+              ...providerBase,
               avatar_url: providerAvatarUrl || userAvatarUrl || null
-            } : {
-              avatar_url: null
             }
           };
         });
