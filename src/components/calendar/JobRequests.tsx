@@ -2,13 +2,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Check, X } from 'lucide-react';
+import { Calendar, Check, X, MapPin, Home, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface JobRequestsProps {
   onAcceptRequest?: (request: any) => void;
@@ -111,26 +112,56 @@ const JobRequests: React.FC<JobRequestsProps> = ({
           <div className="space-y-4">
             {pendingRequests.map((request: any) => (
               <div key={request.id} className="border rounded-lg p-3 bg-amber-50 border-amber-200">
-                <div className="flex justify-between mb-1">
-                  <span className="font-medium">{request.listings?.title || 'Servicio'}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {format(new Date(request.start_time), 'PPP')}
-                  </span>
+                <div className="flex items-center gap-3 mb-2">
+                  <Avatar className="h-10 w-10 border border-amber-200">
+                    <AvatarImage src={request.clients?.avatar_url} alt={request.clients?.name || 'Cliente'} />
+                    <AvatarFallback className="bg-amber-100 text-amber-800">
+                      {(request.clients?.name || 'C').substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{request.clients?.name || 'Cliente'}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {request.listings?.title || 'Servicio'}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm">
-                    {request.clients?.name || 'Cliente'}
-                  </span>
-                  <span className="text-sm">
-                    {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
-                  </span>
+                
+                <div className="space-y-2 mb-3 text-sm">
+                  <div className="flex items-start">
+                    <Clock className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                    <div>
+                      <div>{format(new Date(request.start_time), 'PPP')}</div>
+                      <div className="text-muted-foreground">
+                        {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                    <div>
+                      <div>
+                        {request.residencias?.name || 'Residencia no especificada'}
+                      </div>
+                      {(request.clients?.condominium_name || request.apartment) && (
+                        <div className="text-muted-foreground">
+                          {request.clients?.condominium_name && `${request.clients.condominium_name}, `}
+                          {request.apartment && `Casa/Apto: ${request.apartment}`}
+                          {request.clients?.house_number && ` #${request.clients.house_number}`}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
+                
                 {request.notes && (
-                  <div className="text-sm text-muted-foreground mb-3">
+                  <div className="text-sm bg-amber-100 p-2 rounded-md mb-3">
                     <span className="font-medium">Notas: </span> 
                     {request.notes}
                   </div>
                 )}
+                
                 <div className="flex justify-end space-x-2 mt-2">
                   <Button 
                     onClick={() => handleDecline(request.id)}

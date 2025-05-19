@@ -27,7 +27,14 @@ export function useAppointments() {
               id,
               name,
               email,
-              phone
+              phone,
+              avatar_url,
+              house_number,
+              condominium_name:condominiums(name)
+            ),
+            residencias (
+              name,
+              address
             )
           `)
           .eq('provider_id', user.id)
@@ -57,7 +64,12 @@ export function useAppointments() {
               id,
               name,
               email,
-              phone
+              phone,
+              avatar_url
+            ),
+            residencias (
+              name,
+              address
             )
           `)
           .eq('client_id', user.id)

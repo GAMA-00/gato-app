@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Clock, Check, X } from 'lucide-react';
+import { Clock, Check, X, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface AppointmentListProps {
   appointments: any[];
@@ -79,17 +80,21 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
               <div key={appointment.id} className="p-4 border-b last:border-0">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-primary font-medium">
-                        {appointment.clients?.profiles?.name?.split(' ').map((n: string) => n[0]).join('') || 
-                         appointment.providers?.profiles?.name?.split(' ').map((n: string) => n[0]).join('') || 
-                         'U'}
-                      </span>
-                    </div>
+                    <Avatar className="w-10 h-10 mr-3">
+                      <AvatarImage 
+                        src={appointment.clients?.avatar_url || appointment.providers?.avatar_url} 
+                        alt={appointment.clients?.name || appointment.providers?.name || 'Usuario'} 
+                      />
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        {(appointment.clients?.name?.charAt(0) || 
+                          appointment.providers?.name?.charAt(0) || 
+                          'U')}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
                       <h4 className="font-medium">
-                        {appointment.clients?.profiles?.name || 
-                         appointment.providers?.profiles?.name || 
+                        {appointment.clients?.name || 
+                         appointment.providers?.name || 
                          'Usuario'}
                       </h4>
                       <p className="text-sm text-muted-foreground">
@@ -102,8 +107,10 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                       <Clock className="h-3.5 w-3.5 mr-1 text-primary" />
                       {format(new Date(appointment.start_time), 'h:mm a')} - {format(new Date(appointment.end_time), 'h:mm a')}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {appointment.apartment ? `Apt ${appointment.apartment}` : 'Sin apartamento'}
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center justify-end">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {appointment.residencias?.name || 'Sin residencia'}
+                      {appointment.apartment ? `, Apt ${appointment.apartment}` : ''}
                     </div>
                   </div>
                 </div>
