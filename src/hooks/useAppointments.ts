@@ -8,6 +8,11 @@ type AvatarData = {
   avatar_url?: string | null;
 };
 
+// Define a type guard to check if an object has the properties we need
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 export function useAppointments() {
   const { user } = useAuth();
 
@@ -55,19 +60,21 @@ export function useAppointments() {
         
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
-          // Ensure we have objects even if they're empty
-          const clientData = appointment.clients || {};
-          const userData = appointment.users || {};
+          // Ensure we have valid objects
+          const clientData = isObject(appointment.clients) ? appointment.clients : {};
+          const userData = isObject(appointment.users) ? appointment.users : {};
           
           // Safely access avatar_url with optional chaining and nullish coalescing
-          const clientAvatarUrl = clientData?.avatar_url;
-          const userAvatarUrl = userData?.avatar_url;
+          const clientAvatarUrl = 'avatar_url' in clientData ? clientData.avatar_url : null;
+          const userAvatarUrl = 'avatar_url' in userData ? userData.avatar_url : null;
           
           return {
             ...appointment,
-            clients: {
-              ...(appointment.clients || {}),
+            clients: isObject(appointment.clients) ? {
+              ...appointment.clients,
               avatar_url: clientAvatarUrl || userAvatarUrl || null
+            } : {
+              avatar_url: null
             }
           };
         });
@@ -112,19 +119,21 @@ export function useAppointments() {
         
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
-          // Ensure we have objects even if they're empty
-          const providerData = appointment.providers || {};
-          const userData = appointment.users || {};
+          // Ensure we have valid objects
+          const providerData = isObject(appointment.providers) ? appointment.providers : {};
+          const userData = isObject(appointment.users) ? appointment.users : {};
           
           // Safely access avatar_url with optional chaining and nullish coalescing
-          const providerAvatarUrl = providerData?.avatar_url;
-          const userAvatarUrl = userData?.avatar_url;
+          const providerAvatarUrl = 'avatar_url' in providerData ? providerData.avatar_url : null;
+          const userAvatarUrl = 'avatar_url' in userData ? userData.avatar_url : null;
           
           return {
             ...appointment,
-            providers: {
-              ...(appointment.providers || {}),
+            providers: isObject(appointment.providers) ? {
+              ...appointment.providers,
               avatar_url: providerAvatarUrl || userAvatarUrl || null
+            } : {
+              avatar_url: null
             }
           };
         });
