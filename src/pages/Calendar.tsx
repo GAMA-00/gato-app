@@ -33,8 +33,11 @@ const Calendar = () => {
     }
   }, [user, navigate]);
   
-  // Filter appointments based on status filters
+  // Filter appointments based on status filters - exclude cancelled appointments by default
   const filteredAppointments = appointments.filter((appointment: any) => {
+    // Always exclude cancelled and rejected appointments from the calendar view
+    if (appointment.status === 'cancelled' || appointment.status === 'rejected') return false;
+    
     if (statusFilter.length === 0) return true;
     if (!showCompleted && appointment.status === 'completed') return false;
     return statusFilter.includes(appointment.status);

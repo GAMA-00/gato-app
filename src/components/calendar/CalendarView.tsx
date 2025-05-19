@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -116,10 +117,14 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   expandedId,
   setExpandedId
 }) => {
+  // Filter out cancelled appointments from the calendar view
   const dayAppointments = appointments.filter(appointment => 
     isSameDay(new Date(appointment.start_time), date) && 
-    new Date(appointment.end_time).getHours() <= 20
+    new Date(appointment.end_time).getHours() <= 20 &&
+    appointment.status !== 'cancelled' && 
+    appointment.status !== 'rejected'
   );
+  
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
   const isCurrentDay = isToday(date);
 
