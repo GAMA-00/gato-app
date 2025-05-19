@@ -27,10 +27,16 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   expanded,
   onClick
 }) => {
-  const startHour = new Date(appointment.start_time).getHours();
-  const startMinutes = new Date(appointment.start_time).getMinutes();
+  // Use the actual hours and minutes from the appointment time
   const startTime = new Date(appointment.start_time);
   const endTime = new Date(appointment.end_time);
+  
+  // Calculate position from midnight in minutes
+  const startHour = startTime.getHours();
+  const startMinutes = startTime.getMinutes();
+  const positionFromTop = (startHour * 60) + startMinutes;
+  
+  // Calculate duration in minutes
   const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
@@ -48,7 +54,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
         expanded ? "z-20 bg-white border border-gray-200 p-3 h-fit min-h-[70px]" : "px-2 py-1 gap-0.5"
       )}
       style={{
-        top: `${startHour * 60 + startMinutes}px`,
+        top: `${positionFromTop}px`,
         height: expanded ? undefined : `${Math.max(durationMinutes, 36)}px`,
         background: expanded ? '#fff' : statusColor.bg,
         borderLeftColor: statusColor.border,
@@ -120,11 +126,11 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   // Filter out cancelled appointments from the calendar view
   const dayAppointments = appointments.filter(appointment => 
     isSameDay(new Date(appointment.start_time), date) && 
-    new Date(appointment.end_time).getHours() <= 20 &&
     appointment.status !== 'cancelled' && 
     appointment.status !== 'rejected'
   );
   
+  // Set display for 8 AM to 8 PM (12 hours)
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
   const isCurrentDay = isToday(date);
 
