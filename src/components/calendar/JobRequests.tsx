@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface JobRequestsProps {
   onAcceptRequest?: (request: any) => void;
@@ -86,8 +87,9 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center my-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="space-y-4">
+            <Skeleton className="h-[200px] w-full" />
+            <Skeleton className="h-[200px] w-full" />
           </div>
         ) : isError ? (
           <div className="text-center py-6 text-red-500">
