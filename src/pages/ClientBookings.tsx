@@ -55,27 +55,27 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
       <CardContent className="p-4">
         <div className="flex flex-col space-y-3">
           <div className="flex justify-between items-start">
-            <div className="flex items-center">
-              <h3 className="font-medium text-base">{booking.serviceName}</h3>
+            <div className="flex items-center max-w-[70%]">
+              <h3 className="font-medium text-base truncate">{booking.serviceName}</h3>
               {isRecurring && (
-                <div className="flex items-center ml-2 text-red-500">
+                <div className="flex items-center ml-2 text-red-500 flex-shrink-0">
                   <Flame className="h-4 w-4" />
                 </div>
               )}
             </div>
             <div className={cn(
-              "px-2 py-1 rounded-full text-xs font-medium",
+              "px-2 py-1 rounded-full text-xs font-medium flex-shrink-0",
               booking.status === 'upcoming' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
             )}>
               {isRecurring ? 'Recurrente' : 'Una vez'}
             </div>
           </div>
           
-          <p className="text-sm text-muted-foreground">{booking.subcategory}</p>
+          <p className="text-sm text-muted-foreground truncate">{booking.subcategory}</p>
           
           <div className="flex items-center text-sm text-muted-foreground">
-            <Clock className="h-4 w-4 mr-2" />
-            <span>
+            <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">
               {isRecurring ? (
                 `Todos los ${format(booking.date, 'EEEE', { locale: es })} - ${format(booking.date, 'h:mm a')}`
               ) : (
@@ -86,7 +86,7 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
           
           <div className="text-sm">
             <span className="text-muted-foreground">Proveedor:</span>{' '}
-            <span className="font-medium">{booking.providerName}</span>
+            <span className="font-medium truncate block">{booking.providerName}</span>
           </div>
           
           <div className="flex gap-2 pt-2">
@@ -95,16 +95,16 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
               size="sm" 
               className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
             >
-              <Calendar className="h-4 w-4 mr-1" />
-              Reagendar
+              <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate">Reagendar</span>
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
             >
-              <X className="h-4 w-4 mr-1" />
-              Cancelar
+              <X className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate">Cancelar</span>
             </Button>
           </div>
         </div>
@@ -140,7 +140,7 @@ const ClientBookings = () => {
         </Button>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-6 px-1">
         <section>
           <h2 className="text-lg font-medium mb-4">Citas Próximas</h2>
           {upcomingBookings.length > 0 ? (

@@ -63,7 +63,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   };
 
   return (
-    <Card className="glassmorphism">
+    <Card className="glassmorphism mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-xl flex items-center">
           {icon}
@@ -78,9 +78,9 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
           <div className="divide-y">
             {appointments.map((appointment) => (
               <div key={appointment.id} className="p-4 border-b last:border-0">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
                   <div className="flex items-center">
-                    <Avatar className="w-10 h-10 mr-3">
+                    <Avatar className="w-10 h-10 mr-3 flex-shrink-0">
                       <AvatarImage 
                         src={appointment.clients?.avatar_url || appointment.providers?.avatar_url} 
                         alt={appointment.clients?.name || appointment.providers?.name || 'Usuario'} 
@@ -91,26 +91,30 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                           'U')}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <h4 className="font-medium">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium truncate">
                         {appointment.clients?.name || 
                          appointment.providers?.name || 
                          'Usuario'}
                       </h4>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground truncate">
                         {appointment.listings?.title || 'Servicio'}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="flex items-center text-sm font-medium">
-                      <Clock className="h-3.5 w-3.5 mr-1 text-primary" />
-                      {format(new Date(appointment.start_time), 'h:mm a')} - {format(new Date(appointment.end_time), 'h:mm a')}
+                  <div className="text-right flex-shrink-0">
+                    <div className="flex items-center justify-end text-sm font-medium">
+                      <Clock className="h-3.5 w-3.5 mr-1 text-primary flex-shrink-0" />
+                      <span className="truncate">
+                        {format(new Date(appointment.start_time), 'h:mm a')} - {format(new Date(appointment.end_time), 'h:mm a')}
+                      </span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center justify-end">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {appointment.residencias?.name || 'Sin residencia'}
-                      {appointment.apartment ? `, Apt ${appointment.apartment}` : ''}
+                      <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">
+                        {appointment.residencias?.name || 'Sin residencia'}
+                        {appointment.apartment ? `, Apt ${appointment.apartment}` : ''}
+                      </span>
                     </div>
                   </div>
                 </div>
