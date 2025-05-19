@@ -3,6 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Define some helper types to make the code more readable
+type AvatarData = {
+  avatar_url?: string | null;
+};
+
 export function useAppointments() {
   const { user } = useAuth();
 
@@ -51,12 +56,12 @@ export function useAppointments() {
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
           // Ensure we have objects even if they're empty
-          const clientData = appointment.clients || {};
-          const userData = appointment.users || {};
+          const clientData = appointment.clients || {} as AvatarData;
+          const userData = appointment.users || {} as AvatarData;
           
-          // Safely access avatar_url with optional chaining
-          const clientAvatarUrl = clientData?.avatar_url;
-          const userAvatarUrl = userData?.avatar_url;
+          // Safely access avatar_url with optional chaining and type assertion
+          const clientAvatarUrl = clientData.avatar_url;
+          const userAvatarUrl = userData.avatar_url;
           
           return {
             ...appointment,
@@ -108,12 +113,12 @@ export function useAppointments() {
         // Enriquecer los datos con información de usuarios para asegurar que tenemos avatars
         const enhancedData = data?.map(appointment => {
           // Ensure we have objects even if they're empty
-          const providerData = appointment.providers || {};
-          const userData = appointment.users || {};
+          const providerData = appointment.providers || {} as AvatarData;
+          const userData = appointment.users || {} as AvatarData;
           
-          // Safely access avatar_url with optional chaining
-          const providerAvatarUrl = providerData?.avatar_url;
-          const userAvatarUrl = userData?.avatar_url;
+          // Safely access avatar_url with optional chaining and type assertion
+          const providerAvatarUrl = providerData.avatar_url;
+          const userAvatarUrl = userData.avatar_url;
           
           return {
             ...appointment,
