@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Check, X, MapPin, Clock } from 'lucide-react';
+import { Calendar, Check, X, MapPin, Clock, Home, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 
 interface JobRequestsProps {
   onAcceptRequest?: (request: any) => void;
@@ -107,38 +108,64 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium truncate">{request.clients?.name || 'Cliente'}</div>
-                    <div className="text-sm text-muted-foreground truncate">
+                    <div className="font-medium">{request.clients?.name || 'Cliente sin nombre'}</div>
+                    <div className="text-sm text-muted-foreground">
                       {request.listings?.title || 'Servicio'}
                     </div>
                   </div>
                 </div>
                 
-                <div className="space-y-3 mb-3 text-sm">
-                  <div className="flex items-start">
-                    <Clock className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground flex-shrink-0" />
-                    <div className="min-w-0">
-                      <div className="truncate">{format(new Date(request.start_time), 'PPP')}</div>
-                      <div className="text-muted-foreground truncate">
-                        {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground flex-shrink-0" />
-                    <div className="min-w-0">
-                      <div className="truncate">
-                        {request.residencias?.name || 'Residencia no especificada'}
-                      </div>
-                      {(request.apartment || request.clients?.house_number) && (
-                        <div className="text-muted-foreground truncate">
-                          {request.apartment && `Apto: ${request.apartment}`}
-                          {request.clients?.house_number && ` #${request.clients.house_number}`}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                <div className="space-y-3 mb-3">
+                  <Table className="border-collapse">
+                    <TableBody>
+                      <TableRow className="border-0">
+                        <TableCell className="p-1 pl-0 pr-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                        <TableCell className="p-1 text-sm">
+                          <div>{format(new Date(request.start_time), 'PPP')}</div>
+                          <div className="text-muted-foreground">
+                            {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      
+                      <TableRow className="border-0">
+                        <TableCell className="p-1 pl-0 pr-2">
+                          <Building className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                        <TableCell className="p-1 text-sm">
+                          <div className="font-medium">
+                            {request.residencias?.name || 'Residencial no especificada'}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Información completa de la dirección */}
+                      <TableRow className="border-0">
+                        <TableCell className="p-1 pl-0 pr-2">
+                          <Home className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                        <TableCell className="p-1 text-sm space-y-1">
+                          {request.clients?.condominium_id && (
+                            <div className="text-muted-foreground">
+                              Condominio: {request.clients?.condominiums?.name || 'No especificado'}
+                            </div>
+                          )}
+                          {request.clients?.house_number && (
+                            <div className="text-muted-foreground">
+                              Casa #: {request.clients?.house_number}
+                            </div>
+                          )}
+                          {request.apartment && (
+                            <div className="text-muted-foreground">
+                              Apto: {request.apartment}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
                 
                 {request.notes && (

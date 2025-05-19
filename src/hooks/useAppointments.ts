@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Define type guard to check if an object has the properties we need
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -19,7 +18,6 @@ export function useAppointments() {
       console.log("Fetching appointments for user:", user.id, "with role:", user.role);
       
       try {
-        // Consulta simplificada que evita relaciones complejas
         if (user.role === 'provider') {
           // Para proveedores - obtenemos primero las citas
           const { data: appointments, error } = await supabase
@@ -48,14 +46,20 @@ export function useAppointments() {
             
           console.log("Listings data:", listings);
           
-          // Obtenemos información de clientes
+          // Obtenemos información de clientes incluyendo condominium info
           const clientIds = appointments.map(a => a.client_id);
           const { data: clients } = await supabase
             .from('users')
-            .select('*')
+            .select(`
+              *,
+              condominiums:condominium_id (
+                id,
+                name
+              )
+            `)
             .in('id', clientIds);
             
-          console.log("Clients data:", clients);
+          console.log("Clients data with condominiums:", clients);
           
           // Obtenemos información de residencias
           const residenciaIds = appointments.map(a => a.residencia_id).filter(Boolean);
