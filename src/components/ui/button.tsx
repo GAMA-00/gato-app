@@ -26,8 +26,8 @@ const buttonVariants = cva(
         lg: "h-14 rounded-xl px-8 py-4",
         icon: "h-12 w-12",
         auto: "h-auto py-3 px-5",
-        // Add a new size variant specifically for login buttons
-        login: "h-12 rounded-xl px-8 py-3",
+        // Ajustar la variante login para dar más espacio al texto y centrarlo mejor
+        login: "h-12 rounded-xl px-10 py-3 text-sm",
       },
     },
     defaultVariants: {

@@ -38,10 +38,10 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
         <Button 
           variant="outline" 
           size="login"
-          className="w-full justify-start bg-white text-base"
+          className="w-full justify-center bg-white"
           onClick={handleLogin}
         >
-          <LogIn className="mr-3 h-5 w-5" />
+          <LogIn className="mr-2 h-4 w-4" />
           Iniciar Sesión
         </Button>
       </div>
