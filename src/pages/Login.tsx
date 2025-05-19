@@ -120,6 +120,7 @@ const Login = () => {
           <Button 
             type="button" 
             variant="outline" 
+            size="login"
             className="w-full flex items-center justify-center gap-2" 
             onClick={handleGoogleSignIn}
             disabled={isLoading}
@@ -233,6 +234,7 @@ const Login = () => {
             
             <Button 
               type="submit" 
+              size="login"
               className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover"
               disabled={isLoading}
             >

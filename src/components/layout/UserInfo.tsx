@@ -37,7 +37,8 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
       <div className="mt-auto p-5">
         <Button 
           variant="outline" 
-          className="w-full justify-start bg-white text-base py-3"
+          size="login"
+          className="w-full justify-start bg-white text-base"
           onClick={handleLogin}
         >
           <LogIn className="mr-3 h-5 w-5" />
