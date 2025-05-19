@@ -380,7 +380,7 @@ const BookingSummary = () => {
               <span className="text-luxury-navy">${formattedPrice}</span>
             </div>
             
-            {/* Action buttons */}
+            {/* Action buttons - Updated confirm button to green */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
                 variant="outline" 
@@ -391,7 +391,7 @@ const BookingSummary = () => {
                 Volver
               </Button>
               <Button 
-                className="flex-1 bg-luxury-navy hover:bg-luxury-navy/90" 
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white" 
                 onClick={handleConfirm}
                 disabled={isSubmitting || !hasRequiredData || (!isAuthenticated || !user) || !selectedDate || !selectedTime}
               >

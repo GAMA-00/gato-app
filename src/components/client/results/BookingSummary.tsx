@@ -53,7 +53,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
       <CardFooter>
         <Button 
           onClick={onSchedule} 
-          className="w-full bg-[#4CAF50] hover:bg-[#43A047] text-white font-medium"
+          className="w-full bg-green-500 hover:bg-green-600 text-white font-medium"
           size="lg"
         >
           <Calendar className="mr-2" /> Agendar servicio
