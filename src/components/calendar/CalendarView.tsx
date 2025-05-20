@@ -27,16 +27,19 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   expanded,
   onClick
 }) => {
-  // Use the actual hours and minutes from the appointment time
+  // Convertir correctamente las horas de inicio y fin
   const startTime = new Date(appointment.start_time);
   const endTime = new Date(appointment.end_time);
   
-  // Calculate position from midnight in minutes
+  // Calcular la posición desde la medianoche en minutos (8AM = 480 minutos)
   const startHour = startTime.getHours();
   const startMinutes = startTime.getMinutes();
-  const positionFromTop = (startHour * 60) + startMinutes;
+  const minutesFromMidnight = (startHour * 60) + startMinutes;
   
-  // Calculate duration in minutes
+  // Ajustar la posición para comenzar a las 8 AM (restamos 480 minutos = 8 horas)
+  const positionFromTop = minutesFromMidnight - 480;
+  
+  // Calcular duración en minutos
   const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
@@ -130,7 +133,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     appointment.status !== 'rejected'
   );
   
-  // Set display for 8 AM to 8 PM (12 hours)
+  // Show hours from 8 AM to 8 PM (12 hours)
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
   const isCurrentDay = isToday(date);
 
@@ -160,6 +163,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           </div>
         ))}
         {dayAppointments.map(appointment => {
+          console.log(`Appointment scheduled at: ${new Date(appointment.start_time).toLocaleTimeString()}`);
           return (
             <CalendarAppointment
               key={appointment.id}
