@@ -20,7 +20,8 @@ const BookingSummaryCard = ({ bookingPrefs }: BookingSummaryCardProps) => {
               <span className="text-app-text/80 truncate">
                 {bookingPrefs.frequency === 'once' ? 'Una vez' : 
                  bookingPrefs.frequency === 'weekly' ? 'Semanal' : 
-                 bookingPrefs.frequency === 'biweekly' ? 'Quincenal' : 
+                 bookingPrefs.frequency === 'biweekly' ? 'Quincenal' :
+                 bookingPrefs.frequency === 'monthly' ? 'Mensual' : 
                  'Personalizada'}
               </span>
             </div>
