@@ -73,11 +73,11 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
             <Button 
               variant="outline"
               size="sm"
-              className="mx-4 mb-4 justify-start text-xs px-3 py-1.5 h-auto bg-white border border-amber-200" 
+              className="mx-4 mb-4 justify-start text-xs px-3 py-1.5 h-auto bg-white border border-amber-200 whitespace-normal" 
               onClick={onSwitchView}
             >
               <Repeat2 className="mr-1.5 h-4 w-4 shrink-0" />
-              <span className="text-left">
+              <span className="text-left leading-tight">
                 Cambiar a {isClientSection ? 'Vista de Proveedor' : 'Vista de Cliente'}
               </span>
             </Button>

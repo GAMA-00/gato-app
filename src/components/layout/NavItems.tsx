@@ -106,13 +106,15 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
         <Button 
           variant="outline" 
           size="sm"
-          className="w-full justify-start text-xs py-1.5 h-auto bg-white" 
+          className="w-full justify-start text-xs py-1.5 h-auto bg-white whitespace-normal"
           onClick={() => {
             if (closeMenu) closeMenu();
             onSwitchView();
           }}
         >
-          Cambiar a Vista de {isClientSection ? 'Proveedor' : 'Cliente'}
+          <span className="text-left leading-tight">
+            Cambiar a Vista de {isClientSection ? 'Proveedor' : 'Cliente'}
+          </span>
         </Button>
       </div>
     </nav>

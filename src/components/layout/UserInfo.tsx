@@ -66,18 +66,18 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
         <Button 
           variant="outline" 
           size="sm"
-          className="w-full mb-2 justify-start text-destructive border-destructive/20 hover:bg-destructive/10 text-xs py-1.5"
+          className="w-full mb-2 justify-start text-destructive border-destructive/20 hover:bg-destructive/10 text-xs py-1.5 h-auto whitespace-normal"
           onClick={handlePaymentSetup}
         >
           <CreditCard className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-          Añadir método de pago
+          <span className="text-left leading-tight">Añadir método de pago</span>
         </Button>
       )}
       
       <Button 
         variant="outline" 
         size="sm"
-        className="w-full mb-2 justify-start text-xs py-1.5 bg-white"
+        className="w-full mb-2 justify-start text-xs py-1.5 bg-white h-auto"
         onClick={handleProfileNavigation}
       >
         <UserCircle className="mr-1.5 h-3.5 w-3.5" />
@@ -87,7 +87,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
       <Button 
         variant="outline" 
         size="sm"
-        className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5"
+        className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5 h-auto"
         onClick={handleLogout}
       >
         <LogOut className="mr-1.5 h-3.5 w-3.5" />
