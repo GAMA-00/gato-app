@@ -34,7 +34,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
 
   if (!isAuthenticated) {
     return (
-      <div className="mt-auto p-5">
+      <div className="p-4">
         <Button 
           variant="outline" 
           size="login"
@@ -49,46 +49,46 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
   }
 
   return (
-    <div className="mt-auto border-t p-5">
-      <div className="flex items-center gap-4 mb-4">
-        <Avatar className="h-12 w-12">
-          <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+    <div className="border-t p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <Avatar className="h-10 w-10">
+          <AvatarFallback className="bg-primary text-primary-foreground text-base">
             {user?.name?.substring(0, 2).toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-base truncate">{user?.name}</p>
-          <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
+          <p className="font-medium text-sm truncate">{user?.name}</p>
+          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
         </div>
       </div>
       
       {!user?.hasPaymentMethod && (
         <Button 
           variant="outline" 
-          className="w-full mb-3 justify-start text-destructive border-destructive/20 hover:bg-destructive/10 text-base py-3"
+          className="w-full mb-2 justify-start text-destructive border-destructive/20 hover:bg-destructive/10 text-sm py-2"
           onClick={handlePaymentSetup}
         >
-          <CreditCard className="mr-3 h-5 w-5 shrink-0" />
+          <CreditCard className="mr-2 h-4 w-4 shrink-0" />
           Añadir método de pago
         </Button>
       )}
       
       <Button 
         variant="outline" 
-        className="w-full mb-3 justify-start text-base py-3 bg-white"
+        className="w-full mb-2 justify-start text-sm py-2 bg-white"
         onClick={handleProfileNavigation}
       >
-        <UserCircle className="mr-3 h-5 w-5" />
+        <UserCircle className="mr-2 h-4 w-4" />
         Mi Perfil
       </Button>
       
       <Button 
         variant="outline" 
         size="default" 
-        className="w-full justify-start text-[#4D4D4D] bg-white text-base py-3"
+        className="w-full justify-start text-[#4D4D4D] bg-white text-sm py-2"
         onClick={handleLogout}
       >
-        <LogOut className="mr-3 h-5 w-5" />
+        <LogOut className="mr-2 h-4 w-4" />
         Cerrar Sesión
       </Button>
     </div>

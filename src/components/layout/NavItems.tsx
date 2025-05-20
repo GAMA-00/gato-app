@@ -87,7 +87,7 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
   };
 
   return (
-    <nav className="flex flex-col gap-2">
+    <nav className="flex flex-col gap-1">
       {navItems.map((item) => (
         <NavItem
           key={item.to}
@@ -102,10 +102,10 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
         />
       ))}
       
-      <div className="mt-6 px-4">
+      <div className="mt-4 px-2">
         <Button 
           variant="outline" 
-          className="w-full justify-start text-sm py-2 h-auto min-h-10 whitespace-normal" 
+          className="w-full justify-start text-sm py-1.5 h-auto whitespace-normal" 
           onClick={() => {
             if (closeMenu) closeMenu();
             onSwitchView();
