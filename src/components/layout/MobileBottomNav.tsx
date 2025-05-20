@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useChat } from '@/contexts/ChatContext';
 import { Badge } from '@/components/ui/badge';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
+import { usePendingAppointments } from '@/hooks/usePendingAppointments';
 
 interface MobileBottomNavProps {
   isClientSection: boolean;
@@ -18,6 +19,7 @@ interface NavItemType {
   label: string;
   badge?: boolean;
   customBadge?: React.ReactNode;
+  counter?: number;
 }
 
 const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
@@ -25,11 +27,12 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const navigate = useNavigate();
   const { hasUnreadMessages } = useChat();
   const { count: recurringServicesCount } = useRecurringServices();
+  const { count: pendingAppointmentsCount } = usePendingAppointments();
 
   // Remove "Clientes" from providerNavItems
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
-    { to: '/calendar', icon: Calendar, label: 'Calendario' },
+    { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
@@ -96,12 +99,19 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
             onClick={() => navigate(item.to)}
             className="flex flex-col items-center gap-1 relative p-2"
           >
-            <item.icon 
-              className={cn(
-                "h-6 w-6",
-                isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
-              )} 
-            />
+            <div className="relative">
+              <item.icon 
+                className={cn(
+                  "h-6 w-6",
+                  isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
+                )} 
+              />
+              {item.counter !== undefined && item.counter > 0 && (
+                <span className="absolute -top-2 -right-2 flex items-center justify-center bg-red-500 text-white rounded-full w-5 h-5 text-xs font-bold">
+                  {item.counter > 99 ? '99+' : item.counter}
+                </span>
+              )}
+            </div>
             <span 
               className={cn(
                 "text-xs font-medium",

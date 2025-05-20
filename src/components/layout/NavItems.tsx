@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import NavItem from './NavItem';
 import { useChat } from '@/contexts/ChatContext';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
+import { usePendingAppointments } from '@/hooks/usePendingAppointments';
 
 interface NavItemsProps {
   isClientSection: boolean;
@@ -20,17 +21,19 @@ interface NavItemType {
   label: string;
   badge?: boolean;
   customBadge?: React.ReactNode;
+  counter?: number;
 }
 
 const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) => {
   const location = useLocation();
   const { hasUnreadMessages } = useChat();
   const { count: recurringServicesCount } = useRecurringServices();
+  const { count: pendingAppointmentsCount } = usePendingAppointments();
   
   // Remove "Clientes" from providerNavItems
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
-    { to: '/calendar', icon: Calendar, label: 'Calendario' },
+    { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
     { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
@@ -95,6 +98,7 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
           onClick={closeMenu}
           badge={item.badge}
           customBadge={item.customBadge}
+          counter={item.counter}
         />
       ))}
       

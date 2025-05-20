@@ -34,11 +34,6 @@ const Dashboard = () => {
     })
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-  // Filter pending appointments for providers
-  const pendingAppointments = user?.role === 'provider' ? appointments
-    .filter(app => app.status === 'pending')
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()) : [];
-
   if (isLoadingAppointments || isLoadingStats) {
     return (
       <PageContainer title="Inicio" subtitle="Bienvenido de nuevo">
@@ -57,16 +52,6 @@ const Dashboard = () => {
     if (user?.role === 'provider') {
       return (
         <div className="space-y-6">
-          {pendingAppointments.length > 0 && (
-            <AppointmentList
-              appointments={pendingAppointments}
-              title="Solicitudes Pendientes"
-              icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-              emptyMessage="No hay solicitudes pendientes"
-              isPending={true}
-            />
-          )}
-
           <AppointmentList
             appointments={todaysAppointments}
             title="Citas de Hoy"
