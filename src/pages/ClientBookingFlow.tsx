@@ -110,7 +110,7 @@ const ClientBookingFlow = () => {
                 onValueChange={handleFrequencyChange}
                 className="mt-2"
               >
-                <TabsList className="grid grid-cols-4 w-full">
+                <TabsList className="grid grid-cols-4 gap-2 w-full">
                   <TabsTrigger value="once">Una vez</TabsTrigger>
                   <TabsTrigger value="weekly">Semanal</TabsTrigger>
                   <TabsTrigger value="biweekly">Quincenal</TabsTrigger>
