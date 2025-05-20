@@ -14,7 +14,7 @@ interface ProviderAchievementsProps {
 const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
   // Determinar el nivel basado en la experiencia
   const getExperienceLevel = (years: number) => {
-    if (years < 1) return 'Principiante';
+    if (years < 1) return 'Novato';
     if (years < 3) return 'Confiable';
     if (years < 5) return 'Recomendado';
     return 'Experto';
@@ -22,23 +22,23 @@ const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
 
   const experienceLevel = getExperienceLevel(provider.experienceYears);
   
-  // Métricas del proveedor
+  // Métricas del proveedor - Solo mostrar las que tienen datos reales
   const achievements = [
     {
       icon: <Award className="h-6 w-6 text-luxury-navy" />,
       label: 'Profesional',
       value: experienceLevel
     },
-    {
+    ...(provider.servicesCompleted > 0 ? [{
       icon: <FileText className="h-6 w-6 text-luxury-navy" />,
       label: 'Servicios realizados',
       value: provider.servicesCompleted.toString()
-    },
-    {
+    }] : []),
+    ...(provider.isVerified ? [{
       icon: <ShieldCheck className="h-6 w-6 text-luxury-navy" />,
       label: 'Perfil verificado',
-      value: provider.isVerified ? 'Sí' : 'No'
-    },
+      value: 'Sí'
+    }] : []),
     {
       icon: <CalendarDays className="h-6 w-6 text-luxury-navy" />,
       label: 'Fecha de ingreso',

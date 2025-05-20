@@ -37,17 +37,15 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
               <h3 className="font-medium text-luxury-navy">{provider.name}</h3>
               <div className="flex items-center bg-yellow-50 px-1.5 py-0.5 rounded-md">
                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-                <span className="font-medium text-sm text-yellow-700">{provider.rating.toFixed(1)}</span>
+                <span className="font-medium text-sm text-yellow-700">{provider.rating > 0 ? provider.rating.toFixed(1) : "Nuevo"}</span>
               </div>
             </div>
             
             <div className="flex flex-wrap gap-1 mt-1">
-              {/* Experience Level */}
-              {provider.experience !== undefined && (
-                <ProviderExperienceLevel experienceYears={provider.experience} />
-              )}
+              {/* Experience Level - Always show this as it represents the provider's current level */}
+              <ProviderExperienceLevel experienceYears={provider.experience || 0} />
               
-              {/* Certifications Badge */}
+              {/* Certifications Badge - Only show if provider has certifications */}
               {provider.hasCertifications && (
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 flex items-center gap-1 text-xs py-0.5">
                   <BadgeCheck className="h-3 w-3" />
@@ -55,7 +53,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
                 </Badge>
               )}
               
-              {/* Services Completed */}
+              {/* Services Completed - Only show if there are completed services */}
               {provider.servicesCompleted > 0 && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 flex items-center gap-1 text-xs py-0.5">
                   <Users className="h-3 w-3" />
@@ -63,19 +61,11 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
                 </Badge>
               )}
               
-              {/* Recurring Clients */}
+              {/* Recurring Clients - Only show if there are recurring clients */}
               {provider.recurringClients > 0 && (
                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-100 flex items-center gap-1 text-xs py-0.5">
                   <Users className="h-3 w-3" />
                   {provider.recurringClients} recurrentes
-                </Badge>
-              )}
-              
-              {/* Trusted Provider */}
-              {provider.experienceLevel > 0 && (
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100 flex items-center gap-1 text-xs py-0.5">
-                  <Shield className="h-3 w-3" />
-                  Confiable
                 </Badge>
               )}
             </div>
