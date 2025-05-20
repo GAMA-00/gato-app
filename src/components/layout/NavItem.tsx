@@ -29,7 +29,7 @@ const NavItem = ({
     <Link
       to={to}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors relative",
+        "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors relative",
         isActive
           ? "bg-[#FEEBCB] text-[#1A1A1A]"
           : "text-[#4D4D4D] hover:text-[#1A1A1A] hover:bg-[#FEEBCB]/50"
@@ -37,9 +37,9 @@ const NavItem = ({
       onClick={onClick}
     >
       <div className="relative">
-        <Icon className="h-5 w-5" />
+        <Icon className="h-4 w-4" />
         {counter !== undefined && counter > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-red-500 text-white rounded-full w-4 h-4 text-xs font-bold">
+          <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-red-500 text-white rounded-full w-3.5 h-3.5 text-[10px] font-bold">
             {counter > 99 ? '99+' : counter}
           </span>
         )}
@@ -48,7 +48,7 @@ const NavItem = ({
       {badge && (
         <Badge 
           variant="destructive" 
-          className="h-2.5 w-2.5 p-0 absolute -top-1 left-6" 
+          className="h-2 w-2 p-0 absolute -top-1 left-5" 
         />
       )}
       {customBadge}

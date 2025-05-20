@@ -47,8 +47,8 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
       badge: hasUnreadMessages,
       customBadge: recurringServicesCount > 0 ? (
         <div className="absolute -top-1 -right-1 flex items-center justify-center">
-          <Flame className="h-4 w-4 text-destructive" />
-          <span className="absolute text-[10px] font-bold text-destructive">{Math.min(recurringServicesCount, 5)}</span>
+          <Flame className="h-3.5 w-3.5 text-destructive" />
+          <span className="absolute text-[9px] font-bold text-destructive">{Math.min(recurringServicesCount, 5)}</span>
         </div>
       ) : null
     },
@@ -97,24 +97,24 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
           <button
             key={item.to}
             onClick={() => navigate(item.to)}
-            className="flex flex-col items-center gap-1 relative p-2"
+            className="flex flex-col items-center gap-0.5 relative p-1.5"
           >
             <div className="relative">
               <item.icon 
                 className={cn(
-                  "h-6 w-6",
+                  "h-5 w-5",
                   isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
                 )} 
               />
               {item.counter !== undefined && item.counter > 0 && (
-                <span className="absolute -top-2 -right-2 flex items-center justify-center bg-red-500 text-white rounded-full w-5 h-5 text-xs font-bold">
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-red-500 text-white rounded-full w-4 h-4 text-[10px] font-bold">
                   {item.counter > 99 ? '99+' : item.counter}
                 </span>
               )}
             </div>
             <span 
               className={cn(
-                "text-xs font-medium",
+                "text-[10px] font-medium",
                 isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
               )}
             >
@@ -123,7 +123,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
             {item.badge && (
               <Badge 
                 variant="destructive" 
-                className="absolute -top-1 -right-1 h-3 w-3 p-0" 
+                className="absolute -top-1 -right-1 h-2.5 w-2.5 p-0" 
               />
             )}
             {item.customBadge}

@@ -44,7 +44,7 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas', 
       customBadge: recurringServicesCount > 0 ? 
         <span className="flex items-center text-red-500">
-          <Flame className="h-3.5 w-3.5 mr-0.5" />
+          <Flame className="h-3 w-3 mr-0.5" />
           <span className="text-xs font-medium">{Math.min(recurringServicesCount, 5)}</span>
         </span> : null 
     },
@@ -102,10 +102,11 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
         />
       ))}
       
-      <div className="mt-4 px-2">
+      <div className="mt-3 px-2">
         <Button 
           variant="outline" 
-          className="w-full justify-start text-sm py-1.5 h-auto whitespace-normal" 
+          size="sm"
+          className="w-full justify-start text-xs py-1.5 h-auto bg-white" 
           onClick={() => {
             if (closeMenu) closeMenu();
             onSwitchView();

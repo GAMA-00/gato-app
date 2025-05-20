@@ -49,9 +49,9 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-64 pt-6 flex flex-col">
-            <div className="px-4 mb-6">
-              <h1 className="text-xl font-semibold text-primary">Mi Cuenta</h1>
-              <p className="text-sm text-muted-foreground">
+            <div className="px-4 mb-4">
+              <h1 className="text-lg font-semibold text-primary">Mi Cuenta</h1>
+              <p className="text-xs text-muted-foreground">
                 {isClientSection ? 'Portal de Cliente' : 'Administración de Calendario'}
               </p>
             </div>
@@ -59,22 +59,24 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
             {!isAuthenticated && (
               <div className="p-4">
                 <Button 
-                  variant="outline" 
-                  className="w-full justify-start bg-white"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start bg-white text-xs"
                   onClick={handleLogin}
                 >
-                  <LogIn className="mr-2 h-4 w-4" />
+                  <LogIn className="mr-1.5 h-3.5 w-3.5" />
                   Iniciar Sesión
                 </Button>
               </div>
             )}
             
             <Button 
-              variant="outline" 
-              className="mx-4 mb-4 justify-start text-sm px-4 py-3 h-auto whitespace-normal bg-white border border-amber-200" 
+              variant="outline"
+              size="sm"
+              className="mx-4 mb-4 justify-start text-xs px-3 py-1.5 h-auto bg-white border border-amber-200" 
               onClick={onSwitchView}
             >
-              <Repeat2 className="mr-2 h-5 w-5 shrink-0" />
+              <Repeat2 className="mr-1.5 h-4 w-4 shrink-0" />
               <span className="text-left">
                 Cambiar a {isClientSection ? 'Vista de Proveedor' : 'Vista de Cliente'}
               </span>
