@@ -37,21 +37,15 @@ const RatingStars = ({
     setIsSubmitting(true);
     
     try {
-      // Submit the rating
-      const { error } = await supabase
-        .from('provider_ratings')
-        .insert({
-          provider_id: providerId,
-          client_id: user.id,
-          appointment_id: appointmentId,
-          rating: rating,
-          created_at: new Date().toISOString()
-        });
+      // Use RPC call to submit rating instead of direct table access
+      const { error } = await supabase.rpc('submit_provider_rating', {
+        p_provider_id: providerId,
+        p_client_id: user.id,
+        p_appointment_id: appointmentId,
+        p_rating: rating
+      });
         
       if (error) throw error;
-      
-      // Update provider's average rating
-      await updateProviderRating(providerId);
       
       toast.success('¡Gracias por calificar el servicio!');
       onRated();
@@ -62,32 +56,6 @@ const RatingStars = ({
       toast.error(`Error al calificar: ${error.message}`);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-  
-  const updateProviderRating = async (providerId: string) => {
-    try {
-      // Get all ratings for this provider
-      const { data, error } = await supabase
-        .from('provider_ratings')
-        .select('rating')
-        .eq('provider_id', providerId);
-        
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        // Calculate average rating
-        const sum = data.reduce((acc, curr) => acc + curr.rating, 0);
-        const avgRating = sum / data.length;
-        
-        // Update provider's average_rating
-        await supabase
-          .from('providers')
-          .update({ average_rating: avgRating })
-          .eq('id', providerId);
-      }
-    } catch (error) {
-      console.error("Error updating provider rating:", error);
     }
   };
   

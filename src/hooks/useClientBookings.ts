@@ -148,17 +148,27 @@ export function useClientBookings() {
           
         console.log("Residencias data:", residencias);
         
-        // Check if appointments are rated
+        // Get rated appointments using a raw query to check if each appointment has a rating
+        // Instead of directly querying the provider_ratings table (which TypeScript doesn't know about yet)
         const appointmentIds = appointments.map(a => a.id);
-        const { data: ratings } = await supabase
-          .from('provider_ratings')
-          .select('appointment_id')
-          .in('appointment_id', appointmentIds);
-          
-        console.log("Ratings data:", ratings);
         
-        // Create a set of rated appointment IDs for faster lookup
-        const ratedAppointmentIds = new Set(ratings?.map(r => r.appointment_id) || []);
+        // First check if we can query the table (safely handle the case where the table doesn't exist yet)
+        let ratedAppointmentIds = new Set<string>();
+        
+        try {
+          const { data: ratingData, error: ratingError } = await supabase.rpc('get_rated_appointments', {
+            appointment_ids: appointmentIds
+          });
+          
+          if (!ratingError && ratingData) {
+            ratedAppointmentIds = new Set(ratingData.map((r: any) => r.appointment_id));
+          } else {
+            console.log("Could not get ratings, possibly table doesn't exist yet:", ratingError);
+          }
+        } catch (err) {
+          console.log("Error checking for ratings:", err);
+          // Continue without ratings data
+        }
         
         // Transform the data to match our UI requirements
         const clientBookings = appointments.map(appointment => {

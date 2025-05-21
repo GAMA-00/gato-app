@@ -8,7 +8,7 @@ import { Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useStats } from '@/hooks/useStats';
-import { startOfToday, startOfTomorrow, endOfTomorrow, startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
+import { startOfToday, startOfTomorrow, endOfTomorrow, isSameDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -71,6 +71,11 @@ const Dashboard = () => {
     })
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
+  // Further filter out completed appointments from today's list
+  const activeAppointmentsToday = todaysAppointments.filter(app => 
+    app.status !== 'completed' && new Date(app.end_time) > new Date()
+  );
+
   if (isLoadingAppointments || isLoadingStats) {
     return (
       <PageContainer title="Inicio" subtitle="Bienvenido de nuevo">
@@ -90,7 +95,7 @@ const Dashboard = () => {
       return (
         <div className="space-y-6">
           <AppointmentList
-            appointments={todaysAppointments}
+            appointments={activeAppointmentsToday}
             title="Citas de Hoy"
             icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
             emptyMessage="No hay citas programadas para hoy"
@@ -113,7 +118,7 @@ const Dashboard = () => {
       return (
         <div className="space-y-6">
           <AppointmentList
-            appointments={todaysAppointments}
+            appointments={activeAppointmentsToday}
             title="Mis Citas de Hoy"
             icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
             emptyMessage="No hay citas programadas para hoy"
