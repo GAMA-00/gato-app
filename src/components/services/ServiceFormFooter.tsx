@@ -15,6 +15,7 @@ interface ServiceFormFooterProps {
   totalSteps: number;
   onNext: () => void;
   onPrev: () => void;
+  onSubmit: () => void; // Añadido para manejar la presentación del formulario
 }
 
 const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
@@ -25,7 +26,8 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   currentStep,
   totalSteps,
   onNext,
-  onPrev
+  onPrev,
+  onSubmit // Nuevo prop para manejar la presentación del formulario
 }) => {
   const isMobile = useIsMobile();
   
@@ -84,7 +86,8 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           </Button>
         ) : (
           <Button 
-            type="submit"
+            type="button" // Cambiado de type="submit" a type="button" con onClick={onSubmit}
+            onClick={onSubmit} // Usar el prop onSubmit para manejar la presentación
             className="flex-1"
             size="sm"
           >
