@@ -1,53 +1,18 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CalendarClock, Clock, Calendar, X, Flame } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Calendar, Clock, X, Flame } from 'lucide-react';
+import { cn, formatTo12Hour } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
+import { useClientBookings, ClientBooking } from '@/hooks/useClientBookings';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock bookings data structure updated
-const MOCK_BOOKINGS = [
-  {
-    id: '1',
-    serviceName: 'Limpieza de Casa',
-    subcategory: 'Limpieza Regular',
-    providerName: 'María González',
-    buildingName: 'Torres del Atardecer',
-    date: new Date(2023, 6, 15, 15, 0),
-    duration: 120,
-    recurrence: 'weekly',
-    status: 'upcoming'
-  },
-  {
-    id: '2',
-    serviceName: 'Peluquería para Mascotas',
-    subcategory: 'Corte de Pelo',
-    providerName: 'Juan Pérez',
-    buildingName: 'Torres del Atardecer',
-    date: new Date(2023, 6, 20, 14, 0),
-    duration: 60,
-    recurrence: 'none',
-    status: 'upcoming'
-  },
-  {
-    id: '3',
-    serviceName: 'Lavado de Auto',
-    subcategory: 'Lavado Completo',
-    providerName: 'Ana Rodríguez',
-    buildingName: 'Torres del Atardecer',
-    date: new Date(2023, 5, 10, 9, 0),
-    duration: 45,
-    recurrence: 'none',
-    status: 'completed'
-  }
-];
-
-const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
+const BookingCard = ({ booking }: { booking: ClientBooking }) => {
   const isRecurring = booking.recurrence !== 'none';
   
   return (
@@ -65,7 +30,7 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
             </div>
             <div className={cn(
               "px-2 py-1 rounded-full text-xs font-medium flex-shrink-0",
-              booking.status === 'upcoming' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+              booking.status === 'pending' || booking.status === 'confirmed' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
             )}>
               {isRecurring ? 'Recurrente' : 'Una vez'}
             </div>
@@ -77,9 +42,9 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
             <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="truncate">
               {isRecurring ? (
-                `Todos los ${format(booking.date, 'EEEE', { locale: es })} - ${format(booking.date, 'h:mm a')}`
+                `Todos los ${format(booking.date, 'EEEE', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
               ) : (
-                format(booking.date, 'PPP - h:mm a', { locale: es })
+                `${format(booking.date, 'PPP', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
               )}
             </span>
           </div>
@@ -113,12 +78,39 @@ const BookingCard = ({ booking }: { booking: typeof MOCK_BOOKINGS[0] }) => {
   );
 };
 
+const BookingSkeleton = () => (
+  <Card className="mb-4">
+    <CardContent className="p-4">
+      <div className="flex flex-col space-y-3">
+        <div className="flex justify-between items-start">
+          <Skeleton className="h-6 w-3/5" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
+        <Skeleton className="h-4 w-1/3" />
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-4 w-2/3" />
+        <div className="flex gap-2 pt-2">
+          <Skeleton className="h-9 flex-1" />
+          <Skeleton className="h-9 flex-1" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
 const ClientBookings = () => {
   const navigate = useNavigate();
   const { count: recurringServicesCount } = useRecurringServices();
+  const { data: bookings, isLoading, error } = useClientBookings();
   
-  const upcomingBookings = MOCK_BOOKINGS.filter(booking => booking.status === 'upcoming');
-  const pastBookings = MOCK_BOOKINGS.filter(booking => booking.status === 'completed');
+  // Filter for upcoming and past bookings (based on date and status)
+  const upcomingBookings = bookings?.filter(booking => 
+    booking.status === 'pending' || booking.status === 'confirmed'
+  ) || [];
+  
+  const pastBookings = bookings?.filter(booking => 
+    booking.status === 'completed' || booking.status === 'cancelled'
+  ) || [];
 
   return (
     <PageContainer
@@ -140,10 +132,21 @@ const ClientBookings = () => {
         </Button>
       }
     >
+      {error && (
+        <div className="bg-red-50 p-4 rounded-lg mb-6 text-red-800">
+          <p>Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente más tarde.</p>
+        </div>
+      )}
+      
       <div className="space-y-6 px-1">
         <section>
           <h2 className="text-lg font-medium mb-4">Citas Próximas</h2>
-          {upcomingBookings.length > 0 ? (
+          {isLoading ? (
+            <div>
+              <BookingSkeleton />
+              <BookingSkeleton />
+            </div>
+          ) : upcomingBookings.length > 0 ? (
             <div>
               {upcomingBookings.map(booking => (
                 <BookingCard key={booking.id} booking={booking} />
@@ -158,7 +161,11 @@ const ClientBookings = () => {
         
         <section>
           <h2 className="text-lg font-medium mb-4">Citas Pasadas</h2>
-          {pastBookings.length > 0 ? (
+          {isLoading ? (
+            <div>
+              <BookingSkeleton />
+            </div>
+          ) : pastBookings.length > 0 ? (
             <div>
               {pastBookings.map(booking => (
                 <BookingCard key={booking.id} booking={booking} />
