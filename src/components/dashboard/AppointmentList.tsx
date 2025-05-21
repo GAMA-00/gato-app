@@ -81,33 +81,23 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
 
   // Helper function to get client name with fallback
   const getClientName = (appointment: any) => {
-    // 1. Primero intentamos con la columna client_name
+    // Usar directamente client_name que viene de la DB
     if (appointment.client_name) {
       return appointment.client_name;
     }
-    
-    // 2. Luego buscamos en el objeto clients anidado
-    if (appointment.clients?.name) {
-      return appointment.clients.name;
-    }
 
-    // 3. Fallback final
+    // Fallback final
     return 'Cliente sin nombre';
   };
 
   // Helper function to get provider name with fallback
   const getProviderName = (appointment: any) => {
-    // 1. Primero intentamos con la columna provider_name
+    // Usar directamente provider_name que viene de la DB
     if (appointment.provider_name) {
       return appointment.provider_name;
     }
-    
-    // 2. Luego buscamos en el objeto providers anidado
-    if (appointment.providers?.name) {
-      return appointment.providers.name;
-    }
 
-    // 3. Fallback final
+    // Fallback final
     return 'Proveedor desconocido';
   };
 
@@ -116,23 +106,13 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return appointment.listings?.title || 'Servicio';
   };
 
-  // Helper function to get condominium and house information
+  // Helper function to get location info
   const getLocationInfo = (appointment: any) => {
     let locationInfo = [];
     
     // Add residencia name if available
     if (appointment.residencias?.name) {
       locationInfo.push(appointment.residencias.name);
-    }
-    
-    // Add condominium name if available
-    if (appointment.clients?.condominiums?.name) {
-      locationInfo.push(`${appointment.clients.condominiums.name} (condominio)`);
-    }
-    
-    // Add house number if available
-    if (appointment.clients?.house_number) {
-      locationInfo.push(`#${appointment.clients.house_number} (Numero de casa)`);
     }
     
     // Add apartment number if available
@@ -183,10 +163,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
                     <div className="flex items-center min-w-0">
                       <Avatar className="w-10 h-10 mr-3 flex-shrink-0">
-                        <AvatarImage 
-                          src={appointment.clients?.avatar_url || '/placeholder.svg'} 
-                          alt={displayName} 
-                        />
+                        <AvatarImage alt={displayName} />
                         <AvatarFallback className="bg-primary/10 text-primary font-medium">
                           {getInitials(displayName)}
                         </AvatarFallback>

@@ -19,22 +19,11 @@ export function useAppointments() {
       
       try {
         if (user.role === 'provider') {
-          // Para proveedores - obtenemos las citas
+          // Para proveedores - obtenemos las citas sin la relación clients:users
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
               *,
-              clients:users!appointments_client_id_fkey (
-                id, 
-                name,
-                email,
-                phone,
-                house_number,
-                condominiums:condominium_id (
-                  id,
-                  name
-                )
-              ),
               listings (
                 id,
                 title,
@@ -67,17 +56,11 @@ export function useAppointments() {
           return appointments;
         } 
         else if (user.role === 'client') {
-          // Para clientes
+          // Para clientes - obtenemos las citas sin la relación providers:users
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
               *,
-              providers:users!appointments_provider_id_fkey (
-                id, 
-                name,
-                email,
-                phone
-              ),
               listings (
                 id,
                 title,

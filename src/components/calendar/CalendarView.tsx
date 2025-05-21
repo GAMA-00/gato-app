@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -54,8 +53,6 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       // Mostrar nombre del proveedor para clientes
       if (appointment.provider_name) {
         return appointment.provider_name;
-      } else if (appointment.providers?.name) {
-        return appointment.providers.name;
       } else {
         return 'Proveedor';
       }
@@ -63,8 +60,6 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       // Mostrar nombre del cliente para proveedores
       if (appointment.client_name) {
         return appointment.client_name;
-      } else if (appointment.clients?.name) {
-        return appointment.clients.name;
       } else {
         return 'Cliente';
       }

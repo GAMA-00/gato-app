@@ -85,12 +85,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       return request.client_name;
     }
     
-    // 2. Luego buscamos en el objeto clients anidado
-    if (request.clients?.name) {
-      return request.clients.name;
-    }
-    
-    // 3. Fallback final
+    // 2. Fallback final
     return 'Cliente sin nombre';
   };
 
@@ -134,7 +129,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
                   <div className="flex items-start gap-3 mb-3">
                     <Avatar className="h-10 w-10 border border-amber-200 flex-shrink-0">
-                      <AvatarImage src={request.clients?.avatar_url} alt={clientName} />
+                      <AvatarImage alt={clientName} />
                       <AvatarFallback className="bg-amber-100 text-amber-800">
                         {getInitials(clientName)}
                       </AvatarFallback>
@@ -173,29 +168,19 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                           </TableCell>
                         </TableRow>
                         
-                        {/* Información completa de la dirección */}
-                        <TableRow className="border-0">
-                          <TableCell className="p-1 pl-0 pr-2">
-                            <Home className="h-4 w-4 text-muted-foreground" />
-                          </TableCell>
-                          <TableCell className="p-1 text-sm space-y-1">
-                            {request.clients?.condominium_id && (
-                              <div className="text-muted-foreground">
-                                Condominio: {request.clients?.condominiums?.name || 'No especificado'}
-                              </div>
-                            )}
-                            {request.clients?.house_number && (
-                              <div className="text-muted-foreground">
-                                Casa #: {request.clients?.house_number}
-                              </div>
-                            )}
-                            {request.apartment && (
+                        {/* Información del apartamento */}
+                        {request.apartment && (
+                          <TableRow className="border-0">
+                            <TableCell className="p-1 pl-0 pr-2">
+                              <Home className="h-4 w-4 text-muted-foreground" />
+                            </TableCell>
+                            <TableCell className="p-1 text-sm space-y-1">
                               <div className="text-muted-foreground">
                                 Apto: {request.apartment}
                               </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </div>
