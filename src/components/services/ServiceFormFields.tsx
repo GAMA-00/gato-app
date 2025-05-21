@@ -643,23 +643,17 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
               </div>
             </div>
 
-            <Alert variant="warning" className="mb-4">
-              <AlertDescription>
-                Para tu seguridad, tu anuncio solo será visible en las residencias que selecciones a continuación.
-              </AlertDescription>
-            </Alert>
-
             <FormField
               control={control}
               name="residenciaIds"
-              render={() => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Residencias Disponibles</FormLabel>
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="selectAll"
-                        checked={selectedResidencias.length === residencias.length}
+                        checked={selectedResidencias.length === residencias.length && residencias.length > 0}
                         onCheckedChange={handleSelectAllResidencias}
                       />
                       <label
@@ -675,18 +669,23 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                           <FormField
                             control={control}
                             name="residenciaIds"
-                            render={({ field }) => (
-                              <Checkbox
-                                id={`residencia-${residencia.id}`}
-                                checked={field.value?.includes(residencia.id)}
-                                onCheckedChange={(checked) => {
-                                  const updatedValue = checked
-                                    ? [...(field.value || []), residencia.id]
-                                    : field.value?.filter((id: string) => id !== residencia.id) || [];
-                                  field.onChange(updatedValue);
-                                }}
-                              />
-                            )}
+                            render={({ field }) => {
+                              // Ensure field.value is always an array
+                              const fieldValue = Array.isArray(field.value) ? field.value : [];
+                              
+                              return (
+                                <Checkbox
+                                  id={`residencia-${residencia.id}`}
+                                  checked={fieldValue.includes(residencia.id)}
+                                  onCheckedChange={(checked) => {
+                                    const updatedValue = checked
+                                      ? [...fieldValue, residencia.id]
+                                      : fieldValue.filter((id: string) => id !== residencia.id);
+                                    field.onChange(updatedValue);
+                                  }}
+                                />
+                              );
+                            }}
                           />
                           <label
                             htmlFor={`residencia-${residencia.id}`}
