@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +15,7 @@ import { Form } from '@/components/ui/form';
 import { Service, ServiceVariant } from '@/lib/types';
 import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
+import { toast } from 'sonner';
 
 // Schema definitions for validation
 const serviceFormSchema = z.object({
@@ -132,6 +134,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     }
   };
   
+  const submitForm = () => {
+    form.handleSubmit(handleSubmit)();
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[95vh] h-[95vh] flex flex-col p-0 sm:p-6">
@@ -165,7 +171,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                   totalSteps={steps.length}
                   onNext={nextStep}
                   onPrev={prevStep}
-                  onSubmit={form.handleSubmit(handleSubmit)}
+                  onSubmit={submitForm}
                 />
               </div>
             </form>
