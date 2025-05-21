@@ -42,6 +42,7 @@ export function useClientBookings() {
             status,
             listing_id,
             provider_id,
+            provider_name,
             residencia_id,
             notes
           `)
@@ -81,7 +82,7 @@ export function useClientBookings() {
             }
           }
           
-          // Fetch the appointments again after updates
+          // Refresh appointments after updates
           const { data: refreshedAppointments, error: refreshError } = await supabase
             .from('appointments')
             .select(`
@@ -92,13 +93,14 @@ export function useClientBookings() {
               status,
               listing_id,
               provider_id,
+              provider_name,
               residencia_id,
               notes
             `)
             .eq('client_id', user.id)
             .order('start_time');
             
-          if (!refreshError) {
+          if (!refreshError && refreshedAppointments) {
             appointments.forEach((appointment, i) => {
               const updated = refreshedAppointments?.find(a => a.id === appointment.id);
               if (updated) {
@@ -130,14 +132,47 @@ export function useClientBookings() {
           
         console.log("Service types:", serviceTypes);
         
-        // Fetch provider info
-        const providerIds = appointments.map(a => a.provider_id);
-        const { data: providers } = await supabase
-          .from('users')
-          .select('id, name')
-          .in('id', providerIds);
+        // Get provider names where they're missing
+        const appointmentsWithMissingProviderNames = appointments.filter(a => !a.provider_name);
+        if (appointmentsWithMissingProviderNames.length > 0) {
+          console.log("Appointments with missing provider names:", appointmentsWithMissingProviderNames.length);
           
-        console.log("Providers data:", providers);
+          // Get unique provider IDs where names are missing
+          const providerIdsToFetch = [...new Set(
+            appointmentsWithMissingProviderNames.map(a => a.provider_id)
+          )];
+          
+          if (providerIdsToFetch.length > 0) {
+            console.log("Provider IDs to fetch:", providerIdsToFetch);
+            
+            // Fetch provider names from users table
+            const { data: providers, error: providersError } = await supabase
+              .from('users')
+              .select('id, name')
+              .in('id', providerIdsToFetch);
+              
+            if (providersError) {
+              console.error("Error fetching provider names:", providersError);
+            }
+            
+            if (providers && providers.length > 0) {
+              console.log("Found provider data:", providers);
+              
+              // Create a map of provider ID to name
+              const providerNameMap = Object.fromEntries(
+                providers.map(provider => [provider.id, provider.name])
+              );
+              
+              // Apply names to appointments
+              appointments.forEach(app => {
+                if (!app.provider_name && app.provider_id && providerNameMap[app.provider_id]) {
+                  app.provider_name = providerNameMap[app.provider_id];
+                  console.log(`Updated provider name for appointment ${app.id} to ${app.provider_name}`);
+                }
+              });
+            }
+          }
+        }
         
         // Fetch buildings/residencias info
         const residenciaIds = appointments.map(a => a.residencia_id).filter(Boolean);
@@ -178,15 +213,17 @@ export function useClientBookings() {
         const clientBookings = appointments.map(appointment => {
           const listing = listings?.find(l => l.id === appointment.listing_id);
           const serviceType = serviceTypes?.find(st => st.id === listing?.service_type_id);
-          const provider = providers?.find(p => p.id === appointment.provider_id);
           const residencia = residencias?.find(r => r.id === appointment.residencia_id);
           const isRated = ratedAppointmentIds.has(appointment.id);
+          
+          // Use provider_name directly from appointment or fallback to the one from user lookup
+          const finalProviderName = appointment.provider_name || 'Proveedor desconocido';
           
           return {
             id: appointment.id,
             serviceName: listing?.title || 'Servicio sin nombre',
             subcategory: serviceType?.name || 'Sin categoría',
-            providerName: provider?.name || 'Proveedor desconocido',
+            providerName: finalProviderName,
             providerId: appointment.provider_id,
             buildingName: residencia?.name || 'Edificio no especificado',
             date: new Date(appointment.start_time),

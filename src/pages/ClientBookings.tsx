@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -125,11 +124,13 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
     }
   };
   
-  // Improved provider name display
+  // Mostrar el nombre del proveedor de forma mejorada
   const getProviderName = () => {
-    if (booking.providerName) {
+    if (booking.providerName && booking.providerName !== 'Proveedor desconocido') {
+      console.log(`Using provider name: ${booking.providerName}`);
       return booking.providerName;
     }
+    console.log("Fallback to generic provider name");
     return 'Proveedor';
   };
   

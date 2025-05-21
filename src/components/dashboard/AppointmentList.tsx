@@ -81,26 +81,26 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     }
   };
 
-  // Helper function to get the appropriate name based on user role
+  // Función mejorada para obtener el nombre correcto según el rol del usuario
   const getDisplayName = (appointment: any) => {
-    // If current user is a provider, show client name
+    // Si el usuario actual es un proveedor, mostrar el nombre del cliente
     if (user?.role === 'provider') {
-      // Use client_name from appointment (should be populated from database)
+      // Usar client_name del appointment si está disponible
       if (appointment.client_name) {
         return appointment.client_name;
       }
       
-      // Final fallback 
+      // Último fallback
       return 'Cliente sin nombre';
     } 
-    // If current user is a client, show provider name
+    // Si el usuario actual es un cliente, mostrar el nombre del proveedor
     else {
-      // Use provider_name from appointment (should be populated from database)
+      // Usar provider_name del appointment si está disponible
       if (appointment.provider_name) {
         return appointment.provider_name;
       }
       
-      // Final fallback
+      // Último fallback
       return 'Proveedor desconocido';
     }
   };

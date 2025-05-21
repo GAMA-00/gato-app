@@ -19,7 +19,7 @@ export function useAppointments() {
       
       try {
         if (user.role === 'provider') {
-          // For providers - fetch appointments with client_name directly from DB column
+          // Para proveedores - obtenemos citas con información del cliente
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -45,46 +45,56 @@ export function useAppointments() {
             throw error;
           }
           
-          console.log("Provider appointments full data:", appointments);
+          console.log("Provider appointments data:", appointments);
           
           if (!appointments || appointments.length === 0) {
             console.log("No appointments for provider");
             return [];
           }
           
-          // If client_name is missing in any appointment, try to fetch it
+          // Si faltan nombres de clientes, obtenerlos explícitamente de la tabla users
           const appointmentsWithMissingNames = appointments.filter(app => !app.client_name);
           if (appointmentsWithMissingNames.length > 0) {
-            console.log("Found appointments with missing client names, fetching...");
+            console.log("Found appointments with missing client names:", appointmentsWithMissingNames.length);
             
-            // Get unique client IDs with missing names
+            // Obtener los IDs únicos de clientes con nombres faltantes
             const clientIdsToFetch = [...new Set(appointmentsWithMissingNames.map(app => app.client_id))];
+            console.log("Client IDs to fetch:", clientIdsToFetch);
             
-            // Fetch client names
-            const { data: clients } = await supabase
+            // Buscar información de los clientes directamente
+            const { data: clients, error: clientsError } = await supabase
               .from('users')
               .select('id, name')
               .in('id', clientIdsToFetch);
               
+            if (clientsError) {
+              console.error("Error fetching client names:", clientsError);
+            }
+            
             if (clients && clients.length > 0) {
-              // Create a map of client IDs to names
+              console.log("Found client data:", clients);
+              
+              // Crear un mapa de ID de cliente a nombre
               const clientNameMap = Object.fromEntries(
                 clients.map(client => [client.id, client.name])
               );
               
-              // Apply names to appointments
+              // Aplicar nombres a las citas
               appointments.forEach(app => {
-                if (!app.client_name && clientNameMap[app.client_id]) {
+                if (!app.client_name && app.client_id && clientNameMap[app.client_id]) {
                   app.client_name = clientNameMap[app.client_id];
+                  console.log(`Updated client name for appointment ${app.id} to ${app.client_name}`);
                 }
               });
+            } else {
+              console.log("No client data found for the missing names");
             }
           }
           
           return appointments;
         } 
         else if (user.role === 'client') {
-          // For clients - fetch appointments with provider_name directly from DB column
+          // Para clientes - obtener citas con información del proveedor
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -110,39 +120,49 @@ export function useAppointments() {
             throw error;
           }
           
-          console.log("Client appointments full data:", appointments);
+          console.log("Client appointments data:", appointments);
           
           if (!appointments || appointments.length === 0) {
             console.log("No appointments for client");
             return [];
           }
           
-          // If provider_name is missing in any appointment, try to fetch it
+          // Si faltan nombres de proveedores, obtenerlos explícitamente
           const appointmentsWithMissingNames = appointments.filter(app => !app.provider_name);
           if (appointmentsWithMissingNames.length > 0) {
-            console.log("Found appointments with missing provider names, fetching...");
+            console.log("Found appointments with missing provider names:", appointmentsWithMissingNames.length);
             
-            // Get unique provider IDs with missing names
+            // Obtener IDs únicos de proveedores con nombres faltantes
             const providerIdsToFetch = [...new Set(appointmentsWithMissingNames.map(app => app.provider_id))];
+            console.log("Provider IDs to fetch:", providerIdsToFetch);
             
-            // Fetch provider names
-            const { data: providers } = await supabase
+            // Buscar información de los proveedores directamente
+            const { data: providers, error: providersError } = await supabase
               .from('users')
               .select('id, name')
               .in('id', providerIdsToFetch);
               
+            if (providersError) {
+              console.error("Error fetching provider names:", providersError);
+            }
+            
             if (providers && providers.length > 0) {
-              // Create a map of provider IDs to names
+              console.log("Found provider data:", providers);
+              
+              // Crear un mapa de ID de proveedor a nombre
               const providerNameMap = Object.fromEntries(
                 providers.map(provider => [provider.id, provider.name])
               );
               
-              // Apply names to appointments
+              // Aplicar nombres a las citas
               appointments.forEach(app => {
-                if (!app.provider_name && providerNameMap[app.provider_id]) {
+                if (!app.provider_name && app.provider_id && providerNameMap[app.provider_id]) {
                   app.provider_name = providerNameMap[app.provider_id];
+                  console.log(`Updated provider name for appointment ${app.id} to ${app.provider_name}`);
                 }
               });
+            } else {
+              console.log("No provider data found for the missing names");
             }
           }
           

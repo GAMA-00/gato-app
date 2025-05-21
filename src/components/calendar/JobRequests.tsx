@@ -78,14 +78,15 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
 
-  // Function to get client name with improved fallback
+  // Función mejorada para obtener el nombre del cliente con fallback
   const getClientName = (request: any) => {
-    // First try client_name column
+    // Primero intentar con el campo client_name
     if (request.client_name) {
+      console.log(`Using client_name from request: ${request.client_name}`);
       return request.client_name;
     }
     
-    // Final fallback
+    // Último fallback
     return 'Cliente sin nombre';
   };
 
@@ -123,7 +124,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
           <div className="space-y-4">
             {pendingRequests.map((request: any) => {
               const clientName = getClientName(request);
-              console.log("Request data in card:", request);
+              console.log(`Request ${request.id} has client_name: ${request.client_name}`);
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
