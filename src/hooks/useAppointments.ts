@@ -54,6 +54,7 @@ export function useAppointments() {
           
           // Si faltan nombres de clientes, obtenerlos explícitamente de la tabla users
           const appointmentsWithMissingNames = appointments.filter(app => !app.client_name);
+          
           if (appointmentsWithMissingNames.length > 0) {
             console.log("Found appointments with missing client names:", appointmentsWithMissingNames.length);
             
@@ -69,25 +70,29 @@ export function useAppointments() {
               
             if (clientsError) {
               console.error("Error fetching client names:", clientsError);
-            }
-            
-            if (clients && clients.length > 0) {
+            } else {
               console.log("Found client data:", clients);
               
-              // Crear un mapa de ID de cliente a nombre
-              const clientNameMap = Object.fromEntries(
-                clients.map(client => [client.id, client.name])
-              );
-              
-              // Aplicar nombres a las citas
-              appointments.forEach(app => {
-                if (!app.client_name && app.client_id && clientNameMap[app.client_id]) {
-                  app.client_name = clientNameMap[app.client_id];
-                  console.log(`Updated client name for appointment ${app.id} to ${app.client_name}`);
-                }
-              });
-            } else {
-              console.log("No client data found for the missing names");
+              if (clients && clients.length > 0) {
+                // Crear un mapa de ID de cliente a nombre
+                const clientNameMap = Object.fromEntries(
+                  clients.map(client => [client.id, client.name])
+                );
+                
+                console.log("Client name map:", clientNameMap);
+                
+                // Aplicar nombres a las citas
+                appointments.forEach(app => {
+                  if (!app.client_name && app.client_id && clientNameMap[app.client_id]) {
+                    app.client_name = clientNameMap[app.client_id];
+                    console.log(`Updated client name for appointment ${app.id} to ${app.client_name}`);
+                  } else if (!app.client_name && app.client_id) {
+                    console.log(`No name found for client ID ${app.client_id} in appointment ${app.id}`);
+                  }
+                });
+              } else {
+                console.log("No client data found for the missing names");
+              }
             }
           }
           
@@ -144,25 +149,29 @@ export function useAppointments() {
               
             if (providersError) {
               console.error("Error fetching provider names:", providersError);
-            }
-            
-            if (providers && providers.length > 0) {
+            } else {
               console.log("Found provider data:", providers);
               
-              // Crear un mapa de ID de proveedor a nombre
-              const providerNameMap = Object.fromEntries(
-                providers.map(provider => [provider.id, provider.name])
-              );
-              
-              // Aplicar nombres a las citas
-              appointments.forEach(app => {
-                if (!app.provider_name && app.provider_id && providerNameMap[app.provider_id]) {
-                  app.provider_name = providerNameMap[app.provider_id];
-                  console.log(`Updated provider name for appointment ${app.id} to ${app.provider_name}`);
-                }
-              });
-            } else {
-              console.log("No provider data found for the missing names");
+              if (providers && providers.length > 0) {
+                // Crear un mapa de ID de proveedor a nombre
+                const providerNameMap = Object.fromEntries(
+                  providers.map(provider => [provider.id, provider.name])
+                );
+                
+                console.log("Provider name map:", providerNameMap);
+                
+                // Aplicar nombres a las citas
+                appointments.forEach(app => {
+                  if (!app.provider_name && app.provider_id && providerNameMap[app.provider_id]) {
+                    app.provider_name = providerNameMap[app.provider_id];
+                    console.log(`Updated provider name for appointment ${app.id} to ${app.provider_name}`);
+                  } else if (!app.provider_name && app.provider_id) {
+                    console.log(`No name found for provider ID ${app.provider_id} in appointment ${app.id}`);
+                  }
+                });
+              } else {
+                console.log("No provider data found for the missing names");
+              }
             }
           }
           
