@@ -504,7 +504,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
               name="galleryImages"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Imágenes para tu galería</FormLabel>
+                  <FormLabel>Imágenes para tu galería (opcional)</FormLabel>
                   <FormControl>
                     <div>
                       <label className="flex items-center gap-2 cursor-pointer mb-2 p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
@@ -553,7 +553,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                     </div>
                   </FormControl>
                   <FormDescription>
-                    Sube fotos de trabajos realizados para mostrar en tu galería
+                    Sube fotos de trabajos realizados para mostrar en tu galería (opcional)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

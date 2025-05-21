@@ -26,7 +26,7 @@ const serviceFormSchema = z.object({
   // Campos para el perfil del proveedor
   aboutMe: z.string().optional(),
   profileImage: z.any().optional(),
-  galleryImages: z.array(z.any()).optional(),
+  galleryImages: z.array(z.any()).optional(), // Make sure this is optional
   experienceYears: z.coerce.number().min(0).optional(),
   hasCertifications: z.boolean().optional(),
   certificationFiles: z.array(z.any()).optional(),
