@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -62,9 +61,15 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
   // Fix for createObjectURL - safely create URL for files
   const safeCreateObjectURL = (file: unknown): string | null => {
     // Check if the file is a valid Blob or File object
-    if (file instanceof Blob) {
-      return URL.createObjectURL(file);
+    if (file && (file instanceof Blob || (typeof File !== 'undefined' && file instanceof File))) {
+      return URL.createObjectURL(file as Blob);
     }
+    
+    // If it's a string, it might already be a URL
+    if (typeof file === 'string') {
+      return file;
+    }
+    
     return null;
   };
 
@@ -332,7 +337,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                       <Avatar className="h-16 w-16">
                         {field.value ? (
                           <AvatarImage 
-                            src={field.value instanceof File ? safeCreateObjectURL(field.value) : field.value} 
+                            src={safeCreateObjectURL(field.value)}
                             alt="Profile preview" 
                           />
                         ) : (
@@ -513,24 +518,21 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                       </label>
                       <div className="flex flex-wrap gap-2 mt-3">
                         {field.value && Array.isArray(field.value) && field.value.map((file: any, i: number) => {
-                          // Only create URLs for actual File objects
-                          const fileUrl = file instanceof File ? safeCreateObjectURL(file) : (typeof file === 'string' ? file : null);
-                          return (
+                          const fileUrl = safeCreateObjectURL(file);
+                          return fileUrl ? (
                             <div key={i} className="relative">
-                              {fileUrl && (
-                                <img 
-                                  src={fileUrl} 
-                                  alt={`Gallery image ${i}`}
-                                  className="h-16 w-16 object-cover rounded" 
-                                />
-                              )}
+                              <img 
+                                src={fileUrl} 
+                                alt={`Gallery image ${i}`}
+                                className="h-16 w-16 object-cover rounded" 
+                              />
                               <button
                                 type="button"
                                 className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                                 onClick={() => {
                                   const newFiles = [...field.value];
                                   // Revoke the URL to prevent memory leaks
-                                  if (file instanceof File && fileUrl) {
+                                  if (fileUrl && (typeof file !== 'string')) {
                                     URL.revokeObjectURL(fileUrl);
                                   }
                                   newFiles.splice(i, 1);
@@ -540,7 +542,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                                 ×
                               </button>
                             </div>
-                          );
+                          ) : null;
                         })}
                       </div>
                     </div>
@@ -747,4 +749,3 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
 };
 
 export default ServiceFormFields;
-
