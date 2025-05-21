@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +30,7 @@ export function useClientBookings() {
       console.log("Fetching bookings for client:", user.id);
       
       try {
-        // Fetch appointments for the client
+        // Fetch appointments for the client with direct JOIN to users table for provider names
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -44,7 +43,11 @@ export function useClientBookings() {
             provider_id,
             provider_name,
             residencia_id,
-            notes
+            notes,
+            provider:provider_id (
+              id, 
+              name
+            )
           `)
           .eq('client_id', user.id)
           .order('start_time');
@@ -133,7 +136,11 @@ export function useClientBookings() {
         console.log("Service types:", serviceTypes);
         
         // Get provider names where they're missing
-        const appointmentsWithMissingProviderNames = appointments.filter(a => !a.provider_name);
+        const appointmentsWithMissingProviderNames = appointments.filter(a => 
+          // Check if provider name is missing AND no provider data came from the JOIN
+          (!a.provider_name && (!a.provider || !a.provider.name))
+        );
+        
         if (appointmentsWithMissingProviderNames.length > 0) {
           console.log("Appointments with missing provider names:", appointmentsWithMissingProviderNames.length);
           
@@ -145,34 +152,63 @@ export function useClientBookings() {
           if (providerIdsToFetch.length > 0) {
             console.log("Provider IDs to fetch:", providerIdsToFetch);
             
-            // Fetch provider names from users table
-            const { data: providers, error: providersError } = await supabase
-              .from('users')
+            // Try to fetch from providers table first
+            const { data: providerDetails, error: providersError } = await supabase
+              .from('providers')
               .select('id, name')
               .in('id', providerIdsToFetch);
               
-            if (providersError) {
-              console.error("Error fetching provider names:", providersError);
-            }
-            
-            if (providers && providers.length > 0) {
-              console.log("Found provider data:", providers);
+            if (!providersError && providerDetails && providerDetails.length > 0) {
+              console.log("Found provider details:", providerDetails);
               
               // Create a map of provider ID to name
               const providerNameMap = Object.fromEntries(
-                providers.map(provider => [provider.id, provider.name])
+                providerDetails.map(provider => [provider.id, provider.name])
               );
               
               // Apply names to appointments
               appointments.forEach(app => {
-                if (!app.provider_name && app.provider_id && providerNameMap[app.provider_id]) {
+                if (!app.provider_name && !app.provider?.name && app.provider_id && providerNameMap[app.provider_id]) {
                   app.provider_name = providerNameMap[app.provider_id];
-                  console.log(`Updated provider name for appointment ${app.id} to ${app.provider_name}`);
+                  console.log(`Updated provider name from providers table for appointment ${app.id} to ${app.provider_name}`);
                 }
               });
+            } else {
+              console.log("No provider details found in providers table, trying users table");
+              
+              // Fallback: Try to fetch from users table
+              const { data: userDetails, error: usersError } = await supabase
+                .from('users')
+                .select('id, name')
+                .in('id', providerIdsToFetch);
+                
+              if (!usersError && userDetails && userDetails.length > 0) {
+                console.log("Found user details:", userDetails);
+                
+                // Create a map of user ID to name
+                const userNameMap = Object.fromEntries(
+                  userDetails.map(user => [user.id, user.name])
+                );
+                
+                // Apply names to appointments
+                appointments.forEach(app => {
+                  if (!app.provider_name && !app.provider?.name && app.provider_id && userNameMap[app.provider_id]) {
+                    app.provider_name = userNameMap[app.provider_id];
+                    console.log(`Updated provider name from users table for appointment ${app.id} to ${app.provider_name}`);
+                  }
+                });
+              }
             }
           }
         }
+        
+        // First apply any provider names from the JOIN data
+        appointments.forEach(appointment => {
+          if (appointment.provider && appointment.provider.name) {
+            appointment.provider_name = appointment.provider.name;
+            console.log(`Set provider name from JOIN for appointment ${appointment.id}: ${appointment.provider_name}`);
+          }
+        });
         
         // Fetch buildings/residencias info
         const residenciaIds = appointments.map(a => a.residencia_id).filter(Boolean);
@@ -216,8 +252,12 @@ export function useClientBookings() {
           const residencia = residencias?.find(r => r.id === appointment.residencia_id);
           const isRated = ratedAppointmentIds.has(appointment.id);
           
-          // Use provider_name directly from appointment or fallback to the one from user lookup
-          const finalProviderName = appointment.provider_name || 'Proveedor desconocido';
+          // Make one final check for provider name presence
+          const finalProviderName = appointment.provider_name || 
+                                  (appointment.provider?.name) || 
+                                  'Proveedor desconocido';
+          
+          console.log(`Final provider name for appointment ${appointment.id}: ${finalProviderName}`);
           
           return {
             id: appointment.id,

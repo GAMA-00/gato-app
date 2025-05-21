@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -130,7 +131,7 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
       console.log(`Using provider name: ${booking.providerName}`);
       return booking.providerName;
     }
-    console.log("Fallback to generic provider name");
+    console.log("Fallback to generic provider name for booking:", booking.id);
     return 'Proveedor';
   };
   
