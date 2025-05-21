@@ -688,6 +688,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_rated_appointments: {
+        Args: { appointment_ids: string[] }
+        Returns: {
+          appointment_id: string
+        }[]
+      }
+      submit_provider_rating: {
+        Args: {
+          p_provider_id: string
+          p_client_id: string
+          p_appointment_id: string
+          p_rating: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

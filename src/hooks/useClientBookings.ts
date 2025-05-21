@@ -148,21 +148,26 @@ export function useClientBookings() {
           
         console.log("Residencias data:", residencias);
         
-        // Get rated appointments using RPC function
+        // Get rated appointments
         let ratedAppointmentIds = new Set<string>();
         const appointmentIds = appointments.map(a => a.id);
         
         try {
-          const { data: ratingData, error: ratingError } = await supabase.rpc(
-            'get_rated_appointments',
-            { appointment_ids: appointmentIds }
-          );
+          // Use rpc function with proper type casting
+          const { data, error } = await supabase
+            .rpc('get_rated_appointments', { 
+              appointment_ids: appointmentIds 
+            }) as { 
+              data: { appointment_id: string }[] | null, 
+              error: Error | null 
+            };
           
-          if (!ratingError && ratingData) {
-            ratedAppointmentIds = new Set(ratingData.map((r: any) => r.appointment_id));
+          if (!error && data) {
+            // Create a set of appointment IDs that have been rated
+            ratedAppointmentIds = new Set(data.map(item => item.appointment_id));
             console.log("Rated appointments:", ratedAppointmentIds);
           } else {
-            console.log("Could not get ratings:", ratingError);
+            console.log("Could not get ratings:", error);
           }
         } catch (err) {
           console.log("Error checking for ratings:", err);

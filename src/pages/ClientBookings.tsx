@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -37,16 +36,14 @@ const RatingStars = ({
     setIsSubmitting(true);
     
     try {
-      // Use RPC call to submit rating
-      const { error } = await supabase.rpc(
-        'submit_provider_rating', 
-        {
+      // Use RPC call to submit rating with proper type casting
+      const { error } = await supabase
+        .rpc('submit_provider_rating', {
           p_provider_id: providerId,
           p_client_id: user.id,
           p_appointment_id: appointmentId,
           p_rating: rating
-        }
-      );
+        }) as { data: null, error: Error | null };
         
       if (error) throw error;
       
