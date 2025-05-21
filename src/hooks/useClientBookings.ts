@@ -31,7 +31,7 @@ export function useClientBookings() {
       console.log("Fetching bookings for client:", user.id);
       
       try {
-        // Fetch appointments for the client with direct JOIN to users table for provider names
+        // Fetch appointments for the client without JOIN to avoid foreign key errors
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -44,11 +44,7 @@ export function useClientBookings() {
             provider_id,
             provider_name,
             residencia_id,
-            notes,
-            provider:users(
-              id, 
-              name
-            )
+            notes
           `)
           .eq('client_id', user.id)
           .order('start_time');
@@ -99,11 +95,7 @@ export function useClientBookings() {
               provider_id,
               provider_name,
               residencia_id,
-              notes,
-              provider:users(
-                id, 
-                name
-              )
+              notes
             `)
             .eq('client_id', user.id)
             .order('start_time');
@@ -118,18 +110,6 @@ export function useClientBookings() {
           }
         }
         
-        // Make sure all appointment objects have a provider property
-        // This is to fix the TypeScript error
-        const normalizedAppointments = appointments.map(appointment => {
-          if (!appointment.provider) {
-            return {
-              ...appointment,
-              provider: { id: appointment.provider_id, name: null }
-            };
-          }
-          return appointment;
-        });
-        
         // Fetch related listing data
         const { data: listings } = await supabase
           .from('listings')
@@ -140,7 +120,7 @@ export function useClientBookings() {
             service_type_id,
             provider_id
           `)
-          .in('id', normalizedAppointments.map(a => a.listing_id));
+          .in('id', appointments.map(a => a.listing_id));
         
         console.log("Listings data:", listings);
         
@@ -153,9 +133,8 @@ export function useClientBookings() {
         console.log("Service types:", serviceTypes);
         
         // Get provider names where they're missing
-        const appointmentsWithMissingProviderNames = normalizedAppointments.filter(a => 
-          // Check if provider name is missing AND no provider data came from the JOIN
-          (!a.provider_name && (!a.provider || !a.provider.name))
+        const appointmentsWithMissingProviderNames = appointments.filter(a => 
+          !a.provider_name
         );
         
         if (appointmentsWithMissingProviderNames.length > 0) {
@@ -184,8 +163,8 @@ export function useClientBookings() {
               );
               
               // Apply names to appointments
-              normalizedAppointments.forEach(app => {
-                if (!app.provider_name && !app.provider?.name && app.provider_id && providerNameMap[app.provider_id]) {
+              appointments.forEach(app => {
+                if (!app.provider_name && app.provider_id && providerNameMap[app.provider_id]) {
                   app.provider_name = providerNameMap[app.provider_id];
                   console.log(`Updated provider name from providers table for appointment ${app.id} to ${app.provider_name}`);
                 }
@@ -208,8 +187,8 @@ export function useClientBookings() {
                 );
                 
                 // Apply names to appointments
-                normalizedAppointments.forEach(app => {
-                  if (!app.provider_name && !app.provider?.name && app.provider_id && userNameMap[app.provider_id]) {
+                appointments.forEach(app => {
+                  if (!app.provider_name && app.provider_id && userNameMap[app.provider_id]) {
                     app.provider_name = userNameMap[app.provider_id];
                     console.log(`Updated provider name from users table for appointment ${app.id} to ${app.provider_name}`);
                   }
@@ -219,16 +198,8 @@ export function useClientBookings() {
           }
         }
         
-        // First apply any provider names from the JOIN data
-        normalizedAppointments.forEach(appointment => {
-          if (appointment.provider && appointment.provider.name) {
-            appointment.provider_name = appointment.provider.name;
-            console.log(`Set provider name from JOIN for appointment ${appointment.id}: ${appointment.provider_name}`);
-          }
-        });
-        
         // Fetch buildings/residencias info
-        const residenciaIds = normalizedAppointments.map(a => a.residencia_id).filter(Boolean);
+        const residenciaIds = appointments.map(a => a.residencia_id).filter(Boolean);
         const { data: residencias } = await supabase
           .from('residencias')
           .select('id, name')
@@ -238,7 +209,7 @@ export function useClientBookings() {
         
         // Get rated appointments
         let ratedAppointmentIds = new Set<string>();
-        const appointmentIds = normalizedAppointments.map(a => a.id);
+        const appointmentIds = appointments.map(a => a.id);
         
         try {
           // Use rpc function with proper type casting
@@ -263,16 +234,14 @@ export function useClientBookings() {
         }
         
         // Transform the data to match our UI requirements
-        const clientBookings = normalizedAppointments.map(appointment => {
+        const clientBookings = appointments.map(appointment => {
           const listing = listings?.find(l => l.id === appointment.listing_id);
           const serviceType = serviceTypes?.find(st => st.id === listing?.service_type_id);
           const residencia = residencias?.find(r => r.id === appointment.residencia_id);
           const isRated = ratedAppointmentIds.has(appointment.id);
           
           // Make one final check for provider name presence
-          const finalProviderName = appointment.provider_name || 
-                                  (appointment.provider?.name) || 
-                                  'Proveedor desconocido';
+          const finalProviderName = appointment.provider_name || 'Proveedor desconocido';
           
           console.log(`Final provider name for appointment ${appointment.id}: ${finalProviderName}`);
           
