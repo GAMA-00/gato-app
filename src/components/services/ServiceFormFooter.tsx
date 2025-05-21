@@ -39,26 +39,26 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   const isLastStep = currentStep === totalSteps - 1;
   
   return (
-    <DialogFooter className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-3 w-full items-center`}>
+    <DialogFooter className="flex flex-col gap-3 w-full items-center py-4">
       {isEditing && onDelete && initialData && isLastStep ? (
         <Button 
           type="button" 
           variant="destructive" 
           onClick={handleDelete}
-          className={isMobile ? 'w-full' : 'mr-auto'}
+          className="w-full"
         >
           <Trash className="h-4 w-4 mr-2" /> 
           Eliminar Servicio
         </Button>
-      ) : <div className={isMobile ? 'hidden' : 'block'} />}
+      ) : null}
       
-      <div className={`flex gap-2 ${isMobile ? 'w-full flex-col' : 'ml-auto flex-row'}`}>
+      <div className="flex w-full flex-col gap-2">
         {!isFirstStep && (
           <Button 
             type="button" 
             variant="outline" 
             onClick={onPrev}
-            className={isMobile ? 'w-full' : 'min-w-[120px]'}
+            className="w-full"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Anterior
@@ -69,7 +69,7 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          className={isMobile ? 'w-full' : 'min-w-[120px]'}
+          className="w-full"
         >
           <X className="h-4 w-4 mr-2" />
           Cancelar
@@ -79,7 +79,7 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           <Button 
             type="button"
             onClick={onNext}
-            className={isMobile ? 'w-full' : 'min-w-[120px]'}
+            className="w-full"
           >
             Siguiente
             <ArrowRight className="h-4 w-4 ml-2" />
@@ -87,7 +87,7 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
         ) : (
           <Button 
             type="submit"
-            className={isMobile ? 'w-full' : 'min-w-[120px]'}
+            className="w-full"
           >
             <Check className="h-4 w-4 mr-2" />
             {isEditing ? 'Guardar Cambios' : 'Crear Servicio'}

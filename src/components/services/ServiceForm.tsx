@@ -138,8 +138,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-4 sm:p-6">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 sm:p-6">
+        <DialogHeader className="px-4 pt-4 sm:px-0 sm:pt-0">
           <DialogTitle>{initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}</DialogTitle>
           <DialogDescription>
             {initialData 
@@ -151,13 +151,15 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         <FormProvider {...form}>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
-              <ScrollArea className="flex-grow px-1 pb-20 sm:pb-6">
-                <div className="space-y-6 pb-4">
-                  <ServiceFormFields currentStep={currentStep} />
-                </div>
-              </ScrollArea>
+              <div className="flex-grow px-4 sm:px-0 overflow-hidden">
+                <ScrollArea className="h-[calc(70vh-180px)] sm:h-[calc(70vh-150px)] pr-4">
+                  <div className="py-4 space-y-6">
+                    <ServiceFormFields currentStep={currentStep} />
+                  </div>
+                </ScrollArea>
+              </div>
               
-              <div className="sticky bottom-0 left-0 right-0 mt-4 bg-background py-3 border-t">
+              <div className="sticky bottom-0 left-0 right-0 mt-auto bg-background px-4 sm:px-0 border-t">
                 <ServiceFormFooter 
                   isEditing={!!initialData}
                   onDelete={onDelete}
