@@ -151,15 +151,15 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         <FormProvider {...form}>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
-              <div className="flex-grow px-4 sm:px-0 overflow-hidden">
-                <ScrollArea className="h-[calc(70vh-180px)] sm:h-[calc(70vh-150px)] pr-4">
+              <div className="flex-grow px-4 sm:px-0 overflow-hidden mb-20"> {/* Added mb-20 to create space for footer */}
+                <ScrollArea className="h-[calc(70vh-220px)] sm:h-[calc(70vh-150px)] pr-4">
                   <div className="py-4 space-y-6">
                     <ServiceFormFields currentStep={currentStep} />
                   </div>
                 </ScrollArea>
               </div>
               
-              <div className="sticky bottom-0 left-0 right-0 mt-auto bg-background px-4 sm:px-0 border-t">
+              <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-4 sm:px-6 border-t w-full">
                 <ServiceFormFooter 
                   isEditing={!!initialData}
                   onDelete={onDelete}

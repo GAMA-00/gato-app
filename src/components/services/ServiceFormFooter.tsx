@@ -39,7 +39,7 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   const isLastStep = currentStep === totalSteps - 1;
   
   return (
-    <DialogFooter className="flex flex-col gap-3 w-full items-center py-4">
+    <div className="w-full space-y-3">
       {isEditing && onDelete && initialData && isLastStep ? (
         <Button 
           type="button" 
@@ -52,7 +52,7 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
         </Button>
       ) : null}
       
-      <div className="flex w-full flex-col gap-2">
+      <div className="flex flex-col gap-2 w-full">
         {!isFirstStep && (
           <Button 
             type="button" 
@@ -94,7 +94,7 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           </Button>
         )}
       </div>
-    </DialogFooter>
+    </div>
   );
 };
 
