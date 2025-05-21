@@ -81,28 +81,33 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
 
   // Helper function to get client name with fallback
   const getClientName = (appointment: any) => {
-    // First check if we have the new client_name field
+    // 1. Primero intentamos con la columna client_name
     if (appointment.client_name) {
       return appointment.client_name;
     }
-    // Next check if we have a clients object with name
+    
+    // 2. Luego buscamos en el objeto clients anidado
     if (appointment.clients?.name) {
       return appointment.clients.name;
     }
-    // If not, try to fall back to other possible client name fields
+
+    // 3. Fallback final
     return 'Cliente sin nombre';
   };
 
   // Helper function to get provider name with fallback
   const getProviderName = (appointment: any) => {
-    // First check if we have the new provider_name field
+    // 1. Primero intentamos con la columna provider_name
     if (appointment.provider_name) {
       return appointment.provider_name;
     }
-    // If not, try to fall back to other possible provider name fields
+    
+    // 2. Luego buscamos en el objeto providers anidado
     if (appointment.providers?.name) {
       return appointment.providers.name;
     }
+
+    // 3. Fallback final
     return 'Proveedor desconocido';
   };
 
@@ -139,6 +144,20 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       ? locationInfo.join(' - ') 
       : 'Sin ubicación específica';
   };
+  
+  // Helper function to get initials for avatar
+  const getInitials = (name: string) => {
+    if (!name || name === 'Cliente sin nombre' || name === 'Proveedor desconocido') {
+      return 'U';
+    }
+    
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  };
 
   return (
     <Card className="glassmorphism mb-6">
@@ -154,68 +173,74 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       <CardContent>
         {filteredAppointments.length > 0 ? (
           <div className="divide-y">
-            {filteredAppointments.map((appointment) => (
-              <div key={appointment.id} className="p-4 border-b last:border-0">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-                  <div className="flex items-center min-w-0">
-                    <Avatar className="w-10 h-10 mr-3 flex-shrink-0">
-                      <AvatarImage 
-                        src={appointment.clients?.avatar_url || '/placeholder.svg'} 
-                        alt={getClientName(appointment)} 
-                      />
-                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                        {getClientName(appointment).charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-medium truncate">
-                        {getClientName(appointment)}
-                      </h4>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {getServiceName(appointment)}
-                      </p>
+            {filteredAppointments.map((appointment) => {
+              console.log("Appointment in list:", appointment); // Log para depuración
+              const displayName = getClientName(appointment);
+              const serviceName = getServiceName(appointment);
+              
+              return (
+                <div key={appointment.id} className="p-4 border-b last:border-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                    <div className="flex items-center min-w-0">
+                      <Avatar className="w-10 h-10 mr-3 flex-shrink-0">
+                        <AvatarImage 
+                          src={appointment.clients?.avatar_url || '/placeholder.svg'} 
+                          alt={displayName} 
+                        />
+                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                          {getInitials(displayName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-medium truncate">
+                          {displayName}
+                        </h4>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {serviceName}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="flex items-center justify-end text-sm font-medium">
+                        <Clock className="h-3.5 w-3.5 mr-1 text-primary flex-shrink-0" />
+                        <span className="truncate">
+                          {format(new Date(appointment.start_time), 'h:mm a')} - {format(new Date(appointment.end_time), 'h:mm a')}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1 flex items-center justify-end">
+                        <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="truncate max-w-[200px]">
+                          {getLocationInfo(appointment)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="flex items-center justify-end text-sm font-medium">
-                      <Clock className="h-3.5 w-3.5 mr-1 text-primary flex-shrink-0" />
-                      <span className="truncate">
-                        {format(new Date(appointment.start_time), 'h:mm a')} - {format(new Date(appointment.end_time), 'h:mm a')}
-                      </span>
+                  
+                  {isPending && (
+                    <div className="flex justify-end space-x-2 mt-3">
+                      <Button 
+                        onClick={() => handleRejectAppointment(appointment.id)} 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex items-center"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Rechazar
+                      </Button>
+                      <Button 
+                        onClick={() => handleAcceptAppointment(appointment.id)} 
+                        size="sm" 
+                        variant="default" 
+                        className="flex items-center"
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Aceptar
+                      </Button>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center justify-end">
-                      <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                      <span className="truncate max-w-[200px]">
-                        {getLocationInfo(appointment)}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
-                
-                {isPending && (
-                  <div className="flex justify-end space-x-2 mt-3">
-                    <Button 
-                      onClick={() => handleRejectAppointment(appointment.id)} 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex items-center"
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Rechazar
-                    </Button>
-                    <Button 
-                      onClick={() => handleAcceptAppointment(appointment.id)} 
-                      size="sm" 
-                      variant="default" 
-                      className="flex items-center"
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Aceptar
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">

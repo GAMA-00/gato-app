@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -44,12 +43,33 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
   
-  // Usar los nuevos campos de client_name y provider_name con fallbacks
-  const personName = appointment.client_name || 
-                    appointment.provider_name || 
-                    appointment.clients?.name || 
-                    appointment.providers?.name ||
-                    'Usuario';
+  // Get person name with improved fallback logic  
+  const getPersonName = () => {
+    // For client view (looking at provider's name)
+    const { user } = require('@/contexts/AuthContext').useAuth();
+    
+    if (user?.role === 'client') {
+      // Mostrar nombre del proveedor para clientes
+      if (appointment.provider_name) {
+        return appointment.provider_name;
+      } else if (appointment.providers?.name) {
+        return appointment.providers.name;
+      } else {
+        return 'Proveedor';
+      }
+    } else {
+      // Mostrar nombre del cliente para proveedores
+      if (appointment.client_name) {
+        return appointment.client_name;
+      } else if (appointment.clients?.name) {
+        return appointment.clients.name;
+      } else {
+        return 'Cliente';
+      }
+    }
+  };
+  
+  const personName = getPersonName();
   const serviceName = appointment.listings?.title || 'Servicio';
 
   return (
@@ -165,7 +185,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           </div>
         ))}
         {dayAppointments.map(appointment => {
-          console.log(`Appointment scheduled at: ${new Date(appointment.start_time).toLocaleTimeString()}`);
+          console.log(`Appointment scheduled at: ${new Date(appointment.start_time).toLocaleTimeString()}`, appointment);
           return (
             <CalendarAppointment
               key={appointment.id}

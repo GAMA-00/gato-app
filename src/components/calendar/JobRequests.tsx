@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,16 +78,32 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
 
-  // Función para obtener el nombre del cliente con fallback adecuado
+  // Función para obtener el nombre del cliente con sistema de fallback mejorado
   const getClientName = (request: any) => {
-    return request.client_name || 
-           request.clients?.name || 
-           'Cliente sin nombre';
+    // 1. Primero intentamos con la columna client_name
+    if (request.client_name) {
+      return request.client_name;
+    }
+    
+    // 2. Luego buscamos en el objeto clients anidado
+    if (request.clients?.name) {
+      return request.clients.name;
+    }
+    
+    // 3. Fallback final
+    return 'Cliente sin nombre';
   };
 
   // Función auxiliar para obtener las iniciales del nombre
   const getInitials = (name: string) => {
-    return name.substring(0, 2).toUpperCase();
+    if (!name || name === 'Cliente sin nombre') return 'CL';
+    
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
   };
 
   return (
@@ -111,6 +128,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
           <div className="space-y-4">
             {pendingRequests.map((request: any) => {
               const clientName = getClientName(request);
+              console.log("Request data:", request); // Log para depuración
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
