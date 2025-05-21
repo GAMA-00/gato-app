@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   FormField,
@@ -30,22 +31,23 @@ import {
   Plus,
   Trash2,
   MoveVertical,
-  Eye,
-  EyeOff
+  Eye
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Button } from '../ui/button';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent } from '../ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 
-const ServiceFormFields: React.FC = () => {
+interface ServiceFormFieldsProps {
+  currentStep: number;
+}
+
+const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) => {
   const { control, setValue, watch, getValues } = useFormContext();
   const selectedResidencias = watch('residenciaIds') || [];
   const selectedSubcategoryId = watch('subcategoryId');
@@ -197,130 +199,23 @@ const ServiceFormFields: React.FC = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  return (
-    <div className="space-y-6">
-      <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="flex flex-col gap-1 h-auto p-1 w-full mb-4">
-          <TabsTrigger className="w-full" value="basic">Información básica</TabsTrigger>
-          <TabsTrigger className="w-full" value="profile">Perfil profesional</TabsTrigger>
-          <TabsTrigger className="w-full" value="service">Detalles del servicio</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="basic" className="space-y-6">
-          <FormField
-            control={control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Título del anuncio</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ej. Limpieza profesional" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={control}
-            name="subcategoryId" // This will map to service_type_id in the database
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>¿Qué servicio quieres anunciar?</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ''}
-                  disabled={loadingCategories}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un tipo de servicio..." />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="max-h-[300px]">
-                    {categoriesData?.categories?.map((category) => (
-                      <SelectGroup key={category.id}>
-                        <SelectLabel>{category.label}</SelectLabel>
-                        {categoriesData.serviceTypesByCategory[category.id]?.map((serviceType) => (
-                          <SelectItem key={serviceType.id} value={serviceType.id}>
-                            {serviceType.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Descripción</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe a detalle el servicio que ofreces..."
-                    rows={3}
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Explica los detalles más importantes de tu servicio.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </TabsContent>
-
-        <TabsContent value="profile" className="space-y-6">
-          <div className="p-4 bg-muted/40 rounded-lg border">
-            <h3 className="font-medium mb-2">Tu perfil profesional</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Esta información se mostrará en tu perfil de proveedor y será visible para los clientes.
-            </p>
-          
+  // Renderizado condicional basado en el paso actual
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0: // Información básica
+        return (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold">Paso 1: Información básica</h2>
+            
             <FormField
               control={control}
-              name="profileImage"
+              name="name"
               render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Foto de perfil</FormLabel>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                      {field.value ? (
-                        <AvatarImage src={URL.createObjectURL(field.value)} alt="Profile preview" />
-                      ) : (
-                        <AvatarFallback className="text-lg">
-                          {field.value?.name?.charAt(0) || '?'}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <FormControl>
-                      <div>
-                        <label className="flex items-center gap-2 cursor-pointer p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
-                          <Upload className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">Subir imagen</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) field.onChange(file);
-                            }}
-                          />
-                        </label>
-                      </div>
-                    </FormControl>
-                  </div>
-                  <FormDescription>
-                    Sube una foto profesional para tu perfil (formato cuadrado recomendado)
-                  </FormDescription>
+                <FormItem>
+                  <FormLabel>Título del anuncio</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej. Limpieza profesional" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -328,378 +223,496 @@ const ServiceFormFields: React.FC = () => {
 
             <FormField
               control={control}
-              name="aboutMe"
+              name="subcategoryId"
               render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Sobre mí</FormLabel>
+                <FormItem>
+                  <FormLabel>¿Qué servicio quieres anunciar?</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || ''}
+                    disabled={loadingCategories}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tipo de servicio..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-[300px]">
+                      {categoriesData?.categories?.map((category) => (
+                        <SelectGroup key={category.id}>
+                          <SelectLabel>{category.label}</SelectLabel>
+                          {categoriesData.serviceTypesByCategory[category.id]?.map((serviceType) => (
+                            <SelectItem key={serviceType.id} value={serviceType.id}>
+                              {serviceType.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descripción</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Cuéntale a tus clientes sobre tu experiencia, formación y filosofía de trabajo..."
-                      rows={4}
+                      placeholder="Describe a detalle el servicio que ofreces..."
+                      rows={3}
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Esta información se mostrará en la sección "Sobre mí" de tu perfil ({aboutMe.length}/500 caracteres)
+                    Explica los detalles más importantes de tu servicio.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <div className="space-y-4 pt-2">
-              <h4 className="text-sm font-medium mb-2">Información profesional</h4>
+          </div>
+        );
+        
+      case 1: // Perfil profesional
+        return (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold">Paso 2: Perfil profesional</h2>
+            
+            <div className="bg-muted/40 rounded-lg border p-4">
+              <h3 className="font-medium mb-2">Tu perfil profesional</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Esta información se mostrará en tu perfil de proveedor y será visible para los clientes.
+              </p>
+            
               <FormField
                 control={control}
-                name="experienceYears"
+                name="profileImage"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Años de experiencia</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" max="50" {...field} />
-                    </FormControl>
+                  <FormItem className="mb-4">
+                    <FormLabel>Foto de perfil</FormLabel>
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-16 w-16">
+                        {field.value ? (
+                          <AvatarImage src={URL.createObjectURL(field.value)} alt="Profile preview" />
+                        ) : (
+                          <AvatarFallback className="text-lg">
+                            {field.value?.name?.charAt(0) || '?'}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <FormControl>
+                        <div>
+                          <label className="flex items-center gap-2 cursor-pointer p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
+                            <Upload className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">Subir imagen</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) field.onChange(file);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </FormControl>
+                    </div>
+                    <FormDescription>
+                      Sube una foto profesional para tu perfil (formato cuadrado recomendado)
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={control}
-                name="hasCertifications"
+                name="aboutMe"
                 render={({ field }) => (
-                  <FormItem className="space-y-4">
+                  <FormItem className="mb-4">
+                    <FormLabel>Sobre mí</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Cuéntale a tus clientes sobre tu experiencia, formación y filosofía de trabajo..."
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Esta información se mostrará en la sección "Sobre mí" de tu perfil ({aboutMe.length}/500 caracteres)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-4 pt-2">
+                <h4 className="text-sm font-medium mb-2">Información profesional</h4>
+                <FormField
+                  control={control}
+                  name="experienceYears"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Años de experiencia</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" max="50" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={control}
+                  name="hasCertifications"
+                  render={({ field }) => (
+                    <FormItem className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          id="hasCertifications"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                        <label
+                          htmlFor="hasCertifications"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Tengo certificaciones profesionales
+                        </label>
+                      </div>
+                      
+                      {field.value && (
+                        <div className="ml-6 space-y-3 border-l-2 pl-4 border-muted">
+                          <FormLabel className="text-sm">Adjunta tus certificaciones</FormLabel>
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap gap-3 mb-2">
+                              {certificationFiles.map((certFile) => (
+                                <div 
+                                  key={certFile.id} 
+                                  className="relative bg-muted/50 rounded-md p-2 pr-8 flex items-center gap-2 border"
+                                >
+                                  <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                  <div className="max-w-[150px] overflow-hidden">
+                                    <div className="text-xs font-medium truncate">{certFile.name}</div>
+                                    <div className="text-[10px] text-muted-foreground">{formatFileSize(certFile.size)}</div>
+                                  </div>
+                                  <button 
+                                    type="button" 
+                                    className="absolute top-1 right-1 text-muted-foreground hover:text-destructive"
+                                    onClick={() => removeCertificationFile(certFile.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  {certFile.preview && (
+                                    <button 
+                                      type="button" 
+                                      className="absolute bottom-1 right-1 text-muted-foreground hover:text-primary"
+                                      onClick={() => window.open(certFile.preview, '_blank')}
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <label className="flex items-center gap-2 cursor-pointer p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors inline-block">
+                              <Upload className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">Subir certificado</span>
+                              <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleCertificationFile(file);
+                                }}
+                              />
+                            </label>
+                            <FormDescription className="text-xs">
+                              Formatos aceptados: PDF, JPG, PNG (máx 5MB)
+                            </FormDescription>
+                          </div>
+                        </div>
+                      )}
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={control}
+                  name="handlesDangerousDogs"
+                  render={({ field }) => (
                     <div className="flex items-center gap-2">
                       <Checkbox 
-                        id="hasCertifications"
+                        id="handlesDangerousDogs"
                         checked={field.value}
                         onCheckedChange={field.onChange}
                       />
                       <label
-                        htmlFor="hasCertifications"
+                        htmlFor="handlesDangerousDogs"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        Tengo certificaciones profesionales
+                        Atiendo a mascotas potencialmente peligrosas
                       </label>
                     </div>
-                    
-                    {field.value && (
-                      <div className="ml-6 space-y-3 border-l-2 pl-4 border-muted">
-                        <FormLabel className="text-sm">Adjunta tus certificaciones</FormLabel>
-                        <div className="space-y-3">
-                          <div className="flex flex-wrap gap-3 mb-2">
-                            {certificationFiles.map((certFile) => (
-                              <div 
-                                key={certFile.id} 
-                                className="relative bg-muted/50 rounded-md p-2 pr-8 flex items-center gap-2 border"
-                              >
-                                <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                                <div className="max-w-[150px] overflow-hidden">
-                                  <div className="text-xs font-medium truncate">{certFile.name}</div>
-                                  <div className="text-[10px] text-muted-foreground">{formatFileSize(certFile.size)}</div>
-                                </div>
-                                <button 
-                                  type="button" 
-                                  className="absolute top-1 right-1 text-muted-foreground hover:text-destructive"
-                                  onClick={() => removeCertificationFile(certFile.id)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                                {certFile.preview && (
-                                  <button 
-                                    type="button" 
-                                    className="absolute bottom-1 right-1 text-muted-foreground hover:text-primary"
-                                    onClick={() => window.open(certFile.preview, '_blank')}
-                                  >
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          
-                          <label className="flex items-center gap-2 cursor-pointer p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors inline-block">
-                            <Upload className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">Subir certificado</span>
-                            <input
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleCertificationFile(file);
-                              }}
+                  )}
+                />
+              </div>
+            </div>
+
+            <FormField
+              control={control}
+              name="galleryImages"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Imágenes para tu galería</FormLabel>
+                  <FormControl>
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer mb-2 p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
+                        <Upload className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Agregar imágenes</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = e.target.files ? Array.from(e.target.files) : [];
+                            field.onChange([...(field.value || []), ...files]);
+                          }}
+                        />
+                      </label>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {field.value?.map((file: File, i: number) => (
+                          <div key={i} className="relative">
+                            <img 
+                              src={URL.createObjectURL(file)} 
+                              alt={`Gallery image ${i}`}
+                              className="h-16 w-16 object-cover rounded" 
                             />
-                          </label>
-                          <FormDescription className="text-xs">
-                            Formatos aceptados: PDF, JPG, PNG (máx 5MB)
-                          </FormDescription>
+                            <button
+                              type="button"
+                              className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                              onClick={() => {
+                                const newFiles = [...field.value];
+                                newFiles.splice(i, 1);
+                                field.onChange(newFiles);
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Sube fotos de trabajos realizados para mostrar en tu galería
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        );
+        
+      case 2: // Detalles del servicio
+        return (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold">Paso 3: Detalles del servicio</h2>
+            
+            <div className="border rounded-lg p-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-medium">Catálogo de servicios</h3>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleAddServiceVariant}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Agregar servicio
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones
+              </p>
+              
+              <div className="space-y-4">
+                {serviceVariants.map((variant, index) => (
+                  <Card key={variant.id || index} className="border">
+                    <CardContent className="p-4">
+                      <div className="grid grid-cols-12 gap-3">
+                        <div className="col-span-12 mb-2">
+                          <FormField
+                            control={control}
+                            name={`serviceVariants.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Nombre del servicio</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Ej. Corte básico" 
+                                    value={variant.name}
+                                    onChange={(e) => handleServiceVariantChange(index, 'name', e.target.value)}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="col-span-5">
+                          <FormField
+                            control={control}
+                            name={`serviceVariants.${index}.price`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Precio ($)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="1" 
+                                    placeholder="Precio" 
+                                    value={variant.price}
+                                    onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="col-span-5">
+                          <FormField
+                            control={control}
+                            name={`serviceVariants.${index}.duration`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Duración (min)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="15" 
+                                    step="5" 
+                                    placeholder="Minutos" 
+                                    value={variant.duration}
+                                    onChange={(e) => handleServiceVariantChange(index, 'duration', e.target.value)}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="col-span-2 flex items-end justify-end space-x-1">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleMoveVariant(index, 'up')}
+                            disabled={index === 0}
+                            className="h-8 w-8"
+                          >
+                            <MoveVertical className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive/90"
+                            onClick={() => handleRemoveServiceVariant(index)}
+                            disabled={serviceVariants.length <= 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    )}
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={control}
-                name="handlesDangerousDogs"
-                render={({ field }) => (
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="handlesDangerousDogs"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                    <label
-                      htmlFor="handlesDangerousDogs"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Atiendo a mascotas potencialmente peligrosas
-                    </label>
-                  </div>
-                )}
-              />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Sección de imágenes de trabajos anteriores */}
-          <FormField
-            control={control}
-            name="galleryImages"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Imágenes para tu galería</FormLabel>
-                <FormControl>
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer mb-2 p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Agregar imágenes</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          const files = e.target.files ? Array.from(e.target.files) : [];
-                          field.onChange([...(field.value || []), ...files]);
-                        }}
+            <Alert variant="warning" className="mb-4">
+              <AlertDescription>
+                Para tu seguridad, tu anuncio solo será visible en las residencias que selecciones a continuación.
+              </AlertDescription>
+            </Alert>
+
+            <FormField
+              control={control}
+              name="residenciaIds"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Residencias Disponibles</FormLabel>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="selectAll"
+                        checked={selectedResidencias.length === residencias.length}
+                        onCheckedChange={handleSelectAllResidencias}
                       />
-                    </label>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {field.value?.map((file: File, i: number) => (
-                        <div key={i} className="relative">
-                          <img 
-                            src={URL.createObjectURL(file)} 
-                            alt={`Gallery image ${i}`}
-                            className="h-16 w-16 object-cover rounded" 
+                      <label
+                        htmlFor="selectAll"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Seleccionar todas las residencias
+                      </label>
+                    </div>
+                    <div className="grid gap-2">
+                      {residencias.map((residencia) => (
+                        <div key={residencia.id} className="flex items-center space-x-2">
+                          <FormField
+                            control={control}
+                            name="residenciaIds"
+                            render={({ field }) => (
+                              <Checkbox
+                                id={`residencia-${residencia.id}`}
+                                checked={field.value?.includes(residencia.id)}
+                                onCheckedChange={(checked) => {
+                                  const updatedValue = checked
+                                    ? [...(field.value || []), residencia.id]
+                                    : field.value?.filter((id: string) => id !== residencia.id) || [];
+                                  field.onChange(updatedValue);
+                                }}
+                              />
+                            )}
                           />
-                          <button
-                            type="button"
-                            className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                            onClick={() => {
-                              const newFiles = [...field.value];
-                              newFiles.splice(i, 1);
-                              field.onChange(newFiles);
-                            }}
+                          <label
+                            htmlFor={`residencia-${residencia.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                           >
-                            ×
-                          </button>
+                            {residencia.name}
+                          </label>
                         </div>
                       ))}
                     </div>
                   </div>
-                </FormControl>
-                <FormDescription>
-                  Sube fotos de trabajos realizados para mostrar en tu galería
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </TabsContent>
-        
-        <TabsContent value="service" className="space-y-6">
-          <div className="border rounded-lg p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium">Catálogo de servicios</h3>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={handleAddServiceVariant}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Agregar servicio
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones
-            </p>
-            
-            <div className="space-y-4">
-              {serviceVariants.map((variant, index) => (
-                <Card key={variant.id || index} className="border">
-                  <CardContent className="p-4">
-                    <div className="grid grid-cols-12 gap-3">
-                      <div className="col-span-12 mb-2">
-                        <FormField
-                          control={control}
-                          name={`serviceVariants.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Nombre del servicio</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Ej. Corte básico" 
-                                  value={variant.name}
-                                  onChange={(e) => handleServiceVariantChange(index, 'name', e.target.value)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="col-span-5">
-                        <FormField
-                          control={control}
-                          name={`serviceVariants.${index}.price`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Precio ($)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="1" 
-                                  placeholder="Precio" 
-                                  value={variant.price}
-                                  onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="col-span-5">
-                        <FormField
-                          control={control}
-                          name={`serviceVariants.${index}.duration`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Duración (min)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="15" 
-                                  step="5" 
-                                  placeholder="Minutos" 
-                                  value={variant.duration}
-                                  onChange={(e) => handleServiceVariantChange(index, 'duration', e.target.value)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="col-span-2 flex items-end justify-end space-x-1">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleMoveVariant(index, 'up')}
-                          disabled={index === 0}
-                          className="h-8 w-8"
-                        >
-                          <MoveVertical className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive/90"
-                          onClick={() => handleRemoveServiceVariant(index)}
-                          disabled={serviceVariants.length <= 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  <FormDescription>
+                    Selecciona las residencias donde este servicio estará disponible.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
+        );
+      default:
+        return null;
+    }
+  };
 
-          <Alert variant="warning" className="mb-4">
-            <AlertDescription>
-              Para tu seguridad, tu anuncio solo será visible en las residencias que selecciones a continuación.
-            </AlertDescription>
-          </Alert>
-
-          <FormField
-            control={control}
-            name="residenciaIds"
-            render={() => (
-              <FormItem>
-                <FormLabel>Residencias Disponibles</FormLabel>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="selectAll"
-                      checked={selectedResidencias.length === residencias.length}
-                      onCheckedChange={handleSelectAllResidencias}
-                    />
-                    <label
-                      htmlFor="selectAll"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Seleccionar todas las residencias
-                    </label>
-                  </div>
-                  <div className="grid gap-2">
-                    {residencias.map((residencia) => (
-                      <div key={residencia.id} className="flex items-center space-x-2">
-                        <FormField
-                          control={control}
-                          name="residenciaIds"
-                          render={({ field }) => (
-                            <Checkbox
-                              id={`residencia-${residencia.id}`}
-                              checked={field.value?.includes(residencia.id)}
-                              onCheckedChange={(checked) => {
-                                const updatedValue = checked
-                                  ? [...(field.value || []), residencia.id]
-                                  : field.value?.filter((id: string) => id !== residencia.id) || [];
-                                field.onChange(updatedValue);
-                              }}
-                            />
-                          )}
-                        />
-                        <label
-                          htmlFor={`residencia-${residencia.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {residencia.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <FormDescription>
-                  Selecciona las residencias donde este servicio estará disponible.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  return renderStep();
 };
 
 export default ServiceFormFields;

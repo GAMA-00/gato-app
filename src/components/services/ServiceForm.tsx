@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -57,6 +57,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   initialData,
   onDelete
 }) => {
+  // Estado para controlar el paso actual del wizard
+  const [currentStep, setCurrentStep] = useState(0);
+  const steps = ['basic', 'profile', 'service'];
+  
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: initialData ? {
@@ -120,6 +124,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     }
   };
   
+  const nextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+  
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-4 sm:p-6">
@@ -137,7 +153,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
             <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
               <ScrollArea className="flex-grow px-1 pb-20 sm:pb-6">
                 <div className="space-y-6 pb-4">
-                  <ServiceFormFields />
+                  <ServiceFormFields currentStep={currentStep} />
                 </div>
               </ScrollArea>
               
@@ -147,6 +163,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                   onDelete={onDelete}
                   initialData={initialData}
                   onCancel={onClose}
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  onNext={nextStep}
+                  onPrev={prevStep}
                 />
               </div>
             </form>

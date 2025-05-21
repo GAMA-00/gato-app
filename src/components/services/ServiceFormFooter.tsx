@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Trash, Check, X } from 'lucide-react';
+import { Trash, Check, X, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Service } from '@/lib/types';
@@ -11,13 +11,21 @@ interface ServiceFormFooterProps {
   onDelete?: (service: Service) => void;
   initialData?: Service;
   onCancel: () => void;
+  currentStep: number;
+  totalSteps: number;
+  onNext: () => void;
+  onPrev: () => void;
 }
 
 const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   isEditing,
   onDelete,
   initialData,
-  onCancel
+  onCancel,
+  currentStep,
+  totalSteps,
+  onNext,
+  onPrev
 }) => {
   const isMobile = useIsMobile();
   
@@ -27,9 +35,12 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
     }
   };
   
+  const isFirstStep = currentStep === 0;
+  const isLastStep = currentStep === totalSteps - 1;
+  
   return (
     <DialogFooter className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-3 w-full items-center`}>
-      {isEditing && onDelete && initialData ? (
+      {isEditing && onDelete && initialData && isLastStep ? (
         <Button 
           type="button" 
           variant="destructive" 
@@ -42,6 +53,18 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
       ) : <div className={isMobile ? 'hidden' : 'block'} />}
       
       <div className={`flex gap-2 ${isMobile ? 'w-full flex-col' : 'ml-auto flex-row'}`}>
+        {!isFirstStep && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onPrev}
+            className={isMobile ? 'w-full' : 'min-w-[120px]'}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Anterior
+          </Button>
+        )}
+        
         <Button 
           type="button" 
           variant="outline" 
@@ -51,13 +74,25 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           <X className="h-4 w-4 mr-2" />
           Cancelar
         </Button>
-        <Button 
-          type="submit"
-          className={isMobile ? 'w-full' : 'min-w-[120px]'}
-        >
-          <Check className="h-4 w-4 mr-2" />
-          {isEditing ? 'Guardar Cambios' : 'Crear Servicio'}
-        </Button>
+        
+        {!isLastStep ? (
+          <Button 
+            type="button"
+            onClick={onNext}
+            className={isMobile ? 'w-full' : 'min-w-[120px]'}
+          >
+            Siguiente
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        ) : (
+          <Button 
+            type="submit"
+            className={isMobile ? 'w-full' : 'min-w-[120px]'}
+          >
+            <Check className="h-4 w-4 mr-2" />
+            {isEditing ? 'Guardar Cambios' : 'Crear Servicio'}
+          </Button>
+        )}
       </div>
     </DialogFooter>
   );
