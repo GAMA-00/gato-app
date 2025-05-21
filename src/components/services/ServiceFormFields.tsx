@@ -60,14 +60,19 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
   
   // Fix for createObjectURL - safely create URL for files
   const safeCreateObjectURL = (file: unknown): string | null => {
-    // Check if the file is a valid Blob or File object
-    if (file && (file instanceof Blob || (typeof File !== 'undefined' && file instanceof File))) {
-      return URL.createObjectURL(file as Blob);
+    // Check if file is a Blob (which includes File objects)
+    if (file && typeof Blob !== 'undefined' && file instanceof Blob) {
+      return URL.createObjectURL(file);
     }
     
     // If it's a string, it might already be a URL
     if (typeof file === 'string') {
       return file;
+    }
+    
+    // If it has a url property (for already uploaded files)
+    if (file && typeof file === 'object' && 'url' in file && typeof file.url === 'string') {
+      return file.url;
     }
     
     return null;
@@ -230,7 +235,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
     return () => {
       // Clean up any created object URLs to prevent memory leaks
       certificationFiles.forEach(fileObj => {
-        if (fileObj.preview) {
+        if (fileObj.preview && typeof fileObj.preview === 'string' && fileObj.preview.startsWith('blob:')) {
           URL.revokeObjectURL(fileObj.preview);
         }
       });
@@ -532,7 +537,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                                 onClick={() => {
                                   const newFiles = [...field.value];
                                   // Revoke the URL to prevent memory leaks
-                                  if (fileUrl && (typeof file !== 'string')) {
+                                  if (fileUrl && typeof fileUrl === 'string' && fileUrl.startsWith('blob:')) {
                                     URL.revokeObjectURL(fileUrl);
                                   }
                                   newFiles.splice(i, 1);
