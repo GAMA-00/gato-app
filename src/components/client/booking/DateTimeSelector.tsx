@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays, isSameDay, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,8 +111,21 @@ const DateTimeSelector = ({
           }
         });
 
-        // Filter available times
-        const available = allTimeSlots.filter(time => !bookedTimes.has(time));
+        // Get available times (not booked)
+        let available = allTimeSlots.filter(time => !bookedTimes.has(time));
+        
+        // If today is selected, filter out past times plus an hour buffer
+        const now = new Date();
+        if (isSameDay(selectedDate, now)) {
+          // Calculate minimum hour (current hour + 1)
+          const minTimeHour = now.getHours() + 1;
+          
+          // Filter times to only include those at least an hour from now
+          available = available.filter(time => {
+            const timeHour = parseInt(time.split(':')[0], 10);
+            return timeHour >= minTimeHour;
+          });
+        }
         
         // Convert to 12-hour format for display
         const formattedAvailableTimes = available.map(formatTo12Hour);
@@ -140,6 +153,18 @@ const DateTimeSelector = ({
 
   // Display the selected time in 12-hour format
   const displayTime = selectedTime ? formatTo12Hour(selectedTime) : undefined;
+
+  // Create a message for today's time slots
+  const getTimeSlotsMessage = () => {
+    if (!selectedDate) return "";
+    
+    const now = new Date();
+    if (isSameDay(selectedDate, now) && availableTimes.length === 0) {
+      return "No quedan horarios disponibles para hoy. Por favor selecciona otro día.";
+    }
+    
+    return availableTimes.length === 0 ? "No hay horarios disponibles para esta fecha" : "";
+  };
 
   return (
     <Card className="mb-4">
@@ -175,7 +200,7 @@ const DateTimeSelector = ({
                   onDateChange(date);
                   onTimeChange(undefined); // Reset time when date changes
                 }}
-                disabled={(date) => date < new Date() || date > addDays(new Date(), 30)}
+                disabled={(date) => date < new Date() && !isSameDay(date, new Date()) || date > addDays(new Date(), 30)}
                 initialFocus
                 locale={es}
                 className="pointer-events-auto"
@@ -212,7 +237,7 @@ const DateTimeSelector = ({
               <SelectContent>
                 {availableTimes.length === 0 && selectedDate ? (
                   <div className="p-2 text-center text-sm text-muted-foreground">
-                    No hay horarios disponibles para esta fecha
+                    {getTimeSlotsMessage()}
                   </div>
                 ) : (
                   availableTimes.map((time) => (
