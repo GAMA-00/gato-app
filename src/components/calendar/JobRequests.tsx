@@ -26,15 +26,15 @@ const JobRequests: React.FC<JobRequestsProps> = ({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
-  // Solo mostrar componente para proveedores
+  // Only show component for providers
   if (user?.role !== 'provider') return null;
   
-  // Filtrar solicitudes pendientes
+  // Filter pending requests
   const pendingRequests = appointments.filter((appointment: any) => 
     appointment.status === 'pending'
   );
   
-  console.log("Pending requests in component:", pendingRequests);
+  console.log("Pending requests in JobRequests component:", pendingRequests);
   
   const handleAccept = async (request: any) => {
     try {
@@ -78,18 +78,18 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
 
-  // Función para obtener el nombre del cliente con sistema de fallback mejorado
+  // Function to get client name with improved fallback
   const getClientName = (request: any) => {
-    // 1. Primero intentamos con la columna client_name
+    // First try client_name column
     if (request.client_name) {
       return request.client_name;
     }
     
-    // 2. Fallback final
+    // Final fallback
     return 'Cliente sin nombre';
   };
 
-  // Función auxiliar para obtener las iniciales del nombre
+  // Helper function to get initials from name
   const getInitials = (name: string) => {
     if (!name || name === 'Cliente sin nombre') return 'CL';
     
@@ -123,7 +123,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
           <div className="space-y-4">
             {pendingRequests.map((request: any) => {
               const clientName = getClientName(request);
-              console.log("Request data:", request); // Log para depuración
+              console.log("Request data in card:", request);
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
@@ -168,7 +168,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                           </TableCell>
                         </TableRow>
                         
-                        {/* Información del apartamento */}
+                        {/* Apartment information */}
                         {request.apartment && (
                           <TableRow className="border-0">
                             <TableCell className="p-1 pl-0 pr-2">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -124,6 +125,14 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
     }
   };
   
+  // Improved provider name display
+  const getProviderName = () => {
+    if (booking.providerName) {
+      return booking.providerName;
+    }
+    return 'Proveedor';
+  };
+  
   return (
     <Card className="mb-4 overflow-hidden animate-scale-in">
       <CardContent className="p-4">
@@ -167,7 +176,7 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
           
           <div className="text-sm">
             <span className="text-muted-foreground">Proveedor:</span>{' '}
-            <span className="font-medium truncate block">{booking.providerName}</span>
+            <span className="font-medium truncate block">{getProviderName()}</span>
           </div>
           
           {/* Show rating component for completed appointments that haven't been rated yet */}

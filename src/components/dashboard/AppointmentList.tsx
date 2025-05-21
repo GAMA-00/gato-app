@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AppointmentListProps {
   appointments: any[];
@@ -25,6 +26,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   isPending = false
 }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   // Filter out completed appointments for the "Today's appointments" list
   const filteredAppointments = appointments.filter(appointment => {
@@ -79,26 +81,28 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     }
   };
 
-  // Helper function to get client name with fallback
-  const getClientName = (appointment: any) => {
-    // Usar directamente client_name que viene de la DB
-    if (appointment.client_name) {
-      return appointment.client_name;
+  // Helper function to get the appropriate name based on user role
+  const getDisplayName = (appointment: any) => {
+    // If current user is a provider, show client name
+    if (user?.role === 'provider') {
+      // Use client_name from appointment (should be populated from database)
+      if (appointment.client_name) {
+        return appointment.client_name;
+      }
+      
+      // Final fallback 
+      return 'Cliente sin nombre';
+    } 
+    // If current user is a client, show provider name
+    else {
+      // Use provider_name from appointment (should be populated from database)
+      if (appointment.provider_name) {
+        return appointment.provider_name;
+      }
+      
+      // Final fallback
+      return 'Proveedor desconocido';
     }
-
-    // Fallback final
-    return 'Cliente sin nombre';
-  };
-
-  // Helper function to get provider name with fallback
-  const getProviderName = (appointment: any) => {
-    // Usar directamente provider_name que viene de la DB
-    if (appointment.provider_name) {
-      return appointment.provider_name;
-    }
-
-    // Fallback final
-    return 'Proveedor desconocido';
   };
 
   // Helper function to get service name with fallback
@@ -154,8 +158,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
         {filteredAppointments.length > 0 ? (
           <div className="divide-y">
             {filteredAppointments.map((appointment) => {
-              console.log("Appointment in list:", appointment); // Log para depuración
-              const displayName = getClientName(appointment);
+              const displayName = getDisplayName(appointment);
               const serviceName = getServiceName(appointment);
               
               return (

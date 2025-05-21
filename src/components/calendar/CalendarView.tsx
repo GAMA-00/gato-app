@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -9,11 +10,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Status color mapping
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Verde
-  pending:      { bg: "#FFF3E0", border: "#FF9100", text: "#924C00" }, // Naranja
-  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" },       // Gris
-  rejected:     { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }, // Rojo
-  cancelled:    { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }  // Rojo
+  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Green
+  pending:      { bg: "#FFF3E0", border: "#FF9100", text: "#924C00" }, // Orange
+  completed:    { bg: "#EEE", border: "#8E9196", text: "#555" },       // Grey
+  rejected:     { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }, // Red
+  cancelled:    { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }  // Red
 };
 
 interface CalendarAppointmentProps {
@@ -29,19 +30,19 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
 }) => {
   const { user } = useAuth();
   
-  // Convertir correctamente las horas de inicio y fin
+  // Convert start and end times correctly
   const startTime = new Date(appointment.start_time);
   const endTime = new Date(appointment.end_time);
   
-  // Calcular la posición desde la medianoche en minutos (8AM = 480 minutos)
+  // Calculate position from midnight in minutes (8AM = 480 minutes)
   const startHour = startTime.getHours();
   const startMinutes = startTime.getMinutes();
   const minutesFromMidnight = (startHour * 60) + startMinutes;
   
-  // Ajustar la posición para comenzar a las 8 AM (restamos 480 minutos = 8 horas)
+  // Adjust position to start at 8 AM (subtract 480 minutes = 8 hours)
   const positionFromTop = minutesFromMidnight - 480;
   
-  // Calcular duración en minutos
+  // Calculate duration in minutes
   const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
@@ -50,14 +51,14 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   const getPersonName = () => {
     // For client view (looking at provider's name)
     if (user?.role === 'client') {
-      // Mostrar nombre del proveedor para clientes
+      // Show provider name for clients
       if (appointment.provider_name) {
         return appointment.provider_name;
       } else {
         return 'Proveedor';
       }
     } else {
-      // Mostrar nombre del cliente para proveedores
+      // Show client name for providers
       if (appointment.client_name) {
         return appointment.client_name;
       } else {
