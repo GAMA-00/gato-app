@@ -330,7 +330,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                       <Avatar className="h-16 w-16">
                         {field.value ? (
                           <AvatarImage 
-                            src={field.value instanceof File ? safeCreateObjectURL(field.value) : null} 
+                            src={typeof field.value === 'object' ? safeCreateObjectURL(field.value) : field.value} 
                             alt="Profile preview" 
                           />
                         ) : (
@@ -510,31 +510,34 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                         />
                       </label>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {field.value && Array.isArray(field.value) && field.value.map((file: File, i: number) => (
-                          <div key={i} className="relative">
-                            <img 
-                              src={file instanceof File ? safeCreateObjectURL(file) : null} 
-                              alt={`Gallery image ${i}`}
-                              className="h-16 w-16 object-cover rounded" 
-                            />
-                            <button
-                              type="button"
-                              className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                              onClick={() => {
-                                const newFiles = [...field.value];
-                                // Revoke the URL to prevent memory leaks
-                                if (file instanceof File) {
-                                  const objectUrl = safeCreateObjectURL(file);
-                                  if (objectUrl) URL.revokeObjectURL(objectUrl);
-                                }
-                                newFiles.splice(i, 1);
-                                field.onChange(newFiles);
-                              }}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
+                        {field.value && Array.isArray(field.value) && field.value.map((file: File, i: number) => {
+                          // Only create URLs for actual File objects
+                          const fileUrl = file instanceof File ? safeCreateObjectURL(file) : null;
+                          return (
+                            <div key={i} className="relative">
+                              <img 
+                                src={fileUrl} 
+                                alt={`Gallery image ${i}`}
+                                className="h-16 w-16 object-cover rounded" 
+                              />
+                              <button
+                                type="button"
+                                className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                onClick={() => {
+                                  const newFiles = [...field.value];
+                                  // Revoke the URL to prevent memory leaks
+                                  if (file instanceof File && fileUrl) {
+                                    URL.revokeObjectURL(fileUrl);
+                                  }
+                                  newFiles.splice(i, 1);
+                                  field.onChange(newFiles);
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </FormControl>
