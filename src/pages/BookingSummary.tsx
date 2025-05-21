@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -283,8 +284,17 @@ const BookingSummary = () => {
     ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
     : 'No seleccionada';
     
-  // Format time if exists
-  const formattedTime = selectedTime || 'No seleccionada';
+  // Format time in 12-hour format if exists
+  const formatTimeTo12Hour = (time24: string | undefined): string => {
+    if (!time24) return 'No seleccionada';
+    
+    const [hours, minutes] = time24.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+  
+  const formattedTime = formatTimeTo12Hour(selectedTime);
 
   return (
     <PageContainer
@@ -301,12 +311,13 @@ const BookingSummary = () => {
       }
     >
       <div className="max-w-lg mx-auto">
-        {/* Date and Time Selector */}
+        {/* Date and Time Selector with provider ID */}
         <DateTimeSelector 
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           selectedTime={selectedTime}
           onTimeChange={setSelectedTime}
+          providerId={bookingData.providerId}
         />
         
         <Card className="shadow-md">
