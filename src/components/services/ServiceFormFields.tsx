@@ -174,6 +174,12 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
       return;
     }
     
+    // Create preview only for image types
+    let preview = null;
+    if (file.type.startsWith('image/')) {
+      preview = URL.createObjectURL(file);
+    }
+    
     // Add file to form state
     const newFiles = [...certificationFiles, {
       id: uuidv4(),
@@ -181,13 +187,19 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
       name: file.name,
       size: file.size,
       type: file.type,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+      preview: preview
     }];
     
     setValue('certificationFiles', newFiles);
   };
   
   const removeCertificationFile = (id: string) => {
+    // First revoke any object URLs to prevent memory leaks
+    const fileToRemove = certificationFiles.find(f => f.id === id);
+    if (fileToRemove && fileToRemove.preview) {
+      URL.revokeObjectURL(fileToRemove.preview);
+    }
+    
     const newFiles = certificationFiles.filter(f => f.id !== id);
     setValue('certificationFiles', newFiles);
   };
@@ -197,6 +209,26 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  // Fix for createObjectURL - safely create URL for files
+  const safeCreateObjectURL = (file: any) => {
+    if (file instanceof File || file instanceof Blob) {
+      return URL.createObjectURL(file);
+    }
+    return null;
+  };
+
+  // Safely clean up object URLs when component unmounts
+  React.useEffect(() => {
+    return () => {
+      // Clean up any created object URLs to prevent memory leaks
+      certificationFiles.forEach(fileObj => {
+        if (fileObj.preview) {
+          URL.revokeObjectURL(fileObj.preview);
+        }
+      });
+    };
+  }, []);
 
   // Renderizado condicional basado en el paso actual
   const renderStep = () => {
@@ -297,7 +329,10 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                     <div className="flex items-center gap-4">
                       <Avatar className="h-16 w-16">
                         {field.value ? (
-                          <AvatarImage src={URL.createObjectURL(field.value)} alt="Profile preview" />
+                          <AvatarImage 
+                            src={field.value instanceof File ? safeCreateObjectURL(field.value) : null} 
+                            alt="Profile preview" 
+                          />
                         ) : (
                           <AvatarFallback className="text-lg">
                             {field.value?.name?.charAt(0) || '?'}
@@ -412,7 +447,11 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                                     <button 
                                       type="button" 
                                       className="absolute bottom-1 right-1 text-muted-foreground hover:text-primary"
-                                      onClick={() => window.open(certFile.preview, '_blank')}
+                                      onClick={() => {
+                                        if (certFile.preview) {
+                                          window.open(certFile.preview, '_blank')
+                                        }
+                                      }}
                                     >
                                       <Eye className="h-3.5 w-3.5" />
                                     </button>
@@ -474,7 +513,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                         {field.value && Array.isArray(field.value) && field.value.map((file: File, i: number) => (
                           <div key={i} className="relative">
                             <img 
-                              src={URL.createObjectURL(file)} 
+                              src={file instanceof File ? safeCreateObjectURL(file) : null} 
                               alt={`Gallery image ${i}`}
                               className="h-16 w-16 object-cover rounded" 
                             />
@@ -483,6 +522,11 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                               className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                               onClick={() => {
                                 const newFiles = [...field.value];
+                                // Revoke the URL to prevent memory leaks
+                                if (file instanceof File) {
+                                  const objectUrl = safeCreateObjectURL(file);
+                                  if (objectUrl) URL.revokeObjectURL(objectUrl);
+                                }
                                 newFiles.splice(i, 1);
                                 field.onChange(newFiles);
                               }}
