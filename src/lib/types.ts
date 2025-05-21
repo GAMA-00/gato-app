@@ -96,6 +96,7 @@ export interface Appointment {
   apartment?: string;
   serviceName?: string;
   clientName?: string;
+  providerName?: string;
   adminNotes?: string;
   lastModifiedBy?: string;
   lastModifiedAt?: Date;

@@ -21,13 +21,16 @@ const AppointmentItem: React.FC<AppointmentItemProps> = ({
     return name.split(' ').map(n => n[0]).join('');
   };
 
-  // Determine whose initials and name to display based on the context
-  let displayName = client.name;
-  // Check if we're in provider view (showing client name) or client view (showing provider name)
-  const isClientView = appointment.providerId !== client.id;
+  // Get the appropriate display name based on appointment data
+  let displayName = '';
   
-  if (isClientView && service.providerName) {
-    displayName = service.providerName;
+  // For client view (looking at provider's name)
+  if (appointment.providerId !== client.id && appointment.serviceName) {
+    displayName = appointment.providerName || service.providerName || 'Proveedor desconocido';
+  } 
+  // For provider view (looking at client's name)
+  else {
+    displayName = appointment.clientName || client.name || 'Cliente sin nombre';
   }
   
   const initials = getInitials(displayName);
@@ -59,8 +62,8 @@ const AppointmentItem: React.FC<AppointmentItemProps> = ({
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground mt-1">
           <span className="truncate">
-            {/* Show provider name for client view, otherwise show client name for provider view */}
-            {isClientView ? service.providerName : client.name} • {client.phone}
+            {/* Show the appropriate name based on context */}
+            {displayName} • {client.phone}
           </span>
           <span className="truncate">
             {format(appointment.startTime, 'MMM d, h:mm a')} - {format(appointment.endTime, 'h:mm a')}

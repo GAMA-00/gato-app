@@ -81,12 +81,29 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
 
   // Helper function to get client name with fallback
   const getClientName = (appointment: any) => {
-    // First check if we have a clients object with name
+    // First check if we have the new client_name field
+    if (appointment.client_name) {
+      return appointment.client_name;
+    }
+    // Next check if we have a clients object with name
     if (appointment.clients?.name) {
       return appointment.clients.name;
     }
     // If not, try to fall back to other possible client name fields
     return 'Cliente sin nombre';
+  };
+
+  // Helper function to get provider name with fallback
+  const getProviderName = (appointment: any) => {
+    // First check if we have the new provider_name field
+    if (appointment.provider_name) {
+      return appointment.provider_name;
+    }
+    // If not, try to fall back to other possible provider name fields
+    if (appointment.providers?.name) {
+      return appointment.providers.name;
+    }
+    return 'Proveedor desconocido';
   };
 
   // Helper function to get service name with fallback

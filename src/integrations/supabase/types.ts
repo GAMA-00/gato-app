@@ -15,6 +15,7 @@ export type Database = {
           apartment: string | null
           cancellation_time: string | null
           client_id: string
+          client_name: string | null
           created_at: string
           end_time: string
           id: string
@@ -23,6 +24,7 @@ export type Database = {
           listing_id: string
           notes: string | null
           provider_id: string
+          provider_name: string | null
           recurrence: string | null
           refund_percentage: number | null
           residencia_id: string
@@ -34,6 +36,7 @@ export type Database = {
           apartment?: string | null
           cancellation_time?: string | null
           client_id: string
+          client_name?: string | null
           created_at?: string
           end_time: string
           id?: string
@@ -42,6 +45,7 @@ export type Database = {
           listing_id: string
           notes?: string | null
           provider_id: string
+          provider_name?: string | null
           recurrence?: string | null
           refund_percentage?: number | null
           residencia_id: string
@@ -53,6 +57,7 @@ export type Database = {
           apartment?: string | null
           cancellation_time?: string | null
           client_id?: string
+          client_name?: string | null
           created_at?: string
           end_time?: string
           id?: string
@@ -61,6 +66,7 @@ export type Database = {
           listing_id?: string
           notes?: string | null
           provider_id?: string
+          provider_name?: string | null
           recurrence?: string | null
           refund_percentage?: number | null
           residencia_id?: string
