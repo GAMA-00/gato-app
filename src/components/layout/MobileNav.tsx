@@ -19,10 +19,6 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
-  const handleLogin = () => {
-    navigate('/login');
-  };
-  
   return (
     <div className="w-full h-16 fixed top-0 left-0 z-50 border-b bg-white py-2 px-4 flex items-center justify-between">
       <div className="flex items-center">
@@ -56,19 +52,7 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
               </p>
             </div>
             
-            {!isAuthenticated && (
-              <div className="p-4">
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start bg-white text-xs"
-                  onClick={handleLogin}
-                >
-                  <LogIn className="mr-1.5 h-3.5 w-3.5" />
-                  Iniciar Sesión
-                </Button>
-              </div>
-            )}
+            {/* Removed the duplicate login button that was here */}
             
             <Button 
               variant="outline"
