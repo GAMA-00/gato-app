@@ -395,6 +395,58 @@ export type Database = {
           },
         ]
       }
+      provider_ratings: {
+        Row: {
+          appointment_id: string
+          client_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          provider_id: string
+          rating: number
+        }
+        Insert: {
+          appointment_id: string
+          client_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          provider_id: string
+          rating: number
+        }
+        Update: {
+          appointment_id?: string
+          client_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          provider_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_ratings_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_ratings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_ratings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_residencias: {
         Row: {
           created_at: string

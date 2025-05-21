@@ -37,13 +37,16 @@ const RatingStars = ({
     setIsSubmitting(true);
     
     try {
-      // Use RPC call to submit rating instead of direct table access
-      const { error } = await supabase.rpc('submit_provider_rating', {
-        p_provider_id: providerId,
-        p_client_id: user.id,
-        p_appointment_id: appointmentId,
-        p_rating: rating
-      });
+      // Use RPC call to submit rating
+      const { error } = await supabase.rpc(
+        'submit_provider_rating', 
+        {
+          p_provider_id: providerId,
+          p_client_id: user.id,
+          p_appointment_id: appointmentId,
+          p_rating: rating
+        }
+      );
         
       if (error) throw error;
       

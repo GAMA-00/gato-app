@@ -148,22 +148,21 @@ export function useClientBookings() {
           
         console.log("Residencias data:", residencias);
         
-        // Get rated appointments using a raw query to check if each appointment has a rating
-        // Instead of directly querying the provider_ratings table (which TypeScript doesn't know about yet)
+        // Get rated appointments using RPC function
+        let ratedAppointmentIds = new Set<string>();
         const appointmentIds = appointments.map(a => a.id);
         
-        // First check if we can query the table (safely handle the case where the table doesn't exist yet)
-        let ratedAppointmentIds = new Set<string>();
-        
         try {
-          const { data: ratingData, error: ratingError } = await supabase.rpc('get_rated_appointments', {
-            appointment_ids: appointmentIds
-          });
+          const { data: ratingData, error: ratingError } = await supabase.rpc(
+            'get_rated_appointments',
+            { appointment_ids: appointmentIds }
+          );
           
           if (!ratingError && ratingData) {
             ratedAppointmentIds = new Set(ratingData.map((r: any) => r.appointment_id));
+            console.log("Rated appointments:", ratedAppointmentIds);
           } else {
-            console.log("Could not get ratings, possibly table doesn't exist yet:", ratingError);
+            console.log("Could not get ratings:", ratingError);
           }
         } catch (err) {
           console.log("Error checking for ratings:", err);
