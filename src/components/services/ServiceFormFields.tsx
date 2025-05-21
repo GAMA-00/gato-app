@@ -490,7 +490,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                         />
                       </label>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {field.value?.map((file: File, i: number) => (
+                        {field.value && Array.isArray(field.value) && field.value.map((file: File, i: number) => (
                           <div key={i} className="relative">
                             <img 
                               src={URL.createObjectURL(file)} 
