@@ -39,34 +39,24 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   const isLastStep = currentStep === totalSteps - 1;
   
   return (
-    <div className="w-full space-y-4"> {/* Increased spacing between button groups */}
-      <div className="flex justify-between items-center">
+    <div className="w-full space-y-3">
+      <div className="flex justify-between items-center mb-2">
         <div className="text-sm text-muted-foreground">
           Paso {currentStep + 1} de {totalSteps}
         </div>
       </div>
 
-      {isEditing && onDelete && initialData && isLastStep ? (
-        <Button 
-          type="button" 
-          variant="destructive" 
-          onClick={handleDelete}
-          className="w-full h-12" // Increased button height
-        >
-          <Trash className="h-5 w-5 mr-2" /> 
-          Eliminar Servicio
-        </Button>
-      ) : null}
-      
-      <div className="grid gap-3 w-full"> {/* Increased gap for better spacing */}
+      {/* Botones de navegación en línea horizontal */}
+      <div className="flex gap-2 w-full">
         {!isFirstStep && (
           <Button 
             type="button" 
             variant="outline" 
             onClick={onPrev}
-            className="w-full h-12" // Increased button height
+            className="flex-1"
+            size="sm"
           >
-            <ArrowLeft className="h-5 w-5 mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-1" />
             Anterior
           </Button>
         )}
@@ -75,9 +65,10 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          className="w-full h-12" // Increased button height
+          className={isFirstStep ? "flex-1" : "flex-1"}
+          size="sm"
         >
-          <X className="h-5 w-5 mr-2" />
+          <X className="h-4 w-4 mr-1" />
           Cancelar
         </Button>
         
@@ -85,21 +76,37 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           <Button 
             type="button"
             onClick={onNext}
-            className="w-full h-12" // Increased button height
+            className="flex-1"
+            size="sm"
           >
             Siguiente
-            <ArrowRight className="h-5 w-5 ml-2" />
+            <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
           <Button 
             type="submit"
-            className="w-full h-12" // Increased button height
+            className="flex-1"
+            size="sm"
           >
-            <Check className="h-5 w-5 mr-2" />
-            {isEditing ? 'Guardar Cambios' : 'Crear Servicio'}
+            <Check className="h-4 w-4 mr-1" />
+            {isEditing ? 'Guardar' : 'Crear'}
           </Button>
         )}
       </div>
+
+      {/* Botón de eliminar separado debajo si estamos editando y en el último paso */}
+      {isEditing && onDelete && initialData && isLastStep && (
+        <Button 
+          type="button" 
+          variant="destructive" 
+          onClick={handleDelete}
+          className="w-full mt-2"
+          size="sm"
+        >
+          <Trash className="h-4 w-4 mr-2" /> 
+          Eliminar Servicio
+        </Button>
+      )}
     </div>
   );
 };
