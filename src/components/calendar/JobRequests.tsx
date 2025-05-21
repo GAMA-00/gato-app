@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,6 +77,18 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
 
+  // Función para obtener el nombre del cliente con fallback adecuado
+  const getClientName = (request: any) => {
+    return request.client_name || 
+           request.clients?.name || 
+           'Cliente sin nombre';
+  };
+
+  // Función auxiliar para obtener las iniciales del nombre
+  const getInitials = (name: string) => {
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
@@ -98,102 +109,106 @@ const JobRequests: React.FC<JobRequestsProps> = ({
           </div>
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
-            {pendingRequests.map((request: any) => (
-              <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
-                <div className="flex items-start gap-3 mb-3">
-                  <Avatar className="h-10 w-10 border border-amber-200 flex-shrink-0">
-                    <AvatarImage src={request.clients?.avatar_url} alt={request.clients?.name || 'Cliente'} />
-                    <AvatarFallback className="bg-amber-100 text-amber-800">
-                      {request.clients?.name ? request.clients.name.substring(0, 2).toUpperCase() : 'CL'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{request.clients?.name || 'Cliente sin nombre'}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {request.listings?.title || 'Servicio'}
+            {pendingRequests.map((request: any) => {
+              const clientName = getClientName(request);
+              
+              return (
+                <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Avatar className="h-10 w-10 border border-amber-200 flex-shrink-0">
+                      <AvatarImage src={request.clients?.avatar_url} alt={clientName} />
+                      <AvatarFallback className="bg-amber-100 text-amber-800">
+                        {getInitials(clientName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{clientName}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {request.listings?.title || 'Servicio'}
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="space-y-3 mb-3">
-                  <Table className="border-collapse">
-                    <TableBody>
-                      <TableRow className="border-0">
-                        <TableCell className="p-1 pl-0 pr-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                        </TableCell>
-                        <TableCell className="p-1 text-sm">
-                          <div>{format(new Date(request.start_time), 'PPP')}</div>
-                          <div className="text-muted-foreground">
-                            {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      
-                      <TableRow className="border-0">
-                        <TableCell className="p-1 pl-0 pr-2">
-                          <Building className="h-4 w-4 text-muted-foreground" />
-                        </TableCell>
-                        <TableCell className="p-1 text-sm">
-                          <div className="font-medium">
-                            {request.residencias?.name || 'Residencial no especificada'}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      
-                      {/* Información completa de la dirección */}
-                      <TableRow className="border-0">
-                        <TableCell className="p-1 pl-0 pr-2">
-                          <Home className="h-4 w-4 text-muted-foreground" />
-                        </TableCell>
-                        <TableCell className="p-1 text-sm space-y-1">
-                          {request.clients?.condominium_id && (
+                  
+                  <div className="space-y-3 mb-3">
+                    <Table className="border-collapse">
+                      <TableBody>
+                        <TableRow className="border-0">
+                          <TableCell className="p-1 pl-0 pr-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="p-1 text-sm">
+                            <div>{format(new Date(request.start_time), 'PPP')}</div>
                             <div className="text-muted-foreground">
-                              Condominio: {request.clients?.condominiums?.name || 'No especificado'}
+                              {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
                             </div>
-                          )}
-                          {request.clients?.house_number && (
-                            <div className="text-muted-foreground">
-                              Casa #: {request.clients?.house_number}
+                          </TableCell>
+                        </TableRow>
+                        
+                        <TableRow className="border-0">
+                          <TableCell className="p-1 pl-0 pr-2">
+                            <Building className="h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="p-1 text-sm">
+                            <div className="font-medium">
+                              {request.residencias?.name || 'Residencial no especificada'}
                             </div>
-                          )}
-                          {request.apartment && (
-                            <div className="text-muted-foreground">
-                              Apto: {request.apartment}
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-                
-                {request.notes && (
-                  <div className="text-sm bg-amber-100 p-3 rounded-md mb-3 overflow-hidden">
-                    <span className="font-medium">Notas: </span> 
-                    <span className="break-words">{request.notes}</span>
+                          </TableCell>
+                        </TableRow>
+                        
+                        {/* Información completa de la dirección */}
+                        <TableRow className="border-0">
+                          <TableCell className="p-1 pl-0 pr-2">
+                            <Home className="h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="p-1 text-sm space-y-1">
+                            {request.clients?.condominium_id && (
+                              <div className="text-muted-foreground">
+                                Condominio: {request.clients?.condominiums?.name || 'No especificado'}
+                              </div>
+                            )}
+                            {request.clients?.house_number && (
+                              <div className="text-muted-foreground">
+                                Casa #: {request.clients?.house_number}
+                              </div>
+                            )}
+                            {request.apartment && (
+                              <div className="text-muted-foreground">
+                                Apto: {request.apartment}
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
-                )}
-                
-                <div className="flex justify-end gap-2 mt-3">
-                  <Button 
-                    onClick={() => handleDecline(request.id)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center border-red-200 hover:bg-red-50 text-red-600"
-                  >
-                    <X className="w-4 h-4 mr-1" /> Rechazar
-                  </Button>
-                  <Button 
-                    onClick={() => handleAccept(request)}
-                    size="sm"
-                    className="flex items-center bg-green-600 hover:bg-green-700"
-                  >
-                    <Check className="w-4 h-4 mr-1" /> Aceptar
-                  </Button>
+                  
+                  {request.notes && (
+                    <div className="text-sm bg-amber-100 p-3 rounded-md mb-3 overflow-hidden">
+                      <span className="font-medium">Notas: </span> 
+                      <span className="break-words">{request.notes}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end gap-2 mt-3">
+                    <Button 
+                      onClick={() => handleDecline(request.id)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center border-red-200 hover:bg-red-50 text-red-600"
+                    >
+                      <X className="w-4 h-4 mr-1" /> Rechazar
+                    </Button>
+                    <Button 
+                      onClick={() => handleAccept(request)}
+                      size="sm"
+                      className="flex items-center bg-green-600 hover:bg-green-700"
+                    >
+                      <Check className="w-4 h-4 mr-1" /> Aceptar
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-6 text-muted-foreground">

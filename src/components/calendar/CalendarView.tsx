@@ -44,9 +44,11 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
   
-  // Display client/provider name and listing title
-  const personName = appointment.clients?.profiles?.name || 
-                    appointment.providers?.profiles?.name ||
+  // Usar los nuevos campos de client_name y provider_name con fallbacks
+  const personName = appointment.client_name || 
+                    appointment.provider_name || 
+                    appointment.clients?.name || 
+                    appointment.providers?.name ||
                     'Usuario';
   const serviceName = appointment.listings?.title || 'Servicio';
 

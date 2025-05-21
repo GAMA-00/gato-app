@@ -22,7 +22,7 @@ export function useAppointments() {
           // Para proveedores - obtenemos primero las citas
           const { data: appointments, error } = await supabase
             .from('appointments')
-            .select('*')
+            .select('*') // Esto incluirá automáticamente client_name y provider_name
             .eq('provider_id', user.id)
             .order('start_time');
             
@@ -91,7 +91,7 @@ export function useAppointments() {
           // Para clientes - mismo enfoque que para proveedores
           const { data: appointments, error } = await supabase
             .from('appointments')
-            .select('*')
+            .select('*') // Esto incluirá automáticamente client_name y provider_name
             .eq('client_id', user.id)
             .order('start_time');
             
