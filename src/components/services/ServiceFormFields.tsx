@@ -211,7 +211,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
   };
 
   // Fix for createObjectURL - safely create URL for files
-  const safeCreateObjectURL = (file: any) => {
+  const safeCreateObjectURL = (file: File | Blob | unknown): string | null => {
     if (file instanceof File || file instanceof Blob) {
       return URL.createObjectURL(file);
     }
