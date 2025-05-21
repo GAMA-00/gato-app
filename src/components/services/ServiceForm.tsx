@@ -91,6 +91,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   });
   
   const handleSubmit = (values: ServiceFormValues) => {
+    console.log("Form submitted with values:", values);
+    
     // Ensure serviceVariants meets the ServiceVariant interface requirements
     const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
       id: variant.id,
@@ -135,6 +137,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   };
   
   const submitForm = () => {
+    console.log("Submitting form...");
     form.handleSubmit(handleSubmit)();
   };
   
