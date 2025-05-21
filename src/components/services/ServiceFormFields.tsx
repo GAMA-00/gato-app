@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -58,6 +59,15 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
   ];
   const isMobile = useIsMobile();
   
+  // Fix for createObjectURL - safely create URL for files
+  const safeCreateObjectURL = (file: unknown): string | null => {
+    // Check if the file is a valid Blob or File object
+    if (file instanceof Blob) {
+      return URL.createObjectURL(file);
+    }
+    return null;
+  };
+
   // Fetch residencias from Supabase
   const { data: residencias = [] } = useQuery({
     queryKey: ['residencias'],
@@ -210,14 +220,6 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Fix for createObjectURL - safely create URL for files
-  const safeCreateObjectURL = (file: File | Blob | unknown): string | null => {
-    if (file instanceof File || file instanceof Blob) {
-      return URL.createObjectURL(file);
-    }
-    return null;
-  };
-
   // Safely clean up object URLs when component unmounts
   React.useEffect(() => {
     return () => {
@@ -330,7 +332,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                       <Avatar className="h-16 w-16">
                         {field.value ? (
                           <AvatarImage 
-                            src={typeof field.value === 'object' ? safeCreateObjectURL(field.value) : field.value} 
+                            src={field.value instanceof File ? safeCreateObjectURL(field.value) : field.value} 
                             alt="Profile preview" 
                           />
                         ) : (
@@ -510,16 +512,18 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                         />
                       </label>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {field.value && Array.isArray(field.value) && field.value.map((file: File, i: number) => {
+                        {field.value && Array.isArray(field.value) && field.value.map((file: any, i: number) => {
                           // Only create URLs for actual File objects
-                          const fileUrl = file instanceof File ? safeCreateObjectURL(file) : null;
+                          const fileUrl = file instanceof File ? safeCreateObjectURL(file) : (typeof file === 'string' ? file : null);
                           return (
                             <div key={i} className="relative">
-                              <img 
-                                src={fileUrl} 
-                                alt={`Gallery image ${i}`}
-                                className="h-16 w-16 object-cover rounded" 
-                              />
+                              {fileUrl && (
+                                <img 
+                                  src={fileUrl} 
+                                  alt={`Gallery image ${i}`}
+                                  className="h-16 w-16 object-cover rounded" 
+                                />
+                              )}
                               <button
                                 type="button"
                                 className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
@@ -743,3 +747,4 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
 };
 
 export default ServiceFormFields;
+
