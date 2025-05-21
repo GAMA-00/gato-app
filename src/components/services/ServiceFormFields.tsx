@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -520,22 +519,6 @@ const ServiceFormFields: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="service" className="space-y-6">
-          <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-            <div className="flex items-start gap-2">
-              <InfoIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <div className="space-y-2">
-                <p className="font-medium">Información importante sobre precios</p>
-                <p className="text-muted-foreground text-sm">
-                  La tarifa que estableces será exactamente el ingreso que recibes por hora de servicio. 
-                  Como plataforma, cobramos un 20% adicional al cliente que aparecerá en el listado de anuncios.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Ejemplo: Si estableces $100/hora como tu tarifa, el cliente verá $120/hora en el listado.
-                </p>
-              </div>
-            </div>
-          </div>
-
           <div className="border rounded-lg p-4">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-medium">Catálogo de servicios</h3>

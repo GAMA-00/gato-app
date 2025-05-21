@@ -122,7 +122,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}</DialogTitle>
           <DialogDescription>
@@ -135,18 +135,20 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         <FormProvider {...form}>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
-              <ScrollArea className="flex-grow px-1">
-                <div className="space-y-6 pb-6">
+              <ScrollArea className="flex-grow px-1 pb-20 sm:pb-6">
+                <div className="space-y-6 pb-4">
                   <ServiceFormFields />
                 </div>
               </ScrollArea>
               
-              <ServiceFormFooter 
-                isEditing={!!initialData}
-                onDelete={onDelete}
-                initialData={initialData}
-                onCancel={onClose}
-              />
+              <div className="sticky bottom-0 left-0 right-0 mt-4 bg-background py-3 border-t">
+                <ServiceFormFooter 
+                  isEditing={!!initialData}
+                  onDelete={onDelete}
+                  initialData={initialData}
+                  onCancel={onClose}
+                />
+              </div>
             </form>
           </Form>
         </FormProvider>
