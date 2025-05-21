@@ -40,6 +40,12 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === totalSteps - 1;
   
+  const handleSubmitClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevenir comportamiento por defecto
+    console.log("Submit button clicked");
+    onSubmit();
+  };
+  
   return (
     <div className="w-full space-y-3">
       <div className="flex justify-between items-center mb-2">
@@ -87,8 +93,8 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
         ) : (
           <Button 
             type="button"
-            onClick={onSubmit}
-            className="flex-1"
+            onClick={handleSubmitClick}
+            className="flex-1 bg-green-600 hover:bg-green-700"
             size="sm"
           >
             <Check className="h-4 w-4 mr-1" />

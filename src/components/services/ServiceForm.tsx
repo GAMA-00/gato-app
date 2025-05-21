@@ -93,33 +93,40 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   const handleSubmit = (values: ServiceFormValues) => {
     console.log("Form submitted with values:", values);
     
-    // Ensure serviceVariants meets the ServiceVariant interface requirements
-    const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
-      id: variant.id,
-      name: variant.name,
-      price: variant.price,
-      duration: variant.duration
-    })) || [];
+    try {
+      // Ensure serviceVariants meets the ServiceVariant interface requirements
+      const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
+        id: variant.id,
+        name: variant.name,
+        price: variant.price,
+        duration: variant.duration
+      })) || [];
 
-    // Extract price and duration from first service variant for base values
-    const baseVariant = formattedServiceVariants[0] || { price: 0, duration: 0 };
-    const basePrice = Number(baseVariant.price);
-    const baseDuration = Number(baseVariant.duration);
+      // Extract price and duration from first service variant for base values
+      const baseVariant = formattedServiceVariants[0] || { price: 0, duration: 0 };
+      const basePrice = Number(baseVariant.price);
+      const baseDuration = Number(baseVariant.duration);
 
-    onSubmit({
-      ...initialData,
-      ...values,
-      // Add these fields for compatibility with existing code
-      price: basePrice,
-      duration: baseDuration,
-      serviceVariants: formattedServiceVariants
-    });
-    onClose();
+      onSubmit({
+        ...initialData,
+        ...values,
+        // Add these fields for compatibility with existing code
+        price: basePrice,
+        duration: baseDuration,
+        serviceVariants: formattedServiceVariants
+      });
+      
+      toast.success('Formulario enviado correctamente');
+      onClose();
+    } catch (error) {
+      console.error('Error al enviar el formulario:', error);
+      toast.error('Error al enviar el formulario');
+    }
   };
   
-  const handleDelete = (service: Service) => {
-    if (onDelete) {
-      onDelete(service);
+  const handleDelete = () => {
+    if (onDelete && initialData) {
+      onDelete(initialData);
       onClose();
     }
   };
@@ -138,7 +145,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   const submitForm = () => {
     console.log("Submitting form...");
-    form.handleSubmit(handleSubmit)();
+    // Validar el formulario manualmente antes de enviarlo
+    form.trigger().then(isValid => {
+      console.log("Form validation result:", isValid);
+      if (isValid) {
+        // Si es válido, enviar el formulario
+        form.handleSubmit(handleSubmit)();
+      } else {
+        // Si no es válido, mostrar un mensaje de error
+        console.error("Formulario inválido:", form.formState.errors);
+        toast.error("Por favor completa todos los campos obligatorios");
+      }
+    });
   };
   
   return (
@@ -155,7 +173,11 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         
         <FormProvider {...form}>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Form onSubmit event triggered");
+              form.handleSubmit(handleSubmit)(e);
+            }} className="flex flex-col h-full">
               <div className="flex-grow px-4 sm:px-0 overflow-hidden mb-16 mt-2">
                 <ScrollArea className="h-[calc(80vh-160px)] pr-4">
                   <div className="py-6 space-y-8">
@@ -167,7 +189,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
               <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-4 sm:px-6 border-t w-full shadow-sm">
                 <ServiceFormFooter 
                   isEditing={!!initialData}
-                  onDelete={onDelete}
+                  onDelete={handleDelete}
                   initialData={initialData}
                   onCancel={onClose}
                   currentStep={currentStep}
