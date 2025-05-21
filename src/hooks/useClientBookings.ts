@@ -11,11 +11,13 @@ export type ClientBooking = {
   serviceName: string;
   subcategory: string;
   providerName: string;
+  providerId: string;
   buildingName: string;
   date: Date;
   duration: number;
   recurrence: string;
   status: string;
+  isRated: boolean;
 };
 
 export function useClientBookings() {
@@ -55,6 +57,55 @@ export function useClientBookings() {
         
         if (!appointments || appointments.length === 0) {
           return [];
+        }
+        
+        // Auto-update status of appointments that have ended but are still marked as confirmed
+        const now = new Date();
+        const appointmentsToUpdate = appointments.filter(
+          a => a.status === 'confirmed' && new Date(a.end_time) < now
+        );
+        
+        // If we have appointments that need to be marked as completed
+        if (appointmentsToUpdate.length > 0) {
+          console.log("Appointments to mark as completed:", appointmentsToUpdate);
+          
+          // Update appointments status in batch
+          for (const appointment of appointmentsToUpdate) {
+            const { error: updateError } = await supabase
+              .from('appointments')
+              .update({ status: 'completed' })
+              .eq('id', appointment.id);
+              
+            if (updateError) {
+              console.error("Error updating appointment status:", updateError);
+            }
+          }
+          
+          // Fetch the appointments again after updates
+          const { data: refreshedAppointments, error: refreshError } = await supabase
+            .from('appointments')
+            .select(`
+              id,
+              start_time,
+              end_time,
+              recurrence,
+              status,
+              listing_id,
+              provider_id,
+              residencia_id,
+              notes
+            `)
+            .eq('client_id', user.id)
+            .order('start_time');
+            
+          if (!refreshError) {
+            appointments.forEach((appointment, i) => {
+              const updated = refreshedAppointments?.find(a => a.id === appointment.id);
+              if (updated) {
+                appointments[i] = updated;
+              }
+            });
+          }
         }
         
         // Fetch related listing data
@@ -97,23 +148,38 @@ export function useClientBookings() {
           
         console.log("Residencias data:", residencias);
         
+        // Check if appointments are rated
+        const appointmentIds = appointments.map(a => a.id);
+        const { data: ratings } = await supabase
+          .from('provider_ratings')
+          .select('appointment_id')
+          .in('appointment_id', appointmentIds);
+          
+        console.log("Ratings data:", ratings);
+        
+        // Create a set of rated appointment IDs for faster lookup
+        const ratedAppointmentIds = new Set(ratings?.map(r => r.appointment_id) || []);
+        
         // Transform the data to match our UI requirements
         const clientBookings = appointments.map(appointment => {
           const listing = listings?.find(l => l.id === appointment.listing_id);
           const serviceType = serviceTypes?.find(st => st.id === listing?.service_type_id);
           const provider = providers?.find(p => p.id === appointment.provider_id);
           const residencia = residencias?.find(r => r.id === appointment.residencia_id);
+          const isRated = ratedAppointmentIds.has(appointment.id);
           
           return {
             id: appointment.id,
             serviceName: listing?.title || 'Servicio sin nombre',
             subcategory: serviceType?.name || 'Sin categoría',
             providerName: provider?.name || 'Proveedor desconocido',
+            providerId: appointment.provider_id,
             buildingName: residencia?.name || 'Edificio no especificado',
             date: new Date(appointment.start_time),
             duration: listing?.duration || 60,
             recurrence: appointment.recurrence || 'none',
-            status: appointment.status
+            status: appointment.status,
+            isRated
           };
         });
         
@@ -124,6 +190,7 @@ export function useClientBookings() {
         throw error;
       }
     },
-    enabled: !!user
+    enabled: !!user,
+    refetchInterval: 60000 // Refetch every minute to update statuses
   });
 }

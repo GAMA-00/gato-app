@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import AppointmentList from '@/components/dashboard/AppointmentList';
 import QuickStats from '@/components/dashboard/QuickStats';
@@ -9,15 +9,52 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useStats } from '@/hooks/useStats';
 import { startOfToday, startOfTomorrow, endOfTomorrow, startOfDay, endOfDay, addDays, isSameDay } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: appointments = [], isLoading: isLoadingAppointments } = useAppointments();
   const { data: stats, isLoading: isLoadingStats } = useStats();
+  const queryClient = useQueryClient();
   
   const today = startOfToday();
   const tomorrow = startOfTomorrow();
   const tomorrowEnd = endOfTomorrow();
+  
+  // Auto-update appointment statuses
+  useEffect(() => {
+    const updateAppointmentStatuses = async () => {
+      if (!user || !appointments.length) return;
+
+      const now = new Date();
+      const appointmentsToUpdate = appointments.filter(
+        app => app.status === 'confirmed' && new Date(app.end_time) < now
+      );
+
+      if (appointmentsToUpdate.length > 0) {
+        console.log("Updating status for completed appointments:", appointmentsToUpdate.length);
+        
+        // Update appointments to completed status
+        for (const app of appointmentsToUpdate) {
+          await supabase
+            .from('appointments')
+            .update({ status: 'completed' })
+            .eq('id', app.id);
+        }
+        
+        // Refresh appointments data
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      }
+    };
+    
+    updateAppointmentStatuses();
+    
+    // Set up an interval to check for completed appointments
+    const interval = setInterval(updateAppointmentStatuses, 60000); // Every minute
+    
+    return () => clearInterval(interval);
+  }, [user, appointments, queryClient]);
   
   // Filter appointments by day
   const todaysAppointments = appointments

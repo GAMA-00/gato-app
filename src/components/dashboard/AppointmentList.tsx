@@ -26,6 +26,23 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
 }) => {
   const queryClient = useQueryClient();
   
+  // Filter out completed appointments for the "Today's appointments" list
+  const filteredAppointments = appointments.filter(appointment => {
+    // For Today's appointments, filter out appointments that have ended
+    if (title.includes("Hoy") || title.includes("Mañana")) {
+      const now = new Date();
+      const endTime = new Date(appointment.end_time);
+      
+      // Also filter out completed/cancelled/rejected appointments
+      return endTime > now && 
+        appointment.status !== 'completed' && 
+        appointment.status !== 'cancelled' && 
+        appointment.status !== 'rejected';
+    }
+    
+    return true;
+  });
+  
   const handleAcceptAppointment = async (appointmentId: string) => {
     try {
       const { error } = await supabase
@@ -70,13 +87,13 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
           {title}
         </CardTitle>
         <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
-          {appointments.length} citas
+          {filteredAppointments.length} citas
         </span>
       </CardHeader>
       <CardContent>
-        {appointments.length > 0 ? (
+        {filteredAppointments.length > 0 ? (
           <div className="divide-y">
-            {appointments.map((appointment) => (
+            {filteredAppointments.map((appointment) => (
               <div key={appointment.id} className="p-4 border-b last:border-0">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
                   <div className="flex items-center min-w-0">

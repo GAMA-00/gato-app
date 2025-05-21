@@ -1,19 +1,160 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, X, Flame } from 'lucide-react';
+import { Calendar, Clock, X, Flame, Star } from 'lucide-react';
 import { cn, formatTo12Hour } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { useClientBookings, ClientBooking } from '@/hooks/useClientBookings';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
-const BookingCard = ({ booking }: { booking: ClientBooking }) => {
+const RatingStars = ({ 
+  appointmentId, 
+  providerId, 
+  onRated 
+}: { 
+  appointmentId: string; 
+  providerId: string; 
+  onRated: () => void 
+}) => {
+  const [rating, setRating] = useState<number>(0);
+  const [hoveredRating, setHoveredRating] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  const handleRatingSubmit = async () => {
+    if (!rating || !user) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Submit the rating
+      const { error } = await supabase
+        .from('provider_ratings')
+        .insert({
+          provider_id: providerId,
+          client_id: user.id,
+          appointment_id: appointmentId,
+          rating: rating,
+          created_at: new Date().toISOString()
+        });
+        
+      if (error) throw error;
+      
+      // Update provider's average rating
+      await updateProviderRating(providerId);
+      
+      toast.success('¡Gracias por calificar el servicio!');
+      onRated();
+      
+      // Refresh client bookings data
+      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+    } catch (error: any) {
+      toast.error(`Error al calificar: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const updateProviderRating = async (providerId: string) => {
+    try {
+      // Get all ratings for this provider
+      const { data, error } = await supabase
+        .from('provider_ratings')
+        .select('rating')
+        .eq('provider_id', providerId);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Calculate average rating
+        const sum = data.reduce((acc, curr) => acc + curr.rating, 0);
+        const avgRating = sum / data.length;
+        
+        // Update provider's average_rating
+        await supabase
+          .from('providers')
+          .update({ average_rating: avgRating })
+          .eq('id', providerId);
+      }
+    } catch (error) {
+      console.error("Error updating provider rating:", error);
+    }
+  };
+  
+  return (
+    <div className="py-3">
+      <p className="text-sm font-medium mb-2">Califica este servicio:</p>
+      <div className="flex items-center mb-3">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => setRating(star)}
+            onMouseEnter={() => setHoveredRating(star)}
+            onMouseLeave={() => setHoveredRating(0)}
+            className="focus:outline-none"
+            disabled={isSubmitting}
+          >
+            <Star
+              className={cn(
+                "w-8 h-8 transition-colors",
+                (hoveredRating || rating) >= star
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "text-gray-300"
+              )}
+            />
+          </button>
+        ))}
+      </div>
+      <Button 
+        onClick={handleRatingSubmit} 
+        disabled={!rating || isSubmitting} 
+        size="sm" 
+        className="w-full"
+      >
+        {isSubmitting ? 'Enviando...' : 'Enviar calificación'}
+      </Button>
+    </div>
+  );
+};
+
+const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: () => void }) => {
   const isRecurring = booking.recurrence !== 'none';
+  const isCompleted = booking.status === 'completed';
+  const queryClient = useQueryClient();
+  
+  const handleReschedule = () => {
+    toast.info("Función de reagendar en desarrollo");
+  };
+  
+  const handleCancel = async () => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'cancelled',
+          cancellation_time: new Date().toISOString()
+        })
+        .eq('id', booking.id);
+        
+      if (error) throw error;
+      
+      toast.success("Reserva cancelada exitosamente");
+      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+    } catch (error: any) {
+      toast.error(`Error al cancelar: ${error.message}`);
+    }
+  };
   
   return (
     <Card className="mb-4 overflow-hidden animate-scale-in">
@@ -30,9 +171,16 @@ const BookingCard = ({ booking }: { booking: ClientBooking }) => {
             </div>
             <div className={cn(
               "px-2 py-1 rounded-full text-xs font-medium flex-shrink-0",
-              booking.status === 'pending' || booking.status === 'confirmed' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+              booking.status === 'pending' ? "bg-yellow-100 text-yellow-800" : 
+              booking.status === 'confirmed' ? "bg-green-100 text-green-800" : 
+              booking.status === 'completed' ? "bg-blue-100 text-blue-800" : 
+              booking.status === 'cancelled' ? "bg-gray-100 text-gray-800" : 
+              "bg-gray-100 text-gray-800"
             )}>
-              {isRecurring ? 'Recurrente' : 'Una vez'}
+              {booking.status === 'pending' ? 'Pendiente' :
+               booking.status === 'confirmed' ? 'Confirmada' :
+               booking.status === 'completed' ? 'Completada' :
+               booking.status === 'cancelled' ? 'Cancelada' : 'Otra'}
             </div>
           </div>
           
@@ -54,24 +202,38 @@ const BookingCard = ({ booking }: { booking: ClientBooking }) => {
             <span className="font-medium truncate block">{booking.providerName}</span>
           </div>
           
-          <div className="flex gap-2 pt-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Reagendar</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-            >
-              <X className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">Cancelar</span>
-            </Button>
-          </div>
+          {/* Show rating component for completed appointments that haven't been rated yet */}
+          {isCompleted && !booking.isRated && (
+            <RatingStars 
+              appointmentId={booking.id} 
+              providerId={booking.providerId} 
+              onRated={onRated}
+            />
+          )}
+          
+          {/* Only show action buttons for upcoming appointments */}
+          {(booking.status === 'pending' || booking.status === 'confirmed') && (
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                onClick={handleReschedule}
+              >
+                <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
+                <span className="truncate">Reagendar</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                onClick={handleCancel}
+              >
+                <X className="h-4 w-4 mr-1 flex-shrink-0" />
+                <span className="truncate">Cancelar</span>
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -100,6 +262,7 @@ const BookingSkeleton = () => (
 
 const ClientBookings = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { count: recurringServicesCount } = useRecurringServices();
   const { data: bookings, isLoading, error } = useClientBookings();
   
@@ -111,6 +274,11 @@ const ClientBookings = () => {
   const pastBookings = bookings?.filter(booking => 
     booking.status === 'completed' || booking.status === 'cancelled'
   ) || [];
+  
+  const handleRated = () => {
+    // Refresh the data
+    queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+  };
 
   return (
     <PageContainer
@@ -149,7 +317,7 @@ const ClientBookings = () => {
           ) : upcomingBookings.length > 0 ? (
             <div>
               {upcomingBookings.map(booking => (
-                <BookingCard key={booking.id} booking={booking} />
+                <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
               ))}
             </div>
           ) : (
@@ -168,7 +336,7 @@ const ClientBookings = () => {
           ) : pastBookings.length > 0 ? (
             <div>
               {pastBookings.map(booking => (
-                <BookingCard key={booking.id} booking={booking} />
+                <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
               ))}
             </div>
           ) : (
