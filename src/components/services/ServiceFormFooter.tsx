@@ -39,28 +39,34 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   const isLastStep = currentStep === totalSteps - 1;
   
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-4"> {/* Increased spacing between button groups */}
+      <div className="flex justify-between items-center">
+        <div className="text-sm text-muted-foreground">
+          Paso {currentStep + 1} de {totalSteps}
+        </div>
+      </div>
+
       {isEditing && onDelete && initialData && isLastStep ? (
         <Button 
           type="button" 
           variant="destructive" 
           onClick={handleDelete}
-          className="w-full"
+          className="w-full h-12" // Increased button height
         >
-          <Trash className="h-4 w-4 mr-2" /> 
+          <Trash className="h-5 w-5 mr-2" /> 
           Eliminar Servicio
         </Button>
       ) : null}
       
-      <div className="flex flex-col gap-2 w-full">
+      <div className="grid gap-3 w-full"> {/* Increased gap for better spacing */}
         {!isFirstStep && (
           <Button 
             type="button" 
             variant="outline" 
             onClick={onPrev}
-            className="w-full"
+            className="w-full h-12" // Increased button height
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-5 w-5 mr-2" />
             Anterior
           </Button>
         )}
@@ -69,9 +75,9 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          className="w-full"
+          className="w-full h-12" // Increased button height
         >
-          <X className="h-4 w-4 mr-2" />
+          <X className="h-5 w-5 mr-2" />
           Cancelar
         </Button>
         
@@ -79,17 +85,17 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           <Button 
             type="button"
             onClick={onNext}
-            className="w-full"
+            className="w-full h-12" // Increased button height
           >
             Siguiente
-            <ArrowRight className="h-4 w-4 ml-2" />
+            <ArrowRight className="h-5 w-5 ml-2" />
           </Button>
         ) : (
           <Button 
             type="submit"
-            className="w-full"
+            className="w-full h-12" // Increased button height
           >
-            <Check className="h-4 w-4 mr-2" />
+            <Check className="h-5 w-5 mr-2" />
             {isEditing ? 'Guardar Cambios' : 'Crear Servicio'}
           </Button>
         )}

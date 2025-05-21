@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -134,7 +135,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 sm:p-6">
+      <DialogContent className="sm:max-w-[600px] max-h-[95vh] h-[95vh] flex flex-col p-0 sm:p-6">
         <DialogHeader className="px-4 pt-4 sm:px-0 sm:pt-0">
           <DialogTitle>{initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}</DialogTitle>
           <DialogDescription>
@@ -147,15 +148,15 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         <FormProvider {...form}>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
-              <div className="flex-grow px-4 sm:px-0 overflow-hidden mb-20"> {/* Added mb-20 to create space for footer */}
-                <ScrollArea className="h-[calc(70vh-220px)] sm:h-[calc(70vh-150px)] pr-4">
-                  <div className="py-4 space-y-6">
+              <div className="flex-grow px-4 sm:px-0 overflow-hidden mb-24"> {/* Increased mb-24 for more space before footer */}
+                <ScrollArea className="h-[calc(80vh-180px)] pr-4">
+                  <div className="py-6 space-y-8"> {/* Increased py-6 and space-y-8 for more spacing */}
                     <ServiceFormFields currentStep={currentStep} />
                   </div>
                 </ScrollArea>
               </div>
               
-              <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-4 sm:px-6 border-t w-full">
+              <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-5 sm:px-6 border-t w-full shadow-md">
                 <ServiceFormFooter 
                   isEditing={!!initialData}
                   onDelete={onDelete}
