@@ -16,11 +16,21 @@ const AppointmentItem: React.FC<AppointmentItemProps> = ({
   service,
   client
 }) => {
+  // Helper function to get name initials for avatar
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('');
+  };
+
+  // Determine whose initials to display based on the context
+  // If we have providers object, display provider initials, otherwise client initials
+  const displayName = appointment.providerName || client.name;
+  const initials = getInitials(displayName);
+
   return (
     <div className="px-2 py-3 flex items-center gap-3 border-b last:border-0 appointment-card">
       <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
         <span className="text-primary text-sm font-medium">
-          {client.name.split(' ').map(n => n[0]).join('')}
+          {initials}
         </span>
       </div>
       
@@ -42,7 +52,10 @@ const AppointmentItem: React.FC<AppointmentItemProps> = ({
           </span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground mt-1">
-          <span className="truncate">{client.name} • {client.phone}</span>
+          <span className="truncate">
+            {/* Show provider name if available (for client view), otherwise show client name (for provider view) */}
+            {appointment.providerName || client.name} • {client.phone}
+          </span>
           <span className="truncate">
             {format(appointment.startTime, 'MMM d, h:mm a')} - {format(appointment.endTime, 'h:mm a')}
           </span>

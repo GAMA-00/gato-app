@@ -79,6 +79,50 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     }
   };
 
+  // Helper function to get client name with fallback
+  const getClientName = (appointment: any) => {
+    // First check if we have a clients object with name
+    if (appointment.clients?.name) {
+      return appointment.clients.name;
+    }
+    // If not, try to fall back to other possible client name fields
+    return 'Cliente sin nombre';
+  };
+
+  // Helper function to get service name with fallback
+  const getServiceName = (appointment: any) => {
+    return appointment.listings?.title || 'Servicio';
+  };
+
+  // Helper function to get condominium and house information
+  const getLocationInfo = (appointment: any) => {
+    let locationInfo = [];
+    
+    // Add residencia name if available
+    if (appointment.residencias?.name) {
+      locationInfo.push(appointment.residencias.name);
+    }
+    
+    // Add condominium name if available
+    if (appointment.clients?.condominiums?.name) {
+      locationInfo.push(`${appointment.clients.condominiums.name} (condominio)`);
+    }
+    
+    // Add house number if available
+    if (appointment.clients?.house_number) {
+      locationInfo.push(`#${appointment.clients.house_number} (Numero de casa)`);
+    }
+    
+    // Add apartment number if available
+    if (appointment.apartment) {
+      locationInfo.push(`Apt ${appointment.apartment}`);
+    }
+    
+    return locationInfo.length > 0 
+      ? locationInfo.join(' - ') 
+      : 'Sin ubicación específica';
+  };
+
   return (
     <Card className="glassmorphism mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -99,21 +143,19 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                   <div className="flex items-center min-w-0">
                     <Avatar className="w-10 h-10 mr-3 flex-shrink-0">
                       <AvatarImage 
-                        src={appointment.clients?.avatar_url || appointment.providers?.avatar_url || '/placeholder.svg'} 
-                        alt={(appointment.clients?.name || appointment.providers?.name || 'Usuario')} 
+                        src={appointment.clients?.avatar_url || '/placeholder.svg'} 
+                        alt={getClientName(appointment)} 
                       />
                       <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                        {((appointment.clients?.name || appointment.providers?.name || 'U')?.charAt(0))}
+                        {getClientName(appointment).charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-medium truncate">
-                        {appointment.clients?.name || 
-                         appointment.providers?.name || 
-                         'Usuario'}
+                        {getClientName(appointment)}
                       </h4>
                       <p className="text-sm text-muted-foreground truncate">
-                        {appointment.listings?.title || 'Servicio'}
+                        {getServiceName(appointment)}
                       </p>
                     </div>
                   </div>
@@ -127,8 +169,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                     <div className="text-xs text-muted-foreground mt-1 flex items-center justify-end">
                       <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
                       <span className="truncate max-w-[200px]">
-                        {appointment.residencias?.name || 'Sin residencia'}
-                        {appointment.apartment ? `, Apt ${appointment.apartment}` : ''}
+                        {getLocationInfo(appointment)}
                       </span>
                     </div>
                   </div>
