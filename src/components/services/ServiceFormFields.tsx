@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -445,25 +444,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                   )}
                 />
                 
-                <FormField
-                  control={control}
-                  name="handlesDangerousDogs"
-                  render={({ field }) => (
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        id="handlesDangerousDogs"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                      <label
-                        htmlFor="handlesDangerousDogs"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Atiendo a mascotas potencialmente peligrosas
-                      </label>
-                    </div>
-                  )}
-                />
+                
               </div>
             </div>
 

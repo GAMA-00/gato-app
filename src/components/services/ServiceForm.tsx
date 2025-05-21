@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,7 +28,6 @@ const serviceFormSchema = z.object({
   experienceYears: z.coerce.number().min(0).optional(),
   hasCertifications: z.boolean().optional(),
   certificationFiles: z.array(z.any()).optional(),
-  handlesDangerousDogs: z.boolean().optional(),
   serviceVariants: z.array(
     z.object({
       id: z.string().optional(),
@@ -72,7 +70,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: initialData.experienceYears || 0,
       hasCertifications: initialData.hasCertifications || false,
       certificationFiles: initialData.certificationFiles || [],
-      handlesDangerousDogs: initialData.handlesDangerousDogs || false,
       serviceVariants: initialData.serviceVariants || [
         { name: 'Servicio básico', price: initialData.price, duration: initialData.duration }
       ]
@@ -85,7 +82,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: 0,
       hasCertifications: false,
       certificationFiles: [],
-      handlesDangerousDogs: false,
       serviceVariants: [
         { name: 'Servicio básico', price: 50, duration: 60 }
       ]
