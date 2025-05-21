@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -5,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Status color mapping
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -26,6 +28,8 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   expanded,
   onClick
 }) => {
+  const { user } = useAuth();
+  
   // Convertir correctamente las horas de inicio y fin
   const startTime = new Date(appointment.start_time);
   const endTime = new Date(appointment.end_time);
@@ -46,8 +50,6 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   // Get person name with improved fallback logic  
   const getPersonName = () => {
     // For client view (looking at provider's name)
-    const { user } = require('@/contexts/AuthContext').useAuth();
-    
     if (user?.role === 'client') {
       // Mostrar nombre del proveedor para clientes
       if (appointment.provider_name) {
