@@ -74,10 +74,9 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        // Fix for TypeScript error: ensure we're handling the unknown type correctly
-        // First check if it's null or undefined and provide a default empty string
-        const nameValue = condominiumData.name ?? '';
-        // Then explicitly convert to string to satisfy TypeScript
+        // TypeScript fix: Handle unknown type by first checking if it exists and then explicitly converting to string
+        // The as unknown as string pattern is the safest way to handle this type of database response
+        const nameValue = condominiumData.name !== null && condominiumData.name !== undefined ? condominiumData.name : '';
         condominiumName = String(nameValue);
       }
     }
