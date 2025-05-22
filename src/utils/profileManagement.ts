@@ -60,8 +60,8 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (residenciaData) {
-        // TypeScript fix: explicitly cast data.name to string using String() constructor
-        buildingName = String(residenciaData.name || '');
+        // TypeScript fix: use type assertion instead of String() constructor
+        buildingName = (residenciaData.name as string) || '';
       }
     }
     
@@ -82,8 +82,8 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         console.log('No condominium data found or error occurred');
         condominiumName = '';
       } else {
-        // Convert to a string directly, avoiding potential type issues
-        condominiumName = String(condominiumData.name || '');
+        // TypeScript fix: use type assertion instead of String() constructor
+        condominiumName = (condominiumData.name as string) || '';
         console.log('Condominium name extracted:', condominiumName);
       }
     }
