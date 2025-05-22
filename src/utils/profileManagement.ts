@@ -74,10 +74,11 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        // TypeScript fix: Explicitly cast to string with fallback for null/undefined
-        condominiumName = typeof condominiumData.name === 'string' 
-          ? condominiumData.name 
-          : String(condominiumData.name ?? '');
+        // Fix for TypeScript error: ensure we're handling the unknown type correctly
+        // First check if it's null or undefined and provide a default empty string
+        const nameValue = condominiumData.name ?? '';
+        // Then explicitly convert to string to satisfy TypeScript
+        condominiumName = String(nameValue);
       }
     }
     
