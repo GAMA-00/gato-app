@@ -61,7 +61,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         
       if (residenciaData) {
         // TypeScript fix: explicitly cast data.name to string
-        buildingName = residenciaData.name as string;
+        buildingName = String(residenciaData.name);
       }
     }
     
@@ -74,8 +74,8 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        // TypeScript fix: explicitly cast data.name to string
-        condominiumName = condominiumData.name as string;
+        // TypeScript fix: explicitly cast data.name to string using String() constructor
+        condominiumName = String(condominiumData.name);
       }
     }
     
