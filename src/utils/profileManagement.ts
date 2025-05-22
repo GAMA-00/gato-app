@@ -74,8 +74,8 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        // Fix for TypeScript error - properly cast the name field and handle null/undefined
-        condominiumName = condominiumData && 'name' in condominiumData 
+        // Fix for TypeScript error - ensure name exists and convert to string safely
+        condominiumName = condominiumData && typeof condominiumData === 'object' && condominiumData !== null && 'name' in condominiumData 
           ? String(condominiumData.name || '') 
           : '';
       }
