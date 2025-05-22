@@ -27,6 +27,7 @@ interface AuthContextType {
   register: (user: User) => void;
   logout: () => void;
   updateUserPaymentMethod: (hasPaymentMethod: boolean) => void;
+  updateUserAvatar: (avatarUrl: string) => void;
   isLoading: boolean;
   isClient: boolean;
   isProvider: boolean;
@@ -77,6 +78,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update user avatar
+  const updateUserAvatar = (avatarUrl: string) => {
+    if (user) {
+      const updatedUser = { ...user, avatarUrl };
+      setUser(updatedUser);
+      localStorage.setItem('gato_user', JSON.stringify(updatedUser));
+    }
+  };
+
   // Check if the user is a client, provider, or admin
   const isClient = user?.role === 'client';
   const isProvider = user?.role === 'provider';
@@ -90,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register, 
       logout,
       updateUserPaymentMethod,
+      updateUserAvatar,
       isLoading,
       isClient,
       isProvider,

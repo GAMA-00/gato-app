@@ -4,9 +4,14 @@ import { UserRole } from '@/lib/types';
 
 export async function updateUserProfile(userId: string, data: any) {
   try {
-    // Update profile data in the unified users table
+    // Determine if we're updating a client or provider
+    const { role } = data;
+    const isClient = role === 'client';
+    const table = isClient ? 'clients' : 'providers';
+    
+    // Update profile data in the appropriate table
     const { error } = await supabase
-      .from('users')
+      .from(table)
       .update(data)
       .eq('id', userId);
       
@@ -19,25 +24,58 @@ export async function updateUserProfile(userId: string, data: any) {
   }
 }
 
-export async function fetchUserProfile(userId: string) {
+export async function fetchUserProfile(userId: string, role: UserRole = 'client') {
   try {
+    // Determine which table to query based on role
+    const table = role === 'client' ? 'clients' : 'providers';
+    
     const { data: profileData, error } = await supabase
-      .from('users')
+      .from(table)
       .select(`
         *,
-        residencias:residencia_id(name),
-        condominiums:condominium_id(name)
+        residencia_id,
+        avatar_url
       `)
       .eq('id', userId)
       .single();
       
     if (error) throw error;
     
+    // If client has residencia_id, fetch the building name
+    let buildingName = '';
+    let condominiumName = '';
+    
+    if (profileData.residencia_id) {
+      const { data: residenciaData } = await supabase
+        .from('residencias')
+        .select('name')
+        .eq('id', profileData.residencia_id)
+        .single();
+        
+      if (residenciaData) {
+        buildingName = residenciaData.name;
+      }
+    }
+    
+    // If client has condominium_id, fetch the condominium name
+    if (profileData.condominium_id) {
+      const { data: condominiumData } = await supabase
+        .from('condominiums')
+        .select('name')
+        .eq('id', profileData.condominium_id)
+        .single();
+        
+      if (condominiumData) {
+        condominiumName = condominiumData.name;
+      }
+    }
+    
     return {
       ...profileData,
-      buildingName: profileData.residencias?.name || '',
-      condominiumName: profileData.condominiums?.name || '',
-      houseNumber: profileData.house_number || ''
+      buildingName,
+      condominiumName,
+      houseNumber: profileData.house_number || '',
+      avatarUrl: profileData.avatar_url || ''
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -56,6 +94,25 @@ export async function deleteUserProfile(userId: string) {
     return { success: true };
   } catch (error: any) {
     console.error('Error deleting user:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateUserAvatar(userId: string, avatarUrl: string, role: UserRole = 'client') {
+  try {
+    // Determine which table to update based on role
+    const table = role === 'client' ? 'clients' : 'providers';
+    
+    const { error } = await supabase
+      .from(table)
+      .update({ avatar_url: avatarUrl })
+      .eq('id', userId);
+      
+    if (error) throw error;
+    
+    return { success: true, avatarUrl };
+  } catch (error: any) {
+    console.error('Error updating avatar:', error);
     return { success: false, error: error.message };
   }
 }

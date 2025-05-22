@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { UserCircle, CreditCard, FileText, Shield, HelpCircle, Settings } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
-import { updateUserProfile } from '@/utils/profileManagement';
+import { updateUserProfile, updateUserAvatar, fetchUserProfile } from '@/utils/profileManagement';
 import { useIsMobile } from '@/hooks/use-mobile';
+import ImageUploader from '@/components/common/ImageUploader';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -33,10 +34,11 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 type SupportFormValues = z.infer<typeof supportSchema>;
 
 const Profile = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUserAvatar: updateContextAvatar } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const isMobile = useIsMobile();
 
   const profileForm = useForm<ProfileFormValues>({
@@ -56,6 +58,24 @@ const Profile = () => {
     }
   });
 
+  // Cargar datos actualizados del perfil
+  useEffect(() => {
+    if (user?.id) {
+      const loadUserProfile = async () => {
+        const profileData = await fetchUserProfile(user.id, user.role);
+        if (profileData) {
+          profileForm.reset({
+            name: profileData.name || '',
+            email: profileData.email || '',
+            phone: profileData.phone || ''
+          });
+        }
+      };
+      
+      loadUserProfile();
+    }
+  }, [user]);
+
   const onSubmitProfile = async (values: ProfileFormValues) => {
     if (!user?.id) return;
     
@@ -69,6 +89,9 @@ const Profile = () => {
           title: "Perfil actualizado",
           description: "Tu información personal ha sido actualizada correctamente."
         });
+        
+        // Actualizar el contexto de autenticación con los nuevos datos
+        updateContextAvatar(user.avatarUrl || '');
       } else {
         throw new Error(result.error || 'Error al actualizar el perfil');
       }
@@ -81,6 +104,36 @@ const Profile = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleImageUploaded = async (url: string) => {
+    if (!user?.id) return;
+    
+    setIsUploadingImage(true);
+    try {
+      const result = await updateUserAvatar(user.id, url, user.role);
+      
+      if (result.success) {
+        // Actualizar el estado global
+        updateContextAvatar(url);
+        
+        toast({
+          title: "Imagen actualizada",
+          description: "Tu foto de perfil ha sido actualizada correctamente."
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error updating avatar:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar tu foto de perfil. Por favor, intenta de nuevo.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingImage(false);
     }
   };
   
@@ -150,7 +203,11 @@ const Profile = () => {
                         {user.name?.substring(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <Button variant="outline" size="sm" className="text-xs">Cambiar foto</Button>
+                    <ImageUploader 
+                      onImageUploaded={handleImageUploaded}
+                      currentImageUrl={user.avatarUrl}
+                      buttonText="Cambiar foto"
+                    />
                   </div>
                   
                   <div className="flex-1 w-full">

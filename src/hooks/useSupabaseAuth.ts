@@ -94,6 +94,7 @@ export const useSupabaseAuth = () => {
         role: userData.role as UserRole,
         condominiumId: userData.condominiumId || '',
         houseNumber: userData.houseNumber || '',
+        avatarUrl: '', // Inicialmente sin avatar
       };
       
       toast({
@@ -122,7 +123,7 @@ export const useSupabaseAuth = () => {
   };
 
   /**
-   * User sign in handler - Updated to fetch residencia_id from clients table
+   * User sign in handler - Updated to fetch avatar_url
    */
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
@@ -155,12 +156,13 @@ export const useSupabaseAuth = () => {
       let hasPaymentMethod = user_metadata?.has_payment_method || false;
       let condominiumId = user_metadata?.condominiumId || '';
       let houseNumber = user_metadata?.houseNumber || '';
+      let avatarUrl = user_metadata?.avatar_url || '';
       
       // If role is client, get additional data from clients table
       if (userRole === 'client') {
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
-          .select('residencia_id, has_payment_method, apartment')
+          .select('residencia_id, has_payment_method, apartment, avatar_url')
           .eq('id', id)
           .single();
           
@@ -168,6 +170,7 @@ export const useSupabaseAuth = () => {
           console.log('Client data fetched:', clientData);
           residenciaId = clientData.residencia_id || residenciaId;
           hasPaymentMethod = clientData.has_payment_method || hasPaymentMethod;
+          avatarUrl = clientData.avatar_url || avatarUrl;
           
           // If we have a residencia_id, fetch the building name
           if (residenciaId) {
@@ -184,6 +187,17 @@ export const useSupabaseAuth = () => {
         } else {
           console.warn('Could not fetch client data:', clientError);
         }
+      } else if (userRole === 'provider') {
+        // Si es proveedor, buscar su avatar_url
+        const { data: providerData, error: providerError } = await supabase
+          .from('providers')
+          .select('avatar_url')
+          .eq('id', id)
+          .single();
+          
+        if (!providerError && providerData) {
+          avatarUrl = providerData.avatar_url || avatarUrl;
+        }
       }
       
       // Create user object for frontend
@@ -196,7 +210,7 @@ export const useSupabaseAuth = () => {
         buildingName: buildingName, 
         hasPaymentMethod: hasPaymentMethod,
         role: userRole,
-        avatarUrl: user_metadata?.avatar_url || '',
+        avatarUrl: avatarUrl,
         condominiumId: condominiumId,
         houseNumber: houseNumber,
       };

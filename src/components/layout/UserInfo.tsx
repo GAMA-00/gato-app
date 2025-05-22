@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogIn, LogOut, CreditCard, UserCircle } from 'lucide-react';
 
 interface UserInfoProps {
@@ -52,6 +52,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
     <div className="border-t p-3">
       <div className="flex items-center gap-2 mb-2">
         <Avatar className="h-8 w-8">
+          <AvatarImage src={user?.avatarUrl} alt={user?.name} />
           <AvatarFallback className="bg-primary text-primary-foreground text-sm">
             {user?.name?.substring(0, 2).toUpperCase() || 'U'}
           </AvatarFallback>
