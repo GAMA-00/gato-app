@@ -162,7 +162,7 @@ export const useSupabaseAuth = () => {
       if (userRole === 'client') {
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
-          .select('residencia_id, has_payment_method, apartment, avatar_url')
+          .select('*')
           .eq('id', id)
           .single();
           
@@ -191,7 +191,7 @@ export const useSupabaseAuth = () => {
         // Si es proveedor, buscar su avatar_url
         const { data: providerData, error: providerError } = await supabase
           .from('providers')
-          .select('avatar_url')
+          .select('*')
           .eq('id', id)
           .single();
           

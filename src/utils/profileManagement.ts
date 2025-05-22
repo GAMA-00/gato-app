@@ -31,17 +31,21 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     
     const { data: profileData, error } = await supabase
       .from(table)
-      .select(`
-        *,
-        residencia_id,
-        avatar_url
-      `)
+      .select('*')
       .eq('id', userId)
       .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
     
-    // If client has residencia_id, fetch the building name
+    if (!profileData) {
+      console.error('No profile data found');
+      return null;
+    }
+    
+    // Si client tiene residencia_id, fetch the building name
     let buildingName = '';
     let condominiumName = '';
     
@@ -57,7 +61,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       }
     }
     
-    // If client has condominium_id, fetch the condominium name
+    // Si client tiene condominium_id, fetch the condominium name
     if (profileData.condominium_id) {
       const { data: condominiumData } = await supabase
         .from('condominiums')
@@ -103,9 +107,11 @@ export async function updateUserAvatar(userId: string, avatarUrl: string, role: 
     // Determine which table to update based on role
     const table = role === 'client' ? 'clients' : 'providers';
     
+    const updateData = { avatar_url: avatarUrl };
+    
     const { error } = await supabase
       .from(table)
-      .update({ avatar_url: avatarUrl })
+      .update(updateData)
       .eq('id', userId);
       
     if (error) throw error;
