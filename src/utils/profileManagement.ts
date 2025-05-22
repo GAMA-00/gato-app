@@ -73,19 +73,12 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .eq('id', profileData.condominium_id)
         .single();
         
+      // Fix the TypeScript error by using explicit type assertion and safe handling
       if (condominiumData) {
-        // Fix for TypeScript error - use type assertion to handle unknown type
-        const nameValue: unknown = condominiumData && 
-          typeof condominiumData === 'object' && 
-          condominiumData !== null && 
-          'name' in condominiumData ? 
-          condominiumData.name : 
-          null;
-        
-        // Convert to string, handling null/undefined cases
-        condominiumName = nameValue !== null && nameValue !== undefined ? 
-          String(nameValue) : 
-          '';
+        // Assert as Record<string, any> first to safely access properties
+        const typedData = condominiumData as Record<string, any>;
+        // Then extract name with fallback
+        condominiumName = typedData.name ? String(typedData.name) : '';
       }
     }
     
