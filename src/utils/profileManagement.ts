@@ -73,9 +73,11 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .eq('id', profileData.condominium_id)
         .single();
         
-      if (condominiumData && condominiumData.name !== null && condominiumData.name !== undefined) {
-        // TypeScript fix: Explicitly assert the type and provide a default value
-        condominiumName = String(condominiumData.name);
+      if (condominiumData) {
+        // TypeScript fix: Explicitly cast to string with fallback for null/undefined
+        condominiumName = typeof condominiumData.name === 'string' 
+          ? condominiumData.name 
+          : String(condominiumData.name ?? '');
       }
     }
     
