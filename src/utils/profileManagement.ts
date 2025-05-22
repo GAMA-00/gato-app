@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
@@ -73,9 +74,10 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        // Fix TypeScript error by explicitly checking and converting the value to a string
-        const nameValue = condominiumData.name;
-        condominiumName = nameValue === null || nameValue === undefined ? '' : String(nameValue);
+        // Fix for TypeScript error - properly cast the name field and handle null/undefined
+        condominiumName = condominiumData && 'name' in condominiumData 
+          ? String(condominiumData.name || '') 
+          : '';
       }
     }
     
