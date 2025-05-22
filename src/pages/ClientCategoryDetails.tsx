@@ -78,7 +78,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Cuidado infantil': Baby,
   'Costura': Shirt,
   'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': Hand, // Changed from HeartHandshake to Hand as requested
+  'Cuidado Adulto mayor': Heart, // Changed from Hand to Heart as requested
   'Niñera': Shapes,      // Added Niñera
   'Fotógrafo': Camera,  // Corrected spelling
   'Fotografo': Camera    // Keep for backward compatibility
