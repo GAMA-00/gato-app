@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
@@ -74,10 +73,9 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        // Fixed TypeScript error: ensuring we only assign string values
-        condominiumName = condominiumData.name === null || condominiumData.name === undefined 
-          ? '' 
-          : String(condominiumData.name);
+        // Fix TypeScript error by explicitly checking and converting the value to a string
+        const nameValue = condominiumData.name;
+        condominiumName = nameValue === null || nameValue === undefined ? '' : String(nameValue);
       }
     }
     
