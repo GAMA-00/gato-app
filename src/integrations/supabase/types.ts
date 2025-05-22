@@ -161,6 +161,7 @@ export type Database = {
       clients: {
         Row: {
           apartment: string | null
+          avatar_url: string | null
           created_at: string
           email: string | null
           has_payment_method: boolean | null
@@ -171,6 +172,7 @@ export type Database = {
         }
         Insert: {
           apartment?: string | null
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           has_payment_method?: boolean | null
@@ -181,6 +183,7 @@ export type Database = {
         }
         Update: {
           apartment?: string | null
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           has_payment_method?: boolean | null
@@ -489,6 +492,7 @@ export type Database = {
       providers: {
         Row: {
           about_me: string | null
+          avatar_url: string | null
           average_rating: number | null
           certification_files: Json | null
           created_at: string
@@ -500,6 +504,7 @@ export type Database = {
         }
         Insert: {
           about_me?: string | null
+          avatar_url?: string | null
           average_rating?: number | null
           certification_files?: Json | null
           created_at?: string
@@ -511,6 +516,7 @@ export type Database = {
         }
         Update: {
           about_me?: string | null
+          avatar_url?: string | null
           average_rating?: number | null
           certification_files?: Json | null
           created_at?: string
