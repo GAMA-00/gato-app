@@ -60,7 +60,8 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (residenciaData) {
-        buildingName = residenciaData.name;
+        // TypeScript fix: explicitly cast data.name to string
+        buildingName = residenciaData.name as string;
       }
     }
     
@@ -73,7 +74,8 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        condominiumName = condominiumData.name;
+        // TypeScript fix: explicitly cast data.name to string
+        condominiumName = condominiumData.name as string;
       }
     }
     
@@ -83,7 +85,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       buildingName,
       condominiumName,
       // Use optional chaining and provide defaults for potentially missing properties
-      houseNumber: isClient ? profileData.house_number || '' : '',
+      houseNumber: isClient && 'house_number' in profileData ? profileData.house_number || '' : '',
       avatarUrl: 'avatar_url' in profileData ? profileData.avatar_url || '' : ''
     };
     
