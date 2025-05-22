@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -78,7 +79,7 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Cuidado infantil': Baby,
   'Costura': Shirt,
   'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': Heart, // Changed from Hand to Heart as requested
+  'Cuidado Adulto mayor': HeartHandshake, // Changed from Heart to HeartHandshake as requested
   'Niñera': Shapes,      // Added Niñera
   'Fotógrafo': Camera,  // Corrected spelling
   'Fotografo': Camera    // Keep for backward compatibility
