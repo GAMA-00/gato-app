@@ -67,18 +67,24 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     
     // Si client tiene condominium_id, fetch the condominium name
     if (isClient && 'condominium_id' in profileData && profileData.condominium_id) {
-      const { data: condominiumData } = await supabase
+      console.log('Fetching condominium data for ID:', profileData.condominium_id);
+      
+      const { data: condominiumData, error: condoError } = await supabase
         .from('condominiums')
         .select('name')
         .eq('id', profileData.condominium_id)
         .single();
-        
-      // Fix the TypeScript error by using explicit type assertion and safe handling
-      if (condominiumData) {
-        // Assert as Record<string, any> first to safely access properties
-        const typedData = condominiumData as Record<string, any>;
-        // Then extract name with fallback
-        condominiumName = typedData.name ? String(typedData.name) : '';
+      
+      console.log('Condominium query result:', { condominiumData, error: condoError });
+      
+      // Skip if there's an error or no data
+      if (condoError || !condominiumData) {
+        console.log('No condominium data found or error occurred');
+        condominiumName = '';
+      } else {
+        // Convert to a string directly, avoiding potential type issues
+        condominiumName = String(condominiumData.name || '');
+        console.log('Condominium name extracted:', condominiumName);
       }
     }
     
