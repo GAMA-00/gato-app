@@ -170,7 +170,11 @@ export const useSupabaseAuth = () => {
           console.log('Client data fetched:', clientData);
           residenciaId = clientData.residencia_id || residenciaId;
           hasPaymentMethod = clientData.has_payment_method || hasPaymentMethod;
-          avatarUrl = clientData.avatar_url || avatarUrl;
+          
+          // Get avatar_url if it exists in the response
+          if ('avatar_url' in clientData) {
+            avatarUrl = clientData.avatar_url || avatarUrl;
+          }
           
           // If we have a residencia_id, fetch the building name
           if (residenciaId) {
@@ -196,7 +200,10 @@ export const useSupabaseAuth = () => {
           .single();
           
         if (!providerError && providerData) {
-          avatarUrl = providerData.avatar_url || avatarUrl;
+          // Get avatar_url if it exists in the response
+          if ('avatar_url' in providerData) {
+            avatarUrl = providerData.avatar_url || avatarUrl;
+          }
         }
       }
       

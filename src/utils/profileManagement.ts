@@ -49,7 +49,10 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     let buildingName = '';
     let condominiumName = '';
     
-    if (profileData.residencia_id) {
+    // Type guard to check if we're dealing with a client profile
+    const isClient = role === 'client';
+    
+    if (isClient && 'residencia_id' in profileData && profileData.residencia_id) {
       const { data: residenciaData } = await supabase
         .from('residencias')
         .select('name')
@@ -62,7 +65,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     }
     
     // Si client tiene condominium_id, fetch the condominium name
-    if (profileData.condominium_id) {
+    if (isClient && 'condominium_id' in profileData && profileData.condominium_id) {
       const { data: condominiumData } = await supabase
         .from('condominiums')
         .select('name')
@@ -74,13 +77,17 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       }
     }
     
-    return {
+    // Create a result object with safe defaults
+    const result = {
       ...profileData,
       buildingName,
       condominiumName,
-      houseNumber: profileData.house_number || '',
-      avatarUrl: profileData.avatar_url || ''
+      // Use optional chaining and provide defaults for potentially missing properties
+      houseNumber: isClient ? profileData.house_number || '' : '',
+      avatarUrl: 'avatar_url' in profileData ? profileData.avatar_url || '' : ''
     };
+    
+    return result;
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return null;
@@ -107,7 +114,8 @@ export async function updateUserAvatar(userId: string, avatarUrl: string, role: 
     // Determine which table to update based on role
     const table = role === 'client' ? 'clients' : 'providers';
     
-    const updateData = { avatar_url: avatarUrl };
+    // Use type assertion to tell TypeScript that this is a valid update object
+    const updateData = { avatar_url: avatarUrl } as any;
     
     const { error } = await supabase
       .from(table)
