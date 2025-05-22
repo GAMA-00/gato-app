@@ -75,7 +75,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         
       if (condominiumData) {
         // TypeScript fix: explicitly cast data.name to string using String() constructor
-        condominiumName = String(condominiumData.name);
+        condominiumName = String(condominiumData?.name || '');
       }
     }
     
