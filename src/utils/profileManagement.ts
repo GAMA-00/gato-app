@@ -74,10 +74,18 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .single();
         
       if (condominiumData) {
-        // Fix for TypeScript error - ensure name exists and convert to string safely
-        condominiumName = condominiumData && typeof condominiumData === 'object' && condominiumData !== null && 'name' in condominiumData 
-          ? String(condominiumData.name || '') 
-          : '';
+        // Fix for TypeScript error - use type assertion to handle unknown type
+        const nameValue: unknown = condominiumData && 
+          typeof condominiumData === 'object' && 
+          condominiumData !== null && 
+          'name' in condominiumData ? 
+          condominiumData.name : 
+          null;
+        
+        // Convert to string, handling null/undefined cases
+        condominiumName = nameValue !== null && nameValue !== undefined ? 
+          String(nameValue) : 
+          '';
       }
     }
     
