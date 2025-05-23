@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
@@ -11,20 +12,25 @@ interface Condominium {
 }
 
 export async function updateUserProfile(userId: string, data: any) {
-  // Determine if we're updating a client or provider
-  const { role } = data;
-  const isClient = role === 'client';
-  const table = isClient ? 'clients' : 'providers';
-  
-  // Update profile data in the appropriate table
-  const { error } = await supabase
-    .from(table)
-    .update(data)
-    .eq('id', userId);
+  try {
+    // Determine if we're updating a client or provider
+    const { role } = data;
+    const isClient = role === 'client';
+    const table = isClient ? 'clients' : 'providers';
     
-  if (error) throw error;
-  
-  return { success: true };
+    // Update profile data in the appropriate table
+    const { error } = await supabase
+      .from(table)
+      .update(data)
+      .eq('id', userId);
+      
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating profile:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 export async function fetchUserProfile(userId: string, role: UserRole = 'client') {
