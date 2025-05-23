@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -69,7 +70,7 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
         profileImage instanceof File && 
         typeof profileImage === 'object' &&
         profileImage.constructor === File) {
-      const newPreview = URL.createObjectURL(profileImage);
+      const newPreview = URL.createObjectURL(profileImage as File);
       setProfileImagePreview(newPreview);
       
       return () => {
