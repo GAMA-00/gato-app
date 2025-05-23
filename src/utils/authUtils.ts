@@ -1,64 +1,47 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { checkPhoneExists } from '@/utils/phoneValidation';
-import { UserRole } from '@/lib/types';
 
-interface SignUpParams {
-  email: string;
-  password: string;
+export async function checkPhoneUniqueness(phone: string): Promise<boolean> {
+  try {
+    // Check in users table (consolidated table)
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('phone', phone)
+      .limit(1);
+    
+    if (error) {
+      console.error('Error checking phone uniqueness:', error);
+      return false;
+    }
+    
+    return data.length === 0;
+  } catch (error) {
+    console.error('Unexpected error checking phone uniqueness:', error);
+    return false;
+  }
+}
+
+export async function signUpWithSupabase(
+  email: string, 
+  password: string, 
   userData: {
     name: string;
-    role: UserRole;
-    phone?: string;
-    residenciaId?: string;
-    providerResidenciaIds?: string[];
-  };
-}
-
-interface AuthResult {
-  data: any | null;
-  error: Error | null;
-}
-
-/**
- * Check if a phone number is unique (not already registered)
- */
-export const checkPhoneUniqueness = async (phone: string): Promise<boolean> => {
-  if (!phone) return true;
-  
-  console.log('Checking if phone exists:', phone);
-  try {
-    const phoneExists = await checkPhoneExists(phone);
-    console.log('Phone already registered?:', phoneExists);
-    return !phoneExists;
-  } catch (error) {
-    console.error('Error checking phone uniqueness:', error);
-    // If there's an error checking, assume the phone is unique to not block registration
-    return true;
-  }
-};
-
-/**
- * Perform user signup with Supabase Auth
- */
-export const signUpWithSupabase = async (
-  email: string,
-  password: string,
-  userData: { 
-    name: string; 
-    role: UserRole; 
+    role: string;
     phone?: string;
     residenciaId?: string;
     condominiumId?: string;
     houseNumber?: string;
     providerResidenciaIds?: string[];
   }
-): Promise<AuthResult> => {
-  console.log('Creating auth user with email:', email);
-  
+) {
   try {
-    // Registrar usuario en Supabase Auth con metadata
+    console.log('Starting Supabase signup with email:', email);
+    console.log('User metadata:', userData);
+
+    // Create the user in Supabase Auth with metadata
+    // The trigger will automatically create the user in the users table
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -69,150 +52,70 @@ export const signUpWithSupabase = async (
           phone: userData.phone || '',
           residenciaId: userData.residenciaId || '',
           condominiumId: userData.condominiumId || '',
-          houseNumber: userData.houseNumber || '',
-          providerResidenciaIds: userData.providerResidenciaIds || []
-        },
-        emailRedirectTo: window.location.origin
+          houseNumber: userData.houseNumber || ''
+        }
       }
     });
 
     if (authError) {
-      console.error('Error creating auth user:', authError);
-      
-      // Enhanced error detection
-      if (authError.message.includes('email rate limit exceeded') || 
-          authError.message.includes('rate limit') ||
-          authError.status === 429) {
-        // Suggest an alternative email
-        const username = email.split('@')[0];
-        const domain = email.split('@')[1];
-        const randomSuffix = Math.floor(Math.random() * 1000);
-        const suggestedEmail = `${username}_${randomSuffix}@${domain}`;
-        
-        toast({
-          title: "Error",
-          description: `Has alcanzado el límite de intentos de registro con este correo. Prueba con otro correo como ${suggestedEmail} o espera unos minutos.`,
-          variant: "destructive"
-        });
-        return { 
-          data: null, 
-          error: new Error('Email rate limit exceeded. Try with a different email address or wait a few minutes.')
-        };
-      }
-      
-      // Check if user already registered
-      if (authError.message.includes('already registered')) {
-        toast({
-          title: "Error",
-          description: "Este correo ya está registrado. Por favor inicia sesión o utiliza otro correo.",
-          variant: "destructive"
-        });
-        return {
-          data: null,
-          error: new Error('User already registered. Please login or use a different email.')
-        };
-      }
-      
-      toast({
-        title: "Error",
-        description: 'Error al crear la cuenta: ' + authError.message,
-        variant: "destructive"
-      });
+      console.error('Supabase auth error:', authError);
       return { data: null, error: authError };
     }
 
     if (!authData.user) {
-      console.error('No user returned from auth signup');
-      toast({
-        title: "Error",
-        description: 'Error al crear la cuenta: No se pudo crear el usuario',
-        variant: "destructive"
-      });
-      return { data: null, error: new Error('No user returned from auth signup') };
+      console.error('No user data returned from auth signup');
+      return { data: null, error: new Error('No user data returned') };
     }
 
-    // Handle role-specific operations
-    const userId = authData.user.id;
-    
-    if (userData.role === 'client') {
-      // Insert into users table
-      const { error: userError } = await supabase.from('users').insert({
-        id: userId,
-        name: userData.name,
-        email: email,
-        phone: userData.phone || '',
-        residencia_id: userData.residenciaId || null,
-        condominium_id: userData.condominiumId || null,
-        house_number: userData.houseNumber || '',
-        role: 'client'
-      });
+    console.log('Auth user created successfully:', authData.user.id);
+
+    // If it's a provider and has residencia IDs, add them to provider_residencias
+    if (userData.role === 'provider' && userData.providerResidenciaIds?.length) {
+      console.log('Adding provider residencias:', userData.providerResidenciaIds);
       
-      if (userError) {
-        console.error('Error inserting client data into users table:', userError);
+      const providerResidencias = userData.providerResidenciaIds.map(residenciaId => ({
+        provider_id: authData.user!.id,
+        residencia_id: residenciaId
+      }));
+
+      const { error: residenciaError } = await supabase
+        .from('provider_residencias')
+        .insert(providerResidencias);
+
+      if (residenciaError) {
+        console.error('Error inserting provider residencias:', residenciaError);
         toast({
           title: "Advertencia",
-          description: 'Hubo un problema al registrar los datos del cliente.',
+          description: 'Cuenta creada pero hubo un problema al asociar las residencias.',
           variant: "default"
         });
-      }
-    } else if (userData.role === 'provider') {
-      // Insert into users table as a provider
-      const { error: userError } = await supabase.from('users').insert({
-        id: userId,
-        name: userData.name,
-        email: email,
-        phone: userData.phone || '',
-        role: 'provider'
-      });
-      
-      if (userError) {
-        console.error('Error inserting provider data into users table:', userError);
-        toast({
-          title: "Advertencia",
-          description: 'Hubo un problema al registrar los datos del proveedor.',
-          variant: "default"
-        });
-      }
-      
-      // If provider has residencias, insert them
-      if (userData.providerResidenciaIds?.length) {
-        for (const residenciaId of userData.providerResidenciaIds) {
-          const { error: providerResidenciaError } = await supabase
-            .from('provider_residencias')
-            .insert({
-              provider_id: userId,
-              residencia_id: residenciaId
-            });
-          
-          if (providerResidenciaError) {
-            console.error('Error inserting into provider_residencias:', providerResidenciaError);
-          }
-        }
       }
     }
 
     return { data: authData, error: null };
   } catch (error: any) {
-    console.error('Exception during auth signup:', error);
+    console.error('Unexpected error during signup:', error);
     return { data: null, error };
   }
-};
+}
 
-/**
- * Fetch user info directly from auth metadata
- */
-export const fetchUserFromAuth = async (userId: string): Promise<AuthResult> => {
+export async function checkEmailUniqueness(email: string): Promise<boolean> {
   try {
-    const { data: userData, error } = await supabase.auth.getUser();
+    // Check in users table
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .limit(1);
     
-    if (error || !userData.user) {
-      console.error('Error fetching user from auth:', error);
-      return { data: null, error: error || new Error('No user found') };
+    if (error) {
+      console.error('Error checking email uniqueness:', error);
+      return false;
     }
     
-    return { data: userData.user, error: null };
-  } catch (error: any) {
-    console.error('Exception fetching auth user:', error);
-    return { data: null, error };
+    return data.length === 0;
+  } catch (error) {
+    console.error('Unexpected error checking email uniqueness:', error);
+    return false;
   }
-};
+}
