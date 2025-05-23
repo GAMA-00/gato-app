@@ -46,19 +46,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const storedUser = localStorage.getItem('gato_user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      console.log('=== AuthContext - Loading user from localStorage ===');
+      console.log('Stored user:', parsedUser);
+      console.log('Stored user avatarUrl:', parsedUser.avatarUrl);
+      setUser(parsedUser);
     }
     setIsLoading(false);
   }, []);
 
   // Login function
   const login = (userData: User) => {
+    console.log('=== AuthContext - Login ===');
+    console.log('Login userData:', userData);
+    console.log('Login userData avatarUrl:', userData.avatarUrl);
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
   // Register function
   const register = (userData: User) => {
+    console.log('=== AuthContext - Register ===');
+    console.log('Register userData:', userData);
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
   };
@@ -73,6 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
     if (user) {
       const updatedUser = { ...user, hasPaymentMethod };
+      console.log('=== AuthContext - Update Payment Method ===');
+      console.log('Updated user:', updatedUser);
       setUser(updatedUser);
       localStorage.setItem('gato_user', JSON.stringify(updatedUser));
     }
@@ -80,10 +91,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update user avatar
   const updateUserAvatar = (avatarUrl: string) => {
+    console.log('=== AuthContext - Update Avatar ===');
+    console.log('New avatarUrl:', avatarUrl);
+    console.log('Current user before update:', user);
+    
     if (user) {
       const updatedUser = { ...user, avatarUrl };
+      console.log('Updated user with new avatar:', updatedUser);
       setUser(updatedUser);
       localStorage.setItem('gato_user', JSON.stringify(updatedUser));
+      console.log('User and localStorage updated');
+    } else {
+      console.log('No user found, cannot update avatar');
     }
   };
 

@@ -129,15 +129,23 @@ const Profile = () => {
   const handleImageUploaded = async (url: string) => {
     if (!user?.id) return;
     
+    console.log('=== Profile - handleImageUploaded ===');
+    console.log('Received URL:', url);
+    console.log('User ID:', user.id);
+    console.log('User role:', user.role);
+    
     setIsUploadingImage(true);
     try {
-      console.log('Handling image upload:', url);
+      console.log('Calling updateUserAvatar with:', url);
       const result = await updateUserAvatar(user.id, url, user.role);
+      console.log('updateUserAvatar result:', result);
       
       if (result.success) {
+        console.log('Avatar update successful, updating local state');
         // Actualizar el estado local inmediatamente
         setCurrentAvatarUrl(url);
         
+        console.log('Calling updateContextAvatar with:', url);
         // Actualizar el estado global
         updateContextAvatar(url);
         
@@ -146,6 +154,7 @@ const Profile = () => {
           description: "Tu foto de perfil ha sido actualizada correctamente."
         });
       } else {
+        console.error('Avatar update failed:', result.error);
         throw new Error(result.error);
       }
     } catch (error) {
@@ -231,7 +240,15 @@ const Profile = () => {
                 <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-start">
                   <div className="flex flex-col items-center self-center mb-4 md:mb-0">
                     <Avatar className="h-20 w-20 md:h-28 md:w-28 mb-3">
-                      <AvatarImage src={currentAvatarUrl} alt={user.name} />
+                      <AvatarImage 
+                        src={currentAvatarUrl} 
+                        alt={user.name}
+                        onLoad={() => console.log('Profile Avatar image loaded successfully:', currentAvatarUrl)}
+                        onError={(e) => {
+                          console.error('Profile Avatar image failed to load:', currentAvatarUrl);
+                          console.error('Profile Avatar Error event:', e);
+                        }}
+                      />
                       <AvatarFallback className="text-2xl">
                         {user.name?.substring(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -313,7 +330,15 @@ const Profile = () => {
                   <div className="bg-muted p-3 md:p-4 rounded-md flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={currentAvatarUrl} alt={user.name} />
+                        <AvatarImage 
+                          src={currentAvatarUrl} 
+                          alt={user.name}
+                          onLoad={() => console.log('Payment Avatar image loaded successfully:', currentAvatarUrl)}
+                          onError={(e) => {
+                            console.error('Payment Avatar image failed to load:', currentAvatarUrl);
+                            console.error('Payment Avatar Error event:', e);
+                          }}
+                        />
                         <AvatarFallback className="text-sm">
                           {user.name?.substring(0, 2).toUpperCase() || 'U'}
                         </AvatarFallback>
@@ -332,7 +357,15 @@ const Profile = () => {
                   <div className="bg-amber-50 text-amber-600 border border-amber-200 p-3 md:p-4 rounded-md">
                     <div className="flex items-center gap-3 mb-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={currentAvatarUrl} alt={user.name} />
+                        <AvatarImage 
+                          src={currentAvatarUrl} 
+                          alt={user.name}
+                          onLoad={() => console.log('Payment Warning Avatar image loaded successfully:', currentAvatarUrl)}
+                          onError={(e) => {
+                            console.error('Payment Warning Avatar image failed to load:', currentAvatarUrl);
+                            console.error('Payment Warning Avatar Error event:', e);
+                          }}
+                        />
                         <AvatarFallback className="text-sm">
                           {user.name?.substring(0, 2).toUpperCase() || 'U'}
                         </AvatarFallback>
