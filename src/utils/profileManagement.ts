@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
@@ -9,6 +8,33 @@ interface Residencia {
 
 interface Condominium {
   name: string;
+}
+
+// Define interfaces for profile data
+interface ClientProfile {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  residencia_id?: string;
+  condominium_id?: string;
+  house_number?: string;
+  avatar_url?: string;
+  has_payment_method?: boolean;
+  created_at?: string;
+}
+
+interface ProviderProfile {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+  about_me?: string;
+  experience_years?: number;
+  average_rating?: number;
+  certification_files?: any;
+  created_at?: string;
 }
 
 export async function updateUserProfile(userId: string, data: any) {
@@ -37,18 +63,39 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
   try {
     // Determine which table to query based on role
     const table = role === 'client' ? 'clients' : 'providers';
+    const isClient = role === 'client';
     
-    const { data: profileData, error } = await supabase
-      .from(table)
-      .select('*')
-      .eq('id', userId)
-      .single();
+    // Query with proper typing based on role
+    let profileData: ClientProfile | ProviderProfile | null;
+    
+    if (isClient) {
+      const { data, error } = await supabase
+        .from(table)
+        .select('*')
+        .eq('id', userId)
+        .single<ClientProfile>();
+        
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
       
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return null;
+      profileData = data;
+    } else {
+      const { data, error } = await supabase
+        .from(table)
+        .select('*')
+        .eq('id', userId)
+        .single<ProviderProfile>();
+        
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      
+      profileData = data;
     }
-    
+      
     if (!profileData) {
       console.error('No profile data found');
       return null;
@@ -57,9 +104,6 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     // Si client tiene residencia_id, fetch the building name
     let buildingName = '';
     let condominiumName = '';
-    
-    // Type guard to check if we're dealing with a client profile
-    const isClient = role === 'client';
     
     if (isClient && 'residencia_id' in profileData && profileData.residencia_id) {
       const { data: residenciaData } = await supabase
