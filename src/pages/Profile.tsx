@@ -176,13 +176,42 @@ const Profile = () => {
       const result = await updateUserAvatar(user.id, url, user.role);
       
       if (result.success) {
+        console.log('Avatar update successful, updating states...');
+        
+        // Update local state immediately
         setCurrentAvatarUrl(url);
+        
+        // Update context
         updateContextAvatar(url);
+        
+        // Update profile data state if it exists
+        if (profileData) {
+          setProfileData({
+            ...profileData,
+            avatar_url: url,
+            avatarUrl: url
+          });
+        }
+        
+        console.log('All states updated with new avatar URL:', url);
         
         toast({
           title: "Imagen actualizada",
           description: "Tu foto de perfil ha sido actualizada correctamente."
         });
+        
+        // Force a profile data refresh to verify the update
+        setTimeout(async () => {
+          if (user?.id) {
+            const refreshedProfile = await fetchUserProfile(user.id, user.role);
+            if (refreshedProfile) {
+              console.log('Profile refreshed with avatar:', refreshedProfile.avatarUrl);
+              setProfileData(refreshedProfile);
+              setCurrentAvatarUrl(refreshedProfile.avatarUrl || '');
+            }
+          }
+        }, 1000);
+        
       } else {
         throw new Error(result.error);
       }
@@ -275,6 +304,7 @@ const Profile = () => {
                       <AvatarImage 
                         src={currentAvatarUrl} 
                         alt={user.name}
+                        key={currentAvatarUrl} // Force re-render when URL changes
                         onLoad={() => {
                           console.log('=== Avatar Image Loaded Successfully ===');
                           console.log('Loaded URL:', currentAvatarUrl);

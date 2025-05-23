@@ -134,20 +134,33 @@ export async function deleteUserProfile(userId: string) {
 
 export async function updateUserAvatar(userId: string, avatarUrl: string, role: UserRole = 'client') {
   try {
+    console.log('=== updateUserAvatar ===');
     console.log('Updating avatar for user:', userId, 'URL:', avatarUrl);
     
-    // Update only the users table
-    const { error } = await supabase
+    // Update the users table with the new avatar URL
+    const { data, error } = await supabase
       .from('users')
       .update({ avatar_url: avatarUrl })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('avatar_url')
+      .single();
       
     if (error) {
-      console.error('Error updating avatar:', error);
+      console.error('Error updating avatar in users table:', error);
       throw error;
     }
     
-    console.log('Avatar updated successfully');
+    console.log('Avatar updated successfully in users table:', data);
+    
+    // Verify the update was successful
+    const { data: verifyData } = await supabase
+      .from('users')
+      .select('avatar_url')
+      .eq('id', userId)
+      .single();
+    
+    console.log('Avatar verification after update:', verifyData);
+    
     return { success: true, avatarUrl };
   } catch (error: any) {
     console.error('Error updating avatar:', error);
