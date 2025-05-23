@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -42,30 +43,47 @@ const ClientServices = () => {
               name,
               label
             )
-          ),
-          provider:provider_id(
-            id,
-            name
           )
         `)
         .in('id', listingResidencias.map(lr => lr.listing_id));
         
       if (listingsError) throw listingsError;
       
-      return listingsData.map(listing => ({
-        id: listing.id,
-        title: listing.title,
-        description: listing.description,
-        categoryId: listing.service_type?.category?.name || '',
-        categoryName: listing.service_type?.category?.label || 'Otros',
-        serviceTypeName: listing.service_type?.name || '',
-        price: typeof listing.base_price === 'number' ? listing.base_price : 0,
-        duration: typeof listing.duration === 'number' ? listing.duration : 0,
-        providerId: listing.provider_id,
-        providerName: listing.provider?.name || 'Proveedor',
-        residenciaIds: [residenciaId],
-        createdAt: new Date(listing.created_at)
-      }));
+      // Get unique provider IDs from listings
+      const providerIds = [...new Set(listingsData.map(listing => listing.provider_id))];
+      
+      // Fetch provider data from users table
+      const { data: providers, error: providersError } = await supabase
+        .from('users')
+        .select('id, name')
+        .in('id', providerIds)
+        .eq('role', 'provider');
+        
+      if (providersError) throw providersError;
+      
+      // Create provider map for easy lookup
+      const providerMap = Object.fromEntries(
+        (providers || []).map(provider => [provider.id, provider])
+      );
+      
+      return listingsData.map(listing => {
+        const provider = providerMap[listing.provider_id];
+        
+        return {
+          id: listing.id,
+          title: listing.title,
+          description: listing.description,
+          categoryId: listing.service_type?.category?.name || '',
+          categoryName: listing.service_type?.category?.label || 'Otros',
+          serviceTypeName: listing.service_type?.name || '',
+          price: typeof listing.base_price === 'number' ? listing.base_price : 0,
+          duration: typeof listing.duration === 'number' ? listing.duration : 0,
+          providerId: listing.provider_id,
+          providerName: provider?.name || 'Proveedor',
+          residenciaIds: [residenciaId],
+          createdAt: new Date(listing.created_at)
+        };
+      });
     }
   });
 

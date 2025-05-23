@@ -128,9 +128,10 @@ const Services = () => {
       if (!user?.id) return null;
       
       const { data, error } = await supabase
-        .from('providers')
-        .select('*')
+        .from('users')
+        .select('about_me, experience_years, certification_files')
         .eq('id', user.id)
+        .eq('role', 'provider')
         .maybeSingle();
         
       if (error) {
@@ -158,18 +159,6 @@ const Services = () => {
   const createListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
       if (!user?.id) throw new Error('User ID is required');
-      
-      // First, check if the provider record exists
-      const { data: providerExists, error: providerCheckError } = await supabase
-        .from('providers')
-        .select('id, certification_files')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      // If provider check fails for any reason other than "not found", throw error
-      if (providerCheckError && !providerCheckError.message.includes('No rows found')) {
-        throw providerCheckError;
-      }
       
       // Upload certification files if provided
       let certificationFilesUrls = [];
@@ -206,43 +195,18 @@ const Services = () => {
         }
       }
       
-      // If provider doesn't exist, create it
-      if (!providerExists) {
-        const { error: createProviderError } = await supabase
-          .from('providers')
-          .insert({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone || null,
-            about_me: serviceData.aboutMe || '',
-            experience_years: serviceData.experienceYears || 0,
-            certification_files: certificationFilesUrls.length ? JSON.stringify(certificationFilesUrls) : null,
-            average_rating: null
-          });
-          
-        if (createProviderError) {
-          toast.error('Error creating provider profile: ' + createProviderError.message);
-          throw createProviderError;
-        }
-      } else {
-        // Update provider data if it exists - Fixed TypeScript error by properly typing providerExists
-        const providerExistsData = providerExists as ProviderData;
+      // Update provider data
+      const { error: updateProviderError } = await supabase
+        .from('users')
+        .update({
+          about_me: serviceData.aboutMe || '',
+          experience_years: serviceData.experienceYears || 0,
+          certification_files: certificationFilesUrls.length ? JSON.stringify(certificationFilesUrls) : null,
+        })
+        .eq('id', user.id);
         
-        const { error: updateProviderError } = await supabase
-          .from('providers')
-          .update({
-            about_me: serviceData.aboutMe,
-            experience_years: serviceData.experienceYears,
-            certification_files: certificationFilesUrls.length 
-              ? JSON.stringify(certificationFilesUrls) 
-              : providerExistsData.certification_files // Now properly typed
-          })
-          .eq('id', user.id);
-          
-        if (updateProviderError) {
-          console.error('Error updating provider info:', updateProviderError);
-        }
+      if (updateProviderError) {
+        console.error('Error updating provider info:', updateProviderError);
       }
       
       // Process service variants if available
@@ -380,7 +344,7 @@ const Services = () => {
           } else {
             // No new files but keep existing files - get from provider record
             const { data: providerData } = await supabase
-              .from('providers')
+              .from('users')
               .select('certification_files')
               .eq('id', user.id)
               .maybeSingle();
@@ -393,7 +357,7 @@ const Services = () => {
         }
         
         const { error: updateProviderError } = await supabase
-          .from('providers')
+          .from('users')
           .update({
             about_me: serviceData.aboutMe,
             experience_years: serviceData.experienceYears,

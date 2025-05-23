@@ -17,7 +17,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { ServiceCategoryGroup, ProviderProfile } from '@/lib/types';
-import { ProviderData } from '@/components/client/results/types';
 
 interface ServiceOption {
   id: string;
@@ -47,23 +46,17 @@ const ProviderProfilePage = () => {
   const location = useLocation();
   const { bookingData } = location.state || {};
   
-  // Fetch provider data con manejo seguro de users y estructura de datos
+  // Fetch provider data from users table
   const { data: provider, isLoading } = useQuery({
     queryKey: ['provider', providerId],
     queryFn: async () => {
       if (!providerId) return null;
       
       const { data, error } = await supabase
-        .from('providers')
-        .select(`
-          *,
-          users(
-            name,
-            avatar_url,
-            created_at
-          )
-        `)
+        .from('users')
+        .select('*')
         .eq('id', providerId)
+        .eq('role', 'provider')
         .maybeSingle();
         
       if (error) throw error;
@@ -71,24 +64,6 @@ const ProviderProfilePage = () => {
       if (!data) {
         toast.error('No se encontró el proveedor');
         return null;
-      }
-      
-      // Safe access to potentially undefined values with proper type assertions
-      const userData = data.users || {};
-      let userName = '';
-      let userAvatar = null;
-      let createdAt = new Date();
-      
-      if (Array.isArray(userData) && userData.length > 0) {
-        const user = userData[0] as { name?: string; avatar_url?: string; created_at?: string };
-        userName = user?.name || '';
-        userAvatar = user?.avatar_url || null;
-        createdAt = new Date(user?.created_at || data.created_at || new Date());
-      } else if (typeof userData === 'object') {
-        const user = userData as { name?: string; avatar_url?: string; created_at?: string };
-        userName = user?.name || '';
-        userAvatar = user?.avatar_url || null;
-        createdAt = new Date(user?.created_at || data.created_at || new Date());
       }
       
       // Parse certification files if available
@@ -104,8 +79,8 @@ const ProviderProfilePage = () => {
       // Format provider data for the UI
       return {
         id: data.id || '',
-        name: data.name || userName || 'Proveedor',
-        avatar: userAvatar,
+        name: data.name || 'Proveedor',
+        avatar: data.avatar_url,
         rating: data.average_rating || 0,
         ratingCount: 0, 
         aboutMe: data.about_me || 'No hay información disponible',
@@ -116,7 +91,7 @@ const ProviderProfilePage = () => {
         handlesDangerousDogs: false, 
         servicesCompleted: 0, 
         isVerified: true, 
-        joinDate: createdAt,
+        joinDate: new Date(data.created_at || new Date()),
         detailedRatings: {
           service: 0,
           valueForMoney: 0,

@@ -79,13 +79,6 @@ const ClientProvidersList = () => {
         .from('listings')
         .select(`
           *,
-          provider:provider_id(
-            id,
-            name,
-            about_me,
-            experience_years,
-            average_rating
-          ),
           listing_residencias(
             residencia_id
           )
@@ -96,6 +89,23 @@ const ClientProvidersList = () => {
       const { data: listingsData, error: listingsError } = await query;
         
       if (listingsError) throw listingsError;
+      
+      // Get unique provider IDs from listings
+      const providerIds = [...new Set(listingsData.map(listing => listing.provider_id))];
+      
+      // Fetch provider data from users table
+      const { data: providers, error: providersError } = await supabase
+        .from('users')
+        .select('id, name, about_me, experience_years, average_rating')
+        .in('id', providerIds)
+        .eq('role', 'provider');
+        
+      if (providersError) throw providersError;
+      
+      // Create provider map for easy lookup
+      const providerMap = Object.fromEntries(
+        (providers || []).map(provider => [provider.id, provider])
+      );
       
       // Filtrar por residencia del cliente si está disponible
       let filteredListings = listingsData;
@@ -108,18 +118,22 @@ const ClientProvidersList = () => {
         });
       }
       
-      return filteredListings.map(listing => ({
-        id: listing.id,
-        title: listing.title,
-        description: listing.description,
-        price: listing.base_price,
-        providerId: listing.provider_id,
-        providerName: listing.provider?.name || 'Proveedor',
-        providerExperience: listing.provider?.experience_years || 0,
-        rating: listing.provider?.average_rating || (Math.random() * 2 + 3).toFixed(1), // Rating del proveedor o simulado
-        duration: listing.duration || 60,
-        isAvailable: true // Por ahora asumimos que todos están disponibles
-      }));
+      return filteredListings.map(listing => {
+        const provider = providerMap[listing.provider_id];
+        
+        return {
+          id: listing.id,
+          title: listing.title,
+          description: listing.description,
+          price: listing.base_price,
+          providerId: listing.provider_id,
+          providerName: provider?.name || 'Proveedor',
+          providerExperience: provider?.experience_years || 0,
+          rating: provider?.average_rating || (Math.random() * 2 + 3).toFixed(1), // Rating del proveedor o simulado
+          duration: listing.duration || 60,
+          isAvailable: true // Por ahora asumimos que todos están disponibles
+        };
+      });
     },
     enabled: !!category && !!subcat
   });
