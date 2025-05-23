@@ -94,7 +94,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         condominiumName = '';
       } else {
         // Now we can safely access the name property
-        condominiumName = condominiumData.name || '';
+        condominiumName = condominiumData?.name || '';
         console.log('Condominium name extracted:', condominiumName);
       }
     }
