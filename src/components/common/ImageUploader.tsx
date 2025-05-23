@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ImageUploaderProps {
@@ -25,6 +26,7 @@ const ImageUploader = ({
 }: ImageUploaderProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleButtonClick = () => {
@@ -35,6 +37,15 @@ const ImageUploader = ({
     const file = e.target.files?.[0];
     
     if (!file) return;
+    
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Debes estar autenticado para subir imágenes.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Validar el tipo de archivo
     if (!file.type.startsWith('image/')) {
@@ -62,7 +73,10 @@ const ImageUploader = ({
       // Generar un nombre único para el archivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
-      const filePath = folder ? `${folder}/${fileName}` : fileName;
+      
+      // Crear la ruta del archivo usando el ID del usuario como carpeta
+      // Esto es requerido por nuestras políticas RLS
+      const filePath = `${user.id}/${fileName}`;
       
       // Subir el archivo a Supabase Storage
       const { data, error } = await supabase
