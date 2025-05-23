@@ -56,7 +56,25 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
   const serviceVariants = watch('serviceVariants') || [
     { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
+  const profileImage = watch('profileImage');
   const isMobile = useIsMobile();
+  
+  // Separate ref for profile image preview to avoid unnecessary updates
+  const [profileImagePreview, setProfileImagePreview] = React.useState<string | null>(null);
+  
+  // Update preview only when profile image actually changes
+  React.useEffect(() => {
+    if (profileImage && profileImage instanceof File) {
+      const newPreview = URL.createObjectURL(profileImage);
+      setProfileImagePreview(newPreview);
+      
+      return () => {
+        URL.revokeObjectURL(newPreview);
+      };
+    } else {
+      setProfileImagePreview(null);
+    }
+  }, [profileImage]);
   
   // Fix for createObjectURL - safely create URL for files
   const safeCreateObjectURL = (file: unknown): string | null => {
@@ -239,6 +257,11 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
           URL.revokeObjectURL(fileObj.preview);
         }
       });
+      
+      // Clean up profile image preview
+      if (profileImagePreview && profileImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImagePreview);
+      }
     };
   }, []);
 
@@ -340,9 +363,9 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                     <FormLabel>Foto de perfil</FormLabel>
                     <div className="flex items-center gap-4">
                       <Avatar className="h-16 w-16">
-                        {field.value ? (
+                        {profileImagePreview ? (
                           <AvatarImage 
-                            src={safeCreateObjectURL(field.value)}
+                            src={profileImagePreview}
                             alt="Profile preview" 
                           />
                         ) : (
@@ -362,7 +385,9 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                               className="hidden"
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) field.onChange(file);
+                                if (file) {
+                                  field.onChange(file);
+                                }
                               }}
                             />
                           </label>
@@ -387,11 +412,14 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
                       <Textarea
                         placeholder="Cuéntale a tus clientes sobre tu experiencia, formación y filosofía de trabajo..."
                         rows={4}
-                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          field.onChange(e.target.value);
+                        }}
                       />
                     </FormControl>
                     <FormDescription>
-                      Esta información se mostrará en la sección "Sobre mí" de tu perfil ({aboutMe.length}/500 caracteres)
+                      Esta información se mostrará en la sección "Sobre mí" de tu perfil ({(field.value || '').length}/500 caracteres)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
