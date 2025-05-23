@@ -42,6 +42,13 @@ const Profile = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const isMobile = useIsMobile();
 
+  // Debug logs específicos para el avatar
+  console.log('=== Profile Component Avatar Debug ===');
+  console.log('User from context:', user);
+  console.log('User avatarUrl from context:', user?.avatarUrl);
+  console.log('Current avatar URL state:', currentAvatarUrl);
+  console.log('Is authenticated:', isAuthenticated);
+
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -65,19 +72,32 @@ const Profile = () => {
       const loadUserProfile = async () => {
         setIsLoadingProfile(true);
         try {
+          console.log('=== Loading Profile Data ===');
           console.log('Loading profile for user:', user.id, 'role:', user.role);
           const profileData = await fetchUserProfile(user.id, user.role);
           if (profileData) {
-            console.log('Profile loaded:', profileData);
+            console.log('=== Profile Data Loaded ===');
+            console.log('Full profile data:', profileData);
+            console.log('Profile avatarUrl field:', profileData.avatarUrl);
+            console.log('Profile avatar_url field:', profileData.avatar_url);
+            
             profileForm.reset({
               name: profileData.name || '',
               email: profileData.email || '',
               phone: profileData.phone || ''
             });
-            // Update the current avatar URL with priority to avatarUrl field
+            
+            // Priorizar avatarUrl, luego avatar_url
             const avatarToUse = profileData.avatarUrl || profileData.avatar_url || '';
-            console.log('Setting avatar URL:', avatarToUse);
+            console.log('=== Avatar Selection Logic ===');
+            console.log('profileData.avatarUrl:', profileData.avatarUrl);
+            console.log('profileData.avatar_url:', profileData.avatar_url);
+            console.log('Final avatar selected:', avatarToUse);
+            
             setCurrentAvatarUrl(avatarToUse);
+            console.log('Avatar URL set in state:', avatarToUse);
+          } else {
+            console.log('No profile data returned');
           }
         } catch (error) {
           console.error('Error loading profile:', error);
@@ -196,6 +216,10 @@ const Profile = () => {
     );
   }
 
+  console.log('=== Avatar Rendering Debug ===');
+  console.log('About to render avatar with URL:', currentAvatarUrl);
+  console.log('User name for fallback:', user.name);
+
   return (
     <PageContainer 
       title="Mi Perfil" 
@@ -243,10 +267,15 @@ const Profile = () => {
                       <AvatarImage 
                         src={currentAvatarUrl} 
                         alt={user.name}
-                        onLoad={() => console.log('Profile Avatar image loaded successfully:', currentAvatarUrl)}
+                        onLoad={() => {
+                          console.log('=== Avatar Image Loaded Successfully ===');
+                          console.log('Loaded URL:', currentAvatarUrl);
+                        }}
                         onError={(e) => {
-                          console.error('Profile Avatar image failed to load:', currentAvatarUrl);
-                          console.error('Profile Avatar Error event:', e);
+                          console.error('=== Avatar Image Failed to Load ===');
+                          console.error('Failed URL:', currentAvatarUrl);
+                          console.error('Error event:', e);
+                          console.error('Image element:', e.currentTarget);
                         }}
                       />
                       <AvatarFallback className="text-2xl">
@@ -261,6 +290,11 @@ const Profile = () => {
                     {isUploadingImage && (
                       <p className="text-xs text-muted-foreground mt-1">Subiendo imagen...</p>
                     )}
+                    {/* Debug info - remove in production */}
+                    <div className="text-xs text-muted-foreground mt-2 text-center">
+                      <p>Debug: {currentAvatarUrl ? 'URL presente' : 'Sin URL'}</p>
+                      <p className="break-all">{currentAvatarUrl}</p>
+                    </div>
                   </div>
                   
                   <div className="flex-1 w-full">
