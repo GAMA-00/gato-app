@@ -44,6 +44,20 @@ export async function updateUserProfile(userId: string, data: any) {
     const isClient = role === 'client';
     const table = isClient ? 'clients' : 'providers';
     
+    // Also update the users table to keep it in sync
+    const { error: usersError } = await supabase
+      .from('users')
+      .update({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+      })
+      .eq('id', userId);
+    
+    if (usersError) {
+      console.error('Error updating users table:', usersError);
+    }
+    
     // Update profile data in the appropriate table
     const { error } = await supabase
       .from(table)
@@ -61,6 +75,17 @@ export async function updateUserProfile(userId: string, data: any) {
 
 export async function fetchUserProfile(userId: string, role: UserRole = 'client') {
   try {
+    // First get the basic user data from users table
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (userError) {
+      console.error('Error fetching user data:', userError);
+    }
+
     // Determine which table to query based on role
     const table = role === 'client' ? 'clients' : 'providers';
     const isClient = role === 'client';
@@ -143,14 +168,19 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       }
     }
     
-    // Create a result object with safe defaults
+    // Create a result object with safe defaults, prioritizing users table data
     const result = {
       ...profileData,
+      // Use users table data as primary source, fallback to role-specific tables
+      name: userData?.name || profileData.name || '',
+      email: userData?.email || profileData.email || '',
+      phone: userData?.phone || profileData.phone || '',
+      avatar_url: userData?.avatar_url || profileData.avatar_url || '',
       buildingName,
       condominiumName,
       // Use optional chaining and provide defaults for potentially missing properties
       houseNumber: isClient && 'house_number' in profileData ? profileData.house_number || '' : '',
-      avatarUrl: 'avatar_url' in profileData ? profileData.avatar_url || '' : ''
+      avatarUrl: userData?.avatar_url || profileData.avatar_url || ''
     };
     
     return result;
@@ -177,6 +207,16 @@ export async function deleteUserProfile(userId: string) {
 
 export async function updateUserAvatar(userId: string, avatarUrl: string, role: UserRole = 'client') {
   try {
+    // Update both users table and role-specific table
+    const { error: usersError } = await supabase
+      .from('users')
+      .update({ avatar_url: avatarUrl })
+      .eq('id', userId);
+    
+    if (usersError) {
+      console.error('Error updating users table avatar:', usersError);
+    }
+    
     // Determine which table to update based on role
     const table = role === 'client' ? 'clients' : 'providers';
     

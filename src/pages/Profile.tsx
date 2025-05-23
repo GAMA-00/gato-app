@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +38,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(user?.avatarUrl || '');
   const isMobile = useIsMobile();
 
   const profileForm = useForm<ProfileFormValues>({
@@ -69,6 +69,8 @@ const Profile = () => {
             email: profileData.email || '',
             phone: profileData.phone || ''
           });
+          // Update the current avatar URL
+          setCurrentAvatarUrl(profileData.avatarUrl || '');
         }
       };
       
@@ -82,7 +84,7 @@ const Profile = () => {
     setIsLoading(true);
     
     try {
-      const result = await updateUserProfile(user.id, values);
+      const result = await updateUserProfile(user.id, { ...values, role: user.role });
       
       if (result.success) {
         toast({
@@ -91,7 +93,7 @@ const Profile = () => {
         });
         
         // Actualizar el contexto de autenticación con los nuevos datos
-        updateContextAvatar(user.avatarUrl || '');
+        updateContextAvatar(currentAvatarUrl);
       } else {
         throw new Error(result.error || 'Error al actualizar el perfil');
       }
@@ -115,6 +117,9 @@ const Profile = () => {
       const result = await updateUserAvatar(user.id, url, user.role);
       
       if (result.success) {
+        // Actualizar el estado local inmediatamente
+        setCurrentAvatarUrl(url);
+        
         // Actualizar el estado global
         updateContextAvatar(url);
         
@@ -198,14 +203,14 @@ const Profile = () => {
                 <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-start">
                   <div className="flex flex-col items-center self-center mb-4 md:mb-0">
                     <Avatar className="h-20 w-20 md:h-28 md:w-28 mb-3">
-                      <AvatarImage src={user.avatarUrl || ''} alt={user.name} />
+                      <AvatarImage src={currentAvatarUrl} alt={user.name} />
                       <AvatarFallback className="text-2xl">
                         {user.name?.substring(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <ImageUploader 
                       onImageUploaded={handleImageUploaded}
-                      currentImageUrl={user.avatarUrl}
+                      currentImageUrl={currentAvatarUrl}
                       buttonText="Cambiar foto"
                     />
                   </div>
@@ -276,18 +281,36 @@ const Profile = () => {
                 {user.hasPaymentMethod ? (
                   <div className="bg-muted p-3 md:p-4 rounded-md flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <CreditCard className="h-8 w-8 md:h-10 md:w-10 text-primary" />
-                      <div>
-                        <p className="font-medium text-sm md:text-base">Tarjeta registrada</p>
-                        <p className="text-xs md:text-sm text-muted-foreground">**** **** **** 1234</p>
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={currentAvatarUrl} alt={user.name} />
+                        <AvatarFallback className="text-sm">
+                          {user.name?.substring(0, 2).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="h-8 w-8 md:h-10 md:w-10 text-primary" />
+                        <div>
+                          <p className="font-medium text-sm md:text-base">Tarjeta registrada</p>
+                          <p className="text-xs md:text-sm text-muted-foreground">**** **** **** 1234</p>
+                        </div>
                       </div>
                     </div>
                     <Button variant="outline" size="sm">Editar</Button>
                   </div>
                 ) : (
                   <div className="bg-amber-50 text-amber-600 border border-amber-200 p-3 md:p-4 rounded-md">
-                    <p className="font-medium text-sm md:text-base">No tienes métodos de pago registrados</p>
-                    <p className="text-xs md:text-sm">Agrega un método de pago para facilitar tus reservas</p>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={currentAvatarUrl} alt={user.name} />
+                        <AvatarFallback className="text-sm">
+                          {user.name?.substring(0, 2).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm md:text-base">No tienes métodos de pago registrados</p>
+                        <p className="text-xs md:text-sm">Agrega un método de pago para facilitar tus reservas</p>
+                      </div>
+                    </div>
                     <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={() => navigate('/payment-setup')}>
                       Agregar método de pago
                     </Button>
