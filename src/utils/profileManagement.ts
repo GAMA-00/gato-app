@@ -1,27 +1,30 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
+// Define interfaces for the expected data structures from Supabase
+interface Residencia {
+  name: string;
+}
+
+interface Condominium {
+  name: string;
+}
+
 export async function updateUserProfile(userId: string, data: any) {
-  try {
-    // Determine if we're updating a client or provider
-    const { role } = data;
-    const isClient = role === 'client';
-    const table = isClient ? 'clients' : 'providers';
+  // Determine if we're updating a client or provider
+  const { role } = data;
+  const isClient = role === 'client';
+  const table = isClient ? 'clients' : 'providers';
+  
+  // Update profile data in the appropriate table
+  const { error } = await supabase
+    .from(table)
+    .update(data)
+    .eq('id', userId);
     
-    // Update profile data in the appropriate table
-    const { error } = await supabase
-      .from(table)
-      .update(data)
-      .eq('id', userId);
-      
-    if (error) throw error;
-    
-    return { success: true };
-  } catch (error: any) {
-    console.error('Error updating profile:', error);
-    return { success: false, error: error.message };
-  }
+  if (error) throw error;
+  
+  return { success: true };
 }
 
 export async function fetchUserProfile(userId: string, role: UserRole = 'client') {
@@ -57,11 +60,10 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .from('residencias')
         .select('name')
         .eq('id', profileData.residencia_id)
-        .single();
+        .single<Residencia>();
         
       if (residenciaData) {
-        // TypeScript fix: use type assertion instead of String() constructor
-        buildingName = (residenciaData.name as string) || '';
+        buildingName = residenciaData.name || '';
       }
     }
     
@@ -73,7 +75,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         .from('condominiums')
         .select('name')
         .eq('id', profileData.condominium_id)
-        .single();
+        .single<Condominium>();
       
       console.log('Condominium query result:', { condominiumData, error: condoError });
       
@@ -82,8 +84,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         console.log('No condominium data found or error occurred');
         condominiumName = '';
       } else {
-        // TypeScript fix: use type assertion instead of String() constructor
-        condominiumName = (condominiumData.name as string) || '';
+        condominiumName = condominiumData.name || '';
         console.log('Condominium name extracted:', condominiumName);
       }
     }
