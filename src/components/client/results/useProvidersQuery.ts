@@ -12,6 +12,7 @@ interface ListingWithProvider {
   base_price: number;
   duration: number;
   is_active: boolean;
+  provider_id: string;
   provider: ProviderData;
   listing_residencias?: { residencia_id: string }[];
 }
@@ -31,7 +32,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       console.log(`Client residencia ID: ${user?.residenciaId || 'Not set'}`);
       
       // Get listings with provider data from users table
-      const { data: listings, error: listingsError } = await supabase
+      const { data: listingsData, error: listingsError } = await supabase
         .from('listings')
         .select(`
           id,
@@ -58,14 +59,14 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
         return [];
       }
       
-      console.log(`Found ${listings?.length || 0} active listings`);
+      console.log(`Found ${listingsData?.length || 0} active listings`);
       
-      if (!listings || listings.length === 0) {
+      if (!listingsData || listingsData.length === 0) {
         return [];
       }
       
       // Get unique provider IDs
-      const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
+      const providerIds = [...new Set(listingsData.map(listing => listing.provider_id))];
       
       // Fetch provider data from users table
       const { data: providers, error: providersError } = await supabase
@@ -76,8 +77,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
           experience_years,
           about_me,
           average_rating,
-          certification_files,
-          created_at
+          certification_files
         `)
         .in('id', providerIds)
         .eq('role', 'provider');
@@ -91,6 +91,18 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       const providerMap = Object.fromEntries(
         (providers || []).map(provider => [provider.id, provider])
       );
+      
+      // Create a fully typed listings array with provider data
+      const listings: ListingWithProvider[] = listingsData.map(listing => ({
+        ...listing,
+        provider: providerMap[listing.provider_id] || {
+          id: listing.provider_id,
+          name: 'Provider',
+          experience_years: 0,
+          about_me: '',
+          average_rating: 0
+        }
+      }));
       
       // Filter listings based on residencia_id if user is logged in
       let filteredListings = listings;
@@ -111,7 +123,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       
       // Process and return the providers with their service details
       const processedProviders: ProcessedProvider[] = filteredListings.map(listing => {
-        const provider = providerMap[listing.provider_id] || {} as ProviderData;
+        const provider = listing.provider;
         
         // Safely check if provider has certifications
         const certFiles = provider.certification_files || [];
@@ -132,7 +144,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
           rating: provider.average_rating || 4.5,
           experience: provider.experience_years || 0,
           aboutMe: provider.about_me || '',
-          createdAt: provider.created_at || new Date().toISOString(),
+          createdAt: new Date().toISOString(),
           isAvailable: true, // Default to available
           category: categoryName,
           serviceImage: 'https://placehold.co/800x600?text=Servicio',

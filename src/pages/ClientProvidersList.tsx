@@ -41,12 +41,14 @@ const ClientProvidersList = () => {
       if (!user?.id) return null;
       
       const { data, error } = await supabase
-        .from('clients')
-        .select('residencia_id, residencias(name, address)')
+        .from('users')
+        .select('residencia_id, condominium_id, condominiums:condominium_id(name), residencias:residencia_id(name, address)')
         .eq('id', user.id)
+        .eq('role', 'client')
         .maybeSingle();
         
       if (error) throw error;
+      console.log("Client residencia info:", data);
       return data;
     },
     enabled: !!user?.id

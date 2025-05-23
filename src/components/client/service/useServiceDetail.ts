@@ -128,7 +128,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
                 const fileUrl = file.url || file.downloadUrl || '';
                 const fileType = file.type || file.contentType || '';
                 return fileType.startsWith('image/') || 
-                       fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                      fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
               })
               .map((file: any) => file.url || file.downloadUrl || '');
           }

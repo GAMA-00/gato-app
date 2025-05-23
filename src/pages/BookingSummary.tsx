@@ -122,15 +122,16 @@ const BookingSummary = () => {
       if (!residencia_id) {
         console.warn("Creating appointment without residencia_id. User profile may need updating.");
         
-        // Try to fetch residencia_id from clients table
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
+        // Try to fetch residencia_id from users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
           .select('residencia_id')
           .eq('id', user.id)
+          .eq('role', 'client')
           .single();
           
-        if (!clientError && clientData?.residencia_id) {
-          console.log('Found residencia_id in clients table:', clientData.residencia_id);
+        if (!userError && userData?.residencia_id) {
+          console.log('Found residencia_id in users table:', userData.residencia_id);
           
           // Create appointment with this residencia_id
           const { data, error } = await supabase
@@ -142,7 +143,7 @@ const BookingSummary = () => {
               start_time: startTime.toISOString(),
               end_time: endTime.toISOString(),
               status: 'pending',
-              residencia_id: clientData.residencia_id,
+              residencia_id: userData.residencia_id,
               apartment: user.apartment || '',
               notes: bookingData.notes || '',
               recurrence: normalizedRecurrence

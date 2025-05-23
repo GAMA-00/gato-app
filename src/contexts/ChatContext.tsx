@@ -88,19 +88,20 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                 const conversationId = [user.id, otherPartyId].sort().join('_');
                 
                 if (!conversationsMap.has(conversationId)) {
-                  // Fetch provider info separately to ensure we get their name
+                  // Fetch provider info from users table - using role filter
                   const { data: otherPartyData } = await supabase
-                    .from('providers')
+                    .from('users')
                     .select('name')
                     .eq('id', otherPartyId)
+                    .eq('role', 'provider')
                     .single();
                     
                   conversationsMap.set(conversationId, {
                     id: conversationId,
                     clientId: user.id,
                     providerId: otherPartyId,
-                    clientName: user.name,
-                    providerName: otherPartyData?.name || 'Provider',
+                    clientName: user.name || 'Cliente',
+                    providerName: otherPartyData?.name || 'Proveedor',
                     messages: [],
                     unreadCount: 0
                   });
@@ -147,19 +148,20 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                 const conversationId = [user.id, otherPartyId].sort().join('_');
                 
                 if (!conversationsMap.has(conversationId)) {
-                  // Fetch client info separately to ensure we get their name
+                  // Fetch client info from users table - using role filter
                   const { data: otherPartyData } = await supabase
-                    .from('clients')
+                    .from('users')
                     .select('name')
                     .eq('id', otherPartyId)
+                    .eq('role', 'client')
                     .single();
                     
                   conversationsMap.set(conversationId, {
                     id: conversationId,
                     providerId: user.id,
                     clientId: otherPartyId,
-                    providerName: user.name,
-                    clientName: otherPartyData?.name || 'Client',
+                    providerName: user.name || 'Proveedor',
+                    clientName: otherPartyData?.name || 'Cliente',
                     messages: [],
                     unreadCount: 0
                   });
@@ -246,7 +248,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       id: `${user.id}_${providerId}`,
       clientId: user.id,
       providerId: providerId,
-      clientName: user.name,
+      clientName: user.name || 'Cliente',
       providerName: providerName,
       messages: [],
       unreadCount: 0
@@ -361,7 +363,7 @@ export const ChatProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   return (
     <ChatContext.Provider value={{ 
-      conversations: userConversations || [], // Ensure we don't pass undefined
+      conversations: userConversations || [],
       activeConversation, 
       setActiveConversation,
       sendMessage,
