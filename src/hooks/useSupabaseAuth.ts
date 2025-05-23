@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -103,22 +102,24 @@ export const useSupabaseAuth = () => {
       console.log('User registered successfully with ID:', userId);
 
       // Wait a moment for the trigger to execute
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Verify the user was created in the users table and update if needed
+      // Verify the user was created in the users table and get the data
       const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (fetchError || !existingUser) {
-        console.log('User not found in users table, creating manually...', fetchError);
+      console.log('Checking user in users table:', { existingUser, fetchError });
+
+      if (fetchError || !existingUser || !existingUser.name || !existingUser.email) {
+        console.log('User data incomplete or missing, inserting/updating manually...');
         
-        // Insert the user data manually if the trigger failed
-        const { error: insertError } = await supabase
+        // Insert or update the user data manually since the trigger didn't work properly
+        const { data: upsertData, error: upsertError } = await supabase
           .from('users')
-          .insert({
+          .upsert({
             id: userId,
             name: userData.name,
             email: email,
@@ -127,34 +128,24 @@ export const useSupabaseAuth = () => {
             residencia_id: userData.residenciaId || null,
             condominium_id: userData.condominiumId || null,
             house_number: userData.houseNumber || ''
-          });
+          }, {
+            onConflict: 'id'
+          })
+          .select()
+          .single();
 
-        if (insertError) {
-          console.error('Error inserting user manually:', insertError);
-          // Continue anyway, we'll handle this in the UI
+        if (upsertError) {
+          console.error('Error upserting user manually:', upsertError);
+          toast({
+            title: "Advertencia",
+            description: 'Cuenta creada pero hubo un problema al guardar algunos datos.',
+            variant: "default"
+          });
+        } else {
+          console.log('User data upserted successfully:', upsertData);
         }
       } else {
-        console.log('User found in users table:', existingUser);
-        
-        // Update any missing fields
-        const updateData: any = {};
-        if (!existingUser.name && userData.name) updateData.name = userData.name;
-        if (!existingUser.phone && userData.phone) updateData.phone = userData.phone;
-        if (!existingUser.residencia_id && userData.residenciaId) updateData.residencia_id = userData.residenciaId;
-        if (!existingUser.condominium_id && userData.condominiumId) updateData.condominium_id = userData.condominiumId;
-        if (!existingUser.house_number && userData.houseNumber) updateData.house_number = userData.houseNumber;
-
-        if (Object.keys(updateData).length > 0) {
-          console.log('Updating missing user data:', updateData);
-          const { error: updateError } = await supabase
-            .from('users')
-            .update(updateData)
-            .eq('id', userId);
-
-          if (updateError) {
-            console.error('Error updating user data:', updateError);
-          }
-        }
+        console.log('User found in users table with complete data:', existingUser);
       }
 
       // If it's a provider and has residencia IDs, add them to provider_residencias
@@ -180,7 +171,7 @@ export const useSupabaseAuth = () => {
         }
       }
       
-      // Crear objeto de usuario para el frontend
+      // Create user object for frontend
       const userObj = {
         id: userId,
         email: email,
@@ -197,7 +188,7 @@ export const useSupabaseAuth = () => {
       
       toast({
         title: "¡Éxito!",
-        description: "¡Cuenta creada con éxito!",
+        description: "¡Cuenta creada con éxito! Los datos se han guardado correctamente.",
       });
       
       setAuthUser(userObj);
