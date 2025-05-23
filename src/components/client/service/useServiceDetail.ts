@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -43,7 +42,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       console.log("Listing data:", listing);
       
       // Get provider data from users table - using maybeSingle to handle not found case
-      const { data: providerData, error: providerError } = await supabase
+      const { data: providerQueryData, error: providerError } = await supabase
         .from('users')
         .select(`
           id, 
@@ -64,6 +63,9 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         toast.error("Error al obtener detalles del proveedor");
         throw providerError;
       }
+      
+      // Use a mutable variable for provider data
+      let providerData = providerQueryData;
       
       // If no provider found, create a basic provider object
       if (!providerData) {
