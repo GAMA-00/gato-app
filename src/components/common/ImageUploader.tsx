@@ -57,11 +57,11 @@ const ImageUploader = ({
       return;
     }
     
-    // Validar el tamaño del archivo (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validar el tamaño del archivo (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "Error",
-        description: "La imagen no debe exceder los 5MB.",
+        description: "La imagen no debe exceder los 10MB.",
         variant: "destructive"
       });
       return;
@@ -71,13 +71,14 @@ const ImageUploader = ({
     
     try {
       // Generar un nombre único para el archivo
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
       const fileName = `${uuidv4()}.${fileExt}`;
       
       // Crear la ruta del archivo usando el ID del usuario como carpeta
       const filePath = folder ? `${user.id}/${folder}/${fileName}` : `${user.id}/${fileName}`;
       
       console.log('=== ImageUploader - Upload Process ===');
+      console.log('File:', file);
       console.log('File type:', file.type);
       console.log('File size:', file.size);
       console.log('File path:', filePath);
@@ -86,35 +87,51 @@ const ImageUploader = ({
       // Eliminar imagen anterior si existe
       if (currentImageUrl) {
         try {
-          const urlParts = currentImageUrl.split('/');
-          const oldPath = urlParts.slice(-2).join('/'); // Obtener las últimas 2 partes de la URL
-          console.log('Attempting to delete old image:', oldPath);
-          
-          const { error: deleteError } = await supabase.storage
-            .from(bucket)
-            .remove([oldPath]);
-          
-          if (deleteError) {
-            console.warn('Could not delete old image:', deleteError);
-          } else {
-            console.log('Old image deleted successfully');
+          // Extraer el path de la URL anterior
+          const url = new URL(currentImageUrl);
+          const pathParts = url.pathname.split('/');
+          const bucketIndex = pathParts.findIndex(part => part === bucket);
+          if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+            const oldPath = pathParts.slice(bucketIndex + 1).join('/');
+            console.log('Attempting to delete old image:', oldPath);
+            
+            const { error: deleteError } = await supabase.storage
+              .from(bucket)
+              .remove([oldPath]);
+            
+            if (deleteError) {
+              console.warn('Could not delete old image:', deleteError);
+            } else {
+              console.log('Old image deleted successfully');
+            }
           }
         } catch (deleteError) {
-          console.warn('Error deleting old image:', deleteError);
+          console.warn('Error parsing/deleting old image URL:', deleteError);
         }
       }
       
-      // Subir el archivo a Supabase Storage
+      // Convertir el archivo a un ArrayBuffer para asegurar el tipo correcto
+      const fileBuffer = await file.arrayBuffer();
+      
+      console.log('File buffer size:', fileBuffer.byteLength);
+      console.log('Uploading to path:', filePath);
+      
+      // Subir el archivo a Supabase Storage con configuración específica
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(filePath, file, {
+        .upload(filePath, fileBuffer, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
+          contentType: file.type
         });
       
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        throw uploadError;
+        throw new Error(uploadError.message);
+      }
+      
+      if (!uploadData || !uploadData.path) {
+        throw new Error('No se pudo obtener la ruta del archivo subido');
       }
       
       console.log('Upload successful:', uploadData);
@@ -124,17 +141,30 @@ const ImageUploader = ({
         .from(bucket)
         .getPublicUrl(uploadData.path);
       
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error('No se pudo obtener la URL pública');
+      }
+      
       console.log('Public URL generated:', urlData.publicUrl);
       
-      // Verificar que la imagen se puede acceder
+      // Verificar que la imagen se puede acceder con un pequeño delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       try {
-        const response = await fetch(urlData.publicUrl, { method: 'HEAD' });
+        const response = await fetch(urlData.publicUrl, { 
+          method: 'HEAD',
+          cache: 'no-cache'
+        });
+        console.log('Image accessibility check - Status:', response.status);
+        console.log('Image accessibility check - Headers:', Object.fromEntries(response.headers.entries()));
+        
         if (!response.ok) {
           throw new Error(`Image not accessible: ${response.status}`);
         }
-        console.log('Image accessibility verified');
+        console.log('Image accessibility verified successfully');
       } catch (verifyError) {
         console.warn('Could not verify image accessibility:', verifyError);
+        // No lanzar error aquí, continuar con el proceso
       }
       
       // Llamar al callback con la URL de la imagen
