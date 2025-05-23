@@ -39,6 +39,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(user?.avatarUrl || '');
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const isMobile = useIsMobile();
 
   const profileForm = useForm<ProfileFormValues>({
@@ -62,21 +63,37 @@ const Profile = () => {
   useEffect(() => {
     if (user?.id) {
       const loadUserProfile = async () => {
-        const profileData = await fetchUserProfile(user.id, user.role);
-        if (profileData) {
-          profileForm.reset({
-            name: profileData.name || '',
-            email: profileData.email || '',
-            phone: profileData.phone || ''
+        setIsLoadingProfile(true);
+        try {
+          console.log('Loading profile for user:', user.id, 'role:', user.role);
+          const profileData = await fetchUserProfile(user.id, user.role);
+          if (profileData) {
+            console.log('Profile loaded:', profileData);
+            profileForm.reset({
+              name: profileData.name || '',
+              email: profileData.email || '',
+              phone: profileData.phone || ''
+            });
+            // Update the current avatar URL with priority to avatarUrl field
+            const avatarToUse = profileData.avatarUrl || profileData.avatar_url || '';
+            console.log('Setting avatar URL:', avatarToUse);
+            setCurrentAvatarUrl(avatarToUse);
+          }
+        } catch (error) {
+          console.error('Error loading profile:', error);
+          toast({
+            title: "Error",
+            description: "No se pudo cargar el perfil. Por favor, intenta recargar la página.",
+            variant: "destructive"
           });
-          // Update the current avatar URL
-          setCurrentAvatarUrl(profileData.avatarUrl || '');
+        } finally {
+          setIsLoadingProfile(false);
         }
       };
       
       loadUserProfile();
     }
-  }, [user]);
+  }, [user, profileForm, toast]);
 
   const onSubmitProfile = async (values: ProfileFormValues) => {
     if (!user?.id) return;
@@ -114,6 +131,7 @@ const Profile = () => {
     
     setIsUploadingImage(true);
     try {
+      console.log('Handling image upload:', url);
       const result = await updateUserAvatar(user.id, url, user.role);
       
       if (result.success) {
@@ -158,6 +176,16 @@ const Profile = () => {
   }, [isAuthenticated, navigate]);
 
   if (!user) return null;
+
+  if (isLoadingProfile) {
+    return (
+      <PageContainer title="Mi Perfil" subtitle="Cargando...">
+        <div className="flex justify-center items-center min-h-[300px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer 
@@ -213,6 +241,9 @@ const Profile = () => {
                       currentImageUrl={currentAvatarUrl}
                       buttonText="Cambiar foto"
                     />
+                    {isUploadingImage && (
+                      <p className="text-xs text-muted-foreground mt-1">Subiendo imagen...</p>
+                    )}
                   </div>
                   
                   <div className="flex-1 w-full">

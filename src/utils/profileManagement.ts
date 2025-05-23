@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
@@ -75,6 +76,8 @@ export async function updateUserProfile(userId: string, data: any) {
 
 export async function fetchUserProfile(userId: string, role: UserRole = 'client') {
   try {
+    console.log('Fetching profile for user:', userId, 'with role:', role);
+    
     // First get the basic user data from users table
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -168,6 +171,10 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       }
     }
     
+    // Prioritize avatar_url from users table, then from profile table
+    const finalAvatarUrl = userData?.avatar_url || profileData.avatar_url || '';
+    console.log('Final avatar URL:', finalAvatarUrl);
+    
     // Create a result object with safe defaults, prioritizing users table data
     const result = {
       ...profileData,
@@ -175,14 +182,15 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       name: userData?.name || profileData.name || '',
       email: userData?.email || profileData.email || '',
       phone: userData?.phone || profileData.phone || '',
-      avatar_url: userData?.avatar_url || profileData.avatar_url || '',
+      avatar_url: finalAvatarUrl,
       buildingName,
       condominiumName,
       // Use optional chaining and provide defaults for potentially missing properties
       houseNumber: isClient && 'house_number' in profileData ? profileData.house_number || '' : '',
-      avatarUrl: userData?.avatar_url || profileData.avatar_url || ''
+      avatarUrl: finalAvatarUrl // Keep both for compatibility
     };
     
+    console.log('Profile result:', result);
     return result;
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -207,6 +215,8 @@ export async function deleteUserProfile(userId: string) {
 
 export async function updateUserAvatar(userId: string, avatarUrl: string, role: UserRole = 'client') {
   try {
+    console.log('Updating avatar for user:', userId, 'URL:', avatarUrl);
+    
     // Update both users table and role-specific table
     const { error: usersError } = await supabase
       .from('users')
@@ -215,6 +225,7 @@ export async function updateUserAvatar(userId: string, avatarUrl: string, role: 
     
     if (usersError) {
       console.error('Error updating users table avatar:', usersError);
+      throw usersError;
     }
     
     // Determine which table to update based on role
@@ -228,8 +239,12 @@ export async function updateUserAvatar(userId: string, avatarUrl: string, role: 
       .update(updateData)
       .eq('id', userId);
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating role-specific table avatar:', error);
+      throw error;
+    }
     
+    console.log('Avatar updated successfully');
     return { success: true, avatarUrl };
   } catch (error: any) {
     console.error('Error updating avatar:', error);
