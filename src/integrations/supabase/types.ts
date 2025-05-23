@@ -75,24 +75,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "appointments_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointments_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "providers"
             referencedColumns: ["id"]
           },
           {
@@ -157,50 +143,6 @@ export type Database = {
           sender_id?: string
         }
         Relationships: []
-      }
-      clients: {
-        Row: {
-          apartment: string | null
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          has_payment_method: boolean | null
-          id: string
-          name: string | null
-          phone: string | null
-          residencia_id: string | null
-        }
-        Insert: {
-          apartment?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          has_payment_method?: boolean | null
-          id: string
-          name?: string | null
-          phone?: string | null
-          residencia_id?: string | null
-        }
-        Update: {
-          apartment?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          has_payment_method?: boolean | null
-          id?: string
-          name?: string | null
-          phone?: string | null
-          residencia_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clients_residencia_id_fkey"
-            columns: ["residencia_id"]
-            isOneToOne: false
-            referencedRelation: "residencias"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       condominiums: {
         Row: {
@@ -336,13 +278,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "listings_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "providers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "listings_service_type_id_fkey"
             columns: ["service_type_id"]
             isOneToOne: false
@@ -399,6 +334,20 @@ export type Database = {
             foreignKeyName: "payment_methods_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -440,20 +389,6 @@ export type Database = {
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "provider_ratings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "provider_ratings_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "providers"
-            referencedColumns: ["id"]
-          },
         ]
       }
       provider_residencias: {
@@ -474,13 +409,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "provider_residencias_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "providers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "provider_residencias_residencia_id_fkey"
             columns: ["residencia_id"]
             isOneToOne: false
@@ -488,45 +416,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      providers: {
-        Row: {
-          about_me: string | null
-          avatar_url: string | null
-          average_rating: number | null
-          certification_files: Json | null
-          created_at: string
-          email: string | null
-          experience_years: number | null
-          id: string
-          name: string | null
-          phone: string | null
-        }
-        Insert: {
-          about_me?: string | null
-          avatar_url?: string | null
-          average_rating?: number | null
-          certification_files?: Json | null
-          created_at?: string
-          email?: string | null
-          experience_years?: number | null
-          id: string
-          name?: string | null
-          phone?: string | null
-        }
-        Update: {
-          about_me?: string | null
-          avatar_url?: string | null
-          average_rating?: number | null
-          certification_files?: Json | null
-          created_at?: string
-          email?: string | null
-          experience_years?: number | null
-          id?: string
-          name?: string | null
-          phone?: string | null
-        }
-        Relationships: []
       }
       residencias: {
         Row: {
@@ -625,10 +514,14 @@ export type Database = {
       }
       users: {
         Row: {
+          about_me: string | null
           avatar_url: string | null
+          average_rating: number | null
+          certification_files: Json | null
           condominium_id: string | null
           created_at: string | null
           email: string | null
+          experience_years: number | null
           has_payment_method: boolean | null
           house_number: string | null
           id: string
@@ -638,10 +531,14 @@ export type Database = {
           role: string
         }
         Insert: {
+          about_me?: string | null
           avatar_url?: string | null
+          average_rating?: number | null
+          certification_files?: Json | null
           condominium_id?: string | null
           created_at?: string | null
           email?: string | null
+          experience_years?: number | null
           has_payment_method?: boolean | null
           house_number?: string | null
           id: string
@@ -651,10 +548,14 @@ export type Database = {
           role: string
         }
         Update: {
+          about_me?: string | null
           avatar_url?: string | null
+          average_rating?: number | null
+          certification_files?: Json | null
           condominium_id?: string | null
           created_at?: string | null
           email?: string | null
+          experience_years?: number | null
           has_payment_method?: boolean | null
           house_number?: string | null
           id?: string
@@ -682,7 +583,144 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      clients_view: {
+        Row: {
+          about_me: string | null
+          avatar_url: string | null
+          average_rating: number | null
+          certification_files: Json | null
+          condominium_id: string | null
+          created_at: string | null
+          email: string | null
+          experience_years: number | null
+          has_payment_method: boolean | null
+          house_number: string | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          residencia_id: string | null
+          role: string | null
+        }
+        Insert: {
+          about_me?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
+          certification_files?: Json | null
+          condominium_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          experience_years?: number | null
+          has_payment_method?: boolean | null
+          house_number?: string | null
+          id?: string | null
+          name?: string | null
+          phone?: string | null
+          residencia_id?: string | null
+          role?: string | null
+        }
+        Update: {
+          about_me?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
+          certification_files?: Json | null
+          condominium_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          experience_years?: number | null
+          has_payment_method?: boolean | null
+          house_number?: string | null
+          id?: string | null
+          name?: string | null
+          phone?: string | null
+          residencia_id?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      providers_view: {
+        Row: {
+          about_me: string | null
+          avatar_url: string | null
+          average_rating: number | null
+          certification_files: Json | null
+          condominium_id: string | null
+          created_at: string | null
+          email: string | null
+          experience_years: number | null
+          has_payment_method: boolean | null
+          house_number: string | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          residencia_id: string | null
+          role: string | null
+        }
+        Insert: {
+          about_me?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
+          certification_files?: Json | null
+          condominium_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          experience_years?: number | null
+          has_payment_method?: boolean | null
+          house_number?: string | null
+          id?: string | null
+          name?: string | null
+          phone?: string | null
+          residencia_id?: string | null
+          role?: string | null
+        }
+        Update: {
+          about_me?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
+          certification_files?: Json | null
+          condominium_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          experience_years?: number | null
+          has_payment_method?: boolean | null
+          house_number?: string | null
+          id?: string | null
+          name?: string | null
+          phone?: string | null
+          residencia_id?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_refund_percentage: {

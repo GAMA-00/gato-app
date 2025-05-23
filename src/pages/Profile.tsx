@@ -42,7 +42,6 @@ const Profile = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const isMobile = useIsMobile();
 
-  // Debug logs específicos para el avatar
   console.log('=== Profile Component Avatar Debug ===');
   console.log('User from context:', user);
   console.log('User avatarUrl from context:', user?.avatarUrl);
@@ -87,11 +86,8 @@ const Profile = () => {
               phone: profileData.phone || ''
             });
             
-            // Priorizar avatarUrl, luego avatar_url
             const avatarToUse = profileData.avatarUrl || profileData.avatar_url || '';
             console.log('=== Avatar Selection Logic ===');
-            console.log('profileData.avatarUrl:', profileData.avatarUrl);
-            console.log('profileData.avatar_url:', profileData.avatar_url);
             console.log('Final avatar selected:', avatarToUse);
             
             setCurrentAvatarUrl(avatarToUse);
@@ -129,7 +125,6 @@ const Profile = () => {
           description: "Tu información personal ha sido actualizada correctamente."
         });
         
-        // Actualizar el contexto de autenticación con los nuevos datos
         updateContextAvatar(currentAvatarUrl);
       } else {
         throw new Error(result.error || 'Error al actualizar el perfil');
@@ -162,11 +157,9 @@ const Profile = () => {
       
       if (result.success) {
         console.log('Avatar update successful, updating local state');
-        // Actualizar el estado local inmediatamente
         setCurrentAvatarUrl(url);
         
         console.log('Calling updateContextAvatar with:', url);
-        // Actualizar el estado global
         updateContextAvatar(url);
         
         toast({
@@ -197,7 +190,6 @@ const Profile = () => {
     supportForm.reset();
   };
 
-  // Redirigir si no está autenticado
   React.useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -290,11 +282,6 @@ const Profile = () => {
                     {isUploadingImage && (
                       <p className="text-xs text-muted-foreground mt-1">Subiendo imagen...</p>
                     )}
-                    {/* Debug info - remove in production */}
-                    <div className="text-xs text-muted-foreground mt-2 text-center">
-                      <p>Debug: {currentAvatarUrl ? 'URL presente' : 'Sin URL'}</p>
-                      <p className="break-all">{currentAvatarUrl}</p>
-                    </div>
                   </div>
                   
                   <div className="flex-1 w-full">
@@ -367,11 +354,6 @@ const Profile = () => {
                         <AvatarImage 
                           src={currentAvatarUrl} 
                           alt={user.name}
-                          onLoad={() => console.log('Payment Avatar image loaded successfully:', currentAvatarUrl)}
-                          onError={(e) => {
-                            console.error('Payment Avatar image failed to load:', currentAvatarUrl);
-                            console.error('Payment Avatar Error event:', e);
-                          }}
                         />
                         <AvatarFallback className="text-sm">
                           {user.name?.substring(0, 2).toUpperCase() || 'U'}
@@ -394,11 +376,6 @@ const Profile = () => {
                         <AvatarImage 
                           src={currentAvatarUrl} 
                           alt={user.name}
-                          onLoad={() => console.log('Payment Warning Avatar image loaded successfully:', currentAvatarUrl)}
-                          onError={(e) => {
-                            console.error('Payment Warning Avatar image failed to load:', currentAvatarUrl);
-                            console.error('Payment Warning Avatar Error event:', e);
-                          }}
                         />
                         <AvatarFallback className="text-sm">
                           {user.name?.substring(0, 2).toUpperCase() || 'U'}

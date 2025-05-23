@@ -75,25 +75,37 @@ const ImageUploader = ({
       const fileName = `${uuidv4()}.${fileExt}`;
       
       // Crear la ruta del archivo usando el ID del usuario como carpeta
-      // Esto es requerido por nuestras políticas RLS
       const filePath = `${user.id}/${fileName}`;
       
-      // Subir el archivo a Supabase Storage
+      console.log('=== ImageUploader - Upload Process ===');
+      console.log('File type:', file.type);
+      console.log('File size:', file.size);
+      console.log('File path:', filePath);
+      
+      // Subir el archivo a Supabase Storage con Content-Type correcto
       const { data, error } = await supabase
         .storage
         .from(bucket)
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
+          contentType: file.type // Especificar explícitamente el Content-Type
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+      
+      console.log('Upload successful:', data);
       
       // Obtener la URL pública del archivo
       const { data: urlData } = supabase
         .storage
         .from(bucket)
         .getPublicUrl(data.path);
+      
+      console.log('Public URL:', urlData.publicUrl);
       
       // Llamar al callback con la URL de la imagen
       onImageUploaded(urlData.publicUrl);

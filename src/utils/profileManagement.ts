@@ -2,66 +2,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
-// Define interfaces for the expected data structures from Supabase
-interface Residencia {
-  name: string;
-}
-
-interface Condominium {
-  name: string;
-}
-
-// Define interfaces for profile data
-interface ClientProfile {
-  id: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  residencia_id?: string;
-  condominium_id?: string;
-  house_number?: string;
-  avatar_url?: string;
-  has_payment_method?: boolean;
-  created_at?: string;
-}
-
-interface ProviderProfile {
-  id: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  avatar_url?: string;
-  about_me?: string;
-  experience_years?: number;
-  average_rating?: number;
-  certification_files?: any;
-  created_at?: string;
-}
-
 export async function updateUserProfile(userId: string, data: any) {
   try {
-    // Determine if we're updating a client or provider
-    const { role } = data;
-    const isClient = role === 'client';
-    const table = isClient ? 'clients' : 'providers';
+    console.log('Updating user profile for:', userId, 'with data:', data);
     
-    // Also update the users table to keep it in sync
-    const { error: usersError } = await supabase
-      .from('users')
-      .update({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-      })
-      .eq('id', userId);
-    
-    if (usersError) {
-      console.error('Error updating users table:', usersError);
-    }
-    
-    // Update profile data in the appropriate table
+    // Update only the users table since we consolidated everything
     const { error } = await supabase
-      .from(table)
+      .from('users')
       .update(data)
       .eq('id', userId);
       
@@ -78,86 +25,51 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
   try {
     console.log('Fetching profile for user:', userId, 'with role:', role);
     
-    // First get the basic user data from users table
-    const { data: userData, error: userError } = await supabase
+    // Fetch from users table only
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single();
-    
-    if (userError) {
-      console.error('Error fetching user data:', userError);
-    }
-
-    // Determine which table to query based on role
-    const table = role === 'client' ? 'clients' : 'providers';
-    const isClient = role === 'client';
-    
-    // Query with proper typing based on role
-    let profileData: ClientProfile | ProviderProfile | null;
-    
-    if (isClient) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .eq('id', userId)
-        .single<ClientProfile>();
         
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-      
-      profileData = data;
-    } else {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .eq('id', userId)
-        .single<ProviderProfile>();
-        
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-      
-      profileData = data;
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return null;
     }
       
-    if (!profileData) {
+    if (!data) {
       console.error('No profile data found');
       return null;
     }
     
-    // Si client tiene residencia_id, fetch the building name
+    // If user has residencia_id, fetch the building name
     let buildingName = '';
     let condominiumName = '';
     
-    if (isClient && 'residencia_id' in profileData && profileData.residencia_id) {
+    if (data.residencia_id) {
       const { data: residenciaData } = await supabase
         .from('residencias')
         .select('name')
-        .eq('id', profileData.residencia_id)
-        .single<Residencia>();
+        .eq('id', data.residencia_id)
+        .single();
         
       if (residenciaData) {
         buildingName = residenciaData.name || '';
       }
     }
     
-    // Si client tiene condominium_id, fetch the condominium name
-    if (isClient && 'condominium_id' in profileData && profileData.condominium_id) {
-      console.log('Fetching condominium data for ID:', profileData.condominium_id);
+    // If user has condominium_id, fetch the condominium name
+    if (data.condominium_id) {
+      console.log('Fetching condominium data for ID:', data.condominium_id);
       
       const { data: condominiumData, error: condoError } = await supabase
         .from('condominiums')
         .select('name')
-        .eq('id', profileData.condominium_id)
-        .single<Condominium>();
+        .eq('id', data.condominium_id)
+        .single();
       
       console.log('Condominium query result:', { condominiumData, error: condoError });
       
-      // Check for errors or missing data before accessing properties
       if (condoError) {
         console.log('Error fetching condominium:', condoError);
         condominiumName = '';
@@ -165,28 +77,20 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         console.log('No condominium data found');
         condominiumName = '';
       } else {
-        // Now we can safely access the name property
         condominiumName = condominiumData?.name || '';
         console.log('Condominium name extracted:', condominiumName);
       }
     }
     
-    // Prioritize avatar_url from users table, then from profile table
-    const finalAvatarUrl = userData?.avatar_url || profileData.avatar_url || '';
+    const finalAvatarUrl = data.avatar_url || '';
     console.log('Final avatar URL:', finalAvatarUrl);
     
-    // Create a result object with safe defaults, prioritizing users table data
+    // Create a result object with the consolidated data
     const result = {
-      ...profileData,
-      // Use users table data as primary source, fallback to role-specific tables
-      name: userData?.name || profileData.name || '',
-      email: userData?.email || profileData.email || '',
-      phone: userData?.phone || profileData.phone || '',
-      avatar_url: finalAvatarUrl,
+      ...data,
       buildingName,
       condominiumName,
-      // Use optional chaining and provide defaults for potentially missing properties
-      houseNumber: isClient && 'house_number' in profileData ? profileData.house_number || '' : '',
+      houseNumber: data.house_number || '',
       avatarUrl: finalAvatarUrl // Keep both for compatibility
     };
     
@@ -200,9 +104,11 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
 
 export async function deleteUserProfile(userId: string) {
   try {
-    // Due to the cascade delete setup, we only need to delete the user from auth
-    // and the users table will be automatically cleaned up
-    const { error } = await supabase.auth.admin.deleteUser(userId);
+    // Delete from users table and cascade will handle the rest
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
     
     if (error) throw error;
     
@@ -217,30 +123,14 @@ export async function updateUserAvatar(userId: string, avatarUrl: string, role: 
   try {
     console.log('Updating avatar for user:', userId, 'URL:', avatarUrl);
     
-    // Update both users table and role-specific table
-    const { error: usersError } = await supabase
+    // Update only the users table
+    const { error } = await supabase
       .from('users')
       .update({ avatar_url: avatarUrl })
       .eq('id', userId);
-    
-    if (usersError) {
-      console.error('Error updating users table avatar:', usersError);
-      throw usersError;
-    }
-    
-    // Determine which table to update based on role
-    const table = role === 'client' ? 'clients' : 'providers';
-    
-    // Use type assertion to tell TypeScript that this is a valid update object
-    const updateData = { avatar_url: avatarUrl } as any;
-    
-    const { error } = await supabase
-      .from(table)
-      .update(updateData)
-      .eq('id', userId);
       
     if (error) {
-      console.error('Error updating role-specific table avatar:', error);
+      console.error('Error updating avatar:', error);
       throw error;
     }
     
