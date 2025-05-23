@@ -30,8 +30,8 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       console.log(`Fetching providers for service type: ${serviceTypeId} in category: ${categoryName}`);
       console.log(`Client residencia ID: ${user?.residenciaId || 'Not set'}`);
       
-      // First get listings for this service type
-      let query = supabase
+      // Get listings with provider data from users table
+      const { data: listings, error: listingsError } = await supabase
         .from('listings')
         .select(`
           id,
@@ -39,15 +39,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
           description,
           base_price,
           duration,
-          provider:provider_id (
-            id, 
-            name, 
-            experience_years,
-            about_me,
-            average_rating,
-            certification_files,
-            created_at
-          ),
+          provider_id,
           listing_residencias (
             residencia_id
           ),
@@ -55,8 +47,6 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
         `)
         .eq('service_type_id', serviceTypeId)
         .eq('is_active', true);
-        
-      const { data: listings, error: listingsError } = await query;
         
       if (listingsError) {
         console.error("Error fetching listings:", listingsError);
@@ -70,11 +60,43 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       
       console.log(`Found ${listings?.length || 0} active listings`);
       
+      if (!listings || listings.length === 0) {
+        return [];
+      }
+      
+      // Get unique provider IDs
+      const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
+      
+      // Fetch provider data from users table
+      const { data: providers, error: providersError } = await supabase
+        .from('users')
+        .select(`
+          id, 
+          name, 
+          experience_years,
+          about_me,
+          average_rating,
+          certification_files,
+          created_at
+        `)
+        .in('id', providerIds)
+        .eq('role', 'provider');
+        
+      if (providersError) {
+        console.error("Error fetching providers:", providersError);
+        return [];
+      }
+      
+      // Create provider map for easy lookup
+      const providerMap = Object.fromEntries(
+        (providers || []).map(provider => [provider.id, provider])
+      );
+      
       // Filter listings based on residencia_id if user is logged in
-      let filteredListings = listings as ListingWithProvider[] || [];
+      let filteredListings = listings;
       
       if (user?.residenciaId) {
-        filteredListings = filteredListings.filter(listing => {
+        filteredListings = listings.filter(listing => {
           // If no residencias are specified, it means the provider serves all residencias
           if (!listing.listing_residencias || listing.listing_residencias.length === 0) {
             return true;
@@ -88,9 +110,8 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       }
       
       // Process and return the providers with their service details
-      const providers: ProcessedProvider[] = filteredListings.map(listing => {
-        // Make sure provider is not undefined
-        const provider = listing.provider || {} as ProviderData;
+      const processedProviders: ProcessedProvider[] = filteredListings.map(listing => {
+        const provider = providerMap[listing.provider_id] || {} as ProviderData;
         
         // Safely check if provider has certifications
         const certFiles = provider.certification_files || [];
@@ -122,7 +143,7 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
       });
       
       // Sort by rating (highest first)
-      return providers.sort((a, b) => b.rating - a.rating);
+      return processedProviders.sort((a, b) => b.rating - a.rating);
     },
     enabled: !!serviceTypeId && !!categoryName
   });

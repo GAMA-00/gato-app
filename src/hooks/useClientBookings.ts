@@ -31,7 +31,7 @@ export function useClientBookings() {
       console.log("Fetching bookings for client:", user.id);
       
       try {
-        // Fetch appointments for the client without JOIN to avoid foreign key errors
+        // Fetch appointments for the client
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -132,7 +132,7 @@ export function useClientBookings() {
           
         console.log("Service types:", serviceTypes);
         
-        // Get provider names where they're missing
+        // Get provider names where they're missing from users table
         const appointmentsWithMissingProviderNames = appointments.filter(a => 
           !a.provider_name
         );
@@ -148,52 +148,28 @@ export function useClientBookings() {
           if (providerIdsToFetch.length > 0) {
             console.log("Provider IDs to fetch:", providerIdsToFetch);
             
-            // Try to fetch from providers table first
-            const { data: providerDetails, error: providersError } = await supabase
-              .from('providers')
+            // Fetch from users table
+            const { data: userDetails, error: usersError } = await supabase
+              .from('users')
               .select('id, name')
-              .in('id', providerIdsToFetch);
+              .in('id', providerIdsToFetch)
+              .eq('role', 'provider');
+                
+            if (!usersError && userDetails && userDetails.length > 0) {
+              console.log("Found user details:", userDetails);
               
-            if (!providersError && providerDetails && providerDetails.length > 0) {
-              console.log("Found provider details:", providerDetails);
-              
-              // Create a map of provider ID to name
-              const providerNameMap = Object.fromEntries(
-                providerDetails.map(provider => [provider.id, provider.name])
+              // Create a map of user ID to name
+              const userNameMap = Object.fromEntries(
+                userDetails.map(user => [user.id, user.name])
               );
               
               // Apply names to appointments
               appointments.forEach(app => {
-                if (!app.provider_name && app.provider_id && providerNameMap[app.provider_id]) {
-                  app.provider_name = providerNameMap[app.provider_id];
-                  console.log(`Updated provider name from providers table for appointment ${app.id} to ${app.provider_name}`);
+                if (!app.provider_name && app.provider_id && userNameMap[app.provider_id]) {
+                  app.provider_name = userNameMap[app.provider_id];
+                  console.log(`Updated provider name from users table for appointment ${app.id} to ${app.provider_name}`);
                 }
               });
-            } else {
-              console.log("No provider details found in providers table, trying users table");
-              
-              // Fallback: Try to fetch from users table
-              const { data: userDetails, error: usersError } = await supabase
-                .from('users')
-                .select('id, name')
-                .in('id', providerIdsToFetch);
-                
-              if (!usersError && userDetails && userDetails.length > 0) {
-                console.log("Found user details:", userDetails);
-                
-                // Create a map of user ID to name
-                const userNameMap = Object.fromEntries(
-                  userDetails.map(user => [user.id, user.name])
-                );
-                
-                // Apply names to appointments
-                appointments.forEach(app => {
-                  if (!app.provider_name && app.provider_id && userNameMap[app.provider_id]) {
-                    app.provider_name = userNameMap[app.provider_id];
-                    console.log(`Updated provider name from users table for appointment ${app.id} to ${app.provider_name}`);
-                  }
-                });
-              }
             }
           }
         }

@@ -22,16 +22,6 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         .from('listings')
         .select(`
           *,
-          provider:provider_id(
-            id, 
-            name, 
-            about_me,
-            experience_years,
-            average_rating,
-            certification_files,
-            email,
-            phone
-          ),
           service_type:service_type_id(
             name,
             category:category_id(
@@ -52,22 +42,43 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       
       console.log("Listing data:", listing);
       
-      // Get client residence info
+      // Get provider data from users table
+      const { data: providerData, error: providerError } = await supabase
+        .from('users')
+        .select(`
+          id, 
+          name, 
+          about_me,
+          experience_years,
+          average_rating,
+          certification_files,
+          email,
+          phone
+        `)
+        .eq('id', providerId)
+        .eq('role', 'provider')
+        .single();
+        
+      if (providerError) {
+        console.error("Error fetching provider details:", providerError);
+        toast.error("Error al obtener detalles del proveedor");
+        throw providerError;
+      }
+      
+      // Get client residence info if userId provided
       let clientResidencia = null;
       if (userId) {
         const { data: clientData } = await supabase
-          .from('clients')
+          .from('users')
           .select('residencia_id, residencias(name, address)')
           .eq('id', userId)
+          .eq('role', 'client')
           .maybeSingle();
           
         clientResidencia = clientData?.residencias;
       }
       
       // Process provider data to include hasCertifications and parsed certification files
-      const providerData = listing.provider || {} as ProviderData;
-      
-      // Process certification files
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
