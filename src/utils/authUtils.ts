@@ -135,17 +135,20 @@ export const signUpWithSupabase = async (
     const userId = authData.user.id;
     
     if (userData.role === 'client') {
-      // Insert into clients table
-      const { error: clientError } = await supabase.from('clients').insert({
+      // Insert into users table
+      const { error: userError } = await supabase.from('users').insert({
         id: userId,
         name: userData.name,
         email: email,
         phone: userData.phone || '',
-        residencia_id: userData.residenciaId || null
+        residencia_id: userData.residenciaId || null,
+        condominium_id: userData.condominiumId || null,
+        house_number: userData.houseNumber || '',
+        role: 'client'
       });
       
-      if (clientError) {
-        console.error('Error inserting into clients table:', clientError);
+      if (userError) {
+        console.error('Error inserting client data into users table:', userError);
         toast({
           title: "Advertencia",
           description: 'Hubo un problema al registrar los datos del cliente.',
@@ -153,16 +156,17 @@ export const signUpWithSupabase = async (
         });
       }
     } else if (userData.role === 'provider') {
-      // Insert into providers table
-      const { error: providerError } = await supabase.from('providers').insert({
+      // Insert into users table as a provider
+      const { error: userError } = await supabase.from('users').insert({
         id: userId,
         name: userData.name,
         email: email,
-        phone: userData.phone || ''
+        phone: userData.phone || '',
+        role: 'provider'
       });
       
-      if (providerError) {
-        console.error('Error inserting into providers table:', providerError);
+      if (userError) {
+        console.error('Error inserting provider data into users table:', userError);
         toast({
           title: "Advertencia",
           description: 'Hubo un problema al registrar los datos del proveedor.',
