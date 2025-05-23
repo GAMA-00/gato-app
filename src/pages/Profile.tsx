@@ -40,20 +40,22 @@ const Profile = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(user?.avatarUrl || '');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [profileData, setProfileData] = useState<any>(null);
   const isMobile = useIsMobile();
 
-  console.log('=== Profile Component Avatar Debug ===');
+  console.log('=== Profile Component Debug ===');
   console.log('User from context:', user);
   console.log('User avatarUrl from context:', user?.avatarUrl);
   console.log('Current avatar URL state:', currentAvatarUrl);
   console.log('Is authenticated:', isAuthenticated);
+  console.log('Profile data state:', profileData);
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: user?.name || '',
-      email: user?.email || '',
-      phone: user?.phone || ''
+      name: '',
+      email: '',
+      phone: ''
     }
   });
   
@@ -72,21 +74,22 @@ const Profile = () => {
         setIsLoadingProfile(true);
         try {
           console.log('=== Loading Profile Data ===');
-          console.log('Loading profile for user:', user.id, 'role:', user.role);
-          const profileData = await fetchUserProfile(user.id, user.role);
-          if (profileData) {
-            console.log('=== Profile Data Loaded ===');
-            console.log('Full profile data:', profileData);
-            console.log('Profile avatarUrl field:', profileData.avatarUrl);
-            console.log('Profile avatar_url field:', profileData.avatar_url);
+          console.log('Loading profile for user:', user.id, 'with role:', user.role);
+          const profileDataResult = await fetchUserProfile(user.id, user.role);
+          console.log('=== Profile Data Result ===', profileDataResult);
+          
+          if (profileDataResult) {
+            console.log('=== Profile Data Loaded Successfully ===');
+            setProfileData(profileDataResult);
             
+            // Update form with loaded data
             profileForm.reset({
-              name: profileData.name || '',
-              email: profileData.email || '',
-              phone: profileData.phone || ''
+              name: profileDataResult.name || '',
+              email: profileDataResult.email || '',
+              phone: profileDataResult.phone || ''
             });
             
-            const avatarToUse = profileData.avatarUrl || profileData.avatar_url || '';
+            const avatarToUse = profileDataResult.avatarUrl || profileDataResult.avatar_url || '';
             console.log('=== Avatar Selection Logic ===');
             console.log('Final avatar selected:', avatarToUse);
             
@@ -94,14 +97,29 @@ const Profile = () => {
             console.log('Avatar URL set in state:', avatarToUse);
           } else {
             console.log('No profile data returned');
+            // If no profile data, use context user data as fallback
+            console.log('Using context user data as fallback');
+            profileForm.reset({
+              name: user.name || '',
+              email: user.email || '',
+              phone: user.phone || ''
+            });
+            setCurrentAvatarUrl(user.avatarUrl || '');
           }
         } catch (error) {
           console.error('Error loading profile:', error);
           toast({
             title: "Error",
-            description: "No se pudo cargar el perfil. Por favor, intenta recargar la página.",
+            description: "No se pudo cargar el perfil. Usando datos del contexto.",
             variant: "destructive"
           });
+          // Fallback to context user data
+          profileForm.reset({
+            name: user.name || '',
+            email: user.email || '',
+            phone: user.phone || ''
+          });
+          setCurrentAvatarUrl(user.avatarUrl || '');
         } finally {
           setIsLoadingProfile(false);
         }
@@ -117,7 +135,13 @@ const Profile = () => {
     setIsLoading(true);
     
     try {
-      const result = await updateUserProfile(user.id, { ...values, role: user.role });
+      console.log('=== Submitting Profile Data ===');
+      console.log('Values to submit:', values);
+      
+      const result = await updateUserProfile(user.id, { 
+        ...values, 
+        role: user.role 
+      });
       
       if (result.success) {
         toast({
@@ -146,20 +170,13 @@ const Profile = () => {
     
     console.log('=== Profile - handleImageUploaded ===');
     console.log('Received URL:', url);
-    console.log('User ID:', user.id);
-    console.log('User role:', user.role);
     
     setIsUploadingImage(true);
     try {
-      console.log('Calling updateUserAvatar with:', url);
       const result = await updateUserAvatar(user.id, url, user.role);
-      console.log('updateUserAvatar result:', result);
       
       if (result.success) {
-        console.log('Avatar update successful, updating local state');
         setCurrentAvatarUrl(url);
-        
-        console.log('Calling updateContextAvatar with:', url);
         updateContextAvatar(url);
         
         toast({
@@ -167,7 +184,6 @@ const Profile = () => {
           description: "Tu foto de perfil ha sido actualizada correctamente."
         });
       } else {
-        console.error('Avatar update failed:', result.error);
         throw new Error(result.error);
       }
     } catch (error) {
@@ -200,7 +216,7 @@ const Profile = () => {
 
   if (isLoadingProfile) {
     return (
-      <PageContainer title="Mi Perfil" subtitle="Cargando...">
+      <PageContainer title="Mi Perfil" subtitle="Cargando información del perfil...">
         <div className="flex justify-center items-center min-h-[300px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
@@ -267,7 +283,6 @@ const Profile = () => {
                           console.error('=== Avatar Image Failed to Load ===');
                           console.error('Failed URL:', currentAvatarUrl);
                           console.error('Error event:', e);
-                          console.error('Image element:', e.currentTarget);
                         }}
                       />
                       <AvatarFallback className="text-2xl">
@@ -363,7 +378,7 @@ const Profile = () => {
                         <CreditCard className="h-8 w-8 md:h-10 md:w-10 text-primary" />
                         <div>
                           <p className="font-medium text-sm md:text-base">Tarjeta registrada</p>
-                          <p className="text-xs md:text-sm text-muted-foreground">**** **** **** 1234</p>
+                          <p className="text-xs md:text-sm">**** **** **** 1234</p>
                         </div>
                       </div>
                     </div>

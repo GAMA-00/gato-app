@@ -4,6 +4,7 @@ import { UserRole } from '@/lib/types';
 
 export async function updateUserProfile(userId: string, data: any) {
   try {
+    console.log('=== updateUserProfile ===');
     console.log('Updating user profile for:', userId, 'with data:', data);
     
     // Update only the users table since we consolidated everything
@@ -12,8 +13,12 @@ export async function updateUserProfile(userId: string, data: any) {
       .update(data)
       .eq('id', userId);
       
-    if (error) throw error;
+    if (error) {
+      console.error('=== updateUserProfile Error ===', error);
+      throw error;
+    }
     
+    console.log('=== updateUserProfile Success ===');
     return { success: true };
   } catch (error: any) {
     console.error('Error updating profile:', error);
@@ -23,6 +28,7 @@ export async function updateUserProfile(userId: string, data: any) {
 
 export async function fetchUserProfile(userId: string, role: UserRole = 'client') {
   try {
+    console.log('=== fetchUserProfile ===');
     console.log('Fetching profile for user:', userId, 'with role:', role);
     
     // Fetch from users table only
@@ -31,6 +37,10 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       .select('*')
       .eq('id', userId)
       .single();
+    
+    console.log('=== fetchUserProfile Query Result ===');
+    console.log('Data:', data);
+    console.log('Error:', error);
         
     if (error) {
       console.error('Error fetching profile:', error);
@@ -47,6 +57,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     let condominiumName = '';
     
     if (data.residencia_id) {
+      console.log('=== Fetching Residencia Data ===');
       const { data: residenciaData } = await supabase
         .from('residencias')
         .select('name')
@@ -55,11 +66,13 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
         
       if (residenciaData) {
         buildingName = residenciaData.name || '';
+        console.log('Building name fetched:', buildingName);
       }
     }
     
     // If user has condominium_id, fetch the condominium name
     if (data.condominium_id) {
+      console.log('=== Fetching Condominium Data ===');
       console.log('Fetching condominium data for ID:', data.condominium_id);
       
       const { data: condominiumData, error: condoError } = await supabase
@@ -83,7 +96,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     }
     
     const finalAvatarUrl = data.avatar_url || '';
-    console.log('Final avatar URL:', finalAvatarUrl);
+    console.log('=== Final Avatar URL ===', finalAvatarUrl);
     
     // Create a result object with the consolidated data
     const result = {
@@ -94,7 +107,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       avatarUrl: finalAvatarUrl // Keep both for compatibility
     };
     
-    console.log('Profile result:', result);
+    console.log('=== Profile Result ===', result);
     return result;
   } catch (error) {
     console.error('Error fetching user profile:', error);
