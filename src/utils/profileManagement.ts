@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
@@ -84,11 +85,15 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       
       console.log('Condominium query result:', { condominiumData, error: condoError });
       
-      // Skip if there's an error or no data
-      if (condoError || !condominiumData) {
-        console.log('No condominium data found or error occurred');
+      // Check for errors or missing data before accessing properties
+      if (condoError) {
+        console.log('Error fetching condominium:', condoError);
+        condominiumName = '';
+      } else if (!condominiumData) {
+        console.log('No condominium data found');
         condominiumName = '';
       } else {
+        // Now we can safely access the name property
         condominiumName = condominiumData.name || '';
         console.log('Condominium name extracted:', condominiumName);
       }
