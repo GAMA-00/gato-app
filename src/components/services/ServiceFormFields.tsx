@@ -64,8 +64,11 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
   
   // Update preview only when profile image actually changes
   React.useEffect(() => {
-    // More specific type checking to ensure profileImage is a File
-    if (profileImage && typeof profileImage === 'object' && profileImage instanceof File) {
+    // Check if profileImage is a valid File object
+    if (profileImage && 
+        profileImage instanceof File && 
+        typeof profileImage === 'object' &&
+        profileImage.constructor === File) {
       const newPreview = URL.createObjectURL(profileImage);
       setProfileImagePreview(newPreview);
       
