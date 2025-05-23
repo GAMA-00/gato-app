@@ -137,6 +137,17 @@ export async function updateUserAvatar(userId: string, avatarUrl: string, role: 
     console.log('=== updateUserAvatar ===');
     console.log('Updating avatar for user:', userId, 'URL:', avatarUrl);
     
+    // First verify the image is accessible
+    try {
+      const response = await fetch(avatarUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Image not accessible: ${response.status}`);
+      }
+      console.log('Avatar URL verified as accessible');
+    } catch (error) {
+      console.warn('Could not verify avatar URL:', error);
+    }
+    
     // Update the users table with the new avatar URL
     const { data, error } = await supabase
       .from('users')
@@ -152,16 +163,26 @@ export async function updateUserAvatar(userId: string, avatarUrl: string, role: 
     
     console.log('Avatar updated successfully in users table:', data);
     
-    // Verify the update was successful
-    const { data: verifyData } = await supabase
+    // Double-check the update was successful by fetching the data again
+    const { data: verifyData, error: verifyError } = await supabase
       .from('users')
       .select('avatar_url')
       .eq('id', userId)
       .single();
     
-    console.log('Avatar verification after update:', verifyData);
+    if (verifyError) {
+      console.error('Error verifying avatar update:', verifyError);
+    } else {
+      console.log('Avatar verification after update:', verifyData);
+      
+      if (verifyData?.avatar_url !== avatarUrl) {
+        console.warn('Avatar URL mismatch after update!');
+        console.warn('Expected:', avatarUrl);
+        console.warn('Actual:', verifyData?.avatar_url);
+      }
+    }
     
-    return { success: true, avatarUrl };
+    return { success: true, avatarUrl: data.avatar_url };
   } catch (error: any) {
     console.error('Error updating avatar:', error);
     return { success: false, error: error.message };
