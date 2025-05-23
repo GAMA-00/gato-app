@@ -42,7 +42,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       
       console.log("Listing data:", listing);
       
-      // Get provider data from users table
+      // Get provider data from users table - using maybeSingle to handle not found case
       const { data: providerData, error: providerError } = await supabase
         .from('users')
         .select(`
@@ -57,12 +57,41 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         `)
         .eq('id', providerId)
         .eq('role', 'provider')
-        .single();
+        .maybeSingle();
         
       if (providerError) {
         console.error("Error fetching provider details:", providerError);
         toast.error("Error al obtener detalles del proveedor");
         throw providerError;
+      }
+      
+      // If no provider found, create a basic provider object
+      if (!providerData) {
+        console.warn("Provider not found in users table, creating basic provider data");
+        const basicProviderData = {
+          id: providerId,
+          name: 'Proveedor',
+          about_me: '',
+          experience_years: 0,
+          average_rating: 4.5,
+          certification_files: null,
+          email: '',
+          phone: ''
+        };
+        
+        // Try to get provider info from auth.users if available (fallback)
+        try {
+          const { data: authUser } = await supabase.auth.admin.getUserById(providerId);
+          if (authUser.user) {
+            basicProviderData.name = authUser.user.user_metadata?.name || 'Proveedor';
+            basicProviderData.email = authUser.user.email || '';
+          }
+        } catch (authError) {
+          console.log("Could not fetch auth user data:", authError);
+        }
+        
+        // Use the basic provider data
+        providerData = basicProviderData as any;
       }
       
       // Get client residence info if userId provided
