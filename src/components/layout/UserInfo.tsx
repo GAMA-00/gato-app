@@ -19,7 +19,6 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
   console.log('=== UserInfo Debug ===');
   console.log('User object:', user);
   console.log('User avatarUrl:', user?.avatarUrl);
-  console.log('User avatar_url:', user?.avatar_url);
   console.log('IsAuthenticated:', isAuthenticated);
 
   const handleLogin = () => {
@@ -56,7 +55,7 @@ const UserInfo = ({ isClientSection, onSwitchView }: UserInfoProps) => {
   }
 
   // Determinar qué URL de avatar usar con logs detallados
-  const avatarUrl = user?.avatarUrl || user?.avatar_url || '';
+  const avatarUrl = user?.avatarUrl || '';
   console.log('Final avatarUrl to use:', avatarUrl);
   console.log('Avatar URL length:', avatarUrl.length);
   console.log('Avatar URL starts with http:', avatarUrl.startsWith('http'));
