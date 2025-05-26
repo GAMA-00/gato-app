@@ -83,6 +83,19 @@ const Services = () => {
           console.error("Error parsing service variants:", e);
         }
         
+        // Parse gallery images if available
+        let galleryImages: string[] = [];
+        try {
+          if (listing.gallery_images) {
+            const parsed = typeof listing.gallery_images === 'string' 
+              ? JSON.parse(listing.gallery_images)
+              : listing.gallery_images;
+            galleryImages = Array.isArray(parsed) ? parsed : [];
+          }
+        } catch (e) {
+          console.error("Error parsing gallery images:", e);
+        }
+        
         return {
           id: listing.id,
           name: listing.title,
@@ -96,7 +109,7 @@ const Services = () => {
           providerId: listing.provider_id,
           providerName: user.name || '',
           serviceVariants: serviceVariants,
-          galleryImages: listing.gallery_images ? JSON.parse(JSON.stringify(listing.gallery_images)) : []
+          galleryImages: galleryImages
         };
       }) as Service[];
     },
@@ -198,7 +211,7 @@ const Services = () => {
       }
       
       // Upload gallery images if provided
-      let galleryImageUrls = [];
+      let galleryImageUrls: string[] = [];
       if (serviceData.galleryImages?.length) {
         try {
           for (const file of serviceData.galleryImages) {
@@ -358,7 +371,7 @@ const Services = () => {
       }
       
       // Upload gallery images if provided
-      let galleryImageUrls = [];
+      let galleryImageUrls: string[] = [];
       if (serviceData.galleryImages?.length) {
         try {
           // Get existing gallery images from database
@@ -369,10 +382,13 @@ const Services = () => {
             .maybeSingle();
           
           // Parse existing images
-          let existingImages = [];
+          let existingImages: string[] = [];
           if (existingListing?.gallery_images) {
             try {
-              existingImages = JSON.parse(existingListing.gallery_images);
+              const parsed = typeof existingListing.gallery_images === 'string'
+                ? JSON.parse(existingListing.gallery_images)
+                : existingListing.gallery_images;
+              existingImages = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
               console.error('Error parsing existing gallery images:', e);
             }
