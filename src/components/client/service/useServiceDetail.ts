@@ -42,8 +42,16 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       
       console.log("Listing data:", listing);
       
+      // Debug: First check if provider exists in users table without role filter
+      const { data: allProviderData, error: allProviderError } = await supabase
+        .from('users')
+        .select('id, name, role')
+        .eq('id', providerId);
+        
+      console.log("All provider data (no role filter):", allProviderData);
+      
       // Get provider data from users table
-      const { data: providerData, error: providerError } = await supabase
+      const { data: providerQueryData, error: providerError } = await supabase
         .from('users')
         .select(`
           id, 
@@ -66,9 +74,37 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         throw providerError;
       }
       
-      console.log("Provider data from DB:", providerData);
+      console.log("Provider data from DB (with role filter):", providerQueryData);
       
-      // If no provider found, return null to show error
+      // If no provider found with role=provider, try without role filter
+      let providerData = providerQueryData;
+      if (!providerData) {
+        console.log("Provider not found with role=provider, trying without role filter...");
+        const { data: fallbackProviderData, error: fallbackError } = await supabase
+          .from('users')
+          .select(`
+            id, 
+            name, 
+            about_me,
+            experience_years,
+            average_rating,
+            certification_files,
+            email,
+            phone,
+            avatar_url
+          `)
+          .eq('id', providerId)
+          .maybeSingle();
+          
+        if (fallbackError) {
+          console.error("Error fetching fallback provider:", fallbackError);
+        }
+        
+        console.log("Fallback provider data:", fallbackProviderData);
+        providerData = fallbackProviderData;
+      }
+      
+      // If still no provider found, return null to show error
       if (!providerData) {
         console.error("Provider not found in database");
         return null;
@@ -147,6 +183,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       
       console.log("Gallery images found:", galleryImages);
       console.log("Provider avatar URL:", providerData.avatar_url);
+      console.log("Provider name:", providerData.name);
       
       const hasCertifications = certificationFiles.length > 0;
       
