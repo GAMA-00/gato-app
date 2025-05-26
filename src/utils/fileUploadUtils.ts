@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,18 +14,38 @@ export const uploadCertificationFiles = async (
         const file = fileObj.file;
         if (!file) continue;
         
-        const fileExt = file.name.split('.').pop();
+        console.log('=== UPLOADING CERTIFICATION FILE ===');
+        console.log('File name:', file.name);
+        console.log('File type:', file.type);
+        console.log('File size:', file.size);
+        
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
         const fileName = `${userId}/${crypto.randomUUID()}.${fileExt}`;
+        
+        // Convert file to ArrayBuffer to ensure proper handling
+        const fileBuffer = await file.arrayBuffer();
+        
+        console.log('Uploading to path:', fileName);
+        console.log('Content-Type will be set to:', file.type);
         
         const { error: uploadError } = await supabase.storage
           .from('certifications')
-          .upload(fileName, file);
+          .upload(fileName, fileBuffer, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: file.type // Explicitly set the content type
+          });
           
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
         
         const { data: publicUrlData } = supabase.storage
           .from('certifications')
           .getPublicUrl(fileName);
+          
+        console.log('File uploaded successfully. Public URL:', publicUrlData.publicUrl);
           
         certificationFilesUrls.push({
           name: file.name,
@@ -54,21 +73,48 @@ export const uploadGalleryImages = async (
     try {
       for (const item of galleryImages) {
         if (item instanceof File) {
-          const fileExt = item.name.split('.').pop();
+          console.log('=== UPLOADING GALLERY IMAGE ===');
+          console.log('File name:', item.name);
+          console.log('File type:', item.type);
+          console.log('File size:', item.size);
+          
+          // Validate that it's actually an image
+          if (!item.type.startsWith('image/')) {
+            console.warn('Skipping non-image file:', item.name, 'Type:', item.type);
+            continue;
+          }
+          
+          const fileExt = item.name.split('.').pop()?.toLowerCase();
           const fileName = `${userId}/${crypto.randomUUID()}.${fileExt}`;
+          
+          // Convert file to ArrayBuffer to ensure proper handling
+          const fileBuffer = await item.arrayBuffer();
+          
+          console.log('Uploading image to path:', fileName);
+          console.log('Content-Type will be set to:', item.type);
           
           const { error: uploadError } = await supabase.storage
             .from('service-gallery')
-            .upload(fileName, item);
+            .upload(fileName, fileBuffer, {
+              cacheControl: '3600',
+              upsert: true,
+              contentType: item.type // Explicitly set the content type for images
+            });
             
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('Gallery image upload error:', uploadError);
+            throw uploadError;
+          }
           
           const { data: publicUrlData } = supabase.storage
             .from('service-gallery')
             .getPublicUrl(fileName);
             
+          console.log('Gallery image uploaded successfully. Public URL:', publicUrlData.publicUrl);
+            
           galleryImageUrls.push(publicUrlData.publicUrl);
         } else if (typeof item === 'string') {
+          console.log('Adding existing image URL:', item);
           galleryImageUrls.push(item);
         }
       }

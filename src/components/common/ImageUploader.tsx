@@ -115,6 +115,7 @@ const ImageUploader = ({
       
       console.log('File buffer size:', fileBuffer.byteLength);
       console.log('Uploading to path:', filePath);
+      console.log('Content-Type will be set to:', file.type);
       
       // Subir el archivo a Supabase Storage con configuración específica
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -122,7 +123,7 @@ const ImageUploader = ({
         .upload(filePath, fileBuffer, {
           cacheControl: '3600',
           upsert: true,
-          contentType: file.type
+          contentType: file.type // Explicitly set the correct content type
         });
       
       if (uploadError) {
@@ -148,7 +149,7 @@ const ImageUploader = ({
       console.log('Public URL generated:', urlData.publicUrl);
       
       // Verificar que la imagen se puede acceder con un pequeño delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       try {
         const response = await fetch(urlData.publicUrl, { 
@@ -156,7 +157,7 @@ const ImageUploader = ({
           cache: 'no-cache'
         });
         console.log('Image accessibility check - Status:', response.status);
-        console.log('Image accessibility check - Headers:', Object.fromEntries(response.headers.entries()));
+        console.log('Image accessibility check - Content-Type:', response.headers.get('content-type'));
         
         if (!response.ok) {
           throw new Error(`Image not accessible: ${response.status}`);
