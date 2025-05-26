@@ -11,38 +11,65 @@ interface ProviderGalleryProps {
 }
 
 const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
+  console.log("=== PROVIDER GALLERY DEBUG ===");
+  console.log("Provider data:", provider);
+  console.log("Provider galleryImages:", provider.galleryImages);
+  console.log("Provider certificationFiles:", provider.certificationFiles);
+  
   // Use gallery images if available
   let images: string[] = [];
   
   // First check if provider has galleryImages directly
   if (provider.galleryImages && provider.galleryImages.length > 0) {
+    console.log("✅ Using provider.galleryImages");
     images = provider.galleryImages.filter(Boolean); // Filter out empty strings
+    console.log("Filtered galleryImages:", images);
   } 
   // Otherwise check for images in certificationFiles
   else if (provider.certificationFiles) {
+    console.log("🔄 Checking certificationFiles for images");
     try {
       const filesData = provider.certificationFiles;
+      console.log("CertificationFiles data:", filesData);
       
       if (Array.isArray(filesData)) {
         images = filesData
           .filter((file: any) => {
             const fileUrl = file.url || file.downloadUrl || '';
             const fileType = file.type || file.contentType || '';
-            return fileUrl && (fileType.startsWith('image/') || 
+            const isImage = fileUrl && (fileType.startsWith('image/') || 
                    fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i));
+            
+            console.log("File analysis:", {
+              file,
+              fileUrl,
+              fileType,
+              isImage
+            });
+            
+            return isImage;
           })
           .map((file: any) => file.url || file.downloadUrl || '')
           .filter(Boolean); // Filter out empty strings
+          
+        console.log("Images extracted from certificationFiles:", images);
       }
     } catch (error) {
-      console.error("Error parsing provider certification files:", error);
+      console.error("❌ Error parsing provider certification files:", error);
     }
   }
 
-  console.log("ProviderGallery images:", images);
+  console.log("🖼️ Final images array for ProviderGallery:", images);
+  console.log("Images count:", images.length);
+  console.log("Images details:", images.map((img, index) => ({
+    index,
+    url: img,
+    isValid: !!img && typeof img === 'string' && img.trim() !== ''
+  })));
 
   // If no images, show a message
   if (images.length === 0) {
+    console.log("📭 No images found, showing empty state");
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">

@@ -46,6 +46,8 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       }
       
       console.log("✅ Listing data fetched successfully:", listing);
+      console.log("🖼️ Listing gallery_images raw:", listing.gallery_images);
+      console.log("📋 Listing service_variants raw:", listing.service_variants);
       
       // Debug: First check if provider exists in users table without role filter
       console.log("=== CHECKING PROVIDER EXISTENCE ===");
@@ -90,6 +92,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       }
       
       console.log("Provider data from DB (with role filter):", providerQueryData);
+      console.log("🗂️ Provider certification_files raw:", providerQueryData?.certification_files);
       
       // If no provider found with role=provider, try without role filter
       let providerData = providerQueryData;
@@ -159,12 +162,17 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
+      console.log("=== PROCESSING IMAGES AND CERTIFICATIONS ===");
+      
       // Parse certification files if available
       if (providerData.certification_files) {
+        console.log("🗂️ Processing certification files...");
         try {
           const filesData = typeof providerData.certification_files === 'string' 
             ? JSON.parse(providerData.certification_files) 
             : providerData.certification_files;
+          
+          console.log("Parsed certification files data:", filesData);
           
           if (Array.isArray(filesData)) {
             certificationFiles = filesData.map((file: any) => ({
@@ -174,61 +182,94 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
               size: file.size || 0
             }));
             
+            console.log("Processed certification files:", certificationFiles);
+            
             // Extract image files from certification_files for gallery
-            galleryImages = filesData
+            const imageFilesFromCerts = filesData
               .filter((file: any) => {
                 const fileType = file.type || file.contentType || '';
-                return fileType.startsWith('image/');
+                const isImage = fileType.startsWith('image/');
+                console.log("Checking if file is image:", {
+                  file: file.name || 'unnamed',
+                  fileType,
+                  isImage
+                });
+                return isImage;
               })
               .map((file: any) => file.url || file.downloadUrl || '')
               .filter(Boolean);
+            
+            console.log("Images extracted from certification files:", imageFilesFromCerts);
+            galleryImages = [...galleryImages, ...imageFilesFromCerts];
           }
         } catch (error) {
-          console.error("Error parsing certification files:", error);
+          console.error("❌ Error parsing certification files:", error);
         }
       }
       
-      // Get gallery images from the listing's gallery_images column (NEW)
+      // Get gallery images from the listing's gallery_images column (PRIORITY)
       if (listing.gallery_images) {
+        console.log("🖼️ Processing listing gallery images...");
         try {
           const listingGalleryImages = typeof listing.gallery_images === 'string'
             ? JSON.parse(listing.gallery_images)
             : listing.gallery_images;
             
+          console.log("Parsed listing gallery images:", listingGalleryImages);
+            
           if (Array.isArray(listingGalleryImages)) {
-            galleryImages = [...galleryImages, ...listingGalleryImages.filter(Boolean)];
+            const validListingImages = listingGalleryImages.filter(Boolean);
+            console.log("Valid listing gallery images:", validListingImages);
+            galleryImages = [...validListingImages, ...galleryImages];
           }
         } catch (error) {
-          console.error("Error parsing gallery images from listing:", error);
+          console.error("❌ Error parsing gallery images from listing:", error);
         }
       }
       
       // Try to get images from the listing's service_variants gallery_images (FALLBACK)
       if (listing.service_variants) {
+        console.log("📋 Processing service variants for gallery images...");
         try {
           const serviceVariants = typeof listing.service_variants === 'string' 
             ? JSON.parse(listing.service_variants) 
             : listing.service_variants;
+          
+          console.log("Parsed service variants:", serviceVariants);
           
           if (serviceVariants && typeof serviceVariants === 'object' && 'gallery_images' in serviceVariants) {
             const imagesData = typeof serviceVariants.gallery_images === 'string'
               ? JSON.parse(serviceVariants.gallery_images)
               : serviceVariants.gallery_images;
               
+            console.log("Gallery images from service variants:", imagesData);
+              
             if (Array.isArray(imagesData)) {
               const listingImages = imagesData.map((image: any) => 
                 typeof image === 'string' ? image : (image.url || image.downloadUrl || '')
               ).filter(Boolean);
               
+              console.log("Valid images from service variants:", listingImages);
               galleryImages = [...galleryImages, ...listingImages];
             }
           }
         } catch (error) {
-          console.error("Error parsing gallery images from service variants:", error);
+          console.error("❌ Error parsing gallery images from service variants:", error);
         }
       }
       
-      console.log("Gallery images found:", galleryImages);
+      console.log("🖼️ FINAL GALLERY IMAGES ANALYSIS:");
+      console.log("Total gallery images found:", galleryImages.length);
+      console.log("Gallery images array:", galleryImages);
+      console.log("Gallery images details:", galleryImages.map((img, index) => ({
+        index,
+        url: img,
+        type: typeof img,
+        length: img?.length,
+        isValid: !!img && typeof img === 'string' && img.trim() !== '',
+        domain: img ? new URL(img).hostname : 'invalid'
+      })));
+      
       console.log("Provider avatar URL:", providerData.avatar_url);
       console.log("Provider name:", providerData.name);
       
@@ -288,6 +329,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       console.log("Provider name:", finalResult.provider.name);
       console.log("Service variants count:", finalResult.serviceVariants.length);
       console.log("Gallery images count:", finalResult.galleryImages.length);
+      console.log("Final gallery images:", finalResult.galleryImages);
       
       return finalResult;
     },
