@@ -242,6 +242,7 @@ export type Database = {
           created_at: string
           description: string
           duration: number
+          gallery_images: Json | null
           id: string
           is_active: boolean | null
           provider_id: string
@@ -255,6 +256,7 @@ export type Database = {
           created_at?: string
           description: string
           duration: number
+          gallery_images?: Json | null
           id?: string
           is_active?: boolean | null
           provider_id: string
@@ -268,6 +270,7 @@ export type Database = {
           created_at?: string
           description?: string
           duration?: number
+          gallery_images?: Json | null
           id?: string
           is_active?: boolean | null
           provider_id?: string

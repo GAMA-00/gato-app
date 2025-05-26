@@ -31,6 +31,7 @@ interface ListingData {
   is_active: boolean;
   updated_at: string;
   service_variants: any; // This is the new property we added to the database
+  gallery_images: any;
 }
 
 // Add interface for provider data to fix the TypeScript error
@@ -94,7 +95,8 @@ const Services = () => {
           createdAt: new Date(listing.created_at),
           providerId: listing.provider_id,
           providerName: user.name || '',
-          serviceVariants: serviceVariants
+          serviceVariants: serviceVariants,
+          galleryImages: listing.gallery_images ? JSON.parse(JSON.stringify(listing.gallery_images)) : []
         };
       }) as Service[];
     },
@@ -195,6 +197,35 @@ const Services = () => {
         }
       }
       
+      // Upload gallery images if provided
+      let galleryImageUrls = [];
+      if (serviceData.galleryImages?.length) {
+        try {
+          for (const file of serviceData.galleryImages) {
+            if (!file) continue;
+            
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('service-gallery')
+              .upload(fileName, file);
+              
+            if (uploadError) throw uploadError;
+            
+            // Get public URL
+            const { data: publicUrlData } = supabase.storage
+              .from('service-gallery')
+              .getPublicUrl(fileName);
+              
+            galleryImageUrls.push(publicUrlData.publicUrl);
+          }
+        } catch (error) {
+          console.error('Error uploading gallery images:', error);
+          toast.error('Error al subir imágenes de galería');
+        }
+      }
+      
       // Update provider data
       const { error: updateProviderError } = await supabase
         .from('users')
@@ -237,7 +268,8 @@ const Services = () => {
           base_price: basePrice,
           duration: baseDuration,
           provider_id: user.id,
-          service_variants: serviceVariantsJson
+          service_variants: serviceVariantsJson,
+          gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null
         })
         .select()
         .maybeSingle();
@@ -257,8 +289,6 @@ const Services = () => {
           
         if (residenciaError) throw residenciaError;
       }
-      
-      // TODO: Handle file uploads for profile image and gallery images
       
       return data;
     },
@@ -324,6 +354,56 @@ const Services = () => {
         } catch (error) {
           console.error('Error uploading certification files:', error);
           toast.error('Error al subir certificados');
+        }
+      }
+      
+      // Upload gallery images if provided
+      let galleryImageUrls = [];
+      if (serviceData.galleryImages?.length) {
+        try {
+          // Get existing gallery images from database
+          const { data: existingListing } = await supabase
+            .from('listings')
+            .select('gallery_images')
+            .eq('id', serviceData.id)
+            .maybeSingle();
+          
+          // Parse existing images
+          let existingImages = [];
+          if (existingListing?.gallery_images) {
+            try {
+              existingImages = JSON.parse(existingListing.gallery_images);
+            } catch (e) {
+              console.error('Error parsing existing gallery images:', e);
+            }
+          }
+          
+          // Upload new images
+          for (const file of serviceData.galleryImages) {
+            if (!file) continue;
+            
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user?.id}/${crypto.randomUUID()}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('service-gallery')
+              .upload(fileName, file);
+              
+            if (uploadError) throw uploadError;
+            
+            // Get public URL
+            const { data: publicUrlData } = supabase.storage
+              .from('service-gallery')
+              .getPublicUrl(fileName);
+              
+            galleryImageUrls.push(publicUrlData.publicUrl);
+          }
+          
+          // Combine existing and new images
+          galleryImageUrls = [...existingImages, ...galleryImageUrls];
+        } catch (error) {
+          console.error('Error uploading gallery images:', error);
+          toast.error('Error al subir imágenes de galería');
         }
       }
       
@@ -397,7 +477,8 @@ const Services = () => {
           description: serviceData.description,
           base_price: basePrice,
           duration: baseDuration,
-          service_variants: serviceVariantsJson
+          service_variants: serviceVariantsJson,
+          gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null
         })
         .eq('id', serviceData.id);
         
@@ -425,8 +506,6 @@ const Services = () => {
           
         if (residenciaError) throw residenciaError;
       }
-      
-      // TODO: Handle file uploads for profile image and gallery images
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });

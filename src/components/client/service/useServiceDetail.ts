@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,7 +22,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       const { data: { session } } = await supabase.auth.getSession();
       console.log("Current auth session:", session ? "User authenticated" : "No auth session");
       
-      // Get listing details
+      // Get listing details including gallery_images
       const { data: listing, error } = await supabase
         .from('listings')
         .select(`
@@ -187,7 +188,22 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         }
       }
       
-      // Try to get images from the listing's service_variants gallery_images
+      // Get gallery images from the listing's gallery_images column (NEW)
+      if (listing.gallery_images) {
+        try {
+          const listingGalleryImages = typeof listing.gallery_images === 'string'
+            ? JSON.parse(listing.gallery_images)
+            : listing.gallery_images;
+            
+          if (Array.isArray(listingGalleryImages)) {
+            galleryImages = [...galleryImages, ...listingGalleryImages.filter(Boolean)];
+          }
+        } catch (error) {
+          console.error("Error parsing gallery images from listing:", error);
+        }
+      }
+      
+      // Try to get images from the listing's service_variants gallery_images (FALLBACK)
       if (listing.service_variants) {
         try {
           const serviceVariants = typeof listing.service_variants === 'string' 
@@ -208,7 +224,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
             }
           }
         } catch (error) {
-          console.error("Error parsing gallery images from listing:", error);
+          console.error("Error parsing gallery images from service variants:", error);
         }
       }
       
