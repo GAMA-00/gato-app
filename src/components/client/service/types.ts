@@ -36,6 +36,7 @@ export interface ProviderData {
   users?: any; // This could be an array or object
   email?: string;
   phone?: string;
+  avatar_url?: string; // Add the missing avatar_url property
   certificationFiles?: CertificationFile[];
   hasCertifications?: boolean;
   created_at?: string;
