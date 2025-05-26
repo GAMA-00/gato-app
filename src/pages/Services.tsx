@@ -214,24 +214,28 @@ const Services = () => {
       let galleryImageUrls: string[] = [];
       if (serviceData.galleryImages?.length) {
         try {
-          for (const file of serviceData.galleryImages) {
-            if (!file) continue;
-            
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('service-gallery')
-              .upload(fileName, file);
+          for (const item of serviceData.galleryImages) {
+            // Check if item is a File object (new upload) or string (existing URL)
+            if (item instanceof File) {
+              const fileExt = item.name.split('.').pop();
+              const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
               
-            if (uploadError) throw uploadError;
-            
-            // Get public URL
-            const { data: publicUrlData } = supabase.storage
-              .from('service-gallery')
-              .getPublicUrl(fileName);
+              const { error: uploadError } = await supabase.storage
+                .from('service-gallery')
+                .upload(fileName, item);
+                
+              if (uploadError) throw uploadError;
               
-            galleryImageUrls.push(publicUrlData.publicUrl);
+              // Get public URL
+              const { data: publicUrlData } = supabase.storage
+                .from('service-gallery')
+                .getPublicUrl(fileName);
+                
+              galleryImageUrls.push(publicUrlData.publicUrl);
+            } else if (typeof item === 'string') {
+              // Item is already a URL, keep it as is
+              galleryImageUrls.push(item);
+            }
           }
         } catch (error) {
           console.error('Error uploading gallery images:', error);
@@ -394,25 +398,29 @@ const Services = () => {
             }
           }
           
-          // Upload new images
-          for (const file of serviceData.galleryImages) {
-            if (!file) continue;
-            
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user?.id}/${crypto.randomUUID()}.${fileExt}`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('service-gallery')
-              .upload(fileName, file);
+          // Upload new images and preserve existing ones
+          for (const item of serviceData.galleryImages) {
+            // Check if item is a File object (new upload) or string (existing URL)
+            if (item instanceof File) {
+              const fileExt = item.name.split('.').pop();
+              const fileName = `${user?.id}/${crypto.randomUUID()}.${fileExt}`;
               
-            if (uploadError) throw uploadError;
-            
-            // Get public URL
-            const { data: publicUrlData } = supabase.storage
-              .from('service-gallery')
-              .getPublicUrl(fileName);
+              const { error: uploadError } = await supabase.storage
+                .from('service-gallery')
+                .upload(fileName, item);
+                
+              if (uploadError) throw uploadError;
               
-            galleryImageUrls.push(publicUrlData.publicUrl);
+              // Get public URL
+              const { data: publicUrlData } = supabase.storage
+                .from('service-gallery')
+                .getPublicUrl(fileName);
+                
+              galleryImageUrls.push(publicUrlData.publicUrl);
+            } else if (typeof item === 'string') {
+              // Item is already a URL, keep it as is
+              galleryImageUrls.push(item);
+            }
           }
           
           // Combine existing and new images
