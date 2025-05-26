@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -32,7 +33,7 @@ export interface Service {
   // Nuevos campos para el perfil del proveedor
   aboutMe?: string;
   profileImage?: File;
-  galleryImages?: File[];
+  galleryImages?: File[] | string[]; // Updated to allow both File[] and string[]
   experienceYears?: number;
   hasCertifications?: boolean;
   certificationFiles?: any[]; // Added certificationFiles field
