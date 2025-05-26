@@ -32,19 +32,22 @@ const ProviderInfoCard = ({
   // Determine if provider has recurring clients
   const hasRecurringClients = recurringClients && recurringClients > 0;
   
+  console.log("ProviderInfoCard - Provider avatar URL:", provider?.avatar_url);
+  console.log("ProviderInfoCard - Provider name:", provider?.name);
+  
   return (
     <Card className="bg-app-card border border-app-border">
       <CardContent className="pt-6">
         <div className="flex items-start">
           <Avatar className="h-16 w-16 border border-app-border">
-            <AvatarImage src={undefined} alt={provider?.name} />
+            <AvatarImage src={provider?.avatar_url} alt={provider?.name} />
             <AvatarFallback className="bg-app-cardAlt text-app-text">
               {provider?.name?.substring(0, 2).toUpperCase() || 'P'}
             </AvatarFallback>
           </Avatar>
           
           <div className="ml-4 space-y-2">
-            <h3 className="text-lg font-semibold text-app-text">{provider?.name}</h3>
+            <h3 className="text-lg font-semibold text-app-text">{provider?.name || 'Proveedor'}</h3>
             
             <div className="flex items-center">
               <div className="bg-yellow-50 px-2 py-1 rounded-md flex items-center">

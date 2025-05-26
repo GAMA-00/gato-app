@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,8 +42,8 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       
       console.log("Listing data:", listing);
       
-      // Get provider data from users table - using maybeSingle to handle not found case
-      const { data: providerQueryData, error: providerError } = await supabase
+      // Get provider data from users table
+      const { data: providerData, error: providerError } = await supabase
         .from('users')
         .select(`
           id, 
@@ -52,7 +53,8 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           average_rating,
           certification_files,
           email,
-          phone
+          phone,
+          avatar_url
         `)
         .eq('id', providerId)
         .eq('role', 'provider')
@@ -64,36 +66,12 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         throw providerError;
       }
       
-      // Use a mutable variable for provider data
-      let providerData = providerQueryData;
+      console.log("Provider data from DB:", providerData);
       
-      // If no provider found, create a basic provider object
+      // If no provider found, return null to show error
       if (!providerData) {
-        console.warn("Provider not found in users table, creating basic provider data");
-        const basicProviderData = {
-          id: providerId,
-          name: 'Proveedor',
-          about_me: '',
-          experience_years: 0,
-          average_rating: 4.5,
-          certification_files: null,
-          email: '',
-          phone: ''
-        };
-        
-        // Try to get provider info from auth.users if available (fallback)
-        try {
-          const { data: authUser } = await supabase.auth.admin.getUserById(providerId);
-          if (authUser.user) {
-            basicProviderData.name = authUser.user.user_metadata?.name || 'Proveedor';
-            basicProviderData.email = authUser.user.email || '';
-          }
-        } catch (authError) {
-          console.log("Could not fetch auth user data:", authError);
-        }
-        
-        // Use the basic provider data
-        providerData = basicProviderData as any;
+        console.error("Provider not found in database");
+        return null;
       }
       
       // Get client residence info if userId provided
@@ -113,34 +91,9 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
-      // First check if the listing has gallery images stored in the service_variants field
-      if (listing.service_variants) {
+      // Parse certification files if available
+      if (providerData.certification_files) {
         try {
-          // Try to access service_variants and check if it has a gallery_images property
-          const serviceVariants = typeof listing.service_variants === 'string' 
-            ? JSON.parse(listing.service_variants) 
-            : listing.service_variants;
-          
-          if (serviceVariants && typeof serviceVariants === 'object' && 'gallery_images' in serviceVariants) {
-            const imagesData = typeof serviceVariants.gallery_images === 'string'
-              ? JSON.parse(serviceVariants.gallery_images)
-              : serviceVariants.gallery_images;
-              
-            if (Array.isArray(imagesData)) {
-              galleryImages = imagesData.map((image: any) => 
-                typeof image === 'string' ? image : (image.url || image.downloadUrl || '')
-              ).filter(Boolean);
-            }
-          }
-        } catch (error) {
-          console.error("Error parsing gallery images:", error);
-        }
-      }
-      
-      // If no images found in listing, try fetching from provider certification files as fallback
-      if (galleryImages.length === 0 && providerData && providerData.certification_files) {
-        try {
-          // Parse certification_files if it's a string
           const filesData = typeof providerData.certification_files === 'string' 
             ? JSON.parse(providerData.certification_files) 
             : providerData.certification_files;
@@ -156,43 +109,44 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
             // Extract image files from certification_files for gallery
             galleryImages = filesData
               .filter((file: any) => {
-                const fileUrl = file.url || file.downloadUrl || '';
                 const fileType = file.type || file.contentType || '';
-                return fileType.startsWith('image/') || 
-                      fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                return fileType.startsWith('image/');
               })
-              .map((file: any) => file.url || file.downloadUrl || '');
+              .map((file: any) => file.url || file.downloadUrl || '')
+              .filter(Boolean);
           }
         } catch (error) {
           console.error("Error parsing certification files:", error);
         }
       }
       
-      // As a last resort, if we have the listing ID, try to fetch images from storage
-      if (galleryImages.length === 0 && listing.id) {
+      // Try to get images from the listing's service_variants gallery_images
+      if (listing.service_variants) {
         try {
-          const { data: storageData, error: storageError } = await supabase
-            .storage
-            .from('listing_images')
-            .list(`${listing.id}/`);
+          const serviceVariants = typeof listing.service_variants === 'string' 
+            ? JSON.parse(listing.service_variants) 
+            : listing.service_variants;
           
-          if (!storageError && storageData && storageData.length > 0) {
-            galleryImages = storageData
-              .filter(item => !item.id.endsWith('/'))
-              .map(item => {
-                const { data } = supabase
-                  .storage
-                  .from('listing_images')
-                  .getPublicUrl(`${listing.id}/${item.name}`);
-                return data.publicUrl;
-              });
+          if (serviceVariants && typeof serviceVariants === 'object' && 'gallery_images' in serviceVariants) {
+            const imagesData = typeof serviceVariants.gallery_images === 'string'
+              ? JSON.parse(serviceVariants.gallery_images)
+              : serviceVariants.gallery_images;
+              
+            if (Array.isArray(imagesData)) {
+              const listingImages = imagesData.map((image: any) => 
+                typeof image === 'string' ? image : (image.url || image.downloadUrl || '')
+              ).filter(Boolean);
+              
+              galleryImages = [...galleryImages, ...listingImages];
+            }
           }
         } catch (error) {
-          console.error("Error fetching images from storage:", error);
+          console.error("Error parsing gallery images from listing:", error);
         }
       }
       
       console.log("Gallery images found:", galleryImages);
+      console.log("Provider avatar URL:", providerData.avatar_url);
       
       const hasCertifications = certificationFiles.length > 0;
       
@@ -200,7 +154,6 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       let serviceVariants = [];
       if (listing.service_variants) {
         try {
-          // Check if it's already an object or needs parsing
           const variantsData = typeof listing.service_variants === 'string' 
             ? JSON.parse(listing.service_variants) 
             : listing.service_variants;
@@ -215,18 +168,10 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           }
         } catch (error) {
           console.error("Error parsing service variants:", error);
-          // Create default variant if parsing fails
-          serviceVariants = [{
-            id: 'default-variant',
-            name: listing.title,
-            price: listing.base_price,
-            duration: listing.duration
-          }];
         }
       }
       
       if (serviceVariants.length === 0) {
-        // Create default variant if none exist
         serviceVariants = [{
           id: 'default-variant',
           name: listing.title,
