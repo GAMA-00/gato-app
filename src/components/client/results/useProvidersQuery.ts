@@ -28,8 +28,13 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
         return [];
       }
       
+      console.log("=== STARTING PROVIDERS QUERY ===");
       console.log(`Fetching providers for service type: ${serviceTypeId} in category: ${categoryName}`);
       console.log(`Client residencia ID: ${user?.residenciaId || 'Not set'}`);
+      
+      // Get current auth status
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Auth status for providers query:", session ? "Authenticated" : "Not authenticated");
       
       // Get listings with provider data from users table
       const { data: listingsData, error: listingsError } = await supabase
@@ -59,16 +64,19 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
         return [];
       }
       
-      console.log(`Found ${listingsData?.length || 0} active listings`);
+      console.log(`✅ Found ${listingsData?.length || 0} active listings`);
       
       if (!listingsData || listingsData.length === 0) {
+        console.log("No listings found for service type:", serviceTypeId);
         return [];
       }
       
       // Get unique provider IDs
       const providerIds = [...new Set(listingsData.map(listing => listing.provider_id))];
+      console.log("Unique provider IDs to fetch:", providerIds);
       
       // Fetch provider data from users table
+      console.log("=== FETCHING PROVIDERS DATA ===");
       const { data: providers, error: providersError } = await supabase
         .from('users')
         .select(`
@@ -84,6 +92,30 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
         
       if (providersError) {
         console.error("Error fetching providers:", providersError);
+        console.error("Providers error details:", {
+          code: providersError.code,
+          message: providersError.message,
+          details: providersError.details,
+          hint: providersError.hint
+        });
+      }
+      
+      console.log(`✅ Fetched ${providers?.length || 0} providers from users table`);
+      console.log("Providers data:", providers);
+      
+      // If no providers found, try without role filter for debugging
+      if (!providers || providers.length === 0) {
+        console.log("⚠️ No providers found with role filter, trying without role filter for debugging...");
+        const { data: allUsers, error: allUsersError } = await supabase
+          .from('users')
+          .select('id, name, role')
+          .in('id', providerIds);
+          
+        console.log("All users matching provider IDs:", allUsers);
+        if (allUsersError) {
+          console.error("Error fetching all users:", allUsersError);
+        }
+        
         return [];
       }
       
@@ -153,6 +185,10 @@ export const useProvidersQuery = (serviceTypeId: string, categoryName: string) =
           servicesCompleted
         };
       });
+      
+      console.log("=== FINAL PROCESSED PROVIDERS ===");
+      console.log(`Returning ${processedProviders.length} processed providers`);
+      console.log("First provider (if any):", processedProviders[0]);
       
       // Sort by rating (highest first)
       return processedProviders.sort((a, b) => b.rating - a.rating);
