@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -72,7 +71,8 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           certification_files,
           email,
           phone,
-          avatar_url
+          avatar_url,
+          role
         `)
         .eq('id', providerId)
         .eq('role', 'provider')
