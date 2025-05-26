@@ -12,44 +12,67 @@ export const useServiceMutations = () => {
   
   const createListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
-      if (!user?.id) throw new Error('User ID is required');
+      console.log('=== INICIO CREACIÓN DE SERVICIO ===');
+      console.log('Datos recibidos:', serviceData);
       
-      const certificationFilesUrls = await uploadCertificationFiles(
-        serviceData.certificationFiles || [],
-        user.id,
-        serviceData.hasCertifications || false
-      );
-      
-      const galleryImageUrls = await uploadGalleryImages(
-        serviceData.galleryImages || [],
-        user.id
-      );
-      
-      await updateProviderData(
-        user.id,
-        serviceData.aboutMe,
-        serviceData.experienceYears,
-        certificationFilesUrls
-      );
-      
-      let basePrice = serviceData.price || 0;
-      let baseDuration = serviceData.duration || 60;
-      
-      if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0) {
-        const baseService = serviceData.serviceVariants[0];
-        if (baseService) {
-          basePrice = Number(baseService.price) || basePrice;
-          baseDuration = Number(baseService.duration) || baseDuration;
-        }
+      if (!user?.id) {
+        console.error('Error: No hay user ID');
+        throw new Error('User ID is required');
       }
       
-      const serviceVariantsJson = serviceData.serviceVariants 
-        ? JSON.stringify(serviceData.serviceVariants) 
-        : null;
+      console.log('User ID:', user.id);
       
-      const { data, error } = await supabase
-        .from('listings')
-        .insert({
+      try {
+        // Subir archivos de certificación
+        console.log('Subiendo certificados...');
+        const certificationFilesUrls = await uploadCertificationFiles(
+          serviceData.certificationFiles || [],
+          user.id,
+          serviceData.hasCertifications || false
+        );
+        console.log('Certificados subidos:', certificationFilesUrls);
+        
+        // Subir imágenes de galería
+        console.log('Subiendo imágenes de galería...');
+        const galleryImageUrls = await uploadGalleryImages(
+          serviceData.galleryImages || [],
+          user.id
+        );
+        console.log('Imágenes de galería subidas:', galleryImageUrls);
+        
+        // Actualizar datos del proveedor
+        console.log('Actualizando datos del proveedor...');
+        await updateProviderData(
+          user.id,
+          serviceData.aboutMe,
+          serviceData.experienceYears,
+          certificationFilesUrls
+        );
+        console.log('Datos del proveedor actualizados');
+        
+        // Calcular precio y duración base
+        let basePrice = serviceData.price || 0;
+        let baseDuration = serviceData.duration || 60;
+        
+        if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0) {
+          const baseService = serviceData.serviceVariants[0];
+          if (baseService) {
+            basePrice = Number(baseService.price) || basePrice;
+            baseDuration = Number(baseService.duration) || baseDuration;
+          }
+        }
+        
+        console.log('Precio base calculado:', basePrice);
+        console.log('Duración base calculada:', baseDuration);
+        
+        const serviceVariantsJson = serviceData.serviceVariants 
+          ? JSON.stringify(serviceData.serviceVariants) 
+          : null;
+        
+        console.log('Variantes de servicio JSON:', serviceVariantsJson);
+        
+        // Preparar datos para insertar
+        const insertData = {
           title: serviceData.name || '',
           service_type_id: serviceData.subcategoryId || '',
           description: serviceData.description || '',
@@ -58,138 +81,184 @@ export const useServiceMutations = () => {
           provider_id: user.id,
           service_variants: serviceVariantsJson,
           gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null
-        })
-        .select()
-        .maybeSingle();
+        };
         
-      if (error) throw error;
-      
-      if (serviceData.residenciaIds?.length && data?.id) {
-        const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
-          listing_id: data.id,
-          residencia_id: residenciaId
-        }));
+        console.log('Datos a insertar en listings:', insertData);
         
-        const { error: residenciaError } = await supabase
-          .from('listing_residencias')
-          .insert(residenciaAssociations);
+        // Insertar en la tabla listings
+        const { data, error } = await supabase
+          .from('listings')
+          .insert(insertData)
+          .select()
+          .maybeSingle();
           
-        if (residenciaError) throw residenciaError;
+        if (error) {
+          console.error('Error al insertar en listings:', error);
+          throw error;
+        }
+        
+        console.log('Listing creado exitosamente:', data);
+        
+        // Crear asociaciones con residencias
+        if (serviceData.residenciaIds?.length && data?.id) {
+          console.log('Creando asociaciones con residencias:', serviceData.residenciaIds);
+          
+          const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
+            listing_id: data.id,
+            residencia_id: residenciaId
+          }));
+          
+          console.log('Asociaciones a crear:', residenciaAssociations);
+          
+          const { error: residenciaError } = await supabase
+            .from('listing_residencias')
+            .insert(residenciaAssociations);
+            
+          if (residenciaError) {
+            console.error('Error al crear asociaciones con residencias:', residenciaError);
+            throw residenciaError;
+          }
+          
+          console.log('Asociaciones con residencias creadas exitosamente');
+        }
+        
+        console.log('=== SERVICIO CREADO EXITOSAMENTE ===');
+        return data;
+        
+      } catch (error) {
+        console.error('=== ERROR EN CREACIÓN DE SERVICIO ===');
+        console.error('Error detallado:', error);
+        throw error;
       }
-      
-      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Mutación exitosa, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['listings'] });
       queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
       queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
       toast.success('Anuncio creado exitosamente');
     },
     onError: (error) => {
+      console.error('Error en mutación:', error);
       toast.error('Error al crear el anuncio: ' + (error as Error).message);
     }
   });
   
   const updateListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
-      if (!serviceData.id) throw new Error('Listing ID is required');
+      console.log('=== INICIO ACTUALIZACIÓN DE SERVICIO ===');
+      console.log('Datos recibidos:', serviceData);
       
-      const certificationFilesUrls = await uploadCertificationFiles(
-        serviceData.certificationFiles || [],
-        user?.id || '',
-        serviceData.hasCertifications || false
-      );
+      if (!serviceData.id) {
+        console.error('Error: No hay listing ID');
+        throw new Error('Listing ID is required');
+      }
       
-      const galleryImageUrls = await uploadGalleryImages(
-        serviceData.galleryImages || [],
-        user?.id || ''
-      );
-      
-      if (user?.id && (serviceData.aboutMe !== undefined || 
-                        serviceData.experienceYears !== undefined || 
-                        serviceData.hasCertifications !== undefined)) {
-        let finalCertificationFiles = null;
+      try {
+        const certificationFilesUrls = await uploadCertificationFiles(
+          serviceData.certificationFiles || [],
+          user?.id || '',
+          serviceData.hasCertifications || false
+        );
         
-        if (serviceData.hasCertifications) {
-          if (certificationFilesUrls.length > 0) {
-            finalCertificationFiles = JSON.stringify(certificationFilesUrls);
-          } else if (certificationFilesUrls.length === 0 && serviceData.certificationFiles?.length === 0) {
-            finalCertificationFiles = null;
+        const galleryImageUrls = await uploadGalleryImages(
+          serviceData.galleryImages || [],
+          user?.id || ''
+        );
+        
+        if (user?.id && (serviceData.aboutMe !== undefined || 
+                          serviceData.experienceYears !== undefined || 
+                          serviceData.hasCertifications !== undefined)) {
+          let finalCertificationFiles = null;
+          
+          if (serviceData.hasCertifications) {
+            if (certificationFilesUrls.length > 0) {
+              finalCertificationFiles = JSON.stringify(certificationFilesUrls);
+            } else if (certificationFilesUrls.length === 0 && serviceData.certificationFiles?.length === 0) {
+              finalCertificationFiles = null;
+            } else {
+              const { data: providerData } = await supabase
+                .from('users')
+                .select('certification_files')
+                .eq('id', user.id)
+                .maybeSingle();
+                
+              finalCertificationFiles = providerData?.certification_files || null;
+            }
           } else {
-            const { data: providerData } = await supabase
-              .from('users')
-              .select('certification_files')
-              .eq('id', user.id)
-              .maybeSingle();
-              
-            finalCertificationFiles = providerData?.certification_files || null;
+            finalCertificationFiles = null;
           }
-        } else {
-          finalCertificationFiles = null;
+          
+          const { error: updateProviderError } = await supabase
+            .from('users')
+            .update({
+              about_me: serviceData.aboutMe,
+              experience_years: serviceData.experienceYears,
+              certification_files: finalCertificationFiles
+            })
+            .eq('id', user.id);
+            
+          if (updateProviderError) {
+            console.error('Error updating provider info:', updateProviderError);
+          }
         }
         
-        const { error: updateProviderError } = await supabase
-          .from('users')
+        let basePrice = serviceData.price || 0;
+        let baseDuration = serviceData.duration || 60;
+        
+        if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0) {
+          const baseService = serviceData.serviceVariants[0];
+          if (baseService) {
+            basePrice = Number(baseService.price) || basePrice;
+            baseDuration = Number(baseService.duration) || baseDuration;
+          }
+        }
+        
+        const serviceVariantsJson = serviceData.serviceVariants 
+          ? JSON.stringify(serviceData.serviceVariants) 
+          : null;
+        
+        const { error } = await supabase
+          .from('listings')
           .update({
-            about_me: serviceData.aboutMe,
-            experience_years: serviceData.experienceYears,
-            certification_files: finalCertificationFiles
+            title: serviceData.name,
+            service_type_id: serviceData.subcategoryId,
+            description: serviceData.description,
+            base_price: basePrice,
+            duration: baseDuration,
+            service_variants: serviceVariantsJson,
+            gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null
           })
-          .eq('id', user.id);
+          .eq('id', serviceData.id);
           
-        if (updateProviderError) {
-          console.error('Error updating provider info:', updateProviderError);
-        }
-      }
-      
-      let basePrice = serviceData.price || 0;
-      let baseDuration = serviceData.duration || 60;
-      
-      if (serviceData.serviceVariants && serviceData.serviceVariants.length > 0) {
-        const baseService = serviceData.serviceVariants[0];
-        if (baseService) {
-          basePrice = Number(baseService.price) || basePrice;
-          baseDuration = Number(baseService.duration) || baseDuration;
-        }
-      }
-      
-      const serviceVariantsJson = serviceData.serviceVariants 
-        ? JSON.stringify(serviceData.serviceVariants) 
-        : null;
-      
-      const { error } = await supabase
-        .from('listings')
-        .update({
-          title: serviceData.name,
-          service_type_id: serviceData.subcategoryId,
-          description: serviceData.description,
-          base_price: basePrice,
-          duration: baseDuration,
-          service_variants: serviceVariantsJson,
-          gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null
-        })
-        .eq('id', serviceData.id);
+        if (error) throw error;
         
-      if (error) throw error;
-      
-      const { error: deleteError } = await supabase
-        .from('listing_residencias')
-        .delete()
-        .eq('listing_id', serviceData.id);
-        
-      if (deleteError) throw deleteError;
-      
-      if (serviceData.residenciaIds?.length) {
-        const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
-          listing_id: serviceData.id!,
-          residencia_id: residenciaId
-        }));
-        
-        const { error: residenciaError } = await supabase
+        const { error: deleteError } = await supabase
           .from('listing_residencias')
-          .insert(residenciaAssociations);
+          .delete()
+          .eq('listing_id', serviceData.id);
           
-        if (residenciaError) throw residenciaError;
+        if (deleteError) throw deleteError;
+        
+        if (serviceData.residenciaIds?.length) {
+          const residenciaAssociations = serviceData.residenciaIds.map(residenciaId => ({
+            listing_id: serviceData.id!,
+            residencia_id: residenciaId
+          }));
+          
+          const { error: residenciaError } = await supabase
+            .from('listing_residencias')
+            .insert(residenciaAssociations);
+            
+          if (residenciaError) throw residenciaError;
+        }
+        
+        console.log('=== SERVICIO ACTUALIZADO EXITOSAMENTE ===');
+        
+      } catch (error) {
+        console.error('=== ERROR EN ACTUALIZACIÓN DE SERVICIO ===');
+        console.error('Error detallado:', error);
+        throw error;
       }
     },
     onSuccess: () => {
@@ -205,12 +274,20 @@ export const useServiceMutations = () => {
   
   const deleteListingMutation = useMutation({
     mutationFn: async (service: Service) => {
+      console.log('=== ELIMINANDO SERVICIO ===');
+      console.log('Servicio a eliminar:', service);
+      
       const { error } = await supabase
         .from('listings')
         .delete()
         .eq('id', service.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error al eliminar servicio:', error);
+        throw error;
+      }
+      
+      console.log('Servicio eliminado exitosamente');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });

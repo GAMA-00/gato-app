@@ -91,9 +91,29 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   });
   
   const handleSubmit = (values: ServiceFormValues) => {
-    console.log("Form submitted with values:", values);
+    console.log("=== FORMULARIO ENVIADO ===");
+    console.log("Valores del formulario:", values);
     
     try {
+      // Validar datos requeridos
+      if (!values.name) {
+        console.error("Error: Nombre del servicio requerido");
+        toast.error("El nombre del servicio es obligatorio");
+        return;
+      }
+      
+      if (!values.subcategoryId) {
+        console.error("Error: Subcategoría requerida");
+        toast.error("Debe seleccionar una subcategoría");
+        return;
+      }
+      
+      if (!values.residenciaIds || values.residenciaIds.length === 0) {
+        console.error("Error: Residencias requeridas");
+        toast.error("Debe seleccionar al menos una residencia");
+        return;
+      }
+      
       // Ensure serviceVariants meets the ServiceVariant interface requirements
       const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
         id: variant.id,
@@ -106,15 +126,23 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       const baseVariant = formattedServiceVariants[0] || { price: 0, duration: 0 };
       const basePrice = Number(baseVariant.price);
       const baseDuration = Number(baseVariant.duration);
+      
+      console.log("Variantes formateadas:", formattedServiceVariants);
+      console.log("Precio base:", basePrice);
+      console.log("Duración base:", baseDuration);
 
-      onSubmit({
+      const serviceData = {
         ...initialData,
         ...values,
         // Add these fields for compatibility with existing code
         price: basePrice,
         duration: baseDuration,
         serviceVariants: formattedServiceVariants
-      });
+      };
+      
+      console.log("Datos finales a enviar:", serviceData);
+
+      onSubmit(serviceData);
       
       toast.success('Formulario enviado correctamente');
       onClose();
@@ -144,13 +172,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   };
   
   const submitForm = () => {
-    console.log("Submitting form...");
+    console.log("=== INTENTANDO ENVIAR FORMULARIO ===");
+    console.log("Valores actuales:", form.getValues());
+    
     // Validar el formulario manualmente antes de enviarlo
     form.trigger().then(isValid => {
-      console.log("Form validation result:", isValid);
+      console.log("Resultado de validación:", isValid);
+      console.log("Errores de validación:", form.formState.errors);
+      
       if (isValid) {
         // Si es válido, enviar el formulario
-        form.handleSubmit(handleSubmit)();
+        const values = form.getValues();
+        handleSubmit(values);
       } else {
         // Si no es válido, mostrar un mensaje de error
         console.error("Formulario inválido:", form.formState.errors);
@@ -175,8 +208,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           <Form {...form}>
             <form onSubmit={(e) => {
               e.preventDefault();
-              console.log("Form onSubmit event triggered");
-              form.handleSubmit(handleSubmit)(e);
+              console.log("=== EVENTO onSubmit DEL FORM ===");
+              const values = form.getValues();
+              handleSubmit(values);
             }} className="flex flex-col h-full">
               <div className="flex-grow px-4 sm:px-0 overflow-hidden mb-16 mt-2">
                 <ScrollArea className="h-[calc(80vh-160px)] pr-4">
