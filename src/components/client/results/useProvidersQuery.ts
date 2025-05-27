@@ -16,8 +16,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return [];
       }
 
-      // Query listings for this service type with provider information
-      const { data: listings, error } = await supabase
+      // First, get listings for this service type
+      const { data: listings, error: listingsError } = await supabase
         .from('listings')
         .select(`
           id,
@@ -26,22 +26,14 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           duration,
           description,
           provider_id,
-          gallery_images,
-          users!provider_id (
-            id,
-            name,
-            avatar_url,
-            about_me,
-            experience_years,
-            certification_files
-          )
+          gallery_images
         `)
         .eq('service_type_id', serviceId)
         .eq('is_active', true);
 
-      if (error) {
-        console.error("Error fetching listings:", error);
-        throw error;
+      if (listingsError) {
+        console.error("Error fetching listings:", listingsError);
+        throw listingsError;
       }
 
       console.log("Raw listings data:", listings);
@@ -51,8 +43,24 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return [];
       }
 
+      // Get unique provider IDs
+      const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
+      console.log("Provider IDs:", providerIds);
+
+      // Fetch user data for providers separately
+      const { data: providers, error: providersError } = await supabase
+        .from('users')
+        .select('id, name, avatar_url, about_me, experience_years, certification_files')
+        .in('id', providerIds);
+
+      if (providersError) {
+        console.error("Error fetching providers:", providersError);
+        throw providersError;
+      }
+
+      console.log("Providers data:", providers);
+
       // Get provider ratings - only get what exists in the table
-      const providerIds = listings.map(listing => listing.provider_id).filter(Boolean);
       const { data: ratingsData } = await supabase
         .from('provider_ratings')
         .select('provider_id, rating')
@@ -70,9 +78,15 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return acc;
       }, {} as Record<string, { ratings: number[], count: number }>);
 
+      // Create provider lookup map
+      const providerMap = providers?.reduce((acc, provider) => {
+        acc[provider.id] = provider;
+        return acc;
+      }, {} as Record<string, any>) || {};
+
       // Process listings into ProcessedProvider format
       const processedProviders: ProcessedProvider[] = listings.map(listing => {
-        const provider = listing.users;
+        const provider = providerMap[listing.provider_id];
         const providerRatingData = providerRatings?.[listing.provider_id];
         const averageRating = providerRatingData?.ratings.length 
           ? providerRatingData.ratings.reduce((sum, r) => sum + r, 0) / providerRatingData.ratings.length 
