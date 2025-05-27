@@ -12,12 +12,13 @@ export function useCalendarAppointments(currentDate: Date) {
     queryFn: async () => {
       if (!user) return [];
       
-      // Calculate date range for the current calendar view (current week + 2 weeks before and after)
+      // Calculate date range for the current calendar view (current week + 4 weeks before and after)
       const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
-      const rangeStart = startOfWeek(subWeeks(currentWeekStart, 2), { weekStartsOn: 0 });
-      const rangeEnd = endOfWeek(addWeeks(currentWeekStart, 2), { weekStartsOn: 0 });
+      const rangeStart = startOfWeek(subWeeks(currentWeekStart, 4), { weekStartsOn: 0 });
+      const rangeEnd = endOfWeek(addWeeks(currentWeekStart, 4), { weekStartsOn: 0 });
       
       console.log(`Fetching calendar appointments for range: ${rangeStart.toISOString()} to ${rangeEnd.toISOString()}`);
+      console.log(`Current calendar date: ${currentDate.toISOString()}`);
       
       try {
         if (user.role === 'provider') {
@@ -53,6 +54,8 @@ export function useCalendarAppointments(currentDate: Date) {
             return [];
           }
           
+          console.log(`Found ${appointments.length} appointments in date range`);
+          
           // Get client names
           const clientIds = [...new Set(appointments.map(app => app.client_id))];
           
@@ -74,17 +77,35 @@ export function useCalendarAppointments(currentDate: Date) {
             }
           }
           
-          // Mark recurring appointments
-          const enhancedAppointments = appointments.map(app => ({
-            ...app,
-            is_recurring: app.recurrence && app.recurrence !== 'none',
-            recurrence_label: 
-              app.recurrence === 'weekly' ? 'Semanal' :
-              app.recurrence === 'biweekly' ? 'Quincenal' :
-              app.recurrence === 'monthly' ? 'Mensual' :
-              app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
-          }));
+          // Mark recurring appointments and add enhanced information
+          const enhancedAppointments = appointments.map(app => {
+            const isRecurring = app.recurrence && app.recurrence !== 'none';
+            
+            return {
+              ...app,
+              is_recurring: isRecurring,
+              recurrence_label: 
+                app.recurrence === 'weekly' ? 'Semanal' :
+                app.recurrence === 'biweekly' ? 'Quincenal' :
+                app.recurrence === 'monthly' ? 'Mensual' :
+                app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
+            };
+          });
           
+          // Group by date for debugging
+          const appointmentsByDate = enhancedAppointments.reduce((acc, app) => {
+            const date = new Date(app.start_time).toDateString();
+            if (!acc[date]) acc[date] = [];
+            acc[date].push({
+              id: app.id,
+              start_time: app.start_time,
+              recurrence: app.recurrence,
+              title: app.listings?.title
+            });
+            return acc;
+          }, {} as Record<string, any[]>);
+          
+          console.log('Appointments by date:', appointmentsByDate);
           console.log(`Calendar view: Found ${enhancedAppointments.length} appointments, ${enhancedAppointments.filter(app => app.is_recurring).length} recurring`);
           
           return enhancedAppointments;

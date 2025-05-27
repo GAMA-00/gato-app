@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -165,9 +166,20 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   // Filter appointments for this day - include all recurring appointments
   const dayAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
-    return isSameDay(appointmentDate, date) && 
-           appointment.status !== 'cancelled' && 
-           appointment.status !== 'rejected';
+    const isSameDate = isSameDay(appointmentDate, date);
+    const isNotCancelledOrRejected = appointment.status !== 'cancelled' && appointment.status !== 'rejected';
+    
+    if (isSameDate && isNotCancelledOrRejected) {
+      console.log(`Found appointment for ${date.toDateString()}:`, {
+        id: appointment.id,
+        start_time: appointment.start_time,
+        recurrence: appointment.recurrence,
+        status: appointment.status,
+        title: appointment.listings?.title
+      });
+    }
+    
+    return isSameDate && isNotCancelledOrRejected;
   });
   
   // Show hours from 8 AM to 8 PM (12 hours)
@@ -189,6 +201,11 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             format(date, 'd')
           )}
         </div>
+        {dayAppointments.length > 0 && (
+          <div className="text-xs text-blue-600 font-medium mt-1">
+            {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       <div className="relative h-full bg-white">
@@ -200,8 +217,9 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           </div>
         ))}
         {dayAppointments.map(appointment => {
-          console.log(`Appointment scheduled at: ${new Date(appointment.start_time).toLocaleTimeString()}`, {
+          console.log(`Rendering appointment for ${date.toDateString()}:`, {
             id: appointment.id,
+            scheduled_time: new Date(appointment.start_time).toLocaleTimeString(),
             recurrence: appointment.recurrence,
             client: appointment.client_name,
             service: appointment.listings?.title
@@ -238,6 +256,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const currentDate = propCurrentDate || internalCurrentDate;
   
   const handleDateChange = (newDate: Date) => {
+    console.log('Calendar view date changing to:', newDate.toISOString());
     if (onDateChange) {
       onDateChange(newDate);
     } else {
@@ -269,13 +288,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setExpandedId(null);
   };
 
-  // Log recurring appointments for debugging
+  // Debug appointments for current week
   React.useEffect(() => {
-    const recurringAppointments = appointments.filter(app => 
+    const weekStart = startDate.toDateString();
+    const weekEnd = endDate.toDateString();
+    const weekAppointments = appointments.filter(app => {
+      const appDate = new Date(app.start_time);
+      return appDate >= startDate && appDate <= endDate;
+    });
+    
+    console.log(`Calendar week ${weekStart} to ${weekEnd}:`);
+    console.log(`Total appointments in view: ${appointments.length}`);
+    console.log(`Appointments for this week: ${weekAppointments.length}`);
+    
+    const recurringInWeek = weekAppointments.filter(app => 
       app.recurrence && app.recurrence !== 'none'
     );
-    console.log(`Calendar view showing ${recurringAppointments.length} recurring appointments for week starting ${startDate.toISOString()}:`, recurringAppointments);
-  }, [appointments, startDate]);
+    console.log(`Recurring appointments this week: ${recurringInWeek.length}`, recurringInWeek);
+  }, [appointments, startDate, endDate]);
 
   return (
     <Card className="overflow-hidden border-0 shadow-medium">

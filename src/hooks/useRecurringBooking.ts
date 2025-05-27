@@ -1,8 +1,7 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { addWeeks, addMonths, format, getDay } from 'date-fns';
+import { addWeeks, addMonths, format, getDay, isSameDay, addDays } from 'date-fns';
 
 interface RecurringBookingData {
   providerId: string;
@@ -35,14 +34,21 @@ export const useRecurringBooking = () => {
         apartment 
       } = bookingData;
 
-      // Calculate end time
-      const endTime = new Date(startTime.getTime() + duration * 60000);
+      console.log('Creating recurring appointments with data:', {
+        startTime: startTime.toISOString(),
+        recurrence,
+        selectedDays,
+        duration
+      });
 
-      // Generate recurring appointments for the next 52 periods (1 year)
+      // Generate recurring appointments for the next 52 weeks (1 year)
       const appointments = [];
-      const periods = 52; // Increased from 12 to 52 for better long-term planning
-
-      for (let i = 0; i < periods; i++) {
+      const totalPeriods = 52;
+      
+      // Get the day of week for the original appointment (0 = Sunday, 1 = Monday, etc.)
+      const originalDay = getDay(startTime);
+      
+      for (let i = 0; i < totalPeriods; i++) {
         let appointmentDate = new Date(startTime);
         
         switch (recurrence) {
@@ -54,17 +60,32 @@ export const useRecurringBooking = () => {
             break;
           case 'monthly':
             appointmentDate = addMonths(startTime, i);
+            // For monthly recurrence, try to keep the same day of the week
+            // If the day doesn't match, find the closest occurrence
+            const targetDay = originalDay;
+            const currentDay = getDay(appointmentDate);
+            if (currentDay !== targetDay) {
+              const dayDiff = targetDay - currentDay;
+              appointmentDate = addDays(appointmentDate, dayDiff);
+            }
             break;
         }
 
-        // Check if this date matches selected days (for weekly/biweekly)
+        // For weekly and biweekly, check if the day matches selected days
         if ((recurrence === 'weekly' || recurrence === 'biweekly') && selectedDays.length > 0) {
-          const dayOfWeek = appointmentDate.getDay();
-          const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday from 0 to 7
+          const dayOfWeek = getDay(appointmentDate);
+          // Convert Sunday from 0 to 7 to match our selectedDays format (1-7)
+          const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
           if (!selectedDays.includes(adjustedDay)) {
             continue; // Skip dates that don't match selected days
           }
         }
+
+        // Set the correct time (preserve hours and minutes from original)
+        appointmentDate.setHours(startTime.getHours());
+        appointmentDate.setMinutes(startTime.getMinutes());
+        appointmentDate.setSeconds(0);
+        appointmentDate.setMilliseconds(0);
 
         const appointmentEndTime = new Date(appointmentDate.getTime() + duration * 60000);
 
@@ -82,7 +103,12 @@ export const useRecurringBooking = () => {
         });
       }
 
-      console.log(`Creating ${appointments.length} recurring appointments for ${recurrence} pattern:`, appointments);
+      console.log(`Generated ${appointments.length} recurring appointments:`, 
+        appointments.slice(0, 5).map(apt => ({
+          start_time: apt.start_time,
+          recurrence: apt.recurrence
+        }))
+      );
 
       // Insert all appointments in batches to avoid timeouts
       const batchSize = 10;
@@ -91,13 +117,15 @@ export const useRecurringBooking = () => {
       for (let i = 0; i < appointments.length; i += batchSize) {
         const batch = appointments.slice(i, i + batchSize);
         
+        console.log(`Inserting batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(appointments.length / batchSize)} with ${batch.length} appointments`);
+        
         const { data, error } = await supabase
           .from('appointments')
           .insert(batch)
           .select();
 
         if (error) {
-          console.error(`Error creating appointments batch ${i / batchSize + 1}:`, error);
+          console.error(`Error creating appointments batch ${Math.floor(i / batchSize) + 1}:`, error);
           throw error;
         }
 
@@ -106,7 +134,7 @@ export const useRecurringBooking = () => {
         }
       }
 
-      console.log('Successfully created all recurring appointments:', allCreatedAppointments);
+      console.log('Successfully created all recurring appointments:', allCreatedAppointments.length);
       return allCreatedAppointments;
     },
     onSuccess: (data) => {
@@ -117,7 +145,7 @@ export const useRecurringBooking = () => {
       
       // Invalidate relevant queries to refresh the calendar
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
     },
     onError: (error) => {
       console.error('Error creating recurring booking:', error);
