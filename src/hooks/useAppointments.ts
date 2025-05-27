@@ -68,24 +68,23 @@ export function useAppointments() {
               );
               
               appointments.forEach(app => {
-                app.client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id.substring(0, 8)}`;
+                (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id.substring(0, 8)}`;
               });
             }
           }
           
           // Mark recurring appointments in the response
-          appointments.forEach(app => {
-            if (app.recurrence && app.recurrence !== 'none') {
-              app.is_recurring = true;
-              app.recurrence_label = 
-                app.recurrence === 'weekly' ? 'Semanal' :
-                app.recurrence === 'biweekly' ? 'Quincenal' :
-                app.recurrence === 'monthly' ? 'Mensual' :
-                'Recurrente';
-            }
-          });
+          const enhancedAppointments = appointments.map(app => ({
+            ...app,
+            is_recurring: app.recurrence && app.recurrence !== 'none',
+            recurrence_label: 
+              app.recurrence === 'weekly' ? 'Semanal' :
+              app.recurrence === 'biweekly' ? 'Quincenal' :
+              app.recurrence === 'monthly' ? 'Mensual' :
+              app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
+          }));
           
-          return appointments;
+          return enhancedAppointments;
         } 
         else if (user.role === 'client') {
           // Para clientes - usar la tabla users para obtener nombres de proveedores
@@ -137,24 +136,23 @@ export function useAppointments() {
               );
               
               appointments.forEach(app => {
-                app.provider_name = providerNameMap[app.provider_id] || `Proveedor #${app.provider_id.substring(0, 8)}`;
+                (app as any).provider_name = providerNameMap[app.provider_id] || `Proveedor #${app.provider_id.substring(0, 8)}`;
               });
             }
           }
           
           // Mark recurring appointments in the response
-          appointments.forEach(app => {
-            if (app.recurrence && app.recurrence !== 'none') {
-              app.is_recurring = true;
-              app.recurrence_label = 
-                app.recurrence === 'weekly' ? 'Semanal' :
-                app.recurrence === 'biweekly' ? 'Quincenal' :
-                app.recurrence === 'monthly' ? 'Mensual' :
-                'Recurrente';
-            }
-          });
+          const enhancedAppointments = appointments.map(app => ({
+            ...app,
+            is_recurring: app.recurrence && app.recurrence !== 'none',
+            recurrence_label: 
+              app.recurrence === 'weekly' ? 'Semanal' :
+              app.recurrence === 'biweekly' ? 'Quincenal' :
+              app.recurrence === 'monthly' ? 'Mensual' :
+              app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
+          }));
           
-          return appointments;
+          return enhancedAppointments;
         }
         
         return [];
