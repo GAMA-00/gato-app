@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +28,11 @@ const BookingSummary = () => {
   const [selectedTime, setSelectedTime] = useState<string | undefined>(
     bookingData?.startTime ? format(new Date(bookingData.startTime), 'HH:mm') : undefined
   );
+  
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
   
   // Verify we have both auth and booking data
   useEffect(() => {
