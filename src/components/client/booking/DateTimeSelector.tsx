@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { format, addDays, isSameDay, addHours, addWeeks, addMonths, getDay } from 'date-fns';
+import React, { useState, useEffect, useCallback } from 'react';
+import { format, addDays, isSameDay, addWeeks, addMonths, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +19,8 @@ interface DateTimeSelectorProps {
   selectedTime: string | undefined;
   onTimeChange: (time: string) => void;
   providerId?: string;
-  recurrence?: string; // 'once', 'weekly', 'biweekly', 'monthly'
-  selectedDays?: number[]; // Days of the week (1-7, Monday-Sunday)
+  recurrence?: string;
+  selectedDays?: number[];
 }
 
 const DateTimeSelector = ({
@@ -57,12 +57,72 @@ const DateTimeSelector = ({
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
 
-  // Function to check if a time slot is available for recurring appointments
-  const checkRecurringAvailability = async (date: Date, timeSlot: string, providerId: string) => {
-    const [hours, minutes] = timeSlot.split(':').map(Number);
-    
-    // Calculate the number of future appointments to check based on recurrence
-    const checkPeriods = 12; // Check 12 periods ahead
+  // Optimized function to check recurring availability using batch queries
+  const checkRecurringAvailabilityBatch = async (date: Date, providerId: string) => {
+    if (recurrence === 'once') {
+      // For one-time bookings, only check the selected date
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const { data: conflicts, error } = await supabase
+        .from('appointments')
+        .select('start_time, end_time')
+        .eq('provider_id', providerId)
+        .gte('start_time', startOfDay.toISOString())
+        .lte('start_time', endOfDay.toISOString())
+        .in('status', ['pending', 'confirmed']);
+        
+      if (error) {
+        console.error('Error checking one-time availability:', error);
+        return [];
+      }
+      
+      // Generate available time slots for the day
+      const allTimeSlots = [];
+      for (let hour = 8; hour <= 19; hour++) {
+        allTimeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
+      }
+      
+      // Filter out past times if today is selected
+      let availableTimeSlots = allTimeSlots;
+      const now = new Date();
+      if (isSameDay(date, now)) {
+        const minTimeHour = now.getHours() + 1;
+        availableTimeSlots = allTimeSlots.filter(time => {
+          const timeHour = parseInt(time.split(':')[0], 10);
+          return timeHour >= minTimeHour;
+        });
+      }
+      
+      // Filter out conflicting times
+      const availableTimes = availableTimeSlots.filter(timeSlot => {
+        const [hours, minutes] = timeSlot.split(':').map(Number);
+        const slotStart = new Date(date);
+        slotStart.setHours(hours, minutes, 0, 0);
+        
+        const slotEnd = new Date(slotStart);
+        slotEnd.setHours(hours + 1, minutes, 0, 0);
+        
+        return !conflicts?.some(conflict => {
+          const conflictStart = new Date(conflict.start_time);
+          const conflictEnd = new Date(conflict.end_time);
+          
+          return (
+            (slotStart >= conflictStart && slotStart < conflictEnd) ||
+            (slotEnd > conflictStart && slotEnd <= conflictEnd) ||
+            (slotStart <= conflictStart && slotEnd >= conflictEnd)
+          );
+        });
+      });
+      
+      return availableTimes;
+    }
+
+    // For recurring bookings, check future dates in batch
+    const checkPeriods = 8; // Reduced from 12 to 8 for better performance
     const futureDates: Date[] = [];
     
     for (let i = 0; i < checkPeriods; i++) {
@@ -78,102 +138,101 @@ const DateTimeSelector = ({
         case 'monthly':
           futureDate = addMonths(date, i);
           break;
-        default:
-          return true; // For 'once', no need to check future dates
       }
       
       // For weekly/biweekly, check if it matches selected days
       if ((recurrence === 'weekly' || recurrence === 'biweekly') && selectedDays.length > 0) {
         const dayOfWeek = getDay(futureDate);
-        const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday from 0 to 7
+        const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
         if (!selectedDays.includes(adjustedDay)) {
-          continue; // Skip dates that don't match selected days
+          continue;
         }
       }
       
       futureDates.push(futureDate);
     }
     
-    // Check availability for all future dates
-    for (const checkDate of futureDates) {
-      const startOfDay = new Date(checkDate);
-      startOfDay.setHours(hours, minutes, 0, 0);
+    if (futureDates.length === 0) return [];
+    
+    // Batch query all future dates at once
+    const startDate = new Date(Math.min(...futureDates.map(d => d.getTime())));
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(Math.max(...futureDates.map(d => d.getTime())));
+    endDate.setHours(23, 59, 59, 999);
+    
+    const { data: allConflicts, error } = await supabase
+      .from('appointments')
+      .select('start_time, end_time')
+      .eq('provider_id', providerId)
+      .gte('start_time', startDate.toISOString())
+      .lte('start_time', endDate.toISOString())
+      .in('status', ['pending', 'confirmed']);
       
-      const endOfDay = new Date(checkDate);
-      endOfDay.setHours(hours + 1, minutes, 0, 0); // Assuming 1-hour slots
-      
-      const { data: conflicts, error } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('provider_id', providerId)
-        .gte('start_time', startOfDay.toISOString())
-        .lt('start_time', endOfDay.toISOString())
-        .in('status', ['pending', 'confirmed']);
-        
-      if (error) {
-        console.error('Error checking recurring availability:', error);
-        return false;
-      }
-      
-      if (conflicts && conflicts.length > 0) {
-        console.log(`Conflict found on ${format(checkDate, 'yyyy-MM-dd')} at ${timeSlot}`);
-        return false; // Found a conflict, this time slot is not available
-      }
+    if (error) {
+      console.error('Error checking recurring availability:', error);
+      return [];
     }
     
-    return true; // All future dates are available
+    // Generate all possible time slots
+    const allTimeSlots = [];
+    for (let hour = 8; hour <= 19; hour++) {
+      allTimeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
+    }
+    
+    // Filter out past times if today is selected
+    let availableTimeSlots = allTimeSlots;
+    const now = new Date();
+    if (isSameDay(date, now)) {
+      const minTimeHour = now.getHours() + 1;
+      availableTimeSlots = allTimeSlots.filter(time => {
+        const timeHour = parseInt(time.split(':')[0], 10);
+        return timeHour >= minTimeHour;
+      });
+    }
+    
+    // Check each time slot against all future dates
+    const availableTimes = availableTimeSlots.filter(timeSlot => {
+      const [hours, minutes] = timeSlot.split(':').map(Number);
+      
+      // Check if this time slot is available on ALL future dates
+      return futureDates.every(checkDate => {
+        const slotStart = new Date(checkDate);
+        slotStart.setHours(hours, minutes, 0, 0);
+        
+        const slotEnd = new Date(slotStart);
+        slotEnd.setHours(hours + 1, minutes, 0, 0);
+        
+        return !allConflicts?.some(conflict => {
+          const conflictStart = new Date(conflict.start_time);
+          const conflictEnd = new Date(conflict.end_time);
+          
+          // Check if there's overlap between slot and conflict on this date
+          const sameDay = isSameDay(conflictStart, checkDate);
+          if (!sameDay) return false;
+          
+          return (
+            (slotStart >= conflictStart && slotStart < conflictEnd) ||
+            (slotEnd > conflictStart && slotEnd <= conflictEnd) ||
+            (slotStart <= conflictStart && slotEnd >= conflictEnd)
+          );
+        });
+      });
+    });
+    
+    return availableTimes;
   };
 
-  // Fetch available times for the selected date
-  useEffect(() => {
-    const fetchAvailableTimes = async () => {
-      if (!selectedDate || !providerId) {
-        setAvailableTimes([]);
-        return;
-      }
-
-      // For recurring appointments, require recurrence selection first
-      if (recurrence !== 'once' && selectedDays.length === 0) {
-        setAvailableTimes([]);
-        return;
-      }
-
+  // Debounced fetch function to avoid excessive API calls
+  const debouncedFetchAvailableTimes = useCallback(
+    async (date: Date, providerId: string) => {
       setIsLoading(true);
       try {
-        // Generate all possible time slots (hourly from 8 AM to 7 PM)
-        const allTimeSlots = [];
-        for (let hour = 8; hour <= 19; hour++) {
-          allTimeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
-        }
-
-        // Filter out past times if today is selected
-        let availableTimeSlots = allTimeSlots;
-        const now = new Date();
-        if (isSameDay(selectedDate, now)) {
-          const minTimeHour = now.getHours() + 1;
-          availableTimeSlots = allTimeSlots.filter(time => {
-            const timeHour = parseInt(time.split(':')[0], 10);
-            return timeHour >= minTimeHour;
-          });
-        }
-
-        // Check availability for each time slot
-        const availableRecurringTimes = [];
-        
-        for (const timeSlot of availableTimeSlots) {
-          const isAvailable = await checkRecurringAvailability(selectedDate, timeSlot, providerId);
-          if (isAvailable) {
-            availableRecurringTimes.push(timeSlot);
-          }
-        }
-        
-        // Convert to 12-hour format for display
-        const formattedAvailableTimes = availableRecurringTimes.map(formatTo12Hour);
-        
+        const availableSlots = await checkRecurringAvailabilityBatch(date, providerId);
+        const formattedAvailableTimes = availableSlots.map(formatTo12Hour);
         setAvailableTimes(formattedAvailableTimes);
         
-        console.log(`Found ${formattedAvailableTimes.length} available recurring time slots for ${recurrence}`);
-        
+        console.log(`Found ${formattedAvailableTimes.length} available time slots for ${recurrence}`);
       } catch (error) {
         console.error('Error processing time slots:', error);
         toast({
@@ -181,13 +240,34 @@ const DateTimeSelector = ({
           description: "Ocurrió un error al procesar los horarios",
           variant: "destructive"
         });
+        setAvailableTimes([]);
       } finally {
         setIsLoading(false);
       }
-    };
+    },
+    [recurrence, selectedDays]
+  );
 
-    fetchAvailableTimes();
-  }, [selectedDate, providerId, recurrence, selectedDays]);
+  // Fetch available times for the selected date
+  useEffect(() => {
+    if (!selectedDate || !providerId) {
+      setAvailableTimes([]);
+      return;
+    }
+
+    // For recurring appointments, require recurrence selection first
+    if (recurrence !== 'once' && selectedDays.length === 0) {
+      setAvailableTimes([]);
+      return;
+    }
+
+    // Use a timeout to debounce the API call
+    const timeoutId = setTimeout(() => {
+      debouncedFetchAvailableTimes(selectedDate, providerId);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedDate, providerId, debouncedFetchAvailableTimes]);
 
   // Handle time selection with format conversion
   const handleTimeChange = (time12Hour: string) => {
@@ -267,7 +347,7 @@ const DateTimeSelector = ({
                 selected={selectedDate}
                 onSelect={date => {
                   onDateChange(date);
-                  onTimeChange(undefined); // Reset time when date changes
+                  onTimeChange(''); // Reset time when date changes
                 }}
                 disabled={(date) => {
                   if (date < new Date() && !isSameDay(date, new Date())) return true;
@@ -306,7 +386,10 @@ const DateTimeSelector = ({
         <div>
           <label className="text-sm text-muted-foreground mb-2 block">Hora</label>
           {isLoading ? (
-            <Skeleton className="h-10 w-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>
+            </div>
           ) : (
             <Select 
               value={displayTime} 
