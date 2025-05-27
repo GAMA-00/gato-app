@@ -19,7 +19,7 @@ export function useAppointments() {
       
       try {
         if (user.role === 'provider') {
-          // Para proveedores - usar la tabla users para obtener nombres de clientes
+          // Para proveedores - incluir todas las citas futuras para mostrar recurrencias
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -38,6 +38,7 @@ export function useAppointments() {
               )
             `)
             .eq('provider_id', user.id)
+            .gte('start_time', new Date().toISOString()) // Solo citas futuras y actuales
             .order('start_time');
             
           if (error) {
@@ -73,7 +74,7 @@ export function useAppointments() {
             }
           }
           
-          // Mark recurring appointments in the response
+          // Mark recurring appointments and add enhanced information
           const enhancedAppointments = appointments.map(app => ({
             ...app,
             is_recurring: app.recurrence && app.recurrence !== 'none',
@@ -84,10 +85,12 @@ export function useAppointments() {
               app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
           }));
           
+          console.log(`Returning ${enhancedAppointments.length} appointments, including ${enhancedAppointments.filter(app => app.is_recurring).length} recurring ones`);
+          
           return enhancedAppointments;
         } 
         else if (user.role === 'client') {
-          // Para clientes - usar la tabla users para obtener nombres de proveedores
+          // Para clientes - incluir todas las citas futuras
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -106,6 +109,7 @@ export function useAppointments() {
               )
             `)
             .eq('client_id', user.id)
+            .gte('start_time', new Date().toISOString()) // Solo citas futuras y actuales
             .order('start_time');
             
           if (error) {
@@ -162,7 +166,7 @@ export function useAppointments() {
       }
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds to show new recurring appointments
     retry: 3
   });
 }

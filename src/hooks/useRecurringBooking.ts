@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { addWeeks, addMonths, format } from 'date-fns';
+import { addWeeks, addMonths, format, getDay } from 'date-fns';
 
 interface RecurringBookingData {
   providerId: string;
@@ -38,9 +38,9 @@ export const useRecurringBooking = () => {
       // Calculate end time
       const endTime = new Date(startTime.getTime() + duration * 60000);
 
-      // Generate recurring appointments for the next 12 periods
+      // Generate recurring appointments for the next 52 periods (1 year)
       const appointments = [];
-      const periods = 12;
+      const periods = 52; // Increased from 12 to 52 for better long-term planning
 
       for (let i = 0; i < periods; i++) {
         let appointmentDate = new Date(startTime);
@@ -82,29 +82,40 @@ export const useRecurringBooking = () => {
         });
       }
 
-      console.log(`Creating ${appointments.length} recurring appointments:`, appointments);
+      console.log(`Creating ${appointments.length} recurring appointments for ${recurrence} pattern:`, appointments);
 
-      // Insert all appointments in a single batch
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert(appointments)
-        .select();
+      // Insert all appointments in batches to avoid timeouts
+      const batchSize = 10;
+      const allCreatedAppointments = [];
+      
+      for (let i = 0; i < appointments.length; i += batchSize) {
+        const batch = appointments.slice(i, i + batchSize);
+        
+        const { data, error } = await supabase
+          .from('appointments')
+          .insert(batch)
+          .select();
 
-      if (error) {
-        console.error('Error creating recurring appointments:', error);
-        throw error;
+        if (error) {
+          console.error(`Error creating appointments batch ${i / batchSize + 1}:`, error);
+          throw error;
+        }
+
+        if (data) {
+          allCreatedAppointments.push(...data);
+        }
       }
 
-      console.log('Successfully created recurring appointments:', data);
-      return data;
+      console.log('Successfully created all recurring appointments:', allCreatedAppointments);
+      return allCreatedAppointments;
     },
     onSuccess: (data) => {
       toast({
         title: "Reservas recurrentes creadas",
-        description: `Se crearon ${data.length} citas recurrentes exitosamente.`,
+        description: `Se crearon ${data.length} citas recurrentes exitosamente. Estas aparecerán en tu calendario.`,
       });
       
-      // Invalidate relevant queries
+      // Invalidate relevant queries to refresh the calendar
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['provider-calendar'] });
     },

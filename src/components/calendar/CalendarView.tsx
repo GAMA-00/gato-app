@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -47,6 +46,9 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
   
+  // Check if this is a recurring appointment
+  const isRecurring = appointment.recurrence && appointment.recurrence !== 'none';
+  
   // Get person name with improved fallback logic  
   const getPersonName = () => {
     // For client view (looking at provider's name)
@@ -74,7 +76,8 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
     <div
       className={cn(
         "absolute left-1 right-1 overflow-hidden shadow transition-all duration-150 cursor-pointer rounded-lg flex flex-col border-l-4",
-        expanded ? "z-20 bg-white border border-gray-200 p-3 h-fit min-h-[70px]" : "px-2 py-1 gap-0.5"
+        expanded ? "z-20 bg-white border border-gray-200 p-3 h-fit min-h-[70px]" : "px-2 py-1 gap-0.5",
+        isRecurring && "border-2 border-dashed"
       )}
       style={{
         top: `${positionFromTop}px`,
@@ -84,18 +87,21 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
         color: statusColor.text,
         fontWeight: 500
       }}
-      title={serviceName}
+      title={`${serviceName}${isRecurring ? ' (Recurrente)' : ''}`}
       onClick={onClick}
       tabIndex={0}
       role="button"
     >
-      <div 
-        className={cn(
-          "truncate font-semibold", 
-          expanded ? "text-base mb-1" : "text-xs"
-        )}
-        style={{ color: statusColor.text }}>
-        {personName}
+      <div className="flex items-center gap-1">
+        {isRecurring && <Repeat className="h-3 w-3 text-blue-600" />}
+        <div 
+          className={cn(
+            "truncate font-semibold flex-1", 
+            expanded ? "text-base mb-1" : "text-xs"
+          )}
+          style={{ color: statusColor.text }}>
+          {personName}
+        </div>
       </div>
       <div 
         className={cn(
@@ -105,11 +111,21 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
         style={{ color: statusColor.text }}>
         {serviceName}
       </div>
-      {expanded &&
+      {expanded && (
         <div className="text-[11px] mt-1 text-gray-400">
           <span>
             {format(new Date(appointment.start_time), "HH:mm")} - {format(new Date(appointment.end_time), "HH:mm")}
           </span>
+          {isRecurring && (
+            <div className="mt-1 flex items-center gap-1">
+              <Repeat className="h-3 w-3 text-blue-600" />
+              <span className="text-blue-600 text-xs">
+                {appointment.recurrence === 'weekly' ? 'Semanal' : 
+                 appointment.recurrence === 'biweekly' ? 'Quincenal' :
+                 appointment.recurrence === 'monthly' ? 'Mensual' : 'Recurrente'}
+              </span>
+            </div>
+          )}
           <div className="mt-1 pt-1 border-t text-xs">
             <span className={cn(
               "px-2 py-0.5 rounded-full text-[10px]",
@@ -126,7 +142,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
             </span>
           </div>
         </div>
-      }
+      )}
     </div>
   );
 };
@@ -146,12 +162,13 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   expandedId,
   setExpandedId
 }) => {
-  // Filter out cancelled appointments from the calendar view
-  const dayAppointments = appointments.filter(appointment => 
-    isSameDay(new Date(appointment.start_time), date) && 
-    appointment.status !== 'cancelled' && 
-    appointment.status !== 'rejected'
-  );
+  // Filter appointments for this day - include all recurring appointments
+  const dayAppointments = appointments.filter(appointment => {
+    const appointmentDate = new Date(appointment.start_time);
+    return isSameDay(appointmentDate, date) && 
+           appointment.status !== 'cancelled' && 
+           appointment.status !== 'rejected';
+  });
   
   // Show hours from 8 AM to 8 PM (12 hours)
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
@@ -183,7 +200,12 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           </div>
         ))}
         {dayAppointments.map(appointment => {
-          console.log(`Appointment scheduled at: ${new Date(appointment.start_time).toLocaleTimeString()}`, appointment);
+          console.log(`Appointment scheduled at: ${new Date(appointment.start_time).toLocaleTimeString()}`, {
+            id: appointment.id,
+            recurrence: appointment.recurrence,
+            client: appointment.client_name,
+            service: appointment.listings?.title
+          });
           return (
             <CalendarAppointment
               key={appointment.id}
@@ -226,6 +248,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
     setCurrentDate(new Date());
     setExpandedId(null);
   };
+
+  // Log recurring appointments for debugging
+  React.useEffect(() => {
+    const recurringAppointments = appointments.filter(app => 
+      app.recurrence && app.recurrence !== 'none'
+    );
+    console.log(`Showing ${recurringAppointments.length} recurring appointments in calendar:`, recurringAppointments);
+  }, [appointments]);
 
   return (
     <Card className="overflow-hidden border-0 shadow-medium">
