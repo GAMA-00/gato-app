@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addDays, isSameDay, addWeeks, addMonths, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,15 +36,15 @@ const DateTimeSelector = ({
   const [isLoading, setIsLoading] = useState(false);
 
   // Function to convert 24-hour format to 12-hour format with AM/PM
-  const formatTo12Hour = (time24: string): string => {
+  const formatTo12Hour = useCallback((time24: string): string => {
     const [hours, minutes] = time24.split(':').map(Number);
     const period = hours >= 12 ? 'PM' : 'AM';
     const hours12 = hours % 12 || 12;
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
-  };
+  }, []);
 
   // Function to convert 12-hour format back to 24-hour format for internal use
-  const formatTo24Hour = (time12: string): string => {
+  const formatTo24Hour = useCallback((time12: string): string => {
     const [timePart, period] = time12.split(' ');
     let [hours, minutes] = timePart.split(':').map(Number);
     
@@ -55,10 +55,13 @@ const DateTimeSelector = ({
     }
     
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  };
+  }, []);
+
+  // Memoize the selected days to prevent unnecessary recreations
+  const memoizedSelectedDays = useMemo(() => selectedDays, [selectedDays.join(',')]);
 
   // Optimized function to check recurring availability using batch queries
-  const checkRecurringAvailabilityBatch = async (date: Date, providerId: string) => {
+  const checkRecurringAvailabilityBatch = useCallback(async (date: Date, providerId: string) => {
     if (recurrence === 'once') {
       // For one-time bookings, only check the selected date
       const startOfDay = new Date(date);
@@ -141,10 +144,10 @@ const DateTimeSelector = ({
       }
       
       // For weekly/biweekly, check if it matches selected days
-      if ((recurrence === 'weekly' || recurrence === 'biweekly') && selectedDays.length > 0) {
+      if ((recurrence === 'weekly' || recurrence === 'biweekly') && memoizedSelectedDays.length > 0) {
         const dayOfWeek = getDay(futureDate);
         const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-        if (!selectedDays.includes(adjustedDay)) {
+        if (!memoizedSelectedDays.includes(adjustedDay)) {
           continue;
         }
       }
@@ -221,11 +224,14 @@ const DateTimeSelector = ({
     });
     
     return availableTimes;
-  };
+  }, [recurrence, memoizedSelectedDays]);
 
-  // Debounced fetch function to avoid excessive API calls
-  const debouncedFetchAvailableTimes = useCallback(
+  // Create a stable fetch function that won't cause infinite loops
+  const fetchAvailableTimes = useCallback(
     async (date: Date, providerId: string) => {
+      // Early return if already loading to prevent concurrent requests
+      if (isLoading) return;
+      
       setIsLoading(true);
       try {
         const availableSlots = await checkRecurringAvailabilityBatch(date, providerId);
@@ -245,10 +251,13 @@ const DateTimeSelector = ({
         setIsLoading(false);
       }
     },
-    [recurrence, selectedDays]
+    [checkRecurringAvailabilityBatch, formatTo12Hour, recurrence, isLoading]
   );
 
-  // Fetch available times for the selected date
+  // Use a ref to track the last processed request to avoid duplicate calls
+  const lastRequestRef = React.useRef<string>('');
+
+  // Fetch available times for the selected date with improved dependency management
   useEffect(() => {
     if (!selectedDate || !providerId) {
       setAvailableTimes([]);
@@ -256,32 +265,47 @@ const DateTimeSelector = ({
     }
 
     // For recurring appointments, require recurrence selection first
-    if (recurrence !== 'once' && selectedDays.length === 0) {
+    if (recurrence !== 'once' && memoizedSelectedDays.length === 0) {
       setAvailableTimes([]);
       return;
     }
 
+    // Create a unique request identifier to prevent duplicate calls
+    const requestId = `${selectedDate.getTime()}-${providerId}-${recurrence}-${memoizedSelectedDays.join(',')}`;
+    
+    // Skip if this is the same request as the last one
+    if (lastRequestRef.current === requestId) {
+      return;
+    }
+    
+    lastRequestRef.current = requestId;
+
     // Use a timeout to debounce the API call
     const timeoutId = setTimeout(() => {
-      debouncedFetchAvailableTimes(selectedDate, providerId);
+      fetchAvailableTimes(selectedDate, providerId);
     }, 300);
 
-    return () => clearTimeout(timeoutId);
-  }, [selectedDate, providerId, debouncedFetchAvailableTimes]);
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [selectedDate, providerId, recurrence, memoizedSelectedDays, fetchAvailableTimes]);
 
   // Handle time selection with format conversion
-  const handleTimeChange = (time12Hour: string) => {
+  const handleTimeChange = useCallback((time12Hour: string) => {
     onTimeChange(formatTo24Hour(time12Hour));
-  };
+  }, [formatTo24Hour, onTimeChange]);
 
   // Display the selected time in 12-hour format
-  const displayTime = selectedTime ? formatTo12Hour(selectedTime) : undefined;
+  const displayTime = useMemo(() => 
+    selectedTime ? formatTo12Hour(selectedTime) : undefined,
+    [selectedTime, formatTo12Hour]
+  );
 
   // Create a message for time slots availability
-  const getTimeSlotsMessage = () => {
+  const getTimeSlotsMessage = useCallback(() => {
     if (!selectedDate) return "";
     
-    if (recurrence !== 'once' && selectedDays.length === 0) {
+    if (recurrence !== 'once' && memoizedSelectedDays.length === 0) {
       return "Primero selecciona los días de la semana para la recurrencia";
     }
     
@@ -297,7 +321,7 @@ const DateTimeSelector = ({
     }
     
     return "";
-  };
+  }, [selectedDate, recurrence, memoizedSelectedDays, availableTimes.length]);
 
   const isRecurringBooking = recurrence !== 'once';
 
@@ -327,14 +351,14 @@ const DateTimeSelector = ({
                   "w-full justify-start text-left font-normal",
                   !selectedDate && "text-muted-foreground"
                 )}
-                disabled={isRecurringBooking && selectedDays.length === 0}
+                disabled={isRecurringBooking && memoizedSelectedDays.length === 0}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {selectedDate ? (
                   format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
                 ) : (
                   <span>
-                    {isRecurringBooking && selectedDays.length === 0 
+                    {isRecurringBooking && memoizedSelectedDays.length === 0 
                       ? "Primero selecciona los días de la semana" 
                       : "Seleccionar fecha"}
                   </span>
@@ -354,10 +378,10 @@ const DateTimeSelector = ({
                   if (date > addDays(new Date(), 30)) return true;
                   
                   // For recurring bookings, only allow dates that match selected days
-                  if (isRecurringBooking && selectedDays.length > 0) {
+                  if (isRecurringBooking && memoizedSelectedDays.length > 0) {
                     const dayOfWeek = getDay(date);
                     const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-                    return !selectedDays.includes(adjustedDay);
+                    return !memoizedSelectedDays.includes(adjustedDay);
                   }
                   
                   return false;
@@ -371,7 +395,7 @@ const DateTimeSelector = ({
         </div>
 
         {/* Recurring booking info */}
-        {isRecurringBooking && selectedDays.length > 0 && (
+        {isRecurringBooking && memoizedSelectedDays.length > 0 && (
           <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
             <p className="text-sm text-blue-800">
               <strong>Reserva recurrente:</strong> Este horario se reservará automáticamente 
@@ -394,12 +418,12 @@ const DateTimeSelector = ({
             <Select 
               value={displayTime} 
               onValueChange={handleTimeChange}
-              disabled={!selectedDate || availableTimes.length === 0 || (isRecurringBooking && selectedDays.length === 0)}
+              disabled={!selectedDate || availableTimes.length === 0 || (isRecurringBooking && memoizedSelectedDays.length === 0)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={
                   !selectedDate ? "Primero selecciona una fecha" :
-                  isRecurringBooking && selectedDays.length === 0 ? "Primero selecciona los días de la semana" :
+                  isRecurringBooking && memoizedSelectedDays.length === 0 ? "Primero selecciona los días de la semana" :
                   availableTimes.length === 0 ? "No hay horarios disponibles" :
                   "Seleccionar hora"
                 }>
