@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, CalendarDays, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Clock, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BookingPreferences } from '@/components/client/results/types';
@@ -19,7 +20,7 @@ const ClientBookingFlow = () => {
   
   // Estado para preferencias de reserva
   const [bookingPrefs, setBookingPrefs] = useState<BookingPreferences>({
-    frequency: 'once',
+    frequency: '', // Hacer obligatoria la selección
     selectedDays: [],
     timeSlot: '6am-12md',
   });
@@ -48,7 +49,11 @@ const ClientBookingFlow = () => {
   });
   
   const handleFrequencyChange = (value: string) => {
-    setBookingPrefs(prev => ({ ...prev, frequency: value }));
+    setBookingPrefs(prev => ({ 
+      ...prev, 
+      frequency: value,
+      selectedDays: value === 'once' ? [] : prev.selectedDays // Clear days for one-time bookings
+    }));
   };
   
   const handleDayChange = (day: number) => {
@@ -71,7 +76,16 @@ const ClientBookingFlow = () => {
   };
   
   const handleShowResults = () => {
-    // Navegar a la vista de resultados con los parámetros de búsqueda
+    // Validar que se haya seleccionado la frecuencia
+    if (!bookingPrefs.frequency) {
+      return; // El botón estará deshabilitado pero por si acaso
+    }
+    
+    // Validar que para reservas recurrentes se hayan seleccionado días
+    if (bookingPrefs.frequency !== 'once' && (!bookingPrefs.selectedDays || bookingPrefs.selectedDays.length === 0)) {
+      return; // El botón estará deshabilitado pero por si acaso
+    }
+    
     console.log("Navigating to results with params:", { categoryName, serviceId });
     console.log("Booking preferences:", bookingPrefs);
     navigate(`/client/results/${categoryName}/${serviceId}`, { state: bookingPrefs });
@@ -79,6 +93,13 @@ const ClientBookingFlow = () => {
   
   // Nombres de los días de la semana
   const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  
+  // Verificar si se puede continuar
+  const canContinue = bookingPrefs.frequency && 
+    (bookingPrefs.frequency === 'once' || 
+     (bookingPrefs.selectedDays && bookingPrefs.selectedDays.length > 0));
+  
+  const isRecurringBooking = bookingPrefs.frequency && bookingPrefs.frequency !== 'once';
   
   return (
     <PageContainer
@@ -101,11 +122,21 @@ const ClientBookingFlow = () => {
             Preferencias de agendamiento
           </h2>
           
+          {/* Alert explaining recurring booking system */}
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Importante:</strong> Para reservas recurrentes, el sistema verificará que el horario elegido 
+              esté disponible de forma continua en todas las fechas futuras según el patrón seleccionado.
+            </AlertDescription>
+          </Alert>
+          
           <div className="space-y-4">
             <div>
-              <Label className="text-base">¿Con qué frecuencia necesitas este servicio?</Label>
+              <Label className="text-base font-medium">
+                ¿Con qué frecuencia necesitas este servicio? <span className="text-red-500">*</span>
+              </Label>
               <Tabs 
-                defaultValue="once" 
                 value={bookingPrefs.frequency} 
                 onValueChange={handleFrequencyChange}
                 className="mt-2"
@@ -117,11 +148,19 @@ const ClientBookingFlow = () => {
                   <TabsTrigger value="monthly">Mensual</TabsTrigger>
                 </TabsList>
               </Tabs>
+              {!bookingPrefs.frequency && (
+                <p className="text-sm text-red-500 mt-1">Debes seleccionar una frecuencia para continuar</p>
+              )}
             </div>
             
-            {bookingPrefs.frequency !== 'once' && (
+            {isRecurringBooking && (
               <div>
-                <Label className="text-base">¿Qué días prefieres?</Label>
+                <Label className="text-base font-medium">
+                  ¿Qué días prefieres? <span className="text-red-500">*</span>
+                </Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Solo se mostrarán horarios que estén libres en estos días para todas las fechas futuras
+                </p>
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
                   {dayNames.map((day, index) => (
                     <Button
@@ -135,6 +174,9 @@ const ClientBookingFlow = () => {
                     </Button>
                   ))}
                 </div>
+                {isRecurringBooking && (!bookingPrefs.selectedDays || bookingPrefs.selectedDays.length === 0) && (
+                  <p className="text-sm text-red-500 mt-1">Debes seleccionar al menos un día para continuar</p>
+                )}
               </div>
             )}
             
@@ -151,11 +193,31 @@ const ClientBookingFlow = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Recurring booking explanation */}
+            {isRecurringBooking && bookingPrefs.selectedDays && bookingPrefs.selectedDays.length > 0 && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-2">Reserva recurrente configurada:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Frecuencia: {
+                    bookingPrefs.frequency === 'weekly' ? 'Cada semana' :
+                    bookingPrefs.frequency === 'biweekly' ? 'Cada 2 semanas' :
+                    'Cada mes'
+                  }</li>
+                  <li>• Días: {bookingPrefs.selectedDays.map(day => dayNames[day - 1]).join(', ')}</li>
+                  <li>• Los horarios se reservarán automáticamente para todas las fechas futuras</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
         
         <div className="flex justify-end pt-4 border-t">
-          <Button onClick={handleShowResults} className="flex items-center">
+          <Button 
+            onClick={handleShowResults} 
+            disabled={!canContinue}
+            className="flex items-center"
+          >
             <span>Ver profesionales disponibles</span>
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

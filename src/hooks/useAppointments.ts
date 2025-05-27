@@ -73,6 +73,18 @@ export function useAppointments() {
             }
           }
           
+          // Mark recurring appointments in the response
+          appointments.forEach(app => {
+            if (app.recurrence && app.recurrence !== 'none') {
+              app.is_recurring = true;
+              app.recurrence_label = 
+                app.recurrence === 'weekly' ? 'Semanal' :
+                app.recurrence === 'biweekly' ? 'Quincenal' :
+                app.recurrence === 'monthly' ? 'Mensual' :
+                'Recurrente';
+            }
+          });
+          
           return appointments;
         } 
         else if (user.role === 'client') {
@@ -129,6 +141,18 @@ export function useAppointments() {
               });
             }
           }
+          
+          // Mark recurring appointments in the response
+          appointments.forEach(app => {
+            if (app.recurrence && app.recurrence !== 'none') {
+              app.is_recurring = true;
+              app.recurrence_label = 
+                app.recurrence === 'weekly' ? 'Semanal' :
+                app.recurrence === 'biweekly' ? 'Quincenal' :
+                app.recurrence === 'monthly' ? 'Mensual' :
+                'Recurrente';
+            }
+          });
           
           return appointments;
         }
