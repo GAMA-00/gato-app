@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { addMonths, startOfWeek, endOfWeek } from 'date-fns';
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -18,8 +19,13 @@ export function useAppointments() {
       console.log("Fetching appointments for user:", user.id, "with role:", user.role);
       
       try {
+        // Calculate a broader date range for calendar navigation
+        // Get appointments from current week to 3 months in the future
+        const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+        const futureDate = addMonths(new Date(), 3);
+        
         if (user.role === 'provider') {
-          // Para proveedores - incluir todas las citas futuras para mostrar recurrencias
+          // Para proveedores - incluir todas las citas desde la semana actual hasta 3 meses adelante
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -38,7 +44,8 @@ export function useAppointments() {
               )
             `)
             .eq('provider_id', user.id)
-            .gte('start_time', new Date().toISOString()) // Solo citas futuras y actuales
+            .gte('start_time', currentWeekStart.toISOString())
+            .lte('start_time', futureDate.toISOString())
             .order('start_time');
             
           if (error) {
@@ -46,10 +53,10 @@ export function useAppointments() {
             throw error;
           }
           
-          console.log("Provider appointments data:", appointments);
+          console.log(`Provider appointments data (${currentWeekStart.toISOString()} to ${futureDate.toISOString()}):`, appointments);
           
           if (!appointments || appointments.length === 0) {
-            console.log("No appointments for provider");
+            console.log("No appointments for provider in date range");
             return [];
           }
           
@@ -90,7 +97,7 @@ export function useAppointments() {
           return enhancedAppointments;
         } 
         else if (user.role === 'client') {
-          // Para clientes - incluir todas las citas futuras
+          // Para clientes - incluir todas las citas desde la semana actual hasta 3 meses adelante
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -109,7 +116,8 @@ export function useAppointments() {
               )
             `)
             .eq('client_id', user.id)
-            .gte('start_time', new Date().toISOString()) // Solo citas futuras y actuales
+            .gte('start_time', currentWeekStart.toISOString())
+            .lte('start_time', futureDate.toISOString())
             .order('start_time');
             
           if (error) {
@@ -117,10 +125,10 @@ export function useAppointments() {
             throw error;
           }
           
-          console.log("Client appointments data:", appointments);
+          console.log(`Client appointments data (${currentWeekStart.toISOString()} to ${futureDate.toISOString()}):`, appointments);
           
           if (!appointments || appointments.length === 0) {
-            console.log("No appointments for client");
+            console.log("No appointments for client in date range");
             return [];
           }
           

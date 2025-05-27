@@ -6,7 +6,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequests from '@/components/calendar/JobRequests';
 import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
-import { useAppointments } from '@/hooks/useAppointments';
+import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -21,7 +21,8 @@ import { useNavigate } from 'react-router-dom';
 const Calendar = () => {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [showCompleted, setShowCompleted] = useState(true);
-  const { data: appointments = [], isLoading } = useAppointments();
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+  const { data: appointments = [], isLoading } = useCalendarAppointments(currentCalendarDate);
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -45,9 +46,11 @@ const Calendar = () => {
 
   // Log the appointments to debug
   React.useEffect(() => {
+    console.log("Calendar appointments for date:", currentCalendarDate.toISOString());
     console.log("All appointments:", appointments);
     console.log("Pending appointments:", appointments.filter((app: any) => app.status === 'pending'));
-  }, [appointments]);
+    console.log("Recurring appointments:", appointments.filter((app: any) => app.is_recurring));
+  }, [appointments, currentCalendarDate]);
 
   // If user is not a provider, don't render this page
   if (user && user.role !== 'provider') {
@@ -117,7 +120,11 @@ const Calendar = () => {
           <BlockedTimeSlots />
         )}
         
-        <CalendarView appointments={filteredAppointments} />
+        <CalendarView 
+          appointments={filteredAppointments} 
+          currentDate={currentCalendarDate}
+          onDateChange={setCurrentCalendarDate}
+        />
       </div>
     </PageContainer>
   );

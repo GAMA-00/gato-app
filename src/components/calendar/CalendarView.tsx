@@ -222,11 +222,28 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 
 interface CalendarViewProps {
   appointments: any[];
+  currentDate?: Date;
+  onDateChange?: (date: Date) => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+const CalendarView: React.FC<CalendarViewProps> = ({ 
+  appointments, 
+  currentDate: propCurrentDate,
+  onDateChange 
+}) => {
+  const [internalCurrentDate, setInternalCurrentDate] = useState(new Date());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Use prop currentDate if provided, otherwise use internal state
+  const currentDate = propCurrentDate || internalCurrentDate;
+  
+  const handleDateChange = (newDate: Date) => {
+    if (onDateChange) {
+      onDateChange(newDate);
+    } else {
+      setInternalCurrentDate(newDate);
+    }
+  };
 
   const startDate = startOfWeek(currentDate, { weekStartsOn: 0 });
   const endDate = endOfWeek(currentDate, { weekStartsOn: 0 });
@@ -235,17 +252,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
   const currentMonth = currentDate.getMonth();
 
   const handlePreviousWeek = () => {
-    setCurrentDate(prevDate => addDays(prevDate, -7));
+    const newDate = addDays(currentDate, -7);
+    handleDateChange(newDate);
     setExpandedId(null);
   };
 
   const handleNextWeek = () => {
-    setCurrentDate(prevDate => addDays(prevDate, 7));
+    const newDate = addDays(currentDate, 7);
+    handleDateChange(newDate);
     setExpandedId(null);
   };
 
   const handleToday = () => {
-    setCurrentDate(new Date());
+    const today = new Date();
+    handleDateChange(today);
     setExpandedId(null);
   };
 
@@ -254,8 +274,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
     const recurringAppointments = appointments.filter(app => 
       app.recurrence && app.recurrence !== 'none'
     );
-    console.log(`Showing ${recurringAppointments.length} recurring appointments in calendar:`, recurringAppointments);
-  }, [appointments]);
+    console.log(`Calendar view showing ${recurringAppointments.length} recurring appointments for week starting ${startDate.toISOString()}:`, recurringAppointments);
+  }, [appointments, startDate]);
 
   return (
     <Card className="overflow-hidden border-0 shadow-medium">
