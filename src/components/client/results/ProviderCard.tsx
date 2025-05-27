@@ -16,8 +16,8 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   // Extract first line of description
   const shortDescription = provider.aboutMe?.split('\n')[0] || '';
 
-  // Get preview images from gallery (max 3)
-  const previewImages = provider.galleryImages?.slice(0, 3) || [];
+  // Get all images from gallery (no limit)
+  const allImages = provider.galleryImages || [];
 
   return (
     <Card 
@@ -74,36 +74,6 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
             </div>
           </div>
         </div>
-
-        {/* Gallery Preview Section */}
-        {previewImages.length > 0 && (
-          <div className="mb-3">
-            <div className="flex items-center mb-2">
-              <ImageIcon className="h-3 w-3 mr-1 text-gray-500" />
-              <span className="text-xs text-gray-600">Ejemplos de trabajo</span>
-            </div>
-            <div className="flex gap-1">
-              {previewImages.map((image, index) => (
-                <div key={index} className="relative w-16 h-12 rounded-md overflow-hidden bg-gray-100">
-                  <img 
-                    src={image} 
-                    alt={`Trabajo ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // Hide broken images
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-              ))}
-              {previewImages.length < 3 && (
-                <div className="flex items-center justify-center w-16 h-12 rounded-md bg-gray-50 border border-gray-200">
-                  <ImageIcon className="h-4 w-4 text-gray-300" />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
         
         {/* Service Info Section */}
         <div className="border-t border-neutral-100 pt-2">
@@ -115,8 +85,33 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
               {shortDescription}
             </p>
           )}
+
+          {/* Gallery Preview Section - Now below service name and description */}
+          {allImages.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center mb-2">
+                <ImageIcon className="h-3 w-3 mr-1 text-gray-500" />
+                <span className="text-xs text-gray-600">Ejemplos de trabajo</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1">
+                {allImages.map((image, index) => (
+                  <div key={index} className="relative w-full h-16 rounded-md overflow-hidden bg-gray-100">
+                    <img 
+                      src={image} 
+                      alt={`Trabajo ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Hide broken images
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between mt-3">
             <div className="flex items-center text-xs text-luxury-gray-dark">
               <Clock className="h-3 w-3 mr-1" />
               {Math.floor(provider.duration / 60) > 0 ? `${Math.floor(provider.duration / 60)}h ` : ''}
