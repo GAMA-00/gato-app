@@ -30,7 +30,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           users!provider_id (
             id,
             name,
-            avatar,
+            avatar_url,
             about_me,
             experience_years,
             certification_files
@@ -51,19 +51,32 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return [];
       }
 
-      // Get provider ratings
+      // Get provider ratings - only get what exists in the table
       const providerIds = listings.map(listing => listing.provider_id).filter(Boolean);
       const { data: ratingsData } = await supabase
         .from('provider_ratings')
-        .select('provider_id, rating, services_completed, recurring_clients')
+        .select('provider_id, rating')
         .in('provider_id', providerIds);
 
       console.log("Ratings data:", ratingsData);
 
+      // Calculate average ratings and count for each provider
+      const providerRatings = ratingsData?.reduce((acc, rating) => {
+        if (!acc[rating.provider_id]) {
+          acc[rating.provider_id] = { ratings: [], count: 0 };
+        }
+        acc[rating.provider_id].ratings.push(rating.rating);
+        acc[rating.provider_id].count++;
+        return acc;
+      }, {} as Record<string, { ratings: number[], count: number }>);
+
       // Process listings into ProcessedProvider format
       const processedProviders: ProcessedProvider[] = listings.map(listing => {
         const provider = listing.users;
-        const ratings = ratingsData?.find(r => r.provider_id === listing.provider_id);
+        const providerRatingData = providerRatings?.[listing.provider_id];
+        const averageRating = providerRatingData?.ratings.length 
+          ? providerRatingData.ratings.reduce((sum, r) => sum + r, 0) / providerRatingData.ratings.length 
+          : 0;
         
         // Parse gallery images
         let galleryImages: string[] = [];
@@ -108,19 +121,19 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         const processed: ProcessedProvider = {
           id: provider?.id || listing.provider_id,
           name: provider?.name || 'Proveedor',
-          avatar: provider?.avatar || null,
-          rating: ratings?.rating || 0,
+          avatar: provider?.avatar_url || null,
+          rating: averageRating,
           price: listing.base_price || 0,
           duration: listing.duration || 60,
           serviceName: listing.title || 'Servicio',
           serviceId: listing.id,
           aboutMe: provider?.about_me || '',
           experience: provider?.experience_years || 0,
-          servicesCompleted: ratings?.services_completed || 0,
-          recurringClients: ratings?.recurring_clients || 0,
+          servicesCompleted: 0, // We don't have this data in the current schema
+          recurringClients: 0, // We don't have this data in the current schema
           galleryImages: allImages,
           hasCertifications: !!provider?.certification_files,
-          ratingCount: 0
+          ratingCount: providerRatingData?.count || 0
         };
 
         console.log("Processed provider:", processed);
