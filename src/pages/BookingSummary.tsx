@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,9 +30,27 @@ const BookingSummary = () => {
     bookingData?.startTime ? format(new Date(bookingData.startTime), 'HH:mm') : undefined
   );
   
-  // Scroll to top when component mounts
+  // Scroll to top when component mounts - Fixed implementation
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Use setTimeout to ensure it runs after the component is fully rendered
+    const scrollToTop = () => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+      // Also try to scroll the document element as a fallback
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    
+    // Execute immediately
+    scrollToTop();
+    
+    // Also execute after a small delay to ensure it works
+    const timeoutId = setTimeout(scrollToTop, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
   
   // Verify we have both auth and booking data
