@@ -82,21 +82,28 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
 
-  // Función mejorada para obtener el nombre del cliente con fallback
+  // Enhanced function to get the correct client name
   const getClientName = (request: any) => {
-    // Primero intentar con el campo client_name
+    // For external bookings, prioritize the client_name field from the appointment
+    if (request.is_external || request.external_booking) {
+      const clientName = request.client_name;
+      console.log(`External request ${request.id} has client_name: "${clientName}"`);
+      return clientName || 'Cliente Externo';
+    }
+    
+    // For internal bookings, use the client_name field which should be populated by the hooks
     if (request.client_name) {
-      console.log(`Using client_name from request: ${request.client_name}`);
+      console.log(`Internal request ${request.id} using client_name: ${request.client_name}`);
       return request.client_name;
     }
     
-    // Último fallback
+    // Final fallback
     return 'Cliente sin nombre';
   };
 
   // Helper function to get initials from name
   const getInitials = (name: string) => {
-    if (!name || name === 'Cliente sin nombre') return 'CL';
+    if (!name || name === 'Cliente sin nombre' || name === 'Cliente Externo') return 'CL';
     
     return name
       .split(' ')
@@ -160,7 +167,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
             {pendingRequests.map((request: any) => {
               const clientName = getClientName(request);
               const isExternal = request.is_external || request.external_booking;
-              console.log(`Request ${request.id} has client_name: ${request.client_name}, is_external: ${isExternal}`);
+              console.log(`Rendering request ${request.id}: clientName="${clientName}", isExternal=${isExternal}`);
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">

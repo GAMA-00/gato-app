@@ -77,10 +77,11 @@ export function useAppointments() {
           // Process all appointments with enhanced external booking support
           appointments.forEach(app => {
             if (app.external_booking) {
-              // For external bookings, use the stored client_name, phone, email or fallback
-              (app as any).client_name = app.client_name || `Cliente Externo`;
+              // For external bookings, prioritize the stored client_name from the appointment
+              (app as any).client_name = app.client_name || 'Cliente Externo';
               (app as any).client_phone = app.client_phone || '';
               (app as any).client_email = app.client_email || '';
+              console.log(`External appointment ${app.id} has client_name: "${app.client_name}"`);
             } else {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
@@ -104,6 +105,15 @@ export function useAppointments() {
           console.log(`  - External: ${enhancedAppointments.filter(app => app.is_external).length}`);
           console.log(`  - Recurring: ${enhancedAppointments.filter(app => app.is_recurring).length}`);
           console.log(`  - Pending: ${enhancedAppointments.filter(app => app.status === 'pending').length}`);
+          
+          // Log external appointments with their client names for debugging
+          const externalApps = enhancedAppointments.filter(app => app.is_external);
+          if (externalApps.length > 0) {
+            console.log("External appointments with client names:");
+            externalApps.forEach(app => {
+              console.log(`  - ${app.id}: "${app.client_name}" (original: "${app.client_name}")`);
+            });
+          }
           
           return enhancedAppointments;
         } 

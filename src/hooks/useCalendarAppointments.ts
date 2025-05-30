@@ -75,8 +75,9 @@ export function useCalendarAppointments(currentDate: Date) {
           // Process all appointments with enhanced external booking support
           appointments.forEach(app => {
             if (app.external_booking) {
-              // For external bookings, use the stored client_name or fallback
-              (app as any).client_name = app.client_name || `Cliente Externo`;
+              // For external bookings, use the stored client_name directly from the appointment
+              (app as any).client_name = app.client_name || 'Cliente Externo';
+              console.log(`External appointment ${app.id} client_name: "${app.client_name}"`);
             } else {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
@@ -120,6 +121,15 @@ export function useCalendarAppointments(currentDate: Date) {
           console.log(`  - External: ${enhancedAppointments.filter(app => app.is_external).length}`);
           console.log(`  - Recurring: ${enhancedAppointments.filter(app => app.is_recurring).length}`);
           console.log(`  - Pending: ${enhancedAppointments.filter(app => app.status === 'pending').length}`);
+          
+          // Log external appointments with their actual client names
+          const externalApps = enhancedAppointments.filter(app => app.is_external);
+          if (externalApps.length > 0) {
+            console.log("External appointments in calendar:");
+            externalApps.forEach(app => {
+              console.log(`  - ${app.id}: Client "${app.client_name}" at ${new Date(app.start_time).toLocaleString()}`);
+            });
+          }
           
           return enhancedAppointments;
         }
