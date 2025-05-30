@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Check, X, MapPin, Clock, Home, Building } from 'lucide-react';
+import { Calendar, Check, X, MapPin, Clock, Home, Building, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface JobRequestsProps {
   onAcceptRequest?: (request: any) => void;
@@ -35,6 +36,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
   );
   
   console.log("Pending requests in JobRequests component:", pendingRequests);
+  console.log("All appointments:", appointments);
   
   const handleAccept = async (request: any) => {
     try {
@@ -48,6 +50,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       toast.success("Solicitud aceptada");
       
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       
       if (onAcceptRequest) {
         onAcceptRequest(request);
@@ -69,6 +72,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       toast.success("Solicitud rechazada");
       
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       
       if (onDeclineRequest) {
         onDeclineRequest(requestId);
@@ -102,12 +106,43 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       .toUpperCase();
   };
 
+  // Helper function to get location info
+  const getLocationInfo = (request: any) => {
+    // For external bookings, prioritize client_address
+    if (request.is_external && request.client_address) {
+      return request.client_address;
+    }
+    
+    // For internal bookings or fallback
+    let locationParts = [];
+    if (request.apartment) {
+      locationParts.push(`Apt ${request.apartment}`);
+    }
+    
+    return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
+  };
+
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center">
-          <Calendar className="h-5 w-5 mr-2 text-primary" />
-          Solicitudes de Reserva
+        <CardTitle className="text-lg flex items-center justify-between">
+          <div className="flex items-center">
+            <Calendar className="h-5 w-5 mr-2 text-primary" />
+            Solicitudes de Reserva
+          </div>
+          {pendingRequests.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+                {pendingRequests.length} pendiente{pendingRequests.length > 1 ? 's' : ''}
+              </span>
+              {pendingRequests.some(req => req.is_external) && (
+                <span className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
+                  <ExternalLink className="h-3 w-3" />
+                  {pendingRequests.filter(req => req.is_external).length} externa{pendingRequests.filter(req => req.is_external).length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -124,7 +159,8 @@ const JobRequests: React.FC<JobRequestsProps> = ({
           <div className="space-y-4">
             {pendingRequests.map((request: any) => {
               const clientName = getClientName(request);
-              console.log(`Request ${request.id} has client_name: ${request.client_name}`);
+              const isExternal = request.is_external || request.external_booking;
+              console.log(`Request ${request.id} has client_name: ${request.client_name}, is_external: ${isExternal}`);
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
@@ -136,10 +172,25 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium">{clientName}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium">{clientName}</div>
+                        {isExternal && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 text-xs">
+                            <ExternalLink className="h-3 w-3" />
+                            Externa
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-sm text-muted-foreground">
                         {request.listings?.title || 'Servicio'}
                       </div>
+                      {/* Show contact info for external bookings */}
+                      {isExternal && (request.client_phone || request.client_email) && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          {request.client_phone && <div>Tel: {request.client_phone}</div>}
+                          {request.client_email && <div>Email: {request.client_email}</div>}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -160,28 +211,14 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                         
                         <TableRow className="border-0">
                           <TableCell className="p-1 pl-0 pr-2">
-                            <Building className="h-4 w-4 text-muted-foreground" />
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
                           </TableCell>
                           <TableCell className="p-1 text-sm">
                             <div className="font-medium">
-                              {request.residencias?.name || 'Residencial no especificada'}
+                              {getLocationInfo(request)}
                             </div>
                           </TableCell>
                         </TableRow>
-                        
-                        {/* Apartment information */}
-                        {request.apartment && (
-                          <TableRow className="border-0">
-                            <TableCell className="p-1 pl-0 pr-2">
-                              <Home className="h-4 w-4 text-muted-foreground" />
-                            </TableCell>
-                            <TableCell className="p-1 text-sm space-y-1">
-                              <div className="text-muted-foreground">
-                                Apto: {request.apartment}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
                       </TableBody>
                     </Table>
                   </div>

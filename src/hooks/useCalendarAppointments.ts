@@ -32,11 +32,6 @@ export function useCalendarAppointments(currentDate: Date) {
                 description,
                 base_price,
                 duration
-              ),
-              residencias (
-                id,
-                name,
-                address
               )
             `)
             .eq('provider_id', user.id)
@@ -124,6 +119,7 @@ export function useCalendarAppointments(currentDate: Date) {
           console.log(`  - Internal: ${enhancedAppointments.filter(app => !app.is_external).length}`);
           console.log(`  - External: ${enhancedAppointments.filter(app => app.is_external).length}`);
           console.log(`  - Recurring: ${enhancedAppointments.filter(app => app.is_recurring).length}`);
+          console.log(`  - Pending: ${enhancedAppointments.filter(app => app.status === 'pending').length}`);
           
           return enhancedAppointments;
         }
