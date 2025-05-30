@@ -14,10 +14,14 @@ export type Database = {
           admin_notes: string | null
           apartment: string | null
           cancellation_time: string | null
-          client_id: string
+          client_address: string | null
+          client_email: string | null
+          client_id: string | null
           client_name: string | null
+          client_phone: string | null
           created_at: string
           end_time: string
+          external_booking: boolean | null
           id: string
           last_modified_at: string | null
           last_modified_by: string | null
@@ -27,7 +31,7 @@ export type Database = {
           provider_name: string | null
           recurrence: string | null
           refund_percentage: number | null
-          residencia_id: string
+          residencia_id: string | null
           start_time: string
           status: string
         }
@@ -35,10 +39,14 @@ export type Database = {
           admin_notes?: string | null
           apartment?: string | null
           cancellation_time?: string | null
-          client_id: string
+          client_address?: string | null
+          client_email?: string | null
+          client_id?: string | null
           client_name?: string | null
+          client_phone?: string | null
           created_at?: string
           end_time: string
+          external_booking?: boolean | null
           id?: string
           last_modified_at?: string | null
           last_modified_by?: string | null
@@ -48,7 +56,7 @@ export type Database = {
           provider_name?: string | null
           recurrence?: string | null
           refund_percentage?: number | null
-          residencia_id: string
+          residencia_id?: string | null
           start_time: string
           status: string
         }
@@ -56,10 +64,14 @@ export type Database = {
           admin_notes?: string | null
           apartment?: string | null
           cancellation_time?: string | null
-          client_id?: string
+          client_address?: string | null
+          client_email?: string | null
+          client_id?: string | null
           client_name?: string | null
+          client_phone?: string | null
           created_at?: string
           end_time?: string
+          external_booking?: boolean | null
           id?: string
           last_modified_at?: string | null
           last_modified_by?: string | null
@@ -69,7 +81,7 @@ export type Database = {
           provider_name?: string | null
           recurrence?: string | null
           refund_percentage?: number | null
-          residencia_id?: string
+          residencia_id?: string | null
           start_time?: string
           status?: string
         }
@@ -79,13 +91,6 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointments_residencia_id_fkey"
-            columns: ["residencia_id"]
-            isOneToOne: false
-            referencedRelation: "residencias"
             referencedColumns: ["id"]
           },
         ]

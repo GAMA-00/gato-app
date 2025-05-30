@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Repeat, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -47,25 +46,25 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
   
-  // Check if this is a recurring appointment
+  // Check if this is a recurring appointment or external booking
   const isRecurring = appointment.recurrence && appointment.recurrence !== 'none';
+  const isExternal = appointment.is_external || appointment.external_booking;
   
   // Get person name with improved fallback logic  
   const getPersonName = () => {
     // For client view (looking at provider's name)
     if (user?.role === 'client') {
-      // Show provider name for clients
       if (appointment.provider_name) {
         return appointment.provider_name;
       } else {
         return 'Proveedor';
       }
     } else {
-      // Show client name for providers
+      // For provider view, show client name with external indicator
       if (appointment.client_name) {
         return appointment.client_name;
       } else {
-        return 'Cliente';
+        return isExternal ? 'Cliente Externo' : 'Cliente';
       }
     }
   };
@@ -78,7 +77,8 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       className={cn(
         "absolute left-1 right-1 overflow-hidden shadow transition-all duration-150 cursor-pointer rounded-lg flex flex-col border-l-4",
         expanded ? "z-20 bg-white border border-gray-200 p-3 h-fit min-h-[70px]" : "px-2 py-1 gap-0.5",
-        isRecurring && "border-2 border-dashed"
+        isRecurring && "border-2 border-dashed",
+        isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
         top: `${positionFromTop}px`,
@@ -88,13 +88,14 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
         color: statusColor.text,
         fontWeight: 500
       }}
-      title={`${serviceName}${isRecurring ? ' (Recurrente)' : ''}`}
+      title={`${serviceName}${isRecurring ? ' (Recurrente)' : ''}${isExternal ? ' (Externa)' : ''}`}
       onClick={onClick}
       tabIndex={0}
       role="button"
     >
       <div className="flex items-center gap-1">
         {isRecurring && <Repeat className="h-3 w-3 text-blue-600" />}
+        {isExternal && <ExternalLink className="h-3 w-3 text-blue-500" />}
         <div 
           className={cn(
             "truncate font-semibold flex-1", 
@@ -117,16 +118,24 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
           <span>
             {format(new Date(appointment.start_time), "HH:mm")} - {format(new Date(appointment.end_time), "HH:mm")}
           </span>
-          {isRecurring && (
-            <div className="mt-1 flex items-center gap-1">
-              <Repeat className="h-3 w-3 text-blue-600" />
-              <span className="text-blue-600 text-xs">
-                {appointment.recurrence === 'weekly' ? 'Semanal' : 
-                 appointment.recurrence === 'biweekly' ? 'Quincenal' :
-                 appointment.recurrence === 'monthly' ? 'Mensual' : 'Recurrente'}
-              </span>
-            </div>
-          )}
+          <div className="flex gap-2 mt-1">
+            {isRecurring && (
+              <div className="flex items-center gap-1">
+                <Repeat className="h-3 w-3 text-blue-600" />
+                <span className="text-blue-600 text-xs">
+                  {appointment.recurrence === 'weekly' ? 'Semanal' : 
+                   appointment.recurrence === 'biweekly' ? 'Quincenal' :
+                   appointment.recurrence === 'monthly' ? 'Mensual' : 'Recurrente'}
+                </span>
+              </div>
+            )}
+            {isExternal && (
+              <div className="flex items-center gap-1">
+                <ExternalLink className="h-3 w-3 text-blue-500" />
+                <span className="text-blue-500 text-xs">Externa</span>
+              </div>
+            )}
+          </div>
           <div className="mt-1 pt-1 border-t text-xs">
             <span className={cn(
               "px-2 py-0.5 rounded-full text-[10px]",
@@ -163,7 +172,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   expandedId,
   setExpandedId
 }) => {
-  // Filter appointments for this day - include all recurring appointments
+  // Filter appointments for this day - include all appointments (internal and external)
   const dayAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
     const isSameDate = isSameDay(appointmentDate, date);
@@ -175,7 +184,9 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         start_time: appointment.start_time,
         recurrence: appointment.recurrence,
         status: appointment.status,
-        title: appointment.listings?.title
+        title: appointment.listings?.title,
+        is_external: appointment.is_external || appointment.external_booking,
+        client_name: appointment.client_name
       });
     }
     
@@ -185,6 +196,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   // Show hours from 8 AM to 8 PM (12 hours)
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
   const isCurrentDay = isToday(date);
+
+  // Count external vs internal appointments for display
+  const externalCount = dayAppointments.filter(app => app.is_external || app.external_booking).length;
+  const internalCount = dayAppointments.length - externalCount;
 
   return (
     <div className="h-[780px] relative border-r last:border-r-0 calendar-day bg-white">
@@ -202,8 +217,15 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
           )}
         </div>
         {dayAppointments.length > 0 && (
-          <div className="text-xs text-blue-600 font-medium mt-1">
-            {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
+          <div className="text-xs font-medium mt-1 space-y-0.5">
+            <div className="text-blue-600">
+              {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
+            </div>
+            {externalCount > 0 && (
+              <div className="text-blue-500 text-[10px]">
+                {externalCount} externa{externalCount > 1 ? 's' : ''}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -222,7 +244,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             scheduled_time: new Date(appointment.start_time).toLocaleTimeString(),
             recurrence: appointment.recurrence,
             client: appointment.client_name,
-            service: appointment.listings?.title
+            service: appointment.listings?.title,
+            is_external: appointment.is_external || appointment.external_booking
           });
           return (
             <CalendarAppointment
@@ -288,7 +311,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setExpandedId(null);
   };
 
-  // Debug appointments for current week
+  // Debug appointments for current week with external booking info
   React.useEffect(() => {
     const weekStart = startDate.toDateString();
     const weekEnd = endDate.toDateString();
@@ -297,14 +320,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       return appDate >= startDate && appDate <= endDate;
     });
     
+    const externalAppointments = weekAppointments.filter(app => 
+      app.is_external || app.external_booking
+    );
+    const recurringAppointments = weekAppointments.filter(app => 
+      app.recurrence && app.recurrence !== 'none'
+    );
+    
     console.log(`Calendar week ${weekStart} to ${weekEnd}:`);
     console.log(`Total appointments in view: ${appointments.length}`);
     console.log(`Appointments for this week: ${weekAppointments.length}`);
-    
-    const recurringInWeek = weekAppointments.filter(app => 
-      app.recurrence && app.recurrence !== 'none'
-    );
-    console.log(`Recurring appointments this week: ${recurringInWeek.length}`, recurringInWeek);
+    console.log(`  - Internal: ${weekAppointments.length - externalAppointments.length}`);
+    console.log(`  - External: ${externalAppointments.length}`);
+    console.log(`  - Recurring: ${recurringAppointments.length}`);
   }, [appointments, startDate, endDate]);
 
   return (

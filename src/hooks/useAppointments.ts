@@ -20,12 +20,10 @@ export function useAppointments() {
       
       try {
         // Calculate a broader date range for calendar navigation
-        // Get appointments from current week to 3 months in the future
         const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
         const futureDate = addMonths(new Date(), 3);
         
         if (user.role === 'provider') {
-          // Para proveedores - incluir todas las citas desde la semana actual hasta 3 meses adelante
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -60,8 +58,12 @@ export function useAppointments() {
             return [];
           }
           
-          // Get client names from users table
-          const clientIds = [...new Set(appointments.map(app => app.client_id))];
+          // Enhanced client name handling for both internal and external bookings
+          const clientIds = [...new Set(appointments
+            .filter(app => !app.external_booking && app.client_id)
+            .map(app => app.client_id))];
+          
+          let clientNameMap: Record<string, string> = {};
           
           if (clientIds.length > 0) {
             const { data: clients, error: clientsError } = await supabase
@@ -71,20 +73,30 @@ export function useAppointments() {
               .eq('role', 'client');
               
             if (!clientsError && clients) {
-              const clientNameMap = Object.fromEntries(
+              clientNameMap = Object.fromEntries(
                 clients.map(client => [client.id, client.name])
               );
-              
-              appointments.forEach(app => {
-                (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id.substring(0, 8)}`;
-              });
             }
           }
+          
+          // Process all appointments with enhanced external booking support
+          appointments.forEach(app => {
+            if (app.external_booking) {
+              // For external bookings, use the stored client_name, phone, email or fallback
+              (app as any).client_name = app.client_name || `Cliente Externo`;
+              (app as any).client_phone = app.client_phone || '';
+              (app as any).client_email = app.client_email || '';
+            } else {
+              // For internal bookings, use the user lookup or fallback
+              (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
+            }
+          });
           
           // Mark recurring appointments and add enhanced information
           const enhancedAppointments = appointments.map(app => ({
             ...app,
             is_recurring: app.recurrence && app.recurrence !== 'none',
+            is_external: !!app.external_booking,
             recurrence_label: 
               app.recurrence === 'weekly' ? 'Semanal' :
               app.recurrence === 'biweekly' ? 'Quincenal' :
@@ -92,12 +104,15 @@ export function useAppointments() {
               app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
           }));
           
-          console.log(`Returning ${enhancedAppointments.length} appointments, including ${enhancedAppointments.filter(app => app.is_recurring).length} recurring ones`);
+          console.log(`Returning ${enhancedAppointments.length} appointments total`);
+          console.log(`  - Internal: ${enhancedAppointments.filter(app => !app.is_external).length}`);
+          console.log(`  - External: ${enhancedAppointments.filter(app => app.is_external).length}`);
+          console.log(`  - Recurring: ${enhancedAppointments.filter(app => app.is_recurring).length}`);
           
           return enhancedAppointments;
         } 
         else if (user.role === 'client') {
-          // Para clientes - incluir todas las citas desde la semana actual hasta 3 meses adelante
+          // Para clientes - solo citas internas (no pueden ver externas)
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -116,6 +131,7 @@ export function useAppointments() {
               )
             `)
             .eq('client_id', user.id)
+            .eq('external_booking', false) // Only internal bookings for clients
             .gte('start_time', currentWeekStart.toISOString())
             .lte('start_time', futureDate.toISOString())
             .order('start_time');
@@ -157,6 +173,7 @@ export function useAppointments() {
           const enhancedAppointments = appointments.map(app => ({
             ...app,
             is_recurring: app.recurrence && app.recurrence !== 'none',
+            is_external: false, // Clients only see internal bookings
             recurrence_label: 
               app.recurrence === 'weekly' ? 'Semanal' :
               app.recurrence === 'biweekly' ? 'Quincenal' :
@@ -174,7 +191,7 @@ export function useAppointments() {
       }
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refresh every 30 seconds to show new recurring appointments
+    refetchInterval: 30000, // Refresh every 30 seconds to show new external bookings
     retry: 3
   });
 }

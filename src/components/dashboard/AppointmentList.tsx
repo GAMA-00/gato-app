@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, Check, X, MapPin } from 'lucide-react';
+import { Clock, Check, X, MapPin, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
 
 interface AppointmentListProps {
   appointments: any[];
@@ -81,26 +82,27 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     }
   };
 
-  // Función mejorada para obtener el nombre correcto según el rol del usuario
+  // Enhanced function to get the correct name based on user role
   const getDisplayName = (appointment: any) => {
-    // Si el usuario actual es un proveedor, mostrar el nombre del cliente
+    // If the user is a provider, show client name
     if (user?.role === 'provider') {
-      // Usar client_name del appointment si está disponible
       if (appointment.client_name) {
         return appointment.client_name;
       }
       
-      // Último fallback
+      // Fallback for external bookings
+      if (appointment.is_external || appointment.external_booking) {
+        return 'Cliente Externo';
+      }
+      
       return 'Cliente sin nombre';
     } 
-    // Si el usuario actual es un cliente, mostrar el nombre del proveedor
+    // If the user is a client, show provider name
     else {
-      // Usar provider_name del appointment si está disponible
       if (appointment.provider_name) {
         return appointment.provider_name;
       }
       
-      // Último fallback
       return 'Proveedor desconocido';
     }
   };
@@ -110,9 +112,14 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return appointment.listings?.title || 'Servicio';
   };
 
-  // Helper function to get location info
+  // Enhanced location info function
   const getLocationInfo = (appointment: any) => {
     let locationInfo = [];
+    
+    // For external bookings, use client_address if available
+    if ((appointment.is_external || appointment.external_booking) && appointment.client_address) {
+      return appointment.client_address;
+    }
     
     // Add residencia name if available
     if (appointment.residencias?.name) {
@@ -128,10 +135,21 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       ? locationInfo.join(' - ') 
       : 'Sin ubicación específica';
   };
+
+  // Enhanced contact info function
+  const getContactInfo = (appointment: any) => {
+    // For external bookings, prioritize stored contact info
+    if (appointment.is_external || appointment.external_booking) {
+      return appointment.client_phone || appointment.client_email || 'Sin contacto';
+    }
+    
+    // For internal bookings, we don't have direct access to user phone/email in this context
+    return null;
+  };
   
   // Helper function to get initials for avatar
   const getInitials = (name: string) => {
-    if (!name || name === 'Cliente sin nombre' || name === 'Proveedor desconocido') {
+    if (!name || name === 'Cliente sin nombre' || name === 'Proveedor desconocido' || name === 'Cliente Externo') {
       return 'U';
     }
     
@@ -150,9 +168,18 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
           {icon}
           {title}
         </CardTitle>
-        <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
-          {filteredAppointments.length} citas
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+            {filteredAppointments.length} citas
+          </span>
+          {/* Show external bookings count if any */}
+          {filteredAppointments.some(app => app.is_external || app.external_booking) && (
+            <span className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" />
+              {filteredAppointments.filter(app => app.is_external || app.external_booking).length} externa{filteredAppointments.filter(app => app.is_external || app.external_booking).length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {filteredAppointments.length > 0 ? (
@@ -160,6 +187,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
             {filteredAppointments.map((appointment) => {
               const displayName = getDisplayName(appointment);
               const serviceName = getServiceName(appointment);
+              const isExternal = appointment.is_external || appointment.external_booking;
+              const contactInfo = getContactInfo(appointment);
               
               return (
                 <div key={appointment.id} className="p-4 border-b last:border-0">
@@ -172,12 +201,26 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-medium truncate">
-                          {displayName}
-                        </h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium truncate">
+                            {displayName}
+                          </h4>
+                          {isExternal && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 text-xs">
+                              <ExternalLink className="h-3 w-3" />
+                              Externa
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground truncate">
                           {serviceName}
                         </p>
+                        {/* Show contact info for external bookings */}
+                        {contactInfo && (
+                          <p className="text-xs text-blue-600 truncate mt-0.5">
+                            {contactInfo}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">

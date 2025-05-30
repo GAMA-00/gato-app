@@ -56,8 +56,12 @@ export function useCalendarAppointments(currentDate: Date) {
           
           console.log(`Found ${appointments.length} appointments in date range`);
           
-          // Get client names
-          const clientIds = [...new Set(appointments.map(app => app.client_id))];
+          // Enhanced client name handling for both internal and external bookings
+          const clientIds = [...new Set(appointments
+            .filter(app => !app.external_booking && app.client_id)
+            .map(app => app.client_id))];
+          
+          let clientNameMap: Record<string, string> = {};
           
           if (clientIds.length > 0) {
             const { data: clients, error: clientsError } = await supabase
@@ -67,15 +71,22 @@ export function useCalendarAppointments(currentDate: Date) {
               .eq('role', 'client');
               
             if (!clientsError && clients) {
-              const clientNameMap = Object.fromEntries(
+              clientNameMap = Object.fromEntries(
                 clients.map(client => [client.id, client.name])
               );
-              
-              appointments.forEach(app => {
-                (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id.substring(0, 8)}`;
-              });
             }
           }
+          
+          // Process all appointments with enhanced external booking support
+          appointments.forEach(app => {
+            if (app.external_booking) {
+              // For external bookings, use the stored client_name or fallback
+              (app as any).client_name = app.client_name || `Cliente Externo`;
+            } else {
+              // For internal bookings, use the user lookup or fallback
+              (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
+            }
+          });
           
           // Mark recurring appointments and add enhanced information
           const enhancedAppointments = appointments.map(app => {
@@ -84,6 +95,7 @@ export function useCalendarAppointments(currentDate: Date) {
             return {
               ...app,
               is_recurring: isRecurring,
+              is_external: !!app.external_booking,
               recurrence_label: 
                 app.recurrence === 'weekly' ? 'Semanal' :
                 app.recurrence === 'biweekly' ? 'Quincenal' :
@@ -92,7 +104,7 @@ export function useCalendarAppointments(currentDate: Date) {
             };
           });
           
-          // Group by date for debugging
+          // Group by date and booking type for debugging
           const appointmentsByDate = enhancedAppointments.reduce((acc, app) => {
             const date = new Date(app.start_time).toDateString();
             if (!acc[date]) acc[date] = [];
@@ -100,13 +112,18 @@ export function useCalendarAppointments(currentDate: Date) {
               id: app.id,
               start_time: app.start_time,
               recurrence: app.recurrence,
-              title: app.listings?.title
+              title: app.listings?.title,
+              is_external: app.is_external,
+              client_name: app.client_name
             });
             return acc;
           }, {} as Record<string, any[]>);
           
           console.log('Appointments by date:', appointmentsByDate);
-          console.log(`Calendar view: Found ${enhancedAppointments.length} appointments, ${enhancedAppointments.filter(app => app.is_recurring).length} recurring`);
+          console.log(`Calendar view: Found ${enhancedAppointments.length} appointments total`);
+          console.log(`  - Internal: ${enhancedAppointments.filter(app => !app.is_external).length}`);
+          console.log(`  - External: ${enhancedAppointments.filter(app => app.is_external).length}`);
+          console.log(`  - Recurring: ${enhancedAppointments.filter(app => app.is_recurring).length}`);
           
           return enhancedAppointments;
         }
