@@ -1,7 +1,67 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
+import { startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, addMonths, isSameDay, parseISO } from 'date-fns';
+
+// Helper function to generate recurring appointment instances
+const generateRecurringInstances = (baseAppointment: any, rangeStart: Date, rangeEnd: Date) => {
+  const instances = [];
+  const originalStart = parseISO(baseAppointment.start_time);
+  const originalEnd = parseISO(baseAppointment.end_time);
+  
+  // Only generate for confirmed appointments with recurrence
+  if (baseAppointment.status !== 'confirmed' || !baseAppointment.recurrence || baseAppointment.recurrence === 'none') {
+    return [baseAppointment];
+  }
+  
+  // Add the original appointment
+  instances.push(baseAppointment);
+  
+  let currentStart = new Date(originalStart);
+  let currentEnd = new Date(originalEnd);
+  
+  // Generate instances within the date range
+  while (currentStart <= rangeEnd) {
+    // Calculate next occurrence based on recurrence type
+    switch (baseAppointment.recurrence) {
+      case 'weekly':
+        currentStart = addWeeks(currentStart, 1);
+        currentEnd = addWeeks(currentEnd, 1);
+        break;
+      case 'biweekly':
+        currentStart = addWeeks(currentStart, 2);
+        currentEnd = addWeeks(currentEnd, 2);
+        break;
+      case 'monthly':
+        currentStart = addMonths(currentStart, 1);
+        currentEnd = addMonths(currentEnd, 1);
+        break;
+      default:
+        // If recurrence type is not recognized, break the loop
+        break;
+    }
+    
+    // Only add if within range and after the original date
+    if (currentStart >= rangeStart && currentStart <= rangeEnd && currentStart > originalStart) {
+      instances.push({
+        ...baseAppointment,
+        id: `${baseAppointment.id}-recurring-${currentStart.toISOString()}`,
+        start_time: currentStart.toISOString(),
+        end_time: currentEnd.toISOString(),
+        is_recurring_instance: true,
+        original_appointment_id: baseAppointment.id
+      });
+    }
+    
+    // Safety check to prevent infinite loops (limit to 2 years ahead)
+    if (currentStart > addMonths(originalStart, 24)) {
+      break;
+    }
+  }
+  
+  return instances;
+};
 
 export function useCalendarAppointments(currentDate: Date) {
   const { user } = useAuth();
@@ -21,7 +81,9 @@ export function useCalendarAppointments(currentDate: Date) {
       
       try {
         if (user.role === 'provider') {
-          const { data: appointments, error } = await supabase
+          // Fetch all confirmed appointments for this provider (not just within date range)
+          // We need all recurring appointments to generate instances
+          const { data: allAppointments, error } = await supabase
             .from('appointments')
             .select(`
               *,
@@ -34,8 +96,6 @@ export function useCalendarAppointments(currentDate: Date) {
               )
             `)
             .eq('provider_id', user.id)
-            .gte('start_time', rangeStart.toISOString())
-            .lte('start_time', rangeEnd.toISOString())
             .order('start_time');
             
           if (error) {
@@ -43,15 +103,32 @@ export function useCalendarAppointments(currentDate: Date) {
             throw error;
           }
           
-          if (!appointments || appointments.length === 0) {
-            console.log("No appointments in calendar range");
+          if (!allAppointments || allAppointments.length === 0) {
+            console.log("No appointments found for provider");
             return [];
           }
           
-          console.log(`Found ${appointments.length} appointments in date range`);
+          console.log(`Found ${allAppointments.length} total appointments for provider`);
+          
+          // Generate recurring instances for all appointments
+          let appointmentsWithRecurrence: any[] = [];
+          
+          allAppointments.forEach(appointment => {
+            const instances = generateRecurringInstances(appointment, rangeStart, rangeEnd);
+            appointmentsWithRecurrence.push(...instances);
+          });
+          
+          // Filter to only show appointments within the date range
+          const appointmentsInRange = appointmentsWithRecurrence.filter(appointment => {
+            const appointmentDate = parseISO(appointment.start_time);
+            return appointmentDate >= rangeStart && appointmentDate <= rangeEnd;
+          });
+          
+          console.log(`Generated ${appointmentsWithRecurrence.length} total instances (including recurring)`);
+          console.log(`Appointments in current view range: ${appointmentsInRange.length}`);
           
           // Enhanced client name handling for both internal and external bookings
-          const clientIds = [...new Set(appointments
+          const clientIds = [...new Set(appointmentsInRange
             .filter(app => !app.external_booking && app.client_id)
             .map(app => app.client_id))];
           
@@ -132,7 +209,7 @@ export function useCalendarAppointments(currentDate: Date) {
           }
           
           // Process all appointments with enhanced external booking support
-          appointments.forEach(app => {
+          appointmentsInRange.forEach(app => {
             if (app.external_booking) {
               // For external bookings, use the stored client_name directly from the appointment
               (app as any).client_name = app.client_name || 'Cliente Externo';
@@ -182,12 +259,14 @@ export function useCalendarAppointments(currentDate: Date) {
           });
           
           // Mark recurring appointments and add enhanced information
-          const enhancedAppointments = appointments.map(app => {
+          const enhancedAppointments = appointmentsInRange.map(app => {
             const isRecurring = app.recurrence && app.recurrence !== 'none';
+            const isRecurringInstance = app.is_recurring_instance || false;
             
             return {
               ...app,
               is_recurring: isRecurring,
+              is_recurring_instance: isRecurringInstance,
               is_external: !!app.external_booking,
               recurrence_label: 
                 app.recurrence === 'weekly' ? 'Semanal' :
@@ -207,6 +286,7 @@ export function useCalendarAppointments(currentDate: Date) {
               recurrence: app.recurrence,
               title: app.listings?.title,
               is_external: app.is_external,
+              is_recurring_instance: app.is_recurring_instance,
               client_name: (app as any).client_name
             });
             return acc;
@@ -217,6 +297,7 @@ export function useCalendarAppointments(currentDate: Date) {
           console.log(`  - Internal: ${enhancedAppointments.filter(app => !app.is_external).length}`);
           console.log(`  - External: ${enhancedAppointments.filter(app => app.is_external).length}`);
           console.log(`  - Recurring: ${enhancedAppointments.filter(app => app.is_recurring).length}`);
+          console.log(`  - Recurring instances: ${enhancedAppointments.filter(app => app.is_recurring_instance).length}`);
           console.log(`  - Pending: ${enhancedAppointments.filter(app => app.status === 'pending').length}`);
           
           // Log external appointments with their actual client names
@@ -225,6 +306,15 @@ export function useCalendarAppointments(currentDate: Date) {
             console.log("External appointments in calendar:");
             externalApps.forEach(app => {
               console.log(`  - ${app.id}: Client "${(app as any).client_name}" at ${new Date(app.start_time).toLocaleString()}`);
+            });
+          }
+          
+          // Log recurring instances
+          const recurringInstances = enhancedAppointments.filter(app => app.is_recurring_instance);
+          if (recurringInstances.length > 0) {
+            console.log("Recurring appointment instances in calendar:");
+            recurringInstances.forEach(app => {
+              console.log(`  - ${app.id}: ${app.recurrence} appointment at ${new Date(app.start_time).toLocaleString()}`);
             });
           }
           

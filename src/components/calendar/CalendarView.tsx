@@ -84,6 +84,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   
   // Check if this is a recurring appointment or external booking
   const isRecurring = appointment.recurrence && appointment.recurrence !== 'none';
+  const isRecurringInstance = appointment.is_recurring_instance || false;
   const isExternal = appointment.is_external || appointment.external_booking;
   
   // Get person name with improved fallback logic  
@@ -119,18 +120,19 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
         "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded border-l-2 text-xs z-10",
         expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[24px]" : "px-1 py-0.5",
         isRecurring && "border-2 border-dashed",
+        isRecurringInstance && "border-2 border-dotted border-purple-400",
         isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
         top: `${topPosition}px`,
         height: expanded ? undefined : `${appointmentHeight}px`,
-        background: expanded ? '#fff' : statusColor.bg,
-        borderLeftColor: statusColor.border,
+        background: expanded ? '#fff' : isRecurringInstance ? '#f3f4f6' : statusColor.bg,
+        borderLeftColor: isRecurringInstance ? '#9333ea' : statusColor.border,
         color: statusColor.text,
         fontWeight: 500,
         minHeight: expanded ? '24px' : '20px'
       }}
-      title={`${serviceName} - ${format(startTime, "HH:mm")} a ${format(endTime, "HH:mm")}${isRecurring ? ' (Recurrente)' : ''}${isExternal ? ' (Externa)' : ''}`}
+      title={`${serviceName} - ${format(startTime, "HH:mm")} a ${format(endTime, "HH:mm")}${isRecurring ? ' (Recurrente)' : ''}${isRecurringInstance ? ' (Instancia Recurrente)' : ''}${isExternal ? ' (Externa)' : ''}`}
       onClick={onClick}
       tabIndex={0}
       role="button"
@@ -138,6 +140,7 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       <div className="flex items-start gap-1 h-full">
         <div className="flex-shrink-0 flex items-center gap-1">
           {isRecurring && <Repeat className="h-2 w-2 text-blue-600 flex-shrink-0" />}
+          {isRecurringInstance && <Repeat className="h-2 w-2 text-purple-600 flex-shrink-0" />}
           {isExternal && <ExternalLink className="h-2 w-2 text-blue-500 flex-shrink-0" />}
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
@@ -179,6 +182,12 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
                    appointment.recurrence === 'biweekly' ? 'Quincenal' :
                    appointment.recurrence === 'monthly' ? 'Mensual' : 'Recurrente'}
                 </span>
+              </div>
+            )}
+            {isRecurringInstance && (
+              <div className="flex items-center gap-1">
+                <Repeat className="h-2 w-2 text-purple-600" />
+                <span className="text-purple-600 text-[9px]">Instancia Recurrente</span>
               </div>
             )}
             {isExternal && (
