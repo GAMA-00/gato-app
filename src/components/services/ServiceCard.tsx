@@ -38,7 +38,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onEdit, onDelete }) 
                   </div>
                   <div className="flex items-center">
                     <DollarSign className="h-3 w-3 mr-1" />
-                    <span>${Number(variant.price).toFixed(2)}</span>
+                    <span>{Number(variant.price).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -58,7 +58,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onEdit, onDelete }) 
             </div>
             <div className="flex items-center text-sm">
               <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>${service.price.toFixed(2)}</span>
+              <span>{service.price.toFixed(2)}</span>
             </div>
           </div>
         )}
