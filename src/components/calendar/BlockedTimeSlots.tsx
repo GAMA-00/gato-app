@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -39,7 +38,6 @@ const BlockedTimeSlots: React.FC = () => {
   const [startHour, setStartHour] = useState<string>('9');
   const [endHour, setEndHour] = useState<string>('10');
   const [note, setNote] = useState<string>('');
-  const [isRecurring, setIsRecurring] = useState<boolean>(true);
   const [recurrenceType, setRecurrenceType] = useState<'weekly' | 'daily'>('weekly');
 
   const handleAddBlock = () => {
@@ -81,8 +79,8 @@ const BlockedTimeSlots: React.FC = () => {
         startHour: start,
         endHour: end,
         note: note.trim() || undefined,
-        isRecurring,
-        recurrenceType: isRecurring ? 'weekly' : undefined,
+        isRecurring: true,
+        recurrenceType: 'weekly',
         createdAt: new Date()
       };
       
@@ -96,7 +94,6 @@ const BlockedTimeSlots: React.FC = () => {
     // Reset form
     setShowForm(false);
     setNote('');
-    setIsRecurring(true);
     setRecurrenceType('weekly');
   };
 
@@ -242,20 +239,6 @@ const BlockedTimeSlots: React.FC = () => {
                 onChange={(e) => setNote(e.target.value)}
               />
             </div>
-            
-            {/* Additional recurrence option for weekly only */}
-            {recurrenceType === 'weekly' && (
-              <div className="flex items-center space-x-2 mb-4">
-                <Checkbox 
-                  id="recurring" 
-                  checked={isRecurring} 
-                  onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
-                />
-                <Label htmlFor="recurring" className="text-sm">
-                  Repetir cada semana
-                </Label>
-              </div>
-            )}
             
             <div className="flex justify-end">
               <Button onClick={handleAddBlock}>
