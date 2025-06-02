@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { UserCircle, CreditCard, FileText, Shield, HelpCircle, Settings } from 'lucide-react';
+import { UserCircle, CreditCard, FileText, Shield, HelpCircle, Settings, Home } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import { updateUserProfile, updateUserAvatar, fetchUserProfile } from '@/utils/profileManagement';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -83,6 +82,12 @@ const Profile = () => {
   // Fetch residencias and condominiums
   const { residencias, isLoading: isLoadingResidencias } = useResidencias();
   const { data: condominiums, isLoading: isLoadingCondominiums } = useCondominiums(selectedResidenciaId);
+
+  // Predefined condominiums for "Colinas de Montealegre"
+  const condominiumNames = [
+    'El Carao', 'La Ceiba', 'Guayaquil', 'Ilang-Ilang', 'Nogal', 
+    'Guayacán Real', 'Cedro Alto', 'Roble Sabana', 'Alamo', 'Guaitil'
+  ];
 
   // Reset condominium when residencia changes
   useEffect(() => {
@@ -460,32 +465,45 @@ const Profile = () => {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Condominio (opcional)</FormLabel>
-                                  <Select 
-                                    onValueChange={field.onChange} 
-                                    value={field.value}
-                                    disabled={!selectedResidenciaId || isLoadingCondominiums}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue 
-                                          placeholder={
-                                            !selectedResidenciaId 
-                                              ? "Primero selecciona una residencia" 
-                                              : isLoadingCondominiums 
-                                                ? "Cargando condominios..." 
-                                                : "Selecciona tu condominio (opcional)"
-                                          } 
-                                        />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {condominiums?.map((condominium) => (
-                                        <SelectItem key={condominium.id} value={condominium.id}>
-                                          {condominium.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Home className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                                      <Select 
+                                        onValueChange={field.onChange} 
+                                        value={field.value || ''}
+                                        disabled={!selectedResidenciaId || isLoadingCondominiums}
+                                      >
+                                        <SelectTrigger className="pl-10">
+                                          <SelectValue 
+                                            placeholder={
+                                              !selectedResidenciaId 
+                                                ? "Primero selecciona una residencia" 
+                                                : isLoadingCondominiums 
+                                                  ? "Cargando condominios..." 
+                                                  : "Selecciona tu condominio (opcional)"
+                                            } 
+                                          />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {condominiums && condominiums.length > 0 ? (
+                                            // Show condominiums from database if available
+                                            condominiums.map((condominium) => (
+                                              <SelectItem key={condominium.id} value={condominium.id}>
+                                                {condominium.name}
+                                              </SelectItem>
+                                            ))
+                                          ) : (
+                                            // Show predefined list for Colinas de Montealegre (same as registration)
+                                            condominiumNames.map((name, index) => (
+                                              <SelectItem key={`static-${index}`} value={`static-${index}`}>
+                                                {name}
+                                              </SelectItem>
+                                            ))
+                                          )}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
