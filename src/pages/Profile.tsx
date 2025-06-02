@@ -80,7 +80,7 @@ const Profile = () => {
   const selectedResidenciaId = profileForm.watch('residencia_id');
   
   // Fetch residencias and condominiums
-  const { data: residencias, isLoading: isLoadingResidencias } = useResidencias();
+  const { residencias, isLoading: isLoadingResidencias } = useResidencias();
   const { data: condominiums, isLoading: isLoadingCondominiums } = useCondominiums(selectedResidenciaId);
 
   // Reset condominium when residencia changes
