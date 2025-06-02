@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -111,13 +112,25 @@ export function useAppointments() {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
               
-              // Build location string for internal bookings with proper condominium handling
+              // Build location string for internal bookings with proper format
               const location = clientLocationMap[app.client_id];
               if (location) {
                 const locationParts = [];
-                if (location.residencia) locationParts.push(location.residencia);
-                if (location.condominium) locationParts.push(location.condominium);
-                if (location.houseNumber) locationParts.push(`#${location.houseNumber}`);
+                
+                // Always add residencia if available
+                if (location.residencia) {
+                  locationParts.push(location.residencia);
+                }
+                
+                // Add condominium only if it exists and is different from residencia
+                if (location.condominium && location.condominium !== location.residencia) {
+                  locationParts.push(location.condominium);
+                }
+                
+                // Always add house number if available
+                if (location.houseNumber) {
+                  locationParts.push(`#${location.houseNumber}`);
+                }
                 
                 (app as any).client_location = locationParts.length > 0 
                   ? locationParts.join(' - ') 
