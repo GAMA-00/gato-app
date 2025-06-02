@@ -33,13 +33,13 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   const startTime = new Date(appointment.start_time);
   const endTime = new Date(appointment.end_time);
   
-  // Calculate position from midnight in minutes (8AM = 480 minutes)
+  // Calculate position from midnight in minutes (6AM = 360 minutes)
   const startHour = startTime.getHours();
   const startMinutes = startTime.getMinutes();
   const minutesFromMidnight = (startHour * 60) + startMinutes;
   
-  // Adjust position to start at 8 AM (subtract 480 minutes = 8 hours)
-  const positionFromTop = minutesFromMidnight - 480;
+  // Adjust position to start at 6 AM (subtract 360 minutes = 6 hours)
+  const positionFromTop = minutesFromMidnight - 360;
   
   // Calculate duration in minutes
   const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
@@ -193,8 +193,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     return isSameDate && isNotCancelledOrRejected;
   });
   
-  // Show hours from 8 AM to 8 PM (12 hours)
-  const hours = Array.from({ length: 13 }, (_, i) => i + 8);
+  // Show hours from 6 AM to 8 PM (14 hours)
+  const hours = Array.from({ length: 15 }, (_, i) => i + 6);
   const isCurrentDay = isToday(date);
 
   // Count external vs internal appointments for display
@@ -202,7 +202,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   const internalCount = dayAppointments.length - externalCount;
 
   return (
-    <div className="h-[780px] relative border-r last:border-r-0 calendar-day bg-white">
+    <div className="h-[900px] relative border-r last:border-r-0 calendar-day bg-white">
       <div className="sticky top-0 py-2 text-center border-b z-10 bg-white">
         <div className={cn("text-xs uppercase tracking-wide mb-1", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
