@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -129,9 +130,8 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       className={cn(
         "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded text-xs z-10",
         expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[24px]" : "px-1 py-0.5",
-        // Use dotted border for recurring instances, solid for original recurring appointments
-        isRecurring && !isRecurringInstance && "border-l-4",
-        isRecurringInstance && "border-l-4 border-dashed",
+        // Use solid border for all recurring appointments
+        isRecurring && "border-l-4",
         isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
