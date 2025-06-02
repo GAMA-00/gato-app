@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,8 +79,12 @@ export function useCalendarAppointments(currentDate: Date) {
               );
               
               // Get unique residencia and condominium IDs
-              const residenciaIds = [...new Set(clients.map(client => client.residencia_id).filter(Boolean))];
-              const condominiumIds = [...new Set(clients.map(client => client.condominium_id).filter(Boolean))];
+              const residenciaIds = [...new Set(clients
+                .map(client => client.residencia_id)
+                .filter(Boolean))];
+              const condominiumIds = [...new Set(clients
+                .map(client => client.condominium_id)
+                .filter(Boolean))];
               
               console.log("Calendar - Residencia IDs to fetch:", residenciaIds);
               console.log("Calendar - Condominium IDs to fetch:", condominiumIds);
@@ -128,12 +131,21 @@ export function useCalendarAppointments(currentDate: Date) {
               // Create location map with complete address information
               clientLocationMap = Object.fromEntries(
                 clients.map(client => {
+                  const residenciaName = client.residencia_id ? residenciasMap[client.residencia_id] : '';
+                  const condominiumName = client.condominium_id ? condominiumsMap[client.condominium_id] : '';
+                  const houseNumber = client.house_number || '';
+                  
                   const locationData = {
-                    residencia: residenciasMap[client.residencia_id] || '',
-                    condominium: condominiumsMap[client.condominium_id] || '',
-                    houseNumber: client.house_number || ''
+                    residencia: residenciaName,
+                    condominium: condominiumName,
+                    houseNumber: houseNumber
                   };
+                  
                   console.log(`Calendar - Location data for client ${client.id}:`, locationData);
+                  console.log(`Calendar - Residencia ID: ${client.residencia_id} -> Name: ${residenciaName}`);
+                  console.log(`Calendar - Condominium ID: ${client.condominium_id} -> Name: ${condominiumName}`);
+                  console.log(`Calendar - House Number: ${houseNumber}`);
+                  
                   return [client.id, locationData];
                 })
               );
@@ -153,35 +165,40 @@ export function useCalendarAppointments(currentDate: Date) {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
               
-              // Build location string for internal bookings with proper format
+              // Build location string for internal bookings with improved format
               const location = clientLocationMap[app.client_id];
               console.log(`Calendar - Building location for client ${app.client_id}:`, location);
               
               if (location) {
                 const locationParts = [];
                 
-                // Always add residencia if available
-                if (location.residencia) {
-                  locationParts.push(location.residencia);
+                // Add residencia if available
+                if (location.residencia && location.residencia.trim()) {
+                  locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists
-                if (location.condominium) {
-                  locationParts.push(location.condominium);
+                // Add condominium if it exists and is different from residencia
+                if (location.condominium && location.condominium.trim()) {
+                  locationParts.push(location.condominium.trim());
                 }
                 
-                // Always add house number if available
-                if (location.houseNumber) {
-                  locationParts.push(`#${location.houseNumber}`);
+                // Add house number if available
+                if (location.houseNumber && location.houseNumber.trim()) {
+                  locationParts.push(`#${location.houseNumber.trim()}`);
                 }
                 
-                (app as any).client_location = locationParts.length > 0 
+                // Build the final location string
+                const finalLocation = locationParts.length > 0 
                   ? locationParts.join(' - ') 
                   : 'Ubicación no especificada';
-                  
-                console.log(`Calendar - Final location for appointment ${app.id}: "${(app as any).client_location}"`);
+                
+                (app as any).client_location = finalLocation;
+                
+                console.log(`Calendar - Final location for appointment ${app.id}: "${finalLocation}"`);
+                console.log(`Calendar - Location parts used: [${locationParts.join(', ')}]`);
               } else {
                 (app as any).client_location = 'Ubicación no especificada';
+                console.log(`Calendar - No location data found for client ${app.client_id}`);
               }
             }
           });
@@ -230,6 +247,15 @@ export function useCalendarAppointments(currentDate: Date) {
             console.log("External appointments in calendar:");
             externalApps.forEach(app => {
               console.log(`  - ${app.id}: Client "${app.client_name}" at ${new Date(app.start_time).toLocaleString()}`);
+            });
+          }
+          
+          // Log internal appointments with their locations for debugging
+          const internalApps = enhancedAppointments.filter(app => !app.is_external);
+          if (internalApps.length > 0) {
+            console.log("Internal appointments in calendar with locations:");
+            internalApps.forEach(app => {
+              console.log(`  - ${app.id}: Client "${app.client_name}" at "${app.client_location}"`);
             });
           }
           
