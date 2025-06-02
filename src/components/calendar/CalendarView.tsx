@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -114,33 +113,45 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
     return null;
   }
 
+  // Get recurrence label
+  const getRecurrenceLabel = () => {
+    if (appointment.recurrence === 'weekly') return 'Semanal';
+    if (appointment.recurrence === 'biweekly') return 'Quincenal';
+    if (appointment.recurrence === 'monthly') return 'Mensual';
+    if (appointment.recurrence && appointment.recurrence !== 'none') return 'Recurrente';
+    return null;
+  };
+
+  const recurrenceLabel = getRecurrenceLabel();
+
   return (
     <div
       className={cn(
-        "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded border-l-2 text-xs z-10",
+        "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded text-xs z-10",
         expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[24px]" : "px-1 py-0.5",
-        isRecurring && "border-2 border-dashed",
-        isRecurringInstance && "border-2 border-dotted border-purple-400",
+        // Use dotted border for recurring instances, solid for original recurring appointments
+        isRecurring && !isRecurringInstance && "border-l-4",
+        isRecurringInstance && "border-l-4 border-dashed",
         isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
         top: `${topPosition}px`,
         height: expanded ? undefined : `${appointmentHeight}px`,
-        background: expanded ? '#fff' : isRecurringInstance ? '#f3f4f6' : statusColor.bg,
-        borderLeftColor: isRecurringInstance ? '#9333ea' : statusColor.border,
+        background: expanded ? '#fff' : statusColor.bg,
+        borderLeftColor: statusColor.border,
         color: statusColor.text,
         fontWeight: 500,
         minHeight: expanded ? '24px' : '20px'
       }}
-      title={`${serviceName} - ${format(startTime, "HH:mm")} a ${format(endTime, "HH:mm")}${isRecurring ? ' (Recurrente)' : ''}${isRecurringInstance ? ' (Instancia Recurrente)' : ''}${isExternal ? ' (Externa)' : ''}`}
+      title={`${serviceName} - ${format(startTime, "HH:mm")} a ${format(endTime, "HH:mm")}${isRecurring ? ` (${recurrenceLabel})` : ''}${isRecurringInstance ? ' - Instancia Futura' : ''}${isExternal ? ' (Externa)' : ''}`}
       onClick={onClick}
       tabIndex={0}
       role="button"
     >
       <div className="flex items-start gap-1 h-full">
         <div className="flex-shrink-0 flex items-center gap-1">
+          {/* Show only one recurrence icon (blue) for all recurring appointments */}
           {isRecurring && <Repeat className="h-2 w-2 text-blue-600 flex-shrink-0" />}
-          {isRecurringInstance && <Repeat className="h-2 w-2 text-purple-600 flex-shrink-0" />}
           {isExternal && <ExternalLink className="h-2 w-2 text-blue-500 flex-shrink-0" />}
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
@@ -178,16 +189,9 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
               <div className="flex items-center gap-1">
                 <Repeat className="h-2 w-2 text-blue-600" />
                 <span className="text-blue-600 text-[9px]">
-                  {appointment.recurrence === 'weekly' ? 'Semanal' : 
-                   appointment.recurrence === 'biweekly' ? 'Quincenal' :
-                   appointment.recurrence === 'monthly' ? 'Mensual' : 'Recurrente'}
+                  {recurrenceLabel}
+                  {isRecurringInstance && " - Instancia Futura"}
                 </span>
-              </div>
-            )}
-            {isRecurringInstance && (
-              <div className="flex items-center gap-1">
-                <Repeat className="h-2 w-2 text-purple-600" />
-                <span className="text-purple-600 text-[9px]">Instancia Recurrente</span>
               </div>
             )}
             {isExternal && (
