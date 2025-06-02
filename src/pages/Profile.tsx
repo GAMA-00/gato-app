@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,12 +17,17 @@ import { UserCircle, CreditCard, FileText, Shield, HelpCircle, Settings } from '
 import PageContainer from '@/components/layout/PageContainer';
 import { updateUserProfile, updateUserAvatar, fetchUserProfile } from '@/utils/profileManagement';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useResidencias } from '@/hooks/useResidencias';
+import { useCondominiums } from '@/hooks/useCondominiums';
 import ImageUploader from '@/components/common/ImageUploader';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: z.string().email('Email no válido'),
   phone: z.string().min(8, 'Número de teléfono no válido').optional(),
+  residencia_id: z.string().optional(),
+  condominium_id: z.string().optional(),
+  house_number: z.string().optional(),
 });
 
 const supportSchema = z.object({
@@ -55,7 +61,10 @@ const Profile = () => {
     defaultValues: {
       name: '',
       email: '',
-      phone: ''
+      phone: '',
+      residencia_id: '',
+      condominium_id: '',
+      house_number: ''
     }
   });
   
@@ -66,6 +75,20 @@ const Profile = () => {
       message: ''
     }
   });
+
+  // Watch residencia_id to fetch condominiums when it changes
+  const selectedResidenciaId = profileForm.watch('residencia_id');
+  
+  // Fetch residencias and condominiums
+  const { data: residencias, isLoading: isLoadingResidencias } = useResidencias();
+  const { data: condominiums, isLoading: isLoadingCondominiums } = useCondominiums(selectedResidenciaId);
+
+  // Reset condominium when residencia changes
+  useEffect(() => {
+    if (selectedResidenciaId !== profileData?.residencia_id) {
+      profileForm.setValue('condominium_id', '');
+    }
+  }, [selectedResidenciaId, profileForm, profileData?.residencia_id]);
 
   // Cargar datos actualizados del perfil
   useEffect(() => {
@@ -86,7 +109,10 @@ const Profile = () => {
             profileForm.reset({
               name: profileDataResult.name || '',
               email: profileDataResult.email || '',
-              phone: profileDataResult.phone || ''
+              phone: profileDataResult.phone || '',
+              residencia_id: profileDataResult.residencia_id || '',
+              condominium_id: profileDataResult.condominium_id || '',
+              house_number: profileDataResult.house_number || ''
             });
             
             const avatarToUse = profileDataResult.avatarUrl || profileDataResult.avatar_url || '';
@@ -102,7 +128,10 @@ const Profile = () => {
             profileForm.reset({
               name: user.name || '',
               email: user.email || '',
-              phone: user.phone || ''
+              phone: user.phone || '',
+              residencia_id: user.residenciaId || '',
+              condominium_id: user.condominiumId || '',
+              house_number: user.houseNumber || ''
             });
             setCurrentAvatarUrl(user.avatarUrl || '');
           }
@@ -117,7 +146,10 @@ const Profile = () => {
           profileForm.reset({
             name: user.name || '',
             email: user.email || '',
-            phone: user.phone || ''
+            phone: user.phone || '',
+            residencia_id: user.residenciaId || '',
+            condominium_id: user.condominiumId || '',
+            house_number: user.houseNumber || ''
           });
           setCurrentAvatarUrl(user.avatarUrl || '');
         } finally {
@@ -138,10 +170,19 @@ const Profile = () => {
       console.log('=== Submitting Profile Data ===');
       console.log('Values to submit:', values);
       
-      const result = await updateUserProfile(user.id, { 
-        ...values, 
-        role: user.role 
-      });
+      // Prepare data for update
+      const updateData = {
+        ...values,
+        role: user.role,
+        // Ensure proper UUID format or null
+        residencia_id: values.residencia_id || null,
+        condominium_id: values.condominium_id || null,
+        house_number: values.house_number || null
+      };
+      
+      console.log('Final update data:', updateData);
+      
+      const result = await updateUserProfile(user.id, updateData);
       
       if (result.success) {
         toast({
@@ -150,6 +191,12 @@ const Profile = () => {
         });
         
         updateContextAvatar(currentAvatarUrl);
+        
+        // Refresh profile data
+        const refreshedProfile = await fetchUserProfile(user.id, user.role);
+        if (refreshedProfile) {
+          setProfileData(refreshedProfile);
+        }
       } else {
         throw new Error(result.error || 'Error al actualizar el perfil');
       }
@@ -373,6 +420,92 @@ const Profile = () => {
                             </FormItem>
                           )}
                         />
+
+                        {/* Location fields for clients */}
+                        {user.role === 'client' && (
+                          <>
+                            <FormField
+                              control={profileForm.control}
+                              name="residencia_id"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Residencia</FormLabel>
+                                  <Select 
+                                    onValueChange={field.onChange} 
+                                    value={field.value}
+                                    disabled={isLoadingResidencias}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={isLoadingResidencias ? "Cargando residencias..." : "Selecciona tu residencia"} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {residencias?.map((residencia) => (
+                                        <SelectItem key={residencia.id} value={residencia.id}>
+                                          {residencia.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={profileForm.control}
+                              name="condominium_id"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Condominio (opcional)</FormLabel>
+                                  <Select 
+                                    onValueChange={field.onChange} 
+                                    value={field.value}
+                                    disabled={!selectedResidenciaId || isLoadingCondominiums}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue 
+                                          placeholder={
+                                            !selectedResidenciaId 
+                                              ? "Primero selecciona una residencia" 
+                                              : isLoadingCondominiums 
+                                                ? "Cargando condominios..." 
+                                                : "Selecciona tu condominio (opcional)"
+                                          } 
+                                        />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="">Sin condominio</SelectItem>
+                                      {condominiums?.map((condominium) => (
+                                        <SelectItem key={condominium.id} value={condominium.id}>
+                                          {condominium.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={profileForm.control}
+                              name="house_number"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Número de casa</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Ej: 123, A-5, Lote 10" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        )}
                         
                         <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
                           {isLoading ? "Guardando..." : "Guardar cambios"}
