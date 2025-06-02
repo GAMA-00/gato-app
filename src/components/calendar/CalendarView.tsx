@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -312,6 +313,7 @@ interface CalendarDayProps {
   isCurrentMonth: boolean;
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
+  blockedSlots: BlockedTimeSlot[];
 }
 
 const CalendarDay: React.FC<CalendarDayProps> = ({
@@ -319,7 +321,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   appointments,
   isCurrentMonth,
   expandedId,
-  setExpandedId
+  setExpandedId,
+  blockedSlots
 }) => {
   // Filter appointments for this day - include all appointments (internal and external)
   const dayAppointments = appointments.filter(appointment => {
@@ -344,7 +347,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     return isSameDate && isNotCancelledOrRejected;
   });
 
-  // Get blocked time slots for this day using the prop instead of mock data
+  // Get blocked time slots for this day
   const dayOfWeek = date.getDay();
   const dayBlockedSlots = blockedSlots.filter(slot => {
     // Show blocked slots if they apply to this day
@@ -561,6 +564,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               isCurrentMonth={day.getMonth() === currentMonth}
               expandedId={expandedId}
               setExpandedId={setExpandedId}
+              blockedSlots={blockedSlots}
             />
           ))}
         </div>
