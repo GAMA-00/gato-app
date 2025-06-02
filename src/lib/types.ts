@@ -110,6 +110,7 @@ export interface BlockedTimeSlot {
   endHour: number;
   note?: string;
   isRecurring: boolean;
+  recurrenceType?: 'weekly' | 'daily';
   createdAt: Date;
 }
 
