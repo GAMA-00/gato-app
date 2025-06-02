@@ -464,6 +464,7 @@ export type Database = {
           average_rating: number | null
           certification_files: Json | null
           condominium_id: string | null
+          condominium_text: string | null
           created_at: string | null
           email: string | null
           experience_years: number | null
@@ -481,6 +482,7 @@ export type Database = {
           average_rating?: number | null
           certification_files?: Json | null
           condominium_id?: string | null
+          condominium_text?: string | null
           created_at?: string | null
           email?: string | null
           experience_years?: number | null
@@ -498,6 +500,7 @@ export type Database = {
           average_rating?: number | null
           certification_files?: Json | null
           condominium_id?: string | null
+          condominium_text?: string | null
           created_at?: string | null
           email?: string | null
           experience_years?: number | null

@@ -76,7 +76,7 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     const result = {
       ...data,
       buildingName,
-      condominiumName: data.condominium_text || '', // Usar condominium_text como condominiumName
+      condominiumName: data.condominium_text || '', // Use condominium_text from database
       houseNumber: data.house_number || '',
       avatarUrl: finalAvatarUrl
     };
