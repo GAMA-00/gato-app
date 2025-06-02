@@ -45,12 +45,14 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
       icon: CalendarClock, 
       label: 'Reservas', 
       badge: hasUnreadMessages,
-      customBadge: recurringServicesCount > 0 ? (
+      customBadge: (
         <div className="absolute -top-1 -right-1 flex items-center justify-center">
           <Flame className="h-3.5 w-3.5 text-destructive" />
-          <span className="absolute text-[9px] font-bold text-destructive">{Math.min(recurringServicesCount, 5)}</span>
+          <span className="absolute text-[9px] font-bold text-destructive">
+            {recurringServicesCount || 0}
+          </span>
         </div>
-      ) : null
+      )
     },
     { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];

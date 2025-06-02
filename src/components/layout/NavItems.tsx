@@ -42,11 +42,12 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
   const clientNavItems: NavItemType[] = [
     { to: '/client', icon: Briefcase, label: 'Servicios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas', 
-      customBadge: recurringServicesCount > 0 ? 
+      customBadge: (
         <span className="flex items-center text-red-500">
           <Flame className="h-3 w-3 mr-0.5" />
-          <span className="text-xs font-medium">{Math.min(recurringServicesCount, 5)}</span>
-        </span> : null 
+          <span className="text-xs font-medium">{recurringServicesCount || 0}</span>
+        </span>
+      )
     },
     { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
   ];

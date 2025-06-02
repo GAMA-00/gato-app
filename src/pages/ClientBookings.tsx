@@ -264,12 +264,10 @@ const ClientBookings = () => {
       title={
         <div className="flex items-center gap-2">
           <span>Mis Reservas</span>
-          {recurringServicesCount > 0 && (
-            <div className="flex items-center text-red-500">
-              <Flame className="h-5 w-5" />
-              <span className="font-medium ml-0.5">{Math.min(recurringServicesCount, 5)}</span>
-            </div>
-          )}
+          <div className="flex items-center text-red-500">
+            <Flame className="h-5 w-5" />
+            <span className="font-medium ml-0.5">{recurringServicesCount || 0}</span>
+          </div>
         </div>
       }
       subtitle="Ver y administrar tus citas"
