@@ -57,17 +57,42 @@ export function useCalendarAppointments(currentDate: Date) {
             .map(app => app.client_id))];
           
           let clientNameMap: Record<string, string> = {};
+          let clientLocationMap: Record<string, any> = {};
           
           if (clientIds.length > 0) {
             const { data: clients, error: clientsError } = await supabase
               .from('users')
-              .select('id, name')
+              .select(`
+                id, 
+                name, 
+                house_number,
+                residencias:residencia_id (
+                  id,
+                  name
+                ),
+                condominiums:condominium_id (
+                  id,
+                  name
+                )
+              `)
               .in('id', clientIds)
               .eq('role', 'client');
               
             if (!clientsError && clients) {
               clientNameMap = Object.fromEntries(
                 clients.map(client => [client.id, client.name])
+              );
+              
+              // Create location map with complete address information
+              clientLocationMap = Object.fromEntries(
+                clients.map(client => [
+                  client.id, 
+                  {
+                    residencia: client.residencias?.name || '',
+                    condominium: client.condominiums?.name || '',
+                    houseNumber: client.house_number || ''
+                  }
+                ])
               );
             }
           }
@@ -77,10 +102,26 @@ export function useCalendarAppointments(currentDate: Date) {
             if (app.external_booking) {
               // For external bookings, use the stored client_name directly from the appointment
               (app as any).client_name = app.client_name || 'Cliente Externo';
+              (app as any).client_location = app.client_address || 'Ubicación no especificada';
               console.log(`External appointment ${app.id} client_name: "${app.client_name}"`);
             } else {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
+              
+              // Build location string for internal bookings
+              const location = clientLocationMap[app.client_id];
+              if (location) {
+                const locationParts = [];
+                if (location.residencia) locationParts.push(location.residencia);
+                if (location.condominium) locationParts.push(location.condominium);
+                if (location.houseNumber) locationParts.push(`#${location.houseNumber}`);
+                
+                (app as any).client_location = locationParts.length > 0 
+                  ? locationParts.join(' - ') 
+                  : 'Ubicación no especificada';
+              } else {
+                (app as any).client_location = 'Ubicación no especificada';
+              }
             }
           });
           

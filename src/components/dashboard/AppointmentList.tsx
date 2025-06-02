@@ -112,14 +112,20 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return appointment.listings?.title || 'Servicio';
   };
 
-  // Enhanced location info function
+  // Enhanced location info function using the new client_location field
   const getLocationInfo = (appointment: any) => {
-    let locationInfo = [];
+    // Use the client_location field that's populated by the hooks
+    if (appointment.client_location) {
+      return appointment.client_location;
+    }
     
-    // For external bookings, use client_address if available
+    // Legacy fallback for external bookings
     if ((appointment.is_external || appointment.external_booking) && appointment.client_address) {
       return appointment.client_address;
     }
+    
+    // Legacy fallback for internal bookings using apartment field
+    let locationInfo = [];
     
     // Add residencia name if available
     if (appointment.residencias?.name) {
@@ -133,7 +139,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     
     return locationInfo.length > 0 
       ? locationInfo.join(' - ') 
-      : 'Sin ubicación específica';
+      : 'Ubicación no especificada';
   };
 
   // Enhanced contact info function

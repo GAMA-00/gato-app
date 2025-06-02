@@ -113,20 +113,20 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       .toUpperCase();
   };
 
-  // Helper function to get location info
+  // Helper function to get location info with new format
   const getLocationInfo = (request: any) => {
-    // For external bookings, prioritize client_address
+    // Use the client_location field that's populated by the hooks
+    if (request.client_location) {
+      return request.client_location;
+    }
+    
+    // Legacy fallback for external bookings
     if (request.is_external && request.client_address) {
       return request.client_address;
     }
     
-    // For internal bookings or fallback
-    let locationParts = [];
-    if (request.apartment) {
-      locationParts.push(`Apt ${request.apartment}`);
-    }
-    
-    return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
+    // Final fallback
+    return 'Ubicación no especificada';
   };
 
   return (
