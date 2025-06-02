@@ -1,13 +1,10 @@
 
 import React from 'react';
-import { Menu, Repeat2, LogIn } from 'lucide-react';
+import { Menu, Repeat2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
 import UserInfo from './UserInfo';
-import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 interface MobileNavProps {
   isClientSection: boolean;
@@ -15,9 +12,7 @@ interface MobileNavProps {
 }
 
 const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
-  const { hasUnreadMessages } = useChat();
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   
   return (
     <div className="w-full h-16 fixed top-0 left-0 z-50 border-b bg-white py-2 px-4 flex items-center justify-between">
@@ -38,9 +33,6 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
               className="relative bg-white text-black border border-gray-100 rounded-lg shadow-sm"
             >
               <Menu className="h-5 w-5" />
-              {hasUnreadMessages && (
-                <Badge variant="destructive" className="absolute -top-1 -right-1 h-2 w-2 p-0" />
-              )}
               <span className="sr-only">Menú de usuario</span>
             </Button>
           </SheetTrigger>
@@ -51,8 +43,6 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
                 {isClientSection ? 'Portal de Cliente' : 'Administración de Calendario'}
               </p>
             </div>
-            
-            {/* Removed the duplicate login button that was here */}
             
             <Button 
               variant="outline"

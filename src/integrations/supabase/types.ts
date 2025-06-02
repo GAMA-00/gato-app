@@ -116,39 +116,6 @@ export type Database = {
         }
         Relationships: []
       }
-      chat_messages: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          id: string
-          is_image: boolean | null
-          read: boolean | null
-          receiver_id: string
-          sender_id: string
-        }
-        Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          is_image?: boolean | null
-          read?: boolean | null
-          receiver_id: string
-          sender_id: string
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          is_image?: boolean | null
-          read?: boolean | null
-          receiver_id?: string
-          sender_id?: string
-        }
-        Relationships: []
-      }
       condominiums: {
         Row: {
           created_at: string
@@ -177,36 +144,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      conversations: {
-        Row: {
-          client_id: string
-          created_at: string
-          id: string
-          last_message: string | null
-          last_message_time: string | null
-          provider_id: string
-          unread_count: number | null
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          id: string
-          last_message?: string | null
-          last_message_time?: string | null
-          provider_id: string
-          unread_count?: number | null
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          id?: string
-          last_message?: string | null
-          last_message_time?: string | null
-          provider_id?: string
-          unread_count?: number | null
-        }
-        Relationships: []
       }
       listing_residencias: {
         Row: {

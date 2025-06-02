@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar, Home, Briefcase, CalendarClock, Award, MessageSquare, Users, Flame } from 'lucide-react';
+import { Calendar, Home, Briefcase, CalendarClock, Award, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NavItem from './NavItem';
-import { useChat } from '@/contexts/ChatContext';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
 
@@ -26,16 +25,13 @@ interface NavItemType {
 
 const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) => {
   const location = useLocation();
-  const { hasUnreadMessages } = useChat();
   const { count: recurringServicesCount } = useRecurringServices();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
   
-  // Remove "Clientes" from providerNavItems
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
@@ -48,21 +44,12 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
           <span className="text-xs font-medium">{recurringServicesCount || 0}</span>
         </span>
       )
-    },
-    { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
+    }
   ];
   
   const navItems = isClientSection ? clientNavItems : providerNavItems;
 
   const isNavItemActive = (itemPath: string) => {
-    if (itemPath === '/messages' && location.pathname === '/messages') {
-      return true;
-    }
-    
-    if (itemPath === '/client/messages' && location.pathname === '/client/messages') {
-      return true;
-    }
-    
     if (isClientSection) {
       if (itemPath === '/client') {
         return location.pathname === '/client';

@@ -9,14 +9,11 @@ import Calendar from "./pages/Calendar";
 import Services from "./pages/Services";
 import Clients from "./pages/Clients";
 import Achievements from "./pages/Achievements";
-import Messages from "./pages/Messages";
-import ClientMessages from "./pages/ClientMessages";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PaymentSetup from "./pages/PaymentSetup";
 import Profile from "./pages/Profile";
-import { ChatProvider } from "./contexts/ChatContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/auth/RequireAuth";
 import ClientProvidersList from "./pages/ClientProvidersList";
@@ -78,11 +75,6 @@ const AppRoutes = () => {
             <Services />
           </RequireAuth>
         } />
-        <Route path="/messages" element={
-          <RequireAuth providerOnly={true} strictAuth={true}>
-            <Messages />
-          </RequireAuth>
-        } />
         <Route path="/achievements" element={
           <RequireAuth providerOnly={true}>
             <Achievements />
@@ -112,11 +104,6 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         <Route path="/client/bookings" element={<ClientBookings />} />
-        <Route path="/client/messages" element={
-          <RequireAuth clientOnly={true} strictAuth={true}>
-            <ClientMessages />
-          </RequireAuth>
-        } />
         
         {/* Not found */}
         <Route path="*" element={<NotFound />} />
@@ -131,11 +118,9 @@ const App = () => {
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <ChatProvider>
-            <AppRoutes />
-            <Toaster />
-            <Sonner />
-          </ChatProvider>
+          <AppRoutes />
+          <Toaster />
+          <Sonner />
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>

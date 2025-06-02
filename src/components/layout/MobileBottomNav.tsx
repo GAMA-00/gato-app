@@ -1,10 +1,8 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, MessageSquare, Award, Flame } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, Award, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useChat } from '@/contexts/ChatContext';
-import { Badge } from '@/components/ui/badge';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
 
@@ -25,16 +23,13 @@ interface NavItemType {
 const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasUnreadMessages } = useChat();
   const { count: recurringServicesCount } = useRecurringServices();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
 
-  // Remove "Clientes" from providerNavItems
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
@@ -44,7 +39,6 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
       to: '/client/bookings', 
       icon: CalendarClock, 
       label: 'Reservas', 
-      badge: hasUnreadMessages,
       customBadge: (
         <div className="absolute -top-1 -right-1 flex items-center justify-center">
           <Flame className="h-3.5 w-3.5 text-destructive" />
@@ -53,21 +47,12 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
           </span>
         </div>
       )
-    },
-    { to: '/client/messages', icon: MessageSquare, label: 'Mensajes', badge: hasUnreadMessages }
+    }
   ];
 
   const navItems = isClientSection ? clientNavItems : providerNavItems;
 
   const isNavItemActive = (itemPath: string) => {
-    if (itemPath === '/messages' && location.pathname === '/messages') {
-      return true;
-    }
-    
-    if (itemPath === '/client/messages' && location.pathname === '/client/messages') {
-      return true;
-    }
-    
     if (isClientSection) {
       if (itemPath === '/client') {
         return location.pathname === '/client';
@@ -122,12 +107,6 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
             >
               {item.label}
             </span>
-            {item.badge && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-2.5 w-2.5 p-0" 
-              />
-            )}
             {item.customBadge}
           </button>
         ))}
