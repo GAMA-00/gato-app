@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -177,7 +178,7 @@ export function useCalendarAppointments(currentDate: Date) {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists and is different from residencia
+                // Add condominium if it exists
                 if (location.condominium && location.condominium.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
@@ -229,7 +230,7 @@ export function useCalendarAppointments(currentDate: Date) {
               recurrence: app.recurrence,
               title: app.listings?.title,
               is_external: app.is_external,
-              client_name: app.client_name
+              client_name: (app as any).client_name
             });
             return acc;
           }, {} as Record<string, any[]>);
@@ -246,7 +247,7 @@ export function useCalendarAppointments(currentDate: Date) {
           if (externalApps.length > 0) {
             console.log("External appointments in calendar:");
             externalApps.forEach(app => {
-              console.log(`  - ${app.id}: Client "${app.client_name}" at ${new Date(app.start_time).toLocaleString()}`);
+              console.log(`  - ${app.id}: Client "${(app as any).client_name}" at ${new Date(app.start_time).toLocaleString()}`);
             });
           }
           
@@ -255,7 +256,7 @@ export function useCalendarAppointments(currentDate: Date) {
           if (internalApps.length > 0) {
             console.log("Internal appointments in calendar with locations:");
             internalApps.forEach(app => {
-              console.log(`  - ${app.id}: Client "${app.client_name}" at "${app.client_location}"`);
+              console.log(`  - ${app.id}: Client "${(app as any).client_name}" at "${(app as any).client_location}"`);
             });
           }
           

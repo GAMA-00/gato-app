@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -181,7 +182,7 @@ export function useAppointments() {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists and is different from residencia
+                // Add condominium if it exists
                 if (location.condominium && location.condominium.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
@@ -230,7 +231,7 @@ export function useAppointments() {
           if (externalApps.length > 0) {
             console.log("External appointments with client names:");
             externalApps.forEach(app => {
-              console.log(`  - ${app.id}: "${app.client_name}" (original: "${app.client_name}")`);
+              console.log(`  - ${app.id}: "${(app as any).client_name}" (original: "${app.client_name}")`);
             });
           }
           
@@ -239,7 +240,7 @@ export function useAppointments() {
           if (internalApps.length > 0) {
             console.log("Internal appointments with locations:");
             internalApps.forEach(app => {
-              console.log(`  - ${app.id}: "${app.client_name}" at "${app.client_location}"`);
+              console.log(`  - ${app.id}: "${(app as any).client_name}" at "${(app as any).client_location}"`);
             });
           }
           
