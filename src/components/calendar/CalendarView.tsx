@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -202,8 +203,9 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   const internalCount = dayAppointments.length - externalCount;
 
   return (
-    <div className="h-[900px] relative border-r last:border-r-0 calendar-day bg-white">
-      <div className="sticky top-0 py-2 text-center border-b z-10 bg-white">
+    <div className="relative border-r last:border-r-0 calendar-day bg-white flex flex-col">
+      {/* Fixed header */}
+      <div className="sticky top-0 py-2 text-center border-b z-10 bg-white flex-shrink-0">
         <div className={cn("text-xs uppercase tracking-wide mb-1", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
         </div>
@@ -230,32 +232,37 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         )}
       </div>
 
-      <div className="relative h-full bg-white">
+      {/* Time slots container with fixed height per hour */}
+      <div className="relative flex-1">
         {hours.map((hour) => (
-          <div key={hour} className="border-b h-[60px] relative">
-            <div className="absolute left-1 -top-3 text-xs text-muted-foreground select-none bg-white py-0 px-1">
+          <div key={hour} className="relative h-[60px] border-b border-gray-200">
+            <div className="absolute left-1 top-0 text-xs text-muted-foreground select-none bg-white py-0 px-1 leading-none">
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
         ))}
-        {dayAppointments.map(appointment => {
-          console.log(`Rendering appointment for ${date.toDateString()}:`, {
-            id: appointment.id,
-            scheduled_time: new Date(appointment.start_time).toLocaleTimeString(),
-            recurrence: appointment.recurrence,
-            client: appointment.client_name,
-            service: appointment.listings?.title,
-            is_external: appointment.is_external || appointment.external_booking
-          });
-          return (
-            <CalendarAppointment
-              key={appointment.id}
-              appointment={appointment}
-              expanded={expandedId === appointment.id}
-              onClick={() => setExpandedId(expandedId === appointment.id ? null : appointment.id)}
-            />
-          );
-        })}
+        
+        {/* Appointments overlay */}
+        <div className="absolute inset-0">
+          {dayAppointments.map(appointment => {
+            console.log(`Rendering appointment for ${date.toDateString()}:`, {
+              id: appointment.id,
+              scheduled_time: new Date(appointment.start_time).toLocaleTimeString(),
+              recurrence: appointment.recurrence,
+              client: appointment.client_name,
+              service: appointment.listings?.title,
+              is_external: appointment.is_external || appointment.external_booking
+            });
+            return (
+              <CalendarAppointment
+                key={appointment.id}
+                appointment={appointment}
+                expanded={expandedId === appointment.id}
+                onClick={() => setExpandedId(expandedId === appointment.id ? null : appointment.id)}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -355,18 +362,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
       </div>
+      
       <div className="overflow-auto max-h-[calc(100vh-200px)] bg-white">
-        <div className="flex min-w-[700px]">
+        <div className="grid grid-cols-7 min-w-[700px]">
           {days.map((day, index) => (
-            <div key={index} className="flex-1">
-              <CalendarDay 
-                date={day} 
-                appointments={appointments}
-                isCurrentMonth={day.getMonth() === currentMonth}
-                expandedId={expandedId}
-                setExpandedId={setExpandedId}
-              />
-            </div>
+            <CalendarDay 
+              key={index}
+              date={day} 
+              appointments={appointments}
+              isCurrentMonth={day.getMonth() === currentMonth}
+              expandedId={expandedId}
+              setExpandedId={setExpandedId}
+            />
           ))}
         </div>
       </div>
