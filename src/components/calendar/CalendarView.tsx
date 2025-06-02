@@ -344,9 +344,9 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     return isSameDate && isNotCancelledOrRejected;
   });
 
-  // Get blocked time slots for this day
+  // Get blocked time slots for this day using the prop instead of mock data
   const dayOfWeek = date.getDay();
-  const dayBlockedSlots = MOCK_BLOCKED_SLOTS.filter(slot => {
+  const dayBlockedSlots = blockedSlots.filter(slot => {
     // Show blocked slots if they apply to this day
     return slot.day === dayOfWeek || slot.day === -1; // -1 means all days (daily recurrence)
   });
@@ -450,12 +450,14 @@ interface CalendarViewProps {
   appointments: any[];
   currentDate?: Date;
   onDateChange?: (date: Date) => void;
+  blockedSlots?: BlockedTimeSlot[];
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ 
   appointments, 
   currentDate: propCurrentDate,
-  onDateChange 
+  onDateChange,
+  blockedSlots = []
 }) => {
   const [internalCurrentDate, setInternalCurrentDate] = useState(new Date());
   const [expandedId, setExpandedId] = useState<string | null>(null);

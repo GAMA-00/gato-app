@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -30,8 +31,15 @@ const hours = Array.from({ length: 13 }, (_, i) => {
   };
 });
 
-const BlockedTimeSlots: React.FC = () => {
-  const [blockedSlots, setBlockedSlots] = useState<BlockedTimeSlot[]>([]);
+interface BlockedTimeSlotsProps {
+  blockedSlots: BlockedTimeSlot[];
+  onBlockedSlotsChange: (slots: BlockedTimeSlot[]) => void;
+}
+
+const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({ 
+  blockedSlots, 
+  onBlockedSlotsChange 
+}) => {
   const [showForm, setShowForm] = useState(false);
   
   const [day, setDay] = useState<string>('1');
@@ -66,7 +74,7 @@ const BlockedTimeSlots: React.FC = () => {
         createdAt: new Date()
       };
       
-      setBlockedSlots([...blockedSlots, newSlot]);
+      onBlockedSlotsChange([...blockedSlots, newSlot]);
       toast({
         title: 'Horarios bloqueados',
         description: 'El horario ha sido bloqueado para todos los días de la semana.'
@@ -84,7 +92,7 @@ const BlockedTimeSlots: React.FC = () => {
         createdAt: new Date()
       };
       
-      setBlockedSlots([...blockedSlots, newSlot]);
+      onBlockedSlotsChange([...blockedSlots, newSlot]);
       toast({
         title: 'Horario bloqueado',
         description: 'El horario ha sido bloqueado exitosamente.'
@@ -98,7 +106,8 @@ const BlockedTimeSlots: React.FC = () => {
   };
 
   const handleRemoveBlock = (id: string) => {
-    setBlockedSlots(blockedSlots.filter(slot => slot.id !== id));
+    const updatedSlots = blockedSlots.filter(slot => slot.id !== id);
+    onBlockedSlotsChange(updatedSlots);
     toast({
       title: 'Horario desbloqueado',
       description: 'El horario ha sido desbloqueado exitosamente.'
