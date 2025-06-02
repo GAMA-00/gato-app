@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +7,8 @@ import CalendarView from '@/components/calendar/CalendarView';
 import JobRequests from '@/components/calendar/JobRequests';
 import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
 import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
+import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useAuth } from '@/contexts/AuthContext';
-import { BlockedTimeSlot } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,35 +19,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
 
-// Initial blocked time slots
-const INITIAL_BLOCKED_SLOTS: BlockedTimeSlot[] = [
-  {
-    id: '1',
-    day: -1, // All days
-    startHour: 12,
-    endHour: 13,
-    note: 'Almuerzo',
-    isRecurring: true,
-    recurrenceType: 'daily',
-    createdAt: new Date()
-  },
-  {
-    id: '2',
-    day: 3, // Wednesday only
-    startHour: 9,
-    endHour: 11,
-    note: 'Reunión semanal',
-    isRecurring: true,
-    recurrenceType: 'weekly',
-    createdAt: new Date()
-  }
-];
-
 const Calendar = () => {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [showCompleted, setShowCompleted] = useState(true);
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
-  const [blockedSlots, setBlockedSlots] = useState<BlockedTimeSlot[]>(INITIAL_BLOCKED_SLOTS);
+  const { blockedSlots } = useBlockedTimeSlots();
   const { data: appointments = [], isLoading } = useCalendarAppointments(currentCalendarDate);
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
@@ -141,12 +118,7 @@ const Calendar = () => {
         {/* Always render JobRequests for providers */}
         <JobRequests />
         
-        {showBlockedTimeSlots && (
-          <BlockedTimeSlots 
-            blockedSlots={blockedSlots}
-            onBlockedSlotsChange={setBlockedSlots}
-          />
-        )}
+        {showBlockedTimeSlots && <BlockedTimeSlots />}
         
         <CalendarView 
           appointments={filteredAppointments} 

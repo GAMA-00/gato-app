@@ -95,6 +95,64 @@ export type Database = {
           },
         ]
       }
+      blocked_time_slots: {
+        Row: {
+          created_at: string | null
+          day: number
+          end_hour: number
+          id: string
+          is_recurring: boolean | null
+          note: string | null
+          provider_id: string
+          recurrence_type: string | null
+          start_hour: number
+        }
+        Insert: {
+          created_at?: string | null
+          day: number
+          end_hour: number
+          id?: string
+          is_recurring?: boolean | null
+          note?: string | null
+          provider_id: string
+          recurrence_type?: string | null
+          start_hour: number
+        }
+        Update: {
+          created_at?: string | null
+          day?: number
+          end_hour?: number
+          id?: string
+          is_recurring?: boolean | null
+          note?: string | null
+          provider_id?: string
+          recurrence_type?: string | null
+          start_hour?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_time_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_time_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_time_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cancellation_policies: {
         Row: {
           created_at: string

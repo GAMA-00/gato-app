@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { X, Plus, Clock, Trash2 } from 'lucide-react';
+import { Plus, Clock, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,15 +43,8 @@ const hours = Array.from({ length: 13 }, (_, i) => {
   };
 });
 
-interface BlockedTimeSlotsProps {
-  blockedSlots: BlockedTimeSlot[];
-  onBlockedSlotsChange: (slots: BlockedTimeSlot[]) => void;
-}
-
-const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({ 
-  blockedSlots, 
-  onBlockedSlotsChange 
-}) => {
+const BlockedTimeSlots: React.FC = () => {
+  const { blockedSlots, isLoading, addBlockedSlot, deleteBlockedSlot } = useBlockedTimeSlots();
   const [showForm, setShowForm] = useState(false);
   
   const [day, setDay] = useState<string>('1');
@@ -59,7 +53,7 @@ const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({
   const [note, setNote] = useState<string>('');
   const [recurrenceType, setRecurrenceType] = useState<'weekly' | 'daily'>('weekly');
 
-  const handleAddBlock = () => {
+  const handleAddBlock = async () => {
     const start = parseInt(startHour);
     const end = parseInt(endHour);
     
@@ -72,57 +66,46 @@ const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({
       return;
     }
     
-    if (recurrenceType === 'daily') {
-      // Create a single blocked slot that represents all days
-      const newSlot: BlockedTimeSlot = {
-        id: Date.now().toString(),
-        day: -1, // Special value to indicate all days
-        startHour: start,
-        endHour: end,
-        note: note.trim() || undefined,
-        isRecurring: true,
-        recurrenceType: 'daily',
-        createdAt: new Date()
-      };
-      
-      onBlockedSlotsChange([...blockedSlots, newSlot]);
-      toast({
-        title: 'Horarios bloqueados',
-        description: 'El horario ha sido bloqueado para todos los días de la semana.'
-      });
-    } else {
-      // Create blocked slot for selected day only (weekly recurrence)
-      const newSlot: BlockedTimeSlot = {
-        id: Date.now().toString(),
-        day: parseInt(day),
-        startHour: start,
-        endHour: end,
-        note: note.trim() || undefined,
-        isRecurring: true,
-        recurrenceType: 'weekly',
-        createdAt: new Date()
-      };
-      
-      onBlockedSlotsChange([...blockedSlots, newSlot]);
-      toast({
-        title: 'Horario bloqueado',
-        description: 'El horario ha sido bloqueado exitosamente.'
-      });
-    }
+    const newSlot = {
+      day: recurrenceType === 'daily' ? -1 : parseInt(day), // -1 for all days
+      startHour: start,
+      endHour: end,
+      note: note.trim() || undefined,
+      isRecurring: true,
+      recurrenceType: recurrenceType
+    };
     
-    // Reset form
-    setShowForm(false);
-    setNote('');
-    setRecurrenceType('weekly');
+    const success = await addBlockedSlot(newSlot);
+    
+    if (success) {
+      if (recurrenceType === 'daily') {
+        toast({
+          title: 'Horarios bloqueados',
+          description: 'El horario ha sido bloqueado para todos los días de la semana.'
+        });
+      } else {
+        toast({
+          title: 'Horario bloqueado',
+          description: 'El horario ha sido bloqueado exitosamente.'
+        });
+      }
+      
+      // Reset form
+      setShowForm(false);
+      setNote('');
+      setRecurrenceType('weekly');
+    }
   };
 
-  const handlePermanentDelete = (id: string) => {
-    const updatedSlots = blockedSlots.filter(slot => slot.id !== id);
-    onBlockedSlotsChange(updatedSlots);
-    toast({
-      title: 'Bloqueo eliminado permanentemente',
-      description: 'El horario ha sido desbloqueado de manera permanente y está disponible en la agenda.'
-    });
+  const handlePermanentDelete = async (id: string, slotNote?: string) => {
+    const success = await deleteBlockedSlot(id);
+    
+    if (success) {
+      toast({
+        title: 'Bloqueo eliminado permanentemente',
+        description: 'El horario ha sido desbloqueado de manera permanente y está disponible en la agenda.'
+      });
+    }
   };
 
   const getDayLabel = (dayNum: number) => {
@@ -142,6 +125,23 @@ const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({
     }
     return '';
   };
+
+  if (isLoading) {
+    return (
+      <Card className="glassmorphism">
+        <CardHeader>
+          <CardTitle>Horarios Bloqueados</CardTitle>
+          <CardDescription>Cargando...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="glassmorphism">
@@ -310,7 +310,7 @@ const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={() => handlePermanentDelete(slot.id)}
+                          onClick={() => handlePermanentDelete(slot.id, slot.note)}
                           className="bg-red-600 hover:bg-red-700 text-white"
                         >
                           Eliminar Permanentemente
