@@ -113,10 +113,11 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       .toUpperCase();
   };
 
-  // Helper function to get location info with new format
+  // Updated function to use the client_location field from the hooks
   const getLocationInfo = (request: any) => {
-    // Use the client_location field that's populated by the hooks
-    if (request.client_location) {
+    // Use the client_location field that's already populated by the useAppointments hook
+    if (request.client_location && request.client_location !== 'Ubicación no especificada') {
+      console.log(`JobRequests - Using client_location for request ${request.id}: "${request.client_location}"`);
       return request.client_location;
     }
     
@@ -167,7 +168,8 @@ const JobRequests: React.FC<JobRequestsProps> = ({
             {pendingRequests.map((request: any) => {
               const clientName = getClientName(request);
               const isExternal = request.is_external || request.external_booking;
-              console.log(`Rendering request ${request.id}: clientName="${clientName}", isExternal=${isExternal}`);
+              const locationInfo = getLocationInfo(request);
+              console.log(`Rendering request ${request.id}: clientName="${clientName}", isExternal=${isExternal}, location="${locationInfo}"`);
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
@@ -222,7 +224,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                           </TableCell>
                           <TableCell className="p-1 text-sm">
                             <div className="font-medium">
-                              {getLocationInfo(request)}
+                              {locationInfo}
                             </div>
                           </TableCell>
                         </TableRow>
