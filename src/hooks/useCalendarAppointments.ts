@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,7 +82,7 @@ export function useCalendarAppointments(currentDate: Date) {
                 clients.map(client => [client.id, client.name])
               );
               
-              // Create location map with complete address information
+              // Create location map with complete address information including condominium
               clientLocationMap = Object.fromEntries(
                 clients.map(client => [
                   client.id, 
@@ -108,7 +107,7 @@ export function useCalendarAppointments(currentDate: Date) {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
               
-              // Build location string for internal bookings
+              // Build location string for internal bookings with proper condominium handling
               const location = clientLocationMap[app.client_id];
               if (location) {
                 const locationParts = [];
