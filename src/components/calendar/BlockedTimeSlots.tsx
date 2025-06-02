@@ -9,8 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { X, Plus, Clock } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { X, Plus, Clock, Trash2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const daysOfWeek = [
   { value: '0', label: 'Domingo' },
@@ -105,12 +116,12 @@ const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({
     setRecurrenceType('weekly');
   };
 
-  const handleRemoveBlock = (id: string) => {
+  const handlePermanentDelete = (id: string) => {
     const updatedSlots = blockedSlots.filter(slot => slot.id !== id);
     onBlockedSlotsChange(updatedSlots);
     toast({
-      title: 'Horario desbloqueado',
-      description: 'El horario ha sido desbloqueado exitosamente.'
+      title: 'Bloqueo eliminado permanentemente',
+      description: 'El horario ha sido desbloqueado de manera permanente y está disponible en la agenda.'
     });
   };
 
@@ -277,13 +288,37 @@ const BlockedTimeSlots: React.FC<BlockedTimeSlotsProps> = ({
                     </p>
                   </div>
                 </div>
-                <Button 
-                  onClick={() => handleRemoveBlock(slot.id)} 
-                  variant="ghost" 
-                  size="sm"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar bloqueo permanentemente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción eliminará permanentemente el bloqueo de horario "{slot.note || 'Horario Bloqueado'}" 
+                          y el tiempo volverá a estar disponible en tu agenda. Esta acción no se puede deshacer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handlePermanentDelete(slot.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Eliminar Permanentemente
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             ))}
           </div>
