@@ -12,28 +12,6 @@ import { Input } from '@/components/ui/input';
 import { X, Plus, Clock } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
-// Mock data for demonstration
-const MOCK_BLOCKED_SLOTS: BlockedTimeSlot[] = [
-  {
-    id: '1',
-    day: 1, // Monday
-    startHour: 12,
-    endHour: 14,
-    note: 'Almuerzo',
-    isRecurring: true,
-    createdAt: new Date()
-  },
-  {
-    id: '2',
-    day: 3, // Wednesday
-    startHour: 9,
-    endHour: 11,
-    note: 'Reunión semanal',
-    isRecurring: true,
-    createdAt: new Date()
-  }
-];
-
 const daysOfWeek = [
   { value: '0', label: 'Domingo' },
   { value: '1', label: 'Lunes' },
@@ -54,7 +32,7 @@ const hours = Array.from({ length: 13 }, (_, i) => {
 });
 
 const BlockedTimeSlots: React.FC = () => {
-  const [blockedSlots, setBlockedSlots] = useState<BlockedTimeSlot[]>(MOCK_BLOCKED_SLOTS);
+  const [blockedSlots, setBlockedSlots] = useState<BlockedTimeSlot[]>([]);
   const [showForm, setShowForm] = useState(false);
   
   const [day, setDay] = useState<string>('1');

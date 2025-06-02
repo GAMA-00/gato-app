@@ -349,9 +349,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     return isSameDate && isNotCancelledOrRejected;
   });
 
-  // Filter blocked time slots for this day of the week
-  const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const dayBlockedSlots = MOCK_BLOCKED_SLOTS.filter(slot => slot.day === dayOfWeek);
+  // No blocked time slots (removed mock data)
+  const dayBlockedSlots: BlockedTimeSlot[] = [];
   
   // Show hours from 6 AM to 8 PM
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, i) => i + CALENDAR_START_HOUR);
@@ -411,7 +410,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         
         {/* Appointments and blocked slots overlay with precise positioning */}
         <div className="absolute inset-0 top-0">
-          {/* Render blocked time slots */}
+          {/* Render blocked time slots (currently empty) */}
           {dayBlockedSlots.map(blockedSlot => (
             <BlockedTimeSlotComponent
               key={`blocked-${blockedSlot.id}`}
