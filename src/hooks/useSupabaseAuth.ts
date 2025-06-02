@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { UserRole } from '@/lib/types';
+import { useNavigate } from 'react-router-dom';
 import {
   checkPhoneUniqueness,
   checkEmailUniqueness
@@ -11,6 +12,7 @@ import {
 export const useSupabaseAuth = () => {
   const { login: setAuthUser, logout: clearAuthUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const signUp = async (email: string, password: string, userData: any) => {
     console.log('Starting registration process with email:', email);
@@ -280,6 +282,15 @@ export const useSupabaseAuth = () => {
         title: "¡Bienvenido!",
         description: "¡Bienvenido de nuevo!",
       });
+      
+      // Navigate based on user role
+      if (userData.role === 'client') {
+        navigate('/client');
+      } else if (userData.role === 'admin' || userData.role === 'provider') {
+        navigate('/dashboard');
+      } else {
+        navigate('/dashboard'); // Default fallback
+      }
       
       return { data: { user: userObj }, error: null };
     } catch (error: any) {

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -10,16 +11,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/hooks/use-toast";
 
-// Validation schema
+// Validation schema - removed role field
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  role: z.enum(['client', 'provider', 'admin'])
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -34,8 +33,7 @@ const Login = () => {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: '',
-      role: 'client'
+      password: ''
     }
   });
 
@@ -52,14 +50,8 @@ const Login = () => {
     }
     
     if (data && !error) {
-      // Navigate to the appropriate home page based on role
-      if (values.role === 'client') {
-        navigate('/client');
-      } else if (values.role === 'admin') {
-        navigate('/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      // The signIn function already handles role-based navigation
+      // No need to specify navigation here as it's handled in useSupabaseAuth
     }
     setIsLoading(false);
   };
@@ -183,49 +175,6 @@ const Login = () => {
                         {...field} 
                       />
                     </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Tipo de Cuenta</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="client" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Cliente - Busco servicios
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="provider" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Proveedor - Ofrezco servicios
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="admin" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Administrador - Gestión del sistema
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
