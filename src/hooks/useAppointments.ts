@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -182,8 +181,8 @@ export function useAppointments() {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists
-                if (location.condominium && location.condominium.trim()) {
+                // Add condominium if it exists (this is the critical part!)
+                if (location.condominium && location.condominium.trim() && location.condominium.trim() !== location.residencia?.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
                 
@@ -192,7 +191,7 @@ export function useAppointments() {
                   locationParts.push(`#${location.houseNumber.trim()}`);
                 }
                 
-                // Build the final location string
+                // Build the final location string - ensure we show all parts
                 const finalLocation = locationParts.length > 0 
                   ? locationParts.join(' - ') 
                   : 'Ubicación no especificada';
@@ -201,6 +200,7 @@ export function useAppointments() {
                 
                 console.log(`Final location for appointment ${app.id}: "${finalLocation}"`);
                 console.log(`Location parts used: [${locationParts.join(', ')}]`);
+                console.log(`Residencia: "${location.residencia}", Condominium: "${location.condominium}", House: "${location.houseNumber}"`);
               } else {
                 (app as any).client_location = 'Ubicación no especificada';
                 console.log(`No location data found for client ${app.client_id}`);

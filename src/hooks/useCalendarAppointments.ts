@@ -178,8 +178,8 @@ export function useCalendarAppointments(currentDate: Date) {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists
-                if (location.condominium && location.condominium.trim()) {
+                // Add condominium if it exists (key fix: ensure we include condominium!)
+                if (location.condominium && location.condominium.trim() && location.condominium.trim() !== location.residencia?.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
                 
@@ -188,7 +188,7 @@ export function useCalendarAppointments(currentDate: Date) {
                   locationParts.push(`#${location.houseNumber.trim()}`);
                 }
                 
-                // Build the final location string
+                // Build the final location string - ensure all parts are included
                 const finalLocation = locationParts.length > 0 
                   ? locationParts.join(' - ') 
                   : 'Ubicación no especificada';
@@ -197,6 +197,7 @@ export function useCalendarAppointments(currentDate: Date) {
                 
                 console.log(`Calendar - Final location for appointment ${app.id}: "${finalLocation}"`);
                 console.log(`Calendar - Location parts used: [${locationParts.join(', ')}]`);
+                console.log(`Calendar - Residencia: "${location.residencia}", Condominium: "${location.condominium}", House: "${location.houseNumber}"`);
               } else {
                 (app as any).client_location = 'Ubicación no especificada';
                 console.log(`Calendar - No location data found for client ${app.client_id}`);
