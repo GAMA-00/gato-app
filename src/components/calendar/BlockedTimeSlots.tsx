@@ -40,6 +40,7 @@ const BlockedTimeSlots: React.FC = () => {
   const [endHour, setEndHour] = useState<string>('10');
   const [note, setNote] = useState<string>('');
   const [isRecurring, setIsRecurring] = useState<boolean>(true);
+  const [recurrenceType, setRecurrenceType] = useState<'weekly' | 'daily'>('weekly');
 
   const handleAddBlock = () => {
     const start = parseInt(startHour);
@@ -54,26 +55,49 @@ const BlockedTimeSlots: React.FC = () => {
       return;
     }
     
-    const newSlot: BlockedTimeSlot = {
-      id: Date.now().toString(),
-      day: parseInt(day),
-      startHour: start,
-      endHour: end,
-      note: note.trim() || undefined,
-      isRecurring,
-      createdAt: new Date()
-    };
-    
-    setBlockedSlots([...blockedSlots, newSlot]);
-    toast({
-      title: 'Horario bloqueado',
-      description: 'El horario ha sido bloqueado exitosamente.'
-    });
+    if (recurrenceType === 'daily') {
+      // Create blocked slots for all days of the week
+      const newSlots = daysOfWeek.map(dayOption => ({
+        id: `${Date.now()}-${dayOption.value}`,
+        day: parseInt(dayOption.value),
+        startHour: start,
+        endHour: end,
+        note: note.trim() || undefined,
+        isRecurring: true,
+        recurrenceType: 'daily' as const,
+        createdAt: new Date()
+      }));
+      
+      setBlockedSlots([...blockedSlots, ...newSlots]);
+      toast({
+        title: 'Horarios bloqueados',
+        description: 'El horario ha sido bloqueado para todos los días de la semana.'
+      });
+    } else {
+      // Create blocked slot for selected day only (weekly recurrence)
+      const newSlot: BlockedTimeSlot = {
+        id: Date.now().toString(),
+        day: parseInt(day),
+        startHour: start,
+        endHour: end,
+        note: note.trim() || undefined,
+        isRecurring,
+        recurrenceType: isRecurring ? 'weekly' : undefined,
+        createdAt: new Date()
+      };
+      
+      setBlockedSlots([...blockedSlots, newSlot]);
+      toast({
+        title: 'Horario bloqueado',
+        description: 'El horario ha sido bloqueado exitosamente.'
+      });
+    }
     
     // Reset form
     setShowForm(false);
     setNote('');
     setIsRecurring(true);
+    setRecurrenceType('weekly');
   };
 
   const handleRemoveBlock = (id: string) => {
@@ -122,22 +146,54 @@ const BlockedTimeSlots: React.FC = () => {
         {showForm && (
           <div className="bg-background p-4 rounded-md mb-4 border animate-fade-in">
             <h3 className="text-lg font-medium mb-3">Nuevo Horario Bloqueado</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label htmlFor="day">Día</Label>
-                <Select value={day} onValueChange={setDay}>
-                  <SelectTrigger id="day">
-                    <SelectValue placeholder="Seleccionar día" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {daysOfWeek.map(day => (
-                      <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            
+            {/* Recurrence Type Selection */}
+            <div className="mb-4">
+              <Label className="text-sm font-medium mb-2 block">Tipo de Repetición</Label>
+              <div className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="weekly" 
+                    checked={recurrenceType === 'weekly'} 
+                    onCheckedChange={() => setRecurrenceType('weekly')}
+                  />
+                  <Label htmlFor="weekly" className="text-sm">
+                    Repetir semanalmente
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="daily" 
+                    checked={recurrenceType === 'daily'} 
+                    onCheckedChange={() => setRecurrenceType('daily')}
+                  />
+                  <Label htmlFor="daily" className="text-sm">
+                    Repetir diariamente
+                  </Label>
+                </div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Day selector - only show if weekly recurrence */}
+              {recurrenceType === 'weekly' && (
+                <div>
+                  <Label htmlFor="day">Día</Label>
+                  <Select value={day} onValueChange={setDay}>
+                    <SelectTrigger id="day">
+                      <SelectValue placeholder="Seleccionar día" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfWeek.map(day => (
+                        <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               
-              <div className="flex gap-2 items-end">
+              {/* Time selectors */}
+              <div className={`flex gap-2 items-end ${recurrenceType === 'daily' ? 'col-span-full' : ''}`}>
                 <div className="flex-1">
                   <Label htmlFor="startHour">Hora Inicio</Label>
                   <Select value={startHour} onValueChange={setStartHour}>
@@ -177,16 +233,19 @@ const BlockedTimeSlots: React.FC = () => {
               />
             </div>
             
-            <div className="flex items-center space-x-2 mb-4">
-              <Checkbox 
-                id="recurring" 
-                checked={isRecurring} 
-                onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
-              />
-              <Label htmlFor="recurring" className="text-sm">
-                Repetir semanalmente
-              </Label>
-            </div>
+            {/* Additional recurrence option for weekly only */}
+            {recurrenceType === 'weekly' && (
+              <div className="flex items-center space-x-2 mb-4">
+                <Checkbox 
+                  id="recurring" 
+                  checked={isRecurring} 
+                  onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+                />
+                <Label htmlFor="recurring" className="text-sm">
+                  Repetir cada semana
+                </Label>
+              </div>
+            )}
             
             <div className="flex justify-end">
               <Button onClick={handleAddBlock}>
@@ -214,7 +273,7 @@ const BlockedTimeSlots: React.FC = () => {
                     {slot.note && <p className="text-sm text-muted-foreground">{slot.note}</p>}
                     {slot.isRecurring && (
                       <div className="text-xs text-navy bg-navy/10 px-2 py-0.5 rounded-full inline-block mt-1">
-                        Semanal
+                        {slot.recurrenceType === 'daily' ? 'Diario' : 'Semanal'}
                       </div>
                     )}
                   </div>
