@@ -16,6 +16,12 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }
   cancelled:    { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }  // Red
 };
 
+// Constants for time calculations
+const CALENDAR_START_HOUR = 6; // 6 AM
+const CALENDAR_END_HOUR = 20;  // 8 PM
+const MINUTES_PER_HOUR = 60;
+const PIXELS_PER_HOUR = 48; // Height of each hour slot in pixels
+
 interface CalendarAppointmentProps {
   appointment: any;
   expanded: boolean;
@@ -33,16 +39,19 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   const startTime = new Date(appointment.start_time);
   const endTime = new Date(appointment.end_time);
   
-  // Calculate position from midnight in minutes (6AM = 360 minutes)
+  // Calculate precise position and height based on actual time and duration
   const startHour = startTime.getHours();
   const startMinutes = startTime.getMinutes();
-  const minutesFromMidnight = (startHour * 60) + startMinutes;
+  const endHour = endTime.getHours();
+  const endMinutes = endTime.getMinutes();
   
-  // Adjust position to start at 6 AM (subtract 360 minutes = 6 hours)
-  const positionFromTop = minutesFromMidnight - 360;
+  // Calculate total minutes from calendar start (6 AM)
+  const minutesFromCalendarStart = ((startHour - CALENDAR_START_HOUR) * MINUTES_PER_HOUR) + startMinutes;
+  const totalDurationMinutes = ((endHour - startHour) * MINUTES_PER_HOUR) + (endMinutes - startMinutes);
   
-  // Calculate duration in minutes
-  const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+  // Convert to pixels - more precise calculation
+  const topPosition = (minutesFromCalendarStart / MINUTES_PER_HOUR) * PIXELS_PER_HOUR;
+  const appointmentHeight = Math.max((totalDurationMinutes / MINUTES_PER_HOUR) * PIXELS_PER_HOUR, 24); // Minimum 24px height
 
   const statusColor = STATUS_COLORS[appointment.status] || STATUS_COLORS['pending'];
   
@@ -72,52 +81,68 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   const personName = getPersonName();
   const serviceName = appointment.listings?.title || 'Servicio';
 
+  // Don't render if appointment is outside visible hours (6 AM - 8 PM)
+  if (startHour < CALENDAR_START_HOUR || startHour >= CALENDAR_END_HOUR) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
-        "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded border-l-2 text-xs",
-        expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[40px]" : "px-1 py-0.5 gap-0.5",
+        "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded border-l-2 text-xs z-10",
+        expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[32px]" : "px-1 py-0.5",
         isRecurring && "border-2 border-dashed",
         isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
-        top: `${positionFromTop}px`,
-        height: expanded ? undefined : `${Math.max(durationMinutes * 0.8, 28)}px`,
+        top: `${topPosition}px`,
+        height: expanded ? undefined : `${appointmentHeight}px`,
         background: expanded ? '#fff' : statusColor.bg,
         borderLeftColor: statusColor.border,
         color: statusColor.text,
-        fontWeight: 500
+        fontWeight: 500,
+        minHeight: expanded ? '32px' : '24px'
       }}
-      title={`${serviceName}${isRecurring ? ' (Recurrente)' : ''}${isExternal ? ' (Externa)' : ''}`}
+      title={`${serviceName} - ${format(startTime, "HH:mm")} a ${format(endTime, "HH:mm")}${isRecurring ? ' (Recurrente)' : ''}${isExternal ? ' (Externa)' : ''}`}
       onClick={onClick}
       tabIndex={0}
       role="button"
     >
-      <div className="flex items-center gap-1">
-        {isRecurring && <Repeat className="h-2 w-2 text-blue-600 flex-shrink-0" />}
-        {isExternal && <ExternalLink className="h-2 w-2 text-blue-500 flex-shrink-0" />}
-        <div 
-          className={cn(
-            "truncate font-semibold flex-1", 
-            expanded ? "text-sm mb-1" : "text-[10px] leading-tight"
+      <div className="flex items-start gap-1 h-full">
+        <div className="flex-shrink-0 flex items-center gap-1">
+          {isRecurring && <Repeat className="h-2 w-2 text-blue-600 flex-shrink-0" />}
+          {isExternal && <ExternalLink className="h-2 w-2 text-blue-500 flex-shrink-0" />}
+        </div>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div 
+            className={cn(
+              "truncate font-semibold leading-tight", 
+              expanded ? "text-sm mb-1" : "text-[10px]"
+            )}
+            style={{ color: statusColor.text }}>
+            {personName}
+          </div>
+          <div 
+            className={cn(
+              "truncate leading-tight",
+              expanded ? "text-xs font-medium" : "text-[9px] font-normal"
+            )}
+            style={{ color: statusColor.text }}>
+            {serviceName}
+          </div>
+          {!expanded && appointmentHeight >= 32 && (
+            <div className="text-[8px] mt-0.5 leading-tight opacity-75" style={{ color: statusColor.text }}>
+              {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+            </div>
           )}
-          style={{ color: statusColor.text }}>
-          {personName}
         </div>
       </div>
-      <div 
-        className={cn(
-          "truncate",
-          expanded ? "text-xs font-medium" : "text-[9px] font-normal leading-tight"
-        )}
-        style={{ color: statusColor.text }}>
-        {serviceName}
-      </div>
+      
       {expanded && (
-        <div className="text-[10px] mt-1 text-gray-400">
-          <span>
-            {format(new Date(appointment.start_time), "HH:mm")} - {format(new Date(appointment.end_time), "HH:mm")}
-          </span>
+        <div className="text-[10px] mt-1 text-gray-400 border-t pt-1">
+          <div className="font-medium">
+            {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")} ({totalDurationMinutes} min)
+          </div>
           <div className="flex gap-2 mt-1">
             {isRecurring && (
               <div className="flex items-center gap-1">
@@ -182,6 +207,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
       console.log(`Found appointment for ${date.toDateString()}:`, {
         id: appointment.id,
         start_time: appointment.start_time,
+        end_time: appointment.end_time,
+        duration: appointment.listings?.duration,
         recurrence: appointment.recurrence,
         status: appointment.status,
         title: appointment.listings?.title,
@@ -193,8 +220,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     return isSameDate && isNotCancelledOrRejected;
   });
   
-  // Show hours from 6 AM to 8 PM (14 hours)
-  const hours = Array.from({ length: 15 }, (_, i) => i + 6);
+  // Show hours from 6 AM to 8 PM
+  const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, i) => i + CALENDAR_START_HOUR);
   const isCurrentDay = isToday(date);
 
   // Count external vs internal appointments for display
@@ -231,22 +258,24 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         )}
       </div>
 
-      {/* Time slots container with consistent grid */}
+      {/* Time slots container with precise hour grid */}
       <div className="relative">
         {hours.map((hour) => (
-          <div key={hour} className="relative h-12 border-b border-gray-100">
-            <div className="absolute left-1 top-0 text-[10px] text-muted-foreground select-none bg-white py-0 px-1 leading-none">
+          <div key={hour} style={{ height: `${PIXELS_PER_HOUR}px` }} className="relative border-b border-gray-100">
+            <div className="absolute left-1 top-0 text-[10px] text-muted-foreground select-none bg-white py-0 px-1 leading-none z-10">
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
         ))}
         
-        {/* Appointments overlay */}
+        {/* Appointments overlay with precise positioning */}
         <div className="absolute inset-0 top-0">
           {dayAppointments.map(appointment => {
             console.log(`Rendering appointment for ${date.toDateString()}:`, {
               id: appointment.id,
-              scheduled_time: new Date(appointment.start_time).toLocaleTimeString(),
+              start_time: new Date(appointment.start_time).toLocaleTimeString(),
+              end_time: new Date(appointment.end_time).toLocaleTimeString(),
+              duration_minutes: (new Date(appointment.end_time).getTime() - new Date(appointment.start_time).getTime()) / (1000 * 60),
               recurrence: appointment.recurrence,
               client: appointment.client_name,
               service: appointment.listings?.title,
@@ -339,6 +368,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     console.log(`  - Internal: ${weekAppointments.length - externalAppointments.length}`);
     console.log(`  - External: ${externalAppointments.length}`);
     console.log(`  - Recurring: ${recurringAppointments.length}`);
+    
+    // Log timing details for debugging
+    weekAppointments.forEach(app => {
+      const start = new Date(app.start_time);
+      const end = new Date(app.end_time);
+      const duration = (end.getTime() - start.getTime()) / (1000 * 60);
+      console.log(`  - ${app.id}: ${start.toLocaleTimeString()} - ${end.toLocaleTimeString()} (${duration} min)`);
+    });
   }, [appointments, startDate, endDate]);
 
   return (
