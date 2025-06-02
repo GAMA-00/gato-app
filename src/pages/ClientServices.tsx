@@ -4,8 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, ArrowLeft } from 'lucide-react';
-import { useChat } from '@/contexts/ChatContext';
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCommissionRate } from '@/hooks/useCommissionRate';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +14,6 @@ import { SERVICE_CATEGORIES } from '@/lib/data';
 const ClientServices = () => {
   const { residenciaId } = useParams();
   const navigate = useNavigate();
-  const { startNewConversation } = useChat();
   const { commissionRate } = useCommissionRate();
   
   const { data: listings = [], isLoading } = useQuery({
@@ -109,11 +107,6 @@ const ClientServices = () => {
 
   const handleBookService = (serviceId: string) => {
     navigate(`/client/book/${residenciaId}/${serviceId}`);
-  };
-
-  const handleContactProvider = (providerId: string, providerName: string) => {
-    startNewConversation(providerId, providerName);
-    navigate('/client/messages');
   };
 
   // Handle back navigation
@@ -228,13 +221,6 @@ const ClientServices = () => {
                             onClick={() => handleBookService(listing.id)}
                           >
                             Reservar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleContactProvider(listing.providerId, listing.providerName)}
-                          >
-                            <MessageSquare className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
