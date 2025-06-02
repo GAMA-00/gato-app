@@ -18,7 +18,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import { updateUserProfile, updateUserAvatar, fetchUserProfile } from '@/utils/profileManagement';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useResidencias } from '@/hooks/useResidencias';
-import { useCondominiums } from '@/hooks/useCondominiums';
 import ImageUploader from '@/components/common/ImageUploader';
 
 const profileSchema = z.object({
@@ -26,7 +25,7 @@ const profileSchema = z.object({
   email: z.string().email('Email no válido'),
   phone: z.string().min(8, 'Número de teléfono no válido').optional(),
   residencia_id: z.string().optional(),
-  condominium_id: z.string().optional(),
+  condominium_name: z.string().optional(), // Cambiado de condominium_id a condominium_name
   house_number: z.string().optional(),
 });
 
@@ -51,9 +50,6 @@ const Profile = () => {
 
   console.log('=== Profile Component Debug ===');
   console.log('User from context:', user);
-  console.log('User avatarUrl from context:', user?.avatarUrl);
-  console.log('Current avatar URL state:', currentAvatarUrl);
-  console.log('Is authenticated:', isAuthenticated);
   console.log('Profile data state:', profileData);
 
   const profileForm = useForm<ProfileFormValues>({
@@ -63,7 +59,7 @@ const Profile = () => {
       email: '',
       phone: '',
       residencia_id: '',
-      condominium_id: '',
+      condominium_name: '', // Cambiado
       house_number: ''
     }
   });
@@ -76,12 +72,11 @@ const Profile = () => {
     }
   });
 
-  // Watch residencia_id to fetch condominiums when it changes
+  // Watch residencia_id para detectar cambios
   const selectedResidenciaId = profileForm.watch('residencia_id');
   
-  // Fetch residencias and condominiums
+  // Fetch residencias
   const { residencias, isLoading: isLoadingResidencias } = useResidencias();
-  const { data: condominiums, isLoading: isLoadingCondominiums } = useCondominiums(selectedResidenciaId);
 
   // Predefined condominiums for "Colinas de Montealegre"
   const condominiumNames = [
@@ -92,7 +87,7 @@ const Profile = () => {
   // Reset condominium when residencia changes
   useEffect(() => {
     if (selectedResidenciaId !== profileData?.residencia_id) {
-      profileForm.setValue('condominium_id', '');
+      profileForm.setValue('condominium_name', '');
     }
   }, [selectedResidenciaId, profileForm, profileData?.residencia_id]);
 
@@ -103,40 +98,31 @@ const Profile = () => {
         setIsLoadingProfile(true);
         try {
           console.log('=== Loading Profile Data ===');
-          console.log('Loading profile for user:', user.id, 'with role:', user.role);
           const profileDataResult = await fetchUserProfile(user.id, user.role);
           console.log('=== Profile Data Result ===', profileDataResult);
           
           if (profileDataResult) {
-            console.log('=== Profile Data Loaded Successfully ===');
             setProfileData(profileDataResult);
             
-            // Update form with loaded data
+            // Update form with loaded data - usar condominiumName en lugar de condominium_id
             profileForm.reset({
               name: profileDataResult.name || '',
               email: profileDataResult.email || '',
               phone: profileDataResult.phone || '',
               residencia_id: profileDataResult.residencia_id || '',
-              condominium_id: profileDataResult.condominium_id || '',
+              condominium_name: profileDataResult.condominiumName || '', // Usar condominiumName del perfil
               house_number: profileDataResult.house_number || ''
             });
             
-            const avatarToUse = profileDataResult.avatarUrl || profileDataResult.avatar_url || '';
-            console.log('=== Avatar Selection Logic ===');
-            console.log('Final avatar selected:', avatarToUse);
-            
-            setCurrentAvatarUrl(avatarToUse);
-            console.log('Avatar URL set in state:', avatarToUse);
+            setCurrentAvatarUrl(profileDataResult.avatarUrl || '');
           } else {
-            console.log('No profile data returned');
-            // If no profile data, use context user data as fallback
-            console.log('Using context user data as fallback');
+            // Fallback to context user data
             profileForm.reset({
               name: user.name || '',
               email: user.email || '',
               phone: user.phone || '',
               residencia_id: user.residenciaId || '',
-              condominium_id: user.condominiumId || '',
+              condominium_name: user.condominiumName || '', // Usar condominiumName del contexto
               house_number: user.houseNumber || ''
             });
             setCurrentAvatarUrl(user.avatarUrl || '');
@@ -154,7 +140,7 @@ const Profile = () => {
             email: user.email || '',
             phone: user.phone || '',
             residencia_id: user.residenciaId || '',
-            condominium_id: user.condominiumId || '',
+            condominium_name: user.condominiumName || '',
             house_number: user.houseNumber || ''
           });
           setCurrentAvatarUrl(user.avatarUrl || '');
@@ -176,13 +162,14 @@ const Profile = () => {
       console.log('=== Submitting Profile Data ===');
       console.log('Values to submit:', values);
       
-      // Prepare data for update
+      // Prepare data for update - cambiar condominium_name por condominium_text para guardar como texto
       const updateData = {
-        ...values,
+        name: values.name,
+        email: values.email,
+        phone: values.phone || null,
         role: user.role,
-        // Ensure proper UUID format or null
         residencia_id: values.residencia_id || null,
-        condominium_id: values.condominium_id || null,
+        condominium_text: values.condominium_name || null, // Guardar como texto
         house_number: values.house_number || null
       };
       
@@ -306,10 +293,6 @@ const Profile = () => {
     );
   }
 
-  console.log('=== Avatar Rendering Debug ===');
-  console.log('About to render avatar with URL:', currentAvatarUrl);
-  console.log('User name for fallback:', user.name);
-
   return (
     <PageContainer 
       title="Mi Perfil" 
@@ -357,15 +340,12 @@ const Profile = () => {
                       <AvatarImage 
                         src={currentAvatarUrl} 
                         alt={user.name}
-                        key={currentAvatarUrl} // Force re-render when URL changes
+                        key={currentAvatarUrl}
                         onLoad={() => {
                           console.log('=== Avatar Image Loaded Successfully ===');
-                          console.log('Loaded URL:', currentAvatarUrl);
                         }}
                         onError={(e) => {
                           console.error('=== Avatar Image Failed to Load ===');
-                          console.error('Failed URL:', currentAvatarUrl);
-                          console.error('Error event:', e);
                         }}
                       />
                       <AvatarFallback className="text-2xl">
@@ -461,7 +441,7 @@ const Profile = () => {
 
                             <FormField
                               control={profileForm.control}
-                              name="condominium_id"
+                              name="condominium_name"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Condominio (opcional)</FormLabel>
@@ -471,35 +451,24 @@ const Profile = () => {
                                       <Select 
                                         onValueChange={field.onChange} 
                                         value={field.value || ''}
-                                        disabled={!selectedResidenciaId || isLoadingCondominiums}
+                                        disabled={!selectedResidenciaId}
                                       >
                                         <SelectTrigger className="pl-10">
                                           <SelectValue 
                                             placeholder={
                                               !selectedResidenciaId 
                                                 ? "Primero selecciona una residencia" 
-                                                : isLoadingCondominiums 
-                                                  ? "Cargando condominios..." 
-                                                  : "Selecciona tu condominio (opcional)"
+                                                : "Selecciona tu condominio (opcional)"
                                             } 
                                           />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          {condominiums && condominiums.length > 0 ? (
-                                            // Show condominiums from database if available
-                                            condominiums.map((condominium) => (
-                                              <SelectItem key={condominium.id} value={condominium.id}>
-                                                {condominium.name}
-                                              </SelectItem>
-                                            ))
-                                          ) : (
-                                            // Show predefined list for Colinas de Montealegre (same as registration)
-                                            condominiumNames.map((name, index) => (
-                                              <SelectItem key={`static-${index}`} value={`static-${index}`}>
-                                                {name}
-                                              </SelectItem>
-                                            ))
-                                          )}
+                                          {/* Mostrar lista predefinida para Colinas de Montealegre */}
+                                          {condominiumNames.map((name, index) => (
+                                            <SelectItem key={`condo-${index}`} value={name}>
+                                              {name}
+                                            </SelectItem>
+                                          ))}
                                         </SelectContent>
                                       </Select>
                                     </div>

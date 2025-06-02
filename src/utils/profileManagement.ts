@@ -54,7 +54,6 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     
     // If user has residencia_id, fetch the building name
     let buildingName = '';
-    let condominiumName = '';
     
     if (data.residencia_id) {
       console.log('=== Fetching Residencia Data ===');
@@ -70,31 +69,6 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
       }
     }
     
-    // If user has condominium_id, fetch the condominium name
-    if (data.condominium_id) {
-      console.log('=== Fetching Condominium Data ===');
-      console.log('Fetching condominium data for ID:', data.condominium_id);
-      
-      const { data: condominiumData, error: condoError } = await supabase
-        .from('condominiums')
-        .select('name')
-        .eq('id', data.condominium_id)
-        .single();
-      
-      console.log('Condominium query result:', { condominiumData, error: condoError });
-      
-      if (condoError) {
-        console.log('Error fetching condominium:', condoError);
-        condominiumName = '';
-      } else if (!condominiumData) {
-        console.log('No condominium data found');
-        condominiumName = '';
-      } else {
-        condominiumName = condominiumData?.name || '';
-        console.log('Condominium name extracted:', condominiumName);
-      }
-    }
-    
     const finalAvatarUrl = data.avatar_url || '';
     console.log('=== Final Avatar URL ===', finalAvatarUrl);
     
@@ -102,9 +76,9 @@ export async function fetchUserProfile(userId: string, role: UserRole = 'client'
     const result = {
       ...data,
       buildingName,
-      condominiumName,
+      condominiumName: data.condominium_text || '', // Usar condominium_text como condominiumName
       houseNumber: data.house_number || '',
-      avatarUrl: finalAvatarUrl // Keep both for compatibility
+      avatarUrl: finalAvatarUrl
     };
     
     console.log('=== Profile Result ===', result);
