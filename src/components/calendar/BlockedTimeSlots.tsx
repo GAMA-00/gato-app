@@ -56,19 +56,19 @@ const BlockedTimeSlots: React.FC = () => {
     }
     
     if (recurrenceType === 'daily') {
-      // Create blocked slots for all days of the week
-      const newSlots = daysOfWeek.map(dayOption => ({
-        id: `${Date.now()}-${dayOption.value}`,
-        day: parseInt(dayOption.value),
+      // Create a single blocked slot that represents all days
+      const newSlot: BlockedTimeSlot = {
+        id: Date.now().toString(),
+        day: -1, // Special value to indicate all days
         startHour: start,
         endHour: end,
         note: note.trim() || undefined,
         isRecurring: true,
-        recurrenceType: 'daily' as const,
+        recurrenceType: 'daily',
         createdAt: new Date()
-      }));
+      };
       
-      setBlockedSlots([...blockedSlots, ...newSlots]);
+      setBlockedSlots([...blockedSlots, newSlot]);
       toast({
         title: 'Horarios bloqueados',
         description: 'El horario ha sido bloqueado para todos los días de la semana.'
@@ -109,11 +109,21 @@ const BlockedTimeSlots: React.FC = () => {
   };
 
   const getDayLabel = (dayNum: number) => {
+    if (dayNum === -1) return 'Todos los días';
     return daysOfWeek.find(d => d.value === dayNum.toString())?.label || '';
   };
 
   const formatHour = (hour: number) => {
     return `${hour % 12 || 12}:00 ${hour < 12 ? 'AM' : 'PM'}`;
+  };
+
+  const getRecurrenceLabel = (slot: BlockedTimeSlot) => {
+    if (slot.recurrenceType === 'daily') {
+      return 'Todos los días';
+    } else if (slot.recurrenceType === 'weekly') {
+      return 'Semanal';
+    }
+    return '';
   };
 
   return (
@@ -263,19 +273,16 @@ const BlockedTimeSlots: React.FC = () => {
                 className="flex items-center justify-between p-3 bg-background hover:bg-accent/20 transition-colors rounded-md border"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-navy/10 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-navy" />
+                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-gray-600" />
                   </div>
                   <div>
                     <p className="font-medium">
-                      {getDayLabel(slot.day)} • {formatHour(slot.startHour)} - {formatHour(slot.endHour)}
+                      {slot.note || 'Horario Bloqueado'} - {getRecurrenceLabel(slot)}
                     </p>
-                    {slot.note && <p className="text-sm text-muted-foreground">{slot.note}</p>}
-                    {slot.isRecurring && (
-                      <div className="text-xs text-navy bg-navy/10 px-2 py-0.5 rounded-full inline-block mt-1">
-                        {slot.recurrenceType === 'daily' ? 'Diario' : 'Semanal'}
-                      </div>
-                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {slot.day === -1 ? 'Todos los días' : getDayLabel(slot.day)} • {formatHour(slot.startHour)} - {formatHour(slot.endHour)}
+                    </p>
                   </div>
                 </div>
                 <Button 

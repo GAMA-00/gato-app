@@ -24,33 +24,26 @@ const CALENDAR_END_HOUR = 20;  // 8 PM
 const MINUTES_PER_HOUR = 60;
 const PIXELS_PER_HOUR = 48; // Height of each hour slot in pixels
 
-// Mock blocked time slots data
+// Mock blocked time slots data - will show recurring blocks
 const MOCK_BLOCKED_SLOTS: BlockedTimeSlot[] = [
   {
     id: '1',
-    day: 1, // Monday
+    day: -1, // All days
     startHour: 12,
-    endHour: 14,
+    endHour: 13,
     note: 'Almuerzo',
     isRecurring: true,
+    recurrenceType: 'daily',
     createdAt: new Date()
   },
   {
     id: '2',
-    day: 3, // Wednesday
+    day: 3, // Wednesday only
     startHour: 9,
     endHour: 11,
     note: 'Reunión semanal',
     isRecurring: true,
-    createdAt: new Date()
-  },
-  {
-    id: '3',
-    day: 3, // Wednesday
-    startHour: 12,
-    endHour: 13,
-    note: 'Cita',
-    isRecurring: false,
+    recurrenceType: 'weekly',
     createdAt: new Date()
   }
 ];
@@ -296,7 +289,9 @@ const BlockedTimeSlotComponent: React.FC<BlockedTimeSlotProps> = ({
             <div className="flex gap-2 mt-1">
               <div className="flex items-center gap-1">
                 <Repeat className="h-2 w-2 text-gray-600" />
-                <span className="text-gray-600 text-[9px]">Semanal</span>
+                <span className="text-gray-600 text-[9px]">
+                  {blockedSlot.recurrenceType === 'daily' ? 'Todos los días' : 'Semanal'}
+                </span>
               </div>
             </div>
           )}
@@ -349,8 +344,12 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     return isSameDate && isNotCancelledOrRejected;
   });
 
-  // No blocked time slots (removed mock data)
-  const dayBlockedSlots: BlockedTimeSlot[] = [];
+  // Get blocked time slots for this day
+  const dayOfWeek = date.getDay();
+  const dayBlockedSlots = MOCK_BLOCKED_SLOTS.filter(slot => {
+    // Show blocked slots if they apply to this day
+    return slot.day === dayOfWeek || slot.day === -1; // -1 means all days (daily recurrence)
+  });
   
   // Show hours from 6 AM to 8 PM
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, i) => i + CALENDAR_START_HOUR);
@@ -410,7 +409,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         
         {/* Appointments and blocked slots overlay with precise positioning */}
         <div className="absolute inset-0 top-0">
-          {/* Render blocked time slots (currently empty) */}
+          {/* Render blocked time slots */}
           {dayBlockedSlots.map(blockedSlot => (
             <BlockedTimeSlotComponent
               key={`blocked-${blockedSlot.id}`}
