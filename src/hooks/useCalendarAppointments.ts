@@ -1,5 +1,4 @@
 
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,15 +83,21 @@ export function useCalendarAppointments(currentDate: Date) {
               const residenciaIds = [...new Set(clients.map(client => client.residencia_id).filter(Boolean))];
               const condominiumIds = [...new Set(clients.map(client => client.condominium_id).filter(Boolean))];
               
+              console.log("Calendar - Residencia IDs to fetch:", residenciaIds);
+              console.log("Calendar - Condominium IDs to fetch:", condominiumIds);
+              
               // Fetch residencias data
               let residenciasMap: Record<string, string> = {};
               if (residenciaIds.length > 0) {
-                const { data: residencias } = await supabase
+                const { data: residencias, error: residenciasError } = await supabase
                   .from('residencias')
                   .select('id, name')
                   .in('id', residenciaIds);
                 
-                if (residencias) {
+                console.log("Calendar - Residencias fetched:", residencias);
+                console.log("Calendar - Residencias error:", residenciasError);
+                
+                if (residencias && !residenciasError) {
                   residenciasMap = Object.fromEntries(
                     residencias.map(res => [res.id, res.name])
                   );
@@ -102,30 +107,35 @@ export function useCalendarAppointments(currentDate: Date) {
               // Fetch condominiums data
               let condominiumsMap: Record<string, string> = {};
               if (condominiumIds.length > 0) {
-                const { data: condominiums } = await supabase
+                const { data: condominiums, error: condominiumsError } = await supabase
                   .from('condominiums')
                   .select('id, name')
                   .in('id', condominiumIds);
                 
-                console.log("Calendar - Condominiums data fetched:", condominiums);
+                console.log("Calendar - Condominiums fetched:", condominiums);
+                console.log("Calendar - Condominiums error:", condominiumsError);
                 
-                if (condominiums) {
+                if (condominiums && !condominiumsError) {
                   condominiumsMap = Object.fromEntries(
                     condominiums.map(cond => [cond.id, cond.name])
                   );
                 }
               }
               
+              console.log("Calendar - Final residenciasMap:", residenciasMap);
+              console.log("Calendar - Final condominiumsMap:", condominiumsMap);
+              
               // Create location map with complete address information
               clientLocationMap = Object.fromEntries(
-                clients.map(client => [
-                  client.id, 
-                  {
+                clients.map(client => {
+                  const locationData = {
                     residencia: residenciasMap[client.residencia_id] || '',
                     condominium: condominiumsMap[client.condominium_id] || '',
                     houseNumber: client.house_number || ''
-                  }
-                ])
+                  };
+                  console.log(`Calendar - Location data for client ${client.id}:`, locationData);
+                  return [client.id, locationData];
+                })
               );
               
               console.log("Calendar - Client location map created:", clientLocationMap);
@@ -237,4 +247,3 @@ export function useCalendarAppointments(currentDate: Date) {
     retry: 3
   });
 }
-
