@@ -1,4 +1,5 @@
 
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,34 +69,68 @@ export function useAppointments() {
                 id, 
                 name, 
                 house_number,
-                residencias:residencia_id (
-                  id,
-                  name
-                ),
-                condominiums:condominium_id (
-                  id,
-                  name
-                )
+                residencia_id,
+                condominium_id
               `)
               .in('id', clientIds)
               .eq('role', 'client');
+              
+            console.log("Clients data fetched:", clients);
               
             if (!clientsError && clients) {
               clientNameMap = Object.fromEntries(
                 clients.map(client => [client.id, client.name])
               );
               
-              // Create location map with complete address information including condominium
+              // Get unique residencia and condominium IDs
+              const residenciaIds = [...new Set(clients.map(client => client.residencia_id).filter(Boolean))];
+              const condominiumIds = [...new Set(clients.map(client => client.condominium_id).filter(Boolean))];
+              
+              // Fetch residencias data
+              let residenciasMap: Record<string, string> = {};
+              if (residenciaIds.length > 0) {
+                const { data: residencias } = await supabase
+                  .from('residencias')
+                  .select('id, name')
+                  .in('id', residenciaIds);
+                
+                if (residencias) {
+                  residenciasMap = Object.fromEntries(
+                    residencias.map(res => [res.id, res.name])
+                  );
+                }
+              }
+              
+              // Fetch condominiums data
+              let condominiumsMap: Record<string, string> = {};
+              if (condominiumIds.length > 0) {
+                const { data: condominiums } = await supabase
+                  .from('condominiums')
+                  .select('id, name')
+                  .in('id', condominiumIds);
+                
+                console.log("Condominiums data fetched:", condominiums);
+                
+                if (condominiums) {
+                  condominiumsMap = Object.fromEntries(
+                    condominiums.map(cond => [cond.id, cond.name])
+                  );
+                }
+              }
+              
+              // Create location map with complete address information
               clientLocationMap = Object.fromEntries(
                 clients.map(client => [
                   client.id, 
                   {
-                    residencia: client.residencias?.name || '',
-                    condominium: client.condominiums?.name || '',
+                    residencia: residenciasMap[client.residencia_id] || '',
+                    condominium: condominiumsMap[client.condominium_id] || '',
                     houseNumber: client.house_number || ''
                   }
                 ])
               );
+              
+              console.log("Client location map created:", clientLocationMap);
             }
           }
           
@@ -114,6 +149,8 @@ export function useAppointments() {
               
               // Build location string for internal bookings with proper format
               const location = clientLocationMap[app.client_id];
+              console.log(`Building location for client ${app.client_id}:`, location);
+              
               if (location) {
                 const locationParts = [];
                 
@@ -122,8 +159,8 @@ export function useAppointments() {
                   locationParts.push(location.residencia);
                 }
                 
-                // Add condominium only if it exists and is different from residencia
-                if (location.condominium && location.condominium !== location.residencia) {
+                // Add condominium if it exists
+                if (location.condominium) {
                   locationParts.push(location.condominium);
                 }
                 
@@ -135,6 +172,8 @@ export function useAppointments() {
                 (app as any).client_location = locationParts.length > 0 
                   ? locationParts.join(' - ') 
                   : 'Ubicación no especificada';
+                  
+                console.log(`Final location for appointment ${app.id}: "${(app as any).client_location}"`);
               } else {
                 (app as any).client_location = 'Ubicación no especificada';
               }
@@ -249,3 +288,4 @@ export function useAppointments() {
     retry: 3
   });
 }
+
