@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,7 +68,7 @@ export function useAppointments() {
                 name, 
                 house_number,
                 residencia_id,
-                condominium_id
+                condominium_text
               `)
               .in('id', clientIds)
               .eq('role', 'client');
@@ -81,16 +80,12 @@ export function useAppointments() {
                 clients.map(client => [client.id, client.name])
               );
               
-              // Get unique residencia and condominium IDs
+              // Get unique residencia IDs
               const residenciaIds = [...new Set(clients
                 .map(client => client.residencia_id)
                 .filter(Boolean))];
-              const condominiumIds = [...new Set(clients
-                .map(client => client.condominium_id)
-                .filter(Boolean))];
               
               console.log("Residencia IDs to fetch:", residenciaIds);
-              console.log("Condominium IDs to fetch:", condominiumIds);
               
               // Fetch residencias data
               let residenciasMap: Record<string, string> = {};
@@ -110,32 +105,13 @@ export function useAppointments() {
                 }
               }
               
-              // Fetch condominiums data
-              let condominiumsMap: Record<string, string> = {};
-              if (condominiumIds.length > 0) {
-                const { data: condominiums, error: condominiumsError } = await supabase
-                  .from('condominiums')
-                  .select('id, name')
-                  .in('id', condominiumIds);
-                
-                console.log("Condominiums fetched:", condominiums);
-                console.log("Condominiums error:", condominiumsError);
-                
-                if (condominiums && !condominiumsError) {
-                  condominiumsMap = Object.fromEntries(
-                    condominiums.map(cond => [cond.id, cond.name])
-                  );
-                }
-              }
-              
               console.log("Final residenciasMap:", residenciasMap);
-              console.log("Final condominiumsMap:", condominiumsMap);
               
-              // Create location map with complete address information
+              // Create location map with complete address information using the new format
               clientLocationMap = Object.fromEntries(
                 clients.map(client => {
                   const residenciaName = client.residencia_id ? residenciasMap[client.residencia_id] : '';
-                  const condominiumName = client.condominium_id ? condominiumsMap[client.condominium_id] : '';
+                  const condominiumName = client.condominium_text || '';
                   const houseNumber = client.house_number || '';
                   
                   const locationData = {
@@ -146,7 +122,7 @@ export function useAppointments() {
                   
                   console.log(`Location data for client ${client.id}:`, locationData);
                   console.log(`  - Residencia ID: ${client.residencia_id} -> Name: ${residenciaName}`);
-                  console.log(`  - Condominium ID: ${client.condominium_id} -> Name: ${condominiumName}`);
+                  console.log(`  - Condominium Text: ${condominiumName}`);
                   console.log(`  - House Number: ${houseNumber}`);
                   
                   return [client.id, locationData];
@@ -170,7 +146,7 @@ export function useAppointments() {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
               
-              // Build location string for internal bookings with improved format
+              // Build location string for internal bookings with the new format: Residencia – Condominio – Número de casa
               const location = clientLocationMap[app.client_id];
               console.log(`Building location for client ${app.client_id}:`, location);
               
@@ -182,19 +158,19 @@ export function useAppointments() {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists - FIXED: Remove the comparison that was preventing it from showing
+                // Add condominium if it exists
                 if (location.condominium && location.condominium.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
                 
                 // Add house number if available
                 if (location.houseNumber && location.houseNumber.trim()) {
-                  locationParts.push(`#${location.houseNumber.trim()}`);
+                  locationParts.push(location.houseNumber.trim());
                 }
                 
-                // Build the final location string - ensure we show all parts
+                // Build the final location string with the format: Residencia – Condominio – Número de casa
                 const finalLocation = locationParts.length > 0 
-                  ? locationParts.join(' - ') 
+                  ? locationParts.join(' – ') 
                   : 'Ubicación no especificada';
                 
                 (app as any).client_location = finalLocation;
@@ -262,7 +238,7 @@ export function useAppointments() {
               )
             `)
             .eq('client_id', user.id)
-            .eq('external_booking', false) // Only internal bookings for clients
+            .eq('external_booking', false)
             .gte('start_time', currentWeekStart.toISOString())
             .lte('start_time', futureDate.toISOString())
             .order('start_time');
@@ -279,7 +255,6 @@ export function useAppointments() {
             return [];
           }
           
-          // Get provider names from users table
           const providerIds = [...new Set(appointments.map(app => app.provider_id))];
           
           if (providerIds.length > 0) {
@@ -300,11 +275,10 @@ export function useAppointments() {
             }
           }
           
-          // Mark recurring appointments in the response
           const enhancedAppointments = appointments.map(app => ({
             ...app,
             is_recurring: app.recurrence && app.recurrence !== 'none',
-            is_external: false, // Clients only see internal bookings
+            is_external: false,
             recurrence_label: 
               app.recurrence === 'weekly' ? 'Semanal' :
               app.recurrence === 'biweekly' ? 'Quincenal' :
@@ -322,7 +296,7 @@ export function useAppointments() {
       }
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refresh every 30 seconds to show new external bookings
+    refetchInterval: 30000,
     retry: 3
   });
 }

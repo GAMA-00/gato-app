@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -67,7 +66,7 @@ export function useCalendarAppointments(currentDate: Date) {
                 name, 
                 house_number,
                 residencia_id,
-                condominium_id
+                condominium_text
               `)
               .in('id', clientIds)
               .eq('role', 'client');
@@ -79,16 +78,12 @@ export function useCalendarAppointments(currentDate: Date) {
                 clients.map(client => [client.id, client.name])
               );
               
-              // Get unique residencia and condominium IDs
+              // Get unique residencia IDs
               const residenciaIds = [...new Set(clients
                 .map(client => client.residencia_id)
                 .filter(Boolean))];
-              const condominiumIds = [...new Set(clients
-                .map(client => client.condominium_id)
-                .filter(Boolean))];
               
               console.log("Calendar - Residencia IDs to fetch:", residenciaIds);
-              console.log("Calendar - Condominium IDs to fetch:", condominiumIds);
               
               // Fetch residencias data
               let residenciasMap: Record<string, string> = {};
@@ -108,32 +103,13 @@ export function useCalendarAppointments(currentDate: Date) {
                 }
               }
               
-              // Fetch condominiums data
-              let condominiumsMap: Record<string, string> = {};
-              if (condominiumIds.length > 0) {
-                const { data: condominiums, error: condominiumsError } = await supabase
-                  .from('condominiums')
-                  .select('id, name')
-                  .in('id', condominiumIds);
-                
-                console.log("Calendar - Condominiums fetched:", condominiums);
-                console.log("Calendar - Condominiums error:", condominiumsError);
-                
-                if (condominiums && !condominiumsError) {
-                  condominiumsMap = Object.fromEntries(
-                    condominiums.map(cond => [cond.id, cond.name])
-                  );
-                }
-              }
-              
               console.log("Calendar - Final residenciasMap:", residenciasMap);
-              console.log("Calendar - Final condominiumsMap:", condominiumsMap);
               
-              // Create location map with complete address information
+              // Create location map with complete address information using the new format
               clientLocationMap = Object.fromEntries(
                 clients.map(client => {
                   const residenciaName = client.residencia_id ? residenciasMap[client.residencia_id] : '';
-                  const condominiumName = client.condominium_id ? condominiumsMap[client.condominium_id] : '';
+                  const condominiumName = client.condominium_text || '';
                   const houseNumber = client.house_number || '';
                   
                   const locationData = {
@@ -144,7 +120,7 @@ export function useCalendarAppointments(currentDate: Date) {
                   
                   console.log(`Calendar - Location data for client ${client.id}:`, locationData);
                   console.log(`Calendar - Residencia ID: ${client.residencia_id} -> Name: ${residenciaName}`);
-                  console.log(`Calendar - Condominium ID: ${client.condominium_id} -> Name: ${condominiumName}`);
+                  console.log(`Calendar - Condominium Text: ${condominiumName}`);
                   console.log(`Calendar - House Number: ${houseNumber}`);
                   
                   return [client.id, locationData];
@@ -166,7 +142,7 @@ export function useCalendarAppointments(currentDate: Date) {
               // For internal bookings, use the user lookup or fallback
               (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
               
-              // Build location string for internal bookings with improved format
+              // Build location string for internal bookings with the new format: Residencia – Condominio – Número de casa
               const location = clientLocationMap[app.client_id];
               console.log(`Calendar - Building location for client ${app.client_id}:`, location);
               
@@ -178,19 +154,19 @@ export function useCalendarAppointments(currentDate: Date) {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists - FIXED: Remove the comparison that prevented condominium from showing
+                // Add condominium if it exists
                 if (location.condominium && location.condominium.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
                 
                 // Add house number if available
                 if (location.houseNumber && location.houseNumber.trim()) {
-                  locationParts.push(`#${location.houseNumber.trim()}`);
+                  locationParts.push(location.houseNumber.trim());
                 }
                 
-                // Build the final location string - ensure all parts are included
+                // Build the final location string with the format: Residencia – Condominio – Número de casa
                 const finalLocation = locationParts.length > 0 
-                  ? locationParts.join(' - ') 
+                  ? locationParts.join(' – ') 
                   : 'Ubicación no especificada';
                 
                 (app as any).client_location = finalLocation;
