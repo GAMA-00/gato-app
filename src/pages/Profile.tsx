@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -478,7 +479,6 @@ const Profile = () => {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      <SelectItem value="">Sin condominio</SelectItem>
                                       {condominiums?.map((condominium) => (
                                         <SelectItem key={condominium.id} value={condominium.id}>
                                           {condominium.name}
