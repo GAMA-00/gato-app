@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
@@ -9,19 +8,9 @@ import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
 import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
 
 const Calendar = () => {
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [showCompleted, setShowCompleted] = useState(true);
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const { blockedSlots } = useBlockedTimeSlots();
   const { data: appointments = [], isLoading } = useCalendarAppointments(currentCalendarDate);
@@ -36,14 +25,10 @@ const Calendar = () => {
     }
   }, [user, navigate]);
   
-  // Filter appointments based on status filters - exclude cancelled appointments by default
+  // Filter appointments - exclude cancelled and rejected appointments by default
   const filteredAppointments = appointments.filter((appointment: any) => {
     // Always exclude cancelled and rejected appointments from the calendar view
-    if (appointment.status === 'cancelled' || appointment.status === 'rejected') return false;
-    
-    if (statusFilter.length === 0) return true;
-    if (!showCompleted && appointment.status === 'completed') return false;
-    return statusFilter.includes(appointment.status);
+    return appointment.status !== 'cancelled' && appointment.status !== 'rejected';
   });
 
   // Log the appointments to debug
@@ -64,54 +49,9 @@ const Calendar = () => {
       title="Calendario" 
       subtitle="Administra tu agenda y citas"
       action={
-        <div className="flex items-center gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" />
-                Filtros
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Estado</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={statusFilter.includes('pending')}
-                onCheckedChange={() => {
-                  setStatusFilter(prev => 
-                    prev.includes('pending') 
-                      ? prev.filter(s => s !== 'pending') 
-                      : [...prev, 'pending']
-                  );
-                }}
-              >
-                Pendiente
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={statusFilter.includes('confirmed')}
-                onCheckedChange={() => {
-                  setStatusFilter(prev => 
-                    prev.includes('confirmed') 
-                      ? prev.filter(s => s !== 'confirmed') 
-                      : [...prev, 'confirmed']
-                  );
-                }}
-              >
-                Confirmada
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={showCompleted}
-                onCheckedChange={setShowCompleted}
-              >
-                Mostrar Completadas
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
-            {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
+          {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
+        </Button>
       }
     >
       <div className="space-y-6">
