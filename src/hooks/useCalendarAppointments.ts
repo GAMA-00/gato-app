@@ -178,8 +178,8 @@ export function useCalendarAppointments(currentDate: Date) {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists (key fix: ensure we include condominium!)
-                if (location.condominium && location.condominium.trim() && location.condominium.trim() !== location.residencia?.trim()) {
+                // Add condominium if it exists - FIXED: Remove the comparison that prevented condominium from showing
+                if (location.condominium && location.condominium.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
                 

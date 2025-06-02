@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -181,8 +182,8 @@ export function useAppointments() {
                   locationParts.push(location.residencia.trim());
                 }
                 
-                // Add condominium if it exists (this is the critical part!)
-                if (location.condominium && location.condominium.trim() && location.condominium.trim() !== location.residencia?.trim()) {
+                // Add condominium if it exists - FIXED: Remove the comparison that was preventing it from showing
+                if (location.condominium && location.condominium.trim()) {
                   locationParts.push(location.condominium.trim());
                 }
                 
