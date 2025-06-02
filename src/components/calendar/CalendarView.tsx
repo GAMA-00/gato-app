@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -76,14 +75,14 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
   return (
     <div
       className={cn(
-        "absolute left-1 right-1 overflow-hidden shadow transition-all duration-150 cursor-pointer rounded-lg flex flex-col border-l-4",
-        expanded ? "z-20 bg-white border border-gray-200 p-3 h-fit min-h-[70px]" : "px-2 py-1 gap-0.5",
+        "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded border-l-2 text-xs",
+        expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[40px]" : "px-1 py-0.5 gap-0.5",
         isRecurring && "border-2 border-dashed",
         isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
         top: `${positionFromTop}px`,
-        height: expanded ? undefined : `${Math.max(durationMinutes, 36)}px`,
+        height: expanded ? undefined : `${Math.max(durationMinutes * 0.8, 28)}px`,
         background: expanded ? '#fff' : statusColor.bg,
         borderLeftColor: statusColor.border,
         color: statusColor.text,
@@ -95,12 +94,12 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       role="button"
     >
       <div className="flex items-center gap-1">
-        {isRecurring && <Repeat className="h-3 w-3 text-blue-600" />}
-        {isExternal && <ExternalLink className="h-3 w-3 text-blue-500" />}
+        {isRecurring && <Repeat className="h-2 w-2 text-blue-600 flex-shrink-0" />}
+        {isExternal && <ExternalLink className="h-2 w-2 text-blue-500 flex-shrink-0" />}
         <div 
           className={cn(
             "truncate font-semibold flex-1", 
-            expanded ? "text-base mb-1" : "text-xs"
+            expanded ? "text-sm mb-1" : "text-[10px] leading-tight"
           )}
           style={{ color: statusColor.text }}>
           {personName}
@@ -109,21 +108,21 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
       <div 
         className={cn(
           "truncate",
-          expanded ? "text-sm font-medium" : "text-[10px] font-normal"
+          expanded ? "text-xs font-medium" : "text-[9px] font-normal leading-tight"
         )}
         style={{ color: statusColor.text }}>
         {serviceName}
       </div>
       {expanded && (
-        <div className="text-[11px] mt-1 text-gray-400">
+        <div className="text-[10px] mt-1 text-gray-400">
           <span>
             {format(new Date(appointment.start_time), "HH:mm")} - {format(new Date(appointment.end_time), "HH:mm")}
           </span>
           <div className="flex gap-2 mt-1">
             {isRecurring && (
               <div className="flex items-center gap-1">
-                <Repeat className="h-3 w-3 text-blue-600" />
-                <span className="text-blue-600 text-xs">
+                <Repeat className="h-2 w-2 text-blue-600" />
+                <span className="text-blue-600 text-[9px]">
                   {appointment.recurrence === 'weekly' ? 'Semanal' : 
                    appointment.recurrence === 'biweekly' ? 'Quincenal' :
                    appointment.recurrence === 'monthly' ? 'Mensual' : 'Recurrente'}
@@ -132,14 +131,14 @@ const CalendarAppointment: React.FC<CalendarAppointmentProps> = ({
             )}
             {isExternal && (
               <div className="flex items-center gap-1">
-                <ExternalLink className="h-3 w-3 text-blue-500" />
-                <span className="text-blue-500 text-xs">Externa</span>
+                <ExternalLink className="h-2 w-2 text-blue-500" />
+                <span className="text-blue-500 text-[9px]">Externa</span>
               </div>
             )}
           </div>
-          <div className="mt-1 pt-1 border-t text-xs">
+          <div className="mt-1 pt-1 border-t text-[9px]">
             <span className={cn(
-              "px-2 py-0.5 rounded-full text-[10px]",
+              "px-1 py-0.5 rounded-full text-[8px]",
               appointment.status === 'pending' ? "bg-amber-50 text-amber-800" :
               appointment.status === 'confirmed' ? "bg-green-50 text-green-800" :
               "bg-gray-50 text-gray-700"
@@ -203,28 +202,28 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   const internalCount = dayAppointments.length - externalCount;
 
   return (
-    <div className="relative border-r last:border-r-0 calendar-day bg-white flex flex-col">
-      {/* Fixed header */}
-      <div className="sticky top-0 py-2 text-center border-b z-10 bg-white flex-shrink-0">
-        <div className={cn("text-xs uppercase tracking-wide mb-1", !isCurrentMonth && "text-muted-foreground")}>
+    <div className="relative border-r last:border-r-0 calendar-day bg-white">
+      {/* Fixed header with consistent height */}
+      <div className="h-20 py-2 text-center border-b bg-white flex-shrink-0 flex flex-col justify-between">
+        <div className={cn("text-xs uppercase tracking-wide", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
         </div>
         <div className={cn("flex items-center justify-center", !isCurrentMonth && "text-muted-foreground", isCurrentDay && "font-bold text-primary")}>
           {isCurrentDay ? (
-            <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+            <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
               {format(date, 'd')}
             </div>
           ) : (
-            format(date, 'd')
+            <span className="text-sm">{format(date, 'd')}</span>
           )}
         </div>
         {dayAppointments.length > 0 && (
-          <div className="text-xs font-medium mt-1 space-y-0.5">
+          <div className="text-[10px] font-medium space-y-0.5">
             <div className="text-blue-600">
               {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
             </div>
             {externalCount > 0 && (
-              <div className="text-blue-500 text-[10px]">
+              <div className="text-blue-500 text-[9px]">
                 {externalCount} externa{externalCount > 1 ? 's' : ''}
               </div>
             )}
@@ -232,18 +231,18 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         )}
       </div>
 
-      {/* Time slots container with fixed height per hour */}
-      <div className="relative flex-1">
+      {/* Time slots container with consistent grid */}
+      <div className="relative">
         {hours.map((hour) => (
-          <div key={hour} className="relative h-[60px] border-b border-gray-200">
-            <div className="absolute left-1 top-0 text-xs text-muted-foreground select-none bg-white py-0 px-1 leading-none">
+          <div key={hour} className="relative h-12 border-b border-gray-100">
+            <div className="absolute left-1 top-0 text-[10px] text-muted-foreground select-none bg-white py-0 px-1 leading-none">
               {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
             </div>
           </div>
         ))}
         
         {/* Appointments overlay */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 top-0">
           {dayAppointments.map(appointment => {
             console.log(`Rendering appointment for ${date.toDateString()}:`, {
               id: appointment.id,
