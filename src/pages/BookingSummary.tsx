@@ -21,7 +21,7 @@ const BookingSummary = () => {
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const { createRecurringBooking, isCreating } = useRecurringBooking();
+  const { createRecurringBooking, isLoading: isCreatingRecurring } = useRecurringBooking();
   
   // All state hooks at the top
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,19 +94,14 @@ const BookingSummary = () => {
       
       // If it's a recurring appointment, use the recurring booking hook
       if (selectedFrequency !== 'once') {
-        createRecurringBooking({
+        return await createRecurringBooking({
           providerId: bookingData.providerId,
-          clientId: user.id,
           listingId: bookingData.serviceId,
-          residenciaId: residencia_id || '',
           startTime: startTime,
-          duration: durationMinutes,
           recurrence: selectedFrequency as 'weekly' | 'biweekly' | 'monthly',
-          selectedDays: [], // No longer needed - automatically determined by selected date
           notes: bookingData.notes || '',
           apartment: user.apartment || ''
         });
-        return;
       }
       
       // For single appointments, continue with the regular flow
@@ -559,16 +554,16 @@ const BookingSummary = () => {
                 variant="outline" 
                 className="flex-1" 
                 onClick={handleBack}
-                disabled={isSubmitting || isCreating}
+                disabled={isSubmitting || isCreatingRecurring}
               >
                 Volver
               </Button>
               <Button 
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white" 
                 onClick={handleConfirm}
-                disabled={isSubmitting || isCreating || !canContinue}
+                disabled={isSubmitting || isCreatingRecurring || !canContinue}
               >
-                {(isSubmitting || isCreating) ? 'Enviando...' : 'Confirmar Reserva'}
+                {(isSubmitting || isCreatingRecurring) ? 'Enviando...' : 'Confirmar Reserva'}
               </Button>
             </div>
           </CardContent>

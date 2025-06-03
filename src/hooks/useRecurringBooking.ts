@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addWeeks, addMonths, addDays } from 'date-fns';
@@ -79,26 +80,29 @@ export const useRecurringBooking = () => {
       throw new Error('Usuario no autenticado');
     }
 
-    console.log('Creating recurring booking with data:', bookingData);
-
-    // Validate required fields
-    if (!bookingData.providerId || !bookingData.listingId || !bookingData.startTime || !bookingData.recurrence) {
-      throw new Error('Faltan campos requeridos para la reserva');
-    }
-
-    // Generate appointments based on recurrence
-    const appointments = generateRecurringAppointments(bookingData);
-    
-    if (appointments.length === 0) {
-      throw new Error('No se pudieron generar las citas recurrentes');
-    }
-
-    console.log(`Generated ${appointments.length} recurring appointments`);
-
-    // Generate a single group ID for all appointments in this recurring series
-    const recurrenceGroupId = crypto.randomUUID();
+    setIsLoading(true);
+    setError(null);
 
     try {
+      console.log('Creating recurring booking with data:', bookingData);
+
+      // Validate required fields
+      if (!bookingData.providerId || !bookingData.listingId || !bookingData.startTime || !bookingData.recurrence) {
+        throw new Error('Faltan campos requeridos para la reserva');
+      }
+
+      // Generate appointments based on recurrence
+      const appointments = generateRecurringAppointments(bookingData);
+      
+      if (appointments.length === 0) {
+        throw new Error('No se pudieron generar las citas recurrentes');
+      }
+
+      console.log(`Generated ${appointments.length} recurring appointments`);
+
+      // Generate a single group ID for all appointments in this recurring series
+      const recurrenceGroupId = crypto.randomUUID();
+
       // Insert all appointments with the same recurrence_group_id
       const appointmentsToInsert = appointments.map(apt => ({
         ...apt,
@@ -132,7 +136,10 @@ export const useRecurringBooking = () => {
 
     } catch (error) {
       console.error('Error creating recurring booking:', error);
+      setError(error as Error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
