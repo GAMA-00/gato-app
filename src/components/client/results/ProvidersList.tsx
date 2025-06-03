@@ -1,81 +1,160 @@
 
-import React, { useEffect } from 'react';
-import { User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import ProviderCard from './ProviderCard';
-import { ProcessedProvider } from './types';
-import { Card, CardContent } from '@/components/ui/card';
-import { toast } from '@/components/ui/use-toast';
 
 interface ProvidersListProps {
-  providers: ProcessedProvider[];
-  isLoading: boolean;
-  onProviderSelect: (provider: ProcessedProvider) => void;
-  onBack: () => void;
+  categoryName: string;
+  serviceId: string;
 }
 
-const ProvidersList = ({ providers, isLoading, onProviderSelect, onBack }: ProvidersListProps) => {
-  // Log para depuración
-  useEffect(() => {
-    console.log("ProvidersList rendered with", providers.length, "providers");
-    if (providers.length > 0) {
-      console.log("First provider:", providers[0]);
-    }
-  }, [providers]);
-
+const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
+  console.log("ProvidersList rendered with:", { categoryName, serviceId });
+  
+  const { data: providers, isLoading, error } = useQuery({
+    queryKey: ['providers', serviceId],
+    queryFn: async () => {
+      if (!serviceId) return [];
+      
+      console.log("Fetching providers for serviceId:", serviceId);
+      
+      // Fetch listings (services) that match the service type
+      const { data: listings, error: listingsError } = await supabase
+        .from('listings')
+        .select(`
+          *,
+          provider:provider_id (
+            id,
+            name,
+            email,
+            phone,
+            avatar_url,
+            about_me,
+            average_rating,
+            experience_years,
+            certification_files
+          )
+        `)
+        .eq('service_type_id', serviceId)
+        .eq('is_active', true);
+        
+      if (listingsError) {
+        console.error("Error fetching listings:", listingsError);
+        throw listingsError;
+      }
+      
+      console.log("Raw listings data:", listings);
+      
+      // Transform and group by provider
+      const providersMap = new Map();
+      
+      listings?.forEach(listing => {
+        if (listing.provider) {
+          const providerId = listing.provider.id;
+          
+          if (!providersMap.has(providerId)) {
+            providersMap.set(providerId, {
+              ...listing.provider,
+              services: []
+            });
+          }
+          
+          providersMap.get(providerId).services.push({
+            id: listing.id,
+            title: listing.title,
+            description: listing.description,
+            duration: listing.duration,
+            base_price: listing.base_price,
+            service_variants: listing.service_variants,
+            gallery_images: listing.gallery_images
+          });
+        }
+      });
+      
+      const providersArray = Array.from(providersMap.values());
+      console.log("Transformed providers:", providersArray);
+      
+      return providersArray;
+    },
+    enabled: !!serviceId
+  });
+  
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map(i => (
-          <Card key={i} className="bg-[#F2F2F2] border-app-border">
-            <CardContent className="p-0">
-              <div className="flex p-4">
-                <Skeleton className="h-16 w-16 rounded-full" />
-                <div className="ml-4 flex-1 space-y-2">
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-3 w-1/4" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
-                <Skeleton className="h-10 w-24" />
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Buscando profesionales...</h2>
+          <p className="text-muted-foreground">Esto puede tomar unos segundos</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="space-y-4">
+              <Skeleton className="h-48 w-full rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
   
-  if (providers.length === 0) {
+  if (error) {
     return (
-      <div className="text-center py-8">
-        <User className="h-16 w-16 mx-auto text-app-text/20 mb-2" />
-        <p className="text-lg font-medium text-app-text">No hay profesionales disponibles</p>
-        <p className="text-app-text/70 mb-6">
-          No encontramos profesionales para este servicio en esta ubicación.
-        </p>
-        <Button onClick={() => {
-          toast({
-            title: "Sugerencia",
-            description: "Prueba ver servicios sin iniciar sesión para ver todos los profesionales disponibles en todas las ubicaciones."
-          });
-          onBack();
-        }}>
-          Volver a detalles de reserva
-        </Button>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Error al cargar los profesionales. Por favor, inténtalo de nuevo.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  if (!providers || providers.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="max-w-md mx-auto">
+          <h2 className="text-xl font-semibold mb-4">No se encontraron profesionales</h2>
+          <p className="text-muted-foreground mb-6">
+            No hay profesionales disponibles para este servicio en este momento.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Intenta con otro servicio o vuelve más tarde.
+          </p>
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="space-y-4">
-      {providers.map((provider) => (
-        <ProviderCard 
-          key={provider.id}
-          provider={provider}
-          onClick={onProviderSelect}
-        />
-      ))}
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">
+          {providers.length} profesional{providers.length !== 1 ? 'es' : ''} disponible{providers.length !== 1 ? 's' : ''}
+        </h2>
+        <p className="text-muted-foreground">
+          Selecciona el profesional que prefieras para tu servicio
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {providers.map((provider: any) => (
+          <ProviderCard 
+            key={provider.id} 
+            provider={provider}
+            categoryName={categoryName}
+          />
+        ))}
+      </div>
     </div>
   );
 };

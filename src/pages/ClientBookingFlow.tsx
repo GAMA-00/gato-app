@@ -1,26 +1,17 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Repeat } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { BookingPreferences } from '@/components/client/results/types';
 
 const ClientBookingFlow = () => {
   const { categoryName, serviceId } = useParams<{ categoryName: string; serviceId: string }>();
   const navigate = useNavigate();
   
   console.log("ClientBookingFlow rendered with params:", { categoryName, serviceId });
-  
-  // Estado para preferencias de reserva
-  const [bookingPrefs, setBookingPrefs] = useState<BookingPreferences>({
-    frequency: '', // Hacer obligatoria la selección
-    selectedDays: [],
-    timeSlot: '6am-12md',
-  });
   
   // Obtener información del servicio
   const { data: serviceInfo, isLoading } = useQuery({
@@ -45,58 +36,19 @@ const ClientBookingFlow = () => {
     enabled: !!serviceId
   });
   
-  const handleFrequencyChange = (value: string) => {
-    setBookingPrefs(prev => ({ 
-      ...prev, 
-      frequency: value,
-      selectedDays: value === 'once' ? [] : prev.selectedDays // Clear days for one-time bookings
-    }));
-  };
-  
-  const handleDayChange = (day: number) => {
-    setBookingPrefs(prev => {
-      const selectedDays = prev.selectedDays || [];
-      if (selectedDays.includes(day)) {
-        return { ...prev, selectedDays: selectedDays.filter(d => d !== day) };
-      } else {
-        return { ...prev, selectedDays: [...selectedDays, day] };
-      }
-    });
-  };
-  
   const handleBack = () => {
     navigate(`/client/category/${categoryName}`);
   };
   
   const handleShowResults = () => {
-    // Validar que se haya seleccionado la frecuencia
-    if (!bookingPrefs.frequency) {
-      return; // El botón estará deshabilitado pero por si acaso
-    }
-    
-    // Validar que para reservas recurrentes se hayan seleccionado días
-    if (bookingPrefs.frequency !== 'once' && (!bookingPrefs.selectedDays || bookingPrefs.selectedDays.length === 0)) {
-      return; // El botón estará deshabilitado pero por si acaso
-    }
-    
     console.log("Navigating to results with params:", { categoryName, serviceId });
-    console.log("Booking preferences:", bookingPrefs);
-    navigate(`/client/results/${categoryName}/${serviceId}`, { state: bookingPrefs });
+    // Ya no pasamos bookingPrefs, solo navegamos directamente a los resultados
+    navigate(`/client/results/${categoryName}/${serviceId}`);
   };
-  
-  // Nombres de los días de la semana
-  const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  
-  // Verificar si se puede continuar
-  const canContinue = bookingPrefs.frequency && 
-    (bookingPrefs.frequency === 'once' || 
-     (bookingPrefs.selectedDays && bookingPrefs.selectedDays.length > 0));
-  
-  const isRecurringBooking = bookingPrefs.frequency && bookingPrefs.frequency !== 'once';
   
   return (
     <PageContainer
-      title={serviceInfo?.name || 'Detalles de reserva'}
+      title={serviceInfo?.name || 'Buscar profesionales'}
       subtitle={
         <Button 
           variant="outline" 
@@ -109,126 +61,23 @@ const ClientBookingFlow = () => {
       }
     >
       <div className="max-w-2xl mx-auto space-y-6 p-6 bg-white rounded-2xl shadow-soft border border-gray-100">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-full mb-3">
-            <Repeat className="h-6 w-6 text-primary" />
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+            <ArrowRight className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Recurrencia
+          <h2 className="text-2xl font-semibold text-gray-900">
+            ¡Perfecto!
           </h2>
-          <p className="text-gray-600 text-sm">
-            Selecciona la frecuencia del servicio
+          <p className="text-gray-600">
+            Ahora te mostraremos todos los profesionales disponibles para el servicio de{' '}
+            <span className="font-medium text-primary">{serviceInfo?.name}</span>
           </p>
         </div>
         
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <Tabs 
-              value={bookingPrefs.frequency} 
-              onValueChange={handleFrequencyChange}
-              className="w-full"
-            >
-              <TabsList className="grid grid-cols-4 gap-2 w-full h-auto p-2 bg-gray-50 rounded-xl">
-                <TabsTrigger 
-                  value="once" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 px-3 rounded-lg transition-all duration-200 text-sm"
-                >
-                  Una vez
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="weekly"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 px-3 rounded-lg transition-all duration-200 text-sm"
-                >
-                  Semanal
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="biweekly"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 px-3 rounded-lg transition-all duration-200 text-sm"
-                >
-                  Quincenal
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="monthly"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 px-3 rounded-lg transition-all duration-200 text-sm"
-                >
-                  Mensual
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {!bookingPrefs.frequency && (
-              <p className="text-xs text-red-500 text-center animate-pulse">
-                Debes seleccionar una frecuencia para continuar
-              </p>
-            )}
-          </div>
-          
-          {isRecurringBooking && (
-            <div className="space-y-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100 animate-fade-in">
-              <div className="space-y-3">
-                <Label className="text-base font-medium text-gray-900 block text-center">
-                  ¿Qué días prefieres? <span className="text-red-500">*</span>
-                </Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {dayNames.map((day, index) => (
-                    <Button
-                      key={day}
-                      type="button"
-                      variant={bookingPrefs.selectedDays?.includes(index + 1) ? 'default' : 'outline'}
-                      onClick={() => handleDayChange(index + 1)}
-                      className={`h-10 text-xs font-medium transition-all duration-200 ${
-                        bookingPrefs.selectedDays?.includes(index + 1) 
-                          ? 'bg-primary hover:bg-primary/90 text-white shadow-sm' 
-                          : 'bg-white hover:bg-gray-50 border-gray-200'
-                      }`}
-                    >
-                      {day}
-                    </Button>
-                  ))}
-                </div>
-                {isRecurringBooking && (!bookingPrefs.selectedDays || bookingPrefs.selectedDays.length === 0) && (
-                  <p className="text-xs text-red-500 text-center animate-pulse">
-                    Debes seleccionar al menos un día para continuar
-                  </p>
-                )}
-              </div>
-              
-              {/* Recurring booking summary */}
-              {bookingPrefs.selectedDays && bookingPrefs.selectedDays.length > 0 && (
-                <div className="p-3 bg-white rounded-lg border border-blue-200 animate-scale-in">
-                  <h4 className="font-medium text-blue-900 mb-2 text-center text-sm">
-                    📅 Resumen de tu reserva recurrente
-                  </h4>
-                  <div className="space-y-1.5 text-xs text-blue-800">
-                    <div className="flex justify-between">
-                      <span>Frecuencia:</span>
-                      <span className="font-medium">
-                        {bookingPrefs.frequency === 'weekly' ? 'Cada semana' :
-                         bookingPrefs.frequency === 'biweekly' ? 'Cada 2 semanas' :
-                         'Cada mes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Días:</span>
-                      <span className="font-medium">
-                        {bookingPrefs.selectedDays.map(day => dayNames[day - 1]).join(', ')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        
-        <div className="pt-4 border-t border-gray-100">
+        <div className="pt-6 border-t border-gray-100">
           <Button 
             onClick={handleShowResults} 
-            disabled={!canContinue}
-            className={`w-full h-12 text-base font-medium rounded-xl transition-all duration-200 ${
-              canContinue 
-                ? 'bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02]' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
+            className="w-full h-12 text-base font-medium rounded-xl bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200"
           >
             <span>Ver profesionales disponibles</span>
             <ArrowRight className="ml-3 h-4 w-4" />

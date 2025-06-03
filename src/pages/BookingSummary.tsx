@@ -11,8 +11,10 @@ import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
+import RecurrenceSelector from '@/components/client/booking/RecurrenceSelector';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 
 const BookingSummary = () => {
   const location = useLocation();
@@ -21,6 +23,7 @@ const BookingSummary = () => {
   const queryClient = useQueryClient();
   const { bookingData } = location.state || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createRecurringBooking, isCreating } = useRecurringBooking();
   
   // Estados para fecha y hora
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -29,6 +32,10 @@ const BookingSummary = () => {
   const [selectedTime, setSelectedTime] = useState<string | undefined>(
     bookingData?.startTime ? format(new Date(bookingData.startTime), 'HH:mm') : undefined
   );
+  
+  // Estados para recurrencia
+  const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   
   // Scroll to top when component mounts - Fixed implementation
   useEffect(() => {
@@ -114,7 +121,18 @@ const BookingSummary = () => {
     return recurrenceMap[value] || null;
   };
   
-  // Mutation to create appointment
+  // Handle day selection for recurrence
+  const handleDayChange = (day: number) => {
+    setSelectedDays(prev => {
+      if (prev.includes(day)) {
+        return prev.filter(d => d !== day);
+      } else {
+        return [...prev, day];
+      }
+    });
+  };
+  
+  // Mutation to create appointment or recurring appointments
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
       // Check authentication
@@ -136,11 +154,34 @@ const BookingSummary = () => {
       const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
       
       // Normalize the recurrence value
-      const normalizedRecurrence = normalizeRecurrenceValue(bookingData.frequency);
+      const normalizedRecurrence = normalizeRecurrenceValue(selectedFrequency);
       
       // Check if we have a valid residencia_id
       const residencia_id = user.residenciaId || null;
       
+      // If it's a recurring appointment, use the recurring booking hook
+      if (selectedFrequency !== 'once') {
+        // Validate that days are selected for recurring bookings
+        if (!selectedDays || selectedDays.length === 0) {
+          throw new Error("Debes seleccionar al menos un día para reservas recurrentes");
+        }
+        
+        createRecurringBooking({
+          providerId: bookingData.providerId,
+          clientId: user.id,
+          listingId: bookingData.serviceId,
+          residenciaId: residencia_id || '',
+          startTime: startTime,
+          duration: durationMinutes,
+          recurrence: selectedFrequency as 'weekly' | 'biweekly' | 'monthly',
+          selectedDays: selectedDays,
+          notes: bookingData.notes || '',
+          apartment: user.apartment || ''
+        });
+        return;
+      }
+      
+      // For single appointments, continue with the regular flow
       // Check if residencia_id is required but missing
       if (!residencia_id) {
         console.warn("Creating appointment without residencia_id. User profile may need updating.");
@@ -299,6 +340,26 @@ const BookingSummary = () => {
       return;
     }
 
+    // Validate recurrence selection
+    if (!selectedFrequency) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona la frecuencia del servicio",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate days selection for recurring appointments
+    if (selectedFrequency !== 'once' && (!selectedDays || selectedDays.length === 0)) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona al menos un día para reservas recurrentes",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     createAppointmentMutation.mutate();
   };
@@ -320,6 +381,13 @@ const BookingSummary = () => {
   
   const formattedTime = formatTimeTo12Hour(selectedTime);
 
+  // Check if we can continue (all required fields filled)
+  const canContinue = hasRequiredData && 
+    selectedDate && 
+    selectedTime && 
+    selectedFrequency &&
+    (selectedFrequency === 'once' || (selectedDays && selectedDays.length > 0));
+
   return (
     <PageContainer
       title="Confirmar Reserva"
@@ -334,7 +402,7 @@ const BookingSummary = () => {
         </Button>
       }
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto space-y-6">
         {/* Date and Time Selector with provider ID */}
         <DateTimeSelector 
           selectedDate={selectedDate}
@@ -342,6 +410,14 @@ const BookingSummary = () => {
           selectedTime={selectedTime}
           onTimeChange={setSelectedTime}
           providerId={bookingData.providerId}
+        />
+        
+        {/* Recurrence Selector */}
+        <RecurrenceSelector
+          selectedFrequency={selectedFrequency}
+          onFrequencyChange={setSelectedFrequency}
+          selectedDays={selectedDays}
+          onDayChange={handleDayChange}
         />
         
         <Card className="shadow-md">
@@ -388,18 +464,16 @@ const BookingSummary = () => {
                 <span className="font-medium">{formattedTime}</span>
               </div>
               
-              {bookingData.frequency && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Frecuencia:</span>
-                  <span className="font-medium capitalize">{
-                    bookingData.frequency === 'once' ? 'Una vez' : 
-                    bookingData.frequency === 'weekly' ? 'Semanal' :
-                    bookingData.frequency === 'biweekly' ? 'Quincenal' : 
-                    bookingData.frequency === 'monthly' ? 'Mensual' :
-                    bookingData.frequency
-                  }</span>
-                </div>
-              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Frecuencia:</span>
+                <span className="font-medium capitalize">{
+                  selectedFrequency === 'once' ? 'Una vez' : 
+                  selectedFrequency === 'weekly' ? 'Semanal' :
+                  selectedFrequency === 'biweekly' ? 'Quincenal' : 
+                  selectedFrequency === 'monthly' ? 'Mensual' :
+                  selectedFrequency
+                }</span>
+              </div>
               
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Observaciones:</span>
@@ -421,16 +495,16 @@ const BookingSummary = () => {
                 variant="outline" 
                 className="flex-1" 
                 onClick={handleBack}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isCreating}
               >
                 Volver
               </Button>
               <Button 
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white" 
                 onClick={handleConfirm}
-                disabled={isSubmitting || !hasRequiredData || (!isAuthenticated || !user) || !selectedDate || !selectedTime}
+                disabled={isSubmitting || isCreating || !canContinue}
               >
-                {isSubmitting ? 'Enviando...' : 'Confirmar Reserva'}
+                {(isSubmitting || isCreating) ? 'Enviando...' : 'Confirmar Reserva'}
               </Button>
             </div>
           </CardContent>
