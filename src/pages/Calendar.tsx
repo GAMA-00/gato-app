@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
-import JobRequests from '@/components/calendar/JobRequests';
+import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
 import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
@@ -55,8 +55,8 @@ const Calendar = () => {
       }
     >
       <div className="space-y-6">
-        {/* Always render JobRequests for providers */}
-        <JobRequests />
+        {/* Use the new grouped component for job requests */}
+        <JobRequestsGrouped />
         
         {showBlockedTimeSlots && <BlockedTimeSlots />}
         

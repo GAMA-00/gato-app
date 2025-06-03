@@ -1,164 +1,144 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { addWeeks, addMonths, format, getDay, isSameDay, addDays } from 'date-fns';
+import { format, addWeeks, addMonths, addDays } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface RecurringBookingData {
   providerId: string;
-  clientId: string;
   listingId: string;
-  residenciaId: string;
   startTime: Date;
-  duration: number; // in minutes
-  recurrence: 'weekly' | 'biweekly' | 'monthly';
-  selectedDays: number[]; // 1-7 (Monday-Sunday)
+  recurrence: 'weekly' | 'biweekly' | 'monthly' | 'daily';
   notes?: string;
+  residencia?: string;
   apartment?: string;
+  client_address?: string;
+  client_phone?: string;
+  client_email?: string;
+  client_name?: string;
+  is_external?: boolean;
 }
 
-export const useRecurringBooking = () => {
-  const queryClient = useQueryClient();
+// Function to generate recurring appointments
+const generateRecurringAppointments = (bookingData: RecurringBookingData) => {
+  const { startTime, recurrence } = bookingData;
+  const startDate = new Date(startTime);
+  const appointments = [];
 
-  const createRecurringBooking = useMutation({
-    mutationFn: async (bookingData: RecurringBookingData) => {
-      const { 
-        providerId, 
-        clientId, 
-        listingId, 
-        residenciaId, 
-        startTime, 
-        duration, 
-        recurrence, 
-        selectedDays, 
-        notes, 
-        apartment 
-      } = bookingData;
+  for (let i = 0; i < 8; i++) {
+    let newDate = new Date(startDate);
 
-      console.log('Creating recurring appointments with data:', {
-        startTime: startTime.toISOString(),
-        recurrence,
-        selectedDays,
-        duration
-      });
-
-      // Generate recurring appointments for the next 52 weeks (1 year)
-      const appointments = [];
-      const totalPeriods = 52;
-      
-      // Get the day of week for the original appointment (0 = Sunday, 1 = Monday, etc.)
-      const originalDay = getDay(startTime);
-      
-      for (let i = 0; i < totalPeriods; i++) {
-        let appointmentDate = new Date(startTime);
-        
-        switch (recurrence) {
-          case 'weekly':
-            appointmentDate = addWeeks(startTime, i);
-            break;
-          case 'biweekly':
-            appointmentDate = addWeeks(startTime, i * 2);
-            break;
-          case 'monthly':
-            appointmentDate = addMonths(startTime, i);
-            // For monthly recurrence, try to keep the same day of the week
-            // If the day doesn't match, find the closest occurrence
-            const targetDay = originalDay;
-            const currentDay = getDay(appointmentDate);
-            if (currentDay !== targetDay) {
-              const dayDiff = targetDay - currentDay;
-              appointmentDate = addDays(appointmentDate, dayDiff);
-            }
-            break;
-        }
-
-        // For weekly and biweekly, check if the day matches selected days
-        if ((recurrence === 'weekly' || recurrence === 'biweekly') && selectedDays.length > 0) {
-          const dayOfWeek = getDay(appointmentDate);
-          // Convert Sunday from 0 to 7 to match our selectedDays format (1-7)
-          const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-          if (!selectedDays.includes(adjustedDay)) {
-            continue; // Skip dates that don't match selected days
-          }
-        }
-
-        // Set the correct time (preserve hours and minutes from original)
-        appointmentDate.setHours(startTime.getHours());
-        appointmentDate.setMinutes(startTime.getMinutes());
-        appointmentDate.setSeconds(0);
-        appointmentDate.setMilliseconds(0);
-
-        const appointmentEndTime = new Date(appointmentDate.getTime() + duration * 60000);
-
-        appointments.push({
-          provider_id: providerId,
-          client_id: clientId,
-          listing_id: listingId,
-          residencia_id: residenciaId,
-          start_time: appointmentDate.toISOString(),
-          end_time: appointmentEndTime.toISOString(),
-          status: 'pending',
-          recurrence: recurrence,
-          notes: notes || '',
-          apartment: apartment || ''
-        });
-      }
-
-      console.log(`Generated ${appointments.length} recurring appointments:`, 
-        appointments.slice(0, 5).map(apt => ({
-          start_time: apt.start_time,
-          recurrence: apt.recurrence
-        }))
-      );
-
-      // Insert all appointments in batches to avoid timeouts
-      const batchSize = 10;
-      const allCreatedAppointments = [];
-      
-      for (let i = 0; i < appointments.length; i += batchSize) {
-        const batch = appointments.slice(i, i + batchSize);
-        
-        console.log(`Inserting batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(appointments.length / batchSize)} with ${batch.length} appointments`);
-        
-        const { data, error } = await supabase
-          .from('appointments')
-          .insert(batch)
-          .select();
-
-        if (error) {
-          console.error(`Error creating appointments batch ${Math.floor(i / batchSize) + 1}:`, error);
-          throw error;
-        }
-
-        if (data) {
-          allCreatedAppointments.push(...data);
-        }
-      }
-
-      console.log('Successfully created all recurring appointments:', allCreatedAppointments.length);
-      return allCreatedAppointments;
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Reservas recurrentes creadas",
-        description: `Se crearon ${data.length} citas recurrentes exitosamente. Estas aparecerán en tu calendario.`,
-      });
-      
-      // Invalidate relevant queries to refresh the calendar
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
-    },
-    onError: (error) => {
-      console.error('Error creating recurring booking:', error);
-      toast({
-        title: "Error al crear reservas recurrentes",
-        description: "No se pudieron crear las reservas recurrentes. Inténtalo de nuevo.",
-        variant: "destructive"
-      });
+    switch (recurrence) {
+      case 'weekly':
+        newDate = addWeeks(startDate, i);
+        break;
+      case 'biweekly':
+        newDate = addWeeks(startDate, i * 2);
+        break;
+      case 'monthly':
+        newDate = addMonths(startDate, i);
+        break;
+      case 'daily':
+        newDate = addDays(startDate, i);
+        break;
+      default:
+        break;
     }
-  });
+
+    const formattedDate = format(newDate, 'yyyy-MM-dd');
+    const formattedTime = format(new Date(startTime), 'HH:mm:ss');
+    const startDateTime = `${formattedDate} ${formattedTime}`;
+
+    appointments.push({
+      provider_id: bookingData.providerId,
+      listing_id: bookingData.listingId,
+      start_time: startDateTime,
+      end_time: format(addDays(new Date(startDateTime), 1), 'yyyy-MM-dd HH:mm:ss'), // Assuming 1-hour duration
+      recurrence: bookingData.recurrence,
+      notes: bookingData.notes,
+      residencia: bookingData.residencia,
+      apartment: bookingData.apartment,
+      client_address: bookingData.client_address,
+      client_phone: bookingData.client_phone,
+      client_email: bookingData.client_email,
+      client_name: bookingData.client_name,
+      external_booking: bookingData.is_external || false
+    });
+  }
+
+  return appointments;
+};
+
+export const useRecurringBooking = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const createRecurringBooking = async (bookingData: RecurringBookingData) => {
+    const { user } = useAuth();
+    
+    if (!user) {
+      throw new Error('Usuario no autenticado');
+    }
+
+    console.log('Creating recurring booking with data:', bookingData);
+
+    // Validate required fields
+    if (!bookingData.providerId || !bookingData.listingId || !bookingData.startTime || !bookingData.recurrence) {
+      throw new Error('Faltan campos requeridos para la reserva');
+    }
+
+    // Generate appointments based on recurrence
+    const appointments = generateRecurringAppointments(bookingData);
+    
+    if (appointments.length === 0) {
+      throw new Error('No se pudieron generar las citas recurrentes');
+    }
+
+    console.log(`Generated ${appointments.length} recurring appointments`);
+
+    // Generate a single group ID for all appointments in this recurring series
+    const recurrenceGroupId = crypto.randomUUID();
+
+    try {
+      // Insert all appointments with the same recurrence_group_id
+      const appointmentsToInsert = appointments.map(apt => ({
+        ...apt,
+        recurrence_group_id: recurrenceGroupId,
+        client_id: user.id,
+        status: 'pending' as const,
+        created_at: new Date().toISOString()
+      }));
+
+      console.log('Inserting appointments with group ID:', recurrenceGroupId);
+      console.log('Appointments to insert:', appointmentsToInsert);
+
+      const { data: insertedAppointments, error } = await supabase
+        .from('appointments')
+        .insert(appointmentsToInsert)
+        .select();
+
+      if (error) {
+        console.error('Error inserting recurring appointments:', error);
+        throw new Error(`Error al crear las citas recurrentes: ${error.message}`);
+      }
+
+      console.log('Successfully created recurring appointments:', insertedAppointments);
+
+      return {
+        success: true,
+        appointments: insertedAppointments,
+        groupId: recurrenceGroupId,
+        count: insertedAppointments?.length || 0
+      };
+
+    } catch (error) {
+      console.error('Error creating recurring booking:', error);
+      throw error;
+    }
+  };
 
   return {
-    createRecurringBooking: createRecurringBooking.mutate,
-    isCreating: createRecurringBooking.isPending
+    isLoading,
+    error,
+    createRecurringBooking
   };
 };

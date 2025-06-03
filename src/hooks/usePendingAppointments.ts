@@ -1,21 +1,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAppointments } from "./useAppointments";
+import { useGroupedPendingRequests } from "./useGroupedPendingRequests";
 
 export function usePendingAppointments() {
   const { user } = useAuth();
-  const { data: appointments = [] } = useAppointments();
+  const { data: groupedRequests = [] } = useGroupedPendingRequests();
 
-  // Filter only pending appointments for providers
-  const pendingAppointments = user?.role === 'provider' 
-    ? appointments.filter(app => app.status === 'pending')
-    : [];
-  
-  const count = pendingAppointments.length;
+  // Calculate total pending appointments count
+  const count = groupedRequests.reduce((sum, req) => sum + req.appointment_count, 0);
 
   return {
-    pendingAppointments,
+    pendingAppointments: groupedRequests,
     count,
     hasPending: count > 0
   };

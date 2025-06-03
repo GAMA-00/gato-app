@@ -30,6 +30,7 @@ export type Database = {
           provider_id: string
           provider_name: string | null
           recurrence: string | null
+          recurrence_group_id: string | null
           refund_percentage: number | null
           residencia_id: string | null
           start_time: string
@@ -55,6 +56,7 @@ export type Database = {
           provider_id: string
           provider_name?: string | null
           recurrence?: string | null
+          recurrence_group_id?: string | null
           refund_percentage?: number | null
           residencia_id?: string | null
           start_time: string
@@ -80,6 +82,7 @@ export type Database = {
           provider_id?: string
           provider_name?: string | null
           recurrence?: string | null
+          recurrence_group_id?: string | null
           refund_percentage?: number | null
           residencia_id?: string | null
           start_time?: string
