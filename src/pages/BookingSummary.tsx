@@ -22,172 +22,37 @@ const BookingSummary = () => {
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { createRecurringBooking, isCreating } = useRecurringBooking();
-  const [bookingData, setBookingData] = useState(null);
   
-  // Estados para fecha y hora
+  // All state hooks must be at the top
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingData, setBookingData] = useState(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
-  
-  // Estados para recurrencia
   const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   
-  // Get booking data from multiple sources
-  useEffect(() => {
-    console.log("BookingSummary: Initializing booking data");
-    
-    // Priority 1: Data from navigation state
-    if (location.state?.bookingData) {
-      console.log("Found booking data in location state:", location.state.bookingData);
-      setBookingData(location.state.bookingData);
-      return;
-    }
-    
-    // Priority 2: Data from URL parameters (for direct access)
-    const serviceId = searchParams.get('serviceId');
-    const providerId = searchParams.get('providerId');
-    
-    if (serviceId && providerId) {
-      console.log("Found URL parameters, fetching booking data:", { serviceId, providerId });
-      fetchBookingDataFromParams(serviceId, providerId);
-    } else {
-      console.error("No booking data found in state or URL parameters");
-      toast({
-        title: "Error",
-        description: "Información de reserva no encontrada",
-        variant: "destructive"
-      });
-      navigate('/client');
-    }
-  }, [location.state, searchParams]);
-  
-  // Fetch booking data from URL parameters
-  const fetchBookingDataFromParams = async (serviceId: string, providerId: string) => {
-    try {
-      // Fetch service type and provider info
-      const [serviceResponse, providerResponse, listingResponse] = await Promise.all([
-        supabase
-          .from('service_types')
-          .select('*')
-          .eq('id', serviceId)
-          .single(),
-        supabase
-          .from('users')
-          .select('id, name')
-          .eq('id', providerId)
-          .single(),
-        supabase
-          .from('listings')
-          .select('*')
-          .eq('service_type_id', serviceId)
-          .eq('provider_id', providerId)
-          .eq('is_active', true)
-          .limit(1)
-          .single()
-      ]);
+  // Fetch service info for booking data - moved to top
+  const { data: serviceInfo } = useQuery({
+    queryKey: ['service-info', bookingData?.serviceId],
+    queryFn: async () => {
+      if (!bookingData?.serviceId) return null;
       
-      if (serviceResponse.error || providerResponse.error) {
-        throw new Error("Error fetching booking information");
+      const { data, error } = await supabase
+        .from('service_types')
+        .select('*, category:category_id(name, label)')
+        .eq('id', bookingData.serviceId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching service info:", error);
+        return null;
       }
       
-      const service = serviceResponse.data;
-      const provider = providerResponse.data;
-      const listing = listingResponse.data;
-      
-      const reconstructedBookingData = {
-        serviceId: listing?.id || serviceId,
-        serviceName: listing?.title || service.name || 'Servicio',
-        providerId: provider.id,
-        providerName: provider.name || 'Proveedor',
-        price: listing?.base_price || 0,
-        duration: listing?.duration || 60,
-        startTime: null,
-        notes: '',
-        frequency: 'once',
-        requiresScheduling: true
-      };
-      
-      console.log("Reconstructed booking data:", reconstructedBookingData);
-      setBookingData(reconstructedBookingData);
-    } catch (error) {
-      console.error("Error fetching booking data from params:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo cargar la información de la reserva",
-        variant: "destructive"
-      });
-      navigate('/client');
-    }
-  };
-  
-  // Scroll to top when component mounts
-  useEffect(() => {
-    const scrollToTop = () => {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'smooth'
-      });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-    
-    scrollToTop();
-    const timeoutId = setTimeout(scrollToTop, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
-  
-  // Verify authentication
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      toast({
-        title: "Error",
-        description: "Debes iniciar sesión para reservar un servicio",
-        variant: "destructive"
-      });
-      navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
-      return;
-    }
-  }, [isAuthenticated, user, bookingData]);
-  
-  // If no booking data yet, show loading
-  if (!bookingData) {
-    return (
-      <PageContainer title="Cargando información de reserva...">
-        <div className="max-w-lg mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-32 bg-gray-200 rounded"></div>
-            <div className="h-48 bg-gray-200 rounded"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
-  
-  // Validate required data
-  const hasRequiredData = !!(
-    bookingData.serviceName &&
-    bookingData.providerName &&
-    bookingData.duration &&
-    typeof bookingData.price === 'number'
-  );
-
-  // Format price safely to avoid NaN
-  const formattedPrice = typeof bookingData.price === 'number' && !isNaN(bookingData.price)
-    ? bookingData.price.toFixed(2)
-    : '0.00';
-  
-  // Format duration to hours and minutes (HH:MM)
-  const formatDurationHHMM = (minutes) => {
-    if (!minutes || isNaN(minutes)) return '00:00';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  };
+      return data;
+    },
+    enabled: !!bookingData?.serviceId
+  });
   
   // Normalize recurrence value to match database constraints
   const normalizeRecurrenceValue = (value) => {
@@ -202,18 +67,7 @@ const BookingSummary = () => {
     return recurrenceMap[value] || null;
   };
   
-  // Handle day selection for recurrence
-  const handleDayChange = (day: number) => {
-    setSelectedDays(prev => {
-      if (prev.includes(day)) {
-        return prev.filter(d => d !== day);
-      } else {
-        return [...prev, day];
-      }
-    });
-  };
-  
-  // Mutation to create appointment or recurring appointments
+  // Mutation to create appointment or recurring appointments - moved to top
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
       // Check authentication
@@ -382,6 +236,172 @@ const BookingSummary = () => {
       setIsSubmitting(false);
     }
   });
+
+  // Get booking data from multiple sources
+  useEffect(() => {
+    console.log("BookingSummary: Initializing booking data");
+    
+    // Priority 1: Data from navigation state
+    if (location.state?.bookingData) {
+      console.log("Found booking data in location state:", location.state.bookingData);
+      setBookingData(location.state.bookingData);
+      return;
+    }
+    
+    // Priority 2: Data from URL parameters (for direct access)
+    const serviceId = searchParams.get('serviceId');
+    const providerId = searchParams.get('providerId');
+    
+    if (serviceId && providerId) {
+      console.log("Found URL parameters, fetching booking data:", { serviceId, providerId });
+      fetchBookingDataFromParams(serviceId, providerId);
+    } else {
+      console.error("No booking data found in state or URL parameters");
+      toast({
+        title: "Error",
+        description: "Información de reserva no encontrada",
+        variant: "destructive"
+      });
+      navigate('/client');
+    }
+  }, [location.state, searchParams]);
+  
+  // Fetch booking data from URL parameters
+  const fetchBookingDataFromParams = async (serviceId: string, providerId: string) => {
+    try {
+      // Fetch service type and provider info
+      const [serviceResponse, providerResponse, listingResponse] = await Promise.all([
+        supabase
+          .from('service_types')
+          .select('*')
+          .eq('id', serviceId)
+          .single(),
+        supabase
+          .from('users')
+          .select('id, name')
+          .eq('id', providerId)
+          .single(),
+        supabase
+          .from('listings')
+          .select('*')
+          .eq('service_type_id', serviceId)
+          .eq('provider_id', providerId)
+          .eq('is_active', true)
+          .limit(1)
+          .single()
+      ]);
+      
+      if (serviceResponse.error || providerResponse.error) {
+        throw new Error("Error fetching booking information");
+      }
+      
+      const service = serviceResponse.data;
+      const provider = providerResponse.data;
+      const listing = listingResponse.data;
+      
+      const reconstructedBookingData = {
+        serviceId: listing?.id || serviceId,
+        serviceName: listing?.title || service.name || 'Servicio',
+        providerId: provider.id,
+        providerName: provider.name || 'Proveedor',
+        price: listing?.base_price || 0,
+        duration: listing?.duration || 60,
+        startTime: null,
+        notes: '',
+        frequency: 'once',
+        requiresScheduling: true
+      };
+      
+      console.log("Reconstructed booking data:", reconstructedBookingData);
+      setBookingData(reconstructedBookingData);
+    } catch (error) {
+      console.error("Error fetching booking data from params:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la información de la reserva",
+        variant: "destructive"
+      });
+      navigate('/client');
+    }
+  };
+  
+  // Scroll to top when component mounts
+  useEffect(() => {
+    const scrollToTop = () => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    
+    scrollToTop();
+    const timeoutId = setTimeout(scrollToTop, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+  
+  // Verify authentication
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para reservar un servicio",
+        variant: "destructive"
+      });
+      navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
+      return;
+    }
+  }, [isAuthenticated, user, bookingData]);
+  
+  // If no booking data yet, show loading
+  if (!bookingData) {
+    return (
+      <PageContainer title="Cargando información de reserva...">
+        <div className="max-w-lg mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-48 bg-gray-200 rounded"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+  
+  // Validate required data
+  const hasRequiredData = !!(
+    bookingData.serviceName &&
+    bookingData.providerName &&
+    bookingData.duration &&
+    typeof bookingData.price === 'number'
+  );
+
+  // Format price safely to avoid NaN
+  const formattedPrice = typeof bookingData.price === 'number' && !isNaN(bookingData.price)
+    ? bookingData.price.toFixed(2)
+    : '0.00';
+  
+  // Format duration to hours and minutes (HH:MM)
+  const formatDurationHHMM = (minutes) => {
+    if (!minutes || isNaN(minutes)) return '00:00';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  };
+  
+  // Handle day selection for recurrence
+  const handleDayChange = (day: number) => {
+    setSelectedDays(prev => {
+      if (prev.includes(day)) {
+        return prev.filter(d => d !== day);
+      } else {
+        return [...prev, day];
+      }
+    });
+  };
   
   const handleBack = () => {
     navigate(-1);
