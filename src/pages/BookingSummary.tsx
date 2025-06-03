@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from "@/hooks/use-toast";
 import PageContainer from '@/components/layout/PageContainer';
 import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
 import RecurrenceSelector from '@/components/client/booking/RecurrenceSelector';
@@ -19,48 +19,128 @@ import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 const BookingSummary = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const { bookingData } = location.state || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createRecurringBooking, isCreating } = useRecurringBooking();
+  const [bookingData, setBookingData] = useState(null);
   
   // Estados para fecha y hora
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    bookingData?.startTime ? new Date(bookingData.startTime) : undefined
-  );
-  const [selectedTime, setSelectedTime] = useState<string | undefined>(
-    bookingData?.startTime ? format(new Date(bookingData.startTime), 'HH:mm') : undefined
-  );
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
   
   // Estados para recurrencia
   const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   
-  // Scroll to top when component mounts - Fixed implementation
+  // Get booking data from multiple sources
   useEffect(() => {
-    // Use setTimeout to ensure it runs after the component is fully rendered
+    console.log("BookingSummary: Initializing booking data");
+    
+    // Priority 1: Data from navigation state
+    if (location.state?.bookingData) {
+      console.log("Found booking data in location state:", location.state.bookingData);
+      setBookingData(location.state.bookingData);
+      return;
+    }
+    
+    // Priority 2: Data from URL parameters (for direct access)
+    const serviceId = searchParams.get('serviceId');
+    const providerId = searchParams.get('providerId');
+    
+    if (serviceId && providerId) {
+      console.log("Found URL parameters, fetching booking data:", { serviceId, providerId });
+      fetchBookingDataFromParams(serviceId, providerId);
+    } else {
+      console.error("No booking data found in state or URL parameters");
+      toast({
+        title: "Error",
+        description: "Información de reserva no encontrada",
+        variant: "destructive"
+      });
+      navigate('/client');
+    }
+  }, [location.state, searchParams]);
+  
+  // Fetch booking data from URL parameters
+  const fetchBookingDataFromParams = async (serviceId: string, providerId: string) => {
+    try {
+      // Fetch service type and provider info
+      const [serviceResponse, providerResponse, listingResponse] = await Promise.all([
+        supabase
+          .from('service_types')
+          .select('*')
+          .eq('id', serviceId)
+          .single(),
+        supabase
+          .from('users')
+          .select('id, name')
+          .eq('id', providerId)
+          .single(),
+        supabase
+          .from('listings')
+          .select('*')
+          .eq('service_type_id', serviceId)
+          .eq('provider_id', providerId)
+          .eq('is_active', true)
+          .limit(1)
+          .single()
+      ]);
+      
+      if (serviceResponse.error || providerResponse.error) {
+        throw new Error("Error fetching booking information");
+      }
+      
+      const service = serviceResponse.data;
+      const provider = providerResponse.data;
+      const listing = listingResponse.data;
+      
+      const reconstructedBookingData = {
+        serviceId: listing?.id || serviceId,
+        serviceName: listing?.title || service.name || 'Servicio',
+        providerId: provider.id,
+        providerName: provider.name || 'Proveedor',
+        price: listing?.base_price || 0,
+        duration: listing?.duration || 60,
+        startTime: null,
+        notes: '',
+        frequency: 'once',
+        requiresScheduling: true
+      };
+      
+      console.log("Reconstructed booking data:", reconstructedBookingData);
+      setBookingData(reconstructedBookingData);
+    } catch (error) {
+      console.error("Error fetching booking data from params:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la información de la reserva",
+        variant: "destructive"
+      });
+      navigate('/client');
+    }
+  };
+  
+  // Scroll to top when component mounts
+  useEffect(() => {
     const scrollToTop = () => {
       window.scrollTo({
         top: 0,
         left: 0,
         behavior: 'smooth'
       });
-      // Also try to scroll the document element as a fallback
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
     };
     
-    // Execute immediately
     scrollToTop();
-    
-    // Also execute after a small delay to ensure it works
     const timeoutId = setTimeout(scrollToTop, 100);
     
     return () => clearTimeout(timeoutId);
   }, []);
   
-  // Verify we have both auth and booking data
+  // Verify authentication
   useEffect(() => {
     if (!isAuthenticated || !user) {
       toast({
@@ -71,20 +151,21 @@ const BookingSummary = () => {
       navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
       return;
     }
-
-    if (!bookingData) {
-      toast({
-        title: "Error",
-        description: "Información de reserva no encontrada",
-        variant: "destructive"
-      });
-      navigate('/client');
-    }
   }, [isAuthenticated, user, bookingData]);
   
-  // If no booking data, return early
+  // If no booking data yet, show loading
   if (!bookingData) {
-    return null;
+    return (
+      <PageContainer title="Cargando información de reserva...">
+        <div className="max-w-lg mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-48 bg-gray-200 rounded"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </PageContainer>
+    );
   }
   
   // Validate required data
@@ -290,8 +371,6 @@ const BookingSummary = () => {
           description: "No se pudo identificar tu residencia. Por favor actualiza tu perfil.",
           variant: "destructive"
         });
-        // Consider redirecting to profile update page
-        // navigate('/profile');
       } else {
         toast({
           title: "Error",

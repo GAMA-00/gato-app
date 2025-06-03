@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import ProviderCard from './ProviderCard';
 import { useProvidersQuery } from './useProvidersQuery';
+import { useNavigate } from 'react-router-dom';
 
 interface ProvidersListProps {
   categoryName: string;
@@ -15,8 +16,64 @@ interface ProvidersListProps {
 
 const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   console.log("ProvidersList rendered with:", { categoryName, serviceId });
+  const navigate = useNavigate();
   
   const { data: providers, isLoading, error } = useProvidersQuery(serviceId, categoryName);
+  
+  // Fetch service info for booking data
+  const { data: serviceInfo } = useQuery({
+    queryKey: ['service-info', serviceId],
+    queryFn: async () => {
+      if (!serviceId) return null;
+      
+      const { data, error } = await supabase
+        .from('service_types')
+        .select('*, category:category_id(name, label)')
+        .eq('id', serviceId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching service info:", error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!serviceId
+  });
+  
+  const handleProviderSelection = (selectedProvider: any) => {
+    console.log("Provider selected:", selectedProvider);
+    
+    // Get the selected provider's first service for booking
+    const primaryService = selectedProvider.serviceId || selectedProvider.id;
+    const serviceName = selectedProvider.serviceName || serviceInfo?.name || 'Servicio';
+    const providerName = selectedProvider.name || 'Proveedor';
+    const price = selectedProvider.price || 0;
+    const duration = selectedProvider.duration || 60;
+    
+    // Create comprehensive booking data
+    const bookingData = {
+      serviceId: primaryService,
+      serviceName: serviceName,
+      providerId: selectedProvider.id,
+      providerName: providerName,
+      price: price,
+      duration: duration,
+      startTime: null,
+      notes: '',
+      frequency: 'once',
+      requiresScheduling: true
+    };
+    
+    console.log("Navigating to booking summary with data:", bookingData);
+    
+    // Navigate with state data for immediate access
+    navigate('/client/booking-summary', {
+      state: { bookingData },
+      replace: false
+    });
+  };
   
   if (isLoading) {
     return (
@@ -86,11 +143,7 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
           <ProviderCard 
             key={provider.id} 
             provider={provider}
-            onClick={(selectedProvider) => {
-              console.log("Provider selected:", selectedProvider);
-              // Navigate to booking summary with provider details
-              window.location.href = `/client/booking-summary?serviceId=${serviceId}&providerId=${selectedProvider.id}`;
-            }}
+            onClick={handleProviderSelection}
           />
         ))}
       </div>
