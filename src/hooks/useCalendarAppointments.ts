@@ -33,18 +33,6 @@ export const useCalendarAppointments = (currentDate: Date) => {
             duration,
             base_price,
             service_variants
-          ),
-          client_user:client_id (
-            name,
-            condominium_text,
-            house_number,
-            residencia_id,
-            residencias:residencia_id (
-              name
-            )
-          ),
-          provider_user:provider_id (
-            name
           )
         `)
         .gte('start_time', startDate.toISOString())
@@ -67,10 +55,42 @@ export const useCalendarAppointments = (currentDate: Date) => {
 
       console.log('Raw appointments data:', appointments);
 
+      // Now fetch user data separately for clients and providers
+      const clientIds = [...new Set(appointments?.map(app => app.client_id).filter(Boolean))];
+      const providerIds = [...new Set(appointments?.map(app => app.provider_id).filter(Boolean))];
+
+      let clientsData = [];
+      let providersData = [];
+
+      if (clientIds.length > 0) {
+        const { data: clients } = await supabase
+          .from('users')
+          .select(`
+            id,
+            name,
+            condominium_text,
+            house_number,
+            residencia_id,
+            residencias:residencia_id (
+              name
+            )
+          `)
+          .in('id', clientIds);
+        clientsData = clients || [];
+      }
+
+      if (providerIds.length > 0) {
+        const { data: providers } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', providerIds);
+        providersData = providers || [];
+      }
+
       // Transform the data to include proper names and condominium info
       const transformedAppointments = appointments?.map(appointment => {
         // Get client info with condominium
-        const clientInfo = appointment.client_user;
+        const clientInfo = clientsData.find(client => client.id === appointment.client_id);
         let clientDisplayName = appointment.client_name || 'Cliente';
         let clientCondominium = '';
         let clientAddress = appointment.client_address || '';
@@ -97,7 +117,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
         }
 
         // Get provider info
-        const providerInfo = appointment.provider_user;
+        const providerInfo = providersData.find(provider => provider.id === appointment.provider_id);
         const providerDisplayName = providerInfo?.name || appointment.provider_name || 'Proveedor';
 
         return {
