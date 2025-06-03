@@ -57,6 +57,31 @@ export const useSupabaseAuth = () => {
       
       console.log('Phone and email are unique, proceeding with registration');
       
+      // Get condominium name for clients
+      let condominiumName = '';
+      if (userData.role === 'client' && userData.condominiumId) {
+        // First check if it's a predefined condominium (static-X format)
+        if (userData.condominiumId.startsWith('static-')) {
+          const condominiumNames = [
+            'El Carao', 'La Ceiba', 'Guayaquil', 'Ilang-Ilang', 'Nogal', 
+            'Guayacán Real', 'Cedro Alto', 'Roble Sabana', 'Alamo', 'Guaitil'
+          ];
+          const index = parseInt(userData.condominiumId.replace('static-', ''));
+          condominiumName = condominiumNames[index] || '';
+        } else {
+          // Try to fetch from database
+          const { data: condominiumData } = await supabase
+            .from('condominiums')
+            .select('name')
+            .eq('id', userData.condominiumId)
+            .single();
+          
+          condominiumName = condominiumData?.name || '';
+        }
+      }
+      
+      console.log('Condominium name resolved:', condominiumName);
+      
       // Create the user in Supabase Auth with metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -68,6 +93,7 @@ export const useSupabaseAuth = () => {
             phone: userData.phone || '',
             residenciaId: userData.residenciaId || '',
             condominiumId: userData.condominiumId || '',
+            condominiumName: condominiumName, // Add condominium name to metadata
             houseNumber: userData.houseNumber || ''
           }
         }
@@ -129,6 +155,7 @@ export const useSupabaseAuth = () => {
             role: userData.role,
             residencia_id: userData.residenciaId || null,
             condominium_id: userData.condominiumId || null,
+            condominium_text: condominiumName, // Save condominium name
             house_number: userData.houseNumber || ''
           }, {
             onConflict: 'id'
