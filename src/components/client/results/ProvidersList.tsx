@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,14 +44,14 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   const handleProviderSelection = (selectedProvider: any) => {
     console.log("Provider selected:", selectedProvider);
     
-    // Get the selected provider's first service for booking
+    // Get the selected provider's first service for navigation
     const primaryService = selectedProvider.serviceId || selectedProvider.id;
     const serviceName = selectedProvider.serviceName || serviceInfo?.name || 'Servicio';
     const providerName = selectedProvider.name || 'Proveedor';
     const price = selectedProvider.price || 0;
     const duration = selectedProvider.duration || 60;
     
-    // Create comprehensive booking data
+    // Create comprehensive booking data to pass as state
     const bookingData = {
       serviceId: primaryService,
       serviceName: serviceName,
@@ -66,10 +65,10 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
       requiresScheduling: true
     };
     
-    console.log("Navigating to booking summary with data:", bookingData);
+    console.log("Navigating to service detail with data:", bookingData);
     
-    // Navigate with state data for immediate access
-    navigate('/client/booking-summary', {
+    // Navigate to service detail page (provider profile) with booking data
+    navigate(`/client/service/${selectedProvider.id}/${primaryService}`, {
       state: { bookingData },
       replace: false
     });
@@ -134,7 +133,7 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
           {providers.length} profesional{providers.length !== 1 ? 'es' : ''} disponible{providers.length !== 1 ? 's' : ''}
         </h2>
         <p className="text-muted-foreground">
-          Selecciona el profesional que prefieras para tu servicio
+          Selecciona el profesional que prefieras para ver su perfil
         </p>
       </div>
       
