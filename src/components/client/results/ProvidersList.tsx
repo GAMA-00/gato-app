@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import ProviderCard from './ProviderCard';
+import { useProvidersQuery } from './useProvidersQuery';
 
 interface ProvidersListProps {
   categoryName: string;
@@ -15,73 +16,7 @@ interface ProvidersListProps {
 const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   console.log("ProvidersList rendered with:", { categoryName, serviceId });
   
-  const { data: providers, isLoading, error } = useQuery({
-    queryKey: ['providers', serviceId],
-    queryFn: async () => {
-      if (!serviceId) return [];
-      
-      console.log("Fetching providers for serviceId:", serviceId);
-      
-      // Fetch listings (services) that match the service type
-      const { data: listings, error: listingsError } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          provider:provider_id (
-            id,
-            name,
-            email,
-            phone,
-            avatar_url,
-            about_me,
-            average_rating,
-            experience_years,
-            certification_files
-          )
-        `)
-        .eq('service_type_id', serviceId)
-        .eq('is_active', true);
-        
-      if (listingsError) {
-        console.error("Error fetching listings:", listingsError);
-        throw listingsError;
-      }
-      
-      console.log("Raw listings data:", listings);
-      
-      // Transform and group by provider
-      const providersMap = new Map();
-      
-      listings?.forEach(listing => {
-        if (listing.provider) {
-          const providerId = listing.provider.id;
-          
-          if (!providersMap.has(providerId)) {
-            providersMap.set(providerId, {
-              ...listing.provider,
-              services: []
-            });
-          }
-          
-          providersMap.get(providerId).services.push({
-            id: listing.id,
-            title: listing.title,
-            description: listing.description,
-            duration: listing.duration,
-            base_price: listing.base_price,
-            service_variants: listing.service_variants,
-            gallery_images: listing.gallery_images
-          });
-        }
-      });
-      
-      const providersArray = Array.from(providersMap.values());
-      console.log("Transformed providers:", providersArray);
-      
-      return providersArray;
-    },
-    enabled: !!serviceId
-  });
+  const { data: providers, isLoading, error } = useProvidersQuery(serviceId, categoryName);
   
   if (isLoading) {
     return (
@@ -147,11 +82,15 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {providers.map((provider: any) => (
+        {providers.map((provider) => (
           <ProviderCard 
             key={provider.id} 
             provider={provider}
-            categoryName={categoryName}
+            onClick={(selectedProvider) => {
+              console.log("Provider selected:", selectedProvider);
+              // Navigate to booking summary with provider details
+              window.location.href = `/client/booking-summary?serviceId=${serviceId}&providerId=${selectedProvider.id}`;
+            }}
           />
         ))}
       </div>
