@@ -22,7 +22,6 @@ import ProviderRegister from "./pages/ProviderRegister";
 // Updated pages - final version
 import ClientCategoryView from "./pages/ClientCategoryView";
 import ClientCategoryDetails from "./pages/ClientCategoryDetails";
-import ClientBookingFlow from "./pages/ClientBookingFlow";
 import ClientResultsView from "./pages/ClientResultsView";
 import ProviderProfile from "./pages/ProviderProfile";
 import BookingSummary from "./pages/BookingSummary";
@@ -81,10 +80,9 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         
-        {/* Client routes - Updated routes of the final version */}
+        {/* Client routes - Updated routes without the booking flow page */}
         <Route path="/client" element={<ClientCategoryView />} />
         <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
-        <Route path="/client/booking/:categoryName/:serviceId" element={<ClientBookingFlow />} />
         <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
         <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
         {/* Correct route for service details */}

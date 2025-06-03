@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -154,8 +153,9 @@ const ClientCategoryDetails = () => {
 
   // Handle service selection
   const handleServiceSelect = (serviceId: string) => {
-    console.log("Service selected:", serviceId, "Category:", categoryName);
-    navigate(`/client/booking/${categoryName}/${serviceId}`);
+    console.log("Service selected:", { serviceId, categoryName });
+    // Navigate directly to results instead of booking flow
+    navigate(`/client/results/${categoryName}/${serviceId}`);
   };
 
   // Go back to categories page
