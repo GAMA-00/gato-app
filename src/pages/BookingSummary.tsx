@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,15 +23,14 @@ const BookingSummary = () => {
   const queryClient = useQueryClient();
   const { createRecurringBooking, isCreating } = useRecurringBooking();
   
-  // All state hooks must be at the top
+  // All state hooks at the top
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingData, setBookingData] = useState(null);
+  const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
-  const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   
-  // Fetch service info for booking data - moved to top
+  // Fetch service info for booking data
   const { data: serviceInfo } = useQuery({
     queryKey: ['service-info', bookingData?.serviceId],
     queryFn: async () => {
@@ -67,7 +65,7 @@ const BookingSummary = () => {
     return recurrenceMap[value] || null;
   };
   
-  // Mutation to create appointment or recurring appointments - moved to top
+  // Mutation to create appointment or recurring appointments
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
       // Check authentication
@@ -96,11 +94,6 @@ const BookingSummary = () => {
       
       // If it's a recurring appointment, use the recurring booking hook
       if (selectedFrequency !== 'once') {
-        // Validate that days are selected for recurring bookings
-        if (!selectedDays || selectedDays.length === 0) {
-          throw new Error("Debes seleccionar al menos un día para reservas recurrentes");
-        }
-        
         createRecurringBooking({
           providerId: bookingData.providerId,
           clientId: user.id,
@@ -109,7 +102,7 @@ const BookingSummary = () => {
           startTime: startTime,
           duration: durationMinutes,
           recurrence: selectedFrequency as 'weekly' | 'biweekly' | 'monthly',
-          selectedDays: selectedDays,
+          selectedDays: [], // No longer needed - automatically determined by selected date
           notes: bookingData.notes || '',
           apartment: user.apartment || ''
         });
@@ -117,7 +110,6 @@ const BookingSummary = () => {
       }
       
       // For single appointments, continue with the regular flow
-      // Check if residencia_id is required but missing
       if (!residencia_id) {
         console.warn("Creating appointment without residencia_id. User profile may need updating.");
         
@@ -152,7 +144,6 @@ const BookingSummary = () => {
           if (error) throw error;
           return data;
         } else {
-          // If we can't find a residencia_id, try to set up the residencia_id first
           console.error("No residencia_id found for user. Redirecting to profile update.");
           toast({
             title: "Información incompleta",
@@ -206,7 +197,6 @@ const BookingSummary = () => {
     onError: (error: any) => {
       console.error("Error creating appointment:", error);
       
-      // More friendly and specific error messages
       if (error.message.includes('recurrence_check')) {
         toast({
           title: "Error",
@@ -392,17 +382,6 @@ const BookingSummary = () => {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
   
-  // Handle day selection for recurrence
-  const handleDayChange = (day: number) => {
-    setSelectedDays(prev => {
-      if (prev.includes(day)) {
-        return prev.filter(d => d !== day);
-      } else {
-        return [...prev, day];
-      }
-    });
-  };
-  
   const handleBack = () => {
     navigate(-1);
   };
@@ -449,16 +428,6 @@ const BookingSummary = () => {
       return;
     }
 
-    // Validate days selection for recurring appointments
-    if (selectedFrequency !== 'once' && (!selectedDays || selectedDays.length === 0)) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona al menos un día para reservas recurrentes",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     createAppointmentMutation.mutate();
   };
@@ -484,8 +453,7 @@ const BookingSummary = () => {
   const canContinue = hasRequiredData && 
     selectedDate && 
     selectedTime && 
-    selectedFrequency &&
-    (selectedFrequency === 'once' || (selectedDays && selectedDays.length > 0));
+    selectedFrequency;
 
   return (
     <PageContainer
@@ -502,28 +470,27 @@ const BookingSummary = () => {
       }
     >
       <div className="max-w-lg mx-auto space-y-6">
-        {/* Date and Time Selector with provider ID */}
+        {/* 1. Recurrence Selector - NOW AT THE TOP */}
+        <RecurrenceSelector
+          selectedFrequency={selectedFrequency}
+          onFrequencyChange={setSelectedFrequency}
+        />
+        
+        {/* 2. Date and Time Selector - WITH RECURRENCE INFO */}
         <DateTimeSelector 
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           selectedTime={selectedTime}
           onTimeChange={setSelectedTime}
           providerId={bookingData.providerId}
+          recurrence={selectedFrequency}
         />
         
-        {/* Recurrence Selector */}
-        <RecurrenceSelector
-          selectedFrequency={selectedFrequency}
-          onFrequencyChange={setSelectedFrequency}
-          selectedDays={selectedDays}
-          onDayChange={handleDayChange}
-        />
-        
+        {/* 3. Booking Summary */}
         <Card className="shadow-md">
           <CardContent className="pt-6">
             <h2 className="text-xl font-semibold mb-6">Resumen del servicio</h2>
             
-            {/* Service data */}
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Servicio:</span>
@@ -582,13 +549,11 @@ const BookingSummary = () => {
             
             <Separator className="my-6" />
             
-            {/* Price */}
             <div className="flex justify-between text-lg font-semibold mb-6">
               <span>Precio total:</span>
               <span className="text-luxury-navy">${formattedPrice}</span>
             </div>
             
-            {/* Action buttons - Updated confirm button to green */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
                 variant="outline" 

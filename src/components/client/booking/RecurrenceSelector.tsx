@@ -3,25 +3,17 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Button } from '@/components/ui/button';
 import { Repeat } from 'lucide-react';
 
 interface RecurrenceSelectorProps {
   selectedFrequency: string;
   onFrequencyChange: (frequency: string) => void;
-  selectedDays: number[];
-  onDayChange: (day: number) => void;
 }
 
 const RecurrenceSelector = ({ 
   selectedFrequency, 
-  onFrequencyChange, 
-  selectedDays, 
-  onDayChange 
+  onFrequencyChange
 }: RecurrenceSelectorProps) => {
-  
-  const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const isRecurringBooking = selectedFrequency && selectedFrequency !== 'once';
   
   return (
     <Card className="shadow-md">
@@ -30,7 +22,7 @@ const RecurrenceSelector = ({
           <div className="inline-flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
             <Repeat className="h-4 w-4 text-primary" />
           </div>
-          <h2 className="text-xl font-semibold">Recurrencia del servicio</h2>
+          <h2 className="text-xl font-semibold">Frecuencia del servicio</h2>
         </div>
         
         <div className="space-y-4">
@@ -60,58 +52,26 @@ const RecurrenceSelector = ({
             </RadioGroup>
           </div>
           
-          {isRecurringBooking && (
+          {selectedFrequency !== 'once' && (
             <div className="space-y-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100 animate-fade-in">
-              <Label className="text-base font-medium text-gray-900 block">
-                ¿Qué días prefieres? <span className="text-red-500">*</span>
-              </Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {dayNames.map((day, index) => (
-                  <Button
-                    key={day}
-                    type="button"
-                    variant={selectedDays?.includes(index + 1) ? 'default' : 'outline'}
-                    onClick={() => onDayChange(index + 1)}
-                    className={`h-10 text-xs font-medium transition-all duration-200 ${
-                      selectedDays?.includes(index + 1) 
-                        ? 'bg-primary hover:bg-primary/90 text-white shadow-sm' 
-                        : 'bg-white hover:bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    {day}
-                  </Button>
-                ))}
-              </div>
-              
-              {isRecurringBooking && (!selectedDays || selectedDays.length === 0) && (
-                <p className="text-xs text-red-500 text-center animate-pulse">
-                  Debes seleccionar al menos un día para continuar
-                </p>
-              )}
-              
-              {selectedDays && selectedDays.length > 0 && (
-                <div className="p-3 bg-white rounded-lg border border-blue-200 animate-scale-in">
-                  <h4 className="font-medium text-blue-900 mb-2 text-center text-sm">
-                    📅 Resumen de tu reserva recurrente
-                  </h4>
-                  <div className="space-y-1.5 text-xs text-blue-800">
-                    <div className="flex justify-between">
-                      <span>Frecuencia:</span>
-                      <span className="font-medium">
-                        {selectedFrequency === 'weekly' ? 'Cada semana' :
-                         selectedFrequency === 'biweekly' ? 'Cada 2 semanas' :
-                         'Cada mes'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Días:</span>
-                      <span className="font-medium">
-                        {selectedDays.map(day => dayNames[day - 1]).join(', ')}
-                      </span>
-                    </div>
+              <div className="p-3 bg-white rounded-lg border border-blue-200 animate-scale-in">
+                <h4 className="font-medium text-blue-900 mb-2 text-center text-sm">
+                  📅 Reserva recurrente seleccionada
+                </h4>
+                <div className="space-y-1.5 text-xs text-blue-800">
+                  <div className="flex justify-between">
+                    <span>Frecuencia:</span>
+                    <span className="font-medium">
+                      {selectedFrequency === 'weekly' ? 'Cada semana' :
+                       selectedFrequency === 'biweekly' ? 'Cada 2 semanas' :
+                       'Cada mes'}
+                    </span>
                   </div>
+                  <p className="text-xs text-blue-700 mt-2">
+                    El horario seleccionado se reservará automáticamente con esta frecuencia.
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
