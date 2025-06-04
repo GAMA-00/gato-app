@@ -37,6 +37,16 @@ const DateTimeSelector = ({
     recurrence: selectedFrequency
   });
 
+  // Log availability data for debugging
+  React.useEffect(() => {
+    if (selectedDate) {
+      console.log('DateTimeSelector - Available slots:', availableTimeSlots);
+      console.log('DateTimeSelector - Total available slots:', availableTimeSlots.length);
+      console.log('DateTimeSelector - Selected date:', format(selectedDate, 'yyyy-MM-dd'));
+      console.log('DateTimeSelector - Day of week:', selectedDate.getDay());
+    }
+  }, [availableTimeSlots, selectedDate]);
+
   // Only show available slots - filter out unavailable ones completely
   const availableSlots = availableTimeSlots.filter(slot => slot.available);
 

@@ -88,7 +88,7 @@ export const useProviderAvailability = ({
         console.log('Fetching blocked time slots for day:', dayOfWeek);
         const { data: blockedSlots, error: blockedError } = await supabase
           .from('blocked_time_slots')
-          .select('start_hour, end_hour, day')
+          .select('start_hour, end_hour, day, note')
           .eq('provider_id', providerId)
           .or(`day.eq.${dayOfWeek},day.eq.-1`); // Include daily blocks (-1) and specific day blocks
 
@@ -97,6 +97,7 @@ export const useProviderAvailability = ({
         }
 
         console.log('Blocked slots found:', blockedSlots);
+        console.log('Day of week for selected date:', dayOfWeek);
 
         // 4. If recurrence is selected, check for conflicts in future dates
         let futureConflicts: any[] = [];
@@ -187,14 +188,27 @@ export const useProviderAvailability = ({
 
           // Check if this slot conflicts with blocked time
           const hasBlockedConflict = blockedSlots?.some(blocked => {
-            // Check if the slot overlaps with any blocked period
-            const slotStartHour = slotHour + (slotMinute / 60);
-            const slotEndHour = slotStartHour + (serviceDuration / 60);
+            // Convert slot time to decimal hours for easier comparison
+            const slotStartDecimal = slotHour + (slotMinute / 60);
+            const slotEndDecimal = slotStartDecimal + (serviceDuration / 60);
             
-            console.log(`Checking slot ${slot.time} (${slotStartHour}-${slotEndHour}) against blocked ${blocked.start_hour}-${blocked.end_hour}`);
+            console.log(`Checking slot ${slot.time} (${slotStartDecimal.toFixed(2)}-${slotEndDecimal.toFixed(2)}) against blocked ${blocked.start_hour}-${blocked.end_hour} on day ${blocked.day}`);
+            
+            // Check if the blocked slot applies to this day
+            const blockedAppliesToDay = blocked.day === -1 || blocked.day === dayOfWeek;
+            
+            if (!blockedAppliesToDay) {
+              return false;
+            }
             
             // A slot is blocked if it overlaps with any blocked period
-            return (slotStartHour < blocked.end_hour && slotEndHour > blocked.start_hour);
+            const hasOverlap = (slotStartDecimal < blocked.end_hour && slotEndDecimal > blocked.start_hour);
+            
+            if (hasOverlap) {
+              console.log(`BLOCKED: Slot ${slot.time} overlaps with blocked time ${blocked.start_hour}-${blocked.end_hour}`);
+            }
+            
+            return hasOverlap;
           });
 
           // Additional check for recurring conflicts if this is a recurring booking
