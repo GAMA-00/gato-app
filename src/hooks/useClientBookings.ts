@@ -112,7 +112,7 @@ export function useClientBookings() {
       return processedBookings;
     },
     enabled: !!user && user.role === 'client',
-    refetchInterval: 30000,
+    refetchInterval: 10000, // Reduce interval to 10 seconds for faster updates
     retry: 3
   });
 }

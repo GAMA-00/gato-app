@@ -123,8 +123,7 @@ const BookingSummary = () => {
         end_time: endDateTime.toISOString(),
         status: 'pending',
         notes: bookingData.notes || null,
-        recurrence: bookingData.recurrence || 'none',
-        client_location: clientLocation
+        recurrence: bookingData.recurrence || 'none'
       });
 
       // Create the appointment with pending status

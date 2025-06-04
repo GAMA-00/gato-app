@@ -198,7 +198,7 @@ export function useGroupedPendingRequests() {
       }
     },
     enabled: !!user && user.role === 'provider',
-    refetchInterval: 30000,
+    refetchInterval: 10000, // Reduce interval for faster updates
     retry: 3
   });
 }
