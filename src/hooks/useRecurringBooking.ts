@@ -49,11 +49,16 @@ const generateRecurringAppointments = (bookingData: RecurringBookingData) => {
     const formattedTime = format(new Date(startTime), 'HH:mm:ss');
     const startDateTime = `${formattedDate} ${formattedTime}`;
 
+    // Calculate end time based on service duration (assuming 1 hour default)
+    const endTime = new Date(startDateTime);
+    endTime.setHours(endTime.getHours() + 1);
+    const endDateTime = format(endTime, 'yyyy-MM-dd HH:mm:ss');
+
     appointments.push({
       provider_id: bookingData.providerId,
       listing_id: bookingData.listingId,
       start_time: startDateTime,
-      end_time: format(addDays(new Date(startDateTime), 1), 'yyyy-MM-dd HH:mm:ss'), // Assuming 1-hour duration
+      end_time: endDateTime,
       recurrence: bookingData.recurrence,
       notes: bookingData.notes,
       residencia: bookingData.residencia,
@@ -72,10 +77,9 @@ const generateRecurringAppointments = (bookingData: RecurringBookingData) => {
 export const useRecurringBooking = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth(); // Move useAuth to the top level
 
-  const createRecurringBooking = async (bookingData: RecurringBookingData) => {
-    const { user } = useAuth();
-    
+  const createRecurringBooking = useCallback(async (bookingData: RecurringBookingData) => {
     if (!user) {
       throw new Error('Usuario no autenticado');
     }
@@ -141,7 +145,7 @@ export const useRecurringBooking = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]); // Add user as dependency
 
   return {
     isLoading,
