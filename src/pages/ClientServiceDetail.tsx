@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -52,6 +51,11 @@ const ClientServiceDetail = () => {
       });
       return;
     }
+
+    if (!serviceDetails) {
+      toast.error("Error: No se encontraron detalles del servicio");
+      return;
+    }
     
     // Use selected variants or the default service if none selected
     const servicesToBook = selectedVariants.length > 0 ? selectedVariants : 
@@ -66,22 +70,27 @@ const ClientServiceDetail = () => {
       toast.error("Error al calcular el precio o duración del servicio");
       return;
     }
+
+    // Navigate to booking with scheduling (date/time selection)
+    console.log("Navigating to booking with data:", {
+      providerId: serviceDetails.provider?.id,
+      listingId: serviceDetails.id,
+      serviceName: serviceDetails.title,
+      providerName: serviceDetails.provider?.name,
+      price: totalPrice,
+      duration: totalDuration
+    });
     
-    toast.success("¡Preparando servicio para reserva!");
-    navigate('/client/booking-summary', {
+    navigate('/client/booking', {
       state: {
-        bookingData: {
-          serviceId: serviceDetails?.id,
-          serviceName: serviceDetails?.title,
-          providerId: serviceDetails?.provider?.id,
-          providerName: serviceDetails?.provider?.name,
-          price: totalPrice,
-          duration: totalDuration,
-          startTime: null,
-          notes: bookingData.notes || '',
-          frequency: bookingData.frequency || 'once',
-          requiresScheduling: true
-        }
+        providerId: serviceDetails.provider?.id,
+        listingId: serviceDetails.id,
+        serviceName: serviceDetails.title,
+        providerName: serviceDetails.provider?.name,
+        price: totalPrice,
+        duration: totalDuration,
+        notes: bookingData.notes || '',
+        recurrence: bookingData.recurrence || 'none'
       }
     });
   };

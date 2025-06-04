@@ -35,26 +35,9 @@ const BookingSummary = () => {
   const queryClient = useQueryClient();
   const [isBooking, setIsBooking] = useState(false);
 
-  // Enhanced logging for debugging
-  console.log("BookingSummary - Full location object:", location);
   console.log("BookingSummary - Location state:", location.state);
-  console.log("BookingSummary - Location state type:", typeof location.state);
-  console.log("BookingSummary - Current user:", user);
 
   const bookingData = location.state as BookingData;
-
-  console.log("BookingSummary - Booking data after casting:", bookingData);
-  console.log("BookingSummary - Booking data properties:", {
-    hasDate: !!bookingData?.date,
-    hasStartTime: !!bookingData?.startTime,
-    hasEndTime: !!bookingData?.endTime,
-    hasProviderId: !!bookingData?.providerId,
-    hasListingId: !!bookingData?.listingId,
-    dateValue: bookingData?.date,
-    dateType: typeof bookingData?.date,
-    startTimeValue: bookingData?.startTime,
-    endTimeValue: bookingData?.endTime
-  });
 
   if (!bookingData) {
     console.log("No booking data found in location state");
@@ -73,7 +56,7 @@ const BookingSummary = () => {
     );
   }
 
-  // More detailed validation of required fields
+  // Validate required fields
   const missingFields = [];
   if (!bookingData.date) missingFields.push('fecha');
   if (!bookingData.startTime) missingFields.push('hora de inicio');
@@ -82,14 +65,7 @@ const BookingSummary = () => {
   if (!bookingData.listingId) missingFields.push('servicio');
 
   if (missingFields.length > 0) {
-    console.log("Missing required booking data:", {
-      date: bookingData.date,
-      startTime: bookingData.startTime,
-      endTime: bookingData.endTime,
-      providerId: bookingData.providerId,
-      listingId: bookingData.listingId,
-      missingFields
-    });
+    console.log("Missing required booking data:", missingFields);
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
@@ -102,10 +78,6 @@ const BookingSummary = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Atrás
         </Button>
-        <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
-          <p className="font-bold">Datos de depuración:</p>
-          <pre>{JSON.stringify(bookingData, null, 2)}</pre>
-        </div>
       </div>
     );
   }
@@ -122,57 +94,25 @@ const BookingSummary = () => {
     );
   }
 
-  // Safely parse the date
+  // Parse date safely
   const parseDate = (dateValue: Date | string): Date | null => {
     try {
-      if (!dateValue) {
-        console.log("No date value provided");
-        return null;
-      }
+      if (!dateValue) return null;
       
       if (dateValue instanceof Date) {
-        const isValid = !isNaN(dateValue.getTime());
-        console.log("Date object validation:", { dateValue, isValid });
-        return isValid ? dateValue : null;
+        return !isNaN(dateValue.getTime()) ? dateValue : null;
       }
       
-      // Handle different string formats
-      let parsedDate: Date;
-      
-      // If it's an ISO string or standard date format
-      if (typeof dateValue === 'string') {
-        // Try different parsing approaches
-        parsedDate = new Date(dateValue);
-        
-        // If that fails, try parsing as a simple date string
-        if (isNaN(parsedDate.getTime()) && dateValue.includes('-')) {
-          const [year, month, day] = dateValue.split('-').map(Number);
-          if (year && month && day) {
-            parsedDate = new Date(year, month - 1, day); // month is 0-indexed
-          }
-        }
-      } else {
-        parsedDate = new Date(dateValue);
-      }
-      
-      const isValid = !isNaN(parsedDate.getTime());
-      console.log("String date parsing:", { dateValue, parsedDate, isValid });
-      return isValid ? parsedDate : null;
+      const parsedDate = new Date(dateValue);
+      return !isNaN(parsedDate.getTime()) ? parsedDate : null;
     } catch (error) {
-      console.error("Error parsing date:", error, "Input:", dateValue);
+      console.error("Error parsing date:", error);
       return null;
     }
   };
 
   const bookingDate = parseDate(bookingData.date);
   const recurrenceEndDate = bookingData.recurrenceEndDate ? parseDate(bookingData.recurrenceEndDate) : null;
-
-  console.log("Parsed dates:", { 
-    original: bookingData.date, 
-    parsed: bookingDate,
-    recurrenceOriginal: bookingData.recurrenceEndDate,
-    recurrenceParsed: recurrenceEndDate
-  });
 
   if (!bookingDate) {
     return (
@@ -186,14 +126,6 @@ const BookingSummary = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Atrás
         </Button>
-        <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
-          <p className="font-bold">Datos de fecha recibidos:</p>
-          <pre>{JSON.stringify({ 
-            originalDate: bookingData.date, 
-            dateType: typeof bookingData.date,
-            dateString: String(bookingData.date)
-          }, null, 2)}</pre>
-        </div>
       </div>
     );
   }
