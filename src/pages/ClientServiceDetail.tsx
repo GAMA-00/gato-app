@@ -71,7 +71,7 @@ const ClientServiceDetail = () => {
       return;
     }
 
-    // Navigate to booking with scheduling (date/time selection)
+    // Navigate to booking page with service data
     console.log("Navigating to booking with data:", {
       providerId: serviceDetails.provider?.id,
       listingId: serviceDetails.id,

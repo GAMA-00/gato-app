@@ -35,12 +35,9 @@ const BookingSummary = () => {
   const queryClient = useQueryClient();
   const [isBooking, setIsBooking] = useState(false);
 
-  console.log("BookingSummary - Location state:", location.state);
-
   const bookingData = location.state as BookingData;
 
   if (!bookingData) {
-    console.log("No booking data found in location state");
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
@@ -65,7 +62,6 @@ const BookingSummary = () => {
   if (!bookingData.listingId) missingFields.push('servicio');
 
   if (missingFields.length > 0) {
-    console.log("Missing required booking data:", missingFields);
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
@@ -131,18 +127,12 @@ const BookingSummary = () => {
   }
 
   const handleConfirmBooking = async () => {
-    if (!user) {
-      toast.error("Debes iniciar sesión para reservar");
-      return;
-    }
-
-    if (!bookingDate) {
-      toast.error("Error en la fecha seleccionada");
+    if (!user || !bookingDate) {
+      toast.error("Error en los datos de reserva");
       return;
     }
 
     setIsBooking(true);
-    console.log("Starting booking process for user:", user.id);
 
     try {
       // Calculate start and end times
@@ -154,18 +144,7 @@ const BookingSummary = () => {
       const [endHours, endMinutes] = bookingData.endTime.split(':').map(Number);
       endDateTime.setHours(endHours, endMinutes, 0, 0);
 
-      console.log("Creating appointment with:", {
-        listing_id: bookingData.listingId,
-        provider_id: bookingData.providerId,
-        client_id: user.id,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
-        status: 'pending',
-        notes: bookingData.notes || null,
-        recurrence: bookingData.recurrence || 'none'
-      });
-
-      // Create the appointment with pending status
+      // Create the appointment
       const { data: appointment, error } = await supabase
         .from('appointments')
         .insert({
@@ -186,60 +165,15 @@ const BookingSummary = () => {
         throw error;
       }
 
-      console.log("Appointment created successfully:", appointment);
-
-      // Handle recurring appointments if specified
-      if (bookingData.recurrence && bookingData.recurrence !== 'none' && recurrenceEndDate) {
-        console.log("Creating recurring rule for appointment:", appointment.id);
-        
-        // Create recurring rule
-        const { data: recurringRule, error: recurringError } = await supabase
-          .from('recurring_rules')
-          .insert({
-            listing_id: bookingData.listingId,
-            provider_id: bookingData.providerId,
-            client_id: user.id,
-            recurrence_type: bookingData.recurrence,
-            start_date: bookingDate.toISOString().split('T')[0],
-            start_time: bookingData.startTime,
-            end_time: bookingData.endTime,
-            day_of_week: bookingData.recurrence === 'weekly' || bookingData.recurrence === 'biweekly' 
-              ? bookingDate.getDay() : null,
-            day_of_month: bookingData.recurrence === 'monthly' 
-              ? bookingDate.getDate() : null,
-            notes: bookingData.notes
-          })
-          .select()
-          .single();
-
-        if (recurringError) {
-          console.error("Error creating recurring rule:", recurringError);
-        } else {
-          console.log("Recurring rule created:", recurringRule);
-          
-          // Update the appointment with the recurring rule ID
-          await supabase
-            .from('appointments')
-            .update({ 
-              recurring_rule_id: recurringRule.id,
-              recurrence_group_id: recurringRule.id
-            })
-            .eq('id', appointment.id);
-        }
-      }
-
       toast.success("¡Reserva solicitada exitosamente!");
       
-      // Invalidate all related queries to ensure UI updates
+      // Invalidate queries
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
-        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['client-bookings'] })
       ]);
 
-      // Navigate to client bookings
       navigate('/client/bookings');
       
     } catch (error: any) {
@@ -258,7 +192,6 @@ const BookingSummary = () => {
     }).format(price);
   };
 
-  // Build location display
   const getLocationDisplay = () => {
     const locationParts = [];
     
@@ -277,7 +210,6 @@ const BookingSummary = () => {
     return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
   };
 
-  // Safe date formatting
   const formatDate = (date: Date) => {
     try {
       return format(date, 'PPP', { locale: es });

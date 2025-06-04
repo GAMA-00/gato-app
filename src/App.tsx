@@ -28,6 +28,7 @@ import BookingSummary from "./pages/BookingSummary";
 import ClientServiceDetail from "./pages/ClientServiceDetail";
 import ClientServices from "./pages/ClientServices";
 import ClientBookings from "./pages/ClientBookings";
+import ClientBooking from "./pages/ClientBooking";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -80,20 +81,25 @@ const AppRoutes = () => {
           </RequireAuth>
         } />
         
-        {/* Client routes - Updated routes without the booking flow page */}
+        {/* Client routes - Updated routes with booking flow */}
         <Route path="/client" element={<ClientCategoryView />} />
         <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
         <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
         <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
-        {/* Correct route for service details */}
         <Route path="/client/service/:providerId/:serviceId" element={<ClientServiceDetail />} />
+        <Route path="/client/booking" element={
+          <RequireAuth clientOnly={true}>
+            <ClientBooking />
+          </RequireAuth>
+        } />
         <Route path="/client/booking-summary" element={
-          <RequireAuth clientOnly={true} requirePaymentMethod={true}>
+          <RequireAuth clientOnly={true}>
             <BookingSummary />
           </RequireAuth>
         } />
+        <Route path="/client/bookings" element={<ClientBookings />} />
         
-        {/* Rutas existentes del cliente */}
+        {/* Legacy client routes */}
         <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
         <Route path="/client/services/:buildingId" element={<ClientServices />} />
         <Route path="/client/book/:buildingId/:serviceId" element={
@@ -101,7 +107,6 @@ const AppRoutes = () => {
             <ClientBookings />
           </RequireAuth>
         } />
-        <Route path="/client/bookings" element={<ClientBookings />} />
         
         {/* Not found */}
         <Route path="*" element={<NotFound />} />
