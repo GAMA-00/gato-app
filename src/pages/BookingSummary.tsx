@@ -96,8 +96,8 @@ const BookingSummary = () => {
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         status: 'pending',
-        residencia_id: user.residencia_id,
-        apartment: user.house_number || '',
+        residencia_id: user.residenciaId,
+        apartment: user.houseNumber || '',
         notes: bookingData.notes || '',
         recurrence: normalizedRecurrence,
         external_booking: false
@@ -113,7 +113,7 @@ const BookingSummary = () => {
           startTime: startTime,
           recurrence: selectedFrequency as 'weekly' | 'biweekly' | 'monthly',
           notes: bookingData.notes || '',
-          apartment: user.house_number || ''
+          apartment: user.houseNumber || ''
         });
       }
       
