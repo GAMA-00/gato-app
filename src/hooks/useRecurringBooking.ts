@@ -61,7 +61,6 @@ const generateRecurringAppointments = (bookingData: RecurringBookingData) => {
       end_time: endDateTime,
       recurrence: bookingData.recurrence,
       notes: bookingData.notes,
-      residencia: bookingData.residencia,
       apartment: bookingData.apartment,
       client_address: bookingData.client_address,
       client_phone: bookingData.client_phone,
