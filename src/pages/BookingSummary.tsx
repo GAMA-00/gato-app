@@ -78,34 +78,6 @@ const BookingSummary = () => {
     console.log("Starting booking process for user:", user.id);
 
     try {
-      // Build location string for the appointment
-      const locationParts = [];
-      
-      if (user.residenciaId) {
-        // Try to get residencia name
-        const { data: residenciaData } = await supabase
-          .from('residencias')
-          .select('name')
-          .eq('id', user.residenciaId)
-          .single();
-        
-        if (residenciaData) {
-          locationParts.push(residenciaData.name);
-        }
-      }
-      
-      if (user.condominiumName) {
-        locationParts.push(user.condominiumName);
-      }
-      
-      if (user.houseNumber) {
-        locationParts.push(`Casa ${user.houseNumber}`);
-      }
-      
-      const clientLocation = locationParts.length > 0 
-        ? locationParts.join(' – ') 
-        : 'Ubicación no especificada';
-
       // Calculate start and end times
       const startDateTime = new Date(bookingData.date);
       const [startHours, startMinutes] = bookingData.startTime.split(':').map(Number);
@@ -175,7 +147,6 @@ const BookingSummary = () => {
 
         if (recurringError) {
           console.error("Error creating recurring rule:", recurringError);
-          // Don't throw here, the main appointment was created successfully
         } else {
           console.log("Recurring rule created:", recurringRule);
           
@@ -220,6 +191,25 @@ const BookingSummary = () => {
     }).format(price);
   };
 
+  // Build location display
+  const getLocationDisplay = () => {
+    const locationParts = [];
+    
+    if (user.residenciaId) {
+      locationParts.push('Residencia registrada');
+    }
+    
+    if (user.condominiumText) {
+      locationParts.push(user.condominiumText);
+    }
+    
+    if (user.houseNumber) {
+      locationParts.push(`Casa ${user.houseNumber}`);
+    }
+    
+    return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-6">
@@ -260,21 +250,10 @@ const BookingSummary = () => {
             <span>{bookingData.startTime} - {bookingData.endTime}</span>
           </div>
 
-          {user.residenciaId || user.condominiumName || user.houseNumber ? (
-            <div className="flex items-center text-sm">
-              <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div>
-                {user.residenciaId && <span>Residencia registrada</span>}
-                {user.condominiumName && <span> - {user.condominiumName}</span>}
-                {user.houseNumber && <span> - Casa {user.houseNumber}</span>}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center text-sm">
-              <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span className="text-muted-foreground">Ubicación no especificada</span>
-            </div>
-          )}
+          <div className="flex items-center text-sm">
+            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span>{getLocationDisplay()}</span>
+          </div>
 
           {bookingData.recurrence && bookingData.recurrence !== 'none' && (
             <div className="p-3 bg-blue-50 rounded-md">
