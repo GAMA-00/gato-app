@@ -14,13 +14,18 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { data: appointments = [], isLoading: isLoadingAppointments } = useAppointments();
+  const { data: appointments = [], isLoading: isLoadingAppointments, error: appointmentsError } = useAppointments();
   const { data: stats, isLoading: isLoadingStats } = useStats();
   const queryClient = useQueryClient();
   
   const today = startOfToday();
   const tomorrow = startOfTomorrow();
   const tomorrowEnd = endOfTomorrow();
+  
+  console.log("Dashboard - User:", user);
+  console.log("Dashboard - Appointments:", appointments);
+  console.log("Dashboard - Loading:", isLoadingAppointments);
+  console.log("Dashboard - Error:", appointmentsError);
   
   // Auto-update appointment statuses
   useEffect(() => {
@@ -76,6 +81,10 @@ const Dashboard = () => {
     app.status !== 'completed' && new Date(app.end_time) > new Date()
   );
 
+  console.log("Dashboard filtered appointments:");
+  console.log("- Today's active:", activeAppointmentsToday);
+  console.log("- Tomorrow's:", tomorrowsAppointments);
+
   if (isLoadingAppointments || isLoadingStats) {
     return (
       <PageContainer title="Inicio" subtitle="Bienvenido de nuevo">
@@ -86,6 +95,10 @@ const Dashboard = () => {
         </div>
       </PageContainer>
     );
+  }
+
+  if (appointmentsError) {
+    console.error("Dashboard appointments error:", appointmentsError);
   }
 
   // Only show the right content based on user role
@@ -139,6 +152,11 @@ const Dashboard = () => {
       <div className="space-y-6">
         <div className="text-center py-8">
           <p className="text-muted-foreground">No hay información disponible</p>
+          {appointmentsError && (
+            <p className="text-red-500 text-sm mt-2">
+              Error cargando citas: {appointmentsError.message}
+            </p>
+          )}
         </div>
       </div>
     );

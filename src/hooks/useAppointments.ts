@@ -1,299 +1,140 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { addMonths, startOfWeek, endOfWeek } from 'date-fns';
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 export function useAppointments() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['appointments', user?.id, user?.role],
+    queryKey: ['appointments', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
-      console.log("Fetching appointments for user:", user.id, "with role:", user.role);
+      console.log("Fetching appointments for user:", user.id, "role:", user.role);
       
-      try {
-        // Calculate a broader date range for calendar navigation
-        const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
-        const futureDate = addMonths(new Date(), 3);
-        
-        if (user.role === 'provider') {
-          const { data: appointments, error } = await supabase
-            .from('appointments')
-            .select(`
-              *,
-              listings (
-                id,
-                title,
-                description,
-                base_price,
-                duration
-              )
-            `)
-            .eq('provider_id', user.id)
-            .gte('start_time', currentWeekStart.toISOString())
-            .lte('start_time', futureDate.toISOString())
-            .order('start_time');
-            
-          if (error) {
-            console.error("Error fetching provider appointments:", error);
-            throw error;
-          }
-          
-          console.log(`Provider appointments data (${currentWeekStart.toISOString()} to ${futureDate.toISOString()}):`, appointments);
-          
-          if (!appointments || appointments.length === 0) {
-            console.log("No appointments for provider in date range");
-            return [];
-          }
-          
-          // Enhanced client name handling for both internal and external bookings
-          const clientIds = [...new Set(appointments
-            .filter(app => !app.external_booking && app.client_id)
-            .map(app => app.client_id))];
-          
-          let clientNameMap: Record<string, string> = {};
-          let clientLocationMap: Record<string, any> = {};
-          
-          if (clientIds.length > 0) {
-            const { data: clients, error: clientsError } = await supabase
+      let query = supabase
+        .from('appointments')
+        .select(`
+          *,
+          listings (
+            id,
+            title,
+            description,
+            base_price,
+            duration
+          ),
+          residencias (
+            id,
+            name
+          )
+        `);
+
+      // Filter based on user role
+      if (user.role === 'provider') {
+        query = query.eq('provider_id', user.id);
+      } else if (user.role === 'client') {
+        query = query.eq('client_id', user.id);
+      }
+
+      query = query.order('start_time', { ascending: true });
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error fetching appointments:", error);
+        throw error;
+      }
+
+      console.log("Raw appointments data:", data);
+
+      // Process appointments to add client/provider information
+      const processedAppointments = await Promise.all(
+        (data || []).map(async (appointment) => {
+          let clientInfo = null;
+          let providerInfo = null;
+          let clientLocation = 'Ubicación no especificada';
+
+          // Get client information
+          if (appointment.client_id) {
+            const { data: clientData } = await supabase
               .from('users')
               .select(`
-                id, 
-                name, 
+                id,
+                name,
+                phone,
+                email,
                 house_number,
                 residencia_id,
                 condominium_text
               `)
-              .in('id', clientIds)
-              .eq('role', 'client');
+              .eq('id', appointment.client_id)
+              .eq('role', 'client')
+              .single();
+
+            if (clientData) {
+              clientInfo = clientData;
               
-            console.log("Clients data fetched:", clients);
+              // Build location string
+              const locationParts = [];
               
-            if (!clientsError && clients) {
-              clientNameMap = Object.fromEntries(
-                clients.map(client => [client.id, client.name])
-              );
-              
-              // Get unique residencia IDs
-              const residenciaIds = [...new Set(clients
-                .map(client => client.residencia_id)
-                .filter(Boolean))];
-              
-              console.log("Residencia IDs to fetch:", residenciaIds);
-              
-              // Fetch residencias data
-              let residenciasMap: Record<string, string> = {};
-              if (residenciaIds.length > 0) {
-                const { data: residencias, error: residenciasError } = await supabase
-                  .from('residencias')
-                  .select('id, name')
-                  .in('id', residenciaIds);
-                
-                console.log("Residencias fetched:", residencias);
-                console.log("Residencias error:", residenciasError);
-                
-                if (residencias && !residenciasError) {
-                  residenciasMap = Object.fromEntries(
-                    residencias.map(res => [res.id, res.name])
-                  );
-                }
+              if (appointment.residencias?.name) {
+                locationParts.push(appointment.residencias.name);
               }
               
-              console.log("Final residenciasMap:", residenciasMap);
-              
-              // Create location map with complete address information using the new format
-              clientLocationMap = Object.fromEntries(
-                clients.map(client => {
-                  const residenciaName = client.residencia_id ? residenciasMap[client.residencia_id] : '';
-                  const condominiumName = client.condominium_text || '';
-                  const houseNumber = client.house_number || '';
-                  
-                  const locationData = {
-                    residencia: residenciaName,
-                    condominium: condominiumName,
-                    houseNumber: houseNumber
-                  };
-                  
-                  console.log(`Location data for client ${client.id}:`, locationData);
-                  console.log(`  - Residencia ID: ${client.residencia_id} -> Name: ${residenciaName}`);
-                  console.log(`  - Condominium Text: ${condominiumName}`);
-                  console.log(`  - House Number: ${houseNumber}`);
-                  
-                  return [client.id, locationData];
-                })
-              );
-              
-              console.log("Client location map created:", clientLocationMap);
-            }
-          }
-          
-          // Process all appointments with enhanced external booking support
-          appointments.forEach(app => {
-            if (app.external_booking) {
-              // For external bookings, prioritize the stored client_name from the appointment
-              (app as any).client_name = app.client_name || 'Cliente Externo';
-              (app as any).client_phone = app.client_phone || '';
-              (app as any).client_email = app.client_email || '';
-              (app as any).client_location = app.client_address || 'Ubicación no especificada';
-              console.log(`External appointment ${app.id} has client_name: "${app.client_name}"`);
-            } else {
-              // For internal bookings, use the user lookup or fallback
-              (app as any).client_name = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
-              
-              // Build location string for internal bookings with the new format: Residencia – Condominio – Número de casa
-              const location = clientLocationMap[app.client_id];
-              console.log(`Building location for client ${app.client_id}:`, location);
-              
-              if (location) {
-                const locationParts = [];
-                
-                // Add residencia if available
-                if (location.residencia && location.residencia.trim()) {
-                  locationParts.push(location.residencia.trim());
-                }
-                
-                // Add condominium if it exists
-                if (location.condominium && location.condominium.trim()) {
-                  locationParts.push(location.condominium.trim());
-                }
-                
-                // Add house number if available
-                if (location.houseNumber && location.houseNumber.trim()) {
-                  locationParts.push(location.houseNumber.trim());
-                }
-                
-                // Build the final location string with the format: Residencia – Condominio – Número de casa
-                const finalLocation = locationParts.length > 0 
-                  ? locationParts.join(' – ') 
-                  : 'Ubicación no especificada';
-                
-                (app as any).client_location = finalLocation;
-                
-                console.log(`Final location for appointment ${app.id}: "${finalLocation}"`);
-                console.log(`Location parts used: [${locationParts.join(', ')}]`);
-                console.log(`Residencia: "${location.residencia}", Condominium: "${location.condominium}", House: "${location.houseNumber}"`);
-              } else {
-                (app as any).client_location = 'Ubicación no especificada';
-                console.log(`No location data found for client ${app.client_id}`);
+              if (clientData.condominium_text) {
+                locationParts.push(clientData.condominium_text);
               }
+              
+              if (clientData.house_number) {
+                locationParts.push(clientData.house_number);
+              }
+              
+              clientLocation = locationParts.length > 0 
+                ? locationParts.join(' – ') 
+                : 'Ubicación no especificada';
             }
-          });
-          
-          // Mark recurring appointments and add enhanced information
-          const enhancedAppointments = appointments.map(app => ({
-            ...app,
-            is_recurring: app.recurrence && app.recurrence !== 'none',
-            is_external: !!app.external_booking,
-            recurrence_label: 
-              app.recurrence === 'weekly' ? 'Semanal' :
-              app.recurrence === 'biweekly' ? 'Quincenal' :
-              app.recurrence === 'monthly' ? 'Mensual' :
-              app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
-          }));
-          
-          console.log(`Returning ${enhancedAppointments.length} appointments total`);
-          console.log(`  - Internal: ${enhancedAppointments.filter(app => !app.is_external).length}`);
-          console.log(`  - External: ${enhancedAppointments.filter(app => app.is_external).length}`);
-          console.log(`  - Recurring: ${enhancedAppointments.filter(app => app.is_recurring).length}`);
-          console.log(`  - Pending: ${enhancedAppointments.filter(app => app.status === 'pending').length}`);
-          
-          // Log external appointments with their client names for debugging
-          const externalApps = enhancedAppointments.filter(app => app.is_external);
-          if (externalApps.length > 0) {
-            console.log("External appointments with client names:");
-            externalApps.forEach(app => {
-              console.log(`  - ${app.id}: "${(app as any).client_name}" (original: "${app.client_name}")`);
-            });
           }
-          
-          // Log internal appointments with their locations for debugging
-          const internalApps = enhancedAppointments.filter(app => !app.is_external);
-          if (internalApps.length > 0) {
-            console.log("Internal appointments with locations:");
-            internalApps.forEach(app => {
-              console.log(`  - ${app.id}: "${(app as any).client_name}" at "${(app as any).client_location}"`);
-            });
-          }
-          
-          return enhancedAppointments;
-        } 
-        else if (user.role === 'client') {
-          // Para clientes - solo citas internas (no pueden ver externas)
-          const { data: appointments, error } = await supabase
-            .from('appointments')
-            .select(`
-              *,
-              listings (
-                id,
-                title,
-                description,
-                base_price,
-                duration
-              )
-            `)
-            .eq('client_id', user.id)
-            .eq('external_booking', false)
-            .gte('start_time', currentWeekStart.toISOString())
-            .lte('start_time', futureDate.toISOString())
-            .order('start_time');
-            
-          if (error) {
-            console.error("Error fetching client appointments:", error);
-            throw error;
-          }
-          
-          console.log(`Client appointments data (${currentWeekStart.toISOString()} to ${futureDate.toISOString()}):`, appointments);
-          
-          if (!appointments || appointments.length === 0) {
-            console.log("No appointments for client in date range");
-            return [];
-          }
-          
-          const providerIds = [...new Set(appointments.map(app => app.provider_id))];
-          
-          if (providerIds.length > 0) {
-            const { data: providers, error: providersError } = await supabase
+
+          // Get provider information
+          if (appointment.provider_id) {
+            const { data: providerData } = await supabase
               .from('users')
-              .select('id, name')
-              .in('id', providerIds)
-              .eq('role', 'provider');
-              
-            if (!providersError && providers) {
-              const providerNameMap = Object.fromEntries(
-                providers.map(provider => [provider.id, provider.name])
-              );
-              
-              appointments.forEach(app => {
-                (app as any).provider_name = providerNameMap[app.provider_id] || `Proveedor #${app.provider_id.substring(0, 8)}`;
-              });
+              .select('id, name, phone, email')
+              .eq('id', appointment.provider_id)
+              .eq('role', 'provider')
+              .single();
+
+            if (providerData) {
+              providerInfo = providerData;
             }
           }
-          
-          const enhancedAppointments = appointments.map(app => ({
-            ...app,
-            is_recurring: app.recurrence && app.recurrence !== 'none',
-            is_external: false,
-            recurrence_label: 
-              app.recurrence === 'weekly' ? 'Semanal' :
-              app.recurrence === 'biweekly' ? 'Quincenal' :
-              app.recurrence === 'monthly' ? 'Mensual' :
-              app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
-          }));
-          
-          return enhancedAppointments;
-        }
-        
-        return [];
-      } catch (error) {
-        console.error("Error in appointments query:", error);
-        throw error;
-      }
+
+          // Handle external bookings
+          const isExternal = appointment.external_booking || !appointment.client_id;
+
+          return {
+            ...appointment,
+            client_name: isExternal 
+              ? (appointment.client_name || 'Cliente Externo')
+              : (clientInfo?.name || 'Cliente sin nombre'),
+            provider_name: providerInfo?.name || 'Proveedor desconocido',
+            client_phone: isExternal 
+              ? appointment.client_phone 
+              : clientInfo?.phone,
+            client_email: isExternal 
+              ? appointment.client_email 
+              : clientInfo?.email,
+            client_location: isExternal 
+              ? (appointment.client_address || 'Ubicación no especificada')
+              : clientLocation,
+            is_external: isExternal
+          };
+        })
+      );
+
+      console.log("Processed appointments:", processedAppointments);
+      return processedAppointments;
     },
     enabled: !!user,
     refetchInterval: 30000,

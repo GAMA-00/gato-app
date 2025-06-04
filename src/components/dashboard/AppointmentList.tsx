@@ -29,8 +29,10 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
+  console.log(`AppointmentList "${title}" received ${appointments?.length || 0} appointments:`, appointments);
+  
   // Filter out completed appointments for the "Today's appointments" list
-  const filteredAppointments = appointments.filter(appointment => {
+  const filteredAppointments = (appointments || []).filter(appointment => {
     // For Today's appointments, filter out appointments that have ended
     if (title.includes("Hoy") || title.includes("Mañana")) {
       const now = new Date();
@@ -45,6 +47,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     
     return true;
   });
+
+  console.log(`After filtering, ${filteredAppointments.length} appointments remain for "${title}"`);
   
   const handleAcceptAppointment = async (appointmentId: string) => {
     try {
@@ -196,6 +200,13 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
               const isExternal = appointment.is_external || appointment.external_booking;
               const contactInfo = getContactInfo(appointment);
               
+              console.log(`Rendering appointment ${appointment.id}:`, {
+                displayName,
+                serviceName,
+                isExternal,
+                status: appointment.status
+              });
+              
               return (
                 <div key={appointment.id} className="p-4 border-b last:border-0">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
@@ -274,6 +285,12 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <p>{emptyMessage}</p>
+            <p className="text-xs mt-2">
+              {appointments?.length ? 
+                `${appointments.length} citas encontradas pero filtradas` : 
+                'No se encontraron citas'
+              }
+            </p>
           </div>
         )}
       </CardContent>
