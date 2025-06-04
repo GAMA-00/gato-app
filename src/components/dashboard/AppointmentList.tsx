@@ -209,7 +209,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
               
               return (
                 <div key={appointment.id} className="p-4 border-b last:border-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                  <div className="flex flex-col gap-3 mb-2">
                     <div className="flex items-center min-w-0">
                       <Avatar className="w-10 h-10 mr-3 flex-shrink-0">
                         <AvatarImage alt={displayName} />
@@ -240,16 +240,18 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                         )}
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="flex items-center justify-end text-sm font-medium">
-                        <Clock className="h-3.5 w-3.5 mr-1 text-primary flex-shrink-0" />
-                        <span className="truncate">
+                    
+                    {/* Time and location in separate rows for better mobile layout */}
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm font-medium">
+                        <Clock className="h-3.5 w-3.5 mr-2 text-primary flex-shrink-0" />
+                        <span>
                           {format(new Date(appointment.start_time), 'h:mm a')} - {format(new Date(appointment.end_time), 'h:mm a')}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1 flex items-center justify-end">
-                        <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                        <span className="truncate max-w-[200px]">
+                      <div className="flex items-start text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 mr-2 flex-shrink-0 mt-0.5" />
+                        <span className="break-words leading-relaxed">
                           {getLocationInfo(appointment)}
                         </span>
                       </div>
