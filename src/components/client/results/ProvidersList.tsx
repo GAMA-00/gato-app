@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -129,12 +128,6 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">
-          Profesionales disponibles
-        </h2>
-      </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {providers.map((provider) => (
           <ProviderCard 
