@@ -479,6 +479,7 @@ const BookingSummary = () => {
           onTimeChange={setSelectedTime}
           providerId={bookingData.providerId}
           serviceDuration={bookingData.duration || 60}
+          selectedFrequency={selectedFrequency}
         />
         
         {/* 3. Booking Summary */}
