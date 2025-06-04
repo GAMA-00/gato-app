@@ -1,158 +1,112 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, getDay } from 'date-fns';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface RecurringBookingData {
-  providerId: string;
   listingId: string;
-  startTime: Date;
-  recurrence: 'weekly' | 'biweekly' | 'monthly';
+  startTime: string;
+  endTime: string;
+  recurrenceType: string;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
   notes?: string;
+  clientAddress?: string;
+  clientPhone?: string;
+  clientEmail?: string;
   apartment?: string;
-  client_address?: string;
-  client_phone?: string;
-  client_email?: string;
-  client_name?: string;
-  is_external?: boolean;
 }
 
-export const useRecurringBooking = () => {
+export function useRecurringBooking() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const createRecurringRule = useCallback(async (bookingData: RecurringBookingData) => {
+  const createRecurringBooking = async (data: RecurringBookingData) => {
     if (!user) {
-      throw new Error('Usuario no autenticado');
+      toast.error('Debe estar autenticado para crear una cita');
+      return null;
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
-      console.log('Creating recurring rule with data:', bookingData);
+      const startDate = new Date(data.startTime).toISOString().split('T')[0];
+      
+      // Si es "once" (una vez), crear una cita normal en lugar de una regla recurrente
+      if (data.recurrenceType === 'once') {
+        const { data: appointment, error } = await supabase
+          .from('appointments')
+          .insert({
+            listing_id: data.listingId,
+            client_id: user.id,
+            provider_id: '', // Se debe obtener del listing
+            start_time: data.startTime,
+            end_time: data.endTime,
+            status: 'pending',
+            notes: data.notes || '',
+            client_address: data.clientAddress,
+            client_phone: data.clientPhone,
+            client_email: data.clientEmail,
+            apartment: data.apartment,
+            recurrence: 'once', // Establecer explícitamente como 'once'
+            external_booking: false,
+            is_recurring_instance: false
+          })
+          .select()
+          .single();
 
-      // Validar campos requeridos
-      if (!bookingData.providerId || !bookingData.listingId || !bookingData.startTime || !bookingData.recurrence) {
-        throw new Error('Faltan campos requeridos para la reserva recurrente');
+        if (error) {
+          console.error('Error creating single appointment:', error);
+          throw error;
+        }
+
+        toast.success('Cita creada exitosamente');
+        return appointment;
       }
 
-      const startDate = format(bookingData.startTime, 'yyyy-MM-dd');
-      const startTime = format(bookingData.startTime, 'HH:mm:ss');
-      
-      // Calcular end_time basado en duración del servicio (asumiendo 1 hora por defecto)
-      const endTime = new Date(bookingData.startTime);
-      endTime.setHours(endTime.getHours() + 1);
-      const endTimeFormatted = format(endTime, 'HH:mm:ss');
-
-      // Calcular day_of_week o day_of_month según el tipo de recurrencia
-      const dayOfWeek = getDay(bookingData.startTime); // 0 = domingo, 1 = lunes, etc.
-      const dayOfMonth = bookingData.startTime.getDate();
-
-      const recurringRuleData = {
-        provider_id: bookingData.providerId,
-        client_id: user.id,
-        listing_id: bookingData.listingId,
-        start_date: startDate,
-        start_time: startTime,
-        end_time: endTimeFormatted,
-        recurrence_type: bookingData.recurrence,
-        day_of_week: ['weekly', 'biweekly'].includes(bookingData.recurrence) ? dayOfWeek : null,
-        day_of_month: bookingData.recurrence === 'monthly' ? dayOfMonth : null,
-        notes: bookingData.notes,
-        apartment: bookingData.apartment,
-        client_address: bookingData.client_address,
-        client_phone: bookingData.client_phone,
-        client_email: bookingData.client_email,
-        client_name: bookingData.client_name,
-        is_active: true
-      };
-
-      console.log('Inserting recurring rule:', recurringRuleData);
-
-      // Crear la regla de recurrencia
-      const { data: recurringRule, error: ruleError } = await supabase
+      // Para citas recurrentes, crear la regla recurrente
+      const { data: recurringRule, error } = await supabase
         .from('recurring_rules')
-        .insert(recurringRuleData)
+        .insert({
+          listing_id: data.listingId,
+          client_id: user.id,
+          provider_id: '', // Se debe obtener del listing
+          recurrence_type: data.recurrenceType,
+          start_date: startDate,
+          start_time: new Date(data.startTime).toTimeString().split(' ')[0],
+          end_time: new Date(data.endTime).toTimeString().split(' ')[0],
+          day_of_week: data.dayOfWeek,
+          day_of_month: data.dayOfMonth,
+          notes: data.notes || '',
+          client_address: data.clientAddress,
+          client_phone: data.clientPhone,
+          client_email: data.clientEmail,
+          apartment: data.apartment,
+          is_active: true
+        })
         .select()
         .single();
 
-      if (ruleError) {
-        console.error('Error creating recurring rule:', ruleError);
-        throw new Error(`Error al crear la regla de recurrencia: ${ruleError.message}`);
-      }
-
-      console.log('Successfully created recurring rule:', recurringRule);
-
-      // Generar las primeras instancias (próximas 16 semanas)
-      const endRange = new Date();
-      endRange.setDate(endRange.getDate() + (16 * 7)); // 16 semanas
-      const endRangeFormatted = format(endRange, 'yyyy-MM-dd');
-
-      const { data: instanceCount, error: generateError } = await supabase
-        .rpc('generate_recurring_instances', {
-          rule_id: recurringRule.id,
-          start_range: startDate,
-          end_range: endRangeFormatted
-        });
-
-      if (generateError) {
-        console.error('Error generating recurring instances:', generateError);
-        // No fallar completamente si no se pueden generar las instancias
-        console.warn('Could not generate initial instances, but rule was created');
-      }
-
-      console.log(`Generated ${instanceCount || 0} recurring instances`);
-
-      return {
-        success: true,
-        recurringRule,
-        instanceCount: instanceCount || 0
-      };
-
-    } catch (error) {
-      console.error('Error creating recurring booking:', error);
-      setError(error as Error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
-
-  const cancelRecurringRule = useCallback(async (ruleId: string) => {
-    if (!user) {
-      throw new Error('Usuario no autenticado');
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase
-        .from('recurring_rules')
-        .update({ is_active: false })
-        .eq('id', ruleId);
-
       if (error) {
-        throw new Error(`Error al cancelar la recurrencia: ${error.message}`);
+        console.error('Error creating recurring rule:', error);
+        throw error;
       }
 
-      return { success: true };
-    } catch (error) {
-      console.error('Error canceling recurring rule:', error);
-      setError(error as Error);
-      throw error;
+      toast.success('Servicio recurrente creado exitosamente');
+      return recurringRule;
+      
+    } catch (error: any) {
+      console.error('Error in createRecurringBooking:', error);
+      toast.error('Error al crear la cita: ' + (error.message || 'Error desconocido'));
+      return null;
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  };
 
   return {
-    isLoading,
-    error,
-    createRecurringRule,
-    cancelRecurringRule
+    createRecurringBooking,
+    isLoading
   };
-};
+}
