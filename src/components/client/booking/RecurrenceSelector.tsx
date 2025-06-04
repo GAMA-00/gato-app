@@ -51,29 +51,6 @@ const RecurrenceSelector = ({
               </div>
             </RadioGroup>
           </div>
-          
-          {selectedFrequency !== 'once' && (
-            <div className="space-y-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100 animate-fade-in">
-              <div className="p-3 bg-white rounded-lg border border-blue-200 animate-scale-in">
-                <h4 className="font-medium text-blue-900 mb-2 text-center text-sm">
-                  📅 Reserva recurrente seleccionada
-                </h4>
-                <div className="space-y-1.5 text-xs text-blue-800">
-                  <div className="flex justify-between">
-                    <span>Frecuencia:</span>
-                    <span className="font-medium">
-                      {selectedFrequency === 'weekly' ? 'Cada semana' :
-                       selectedFrequency === 'biweekly' ? 'Cada 2 semanas' :
-                       'Cada mes'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-blue-700 mt-2">
-                    El horario seleccionado se reservará automáticamente con esta frecuencia.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
