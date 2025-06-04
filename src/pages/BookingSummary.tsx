@@ -89,8 +89,18 @@ const BookingSummary = () => {
       // Normalize the recurrence value
       const normalizedRecurrence = normalizeRecurrenceValue(selectedFrequency);
       
-      // Check if we have a valid residencia_id
-      const residencia_id = user.residenciaId || null;
+      console.log("Creating appointment with data:", {
+        client_id: user.id,
+        provider_id: bookingData.providerId,
+        listing_id: bookingData.serviceId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        status: 'pending',
+        residencia_id: user.residenciaId,
+        apartment: user.apartment || '',
+        notes: bookingData.notes || '',
+        recurrence: normalizedRecurrence
+      });
       
       // If it's a recurring appointment, use the recurring booking hook
       if (selectedFrequency !== 'once') {
@@ -104,64 +114,7 @@ const BookingSummary = () => {
         });
       }
       
-      // For single appointments, continue with the regular flow
-      if (!residencia_id) {
-        console.warn("Creating appointment without residencia_id. User profile may need updating.");
-        
-        // Try to fetch residencia_id from users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('residencia_id')
-          .eq('id', user.id)
-          .eq('role', 'client')
-          .single();
-          
-        if (!userError && userData?.residencia_id) {
-          console.log('Found residencia_id in users table:', userData.residencia_id);
-          
-          // Create appointment with this residencia_id
-          const { data, error } = await supabase
-            .from('appointments')
-            .insert({
-              client_id: user.id,
-              provider_id: bookingData.providerId,
-              listing_id: bookingData.serviceId,
-              start_time: startTime.toISOString(),
-              end_time: endTime.toISOString(),
-              status: 'pending',
-              residencia_id: userData.residencia_id,
-              apartment: user.apartment || '',
-              notes: bookingData.notes || '',
-              recurrence: normalizedRecurrence
-            })
-            .select();
-            
-          if (error) throw error;
-          return data;
-        } else {
-          console.error("No residencia_id found for user. Redirecting to profile update.");
-          toast({
-            title: "Información incompleta",
-            description: "Por favor actualiza tu perfil con tu información de residencia antes de reservar.",
-            variant: "destructive"
-          });
-          throw new Error("Por favor actualiza tu perfil con tu información de residencia antes de reservar.");
-        }
-      }
-      
-      console.log("Creating appointment with data:", {
-        client_id: user.id,
-        provider_id: bookingData.providerId,
-        listing_id: bookingData.serviceId,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        status: 'pending',
-        residencia_id: residencia_id,
-        apartment: user.apartment || '',
-        notes: bookingData.notes || '',
-        recurrence: normalizedRecurrence
-      });
-      
+      // For single appointments, create directly
       const { data, error } = await supabase
         .from('appointments')
         .insert({
@@ -171,21 +124,33 @@ const BookingSummary = () => {
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           status: 'pending',
-          residencia_id: residencia_id,
+          residencia_id: user.residenciaId,
           apartment: user.apartment || '',
           notes: bookingData.notes || '',
           recurrence: normalizedRecurrence
         })
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating appointment:", error);
+        throw error;
+      }
+      
+      console.log("Appointment created successfully:", data);
       return data;
     },
     onSuccess: () => {
+      console.log("Appointment created successfully, invalidating queries");
+      
+      // Invalidate all related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      
       toast({
         title: "Éxito",
-        description: "Reserva solicitada con éxito"
+        description: "Reserva solicitada con éxito. El proveedor recibirá tu solicitud."
       });
       navigate('/client/bookings');
     },
@@ -477,8 +442,8 @@ const BookingSummary = () => {
           onDateChange={setSelectedDate}
           selectedTime={selectedTime}
           onTimeChange={setSelectedTime}
-          providerId={bookingData.providerId}
-          serviceDuration={bookingData.duration || 60}
+          providerId={bookingData?.providerId}
+          serviceDuration={bookingData?.duration || 60}
           selectedFrequency={selectedFrequency}
         />
         

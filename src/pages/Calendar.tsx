@@ -36,7 +36,7 @@ const Calendar = () => {
     console.log("Calendar appointments for date:", currentCalendarDate.toISOString());
     console.log("All appointments:", appointments);
     console.log("Pending appointments:", appointments.filter((app: any) => app.status === 'pending'));
-    console.log("Recurring appointments:", appointments.filter((app: any) => app.is_recurring));
+    console.log("Confirmed appointments:", appointments.filter((app: any) => app.status === 'confirmed'));
   }, [appointments, currentCalendarDate]);
 
   // If user is not a provider, don't render this page
@@ -55,7 +55,7 @@ const Calendar = () => {
       }
     >
       <div className="space-y-6">
-        {/* Use the new grouped component for job requests */}
+        {/* Use the grouped component for job requests */}
         <JobRequestsGrouped />
         
         {showBlockedTimeSlots && <BlockedTimeSlots />}

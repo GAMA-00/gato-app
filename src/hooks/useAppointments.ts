@@ -53,7 +53,7 @@ export function useAppointments() {
 
           // Get client information including residencia
           if (appointment.client_id) {
-            const { data: clientData } = await supabase
+            const { data: clientData, error: clientError } = await supabase
               .from('users')
               .select(`
                 id,
@@ -63,7 +63,7 @@ export function useAppointments() {
                 house_number,
                 residencia_id,
                 condominium_text,
-                residencias!inner(
+                residencias (
                   id,
                   name
                 )
@@ -72,7 +72,9 @@ export function useAppointments() {
               .eq('role', 'client')
               .single();
 
-            if (clientData) {
+            if (clientError) {
+              console.error("Error fetching client data:", clientError);
+            } else if (clientData) {
               clientInfo = clientData;
               
               // Build location string
@@ -128,7 +130,8 @@ export function useAppointments() {
             client_location: isExternal 
               ? (appointment.client_address || 'Ubicación no especificada')
               : clientLocation,
-            is_external: isExternal
+            is_external: isExternal,
+            service_name: appointment.listings?.title || 'Servicio'
           };
         })
       );

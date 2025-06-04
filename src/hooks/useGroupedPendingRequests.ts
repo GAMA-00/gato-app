@@ -32,7 +32,7 @@ export function useGroupedPendingRequests() {
       console.log("Fetching grouped pending requests for provider:", user.id);
       
       try {
-        // Get all pending appointments for this provider using the same query structure as useAppointments
+        // Get all pending appointments for this provider
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -61,7 +61,7 @@ export function useGroupedPendingRequests() {
         
         console.log("Raw pending appointments:", appointments);
         
-        // Process appointments to add client/provider information (same logic as useAppointments)
+        // Process appointments to add client information
         const processedAppointments = await Promise.all(
           (appointments || []).map(async (appointment) => {
             let clientInfo = null;
@@ -69,7 +69,7 @@ export function useGroupedPendingRequests() {
 
             // Get client information including residencia
             if (appointment.client_id) {
-              const { data: clientData } = await supabase
+              const { data: clientData, error: clientError } = await supabase
                 .from('users')
                 .select(`
                   id,
@@ -79,7 +79,7 @@ export function useGroupedPendingRequests() {
                   house_number,
                   residencia_id,
                   condominium_text,
-                  residencias!inner(
+                  residencias (
                     id,
                     name
                   )
@@ -88,7 +88,9 @@ export function useGroupedPendingRequests() {
                 .eq('role', 'client')
                 .single();
 
-              if (clientData) {
+              if (clientError) {
+                console.error("Error fetching client data for appointment:", appointment.id, clientError);
+              } else if (clientData) {
                 clientInfo = clientData;
                 
                 // Build location string
