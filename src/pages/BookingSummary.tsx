@@ -81,12 +81,12 @@ const BookingSummary = () => {
       // Build location string for the appointment
       const locationParts = [];
       
-      if (user.residencia_id) {
+      if (user.residenciaId) {
         // Try to get residencia name
         const { data: residenciaData } = await supabase
           .from('residencias')
           .select('name')
-          .eq('id', user.residencia_id)
+          .eq('id', user.residenciaId)
           .single();
         
         if (residenciaData) {
@@ -94,12 +94,12 @@ const BookingSummary = () => {
         }
       }
       
-      if (user.condominium_text) {
-        locationParts.push(user.condominium_text);
+      if (user.condominiumName) {
+        locationParts.push(user.condominiumName);
       }
       
-      if (user.house_number) {
-        locationParts.push(`Casa ${user.house_number}`);
+      if (user.houseNumber) {
+        locationParts.push(`Casa ${user.houseNumber}`);
       }
       
       const clientLocation = locationParts.length > 0 
@@ -121,7 +121,7 @@ const BookingSummary = () => {
         client_id: user.id,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
-        status: 'pending', // Changed to pending so it appears in provider's requests
+        status: 'pending',
         notes: bookingData.notes || null,
         recurrence: bookingData.recurrence || 'none',
         client_location: clientLocation
@@ -136,7 +136,7 @@ const BookingSummary = () => {
           client_id: user.id,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
-          status: 'pending', // This ensures it appears in provider's pending requests
+          status: 'pending',
           notes: bookingData.notes || null,
           recurrence: bookingData.recurrence || 'none'
         })
@@ -261,13 +261,13 @@ const BookingSummary = () => {
             <span>{bookingData.startTime} - {bookingData.endTime}</span>
           </div>
 
-          {user.residencia_id || user.condominium_text || user.house_number ? (
+          {user.residenciaId || user.condominiumName || user.houseNumber ? (
             <div className="flex items-center text-sm">
               <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
               <div>
-                {user.residencia_id && <span>Residencia registrada</span>}
-                {user.condominium_text && <span> - {user.condominium_text}</span>}
-                {user.house_number && <span> - Casa {user.house_number}</span>}
+                {user.residenciaId && <span>Residencia registrada</span>}
+                {user.condominiumName && <span> - {user.condominiumName}</span>}
+                {user.houseNumber && <span> - Casa {user.houseNumber}</span>}
               </div>
             </div>
           ) : (
