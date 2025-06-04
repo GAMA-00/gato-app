@@ -133,14 +133,6 @@ const PendingRequestsCard: React.FC = () => {
           <div className="text-center py-6 text-red-500">
             <p>Error al cargar solicitudes</p>
             <p className="text-sm mt-2">{error?.message}</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-3"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['pending-requests'] })}
-            >
-              Reintentar
-            </Button>
           </div>
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
@@ -236,17 +228,6 @@ const PendingRequestsCard: React.FC = () => {
         ) : (
           <div className="text-center py-6 text-muted-foreground">
             <p>No hay solicitudes pendientes</p>
-            <p className="text-xs mt-2">
-              Usuario: {user?.role} - ID: {user?.id}
-            </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-3"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['pending-requests'] })}
-            >
-              Actualizar
-            </Button>
           </div>
         )}
       </CardContent>
