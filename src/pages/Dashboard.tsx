@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import AppointmentList from '@/components/dashboard/AppointmentList';
-import QuickStats from '@/components/dashboard/QuickStats';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import { Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,11 +10,12 @@ import { useStats } from '@/hooks/useStats';
 import { startOfToday, startOfTomorrow, endOfTomorrow, isSameDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: appointments = [], isLoading: isLoadingAppointments, error: appointmentsError } = useAppointments();
-  const { data: stats, isLoading: isLoadingStats } = useStats();
+  const { data: stats, isLoading: isLoadingStats, error: statsError } = useStats();
   const queryClient = useQueryClient();
   
   const today = useMemo(() => startOfToday(), []);
@@ -23,6 +23,8 @@ const Dashboard = () => {
   
   console.log("Dashboard - User:", user);
   console.log("Dashboard - Appointments:", appointments?.length || 0);
+  console.log("Dashboard - Appointments Error:", appointmentsError);
+  console.log("Dashboard - Stats Error:", statsError);
   
   // Memoize filtered appointments to avoid recalculating on every render
   const { todaysAppointments, tomorrowsAppointments, activeAppointmentsToday } = useMemo(() => {
@@ -34,76 +36,77 @@ const Dashboard = () => {
       };
     }
 
-    const todaysAppts = appointments
-      .filter(app => {
-        const appDate = new Date(app.start_time);
-        return isSameDay(appDate, today) && app.status !== 'cancelled';
-      })
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-      
-    const tomorrowsAppts = appointments
-      .filter(app => {
-        const appDate = new Date(app.start_time);
-        return isSameDay(appDate, tomorrow) && app.status !== 'cancelled';
-      })
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    try {
+      const todaysAppts = appointments
+        .filter(app => {
+          const appDate = new Date(app.start_time);
+          return isSameDay(appDate, today) && app.status !== 'cancelled';
+        })
+        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+        
+      const tomorrowsAppts = appointments
+        .filter(app => {
+          const appDate = new Date(app.start_time);
+          return isSameDay(appDate, tomorrow) && app.status !== 'cancelled';
+        })
+        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-    // Filter out completed appointments from today's list
-    const activeToday = todaysAppts.filter(app => 
-      app.status !== 'completed' && new Date(app.end_time) > new Date()
-    );
+      // Filter out completed appointments from today's list
+      const activeToday = todaysAppts.filter(app => 
+        app.status !== 'completed' && new Date(app.end_time) > new Date()
+      );
 
-    return {
-      todaysAppointments: todaysAppts,
-      tomorrowsAppointments: tomorrowsAppts,
-      activeAppointmentsToday: activeToday
-    };
+      return {
+        todaysAppointments: todaysAppts,
+        tomorrowsAppointments: tomorrowsAppts,
+        activeAppointmentsToday: activeToday
+      };
+    } catch (error) {
+      console.error("Error filtering appointments:", error);
+      return {
+        todaysAppointments: [],
+        tomorrowsAppointments: [],
+        activeAppointmentsToday: []
+      };
+    }
   }, [appointments, today, tomorrow]);
 
-  // Optimized auto-update with reduced frequency and better conditions
+  // Simplified auto-update with better error handling
   useEffect(() => {
     if (!user || !appointments?.length) return;
 
     const updateAppointmentStatuses = async () => {
-      const now = new Date();
-      const appointmentsToUpdate = appointments.filter(
-        app => app.status === 'confirmed' && new Date(app.end_time) < now
-      );
-
-      if (appointmentsToUpdate.length > 0) {
-        console.log("Updating status for completed appointments:", appointmentsToUpdate.length);
-        
-        // Batch update for better performance
-        const updatePromises = appointmentsToUpdate.map(app =>
-          supabase
-            .from('appointments')
-            .update({ status: 'completed' })
-            .eq('id', app.id)
+      try {
+        const now = new Date();
+        const appointmentsToUpdate = appointments.filter(
+          app => app.status === 'confirmed' && new Date(app.end_time) < now
         );
-        
-        try {
+
+        if (appointmentsToUpdate.length > 0) {
+          console.log("Updating status for completed appointments:", appointmentsToUpdate.length);
+          
+          const updatePromises = appointmentsToUpdate.map(app =>
+            supabase
+              .from('appointments')
+              .update({ status: 'completed' })
+              .eq('id', app.id)
+          );
+          
           await Promise.all(updatePromises);
-          // Only invalidate if updates were successful
           queryClient.invalidateQueries({ queryKey: ['appointments'] });
-        } catch (error) {
-          console.error("Error updating appointment statuses:", error);
         }
+      } catch (error) {
+        console.error("Error updating appointment statuses:", error);
       }
     };
     
-    // Immediate update
-    updateAppointmentStatuses();
-    
     // Set up interval with longer period to reduce load
-    const interval = setInterval(updateAppointmentStatuses, 300000); // Every 5 minutes instead of 1
+    const interval = setInterval(updateAppointmentStatuses, 300000); // Every 5 minutes
     
     return () => clearInterval(interval);
-  }, [user?.id, appointments?.length, queryClient]); // More specific dependencies
+  }, [user?.id, appointments?.length, queryClient]);
 
-  console.log("Dashboard filtered appointments:");
-  console.log("- Today's active:", activeAppointmentsToday?.length || 0);
-  console.log("- Tomorrow's:", tomorrowsAppointments?.length || 0);
-
+  // Show loading state
   if (isLoadingAppointments || isLoadingStats) {
     return (
       <PageContainer title="Inicio" subtitle="Bienvenido de nuevo">
@@ -116,13 +119,24 @@ const Dashboard = () => {
     );
   }
 
-  if (appointmentsError) {
-    console.error("Dashboard appointments error:", appointmentsError);
+  // Show error state if there are critical errors
+  if (appointmentsError || statsError) {
+    console.error("Dashboard errors:", { appointmentsError, statsError });
+    return (
+      <PageContainer title="Inicio" subtitle="Bienvenido de nuevo">
+        <Alert>
+          <AlertDescription>
+            Hubo un problema cargando la información del dashboard. Por favor, recarga la página.
+            {appointmentsError && <div className="mt-2 text-sm">Error de citas: {appointmentsError.message}</div>}
+            {statsError && <div className="mt-2 text-sm">Error de estadísticas: {statsError.message}</div>}
+          </AlertDescription>
+        </Alert>
+      </PageContainer>
+    );
   }
 
-  // Memoized content to avoid unnecessary re-renders
-  const dashboardContent = useMemo(() => {
-    // For providers, show pending requests and stats
+  // Render content based on user role
+  const renderContent = () => {
     if (user?.role === 'provider') {
       return (
         <div className="space-y-6">
@@ -145,8 +159,7 @@ const Dashboard = () => {
       );
     }
     
-    // For clients, only show their appointments (no stats)
-    else if (user?.role === 'client') {
+    if (user?.role === 'client') {
       return (
         <div className="space-y-6">
           <AppointmentList
@@ -166,20 +179,16 @@ const Dashboard = () => {
       );
     }
     
-    // If no role or unknown role, show empty state
     return (
       <div className="space-y-6">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No hay información disponible</p>
-          {appointmentsError && (
-            <p className="text-red-500 text-sm mt-2">
-              Error cargando citas: {appointmentsError.message}
-            </p>
-          )}
-        </div>
+        <Alert>
+          <AlertDescription>
+            No hay información disponible para mostrar.
+          </AlertDescription>
+        </Alert>
       </div>
     );
-  }, [user?.role, activeAppointmentsToday, tomorrowsAppointments, stats, appointmentsError]);
+  };
 
   return (
     <PageContainer 
@@ -187,7 +196,7 @@ const Dashboard = () => {
       subtitle="Bienvenido de nuevo"
       className="pt-0"
     >
-      {dashboardContent}
+      {renderContent()}
     </PageContainer>
   );
 };

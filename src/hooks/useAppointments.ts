@@ -17,10 +17,10 @@ export function useAppointments() {
 
       console.log(`Fetching appointments for user ${user.id} with role ${user.role}`);
       
-      // Only fetch appointments from yesterday onwards to improve performance
-      const fromDate = subDays(startOfToday(), 1);
-      
       try {
+        // Only fetch appointments from yesterday onwards to improve performance
+        const fromDate = subDays(startOfToday(), 1);
+        
         let query = supabase
           .from('appointments')
           .select(`
@@ -62,56 +62,9 @@ export function useAppointments() {
           return [];
         }
 
-        // Process appointments in batches for better performance
-        const processedAppointments = await Promise.all(
-          appointments.map(async (appointment) => {
-            let clientInfo = null;
-            let clientLocation = 'Ubicación no especificada';
-
-            // Only fetch client info if needed and not already in cache
-            if (appointment.client_id && user.role === 'provider' && !appointment.external_booking) {
-              try {
-                const { data: clientData, error: clientError } = await supabase
-                  .from('users')
-                  .select(`
-                    id,
-                    name,
-                    phone,
-                    email,
-                    house_number,
-                    residencia_id,
-                    condominium_text,
-                    residencias (
-                      id,
-                      name
-                    )
-                  `)
-                  .eq('id', appointment.client_id)
-                  .single();
-
-                if (!clientError && clientData) {
-                  clientInfo = clientData;
-                  
-                  const locationParts = [];
-                  if (clientData.residencias?.name) {
-                    locationParts.push(clientData.residencias.name);
-                  }
-                  if (clientData.condominium_text) {
-                    locationParts.push(clientData.condominium_text);
-                  }
-                  if (clientData.house_number) {
-                    locationParts.push(`Casa ${clientData.house_number}`);
-                  }
-                  
-                  clientLocation = locationParts.length > 0 
-                    ? locationParts.join(' – ') 
-                    : 'Ubicación no especificada';
-                }
-              } catch (error) {
-                console.error("Error fetching client data:", error);
-              }
-            }
-
+        // Process appointments with better error handling
+        const processedAppointments = appointments.map((appointment) => {
+          try {
             // Determine if external booking
             const isExternal = appointment.external_booking || !appointment.client_id;
 
@@ -119,21 +72,31 @@ export function useAppointments() {
               ...appointment,
               client_name: isExternal 
                 ? (appointment.client_name || 'Cliente Externo')
-                : (clientInfo?.name || appointment.client_name || 'Cliente sin nombre'),
+                : (appointment.client_name || 'Cliente sin nombre'),
               client_phone: isExternal 
                 ? appointment.client_phone 
-                : (clientInfo?.phone || appointment.client_phone),
+                : appointment.client_phone,
               client_email: isExternal 
                 ? appointment.client_email 
-                : (clientInfo?.email || appointment.client_email),
+                : appointment.client_email,
               client_location: isExternal 
                 ? (appointment.client_address || 'Ubicación externa')
-                : clientLocation,
+                : 'Ubicación registrada',
               provider_name: appointment.provider_name || 'Proveedor',
               is_external: isExternal
             };
-          })
-        );
+          } catch (error) {
+            console.error("Error processing appointment:", appointment.id, error);
+            // Return appointment with minimal processing if error occurs
+            return {
+              ...appointment,
+              client_name: appointment.client_name || 'Cliente',
+              provider_name: appointment.provider_name || 'Proveedor',
+              client_location: 'Ubicación no especificada',
+              is_external: false
+            };
+          }
+        });
 
         console.log(`Processed ${processedAppointments.length} appointments`);
         return processedAppointments;
@@ -144,9 +107,15 @@ export function useAppointments() {
       }
     },
     enabled: !!user,
-    staleTime: 30000, // 30 seconds - data is fresh for 30 seconds
-    refetchInterval: 60000, // Refetch every minute instead of more frequently
-    retry: 2,
-    refetchOnWindowFocus: false, // Disable refetch on window focus for better performance
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+    retry: 1, // Reduce retry attempts
+    refetchOnWindowFocus: false,
+    // Add error handling
+    meta: {
+      onError: (error: any) => {
+        console.error("Appointments query failed:", error);
+      }
+    }
   });
 }
