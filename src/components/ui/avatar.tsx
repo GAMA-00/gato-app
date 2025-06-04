@@ -30,7 +30,7 @@ const AvatarImage = React.forwardRef<
     <AvatarPrimitive.Image
       ref={ref}
       src={src}
-      className={cn("aspect-square h-full w-full", className)}
+      className={cn("aspect-square h-full w-full object-cover object-center", className)}
       onLoad={() => console.log('AvatarImage onLoad fired for:', src)}
       onError={() => console.log('AvatarImage onError fired for:', src)}
       {...props}
