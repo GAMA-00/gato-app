@@ -199,8 +199,8 @@ const BookingSummary = () => {
       locationParts.push('Residencia registrada');
     }
     
-    if (user.condominiumText) {
-      locationParts.push(user.condominiumText);
+    if (user.condominiumName) {
+      locationParts.push(user.condominiumName);
     }
     
     if (user.houseNumber) {
