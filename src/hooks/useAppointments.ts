@@ -64,35 +64,27 @@ export function useAppointments() {
             // Determine if external booking
             const isExternal = appointment.external_booking || !appointment.client_id;
 
-            // Enhanced location info processing
+            // Enhanced location info processing using only available fields
             let locationInfo = 'Ubicación no especificada';
             
             if (isExternal) {
-              // For external bookings, prioritize client_address
+              // For external bookings, use client_address
               if (appointment.client_address) {
                 locationInfo = appointment.client_address;
               }
             } else {
-              // For internal bookings, build location from available data
+              // For internal bookings, build location from available appointment data
               let locationParts = [];
               
-              // Add condominium/residencia info if available
-              if (appointment.condominium_text) {
-                locationParts.push(appointment.condominium_text);
-              } else if (appointment.residencia_name) {
-                locationParts.push(appointment.residencia_name);
-              }
-              
-              // Add apartment/house number
+              // Add apartment if available
               if (appointment.apartment) {
-                locationParts.push(`Apt ${appointment.apartment}`);
-              } else if (appointment.house_number) {
-                locationParts.push(`Casa ${appointment.house_number}`);
+                locationParts.push(`Apartamento ${appointment.apartment}`);
               }
               
-              // Add address if available
-              if (appointment.address && !locationParts.some(part => part.includes(appointment.address))) {
-                locationParts.push(appointment.address);
+              // Add client_address if available and different from apartment
+              if (appointment.client_address && 
+                  !locationParts.some(part => part.includes(appointment.client_address))) {
+                locationParts.push(appointment.client_address);
               }
               
               if (locationParts.length > 0) {
