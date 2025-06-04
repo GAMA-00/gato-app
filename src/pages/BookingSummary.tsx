@@ -478,7 +478,7 @@ const BookingSummary = () => {
           selectedTime={selectedTime}
           onTimeChange={setSelectedTime}
           providerId={bookingData.providerId}
-          recurrence={selectedFrequency}
+          serviceDuration={bookingData.duration || 60}
         />
         
         {/* 3. Booking Summary */}
