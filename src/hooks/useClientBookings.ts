@@ -25,7 +25,7 @@ export function useClientBookings() {
 
       console.log("Fetching client bookings for user:", user.id);
 
-      // Get appointments for this client
+      // Get appointments for this client - including ALL statuses
       const { data: appointments, error } = await supabase
         .from('appointments')
         .select(`

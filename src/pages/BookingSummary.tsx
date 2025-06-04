@@ -1,140 +1,199 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { toast } from "@/hooks/use-toast";
-import PageContainer from '@/components/layout/PageContainer';
-import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
-import RecurrenceSelector from '@/components/client/booking/RecurrenceSelector';
+
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useRecurringBooking } from '@/hooks/useRecurringBooking';
+import { Calendar, Clock, MapPin, User, ArrowLeft, CreditCard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface BookingData {
+  providerId: string;
+  listingId: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  price: number;
+  serviceName: string;
+  providerName: string;
+  notes?: string;
+  recurrence?: string;
+  recurrenceEndDate?: Date;
+}
 
 const BookingSummary = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { createRecurringRule, isLoading: isCreatingRecurring } = useRecurringBooking();
-  
-  // All state hooks at the top
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bookingData, setBookingData] = useState(null);
-  const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
-  
-  // Fetch service info for booking data
-  const { data: serviceInfo } = useQuery({
-    queryKey: ['service-info', bookingData?.serviceId],
-    queryFn: async () => {
-      if (!bookingData?.serviceId) return null;
+  const [isBooking, setIsBooking] = useState(false);
+
+  const bookingData = location.state as BookingData;
+
+  console.log("BookingSummary - Booking data:", bookingData);
+  console.log("BookingSummary - Current user:", user);
+
+  if (!bookingData) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            No se encontraron datos de reserva. Por favor regresa y selecciona un servicio.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate('/client')} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver a servicios
+        </Button>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-12 w-32" />
+        </div>
+      </div>
+    );
+  }
+
+  const handleConfirmBooking = async () => {
+    if (!user) {
+      toast.error("Debes iniciar sesión para reservar");
+      return;
+    }
+
+    setIsBooking(true);
+    console.log("Starting booking process for user:", user.id);
+
+    try {
+      // Build location string for the appointment
+      const locationParts = [];
       
-      const { data, error } = await supabase
-        .from('service_types')
-        .select('*, category:category_id(name, label)')
-        .eq('id', bookingData.serviceId)
-        .single();
+      if (user.residencia_id) {
+        // Try to get residencia name
+        const { data: residenciaData } = await supabase
+          .from('residencias')
+          .select('name')
+          .eq('id', user.residencia_id)
+          .single();
         
-      if (error) {
-        console.error("Error fetching service info:", error);
-        return null;
+        if (residenciaData) {
+          locationParts.push(residenciaData.name);
+        }
       }
       
-      return data;
-    },
-    enabled: !!bookingData?.serviceId
-  });
-  
-  // Normalize recurrence value to match database constraints
-  const normalizeRecurrenceValue = (value) => {
-    const recurrenceMap = {
-      'once': null,
-      'weekly': 'weekly',
-      'biweekly': 'biweekly',
-      'monthly': 'monthly',
-      'daily': 'daily'
-    };
-    
-    return recurrenceMap[value] || null;
-  };
-  
-  // Enhanced mutation to create appointment with better debugging
-  const createAppointmentMutation = useMutation({
-    mutationFn: async () => {
-      // Check authentication
-      if (!user?.id) {
-        throw new Error("Debes iniciar sesión para reservar un servicio");
+      if (user.condominium_text) {
+        locationParts.push(user.condominium_text);
       }
       
-      // Ensure we have date and time selected
-      if (!selectedDate || !selectedTime) {
-        throw new Error("Debes seleccionar una fecha y hora para el servicio");
+      if (user.house_number) {
+        locationParts.push(`Casa ${user.house_number}`);
       }
       
-      // Parse selected time and calculate start/end times
-      const [hours, minutes] = selectedTime.split(':').map(Number);
-      const startTime = new Date(selectedDate);
-      startTime.setHours(hours, minutes, 0, 0);
-      
-      const durationMinutes = bookingData.duration || 60;
-      const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
-      
-      // Normalize the recurrence value
-      const normalizedRecurrence = normalizeRecurrenceValue(selectedFrequency);
-      
-      const appointmentData = {
-        client_id: user.id,
+      const clientLocation = locationParts.length > 0 
+        ? locationParts.join(' – ') 
+        : 'Ubicación no especificada';
+
+      // Calculate start and end times
+      const startDateTime = new Date(bookingData.date);
+      const [startHours, startMinutes] = bookingData.startTime.split(':').map(Number);
+      startDateTime.setHours(startHours, startMinutes, 0, 0);
+
+      const endDateTime = new Date(bookingData.date);
+      const [endHours, endMinutes] = bookingData.endTime.split(':').map(Number);
+      endDateTime.setHours(endHours, endMinutes, 0, 0);
+
+      console.log("Creating appointment with:", {
+        listing_id: bookingData.listingId,
         provider_id: bookingData.providerId,
-        listing_id: bookingData.serviceId,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        status: 'pending',
-        residencia_id: user.residenciaId,
-        apartment: user.houseNumber || '',
-        notes: bookingData.notes || '',
-        recurrence: normalizedRecurrence,
-        external_booking: false
-      };
-      
-      console.log("Creating appointment with data:", appointmentData);
-      
-      // If it's a recurring appointment, use the recurring booking hook
-      if (selectedFrequency !== 'once') {
-        return await createRecurringRule({
-          providerId: bookingData.providerId,
-          listingId: bookingData.serviceId,
-          startTime: startTime,
-          recurrence: selectedFrequency as 'weekly' | 'biweekly' | 'monthly',
-          notes: bookingData.notes || '',
-          apartment: user.houseNumber || ''
-        });
-      }
-      
-      // For single appointments, create directly
-      const { data, error } = await supabase
+        client_id: user.id,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        status: 'pending', // Changed to pending so it appears in provider's requests
+        notes: bookingData.notes || null,
+        recurrence: bookingData.recurrence || 'none',
+        client_location: clientLocation
+      });
+
+      // Create the appointment with pending status
+      const { data: appointment, error } = await supabase
         .from('appointments')
-        .insert(appointmentData)
-        .select();
-        
+        .insert({
+          listing_id: bookingData.listingId,
+          provider_id: bookingData.providerId,
+          client_id: user.id,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          status: 'pending', // This ensures it appears in provider's pending requests
+          notes: bookingData.notes || null,
+          recurrence: bookingData.recurrence || 'none'
+        })
+        .select()
+        .single();
+
       if (error) {
         console.error("Error creating appointment:", error);
         throw error;
       }
+
+      console.log("Appointment created successfully:", appointment);
+
+      // Handle recurring appointments if specified
+      if (bookingData.recurrence && bookingData.recurrence !== 'none' && bookingData.recurrenceEndDate) {
+        console.log("Creating recurring rule for appointment:", appointment.id);
+        
+        // Create recurring rule
+        const { data: recurringRule, error: recurringError } = await supabase
+          .from('recurring_rules')
+          .insert({
+            listing_id: bookingData.listingId,
+            provider_id: bookingData.providerId,
+            client_id: user.id,
+            recurrence_type: bookingData.recurrence,
+            start_date: bookingData.date.toISOString().split('T')[0],
+            start_time: bookingData.startTime,
+            end_time: bookingData.endTime,
+            day_of_week: bookingData.recurrence === 'weekly' || bookingData.recurrence === 'biweekly' 
+              ? bookingData.date.getDay() : null,
+            day_of_month: bookingData.recurrence === 'monthly' 
+              ? bookingData.date.getDate() : null,
+            notes: bookingData.notes
+          })
+          .select()
+          .single();
+
+        if (recurringError) {
+          console.error("Error creating recurring rule:", recurringError);
+          // Don't throw here, the main appointment was created successfully
+        } else {
+          console.log("Recurring rule created:", recurringRule);
+          
+          // Update the appointment with the recurring rule ID
+          await supabase
+            .from('appointments')
+            .update({ 
+              recurring_rule_id: recurringRule.id,
+              recurrence_group_id: recurringRule.id
+            })
+            .eq('id', appointment.id);
+        }
+      }
+
+      toast.success("¡Reserva solicitada exitosamente!");
       
-      console.log("Appointment created successfully:", data);
-      return data;
-    },
-    onSuccess: async (data) => {
-      console.log("Appointment creation successful, invalidating queries");
-      
-      // Comprehensive query invalidation with await for better reliability
+      // Invalidate all related queries to ensure UI updates
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
@@ -142,401 +201,132 @@ const BookingSummary = () => {
         queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
         queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
       ]);
-      
-      // Force refetch for real-time updates
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['appointments'] }),
-        queryClient.refetchQueries({ queryKey: ['pending-requests'] })
-      ]);
-      
-      toast({
-        title: "Éxito",
-        description: "Reserva solicitada con éxito. El proveedor recibirá tu solicitud."
-      });
+
+      // Navigate to client bookings
       navigate('/client/bookings');
-    },
-    onError: (error: any) => {
-      console.error("Error creating appointment:", error);
       
-      if (error.message.includes('recurrence_check')) {
-        toast({
-          title: "Error",
-          description: "Error: El tipo de recurrencia seleccionado no es válido.",
-          variant: "destructive"
-        });
-      } else if (error.message.includes('foreign key')) {
-        toast({
-          title: "Error",
-          description: "Error: Hay un problema con tu perfil de usuario. Por favor contacta a soporte.",
-          variant: "destructive"
-        });
-      } else if (error.message.includes('residencia_id')) {
-        toast({
-          title: "Error", 
-          description: "No se pudo identificar tu residencia. Por favor actualiza tu perfil.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: `Error al crear la reserva: ${error.message}`,
-          variant: "destructive"
-        });
-      }
-      
-      setIsSubmitting(false);
-    }
-  });
-
-  // Get booking data from multiple sources
-  useEffect(() => {
-    console.log("BookingSummary: Initializing booking data");
-    
-    // Priority 1: Data from navigation state
-    if (location.state?.bookingData) {
-      console.log("Found booking data in location state:", location.state.bookingData);
-      setBookingData(location.state.bookingData);
-      return;
-    }
-    
-    // Priority 2: Data from URL parameters (for direct access)
-    const serviceId = searchParams.get('serviceId');
-    const providerId = searchParams.get('providerId');
-    
-    if (serviceId && providerId) {
-      console.log("Found URL parameters, fetching booking data:", { serviceId, providerId });
-      fetchBookingDataFromParams(serviceId, providerId);
-    } else {
-      console.error("No booking data found in state or URL parameters");
-      toast({
-        title: "Error",
-        description: "Información de reserva no encontrada",
-        variant: "destructive"
-      });
-      navigate('/client');
-    }
-  }, [location.state, searchParams]);
-  
-  // Fetch booking data from URL parameters
-  const fetchBookingDataFromParams = async (serviceId: string, providerId: string) => {
-    try {
-      // Fetch service type and provider info
-      const [serviceResponse, providerResponse, listingResponse] = await Promise.all([
-        supabase
-          .from('service_types')
-          .select('*')
-          .eq('id', serviceId)
-          .single(),
-        supabase
-          .from('users')
-          .select('id, name')
-          .eq('id', providerId)
-          .single(),
-        supabase
-          .from('listings')
-          .select('*')
-          .eq('service_type_id', serviceId)
-          .eq('provider_id', providerId)
-          .eq('is_active', true)
-          .limit(1)
-          .single()
-      ]);
-      
-      if (serviceResponse.error || providerResponse.error) {
-        throw new Error("Error fetching booking information");
-      }
-      
-      const service = serviceResponse.data;
-      const provider = providerResponse.data;
-      const listing = listingResponse.data;
-      
-      const reconstructedBookingData = {
-        serviceId: listing?.id || serviceId,
-        serviceName: listing?.title || service.name || 'Servicio',
-        providerId: provider.id,
-        providerName: provider.name || 'Proveedor',
-        price: listing?.base_price || 0,
-        duration: listing?.duration || 60,
-        startTime: null,
-        notes: '',
-        frequency: 'once',
-        requiresScheduling: true
-      };
-      
-      console.log("Reconstructed booking data:", reconstructedBookingData);
-      setBookingData(reconstructedBookingData);
-    } catch (error) {
-      console.error("Error fetching booking data from params:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo cargar la información de la reserva",
-        variant: "destructive"
-      });
-      navigate('/client');
+    } catch (error: any) {
+      console.error("Booking error:", error);
+      toast.error(`Error al crear la reserva: ${error.message}`);
+    } finally {
+      setIsBooking(false);
     }
   };
-  
-  // Scroll to top when component mounts
-  useEffect(() => {
-    const scrollToTop = () => {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'smooth'
-      });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-    
-    scrollToTop();
-    const timeoutId = setTimeout(scrollToTop, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
-  
-  // Verify authentication
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      toast({
-        title: "Error",
-        description: "Debes iniciar sesión para reservar un servicio",
-        variant: "destructive"
-      });
-      navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
-      return;
-    }
-  }, [isAuthenticated, user, bookingData]);
-  
-  // If no booking data yet, show loading
-  if (!bookingData) {
-    return (
-      <PageContainer title="Cargando información de reserva...">
-        <div className="max-w-lg mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-32 bg-gray-200 rounded"></div>
-            <div className="h-48 bg-gray-200 rounded"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
-  
-  // Validate required data
-  const hasRequiredData = !!(
-    bookingData.serviceName &&
-    bookingData.providerName &&
-    bookingData.duration &&
-    typeof bookingData.price === 'number'
-  );
 
-  // Format price safely to avoid NaN
-  const formattedPrice = typeof bookingData.price === 'number' && !isNaN(bookingData.price)
-    ? bookingData.price.toFixed(2)
-    : '0.00';
-  
-  // Format duration to hours and minutes (HH:MM)
-  const formatDurationHHMM = (minutes) => {
-    if (!minutes || isNaN(minutes)) return '00:00';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-CR', {
+      style: 'currency',
+      currency: 'CRC',
+      minimumFractionDigits: 0,
+    }).format(price);
   };
-  
-  const handleBack = () => {
-    navigate(-1);
-  };
-  
-  const handleConfirm = () => {
-    // Validate authentication
-    if (!isAuthenticated || !user) {
-      toast({
-        title: "Error",
-        description: "Debes iniciar sesión para reservar un servicio",
-        variant: "destructive"
-      });
-      navigate('/login', { state: { redirectTo: location.pathname, bookingData } });
-      return;
-    }
-    
-    // Validate required data
-    if (!hasRequiredData) {
-      toast({
-        title: "Error",
-        description: "Faltan datos necesarios para completar la reserva",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Validate date and time selection
-    if (!selectedDate || !selectedTime) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona una fecha y hora para el servicio",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate recurrence selection
-    if (!selectedFrequency) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona la frecuencia del servicio",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    createAppointmentMutation.mutate();
-  };
-  
-  // Format date if exists
-  const formattedDate = selectedDate
-    ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })
-    : 'No seleccionada';
-    
-  // Format time in 12-hour format if exists
-  const formatTimeTo12Hour = (time24: string | undefined): string => {
-    if (!time24) return 'No seleccionada';
-    
-    const [hours, minutes] = time24.split(':').map(Number);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
-  };
-  
-  const formattedTime = formatTimeTo12Hour(selectedTime);
-
-  // Check if we can continue (all required fields filled)
-  const canContinue = hasRequiredData && 
-    selectedDate && 
-    selectedTime && 
-    selectedFrequency;
 
   return (
-    <PageContainer
-      title="Confirmar Reserva"
-      subtitle={
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="mb-6">
         <Button 
           variant="ghost" 
-          onClick={handleBack} 
-          className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
+          onClick={() => navigate(-1)}
+          className="mb-4"
         >
-          <ArrowLeft size={16} className="mr-1" />
-          <span>Volver</span>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Atrás
         </Button>
-      }
-    >
-      <div className="max-w-lg mx-auto space-y-6">
-        {/* 1. Recurrence Selector - NOW AT THE TOP */}
-        <RecurrenceSelector
-          selectedFrequency={selectedFrequency}
-          onFrequencyChange={setSelectedFrequency}
-        />
-        
-        {/* 2. Date and Time Selector - WITH RECURRENCE INFO */}
-        <DateTimeSelector 
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          selectedTime={selectedTime}
-          onTimeChange={setSelectedTime}
-          providerId={bookingData?.providerId}
-          serviceDuration={bookingData?.duration || 60}
-          selectedFrequency={selectedFrequency}
-        />
-        
-        {/* 3. Booking Summary */}
-        <Card className="shadow-md">
-          <CardContent className="pt-6">
-            <h2 className="text-xl font-semibold mb-6">Resumen del servicio</h2>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Servicio:</span>
-                <span className="font-medium">{bookingData.serviceName || 'No especificado'}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Proveedor:</span>
-                <div className="flex items-center">
-                  <User className="h-4 w-4 mr-1 text-luxury-navy" />
-                  <span className="font-medium">{bookingData.providerName || 'No especificado'}</span>
-                </div>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Duración:</span>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1 text-luxury-navy" />
-                  <span className="font-medium">
-                    {bookingData.duration 
-                      ? formatDurationHHMM(bookingData.duration) 
-                      : '00:00'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Fecha:</span>
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1 text-luxury-navy" />
-                  <span className="font-medium capitalize">{formattedDate}</span>
-                </div>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Hora:</span>
-                <span className="font-medium">{formattedTime}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Frecuencia:</span>
-                <span className="font-medium capitalize">{
-                  selectedFrequency === 'once' ? 'Una vez' : 
-                  selectedFrequency === 'weekly' ? 'Semanal' :
-                  selectedFrequency === 'biweekly' ? 'Quincenal' : 
-                  selectedFrequency === 'monthly' ? 'Mensual' :
-                  selectedFrequency
-                }</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Observaciones:</span>
-                <span className="font-medium text-right">{bookingData.notes || 'Ninguna'}</span>
-              </div>
-            </div>
-            
-            <Separator className="my-6" />
-            
-            <div className="flex justify-between text-lg font-semibold mb-6">
-              <span>Precio total:</span>
-              <span className="text-luxury-navy">${formattedPrice}</span>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
-                variant="outline" 
-                className="flex-1" 
-                onClick={handleBack}
-                disabled={isSubmitting || isCreatingRecurring}
-              >
-                Volver
-              </Button>
-              <Button 
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white" 
-                onClick={handleConfirm}
-                disabled={isSubmitting || isCreatingRecurring || !canContinue}
-              >
-                {(isSubmitting || isCreatingRecurring) ? 'Enviando...' : 'Confirmar Reserva'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <h1 className="text-3xl font-bold">Resumen de Reserva</h1>
+        <p className="text-muted-foreground">Revisa los detalles antes de confirmar</p>
       </div>
-    </PageContainer>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <User className="h-5 w-5 mr-2" />
+            Detalles del Servicio
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <h3 className="font-medium">{bookingData.serviceName}</h3>
+            <p className="text-sm text-muted-foreground">Proveedor: {bookingData.providerName}</p>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center text-sm">
+            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span>{format(bookingData.date, 'PPP', { locale: es })}</span>
+          </div>
+
+          <div className="flex items-center text-sm">
+            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span>{bookingData.startTime} - {bookingData.endTime}</span>
+          </div>
+
+          {user.residencia_id || user.condominium_text || user.house_number ? (
+            <div className="flex items-center text-sm">
+              <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div>
+                {user.residencia_id && <span>Residencia registrada</span>}
+                {user.condominium_text && <span> - {user.condominium_text}</span>}
+                {user.house_number && <span> - Casa {user.house_number}</span>}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center text-sm">
+              <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+              <span className="text-muted-foreground">Ubicación no especificada</span>
+            </div>
+          )}
+
+          {bookingData.recurrence && bookingData.recurrence !== 'none' && (
+            <div className="p-3 bg-blue-50 rounded-md">
+              <p className="text-sm font-medium text-blue-800">Servicio Recurrente</p>
+              <p className="text-xs text-blue-600">
+                {bookingData.recurrence === 'weekly' ? 'Semanal' :
+                 bookingData.recurrence === 'biweekly' ? 'Quincenal' :
+                 bookingData.recurrence === 'monthly' ? 'Mensual' : bookingData.recurrence}
+              </p>
+            </div>
+          )}
+
+          {bookingData.notes && (
+            <div>
+              <p className="text-sm font-medium">Notas:</p>
+              <p className="text-sm text-muted-foreground">{bookingData.notes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CreditCard className="h-5 w-5 mr-2" />
+            Detalles de Pago
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between items-center text-lg font-medium">
+            <span>Total:</span>
+            <span>{formatPrice(bookingData.price)}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        <Button 
+          onClick={handleConfirmBooking} 
+          disabled={isBooking}
+          className="w-full"
+          size="lg"
+        >
+          {isBooking ? "Procesando..." : "Confirmar Reserva"}
+        </Button>
+        
+        <p className="text-xs text-center text-muted-foreground">
+          Al confirmar tu reserva, el proveedor recibirá una solicitud que deberá aprobar.
+        </p>
+      </div>
+    </div>
   );
 };
 
