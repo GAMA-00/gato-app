@@ -115,33 +115,34 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return appointment.listings?.title || 'Servicio';
   };
 
-  // Enhanced location info function using the new client_location field
+  // Enhanced location info function with better formatting for "Citas de Mañana"
   const getLocationInfo = (appointment: any) => {
-    // Use the client_location field that's populated by the hooks
-    if (appointment.client_location) {
-      return appointment.client_location;
+    // For external bookings, use the stored client_address
+    if (appointment.is_external || appointment.external_booking) {
+      return appointment.client_address || 'Ubicación no especificada';
     }
     
-    // Legacy fallback for external bookings
-    if ((appointment.is_external || appointment.external_booking) && appointment.client_address) {
-      return appointment.client_address;
-    }
-    
-    // Legacy fallback for internal bookings using apartment field
-    let locationInfo = [];
+    // For internal bookings, build the full location format: Residencia - Condominio - Número de Casa
+    let locationParts = [];
     
     // Add residencia name if available
     if (appointment.residencias?.name) {
-      locationInfo.push(appointment.residencias.name);
+      locationParts.push(appointment.residencias.name);
     }
     
-    // Add apartment number if available
+    // Add condominium text if available
+    if (appointment.client_condominium) {
+      locationParts.push(appointment.client_condominium);
+    }
+    
+    // Add house/apartment number if available
     if (appointment.apartment) {
-      locationInfo.push(`Apt ${appointment.apartment}`);
+      locationParts.push(`Casa ${appointment.apartment}`);
     }
     
-    return locationInfo.length > 0 
-      ? locationInfo.join(' - ') 
+    // Return formatted location or fallback
+    return locationParts.length > 0 
+      ? locationParts.join(' - ') 
       : 'Ubicación no especificada';
   };
 
@@ -203,7 +204,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                 displayName,
                 serviceName,
                 isExternal,
-                status: appointment.status
+                status: appointment.status,
+                location: getLocationInfo(appointment)
               });
               
               return (
