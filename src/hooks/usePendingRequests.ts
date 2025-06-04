@@ -66,8 +66,8 @@ export function usePendingRequests() {
                   name,
                   phone,
                   email,
-                  houseNumber,
-                  residenciaId,
+                  house_number,
+                  residencia_id,
                   condominium_text,
                   residencias (
                     id,
@@ -94,8 +94,8 @@ export function usePendingRequests() {
                   locationParts.push(clientData.condominium_text);
                 }
                 
-                if (clientData.houseNumber) {
-                  locationParts.push(`Casa ${clientData.houseNumber}`);
+                if (clientData.house_number) {
+                  locationParts.push(`Casa ${clientData.house_number}`);
                 }
                 
                 clientLocation = locationParts.length > 0 
