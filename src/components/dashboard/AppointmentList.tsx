@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Clock, Check, X, MapPin, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
@@ -287,12 +286,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <p>{emptyMessage}</p>
-            <p className="text-xs mt-2">
-              {appointments?.length ? 
-                `${appointments.length} citas encontradas pero filtradas` : 
-                'No se encontraron citas'
-              }
-            </p>
           </div>
         )}
       </CardContent>
