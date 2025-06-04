@@ -17,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface BookingData {
   providerId: string;
   listingId: string;
-  date: Date;
+  date: Date | string;
   startTime: string;
   endTime: string;
   price: number;
@@ -25,7 +25,7 @@ interface BookingData {
   providerName: string;
   notes?: string;
   recurrence?: string;
-  recurrenceEndDate?: Date;
+  recurrenceEndDate?: Date | string;
 }
 
 const BookingSummary = () => {
@@ -68,9 +68,50 @@ const BookingSummary = () => {
     );
   }
 
+  // Safely parse the date
+  const parseDate = (dateValue: Date | string): Date | null => {
+    try {
+      if (!dateValue) return null;
+      
+      if (dateValue instanceof Date) {
+        return isNaN(dateValue.getTime()) ? null : dateValue;
+      }
+      
+      const parsedDate = new Date(dateValue);
+      return isNaN(parsedDate.getTime()) ? null : parsedDate;
+    } catch (error) {
+      console.error("Error parsing date:", error);
+      return null;
+    }
+  };
+
+  const bookingDate = parseDate(bookingData.date);
+  const recurrenceEndDate = bookingData.recurrenceEndDate ? parseDate(bookingData.recurrenceEndDate) : null;
+
+  if (!bookingDate) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            Error en los datos de fecha. Por favor intenta nuevamente.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate(-1)} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Atrás
+        </Button>
+      </div>
+    );
+  }
+
   const handleConfirmBooking = async () => {
     if (!user) {
       toast.error("Debes iniciar sesión para reservar");
+      return;
+    }
+
+    if (!bookingDate) {
+      toast.error("Error en la fecha seleccionada");
       return;
     }
 
@@ -79,11 +120,11 @@ const BookingSummary = () => {
 
     try {
       // Calculate start and end times
-      const startDateTime = new Date(bookingData.date);
+      const startDateTime = new Date(bookingDate);
       const [startHours, startMinutes] = bookingData.startTime.split(':').map(Number);
       startDateTime.setHours(startHours, startMinutes, 0, 0);
 
-      const endDateTime = new Date(bookingData.date);
+      const endDateTime = new Date(bookingDate);
       const [endHours, endMinutes] = bookingData.endTime.split(':').map(Number);
       endDateTime.setHours(endHours, endMinutes, 0, 0);
 
@@ -122,7 +163,7 @@ const BookingSummary = () => {
       console.log("Appointment created successfully:", appointment);
 
       // Handle recurring appointments if specified
-      if (bookingData.recurrence && bookingData.recurrence !== 'none' && bookingData.recurrenceEndDate) {
+      if (bookingData.recurrence && bookingData.recurrence !== 'none' && recurrenceEndDate) {
         console.log("Creating recurring rule for appointment:", appointment.id);
         
         // Create recurring rule
@@ -133,13 +174,13 @@ const BookingSummary = () => {
             provider_id: bookingData.providerId,
             client_id: user.id,
             recurrence_type: bookingData.recurrence,
-            start_date: bookingData.date.toISOString().split('T')[0],
+            start_date: bookingDate.toISOString().split('T')[0],
             start_time: bookingData.startTime,
             end_time: bookingData.endTime,
             day_of_week: bookingData.recurrence === 'weekly' || bookingData.recurrence === 'biweekly' 
-              ? bookingData.date.getDay() : null,
+              ? bookingDate.getDay() : null,
             day_of_month: bookingData.recurrence === 'monthly' 
-              ? bookingData.date.getDate() : null,
+              ? bookingDate.getDate() : null,
             notes: bookingData.notes
           })
           .select()
@@ -210,6 +251,16 @@ const BookingSummary = () => {
     return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
   };
 
+  // Safe date formatting
+  const formatDate = (date: Date) => {
+    try {
+      return format(date, 'PPP', { locale: es });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return 'Fecha no válida';
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-6">
@@ -242,7 +293,7 @@ const BookingSummary = () => {
 
           <div className="flex items-center text-sm">
             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{format(bookingData.date, 'PPP', { locale: es })}</span>
+            <span>{formatDate(bookingDate)}</span>
           </div>
 
           <div className="flex items-center text-sm">
