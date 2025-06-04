@@ -58,19 +58,46 @@ export function useAppointments() {
           return [];
         }
 
-        // Process appointments with better error handling
+        // Process appointments with better error handling and location info
         const processedAppointments = appointments.map((appointment) => {
           try {
             // Determine if external booking
             const isExternal = appointment.external_booking || !appointment.client_id;
 
-            // Get location info from appointment data
+            // Enhanced location info processing
             let locationInfo = 'Ubicación no especificada';
             
-            if (isExternal && appointment.client_address) {
-              locationInfo = appointment.client_address;
-            } else if (appointment.apartment) {
-              locationInfo = `Apartamento ${appointment.apartment}`;
+            if (isExternal) {
+              // For external bookings, prioritize client_address
+              if (appointment.client_address) {
+                locationInfo = appointment.client_address;
+              }
+            } else {
+              // For internal bookings, build location from available data
+              let locationParts = [];
+              
+              // Add condominium/residencia info if available
+              if (appointment.condominium_text) {
+                locationParts.push(appointment.condominium_text);
+              } else if (appointment.residencia_name) {
+                locationParts.push(appointment.residencia_name);
+              }
+              
+              // Add apartment/house number
+              if (appointment.apartment) {
+                locationParts.push(`Apt ${appointment.apartment}`);
+              } else if (appointment.house_number) {
+                locationParts.push(`Casa ${appointment.house_number}`);
+              }
+              
+              // Add address if available
+              if (appointment.address && !locationParts.some(part => part.includes(appointment.address))) {
+                locationParts.push(appointment.address);
+              }
+              
+              if (locationParts.length > 0) {
+                locationInfo = locationParts.join(' - ');
+              }
             }
 
             return {
