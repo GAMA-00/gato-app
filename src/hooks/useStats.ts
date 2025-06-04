@@ -30,40 +30,47 @@ export function useStats() {
           throw appointmentsError;
         }
 
-        // Count today's appointments
-        const todayAppointments = appointments.filter(
-          app => {
-            const appDate = new Date(app.start_time);
-            return appDate >= today && app.status !== 'cancelled';
-          }
-        ).length;
+        // Calculate stats in a single pass for better performance
+        let todayCount = 0;
+        let weekCount = 0;
+        let monthRevenue = 0;
+        const uniqueClients = new Set();
 
-        // Count this week's appointments
-        const weekAppointments = appointments.filter(
-          app => {
-            const appDate = new Date(app.start_time);
-            return appDate >= weekStart && app.status !== 'cancelled';
+        appointments?.forEach(app => {
+          const appDate = new Date(app.start_time);
+          const isNotCancelled = app.status !== 'cancelled';
+          
+          if (isNotCancelled) {
+            // Count today's appointments
+            if (appDate >= today) {
+              todayCount++;
+            }
+            
+            // Count this week's appointments
+            if (appDate >= weekStart) {
+              weekCount++;
+            }
+            
+            // Calculate month revenue from confirmed and completed appointments
+            if (['confirmed', 'completed'].includes(app.status)) {
+              const price = app.listings?.base_price || 0;
+              monthRevenue += parseFloat(price.toString());
+            }
+            
+            // Track unique clients
+            if (app.client_id) {
+              uniqueClients.add(app.client_id);
+            }
           }
-        ).length;
-
-        // Calculate month revenue from confirmed and completed appointments
-        const monthRevenue = appointments
-          .filter(app => ['confirmed', 'completed'].includes(app.status))
-          .reduce((acc, app) => {
-            const price = app.listings?.base_price || 0;
-            return acc + parseFloat(price.toString());
-          }, 0);
-        
-        // Count unique clients for this provider
-        const uniqueClients = new Set(appointments.map(app => app.client_id));
-        const activeClients = uniqueClients.size;
+        });
 
         return {
-          todayAppointments,
-          weekAppointments,
+          todayAppointments: todayCount,
+          weekAppointments: weekCount,
           monthRevenue,
-          activeClients
+          activeClients: uniqueClients.size
         };
+        
       } else if (user.role === 'client') {
         // For clients, only show appointments where they are the client
         const { data: appointments, error: appointmentsError } = await supabase
@@ -77,39 +84,41 @@ export function useStats() {
           throw appointmentsError;
         }
 
-        // Count today's appointments
-        const todayAppointments = appointments.filter(
-          app => {
-            const appDate = new Date(app.start_time);
-            return appDate >= today && app.status !== 'cancelled';
-          }
-        ).length;
+        // Calculate stats in a single pass
+        let todayCount = 0;
+        let weekCount = 0;
+        let monthRevenue = 0;
+        const uniqueProviders = new Set();
 
-        // Count this week's appointments
-        const weekAppointments = appointments.filter(
-          app => {
-            const appDate = new Date(app.start_time);
-            return appDate >= weekStart && app.status !== 'cancelled';
+        appointments?.forEach(app => {
+          const appDate = new Date(app.start_time);
+          const isNotCancelled = app.status !== 'cancelled';
+          
+          if (isNotCancelled) {
+            if (appDate >= today) {
+              todayCount++;
+            }
+            
+            if (appDate >= weekStart) {
+              weekCount++;
+            }
+            
+            if (['confirmed', 'completed'].includes(app.status)) {
+              const price = app.listings?.base_price || 0;
+              monthRevenue += parseFloat(price.toString());
+            }
+            
+            if (app.provider_id) {
+              uniqueProviders.add(app.provider_id);
+            }
           }
-        ).length;
-
-        // Calculate month spending from confirmed and completed appointments
-        const monthRevenue = appointments
-          .filter(app => ['confirmed', 'completed'].includes(app.status))
-          .reduce((acc, app) => {
-            const price = app.listings?.base_price || 0;
-            return acc + parseFloat(price.toString());
-          }, 0);
-        
-        // For clients, count unique providers they've booked with
-        const uniqueProviders = new Set(appointments.map(app => app.provider_id));
-        const activeClients = uniqueProviders.size;
+        });
 
         return {
-          todayAppointments,
-          weekAppointments,
+          todayAppointments: todayCount,
+          weekAppointments: weekCount,
           monthRevenue,
-          activeClients
+          activeClients: uniqueProviders.size
         };
       }
 
@@ -121,6 +130,10 @@ export function useStats() {
         activeClients: 0
       };
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 300000, // 5 minutes - stats don't change frequently
+    refetchInterval: 300000, // Refetch every 5 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 }
