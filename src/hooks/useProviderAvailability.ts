@@ -1,43 +1,19 @@
 
-import { useMemo } from 'react';
-import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
-import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
-import { format, isSameDay, addMinutes, addWeeks, addMonths, getDay } from 'date-fns';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
-export interface TimeSlot {
+interface TimeSlot {
   time: string;
   available: boolean;
-  reason?: string;
 }
 
 interface UseProviderAvailabilityProps {
   providerId: string;
   selectedDate: Date;
-  serviceDuration: number; // in minutes
-  recurrence?: string; // 'once', 'weekly', 'biweekly', 'monthly'
+  serviceDuration: number;
+  recurrence?: string;
 }
-
-const useRecurringRules = (providerId: string) => {
-  return useQuery({
-    queryKey: ['recurring-rules', providerId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('recurring_rules')
-        .select('*')
-        .eq('provider_id', providerId)
-        .eq('is_active', true);
-
-      if (error) {
-        console.error('Error fetching recurring rules:', error);
-        return [];
-      }
-
-      return data || [];
-    }
-  });
-};
 
 export const useProviderAvailability = ({
   providerId,
@@ -45,152 +21,104 @@ export const useProviderAvailability = ({
   serviceDuration,
   recurrence = 'once'
 }: UseProviderAvailabilityProps) => {
-  const { blockedSlots } = useBlockedTimeSlots();
-  const { data: appointments = [] } = useCalendarAppointments(selectedDate);
-  const { data: recurringRules = [] } = useRecurringRules(providerId);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const availableTimeSlots = useMemo(() => {
-    const slots: TimeSlot[] = [];
-    
-    // Generate future dates to check based on recurrence
-    const datesToCheck = [selectedDate];
-    if (recurrence !== 'once') {
-      const numberOfInstances = 8; // Check availability for 8 instances
-      for (let i = 1; i < numberOfInstances; i++) {
-        let futureDate = new Date(selectedDate);
-        
-        switch (recurrence) {
-          case 'weekly':
-            futureDate = addWeeks(selectedDate, i);
-            break;
-          case 'biweekly':
-            futureDate = addWeeks(selectedDate, i * 2);
-            break;
-          case 'monthly':
-            futureDate = addMonths(selectedDate, i);
-            break;
-          default:
-            break;
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!providerId || !selectedDate) return;
+
+      setIsLoading(true);
+      
+      try {
+        // Generate time slots from 7 AM to 7 PM every 30 minutes
+        const timeSlots: TimeSlot[] = [];
+        for (let hour = 7; hour < 19; hour++) {
+          for (let minute = 0; minute < 60; minute += 30) {
+            const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            timeSlots.push({
+              time: timeString,
+              available: true
+            });
+          }
         }
-        
-        datesToCheck.push(futureDate);
-      }
-    }
-    
-    // Generate time slots from 6 AM to 8 PM (every 30 minutes)
-    for (let hour = 6; hour < 20; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        
-        let available = true;
-        let reason = '';
 
-        // Check availability for all dates in the recurrence pattern
-        for (const dateToCheck of datesToCheck) {
-          const slotStart = new Date(dateToCheck);
-          slotStart.setHours(hour, minute, 0, 0);
-          const slotEnd = addMinutes(slotStart, serviceDuration);
+        // Check for existing appointments on this date
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const { data: appointments, error } = await supabase
+          .from('appointments')
+          .select('start_time, end_time')
+          .eq('provider_id', providerId)
+          .gte('start_time', startOfDay.toISOString())
+          .lte('start_time', endOfDay.toISOString())
+          .in('status', ['pending', 'confirmed']);
+
+        if (error) {
+          console.error('Error fetching appointments:', error);
+          setAvailableTimeSlots(timeSlots);
+          return;
+        }
+
+        // Check for blocked time slots
+        const dayOfWeek = selectedDate.getDay();
+        const { data: blockedSlots, error: blockedError } = await supabase
+          .from('blocked_time_slots')
+          .select('start_hour, end_hour')
+          .eq('provider_id', providerId)
+          .eq('day', dayOfWeek);
+
+        if (blockedError) {
+          console.error('Error fetching blocked slots:', error);
+        }
+
+        // Mark unavailable slots
+        const updatedSlots = timeSlots.map(slot => {
+          const [slotHour, slotMinute] = slot.time.split(':').map(Number);
+          const slotStart = new Date(selectedDate);
+          slotStart.setHours(slotHour, slotMinute, 0, 0);
           
-          // Skip if slot would end after 8 PM
-          if (slotEnd.getHours() > 20) {
-            available = false;
-            reason = 'Horario fuera del rango de trabajo';
-            break;
-          }
+          const slotEnd = new Date(slotStart);
+          slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
 
-          // Check if slot conflicts with blocked time slots
-          const conflictingBlockedSlot = blockedSlots.find(blockedSlot => {
-            // Check if this blocked slot applies to the current day
-            const appliesToDay = blockedSlot.day === dateToCheck.getDay() || blockedSlot.day === -1; // -1 means all days
+          // Check if this slot conflicts with existing appointments
+          const hasAppointmentConflict = appointments?.some(apt => {
+            const aptStart = new Date(apt.start_time);
+            const aptEnd = new Date(apt.end_time);
             
-            if (!appliesToDay) return false;
-            
-            // Convert blocked slot hours to actual times for comparison
-            const blockStart = new Date(dateToCheck);
-            blockStart.setHours(blockedSlot.startHour, 0, 0, 0);
-            const blockEnd = new Date(dateToCheck);
-            blockEnd.setHours(blockedSlot.endHour, 0, 0, 0);
-            
-            // Check if the service slot overlaps with the blocked time
-            return (slotStart < blockEnd && slotEnd > blockStart);
+            return (slotStart < aptEnd && slotEnd > aptStart);
           });
 
-          if (conflictingBlockedSlot) {
-            available = false;
-            reason = 'Horario bloqueado por el proveedor';
-            break;
-          }
-
-          // Check if slot conflicts with existing appointments
-          const conflictingAppointment = appointments.find(appointment => {
-            if (appointment.provider_id !== providerId) return false;
-            if (appointment.status === 'cancelled' || appointment.status === 'rejected') return false;
-            
-            const appointmentDate = new Date(appointment.start_time);
-            if (!isSameDay(appointmentDate, dateToCheck)) return false;
-            
-            const appointmentStart = new Date(appointment.start_time);
-            const appointmentEnd = new Date(appointment.end_time);
-            
-            // Check if the service slot overlaps with the appointment
-            return (slotStart < appointmentEnd && slotEnd > appointmentStart);
+          // Check if this slot conflicts with blocked time
+          const hasBlockedConflict = blockedSlots?.some(blocked => {
+            return slotHour >= blocked.start_hour && slotHour < blocked.end_hour;
           });
 
-          if (conflictingAppointment) {
-            available = false;
-            reason = recurrence === 'once' ? 'Horario ocupado' : `Horario ocupado en ${recurrence === 'weekly' ? 'alguna semana' : recurrence === 'biweekly' ? 'alguna quincena' : 'algún mes'}`;
-            break;
-          }
-
-          // Check if slot conflicts with recurring rules
-          const conflictingRecurringRule = recurringRules.find(rule => {
-            const ruleDayOfWeek = rule.day_of_week;
-            const ruleDayOfMonth = rule.day_of_month;
-            const ruleStartTime = rule.start_time;
-            const ruleEndTime = rule.end_time;
-            
-            // Convert times for comparison
-            const slotTimeStr = format(slotStart, 'HH:mm:ss');
-            const slotEndTimeStr = format(slotEnd, 'HH:mm:ss');
-            
-            // Check if this recurring rule applies to the current date
-            let appliesToDate = false;
-            
-            if (rule.recurrence_type === 'weekly') {
-              appliesToDate = getDay(dateToCheck) === ruleDayOfWeek;
-            } else if (rule.recurrence_type === 'biweekly') {
-              const daysSinceStart = Math.floor((dateToCheck.getTime() - new Date(rule.start_date).getTime()) / (1000 * 60 * 60 * 24));
-              appliesToDate = getDay(dateToCheck) === ruleDayOfWeek && daysSinceStart % 14 === 0;
-            } else if (rule.recurrence_type === 'monthly') {
-              appliesToDate = dateToCheck.getDate() === ruleDayOfMonth;
-            }
-            
-            if (!appliesToDate) return false;
-            
-            // Check time overlap
-            return ruleStartTime < slotEndTimeStr && ruleEndTime > slotTimeStr;
-          });
-
-          if (conflictingRecurringRule) {
-            available = false;
-            reason = recurrence === 'once' ? 'Horario reservado recurrentemente' : `Conflicto con reserva recurrente en ${recurrence === 'weekly' ? 'alguna semana' : recurrence === 'biweekly' ? 'alguna quincena' : 'algún mes'}`;
-            break;
-          }
-        }
-
-        slots.push({
-          time: timeString,
-          available,
-          reason
+          return {
+            ...slot,
+            available: !hasAppointmentConflict && !hasBlockedConflict
+          };
         });
-      }
-    }
 
-    return slots;
-  }, [blockedSlots, appointments, selectedDate, serviceDuration, providerId, recurrence, recurringRules]);
+        setAvailableTimeSlots(updatedSlots);
+        
+      } catch (error) {
+        console.error('Error checking availability:', error);
+        setAvailableTimeSlots([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [providerId, selectedDate, serviceDuration, recurrence]);
 
   return {
     availableTimeSlots,
-    isLoading: false
+    isLoading
   };
 };

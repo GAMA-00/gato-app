@@ -1,145 +1,203 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Service } from '@/lib/types';
+import { toast } from 'sonner';
+import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
+import RecurrenceSelector from '@/components/client/booking/RecurrenceSelector';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+
+interface BookingData {
+  providerId: string;
+  listingId: string;
+  serviceName: string;
+  providerName: string;
+  price: number;
+  duration: number;
+  notes?: string;
+  recurrence?: string;
+}
 
 const ClientBooking = () => {
-  const { buildingId, serviceId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const [service, setService] = useState<Service | null>(null);
-  const [startTime, setStartTime] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [commissionRate, setCommissionRate] = useState(20); // Default commission rate
+  
+  const bookingData = location.state as BookingData;
+  
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedTime, setSelectedTime] = useState<string | undefined>();
+  const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
+  const [notes, setNotes] = useState<string>('');
 
   useEffect(() => {
-    const savedServices = localStorage.getItem('gato_services');
-    if (savedServices) {
-      try {
-        const parsedServices = JSON.parse(savedServices, (key, value) => {
-          if (key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-        const selectedService = parsedServices.find((s: Service) => s.id === serviceId);
-        setService(selectedService || null);
-      } catch (error) {
-        console.error('Error parsing services:', error);
-        setService(null);
-      }
-    }
-    
-    // Load appointments from localStorage
-    const savedAppointments = localStorage.getItem('gato_appointments');
-    if (savedAppointments) {
-      try {
-        const parsedAppointments = JSON.parse(savedAppointments, (key, value) => {
-          if (key === 'startTime' || key === 'endTime' || key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-        setAppointments(parsedAppointments);
-      } catch (error) {
-        console.error('Error parsing appointments:', error);
-        setAppointments([]);
-      }
-    }
-    
-    // Load commission rate from localStorage (in a real app this would come from Supabase)
-    const savedSettings = localStorage.getItem('gato_system_settings');
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings);
-        setCommissionRate(parsedSettings.commissionRate || 20);
-      } catch (error) {
-        console.error('Error parsing system settings:', error);
-      }
-    }
-  }, [serviceId]);
+    console.log("ClientBooking mounted with booking data:", bookingData);
+  }, [bookingData]);
 
-  const handleDateChange = (date: Date) => {
-    setStartTime(date);
-  };
-  
-  // Calculate final price with commission
-  const calculateFinalPrice = (basePrice: number) => {
-    return basePrice * (1 + (commissionRate / 100));
+  const handleBack = () => {
+    navigate(-1);
   };
 
-  const handleBookAppointment = () => {
-    if (!user || !service) return;
+  const handleContinue = () => {
+    if (!selectedDate || !selectedTime) {
+      toast.error("Por favor selecciona una fecha y hora");
+      return;
+    }
 
-    const endTime = new Date(startTime.getTime() + service.duration * 60000);
+    if (!bookingData) {
+      toast.error("Error: No se encontraron datos del servicio");
+      return;
+    }
 
-    const newAppointment = {
-      id: Date.now().toString(),
-      serviceId: service.id,
-      clientId: user.id,
-      providerId: service.providerId,
-      startTime: startTime,
+    // Calculate end time based on duration
+    const startDateTime = new Date(selectedDate);
+    const [hours, minutes] = selectedTime.split(':').map(Number);
+    startDateTime.setHours(hours, minutes, 0, 0);
+    
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setMinutes(endDateTime.getMinutes() + bookingData.duration);
+    
+    const endTime = `${endDateTime.getHours().toString().padStart(2, '0')}:${endDateTime.getMinutes().toString().padStart(2, '0')}`;
+
+    console.log("Navigating to booking summary with data:", {
+      providerId: bookingData.providerId,
+      listingId: bookingData.listingId,
+      date: selectedDate,
+      startTime: selectedTime,
       endTime: endTime,
-      status: 'scheduled',
-      recurrence: 'none',
-      notes: '',
-      createdAt: new Date(),
-      building: 'Colinas de Montealegre',
-      apartment: '703',
-      serviceName: service.name,
-      clientName: user.name
-    };
+      price: bookingData.price,
+      serviceName: bookingData.serviceName,
+      providerName: bookingData.providerName,
+      notes: notes,
+      recurrence: selectedFrequency
+    });
 
-    const updatedAppointments = [...appointments, newAppointment];
-    localStorage.setItem('gato_appointments', JSON.stringify(updatedAppointments));
-    setAppointments(updatedAppointments);
-
-    navigate('/client/bookings');
+    navigate('/client/booking-summary', {
+      state: {
+        providerId: bookingData.providerId,
+        listingId: bookingData.listingId,
+        date: selectedDate,
+        startTime: selectedTime,
+        endTime: endTime,
+        price: bookingData.price,
+        serviceName: bookingData.serviceName,
+        providerName: bookingData.providerName,
+        notes: notes,
+        recurrence: selectedFrequency
+      }
+    });
   };
 
-  if (!service) {
+  if (!user) {
     return (
-      <PageContainer title="Reserva de Servicio" subtitle="Servicio no encontrado">
+      <PageContainer title="Acceso requerido">
         <div className="text-center py-8">
-          <p className="text-muted-foreground">El servicio seleccionado no existe.</p>
+          <p className="text-muted-foreground mb-4">Debes iniciar sesión para agendar un servicio.</p>
+          <Button onClick={() => navigate('/login')}>Iniciar sesión</Button>
         </div>
       </PageContainer>
     );
   }
 
-  const finalPrice = calculateFinalPrice(service.price);
+  if (!bookingData) {
+    return (
+      <PageContainer title="Reserva de Servicio" subtitle="Servicio no encontrado">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">No se encontraron datos del servicio seleccionado.</p>
+          <Button onClick={() => navigate('/client')} variant="outline">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver a servicios
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
-    <PageContainer title="Reserva de Servicio" subtitle={service.name}>
-      <Card className="max-w-md mx-auto">
-        <CardContent className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Confirmar Reserva</h2>
-          <div className="mb-4">
-            <p>Servicio: {service.name}</p>
-            <p>Descripción: {service.description}</p>
-            <p>Duración: {service.duration} minutos</p>
-            <p>Precio: ${finalPrice.toFixed(2)}</p>
-          </div>
-          <div className="mb-4">
-            <p className="font-semibold">Seleccionar Fecha y Hora:</p>
-            <input
-              type="datetime-local"
-              value={format(startTime, "yyyy-MM-dd'T'HH:mm")}
-              onChange={(e) => handleDateChange(new Date(e.target.value))}
-              className="w-full rounded-md border-gray-200 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-            />
-          </div>
-          <Button className="w-full" onClick={handleBookAppointment}>
-            Reservar
+    <PageContainer
+      title="Agenda tu servicio"
+      subtitle={
+        <Button 
+          variant="ghost" 
+          onClick={handleBack} 
+          className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft size={16} className="mr-1" />
+          <span>Volver</span>
+        </Button>
+      }
+    >
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Service Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Resumen del servicio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <p><span className="font-medium">Servicio:</span> {bookingData.serviceName}</p>
+              <p><span className="font-medium">Proveedor:</span> {bookingData.providerName}</p>
+              <p><span className="font-medium">Duración:</span> {bookingData.duration} minutos</p>
+              <p><span className="font-medium">Precio:</span> ${bookingData.price.toFixed(2)}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recurrence Selection */}
+        <RecurrenceSelector 
+          selectedFrequency={selectedFrequency}
+          onFrequencyChange={setSelectedFrequency}
+        />
+
+        {/* Date and Time Selection */}
+        <DateTimeSelector
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
+          onDateChange={setSelectedDate}
+          onTimeChange={setSelectedTime}
+          providerId={bookingData.providerId}
+          serviceDuration={bookingData.duration}
+          selectedFrequency={selectedFrequency}
+        />
+
+        {/* Notes Section */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <Label htmlFor="notes" className="text-base font-medium">
+                Notas adicionales (opcional)
+              </Label>
+              <Textarea
+                id="notes"
+                placeholder="Agrega cualquier información adicional para el proveedor..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Continue Button */}
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={handleBack} className="flex-1">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Atrás
           </Button>
-        </CardContent>
-      </Card>
+          <Button 
+            onClick={handleContinue}
+            disabled={!selectedDate || !selectedTime}
+            className="flex-1"
+          >
+            Continuar
+          </Button>
+        </div>
+      </div>
     </PageContainer>
   );
 };
