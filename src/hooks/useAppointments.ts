@@ -13,6 +13,7 @@ export function useAppointments() {
       
       console.log("Fetching appointments for user:", user.id, "role:", user.role);
       
+      // Simpler query structure
       let query = supabase
         .from('appointments')
         .select(`
@@ -35,24 +36,33 @@ export function useAppointments() {
 
       query = query.order('start_time', { ascending: true });
 
-      const { data, error } = await query;
+      const { data: appointments, error } = await query;
 
       if (error) {
         console.error("Error fetching appointments:", error);
         throw error;
       }
 
-      console.log("Raw appointments data:", data);
+      console.log("Raw appointments data:", appointments);
 
-      // Process appointments to add client/provider information
+      if (!appointments || appointments.length === 0) {
+        console.log("No appointments found");
+        return [];
+      }
+
+      // Process each appointment to get complete information
       const processedAppointments = await Promise.all(
-        (data || []).map(async (appointment) => {
+        appointments.map(async (appointment) => {
+          console.log(`Processing appointment ${appointment.id}:`, appointment);
+          
           let clientInfo = null;
           let providerInfo = null;
           let clientLocation = 'Ubicación no especificada';
 
-          // Get client information including residencia
-          if (appointment.client_id) {
+          // Get client information if needed
+          if (appointment.client_id && !appointment.external_booking) {
+            console.log(`Fetching client data for client_id: ${appointment.client_id}`);
+            
             const { data: clientData, error: clientError } = await supabase
               .from('users')
               .select(`
@@ -69,13 +79,13 @@ export function useAppointments() {
                 )
               `)
               .eq('id', appointment.client_id)
-              .eq('role', 'client')
               .single();
 
             if (clientError) {
               console.error("Error fetching client data:", clientError);
             } else if (clientData) {
               clientInfo = clientData;
+              console.log("Client data found:", clientData);
               
               // Build location string
               const locationParts = [];
@@ -89,7 +99,7 @@ export function useAppointments() {
               }
               
               if (clientData.house_number) {
-                locationParts.push(clientData.house_number);
+                locationParts.push(`Casa ${clientData.house_number}`);
               }
               
               clientLocation = locationParts.length > 0 
@@ -98,16 +108,17 @@ export function useAppointments() {
             }
           }
 
-          // Get provider information
+          // Get provider information if needed
           if (appointment.provider_id) {
-            const { data: providerData } = await supabase
+            const { data: providerData, error: providerError } = await supabase
               .from('users')
               .select('id, name, phone, email')
               .eq('id', appointment.provider_id)
-              .eq('role', 'provider')
               .single();
 
-            if (providerData) {
+            if (providerError) {
+              console.error("Error fetching provider data:", providerError);
+            } else if (providerData) {
               providerInfo = providerData;
             }
           }
@@ -115,7 +126,7 @@ export function useAppointments() {
           // Handle external bookings
           const isExternal = appointment.external_booking || !appointment.client_id;
 
-          return {
+          const processedAppointment = {
             ...appointment,
             client_name: isExternal 
               ? (appointment.client_name || 'Cliente Externo')
@@ -128,15 +139,18 @@ export function useAppointments() {
               ? appointment.client_email 
               : clientInfo?.email,
             client_location: isExternal 
-              ? (appointment.client_address || 'Ubicación no especificada')
+              ? (appointment.client_address || 'Ubicación externa')
               : clientLocation,
             is_external: isExternal,
             service_name: appointment.listings?.title || 'Servicio'
           };
+
+          console.log(`Processed appointment ${appointment.id}:`, processedAppointment);
+          return processedAppointment;
         })
       );
 
-      console.log("Processed appointments:", processedAppointments);
+      console.log("Final processed appointments:", processedAppointments);
       return processedAppointments;
     },
     enabled: !!user,

@@ -65,7 +65,7 @@ const BookingSummary = () => {
     return recurrenceMap[value] || null;
   };
   
-  // Mutation to create appointment or recurring appointments
+  // Enhanced mutation to create appointment with better debugging
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
       // Check authentication
@@ -89,18 +89,21 @@ const BookingSummary = () => {
       // Normalize the recurrence value
       const normalizedRecurrence = normalizeRecurrenceValue(selectedFrequency);
       
-      console.log("Creating appointment with data:", {
+      const appointmentData = {
         client_id: user.id,
         provider_id: bookingData.providerId,
         listing_id: bookingData.serviceId,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         status: 'pending',
-        residencia_id: user.residenciaId,
-        apartment: user.apartment || '',
+        residencia_id: user.residencia_id,
+        apartment: user.house_number || '',
         notes: bookingData.notes || '',
-        recurrence: normalizedRecurrence
-      });
+        recurrence: normalizedRecurrence,
+        external_booking: false
+      };
+      
+      console.log("Creating appointment with data:", appointmentData);
       
       // If it's a recurring appointment, use the recurring booking hook
       if (selectedFrequency !== 'once') {
@@ -110,25 +113,14 @@ const BookingSummary = () => {
           startTime: startTime,
           recurrence: selectedFrequency as 'weekly' | 'biweekly' | 'monthly',
           notes: bookingData.notes || '',
-          apartment: user.apartment || ''
+          apartment: user.house_number || ''
         });
       }
       
       // For single appointments, create directly
       const { data, error } = await supabase
         .from('appointments')
-        .insert({
-          client_id: user.id,
-          provider_id: bookingData.providerId,
-          listing_id: bookingData.serviceId,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          status: 'pending',
-          residencia_id: user.residenciaId,
-          apartment: user.apartment || '',
-          notes: bookingData.notes || '',
-          recurrence: normalizedRecurrence
-        })
+        .insert(appointmentData)
         .select();
         
       if (error) {
@@ -139,14 +131,19 @@ const BookingSummary = () => {
       console.log("Appointment created successfully:", data);
       return data;
     },
-    onSuccess: () => {
-      console.log("Appointment created successfully, invalidating queries");
+    onSuccess: (data) => {
+      console.log("Appointment creation successful, invalidating queries");
       
-      // Invalidate all related queries to ensure UI updates
+      // Comprehensive query invalidation
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] });
+      
+      // Force refetch for real-time updates
+      queryClient.refetchQueries({ queryKey: ['appointments'] });
+      queryClient.refetchQueries({ queryKey: ['pending-requests'] });
       
       toast({
         title: "Éxito",
