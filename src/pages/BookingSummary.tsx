@@ -41,6 +41,7 @@ const BookingSummary = () => {
   console.log("BookingSummary - Current user:", user);
 
   if (!bookingData) {
+    console.log("No booking data found in location state");
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
@@ -51,6 +52,28 @@ const BookingSummary = () => {
         <Button onClick={() => navigate('/client')} className="mt-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a servicios
+        </Button>
+      </div>
+    );
+  }
+
+  // Check for required fields
+  if (!bookingData.date || !bookingData.startTime || !bookingData.endTime) {
+    console.log("Missing required booking data:", {
+      date: bookingData.date,
+      startTime: bookingData.startTime,
+      endTime: bookingData.endTime
+    });
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            Faltan datos requeridos para la reserva. Por favor regresa y completa la información.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate(-1)} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Atrás
         </Button>
       </div>
     );
@@ -71,22 +94,36 @@ const BookingSummary = () => {
   // Safely parse the date
   const parseDate = (dateValue: Date | string): Date | null => {
     try {
-      if (!dateValue) return null;
+      if (!dateValue) {
+        console.log("No date value provided");
+        return null;
+      }
       
       if (dateValue instanceof Date) {
-        return isNaN(dateValue.getTime()) ? null : dateValue;
+        const isValid = !isNaN(dateValue.getTime());
+        console.log("Date object validation:", { dateValue, isValid });
+        return isValid ? dateValue : null;
       }
       
       const parsedDate = new Date(dateValue);
-      return isNaN(parsedDate.getTime()) ? null : parsedDate;
+      const isValid = !isNaN(parsedDate.getTime());
+      console.log("String date parsing:", { dateValue, parsedDate, isValid });
+      return isValid ? parsedDate : null;
     } catch (error) {
-      console.error("Error parsing date:", error);
+      console.error("Error parsing date:", error, "Input:", dateValue);
       return null;
     }
   };
 
   const bookingDate = parseDate(bookingData.date);
   const recurrenceEndDate = bookingData.recurrenceEndDate ? parseDate(bookingData.recurrenceEndDate) : null;
+
+  console.log("Parsed dates:", { 
+    original: bookingData.date, 
+    parsed: bookingDate,
+    recurrenceOriginal: bookingData.recurrenceEndDate,
+    recurrenceParsed: recurrenceEndDate
+  });
 
   if (!bookingDate) {
     return (
