@@ -30,10 +30,6 @@ export function useAppointments() {
               title,
               base_price,
               duration
-            ),
-            residencias (
-              id,
-              name
             )
           `)
           .gte('start_time', fromDate.toISOString())
@@ -68,20 +64,23 @@ export function useAppointments() {
             // Determine if external booking
             const isExternal = appointment.external_booking || !appointment.client_id;
 
+            // Get location info from appointment data
+            let locationInfo = 'Ubicación no especificada';
+            
+            if (isExternal && appointment.client_address) {
+              locationInfo = appointment.client_address;
+            } else if (appointment.apartment) {
+              locationInfo = `Apartamento ${appointment.apartment}`;
+            }
+
             return {
               ...appointment,
               client_name: isExternal 
                 ? (appointment.client_name || 'Cliente Externo')
                 : (appointment.client_name || 'Cliente sin nombre'),
-              client_phone: isExternal 
-                ? appointment.client_phone 
-                : appointment.client_phone,
-              client_email: isExternal 
-                ? appointment.client_email 
-                : appointment.client_email,
-              client_location: isExternal 
-                ? (appointment.client_address || 'Ubicación externa')
-                : 'Ubicación registrada',
+              client_phone: appointment.client_phone,
+              client_email: appointment.client_email,
+              client_location: locationInfo,
               provider_name: appointment.provider_name || 'Proveedor',
               is_external: isExternal
             };
