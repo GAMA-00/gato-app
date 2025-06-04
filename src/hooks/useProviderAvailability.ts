@@ -1,8 +1,7 @@
-
 import { useMemo } from 'react';
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
-import { format, isSameDay, addMinutes, parseISO, addWeeks, addMonths, isSameWeekDay, getDay } from 'date-fns';
+import { format, isSameDay, addMinutes, parseISO, addWeeks, addMonths, getDay } from 'date-fns';
 
 export interface TimeSlot {
   time: string;
