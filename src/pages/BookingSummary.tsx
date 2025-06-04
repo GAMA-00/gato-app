@@ -21,7 +21,7 @@ const BookingSummary = () => {
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const { createRecurringBooking, isLoading: isCreatingRecurring } = useRecurringBooking();
+  const { createRecurringRule, isLoading: isCreatingRecurring } = useRecurringBooking();
   
   // All state hooks at the top
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,7 +94,7 @@ const BookingSummary = () => {
       
       // If it's a recurring appointment, use the recurring booking hook
       if (selectedFrequency !== 'once') {
-        return await createRecurringBooking({
+        return await createRecurringRule({
           providerId: bookingData.providerId,
           listingId: bookingData.serviceId,
           startTime: startTime,
