@@ -30,13 +30,14 @@ const DateTimeSelector = ({
   selectedFrequency = 'once'
 }: DateTimeSelectorProps) => {
   
-  const { availableTimeSlots } = useProviderAvailability({
+  const { availableTimeSlots, isLoading } = useProviderAvailability({
     providerId,
     selectedDate: selectedDate || new Date(),
     serviceDuration,
     recurrence: selectedFrequency
   });
 
+  // Only show available slots - filter out unavailable ones completely
   const availableSlots = availableTimeSlots.filter(slot => slot.available);
 
   // Format time in 12-hour format for display
@@ -107,12 +108,18 @@ const DateTimeSelector = ({
             </Label>
             {selectedDate ? (
               <div className="space-y-4">
-                {availableSlots.length > 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500">
+                      Verificando disponibilidad...
+                    </div>
+                  </div>
+                ) : availableSlots.length > 0 ? (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Clock className="h-4 w-4 text-green-600" />
                       <span className="text-sm font-medium text-green-700">
-                        Horarios disponibles
+                        Horarios disponibles ({availableSlots.length})
                         {selectedFrequency !== 'once' && (
                           <span className="text-gray-600 ml-1">
                             (considerando recurrencia {getRecurrenceText(selectedFrequency)})
@@ -149,6 +156,9 @@ const DateTimeSelector = ({
                     </div>
                     <div className="text-sm text-gray-400">
                       {selectedDate && format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-2">
+                      Todos los horarios están ocupados o bloqueados
                     </div>
                   </div>
                 )}

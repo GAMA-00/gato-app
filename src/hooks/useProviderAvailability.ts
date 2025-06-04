@@ -45,13 +45,13 @@ export const useProviderAvailability = ({
           }
         }
 
-        // 1. Check for existing regular appointments
         const startOfDay = new Date(selectedDate);
         startOfDay.setHours(0, 0, 0, 0);
         
         const endOfDay = new Date(selectedDate);
         endOfDay.setHours(23, 59, 59, 999);
 
+        // 1. Fetch all regular appointments for this provider on the selected date
         console.log('Fetching regular appointments...');
         const { data: regularAppointments, error: appointmentsError } = await supabase
           .from('appointments')
@@ -65,7 +65,7 @@ export const useProviderAvailability = ({
           console.error('Error fetching regular appointments:', appointmentsError);
         }
 
-        // 2. Check for recurring instances
+        // 2. Fetch recurring instances for this provider on the selected date
         console.log('Fetching recurring instances...');
         const { data: recurringInstances, error: recurringError } = await supabase
           .from('recurring_instances')
@@ -83,20 +83,20 @@ export const useProviderAvailability = ({
           console.error('Error fetching recurring instances:', recurringError);
         }
 
-        // 3. Check for blocked time slots for the specific day
+        // 3. Fetch blocked time slots for the specific day
         const dayOfWeek = selectedDate.getDay();
         console.log('Fetching blocked time slots...');
         const { data: blockedSlots, error: blockedError } = await supabase
           .from('blocked_time_slots')
           .select('start_hour, end_hour, day')
           .eq('provider_id', providerId)
-          .eq('day', dayOfWeek);
+          .in('day', [dayOfWeek, -1]); // Include daily blocks (-1) and specific day blocks
 
         if (blockedError) {
           console.error('Error fetching blocked slots:', blockedError);
         }
 
-        // 4. If recurrence is selected, check for potential conflicts in future dates
+        // 4. If recurrence is selected, check for conflicts in future dates
         let futureConflicts: any[] = [];
         if (recurrence !== 'once') {
           console.log(`Checking future conflicts for ${recurrence} recurrence...`);
@@ -124,6 +124,7 @@ export const useProviderAvailability = ({
             const futureEndOfDay = new Date(futureDate);
             futureEndOfDay.setHours(23, 59, 59, 999);
 
+            // Check regular appointments
             const { data: futureAppointments } = await supabase
               .from('appointments')
               .select('start_time, end_time')
@@ -136,7 +137,7 @@ export const useProviderAvailability = ({
               futureConflicts.push(...futureAppointments);
             }
 
-            // Also check future recurring instances
+            // Check future recurring instances
             const { data: futureRecurring } = await supabase
               .from('recurring_instances')
               .select(`
@@ -164,8 +165,8 @@ export const useProviderAvailability = ({
         console.log(`Found ${allConflicts.length} conflicting appointments`);
         console.log(`Found ${blockedSlots?.length || 0} blocked time slots`);
 
-        // Mark unavailable slots based on all conflicts
-        const updatedSlots = timeSlots.map(slot => {
+        // Filter available slots based on conflicts
+        const availableSlots = timeSlots.filter(slot => {
           const [slotHour, slotMinute] = slot.time.split(':').map(Number);
           const slotStart = new Date(selectedDate);
           slotStart.setHours(slotHour, slotMinute, 0, 0);
@@ -210,14 +211,11 @@ export const useProviderAvailability = ({
             console.log(`Slot ${slot.time} is unavailable - Appointment conflict: ${hasAppointmentConflict}, Blocked: ${hasBlockedConflict}, Recurring conflict: ${hasRecurringConflict}`);
           }
 
-          return {
-            ...slot,
-            available: isAvailable
-          };
+          return isAvailable;
         });
 
-        setAvailableTimeSlots(updatedSlots);
-        console.log(`Generated ${updatedSlots.filter(slot => slot.available).length} available slots out of ${updatedSlots.length} total slots`);
+        setAvailableTimeSlots(availableSlots);
+        console.log(`Generated ${availableSlots.length} available slots out of ${timeSlots.length} total slots`);
         
       } catch (error) {
         console.error('Error checking availability:', error);
