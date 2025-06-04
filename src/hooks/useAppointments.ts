@@ -23,10 +23,6 @@ export function useAppointments() {
             description,
             base_price,
             duration
-          ),
-          residencias (
-            id,
-            name
           )
         `);
 
@@ -55,7 +51,7 @@ export function useAppointments() {
           let providerInfo = null;
           let clientLocation = 'Ubicación no especificada';
 
-          // Get client information
+          // Get client information including residencia
           if (appointment.client_id) {
             const { data: clientData } = await supabase
               .from('users')
@@ -66,7 +62,11 @@ export function useAppointments() {
                 email,
                 house_number,
                 residencia_id,
-                condominium_text
+                condominium_text,
+                residencias!inner(
+                  id,
+                  name
+                )
               `)
               .eq('id', appointment.client_id)
               .eq('role', 'client')
@@ -78,8 +78,8 @@ export function useAppointments() {
               // Build location string
               const locationParts = [];
               
-              if (appointment.residencias?.name) {
-                locationParts.push(appointment.residencias.name);
+              if (clientData.residencias?.name) {
+                locationParts.push(clientData.residencias.name);
               }
               
               if (clientData.condominium_text) {
