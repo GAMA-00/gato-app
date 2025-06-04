@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, addWeeks, addDays, isSameDay } from 'date-fns';
 
 interface TimeSlot {
   time: string;
@@ -31,6 +31,8 @@ export const useProviderAvailability = ({
       setIsLoading(true);
       
       try {
+        console.log(`Checking availability for provider ${providerId} on ${format(selectedDate, 'yyyy-MM-dd')}`);
+        
         // Generate time slots from 7 AM to 7 PM every 30 minutes
         const timeSlots: TimeSlot[] = [];
         for (let hour = 7; hour < 19; hour++) {
@@ -43,40 +45,126 @@ export const useProviderAvailability = ({
           }
         }
 
-        // Check for existing appointments on this date
+        // 1. Check for existing regular appointments
         const startOfDay = new Date(selectedDate);
         startOfDay.setHours(0, 0, 0, 0);
         
         const endOfDay = new Date(selectedDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const { data: appointments, error } = await supabase
+        console.log('Fetching regular appointments...');
+        const { data: regularAppointments, error: appointmentsError } = await supabase
           .from('appointments')
-          .select('start_time, end_time')
+          .select('start_time, end_time, status')
           .eq('provider_id', providerId)
           .gte('start_time', startOfDay.toISOString())
           .lte('start_time', endOfDay.toISOString())
-          .in('status', ['pending', 'confirmed']);
+          .in('status', ['pending', 'confirmed', 'completed']);
 
-        if (error) {
-          console.error('Error fetching appointments:', error);
-          setAvailableTimeSlots(timeSlots);
-          return;
+        if (appointmentsError) {
+          console.error('Error fetching regular appointments:', appointmentsError);
         }
 
-        // Check for blocked time slots
+        // 2. Check for recurring instances
+        console.log('Fetching recurring instances...');
+        const { data: recurringInstances, error: recurringError } = await supabase
+          .from('recurring_instances')
+          .select(`
+            start_time, 
+            end_time, 
+            status,
+            recurring_rules!inner(provider_id)
+          `)
+          .eq('recurring_rules.provider_id', providerId)
+          .eq('instance_date', format(selectedDate, 'yyyy-MM-dd'))
+          .in('status', ['scheduled', 'confirmed', 'completed']);
+
+        if (recurringError) {
+          console.error('Error fetching recurring instances:', recurringError);
+        }
+
+        // 3. Check for blocked time slots for the specific day
         const dayOfWeek = selectedDate.getDay();
+        console.log('Fetching blocked time slots...');
         const { data: blockedSlots, error: blockedError } = await supabase
           .from('blocked_time_slots')
-          .select('start_hour, end_hour')
+          .select('start_hour, end_hour, day')
           .eq('provider_id', providerId)
           .eq('day', dayOfWeek);
 
         if (blockedError) {
-          console.error('Error fetching blocked slots:', error);
+          console.error('Error fetching blocked slots:', blockedError);
         }
 
-        // Mark unavailable slots
+        // 4. If recurrence is selected, check for potential conflicts in future dates
+        let futureConflicts: any[] = [];
+        if (recurrence !== 'once') {
+          console.log(`Checking future conflicts for ${recurrence} recurrence...`);
+          
+          const futureDates = [];
+          let checkDate = new Date(selectedDate);
+          
+          // Check next 8 occurrences for conflicts
+          for (let i = 0; i < 8; i++) {
+            if (recurrence === 'weekly') {
+              checkDate = addWeeks(checkDate, 1);
+            } else if (recurrence === 'biweekly') {
+              checkDate = addWeeks(checkDate, 2);
+            } else if (recurrence === 'monthly') {
+              checkDate = addDays(checkDate, 30); // Approximate monthly
+            }
+            futureDates.push(new Date(checkDate));
+          }
+
+          // Check for conflicts on future dates
+          for (const futureDate of futureDates) {
+            const futureStartOfDay = new Date(futureDate);
+            futureStartOfDay.setHours(0, 0, 0, 0);
+            
+            const futureEndOfDay = new Date(futureDate);
+            futureEndOfDay.setHours(23, 59, 59, 999);
+
+            const { data: futureAppointments } = await supabase
+              .from('appointments')
+              .select('start_time, end_time')
+              .eq('provider_id', providerId)
+              .gte('start_time', futureStartOfDay.toISOString())
+              .lte('start_time', futureEndOfDay.toISOString())
+              .in('status', ['pending', 'confirmed', 'completed']);
+
+            if (futureAppointments) {
+              futureConflicts.push(...futureAppointments);
+            }
+
+            // Also check future recurring instances
+            const { data: futureRecurring } = await supabase
+              .from('recurring_instances')
+              .select(`
+                start_time, 
+                end_time,
+                recurring_rules!inner(provider_id)
+              `)
+              .eq('recurring_rules.provider_id', providerId)
+              .eq('instance_date', format(futureDate, 'yyyy-MM-dd'))
+              .in('status', ['scheduled', 'confirmed', 'completed']);
+
+            if (futureRecurring) {
+              futureConflicts.push(...futureRecurring);
+            }
+          }
+        }
+
+        // Combine all conflicting appointments
+        const allConflicts = [
+          ...(regularAppointments || []),
+          ...(recurringInstances || []),
+          ...futureConflicts
+        ];
+
+        console.log(`Found ${allConflicts.length} conflicting appointments`);
+        console.log(`Found ${blockedSlots?.length || 0} blocked time slots`);
+
+        // Mark unavailable slots based on all conflicts
         const updatedSlots = timeSlots.map(slot => {
           const [slotHour, slotMinute] = slot.time.split(':').map(Number);
           const slotStart = new Date(selectedDate);
@@ -85,12 +173,13 @@ export const useProviderAvailability = ({
           const slotEnd = new Date(slotStart);
           slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
 
-          // Check if this slot conflicts with existing appointments
-          const hasAppointmentConflict = appointments?.some(apt => {
-            const aptStart = new Date(apt.start_time);
-            const aptEnd = new Date(apt.end_time);
+          // Check if this slot conflicts with any existing appointments
+          const hasAppointmentConflict = allConflicts.some(conflict => {
+            const conflictStart = new Date(conflict.start_time);
+            const conflictEnd = new Date(conflict.end_time);
             
-            return (slotStart < aptEnd && slotEnd > aptStart);
+            // Check for any overlap: slot starts before conflict ends AND slot ends after conflict starts
+            return (slotStart < conflictEnd && slotEnd > conflictStart);
           });
 
           // Check if this slot conflicts with blocked time
@@ -98,13 +187,37 @@ export const useProviderAvailability = ({
             return slotHour >= blocked.start_hour && slotHour < blocked.end_hour;
           });
 
+          // Additional check for recurring conflicts if this is a recurring booking
+          let hasRecurringConflict = false;
+          if (recurrence !== 'once' && futureConflicts.length > 0) {
+            hasRecurringConflict = futureConflicts.some(conflict => {
+              const conflictStart = new Date(conflict.start_time);
+              const conflictEnd = new Date(conflict.end_time);
+              
+              // Check if the time (ignoring date) conflicts with any future appointment
+              const conflictTimeStart = conflictStart.getHours() * 60 + conflictStart.getMinutes();
+              const conflictTimeEnd = conflictEnd.getHours() * 60 + conflictEnd.getMinutes();
+              const slotTimeStart = slotHour * 60 + slotMinute;
+              const slotTimeEnd = slotTimeStart + serviceDuration;
+              
+              return (slotTimeStart < conflictTimeEnd && slotTimeEnd > conflictTimeStart);
+            });
+          }
+
+          const isAvailable = !hasAppointmentConflict && !hasBlockedConflict && !hasRecurringConflict;
+          
+          if (!isAvailable) {
+            console.log(`Slot ${slot.time} is unavailable - Appointment conflict: ${hasAppointmentConflict}, Blocked: ${hasBlockedConflict}, Recurring conflict: ${hasRecurringConflict}`);
+          }
+
           return {
             ...slot,
-            available: !hasAppointmentConflict && !hasBlockedConflict
+            available: isAvailable
           };
         });
 
         setAvailableTimeSlots(updatedSlots);
+        console.log(`Generated ${updatedSlots.filter(slot => slot.available).length} available slots out of ${updatedSlots.length} total slots`);
         
       } catch (error) {
         console.error('Error checking availability:', error);
