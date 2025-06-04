@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -374,11 +373,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   // Count external vs internal appointments for display
   const externalCount = dayAppointments.filter(app => app.is_external || app.external_booking).length;
   const internalCount = dayAppointments.length - externalCount;
-  const totalItems = dayAppointments.length + dayBlockedSlots.length;
 
   return (
     <div className="relative border-r last:border-r-0 calendar-day bg-white">
-      {/* Fixed header with consistent height */}
+      {/* Fixed header with consistent height - only show appointment count, no blocked slots */}
       <div className="h-20 py-2 text-center border-b bg-white flex-shrink-0 flex flex-col justify-between">
         <div className={cn("text-xs uppercase tracking-wide", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
@@ -392,18 +390,11 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             <span className="text-sm">{format(date, 'd')}</span>
           )}
         </div>
-        {totalItems > 0 && (
+        {dayAppointments.length > 0 && (
           <div className="text-[10px] font-medium space-y-0.5">
-            {dayAppointments.length > 0 && (
-              <div className="text-blue-600">
-                {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
-              </div>
-            )}
-            {dayBlockedSlots.length > 0 && (
-              <div className="text-gray-600">
-                {dayBlockedSlots.length} bloque{dayBlockedSlots.length > 1 ? 's' : ''}
-              </div>
-            )}
+            <div className="text-blue-600">
+              {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
+            </div>
             {externalCount > 0 && (
               <div className="text-blue-500 text-[9px]">
                 {externalCount} externa{externalCount > 1 ? 's' : ''}
