@@ -38,10 +38,13 @@ const PendingRequestsCard: React.FC = () => {
       
       toast.success("Solicitud aceptada");
       
-      // Invalidate all related queries
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      // Invalidate all related queries to ensure UI updates
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
+      ]);
       
     } catch (error: any) {
       console.error("Error accepting request:", error);
@@ -62,10 +65,13 @@ const PendingRequestsCard: React.FC = () => {
       
       toast.success("Solicitud rechazada");
       
-      // Invalidate all related queries
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      // Invalidate all related queries to ensure UI updates
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
+      ]);
       
     } catch (error: any) {
       console.error("Error declining request:", error);
@@ -84,6 +90,15 @@ const PendingRequestsCard: React.FC = () => {
       .join('')
       .toUpperCase();
   };
+
+  // Debug render
+  console.log("PendingRequestsCard rendering with:", {
+    isLoading,
+    isError,
+    requestsCount: pendingRequests.length,
+    userRole: user?.role,
+    userId: user?.id
+  });
 
   return (
     <Card className="mb-6">
@@ -118,13 +133,26 @@ const PendingRequestsCard: React.FC = () => {
           <div className="text-center py-6 text-red-500">
             <p>Error al cargar solicitudes</p>
             <p className="text-sm mt-2">{error?.message}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['pending-requests'] })}
+            >
+              Reintentar
+            </Button>
           </div>
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
             {pendingRequests.map((request: any) => {
               const isExternal = request.is_external || request.external_booking;
               
-              console.log(`Rendering request ${request.id}: clientName="${request.client_name}", isExternal=${isExternal}, location="${request.client_location}"`);
+              console.log(`Rendering request ${request.id}:`, {
+                clientName: request.client_name,
+                isExternal,
+                location: request.client_location,
+                service: request.service_name
+              });
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
@@ -208,6 +236,17 @@ const PendingRequestsCard: React.FC = () => {
         ) : (
           <div className="text-center py-6 text-muted-foreground">
             <p>No hay solicitudes pendientes</p>
+            <p className="text-xs mt-2">
+              Usuario: {user?.role} - ID: {user?.id}
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['pending-requests'] })}
+            >
+              Actualizar
+            </Button>
           </div>
         )}
       </CardContent>

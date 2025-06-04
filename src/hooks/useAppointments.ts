@@ -13,7 +13,7 @@ export function useAppointments() {
       
       console.log("Fetching appointments for user:", user.id, "role:", user.role);
       
-      // Simpler query structure
+      // Simple query structure
       let query = supabase
         .from('appointments')
         .select(`
@@ -70,8 +70,8 @@ export function useAppointments() {
                 name,
                 phone,
                 email,
-                house_number,
-                residencia_id,
+                houseNumber,
+                residenciaId,
                 condominium_text,
                 residencias (
                   id,
@@ -98,8 +98,8 @@ export function useAppointments() {
                 locationParts.push(clientData.condominium_text);
               }
               
-              if (clientData.house_number) {
-                locationParts.push(`Casa ${clientData.house_number}`);
+              if (clientData.houseNumber) {
+                locationParts.push(`Casa ${clientData.houseNumber}`);
               }
               
               clientLocation = locationParts.length > 0 

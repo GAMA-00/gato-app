@@ -131,19 +131,23 @@ const BookingSummary = () => {
       console.log("Appointment created successfully:", data);
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log("Appointment creation successful, invalidating queries");
       
-      // Comprehensive query invalidation
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] });
+      // Comprehensive query invalidation with await for better reliability
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
+      ]);
       
       // Force refetch for real-time updates
-      queryClient.refetchQueries({ queryKey: ['appointments'] });
-      queryClient.refetchQueries({ queryKey: ['pending-requests'] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['appointments'] }),
+        queryClient.refetchQueries({ queryKey: ['pending-requests'] })
+      ]);
       
       toast({
         title: "Éxito",

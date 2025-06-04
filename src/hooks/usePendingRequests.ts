@@ -17,7 +17,7 @@ export function usePendingRequests() {
       console.log("Fetching pending requests for provider:", user.id);
       
       try {
-        // Get all pending appointments for this provider
+        // Simple query first - get all pending appointments for this provider
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -32,7 +32,7 @@ export function usePendingRequests() {
           `)
           .eq('provider_id', user.id)
           .eq('status', 'pending')
-          .order('start_time');
+          .order('start_time', { ascending: true });
           
         if (error) {
           console.error("Error fetching pending appointments:", error);
@@ -43,20 +43,22 @@ export function usePendingRequests() {
         console.log("Pending appointments data:", appointments);
         
         if (!appointments || appointments.length === 0) {
-          console.log("No pending appointments found");
+          console.log("No pending appointments found for provider:", user.id);
           return [];
         }
         
         // Process appointments to add client information
         const processedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
-            console.log(`Processing pending appointment ${appointment.id}`);
+            console.log(`Processing pending appointment ${appointment.id}:`, appointment);
             
             let clientInfo = null;
             let clientLocation = 'Ubicación no especificada';
 
-            // Get client information including residencia
+            // Get client information if it's not an external booking
             if (appointment.client_id && !appointment.external_booking) {
+              console.log(`Fetching client data for client_id: ${appointment.client_id}`);
+              
               const { data: clientData, error: clientError } = await supabase
                 .from('users')
                 .select(`
@@ -64,8 +66,8 @@ export function usePendingRequests() {
                   name,
                   phone,
                   email,
-                  house_number,
-                  residencia_id,
+                  houseNumber,
+                  residenciaId,
                   condominium_text,
                   residencias (
                     id,
@@ -79,6 +81,7 @@ export function usePendingRequests() {
                 console.error("Error fetching client data for appointment:", appointment.id, clientError);
               } else if (clientData) {
                 clientInfo = clientData;
+                console.log("Client data found:", clientData);
                 
                 // Build location string
                 const locationParts = [];
@@ -91,8 +94,8 @@ export function usePendingRequests() {
                   locationParts.push(clientData.condominium_text);
                 }
                 
-                if (clientData.house_number) {
-                  locationParts.push(`Casa ${clientData.house_number}`);
+                if (clientData.houseNumber) {
+                  locationParts.push(`Casa ${clientData.houseNumber}`);
                 }
                 
                 clientLocation = locationParts.length > 0 
@@ -136,7 +139,8 @@ export function usePendingRequests() {
       }
     },
     enabled: !!user && user.role === 'provider',
-    refetchInterval: 10000, // More frequent updates for pending requests
-    retry: 3
+    refetchInterval: 10000, // Check for new requests every 10 seconds
+    retry: 3,
+    staleTime: 5000 // Consider data stale after 5 seconds
   });
 }
