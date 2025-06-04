@@ -35,10 +35,26 @@ const BookingSummary = () => {
   const queryClient = useQueryClient();
   const [isBooking, setIsBooking] = useState(false);
 
+  // Enhanced logging for debugging
+  console.log("BookingSummary - Full location object:", location);
+  console.log("BookingSummary - Location state:", location.state);
+  console.log("BookingSummary - Location state type:", typeof location.state);
+  console.log("BookingSummary - Current user:", user);
+
   const bookingData = location.state as BookingData;
 
-  console.log("BookingSummary - Booking data:", bookingData);
-  console.log("BookingSummary - Current user:", user);
+  console.log("BookingSummary - Booking data after casting:", bookingData);
+  console.log("BookingSummary - Booking data properties:", {
+    hasDate: !!bookingData?.date,
+    hasStartTime: !!bookingData?.startTime,
+    hasEndTime: !!bookingData?.endTime,
+    hasProviderId: !!bookingData?.providerId,
+    hasListingId: !!bookingData?.listingId,
+    dateValue: bookingData?.date,
+    dateType: typeof bookingData?.date,
+    startTimeValue: bookingData?.startTime,
+    endTimeValue: bookingData?.endTime
+  });
 
   if (!bookingData) {
     console.log("No booking data found in location state");
@@ -57,24 +73,39 @@ const BookingSummary = () => {
     );
   }
 
-  // Check for required fields
-  if (!bookingData.date || !bookingData.startTime || !bookingData.endTime) {
+  // More detailed validation of required fields
+  const missingFields = [];
+  if (!bookingData.date) missingFields.push('fecha');
+  if (!bookingData.startTime) missingFields.push('hora de inicio');
+  if (!bookingData.endTime) missingFields.push('hora de fin');
+  if (!bookingData.providerId) missingFields.push('proveedor');
+  if (!bookingData.listingId) missingFields.push('servicio');
+
+  if (missingFields.length > 0) {
     console.log("Missing required booking data:", {
       date: bookingData.date,
       startTime: bookingData.startTime,
-      endTime: bookingData.endTime
+      endTime: bookingData.endTime,
+      providerId: bookingData.providerId,
+      listingId: bookingData.listingId,
+      missingFields
     });
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>
           <AlertDescription>
-            Faltan datos requeridos para la reserva. Por favor regresa y completa la información.
+            Faltan datos requeridos para la reserva: {missingFields.join(', ')}. 
+            Por favor regresa y completa la información.
           </AlertDescription>
         </Alert>
         <Button onClick={() => navigate(-1)} className="mt-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Atrás
         </Button>
+        <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
+          <p className="font-bold">Datos de depuración:</p>
+          <pre>{JSON.stringify(bookingData, null, 2)}</pre>
+        </div>
       </div>
     );
   }
@@ -105,7 +136,25 @@ const BookingSummary = () => {
         return isValid ? dateValue : null;
       }
       
-      const parsedDate = new Date(dateValue);
+      // Handle different string formats
+      let parsedDate: Date;
+      
+      // If it's an ISO string or standard date format
+      if (typeof dateValue === 'string') {
+        // Try different parsing approaches
+        parsedDate = new Date(dateValue);
+        
+        // If that fails, try parsing as a simple date string
+        if (isNaN(parsedDate.getTime()) && dateValue.includes('-')) {
+          const [year, month, day] = dateValue.split('-').map(Number);
+          if (year && month && day) {
+            parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+          }
+        }
+      } else {
+        parsedDate = new Date(dateValue);
+      }
+      
       const isValid = !isNaN(parsedDate.getTime());
       console.log("String date parsing:", { dateValue, parsedDate, isValid });
       return isValid ? parsedDate : null;
@@ -137,6 +186,14 @@ const BookingSummary = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Atrás
         </Button>
+        <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
+          <p className="font-bold">Datos de fecha recibidos:</p>
+          <pre>{JSON.stringify({ 
+            originalDate: bookingData.date, 
+            dateType: typeof bookingData.date,
+            dateString: String(bookingData.date)
+          }, null, 2)}</pre>
+        </div>
       </div>
     );
   }
