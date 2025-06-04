@@ -19,6 +19,7 @@ const ClientResultsView = () => {
   
   return (
     <PageContainer
+      title="Profesionales disponibles"
       subtitle={
         <Button 
           variant="ghost" 
