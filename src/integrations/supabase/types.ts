@@ -23,6 +23,7 @@ export type Database = {
           end_time: string
           external_booking: boolean | null
           id: string
+          is_recurring_instance: boolean | null
           last_modified_at: string | null
           last_modified_by: string | null
           listing_id: string
@@ -31,6 +32,7 @@ export type Database = {
           provider_name: string | null
           recurrence: string | null
           recurrence_group_id: string | null
+          recurring_rule_id: string | null
           refund_percentage: number | null
           residencia_id: string | null
           start_time: string
@@ -49,6 +51,7 @@ export type Database = {
           end_time: string
           external_booking?: boolean | null
           id?: string
+          is_recurring_instance?: boolean | null
           last_modified_at?: string | null
           last_modified_by?: string | null
           listing_id: string
@@ -57,6 +60,7 @@ export type Database = {
           provider_name?: string | null
           recurrence?: string | null
           recurrence_group_id?: string | null
+          recurring_rule_id?: string | null
           refund_percentage?: number | null
           residencia_id?: string | null
           start_time: string
@@ -75,6 +79,7 @@ export type Database = {
           end_time?: string
           external_booking?: boolean | null
           id?: string
+          is_recurring_instance?: boolean | null
           last_modified_at?: string | null
           last_modified_by?: string | null
           listing_id?: string
@@ -83,6 +88,7 @@ export type Database = {
           provider_name?: string | null
           recurrence?: string | null
           recurrence_group_id?: string | null
+          recurring_rule_id?: string | null
           refund_percentage?: number | null
           residencia_id?: string | null
           start_time?: string
@@ -94,6 +100,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_recurring_rule_id_fkey"
+            columns: ["recurring_rule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_rules"
             referencedColumns: ["id"]
           },
         ]
@@ -423,6 +436,113 @@ export type Database = {
           },
         ]
       }
+      recurring_instances: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          instance_date: string
+          notes: string | null
+          recurring_rule_id: string
+          start_time: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          instance_date: string
+          notes?: string | null
+          recurring_rule_id: string
+          start_time: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          instance_date?: string
+          notes?: string | null
+          recurring_rule_id?: string
+          start_time?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_instances_recurring_rule_id_fkey"
+            columns: ["recurring_rule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_rules: {
+        Row: {
+          apartment: string | null
+          client_address: string | null
+          client_email: string | null
+          client_id: string
+          client_name: string | null
+          client_phone: string | null
+          created_at: string
+          day_of_month: number | null
+          day_of_week: number | null
+          end_time: string
+          id: string
+          is_active: boolean
+          listing_id: string
+          notes: string | null
+          provider_id: string
+          recurrence_type: string
+          start_date: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          apartment?: string | null
+          client_address?: string | null
+          client_email?: string | null
+          client_id: string
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          end_time: string
+          id?: string
+          is_active?: boolean
+          listing_id: string
+          notes?: string | null
+          provider_id: string
+          recurrence_type: string
+          start_date: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          apartment?: string | null
+          client_address?: string | null
+          client_email?: string | null
+          client_id?: string
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          listing_id?: string
+          notes?: string | null
+          provider_id?: string
+          recurrence_type?: string
+          start_date?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       residencias: {
         Row: {
           address: string
@@ -736,6 +856,15 @@ export type Database = {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number
       }
+      check_recurring_availability: {
+        Args: {
+          p_provider_id: string
+          p_start_time: string
+          p_end_time: string
+          p_exclude_rule_id?: string
+        }
+        Returns: boolean
+      }
       create_user_profile: {
         Args: {
           user_id: string
@@ -746,6 +875,10 @@ export type Database = {
           user_residencia_id?: string
         }
         Returns: undefined
+      }
+      generate_recurring_instances: {
+        Args: { rule_id: string; start_range: string; end_range: string }
+        Returns: number
       }
       get_rated_appointments: {
         Args: { appointment_ids: string[] }

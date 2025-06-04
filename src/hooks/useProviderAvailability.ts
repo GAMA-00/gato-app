@@ -1,7 +1,10 @@
+
 import { useMemo } from 'react';
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
-import { format, isSameDay, addMinutes, parseISO, addWeeks, addMonths, getDay } from 'date-fns';
+import { format, isSameDay, addMinutes, addWeeks, addMonths, getDay } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 export interface TimeSlot {
   time: string;
@@ -16,6 +19,26 @@ interface UseProviderAvailabilityProps {
   recurrence?: string; // 'once', 'weekly', 'biweekly', 'monthly'
 }
 
+const useRecurringRules = (providerId: string) => {
+  return useQuery({
+    queryKey: ['recurring-rules', providerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recurring_rules')
+        .select('*')
+        .eq('provider_id', providerId)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error fetching recurring rules:', error);
+        return [];
+      }
+
+      return data || [];
+    }
+  });
+};
+
 export const useProviderAvailability = ({
   providerId,
   selectedDate,
@@ -24,10 +47,10 @@ export const useProviderAvailability = ({
 }: UseProviderAvailabilityProps) => {
   const { blockedSlots } = useBlockedTimeSlots();
   const { data: appointments = [] } = useCalendarAppointments(selectedDate);
+  const { data: recurringRules = [] } = useRecurringRules(providerId);
 
   const availableTimeSlots = useMemo(() => {
     const slots: TimeSlot[] = [];
-    const dayOfWeek = selectedDate.getDay();
     
     // Generate future dates to check based on recurrence
     const datesToCheck = [selectedDate];
@@ -118,6 +141,41 @@ export const useProviderAvailability = ({
             reason = recurrence === 'once' ? 'Horario ocupado' : `Horario ocupado en ${recurrence === 'weekly' ? 'alguna semana' : recurrence === 'biweekly' ? 'alguna quincena' : 'algún mes'}`;
             break;
           }
+
+          // Check if slot conflicts with recurring rules
+          const conflictingRecurringRule = recurringRules.find(rule => {
+            const ruleDayOfWeek = rule.day_of_week;
+            const ruleDayOfMonth = rule.day_of_month;
+            const ruleStartTime = rule.start_time;
+            const ruleEndTime = rule.end_time;
+            
+            // Convert times for comparison
+            const slotTimeStr = format(slotStart, 'HH:mm:ss');
+            const slotEndTimeStr = format(slotEnd, 'HH:mm:ss');
+            
+            // Check if this recurring rule applies to the current date
+            let appliesToDate = false;
+            
+            if (rule.recurrence_type === 'weekly') {
+              appliesToDate = getDay(dateToCheck) === ruleDayOfWeek;
+            } else if (rule.recurrence_type === 'biweekly') {
+              const daysSinceStart = Math.floor((dateToCheck.getTime() - new Date(rule.start_date).getTime()) / (1000 * 60 * 60 * 24));
+              appliesToDate = getDay(dateToCheck) === ruleDayOfWeek && daysSinceStart % 14 === 0;
+            } else if (rule.recurrence_type === 'monthly') {
+              appliesToDate = dateToCheck.getDate() === ruleDayOfMonth;
+            }
+            
+            if (!appliesToDate) return false;
+            
+            // Check time overlap
+            return ruleStartTime < slotEndTimeStr && ruleEndTime > slotTimeStr;
+          });
+
+          if (conflictingRecurringRule) {
+            available = false;
+            reason = recurrence === 'once' ? 'Horario reservado recurrentemente' : `Conflicto con reserva recurrente en ${recurrence === 'weekly' ? 'alguna semana' : recurrence === 'biweekly' ? 'alguna quincena' : 'algún mes'}`;
+            break;
+          }
         }
 
         slots.push({
@@ -129,7 +187,7 @@ export const useProviderAvailability = ({
     }
 
     return slots;
-  }, [blockedSlots, appointments, selectedDate, serviceDuration, providerId, recurrence]);
+  }, [blockedSlots, appointments, selectedDate, serviceDuration, providerId, recurrence, recurringRules]);
 
   return {
     availableTimeSlots,

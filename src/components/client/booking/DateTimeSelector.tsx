@@ -4,10 +4,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useProviderAvailability } from '@/hooks/useProviderAvailability';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DateTimeSelectorProps {
   selectedDate: Date | undefined;
@@ -46,6 +47,15 @@ const DateTimeSelector = ({
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
+  const getRecurrenceText = (frequency: string) => {
+    switch (frequency) {
+      case 'weekly': return 'semanal';
+      case 'biweekly': return 'quincenal';
+      case 'monthly': return 'mensual';
+      default: return '';
+    }
+  };
+
   return (
     <Card className="shadow-md">
       <CardContent className="pt-6">
@@ -61,6 +71,11 @@ const DateTimeSelector = ({
           <div>
             <Label className="text-base font-medium mb-3 block">
               Selecciona la fecha
+              {selectedFrequency !== 'once' && (
+                <span className="text-sm text-gray-600 block mt-1">
+                  Esta será la fecha de inicio de la recurrencia {getRecurrenceText(selectedFrequency)}
+                </span>
+              )}
             </Label>
             <div className="flex justify-center">
               <Calendar
@@ -73,6 +88,17 @@ const DateTimeSelector = ({
               />
             </div>
           </div>
+          
+          {/* Recurrence Info Alert */}
+          {selectedFrequency !== 'once' && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Al seleccionar una recurrencia {getRecurrenceText(selectedFrequency)}, se creará una reserva automática 
+                que se repetirá indefinidamente hasta que sea cancelada por el cliente o proveedor.
+              </AlertDescription>
+            </Alert>
+          )}
           
           {/* Time Selection Section */}
           <div>
@@ -89,11 +115,7 @@ const DateTimeSelector = ({
                         Horarios disponibles
                         {selectedFrequency !== 'once' && (
                           <span className="text-gray-600 ml-1">
-                            (considerando recurrencia {
-                              selectedFrequency === 'weekly' ? 'semanal' :
-                              selectedFrequency === 'biweekly' ? 'quincenal' : 
-                              selectedFrequency === 'monthly' ? 'mensual' : selectedFrequency
-                            })
+                            (considerando recurrencia {getRecurrenceText(selectedFrequency)})
                           </span>
                         )}
                       </span>
@@ -121,11 +143,7 @@ const DateTimeSelector = ({
                       No hay horarios disponibles para esta fecha
                       {selectedFrequency !== 'once' && (
                         <span className="block text-sm text-gray-400 mt-1">
-                          considerando la recurrencia {
-                            selectedFrequency === 'weekly' ? 'semanal' :
-                            selectedFrequency === 'biweekly' ? 'quincenal' : 
-                            selectedFrequency === 'monthly' ? 'mensual' : selectedFrequency
-                          }
+                          considerando la recurrencia {getRecurrenceText(selectedFrequency)}
                         </span>
                       )}
                     </div>
