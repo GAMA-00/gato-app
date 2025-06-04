@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Check, X, MapPin, Clock, Home, Building, ExternalLink } from 'lucide-react';
+import { Calendar, Check, X, MapPin, Clock, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -82,25 +82,6 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     }
   };
 
-  // Enhanced function to get the correct client name
-  const getClientName = (request: any) => {
-    // For external bookings, prioritize the client_name field from the appointment
-    if (request.is_external || request.external_booking) {
-      const clientName = request.client_name;
-      console.log(`External request ${request.id} has client_name: "${clientName}"`);
-      return clientName || 'Cliente Externo';
-    }
-    
-    // For internal bookings, use the client_name field which should be populated by the hooks
-    if (request.client_name) {
-      console.log(`Internal request ${request.id} using client_name: ${request.client_name}`);
-      return request.client_name;
-    }
-    
-    // Final fallback
-    return 'Cliente sin nombre';
-  };
-
   // Helper function to get initials from name
   const getInitials = (name: string) => {
     if (!name || name === 'Cliente sin nombre' || name === 'Cliente Externo') return 'CL';
@@ -111,23 +92,6 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       .slice(0, 2)
       .join('')
       .toUpperCase();
-  };
-
-  // Updated function to use the client_location field from the hooks
-  const getLocationInfo = (request: any) => {
-    // Use the client_location field that's already populated by the useAppointments hook
-    if (request.client_location && request.client_location !== 'Ubicación no especificada') {
-      console.log(`JobRequests - Using client_location for request ${request.id}: "${request.client_location}"`);
-      return request.client_location;
-    }
-    
-    // Legacy fallback for external bookings
-    if (request.is_external && request.client_address) {
-      return request.client_address;
-    }
-    
-    // Final fallback
-    return 'Ubicación no especificada';
   };
 
   return (
@@ -166,23 +130,22 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
             {pendingRequests.map((request: any) => {
-              const clientName = getClientName(request);
               const isExternal = request.is_external || request.external_booking;
-              const locationInfo = getLocationInfo(request);
-              console.log(`Rendering request ${request.id}: clientName="${clientName}", isExternal=${isExternal}, location="${locationInfo}"`);
+              
+              console.log(`Rendering request ${request.id}: clientName="${request.client_name}", isExternal=${isExternal}, location="${request.client_location}"`);
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
                   <div className="flex items-start gap-3 mb-3">
                     <Avatar className="h-10 w-10 border border-amber-200 flex-shrink-0">
-                      <AvatarImage alt={clientName} />
+                      <AvatarImage alt={request.client_name} />
                       <AvatarFallback className="bg-amber-100 text-amber-800">
-                        {getInitials(clientName)}
+                        {getInitials(request.client_name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="font-medium">{clientName}</div>
+                        <div className="font-medium">{request.client_name}</div>
                         {isExternal && (
                           <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 text-xs">
                             <ExternalLink className="h-3 w-3" />
@@ -224,7 +187,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
                           </TableCell>
                           <TableCell className="p-1 text-sm">
                             <div className="font-medium">
-                              {locationInfo}
+                              {request.client_location}
                             </div>
                           </TableCell>
                         </TableRow>

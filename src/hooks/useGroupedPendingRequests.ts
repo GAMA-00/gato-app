@@ -32,7 +32,7 @@ export function useGroupedPendingRequests() {
       console.log("Fetching grouped pending requests for provider:", user.id);
       
       try {
-        // Get all pending appointments for this provider
+        // Get all pending appointments for this provider using the same query structure as useAppointments
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -59,110 +59,88 @@ export function useGroupedPendingRequests() {
           return [];
         }
         
-        // Get client information for internal bookings
-        const clientIds = [...new Set(appointments
-          .filter(app => !app.external_booking && app.client_id)
-          .map(app => app.client_id))];
+        console.log("Raw pending appointments:", appointments);
         
-        let clientNameMap: Record<string, string> = {};
-        let clientLocationMap: Record<string, any> = {};
-        
-        if (clientIds.length > 0) {
-          const { data: clients, error: clientsError } = await supabase
-            .from('users')
-            .select(`
-              id, 
-              name, 
-              house_number,
-              residencia_id,
-              condominium_text
-            `)
-            .in('id', clientIds)
-            .eq('role', 'client');
-            
-          if (!clientsError && clients) {
-            clientNameMap = Object.fromEntries(
-              clients.map(client => [client.id, client.name])
-            );
-            
-            // Get residencias data
-            const residenciaIds = [...new Set(clients
-              .map(client => client.residencia_id)
-              .filter(Boolean))];
-            
-            let residenciasMap: Record<string, string> = {};
-            if (residenciaIds.length > 0) {
-              const { data: residencias, error: residenciasError } = await supabase
-                .from('residencias')
-                .select('id, name')
-                .in('id', residenciaIds);
-              
-              if (residencias && !residenciasError) {
-                residenciasMap = Object.fromEntries(
-                  residencias.map(res => [res.id, res.name])
-                );
-              }
-            }
-            
-            // Create location map
-            clientLocationMap = Object.fromEntries(
-              clients.map(client => {
-                const residenciaName = client.residencia_id ? residenciasMap[client.residencia_id] : '';
-                const condominiumName = client.condominium_text || '';
-                const houseNumber = client.house_number || '';
+        // Process appointments to add client/provider information (same logic as useAppointments)
+        const processedAppointments = await Promise.all(
+          (appointments || []).map(async (appointment) => {
+            let clientInfo = null;
+            let clientLocation = 'Ubicación no especificada';
+
+            // Get client information including residencia
+            if (appointment.client_id) {
+              const { data: clientData } = await supabase
+                .from('users')
+                .select(`
+                  id,
+                  name,
+                  phone,
+                  email,
+                  house_number,
+                  residencia_id,
+                  condominium_text,
+                  residencias!inner(
+                    id,
+                    name
+                  )
+                `)
+                .eq('id', appointment.client_id)
+                .eq('role', 'client')
+                .single();
+
+              if (clientData) {
+                clientInfo = clientData;
                 
+                // Build location string
                 const locationParts = [];
                 
-                if (residenciaName && residenciaName.trim()) {
-                  locationParts.push(residenciaName.trim());
+                if (clientData.residencias?.name) {
+                  locationParts.push(clientData.residencias.name);
                 }
                 
-                if (condominiumName && condominiumName.trim()) {
-                  locationParts.push(condominiumName.trim());
+                if (clientData.condominium_text) {
+                  locationParts.push(clientData.condominium_text);
                 }
                 
-                if (houseNumber && houseNumber.trim()) {
-                  locationParts.push(houseNumber.trim());
+                if (clientData.house_number) {
+                  locationParts.push(clientData.house_number);
                 }
                 
-                const finalLocation = locationParts.length > 0 
+                clientLocation = locationParts.length > 0 
                   ? locationParts.join(' – ') 
                   : 'Ubicación no especificada';
-                
-                return [client.id, finalLocation];
-              })
-            );
-          }
-        }
+              }
+            }
+
+            // Handle external bookings
+            const isExternal = appointment.external_booking || !appointment.client_id;
+
+            return {
+              ...appointment,
+              client_name: isExternal 
+                ? (appointment.client_name || 'Cliente Externo')
+                : (clientInfo?.name || 'Cliente sin nombre'),
+              client_phone: isExternal 
+                ? appointment.client_phone 
+                : clientInfo?.phone,
+              client_email: isExternal 
+                ? appointment.client_email 
+                : clientInfo?.email,
+              client_location: isExternal 
+                ? (appointment.client_address || 'Ubicación no especificada')
+                : clientLocation,
+              is_external: isExternal,
+              service_name: appointment.listings?.title || 'Servicio',
+              recurrence_label: 
+                appointment.recurrence === 'weekly' ? 'Semanal' :
+                appointment.recurrence === 'biweekly' ? 'Quincenal' :
+                appointment.recurrence === 'monthly' ? 'Mensual' :
+                appointment.recurrence && appointment.recurrence !== 'none' ? 'Recurrente' : null
+            };
+          })
+        );
         
-        // Process appointments and add client info
-        const processedAppointments = appointments.map(app => {
-          const isExternal = !!app.external_booking;
-          
-          let clientName = 'Cliente sin nombre';
-          let clientLocation = 'Ubicación no especificada';
-          
-          if (isExternal) {
-            clientName = app.client_name || 'Cliente Externo';
-            clientLocation = app.client_address || 'Ubicación no especificada';
-          } else {
-            clientName = clientNameMap[app.client_id] || `Cliente #${app.client_id?.substring(0, 8) || 'N/A'}`;
-            clientLocation = clientLocationMap[app.client_id] || 'Ubicación no especificada';
-          }
-          
-          return {
-            ...app,
-            client_name: clientName,
-            client_location: clientLocation,
-            is_external: isExternal,
-            service_name: app.listings?.title || 'Servicio',
-            recurrence_label: 
-              app.recurrence === 'weekly' ? 'Semanal' :
-              app.recurrence === 'biweekly' ? 'Quincenal' :
-              app.recurrence === 'monthly' ? 'Mensual' :
-              app.recurrence && app.recurrence !== 'none' ? 'Recurrente' : null
-          };
-        });
+        console.log("Processed pending appointments:", processedAppointments);
         
         // Group appointments by recurrence_group_id or treat as individual
         const groupedMap = new Map<string, GroupedRequest>();
