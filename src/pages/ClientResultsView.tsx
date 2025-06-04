@@ -14,12 +14,11 @@ const ClientResultsView = () => {
   console.log("ClientResultsView rendered with params:", { categoryName, serviceId });
   
   const handleBack = () => {
-    navigate(`/client/booking/${categoryName}/${serviceId}`);
+    navigate(`/client/category/${categoryName}`);
   };
   
   return (
     <PageContainer
-      title="Profesionales disponibles"
       subtitle={
         <Button 
           variant="ghost" 
