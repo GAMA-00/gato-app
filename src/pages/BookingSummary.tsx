@@ -220,98 +220,108 @@ const BookingSummary = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate(-1)}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Atrás
-        </Button>
-        <h1 className="text-3xl font-bold">Resumen de Reserva</h1>
-        <p className="text-muted-foreground">Revisa los detalles antes de confirmar</p>
-      </div>
+    <div className="min-h-screen bg-white">
+      {/* Mobile optimized container */}
+      <div className="container mx-auto px-4 py-4 pb-24 max-w-2xl">
+        <div className="mb-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="mb-3 p-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Atrás
+          </Button>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1">Resumen de Reserva</h1>
+          <p className="text-muted-foreground text-sm">Revisa los detalles antes de confirmar</p>
+        </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <User className="h-5 w-5 mr-2" />
-            Detalles del Servicio
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h3 className="font-medium">{bookingData.serviceName}</h3>
-            <p className="text-sm text-muted-foreground">Proveedor: {bookingData.providerName}</p>
+        <div className="space-y-4">
+          {/* Service Details Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center text-lg">
+                <User className="h-5 w-5 mr-2" />
+                Detalles del Servicio
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <div>
+                <h3 className="font-medium text-base">{bookingData.serviceName}</h3>
+                <p className="text-sm text-muted-foreground">Proveedor: {bookingData.providerName}</p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex items-center text-sm">
+                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                  <span>{bookingDate ? formatDate(bookingDate) : 'Fecha no válida'}</span>
+                </div>
+
+                <div className="flex items-center text-sm">
+                  <Clock className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                  <span>{bookingData.startTime} - {bookingData.endTime}</span>
+                </div>
+
+                <div className="flex items-start text-sm">
+                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <span className="break-words">{getLocationDisplay()}</span>
+                </div>
+              </div>
+
+              {bookingData.recurrence && bookingData.recurrence !== 'none' && (
+                <div className="p-3 bg-blue-50 rounded-md">
+                  <p className="text-sm font-medium text-blue-800">Servicio Recurrente</p>
+                  <p className="text-xs text-blue-600">
+                    {bookingData.recurrence === 'weekly' ? 'Semanal' :
+                     bookingData.recurrence === 'biweekly' ? 'Quincenal' :
+                     bookingData.recurrence === 'monthly' ? 'Mensual' : bookingData.recurrence}
+                  </p>
+                </div>
+              )}
+
+              {bookingData.notes && (
+                <div>
+                  <p className="text-sm font-medium">Notas:</p>
+                  <p className="text-sm text-muted-foreground break-words">{bookingData.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Payment Details Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center text-lg">
+                <CreditCard className="h-5 w-5 mr-2" />
+                Detalles de Pago
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex justify-between items-center text-lg font-medium">
+                <span>Total:</span>
+                <span>{formatPrice(bookingData.price)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="space-y-3 pt-2">
+            <Button 
+              onClick={handleConfirmBooking} 
+              disabled={isBooking}
+              className="w-full h-12"
+              size="lg"
+            >
+              {isBooking ? "Procesando..." : "Confirmar Reserva"}
+            </Button>
+            
+            <p className="text-xs text-center text-muted-foreground px-2 leading-relaxed">
+              Al confirmar tu reserva, el proveedor recibirá una solicitud que deberá aprobar.
+            </p>
           </div>
-
-          <Separator />
-
-          <div className="flex items-center text-sm">
-            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{formatDate(bookingDate)}</span>
-          </div>
-
-          <div className="flex items-center text-sm">
-            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{bookingData.startTime} - {bookingData.endTime}</span>
-          </div>
-
-          <div className="flex items-center text-sm">
-            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{getLocationDisplay()}</span>
-          </div>
-
-          {bookingData.recurrence && bookingData.recurrence !== 'none' && (
-            <div className="p-3 bg-blue-50 rounded-md">
-              <p className="text-sm font-medium text-blue-800">Servicio Recurrente</p>
-              <p className="text-xs text-blue-600">
-                {bookingData.recurrence === 'weekly' ? 'Semanal' :
-                 bookingData.recurrence === 'biweekly' ? 'Quincenal' :
-                 bookingData.recurrence === 'monthly' ? 'Mensual' : bookingData.recurrence}
-              </p>
-            </div>
-          )}
-
-          {bookingData.notes && (
-            <div>
-              <p className="text-sm font-medium">Notas:</p>
-              <p className="text-sm text-muted-foreground">{bookingData.notes}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <CreditCard className="h-5 w-5 mr-2" />
-            Detalles de Pago
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center text-lg font-medium">
-            <span>Total:</span>
-            <span>{formatPrice(bookingData.price)}</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-4">
-        <Button 
-          onClick={handleConfirmBooking} 
-          disabled={isBooking}
-          className="w-full"
-          size="lg"
-        >
-          {isBooking ? "Procesando..." : "Confirmar Reserva"}
-        </Button>
-        
-        <p className="text-xs text-center text-muted-foreground">
-          Al confirmar tu reserva, el proveedor recibirá una solicitud que deberá aprobar.
-        </p>
+        </div>
       </div>
     </div>
   );
