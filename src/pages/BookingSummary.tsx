@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -209,22 +208,22 @@ const BookingSummary = () => {
     const locationParts = [];
     
     // Add residencia name if available
-    if (user.residencias?.name) {
-      locationParts.push(user.residencias.name);
-    } else if (user.residencia_id) {
+    if (user.buildingName) {
+      locationParts.push(user.buildingName);
+    } else if (user.residenciaId) {
       locationParts.push('Residencia registrada');
     }
     
     // Add condominium name if available
-    if (user.condominiums?.name) {
-      locationParts.push(user.condominiums.name);
-    } else if (user.condominium_text) {
-      locationParts.push(user.condominium_text);
+    if (user.condominiumName) {
+      locationParts.push(user.condominiumName);
     }
     
     // Add house number if available
-    if (user.house_number) {
-      locationParts.push(`Casa ${user.house_number}`);
+    if (user.houseNumber) {
+      locationParts.push(`Casa ${user.houseNumber}`);
+    } else if (user.apartment) {
+      locationParts.push(`Casa ${user.apartment}`);
     }
     
     return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
