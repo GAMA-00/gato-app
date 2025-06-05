@@ -14,7 +14,7 @@ export const useAppointments = () => {
       console.log('Fetching appointments for user:', user.id, 'role:', user.role);
 
       try {
-        // First, get the basic appointments data
+        // First, get the basic appointments data with listings and service types
         const { data: appointments, error: appointmentsError } = await supabase
           .from('appointments')
           .select(`
@@ -25,9 +25,6 @@ export const useAppointments = () => {
               base_price,
               duration,
               service_types(name)
-            ),
-            residencias(
-              name
             )
           `)
           .or(`provider_id.eq.${user.id},client_id.eq.${user.id}`)
@@ -45,11 +42,12 @@ export const useAppointments = () => {
 
         console.log(`Found ${appointments.length} appointments`);
 
-        // Now enrich the appointments with user information
+        // Now enrich the appointments with user and residencia information
         const enrichedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
             let clientInfo = null;
             let providerInfo = null;
+            let residenciaInfo = null;
 
             // Get client information if not external booking
             if (appointment.client_id && !appointment.external_booking) {
@@ -63,11 +61,7 @@ export const useAppointments = () => {
                     email,
                     house_number,
                     residencia_id,
-                    condominium_name,
-                    residencias (
-                      id,
-                      name
-                    )
+                    condominium_name
                   `)
                   .eq('id', appointment.client_id)
                   .single();
@@ -102,6 +96,27 @@ export const useAppointments = () => {
               }
             }
 
+            // Get residencia information if there's a residencia_id in the appointment or client
+            const residenciaId = appointment.residencia_id || clientInfo?.residencia_id;
+            if (residenciaId) {
+              try {
+                const { data: residenciaData, error: residenciaError } = await supabase
+                  .from('residencias')
+                  .select(`
+                    id,
+                    name
+                  `)
+                  .eq('id', residenciaId)
+                  .single();
+
+                if (!residenciaError && residenciaData) {
+                  residenciaInfo = residenciaData;
+                }
+              } catch (error) {
+                console.error('Error fetching residencia data:', error);
+              }
+            }
+
             // Build the enriched appointment object
             return {
               ...appointment,
@@ -120,6 +135,8 @@ export const useAppointments = () => {
                 : clientInfo?.condominium_name,
               // Provider information
               provider_name: providerInfo?.name || appointment.provider_name || 'Proveedor desconocido',
+              // Residencia information
+              residencias: residenciaInfo,
               // Additional metadata
               is_external: appointment.external_booking || !appointment.client_id,
               // User information for easier access
@@ -129,7 +146,7 @@ export const useAppointments = () => {
                 email: clientInfo.email,
                 house_number: clientInfo.house_number,
                 condominium_name: clientInfo.condominium_name,
-                residencias: clientInfo.residencias
+                residencias: residenciaInfo
               } : null
             };
           })
