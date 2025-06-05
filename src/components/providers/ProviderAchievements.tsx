@@ -27,20 +27,20 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
         stars.push(
-          <Star key={i} className="h-3 w-3 fill-amber-500 text-amber-500" />
+          <Star key={i} className="h-3 w-3 fill-amber-600 text-amber-600" />
         );
       } else if (i === fullStars && hasHalfStar) {
         stars.push(
           <div key={i} className="relative h-3 w-3">
-            <Star className="h-3 w-3 text-stone-300" />
+            <Star className="h-3 w-3 text-stone-200" />
             <div className="absolute inset-0 overflow-hidden w-1/2">
-              <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+              <Star className="h-3 w-3 fill-amber-600 text-amber-600" />
             </div>
           </div>
         );
       } else {
         stars.push(
-          <Star key={i} className="h-3 w-3 text-stone-300" />
+          <Star key={i} className="h-3 w-3 text-stone-200" />
         );
       }
     }
@@ -50,25 +50,25 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
   const experienceLevel = getExperienceLevel(provider.experienceYears);
 
   return (
-    <Card className="bg-amber-50 border-amber-100 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium text-stone-700">
-          Méritos Profesionales
+    <Card className="bg-stone-50 border-stone-100 shadow-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-medium text-stone-800">
+          Méritos
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="grid grid-cols-3 gap-6">
           {/* Calificación */}
-          {provider.rating && provider.rating > 0 && (
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center">
-                <Star className="h-4 w-4 text-amber-600" />
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center">
+              <Star className="h-5 w-5 text-stone-600" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-stone-500 mb-1">
+                Calificación
               </div>
-              <div className="flex-1">
-                <div className="text-xs font-medium text-stone-600 mb-1">
-                  Calificación
-                </div>
-                <div className="flex items-center gap-2">
+              {provider.rating && provider.rating > 0 ? (
+                <div className="flex flex-col items-center space-y-1">
                   <div className="flex items-center gap-0.5">
                     {renderStars(provider.rating)}
                   </div>
@@ -76,34 +76,36 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
                     {provider.rating.toFixed(1)}
                   </span>
                 </div>
-              </div>
+              ) : (
+                <span className="text-sm font-semibold text-stone-500">
+                  Sin calificar
+                </span>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Clientes Recurrentes */}
-          {recurringClientsCount > 0 && (
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center">
-                <Users className="h-4 w-4 text-amber-600" />
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center">
+              <Users className="h-5 w-5 text-stone-600" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-stone-500 mb-1">
+                Clientes recurrentes
               </div>
-              <div className="flex-1">
-                <div className="text-xs font-medium text-stone-600 mb-1">
-                  Clientes recurrentes
-                </div>
-                <div className="text-sm font-semibold text-stone-700">
-                  {recurringClientsCount} {recurringClientsCount === 1 ? 'cliente' : 'clientes'}
-                </div>
+              <div className="text-sm font-semibold text-stone-700">
+                {recurringClientsCount}
               </div>
             </div>
-          )}
+          </div>
 
           {/* Nivel de Experiencia */}
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center">
-              <Award className="h-4 w-4 text-amber-600" />
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center">
+              <Award className="h-5 w-5 text-stone-600" />
             </div>
-            <div className="flex-1">
-              <div className="text-xs font-medium text-stone-600 mb-1">
+            <div>
+              <div className="text-xs font-medium text-stone-500 mb-1">
                 Nivel de experiencia
               </div>
               <div className="text-sm font-semibold text-stone-700">
