@@ -211,6 +211,7 @@ export const useSupabaseAuth = () => {
         hasPaymentMethod: false,
         role: userData.role as UserRole,
         condominiumId: userData.condominiumId || '',
+        condominiumName: condominiumName, // Add condominium name to user object
         houseNumber: userData.houseNumber || '',
         avatarUrl: '',
       };
@@ -300,6 +301,7 @@ export const useSupabaseAuth = () => {
         role: userData.role as UserRole,
         avatarUrl: userData.avatar_url || '',
         condominiumId: userData.condominium_id || '',
+        condominiumName: userData.condominium_name || '', // Use the new condominium_name field
         houseNumber: userData.house_number || '',
       };
       

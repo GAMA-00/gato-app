@@ -132,8 +132,10 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       locationParts.push('Residencia registrada');
     }
     
-    // Add condominium text if available
-    if (appointment.client_condominium) {
+    // Add condominium name - use the stored condominium_name field from users table
+    if (appointment.users?.condominium_name) {
+      locationParts.push(appointment.users.condominium_name);
+    } else if (appointment.client_condominium) {
       locationParts.push(appointment.client_condominium);
     } else if (appointment.condominiums?.name) {
       locationParts.push(appointment.condominiums.name);
@@ -144,6 +146,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       locationParts.push(`Casa ${appointment.apartment}`);
     } else if (appointment.house_number) {
       locationParts.push(`Casa ${appointment.house_number}`);
+    } else if (appointment.users?.house_number) {
+      locationParts.push(`Casa ${appointment.users.house_number}`);
     }
     
     // Return formatted location or fallback

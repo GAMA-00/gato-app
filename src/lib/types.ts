@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -181,6 +180,22 @@ export interface ProviderProfile {
     rating: number;
     comment: string;
   }[];
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  residenciaId: string;
+  buildingName: string;
+  hasPaymentMethod: boolean;
+  role: UserRole;
+  avatarUrl: string;
+  condominiumId: string;
+  condominiumName: string; // Add this new field
+  houseNumber: string;
+  apartment?: string;
 }
 
 export interface ServiceCategoryGroup {
