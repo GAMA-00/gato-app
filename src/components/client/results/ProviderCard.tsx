@@ -18,15 +18,19 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   // Get all images from gallery (no limit)
   const allImages = provider.galleryImages || [];
 
-  // Determine experience level based on years
+  // Calculate experience level from 1 to 5 based on years
   const getExperienceLevel = (years: number) => {
-    if (years < 1) return 'Novato';
-    if (years < 3) return 'Confiable';
-    if (years < 5) return 'Recomendado';
-    return 'Experto';
+    if (years < 1) return 1;
+    if (years < 2) return 2;
+    if (years < 4) return 3;
+    if (years < 7) return 4;
+    return 5;
   };
 
   const experienceLevel = getExperienceLevel(provider.experience || 0);
+  
+  // Use actual rating or default to 5.0 for new providers
+  const displayRating = provider.rating && provider.rating > 0 ? provider.rating : 5.0;
 
   return (
     <Card 
@@ -55,7 +59,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
               <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
                 <Star className="h-3 w-3 fill-amber-600 text-amber-600 mr-1" />
                 <span className="font-medium text-xs text-amber-700">
-                  {provider.rating > 0 ? provider.rating.toFixed(1) : "Nuevo"}
+                  {displayRating.toFixed(1)}
                 </span>
               </div>
               
@@ -68,7 +72,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
               {/* Nivel de Experiencia */}
               <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
                 <Award className="h-3 w-3 text-amber-600 mr-1" />
-                <span className="font-medium text-xs text-amber-700">{experienceLevel}</span>
+                <span className="font-medium text-xs text-amber-700">Nivel {experienceLevel}</span>
               </div>
             </div>
           </div>

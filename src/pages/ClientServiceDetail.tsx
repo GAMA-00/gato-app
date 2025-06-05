@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -173,15 +174,21 @@ const ClientServiceDetail = () => {
 
   const experienceYears = serviceDetails.provider?.experience_years || 0;
   
-  // Determine experience level based on years
+  // Calculate experience level from 1 to 5 based on years
   const getExperienceLevel = (years: number) => {
-    if (years < 1) return 'Novato';
-    if (years < 3) return 'Confiable';
-    if (years < 5) return 'Recomendado';
-    return 'Experto';
+    if (years < 1) return 1;
+    if (years < 2) return 2;
+    if (years < 4) return 3;
+    if (years < 7) return 4;
+    return 5;
   };
 
   const experienceLevel = getExperienceLevel(experienceYears);
+  
+  // Use actual rating or default to 5.0 for new providers
+  const displayRating = serviceDetails.provider?.average_rating && serviceDetails.provider.average_rating > 0 
+    ? serviceDetails.provider.average_rating 
+    : 5.0;
   
   return (
     <PageContainer
@@ -215,9 +222,7 @@ const ClientServiceDetail = () => {
             <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
               <Star className="h-5 w-5 fill-amber-600 text-amber-600 mr-2" />
               <span className="font-medium text-amber-700 text-lg">
-                {serviceDetails.provider?.average_rating && serviceDetails.provider.average_rating > 0 
-                  ? serviceDetails.provider.average_rating.toFixed(1) 
-                  : "Nuevo"}
+                {displayRating.toFixed(1)}
               </span>
             </div>
             
@@ -231,7 +236,7 @@ const ClientServiceDetail = () => {
             {/* Nivel de Experiencia */}
             <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
               <Award className="h-5 w-5 text-amber-600 mr-2" />
-              <span className="font-medium text-amber-700 text-lg">{experienceLevel}</span>
+              <span className="font-medium text-amber-700 text-lg">Nivel {experienceLevel}</span>
             </div>
             
             {/* Location Badge */}

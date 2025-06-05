@@ -10,15 +10,19 @@ interface ProviderAchievementsProps {
 }
 
 const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderAchievementsProps) => {
-  // Determine experience level based on years
+  // Calculate experience level from 1 to 5 based on years
   const getExperienceLevel = (years: number) => {
-    if (years < 1) return 'Novato';
-    if (years < 3) return 'Confiable';
-    if (years < 5) return 'Recomendado';
-    return 'Experto';
+    if (years < 1) return 1;
+    if (years < 2) return 2;
+    if (years < 4) return 3;
+    if (years < 7) return 4;
+    return 5;
   };
 
   const experienceLevel = getExperienceLevel(provider.experienceYears);
+  
+  // Use actual rating or default to 5.0 for new providers
+  const displayRating = provider.rating && provider.rating > 0 ? provider.rating : 5.0;
 
   return (
     <Card className="bg-white border border-stone-200 shadow-sm">
@@ -38,7 +42,7 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
               Calificación promedio
             </div>
             <div className="text-lg font-semibold text-stone-800">
-              {provider.rating && provider.rating > 0 ? provider.rating.toFixed(1) : "Nuevo"}
+              {displayRating.toFixed(1)}
             </div>
           </div>
 
@@ -64,7 +68,7 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
               Nivel de experiencia
             </div>
             <div className="text-lg font-semibold text-stone-800">
-              {experienceLevel}
+              Nivel {experienceLevel}
             </div>
           </div>
         </div>

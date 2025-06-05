@@ -15,20 +15,24 @@ interface ProviderInfoCardProps {
 
 const ProviderInfoCard = ({ 
   provider, 
-  recurringClients, 
+  recurringClients = 0, 
   clientResidencia 
 }: ProviderInfoCardProps) => {
   const experienceYears = provider?.experience_years || 0;
   
-  // Determine experience level based on years
+  // Calculate experience level from 1 to 5 based on years
   const getExperienceLevel = (years: number) => {
-    if (years < 1) return 'Novato';
-    if (years < 3) return 'Confiable';
-    if (years < 5) return 'Recomendado';
-    return 'Experto';
+    if (years < 1) return 1;
+    if (years < 2) return 2;
+    if (years < 4) return 3;
+    if (years < 7) return 4;
+    return 5;
   };
 
   const experienceLevel = getExperienceLevel(experienceYears);
+  
+  // Use actual rating or default to 5.0 for new providers
+  const displayRating = provider?.average_rating && provider.average_rating > 0 ? provider.average_rating : 5.0;
   
   console.log("ProviderInfoCard - Provider avatar URL:", provider?.avatar_url);
   console.log("ProviderInfoCard - Provider name:", provider?.name);
@@ -53,23 +57,21 @@ const ProviderInfoCard = ({
               <div className="flex items-center bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
                 <Star className="h-4 w-4 fill-amber-600 text-amber-600 mr-2" />
                 <span className="font-medium text-amber-700">
-                  {provider?.average_rating && provider.average_rating > 0 
-                    ? provider.average_rating.toFixed(1) 
-                    : "Nuevo"}
+                  {displayRating.toFixed(1)}
                 </span>
               </div>
               
               {/* Clientes Recurrentes */}
               <div className="flex items-center bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
                 <Users className="h-4 w-4 text-amber-600 mr-2" />
-                <span className="font-medium text-amber-700">{recurringClients || 0}</span>
+                <span className="font-medium text-amber-700">{recurringClients}</span>
                 <span className="text-amber-600 text-sm ml-1">recurrentes</span>
               </div>
               
               {/* Nivel de Experiencia */}
               <div className="flex items-center bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
                 <Award className="h-4 w-4 text-amber-600 mr-2" />
-                <span className="font-medium text-amber-700">{experienceLevel}</span>
+                <span className="font-medium text-amber-700">Nivel {experienceLevel}</span>
               </div>
               
               {/* Location Badge - Only show if client has a residence */}
