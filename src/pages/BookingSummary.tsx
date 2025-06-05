@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -207,16 +208,23 @@ const BookingSummary = () => {
   const getLocationDisplay = () => {
     const locationParts = [];
     
-    if (user.residenciaId) {
+    // Add residencia name if available
+    if (user.residencias?.name) {
+      locationParts.push(user.residencias.name);
+    } else if (user.residencia_id) {
       locationParts.push('Residencia registrada');
     }
     
-    if (user.condominiumName) {
-      locationParts.push(user.condominiumName);
+    // Add condominium name if available
+    if (user.condominiums?.name) {
+      locationParts.push(user.condominiums.name);
+    } else if (user.condominium_text) {
+      locationParts.push(user.condominium_text);
     }
     
-    if (user.houseNumber) {
-      locationParts.push(`Casa ${user.houseNumber}`);
+    // Add house number if available
+    if (user.house_number) {
+      locationParts.push(`Casa ${user.house_number}`);
     }
     
     return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
@@ -292,7 +300,6 @@ const BookingSummary = () => {
 
             {bookingData.recurrence && (
               <div className="p-3 bg-blue-50 rounded-md">
-                <p className="text-sm font-medium text-blue-800">Servicio Recurrente</p>
                 <p className="text-xs text-blue-600">
                   Recurrencia: {getRecurrenceText(bookingData.recurrence)}
                 </p>

@@ -115,7 +115,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return appointment.listings?.title || 'Servicio';
   };
 
-  // Enhanced location info function with better formatting for "Citas de Mañana"
+  // Enhanced location info function with consistent formatting
   const getLocationInfo = (appointment: any) => {
     // For external bookings, use the stored client_address
     if (appointment.is_external || appointment.external_booking) {
@@ -128,16 +128,22 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     // Add residencia name if available
     if (appointment.residencias?.name) {
       locationParts.push(appointment.residencias.name);
+    } else if (appointment.residencia_id) {
+      locationParts.push('Residencia registrada');
     }
     
     // Add condominium text if available
     if (appointment.client_condominium) {
       locationParts.push(appointment.client_condominium);
+    } else if (appointment.condominiums?.name) {
+      locationParts.push(appointment.condominiums.name);
     }
     
     // Add house/apartment number if available
     if (appointment.apartment) {
       locationParts.push(`Casa ${appointment.apartment}`);
+    } else if (appointment.house_number) {
+      locationParts.push(`Casa ${appointment.house_number}`);
     }
     
     // Return formatted location or fallback
