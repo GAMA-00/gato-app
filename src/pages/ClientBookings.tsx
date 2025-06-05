@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -6,7 +5,7 @@ import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, X, Flame, Star } from 'lucide-react';
+import { Calendar, Clock, X, Flame, Star, MapPin } from 'lucide-react';
 import { cn, formatTo12Hour } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { useClientBookings, ClientBooking } from '@/hooks/useClientBookings';
@@ -173,6 +172,14 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
               ) : (
                 `${format(booking.date, 'PPP', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
               )}
+            </span>
+          </div>
+          
+          {/* Show complete location */}
+          <div className="flex items-start text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+            <span className="break-words leading-relaxed">
+              {booking.location}
             </span>
           </div>
           

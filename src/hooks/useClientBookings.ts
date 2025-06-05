@@ -9,110 +9,101 @@ export interface ClientBooking {
   subcategory: string;
   date: Date;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  recurrence: string;
   providerId: string;
   providerName: string;
-  recurrence: string;
   isRated: boolean;
+  location: string;
 }
 
-export function useClientBookings() {
+export const useClientBookings = () => {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['client-bookings', user?.id],
-    queryFn: async () => {
-      if (!user || user.role !== 'client') return [];
+    queryFn: async (): Promise<ClientBooking[]> => {
+      if (!user?.id) return [];
 
-      console.log("Fetching client bookings for user:", user.id);
-
-      // Get appointments for this client - including ALL statuses
+      // First get appointments with all related data
       const { data: appointments, error } = await supabase
         .from('appointments')
         .select(`
-          *,
-          listings (
-            id,
+          id,
+          start_time,
+          end_time,
+          status,
+          recurrence,
+          provider_id,
+          client_id,
+          apartment,
+          listings!inner(
             title,
-            description,
             service_type_id,
-            service_types (
-              id,
-              name,
-              category_id,
-              service_categories (
-                id,
-                name,
-                label
-              )
-            )
+            service_types(name)
+          ),
+          users!appointments_provider_id_fkey(
+            name as provider_name
+          ),
+          users!appointments_client_id_fkey(
+            condominium_name,
+            house_number
+          ),
+          residencias(
+            name
           )
         `)
         .eq('client_id', user.id)
         .order('start_time', { ascending: false });
 
       if (error) {
-        console.error("Error fetching client bookings:", error);
+        console.error('Error fetching client bookings:', error);
         throw error;
       }
 
-      if (!appointments || appointments.length === 0) {
-        console.log("No appointments found for client");
-        return [];
-      }
+      if (!appointments?.length) return [];
 
-      console.log("Raw client appointments:", appointments);
-
-      // Get all appointment IDs to check for ratings
-      const appointmentIds = appointments.map(app => app.id);
+      // Get rated appointments
+      const appointmentIds = appointments.map(a => a.id);
       const { data: ratedAppointments } = await supabase
         .rpc('get_rated_appointments', { appointment_ids: appointmentIds });
 
-      const ratedAppointmentIds = new Set(
-        ratedAppointments?.map(rating => rating.appointment_id) || []
-      );
+      const ratedIds = new Set(ratedAppointments?.map((r: any) => r.appointment_id) || []);
 
-      // Get provider information for all appointments
-      const providerIds = [...new Set(appointments.map(app => app.provider_id))];
-      const { data: providers } = await supabase
-        .from('users')
-        .select('id, name')
-        .in('id', providerIds)
-        .eq('role', 'provider');
-
-      const providerMap = new Map(
-        providers?.map(provider => [provider.id, provider.name]) || []
-      );
-
-      // Process the appointments
-      const processedBookings: ClientBooking[] = appointments.map(appointment => {
-        const serviceName = appointment.listings?.title || 
-                           appointment.listings?.service_types?.name || 
-                           'Servicio';
+      return appointments.map(appointment => {
+        // Build location string with proper format
+        const locationParts = [];
         
-        const subcategory = appointment.listings?.service_types?.service_categories?.label ||
-                           appointment.listings?.service_types?.service_categories?.name ||
-                           'Categoría no especificada';
-
-        const providerName = providerMap.get(appointment.provider_id) || 'Proveedor desconocido';
+        // Add residencia name
+        if (appointment.residencias?.name) {
+          locationParts.push(appointment.residencias.name);
+        }
+        
+        // Add condominium name from client's user data
+        if (appointment.users?.condominium_name) {
+          locationParts.push(appointment.users.condominium_name);
+        }
+        
+        // Add house number
+        if (appointment.apartment) {
+          locationParts.push(`#${appointment.apartment}`);
+        } else if (appointment.users?.house_number) {
+          locationParts.push(`#${appointment.users.house_number}`);
+        }
 
         return {
           id: appointment.id,
-          serviceName,
-          subcategory,
+          serviceName: appointment.listings?.title || 'Servicio',
+          subcategory: appointment.listings?.service_types?.name || 'Servicio',
           date: new Date(appointment.start_time),
           status: appointment.status as ClientBooking['status'],
-          providerId: appointment.provider_id,
-          providerName,
           recurrence: appointment.recurrence || 'none',
-          isRated: ratedAppointmentIds.has(appointment.id)
+          providerId: appointment.provider_id,
+          providerName: (appointment.users as any)?.provider_name || 'Proveedor',
+          isRated: ratedIds.has(appointment.id),
+          location: locationParts.length > 0 ? locationParts.join(' – ') : 'Ubicación no especificada'
         };
       });
-
-      console.log("Processed client bookings:", processedBookings);
-      return processedBookings;
     },
-    enabled: !!user && user.role === 'client',
-    refetchInterval: 10000, // Reduce interval to 10 seconds for faster updates
-    retry: 3
+    enabled: !!user?.id,
   });
-}
+};

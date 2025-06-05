@@ -122,7 +122,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       return appointment.client_address || 'Ubicación no especificada';
     }
     
-    // For internal bookings, build the full location format: Residencia - Condominio - Número de Casa
+    // For internal bookings, build the full location format: Residencia – Condominio – #Casa
     let locationParts = [];
     
     // Add residencia name if available
@@ -132,7 +132,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       locationParts.push('Residencia registrada');
     }
     
-    // Add condominium name - use the stored condominium_name field from users table
+    // Add condominium name - prioritize the user's stored condominium_name
     if (appointment.users?.condominium_name) {
       locationParts.push(appointment.users.condominium_name);
     } else if (appointment.client_condominium) {
@@ -141,18 +141,18 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       locationParts.push(appointment.condominiums.name);
     }
     
-    // Add house/apartment number if available
+    // Add house/apartment number with # prefix for consistency
     if (appointment.apartment) {
-      locationParts.push(`Casa ${appointment.apartment}`);
+      locationParts.push(`#${appointment.apartment}`);
     } else if (appointment.house_number) {
-      locationParts.push(`Casa ${appointment.house_number}`);
+      locationParts.push(`#${appointment.house_number}`);
     } else if (appointment.users?.house_number) {
-      locationParts.push(`Casa ${appointment.users.house_number}`);
+      locationParts.push(`#${appointment.users.house_number}`);
     }
     
-    // Return formatted location or fallback
+    // Return formatted location with em dash separator or fallback
     return locationParts.length > 0 
-      ? locationParts.join(' - ') 
+      ? locationParts.join(' – ') 
       : 'Ubicación no especificada';
   };
 

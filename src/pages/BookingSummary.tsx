@@ -219,14 +219,14 @@ const BookingSummary = () => {
       locationParts.push(user.condominiumName);
     }
     
-    // Add house number if available
+    // Add house number with # prefix for consistency
     if (user.houseNumber) {
-      locationParts.push(`Casa ${user.houseNumber}`);
+      locationParts.push(`#${user.houseNumber}`);
     } else if (user.apartment) {
-      locationParts.push(`Casa ${user.apartment}`);
+      locationParts.push(`#${user.apartment}`);
     }
     
-    return locationParts.length > 0 ? locationParts.join(' - ') : 'Ubicación no especificada';
+    return locationParts.length > 0 ? locationParts.join(' – ') : 'Ubicación no especificada';
   };
 
   const formatDate = (date: Date) => {
