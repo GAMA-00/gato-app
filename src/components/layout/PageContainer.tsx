@@ -32,17 +32,17 @@ const PageContainer: React.FC<PageContainerProps> = ({
           "flex flex-col md:flex-row md:items-center justify-center gap-1",
           isMobile ? "mt-0 mb-2" : "mb-6" // Reduced bottom margin on mobile
         )}>
-          {/* Reduced spacing for title container */}
-          <div className="w-full text-center">
+          {/* Center title container with full width */}
+          <div className="w-full flex justify-center">
             <h1 className={cn(
-              "font-bold tracking-tight text-app-text",
+              "font-bold tracking-tight text-app-text text-center",
               isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1" // Smaller title on mobile
             )}>{title}</h1>
-            {subtitle && <div className={cn(
-              "text-app-text/70",
-              isMobile ? "text-base mt-0" : "text-lg mt-1" // Smaller subtitle on mobile, no top margin
-            )}>{subtitle}</div>}
           </div>
+          {subtitle && <div className={cn(
+            "text-app-text/70 text-center w-full",
+            isMobile ? "text-base mt-0" : "text-lg mt-1" // Smaller subtitle on mobile, no top margin
+          )}>{subtitle}</div>}
           {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
         </div>
         

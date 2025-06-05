@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -62,7 +63,11 @@ const ClientCategoryView = () => {
   if (isLoading) {
     return (
       <PageContainer
-        title="Explora nuestras categorías de servicio"
+        title={
+          <div className="text-center w-full">
+            Explora nuestras categorías de servicio
+          </div>
+        }
         className="pt-0 bg-white"
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto">
@@ -80,7 +85,11 @@ const ClientCategoryView = () => {
   
   return (
     <PageContainer
-      title="Explora nuestras categorías de servicio"
+      title={
+        <div className="text-center w-full">
+          Explora nuestras categorías de servicio
+        </div>
+      }
       className="pt-0 bg-white"
     >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto animate-fade-in">

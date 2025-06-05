@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -193,7 +194,7 @@ const ClientCategoryDetails = () => {
   return (
     <PageContainer
       title={
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-center space-x-3 w-full">
           <div className="p-2 rounded-lg bg-luxury-beige/70">
             <CategoryIcon size={32} strokeWidth={2} className="text-luxury-navy" />
           </div>
