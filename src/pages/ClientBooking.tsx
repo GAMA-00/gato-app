@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -34,9 +35,21 @@ const ClientBooking = () => {
   const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
   const [notes, setNotes] = useState<string>('');
 
-  // Scroll to top when component mounts
+  // Enhanced scroll to top for mobile devices
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use setTimeout to ensure DOM is fully rendered
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    
+    scrollToTop();
+    
+    // Double-check after a short delay for mobile browsers
+    const timeoutId = setTimeout(scrollToTop, 50);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
