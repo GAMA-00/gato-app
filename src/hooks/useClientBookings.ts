@@ -42,7 +42,7 @@ export const useClientBookings = () => {
             service_types(name)
           ),
           users!appointments_provider_id_fkey(
-            name as provider_name,
+            name,
             condominium_name,
             house_number
           ),
@@ -96,7 +96,7 @@ export const useClientBookings = () => {
           status: appointment.status as ClientBooking['status'],
           recurrence: appointment.recurrence || 'none',
           providerId: appointment.provider_id,
-          providerName: (appointment.users as any)?.provider_name || 'Proveedor',
+          providerName: (appointment.users as any)?.name || 'Proveedor',
           isRated: ratedIds.has(appointment.id),
           location: locationParts.length > 0 ? locationParts.join(' – ') : 'Ubicación no especificada'
         };
