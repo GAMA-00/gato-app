@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -36,6 +36,11 @@ const BookingSummary = () => {
   const [isBooking, setIsBooking] = useState(false);
 
   const bookingData = location.state as BookingData;
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   if (!bookingData) {
     return (
