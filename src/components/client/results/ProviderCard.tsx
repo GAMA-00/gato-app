@@ -2,10 +2,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, ChevronRight, Clock, BadgeCheck, Users, Shield, ImageIcon } from 'lucide-react';
+import { Star, ChevronRight, Clock, Users, Award, ImageIcon } from 'lucide-react';
 import { ProcessedProvider } from './types';
 import { Badge } from '@/components/ui/badge';
-import ProviderExperienceLevel from './ProviderExperienceLevel';
 
 interface ProviderCardProps {
   provider: ProcessedProvider;
@@ -18,6 +17,16 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
 
   // Get all images from gallery (no limit)
   const allImages = provider.galleryImages || [];
+
+  // Determine experience level based on years
+  const getExperienceLevel = (years: number) => {
+    if (years < 1) return 'Novato';
+    if (years < 3) return 'Confiable';
+    if (years < 5) return 'Recomendado';
+    return 'Experto';
+  };
+
+  const experienceLevel = getExperienceLevel(provider.experience || 0);
 
   return (
     <Card 
@@ -38,39 +47,29 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
           <div className="ml-3 flex-1">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-luxury-navy">{provider.name}</h3>
-              <div className="flex items-center bg-yellow-50 px-1.5 py-0.5 rounded-md">
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-                <span className="font-medium text-sm text-yellow-700">{provider.rating > 0 ? provider.rating.toFixed(1) : "Nuevo"}</span>
-              </div>
             </div>
             
-            <div className="flex flex-wrap gap-1 mt-1">
-              {/* Experience Level - Always show this as it represents the provider's current level */}
-              <ProviderExperienceLevel experienceYears={provider.experience || 0} />
+            {/* Metrics Row */}
+            <div className="flex items-center gap-3 mt-2">
+              {/* Calificación */}
+              <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                <Star className="h-3 w-3 fill-amber-600 text-amber-600 mr-1" />
+                <span className="font-medium text-xs text-amber-700">
+                  {provider.rating > 0 ? provider.rating.toFixed(1) : "Nuevo"}
+                </span>
+              </div>
               
-              {/* Certifications Badge - Only show if provider has certifications */}
-              {provider.hasCertifications && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 flex items-center gap-1 text-xs py-0.5">
-                  <BadgeCheck className="h-3 w-3" />
-                  Certificado
-                </Badge>
-              )}
+              {/* Clientes Recurrentes */}
+              <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                <Users className="h-3 w-3 text-amber-600 mr-1" />
+                <span className="font-medium text-xs text-amber-700">{provider.recurringClients}</span>
+              </div>
               
-              {/* Services Completed - Only show if there are completed services */}
-              {provider.servicesCompleted > 0 && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 flex items-center gap-1 text-xs py-0.5">
-                  <Users className="h-3 w-3" />
-                  {provider.servicesCompleted} servicios
-                </Badge>
-              )}
-              
-              {/* Recurring Clients - Only show if there are recurring clients */}
-              {provider.recurringClients > 0 && (
-                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-100 flex items-center gap-1 text-xs py-0.5">
-                  <Users className="h-3 w-3" />
-                  {provider.recurringClients} recurrentes
-                </Badge>
-              )}
+              {/* Nivel de Experiencia */}
+              <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                <Award className="h-3 w-3 text-amber-600 mr-1" />
+                <span className="font-medium text-xs text-amber-700">{experienceLevel}</span>
+              </div>
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, BadgeCheck, Users, MapPin } from 'lucide-react';
+import { ArrowLeft, Star, Users, Award, MapPin } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +17,6 @@ import { useServiceDetail } from '@/components/client/service/useServiceDetail';
 import ProviderBio from '@/components/client/service/ProviderBio';
 import ServiceDescription from '@/components/client/service/ServiceDescription';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
-import ProviderExperienceLevel from '@/components/client/results/ProviderExperienceLevel';
 
 const ClientServiceDetail = () => {
   const { providerId, serviceId } = useParams<{ providerId: string; serviceId: string }>();
@@ -173,9 +172,16 @@ const ClientServiceDetail = () => {
   }];
 
   const experienceYears = serviceDetails.provider?.experience_years || 0;
-  const hasCertifications = serviceDetails.provider?.certificationFiles && 
-                          Array.isArray(serviceDetails.provider.certificationFiles) && 
-                          serviceDetails.provider.certificationFiles.length > 0;
+  
+  // Determine experience level based on years
+  const getExperienceLevel = (years: number) => {
+    if (years < 1) return 'Novato';
+    if (years < 3) return 'Confiable';
+    if (years < 5) return 'Recomendado';
+    return 'Experto';
+  };
+
+  const experienceLevel = getExperienceLevel(experienceYears);
   
   return (
     <PageContainer
@@ -203,52 +209,35 @@ const ClientServiceDetail = () => {
           
           <h1 className="text-3xl font-bold text-app-text mb-2">{serviceDetails.provider?.name || 'Proveedor'}</h1>
           
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-yellow-50 px-3 py-1 rounded-md flex items-center">
-              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-2" />
-              <span className="font-medium text-yellow-700 text-lg">
+          {/* Metrics Row */}
+          <div className="flex flex-wrap justify-center gap-3 mb-6">
+            {/* Calificación Promedio */}
+            <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+              <Star className="h-5 w-5 fill-amber-600 text-amber-600 mr-2" />
+              <span className="font-medium text-amber-700 text-lg">
                 {serviceDetails.provider?.average_rating && serviceDetails.provider.average_rating > 0 
                   ? serviceDetails.provider.average_rating.toFixed(1) 
                   : "Nuevo"}
               </span>
-              {serviceDetails.provider?.ratingCount && serviceDetails.provider.ratingCount > 0 && (
-                <span className="text-muted-foreground text-sm ml-2">({serviceDetails.provider.ratingCount} reseñas)</span>
-              )}
             </div>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
-            {/* Experience Level Badge */}
-            <ProviderExperienceLevel experienceYears={experienceYears} />
             
-            {/* Certifications Badge */}
-            {hasCertifications && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 flex items-center gap-1">
-                <BadgeCheck className="h-3 w-3" />
-                Certificado
-              </Badge>
-            )}
+            {/* Clientes Recurrentes */}
+            <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+              <Users className="h-5 w-5 text-amber-600 mr-2" />
+              <span className="font-medium text-amber-700 text-lg">{serviceDetails.recurringClients || 0}</span>
+              <span className="text-amber-600 text-sm ml-1">recurrentes</span>
+            </div>
             
-            {/* Services Completed Badge */}
-            {serviceDetails.provider?.servicesCompleted && serviceDetails.provider.servicesCompleted > 0 && (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {serviceDetails.provider.servicesCompleted} servicios completados
-              </Badge>
-            )}
-            
-            {/* Recurring Clients Badge */}
-            {serviceDetails.recurringClients && serviceDetails.recurringClients > 0 && (
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-100 flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {serviceDetails.recurringClients} clientes recurrentes
-              </Badge>
-            )}
+            {/* Nivel de Experiencia */}
+            <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+              <Award className="h-5 w-5 text-amber-600 mr-2" />
+              <span className="font-medium text-amber-700 text-lg">{experienceLevel}</span>
+            </div>
             
             {/* Location Badge */}
             {serviceDetails.clientResidencia && (
-              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-100 flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-100 flex items-center gap-1 px-4 py-2">
+                <MapPin className="h-4 w-4" />
                 {serviceDetails.clientResidencia.name}
               </Badge>
             )}
