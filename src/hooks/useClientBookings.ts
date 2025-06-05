@@ -24,136 +24,193 @@ export const useClientBookings = () => {
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
-      // First get appointments with all related data
-      const { data: appointments, error } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          start_time,
-          end_time,
-          status,
-          recurrence,
-          provider_id,
-          client_id,
-          apartment,
-          residencia_id,
-          external_booking,
-          client_address,
-          listings!inner(
-            title,
-            service_type_id,
-            service_types(name)
-          ),
-          users!appointments_provider_id_fkey(
-            name,
-            condominium_name,
-            house_number,
-            residencia_id,
-            condominium_id
-          )
-        `)
-        .eq('client_id', user.id)
-        .order('start_time', { ascending: false });
+      console.log('Fetching client bookings for user:', user.id);
 
-      if (error) {
-        console.error('Error fetching client bookings:', error);
+      try {
+        // First get appointments with basic data
+        const { data: appointments, error } = await supabase
+          .from('appointments')
+          .select(`
+            id,
+            start_time,
+            end_time,
+            status,
+            recurrence,
+            provider_id,
+            client_id,
+            apartment,
+            residencia_id,
+            external_booking,
+            client_address,
+            listing_id
+          `)
+          .eq('client_id', user.id)
+          .order('start_time', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching client bookings:', error);
+          throw error;
+        }
+
+        if (!appointments?.length) {
+          console.log('No appointments found for client');
+          return [];
+        }
+
+        console.log(`Found ${appointments.length} appointments for client`);
+
+        // Get unique listing IDs to fetch service information
+        const listingIds = [...new Set(appointments.map(a => a.listing_id).filter(Boolean))];
+        let listingsMap = new Map();
+
+        if (listingIds.length > 0) {
+          const { data: listings } = await supabase
+            .from('listings')
+            .select(`
+              id,
+              title,
+              service_type_id,
+              service_types(name)
+            `)
+            .in('id', listingIds);
+
+          if (listings) {
+            listingsMap = new Map(listings.map(l => [l.id, l]));
+          }
+        }
+
+        // Get unique provider IDs to fetch provider information
+        const providerIds = [...new Set(appointments.map(a => a.provider_id).filter(Boolean))];
+        let providersMap = new Map();
+
+        if (providerIds.length > 0) {
+          const { data: providers } = await supabase
+            .from('users')
+            .select(`
+              id,
+              name,
+              house_number,
+              residencia_id,
+              condominium_name,
+              condominium_id
+            `)
+            .in('id', providerIds);
+
+          if (providers) {
+            providersMap = new Map(providers.map(p => [p.id, p]));
+          }
+        }
+
+        // Get unique residencia IDs for batch fetching
+        const residenciaIds = [...new Set(
+          appointments
+            .map(a => a.residencia_id || providersMap.get(a.provider_id)?.residencia_id)
+            .filter(Boolean)
+        )];
+        
+        let residenciasMap = new Map();
+        if (residenciaIds.length > 0) {
+          const { data: residencias } = await supabase
+            .from('residencias')
+            .select('id, name, address')
+            .in('id', residenciaIds);
+          
+          if (residencias) {
+            residenciasMap = new Map(residencias.map(r => [r.id, r]));
+          }
+        }
+
+        // Get unique condominium IDs for batch fetching
+        const condominiumIds = [...new Set(
+          appointments
+            .map(a => providersMap.get(a.provider_id)?.condominium_id)
+            .filter(id => id && !id.startsWith('static-'))
+        )];
+
+        let condominiumsMap = new Map();
+        if (condominiumIds.length > 0) {
+          const { data: condominiums } = await supabase
+            .from('condominiums')
+            .select('id, name')
+            .in('id', condominiumIds);
+          
+          if (condominiums) {
+            condominiumsMap = new Map(condominiums.map(c => [c.id, c]));
+          }
+        }
+
+        // Get rated appointments
+        const appointmentIds = appointments.map(a => a.id);
+        const { data: ratedAppointments } = await supabase
+          .rpc('get_rated_appointments', { appointment_ids: appointmentIds });
+
+        const ratedIds = new Set(ratedAppointments?.map((r: any) => r.appointment_id) || []);
+
+        console.log('Processing appointments with complete data...');
+
+        return appointments.map(appointment => {
+          const listing = listingsMap.get(appointment.listing_id);
+          const provider = providersMap.get(appointment.provider_id);
+          
+          // Build complete location string
+          const buildLocationString = () => {
+            if (appointment.external_booking) {
+              return appointment.client_address || 'Ubicación externa';
+            }
+
+            const parts = [];
+            
+            // Add residencia name
+            const residenciaId = appointment.residencia_id || provider?.residencia_id;
+            const residencia = residenciasMap.get(residenciaId);
+            if (residencia?.name) {
+              parts.push(residencia.name);
+            }
+            
+            // Add condominium name
+            const condominiumId = provider?.condominium_id;
+            const condominium = condominiumsMap.get(condominiumId);
+            const condominiumName = condominium?.name || provider?.condominium_name;
+            if (condominiumName) {
+              parts.push(condominiumName);
+            }
+            
+            // Add house number
+            const houseNumber = appointment.apartment || provider?.house_number;
+            if (houseNumber) {
+              parts.push(`#${houseNumber}`);
+            }
+
+            return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+          };
+
+          const result = {
+            id: appointment.id,
+            serviceName: listing?.title || 'Servicio',
+            subcategory: listing?.service_types?.name || 'Servicio',
+            date: new Date(appointment.start_time),
+            status: appointment.status as ClientBooking['status'],
+            recurrence: appointment.recurrence || 'none',
+            providerId: appointment.provider_id,
+            providerName: provider?.name || 'Proveedor',
+            isRated: ratedIds.has(appointment.id),
+            location: buildLocationString()
+          };
+
+          console.log(`Processed appointment ${appointment.id}:`, {
+            serviceName: result.serviceName,
+            providerName: result.providerName,
+            location: result.location,
+            status: result.status
+          });
+
+          return result;
+        });
+
+      } catch (error) {
+        console.error('Error in useClientBookings:', error);
         throw error;
       }
-
-      if (!appointments?.length) return [];
-
-      // Get all unique residencia and condominium IDs for batch fetching
-      const residenciaIds = [...new Set(
-        appointments
-          .map(a => a.residencia_id || (a.users as any)?.residencia_id)
-          .filter(Boolean)
-      )];
-      
-      const condominiumIds = [...new Set(
-        appointments
-          .map(a => (a.users as any)?.condominium_id)
-          .filter(id => id && !id.startsWith('static-'))
-      )];
-
-      // Batch fetch residencias
-      let residenciasMap = new Map();
-      if (residenciaIds.length > 0) {
-        const { data: residencias } = await supabase
-          .from('residencias')
-          .select('id, name, address')
-          .in('id', residenciaIds);
-        
-        if (residencias) {
-          residenciasMap = new Map(residencias.map(r => [r.id, r]));
-        }
-      }
-
-      // Batch fetch condominiums
-      let condominiumsMap = new Map();
-      if (condominiumIds.length > 0) {
-        const { data: condominiums } = await supabase
-          .from('condominiums')
-          .select('id, name')
-          .in('id', condominiumIds);
-        
-        if (condominiums) {
-          condominiumsMap = new Map(condominiums.map(c => [c.id, c]));
-        }
-      }
-
-      // Get rated appointments
-      const appointmentIds = appointments.map(a => a.id);
-      const { data: ratedAppointments } = await supabase
-        .rpc('get_rated_appointments', { appointment_ids: appointmentIds });
-
-      const ratedIds = new Set(ratedAppointments?.map((r: any) => r.appointment_id) || []);
-
-      return appointments.map(appointment => {
-        // Build complete location string
-        const buildLocationString = () => {
-          if (appointment.external_booking) {
-            return appointment.client_address || 'Ubicación externa';
-          }
-
-          const parts = [];
-          
-          // Add residencia name
-          const residenciaId = appointment.residencia_id || (appointment.users as any)?.residencia_id;
-          const residencia = residenciasMap.get(residenciaId);
-          if (residencia?.name) {
-            parts.push(residencia.name);
-          }
-          
-          // Add condominium name
-          const condominiumId = (appointment.users as any)?.condominium_id;
-          const condominium = condominiumsMap.get(condominiumId);
-          const condominiumName = condominium?.name || (appointment.users as any)?.condominium_name;
-          if (condominiumName) {
-            parts.push(condominiumName);
-          }
-          
-          // Add house number
-          const houseNumber = appointment.apartment || (appointment.users as any)?.house_number;
-          if (houseNumber) {
-            parts.push(`#${houseNumber}`);
-          }
-
-          return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
-        };
-
-        return {
-          id: appointment.id,
-          serviceName: appointment.listings?.title || 'Servicio',
-          subcategory: appointment.listings?.service_types?.name || 'Servicio',
-          date: new Date(appointment.start_time),
-          status: appointment.status as ClientBooking['status'],
-          recurrence: appointment.recurrence || 'none',
-          providerId: appointment.provider_id,
-          providerName: (appointment.users as any)?.name || 'Proveedor',
-          isRated: ratedIds.has(appointment.id),
-          location: buildLocationString()
-        };
-      });
     },
     enabled: !!user?.id,
   });
