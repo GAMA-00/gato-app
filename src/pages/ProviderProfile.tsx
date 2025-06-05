@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -188,6 +187,25 @@ const ProviderProfilePage = () => {
     enabled: !!providerId
   });
   
+  // Fetch recurring clients count for this provider
+  const { data: recurringClientsCount = 0 } = useQuery({
+    queryKey: ['recurring-clients', providerId],
+    queryFn: async () => {
+      if (!providerId) return 0;
+      
+      const { data, error } = await supabase
+        .rpc('get_recurring_clients_count', { provider_id: providerId });
+        
+      if (error) {
+        console.error('Error fetching recurring clients count:', error);
+        return 0;
+      }
+      
+      return data || 0;
+    },
+    enabled: !!providerId
+  });
+  
   const handleServiceSelection = (serviceId: string, optionId: string) => {
     if (!bookingData) {
       toast.error("No se encontró información de reserva");
@@ -300,13 +318,19 @@ const ProviderProfilePage = () => {
               bookingMode={!!bookingData}
             />
             <ProviderInfo provider={provider} />
-            <ProviderAchievements provider={provider} />
+            <ProviderAchievements 
+              provider={provider} 
+              recurringClientsCount={recurringClientsCount}
+            />
           </TabsContent>
           
           <TabsContent value="about" className="space-y-6">
             <ProviderAbout provider={provider} />
             <ProviderInfo provider={provider} />
-            <ProviderAchievements provider={provider} />
+            <ProviderAchievements 
+              provider={provider} 
+              recurringClientsCount={recurringClientsCount}
+            />
           </TabsContent>
           
           <TabsContent value="gallery" className="space-y-6">
