@@ -145,7 +145,7 @@ export const useAppointments = () => {
               }
             }
 
-            // Build complete location string
+            // Build complete location string with consistent logic
             const buildLocationString = () => {
               const parts = [];
               
@@ -154,16 +154,25 @@ export const useAppointments = () => {
                 parts.push(residenciaInfo.name);
               }
               
-              // Add condominium name (prioritize database condominium, then user's stored name)
+              // Add condominium name - prioritize database condominium, then user's stored name
               const condominiumName = condominiumInfo?.name || clientInfo?.condominium_name;
               if (condominiumName) {
                 parts.push(condominiumName);
               }
               
-              // Add house/apartment number
+              // Add house/apartment number - prioritize appointment apartment, then client house_number
               const houseNumber = appointment.apartment || clientInfo?.house_number;
               if (houseNumber) {
-                parts.push(`#${houseNumber}`);
+                // Ensure consistent format with "Casa" prefix if it's just a number
+                if (/^\d+$/.test(houseNumber)) {
+                  parts.push(`Casa ${houseNumber}`);
+                } else if (!houseNumber.toLowerCase().includes('casa') && !houseNumber.startsWith('#')) {
+                  parts.push(`Casa ${houseNumber}`);
+                } else if (houseNumber.startsWith('#')) {
+                  parts.push(houseNumber.replace('#', 'Casa '));
+                } else {
+                  parts.push(houseNumber);
+                }
               }
               
               return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
@@ -173,6 +182,14 @@ export const useAppointments = () => {
             const locationString = appointment.external_booking || !appointment.client_id
               ? (appointment.client_address || 'Ubicación externa')
               : buildLocationString();
+
+            console.log(`Building location for appointment ${appointment.id}:`, {
+              residencia: residenciaInfo?.name,
+              condominium: condominiumInfo?.name || clientInfo?.condominium_name,
+              apartment: appointment.apartment,
+              house_number: clientInfo?.house_number,
+              final_location: locationString
+            });
 
             // Build the enriched appointment object
             return {
