@@ -7,7 +7,7 @@ import { Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useStats } from '@/hooks/useStats';
-import { startOfToday, startOfTomorrow, endOfTomorrow, isSameDay } from 'date-fns';
+import { startOfToday, startOfTomorrow, isSameDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -71,7 +71,7 @@ const Dashboard = () => {
     }
   }, [appointments, today, tomorrow]);
 
-  // Simplified auto-update with better error handling
+  // Auto-update appointment statuses
   useEffect(() => {
     if (!user || !appointments?.length) return;
 
@@ -100,13 +100,12 @@ const Dashboard = () => {
       }
     };
     
-    // Set up interval with longer period to reduce load
     const interval = setInterval(updateAppointmentStatuses, 300000); // Every 5 minutes
     
     return () => clearInterval(interval);
   }, [user?.id, appointments?.length, queryClient]);
 
-  // Show loading state
+  // Show loading state with better UX
   if (isLoadingAppointments || isLoadingStats) {
     return (
       <PageContainer title="Inicio" subtitle="Bienvenido de nuevo">
@@ -119,27 +118,45 @@ const Dashboard = () => {
     );
   }
 
-  // Show error state if there are critical errors
-  if (appointmentsError || statsError) {
-    console.error("Dashboard errors:", { appointmentsError, statsError });
+  // Show error state with more detailed information
+  if (appointmentsError) {
+    console.error("Dashboard appointments error:", appointmentsError);
     return (
       <PageContainer title="Inicio" subtitle="Bienvenido de nuevo">
-        <Alert>
-          <AlertDescription>
-            Hubo un problema cargando la información del dashboard. Por favor, recarga la página.
-            {appointmentsError && <div className="mt-2 text-sm">Error de citas: {appointmentsError.message}</div>}
-            {statsError && <div className="mt-2 text-sm">Error de estadísticas: {statsError.message}</div>}
+        <Alert className="mb-6">
+          <AlertDescription className="space-y-2">
+            <div>Hubo un problema cargando las citas. Por favor, recarga la página.</div>
+            <details className="text-xs mt-2">
+              <summary className="cursor-pointer font-medium">Detalles del error</summary>
+              <div className="mt-1 text-muted-foreground">
+                {appointmentsError.message || 'Error desconocido'}
+              </div>
+            </details>
           </AlertDescription>
         </Alert>
+        
+        {/* Show stats if available, even if appointments failed */}
+        {stats && !statsError && <DashboardStats stats={stats} />}
       </PageContainer>
     );
   }
+
+  // Show warning for stats error but continue with appointments
+  const hasStatsError = statsError && !isLoadingStats;
 
   // Render content based on user role
   const renderContent = () => {
     if (user?.role === 'provider') {
       return (
         <div className="space-y-6">
+          {hasStatsError && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                No se pudieron cargar las estadísticas, pero las citas están disponibles.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Citas de Hoy"
