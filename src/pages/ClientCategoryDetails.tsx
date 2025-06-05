@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -8,7 +7,7 @@ import {
   ArrowLeft, Book, Home, Scissors, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
   GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
-  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, ShowerHead, HeartHandshake, PawPrint, BicepsFlexed
+  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, ShowerHead, HeartHandshake, PawPrint, BicepsFlexed, HandHeart
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,7 +34,8 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Plomería': Wrench,
   'Electricista': Wrench,
   'Mantenimiento': Wrench,
-  'Jardinería': Sprout,  // Updated to Sprout
+  'Jardinería': Sprout,  // Changed to Sprout as requested
+  'Jardinero': Sprout,   // Added Jardinero with Sprout icon
   'Planchado': Shirt,    // Updated to Shirt
   
   // Clases
@@ -80,7 +80,8 @@ const serviceIconMap: Record<string, LucideIcon> = {
   'Cuidado infantil': Baby,
   'Costura': Shirt,
   'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': HeartHandshake, // Changed from Heart to HeartHandshake as requested
+  'Cuidado Adulto mayor': HandHeart, // Changed to HandHeart as requested
+  'Cuidado Adulto Mayor': HandHeart, // Added variation with capital M
   'Niñera': Shapes,      // Added Niñera
   'Fotógrafo': Camera,  // Corrected spelling
   'Fotografo': Camera    // Keep for backward compatibility
