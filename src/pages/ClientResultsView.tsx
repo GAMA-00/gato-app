@@ -2,8 +2,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import BackButton from '@/components/ui/back-button';
 import { useNavigate } from 'react-router-dom';
 import ProvidersList from '@/components/client/results/ProvidersList';
 
@@ -20,17 +19,11 @@ const ClientResultsView = () => {
   return (
     <PageContainer
       title="Profesionales disponibles"
-      subtitle={
-        <Button 
-          variant="ghost" 
-          onClick={handleBack} 
-          className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={16} className="mr-1" />
-          <span>Volver</span>
-        </Button>
-      }
     >
+      <div className="mb-4">
+        <BackButton onClick={handleBack} />
+      </div>
+      
       <div className="max-w-6xl mx-auto">
         <ProvidersList 
           categoryName={categoryName || ''}

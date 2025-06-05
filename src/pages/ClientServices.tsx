@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import BackButton from '@/components/ui/back-button';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCommissionRate } from '@/hooks/useCommissionRate';
@@ -130,9 +130,11 @@ const ClientServices = () => {
     return (
       <PageContainer
         title="Servicios Disponibles"
-        subtitle={backButton}
         className="pt-1"
       >
+        <div className="mb-4">
+          <BackButton onClick={handleBack} />
+        </div>
         <div className="grid gap-8">
           {[1, 2, 3].map(i => (
             <div key={i} className="space-y-4">
@@ -152,13 +154,12 @@ const ClientServices = () => {
   return (
     <PageContainer
       title="Servicios Disponibles"
-      subtitle={
-        <div className="mt-2">
-          {backButton}
-        </div>
-      }
       className="pt-1"
     >
+      <div className="mb-4">
+        <BackButton onClick={handleBack} />
+      </div>
+      
       <div className="space-y-12">
         {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => {
           // Obtener la información de categoría o usar valores predeterminados

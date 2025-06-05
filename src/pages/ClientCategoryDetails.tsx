@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import BackButton from '@/components/ui/back-button';
 import { 
   ArrowLeft, Book, Home, Scissors, Globe, Dumbbell, LucideIcon, Car,
   Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
 const iconMap: Record<string, LucideIcon> = {
@@ -171,25 +172,15 @@ const ClientCategoryDetails = () => {
   // Determinar la etiqueta en español
   const displayLabel = categoryName ? categoryLabels[categoryName] || categoryInfo?.label || '' : '';
 
-  // Create the back button as a React element
-  const backButton = (
-    <Button 
-      variant="outline" 
-      onClick={handleBack} 
-      className="px-4 py-2 h-auto border-luxury-navy/10 text-luxury-navy hover:bg-luxury-beige/50 hover:text-luxury-navy"
-    >
-      <ArrowLeft size={16} className="mr-2" />
-      <span>Volver</span>
-    </Button>
-  );
-
   if (isLoading) {
     return (
       <PageContainer
         title="Cargando servicios..."
-        subtitle={backButton}
-        className="bg-white" // Fondo blanco
+        className="bg-white"
       >
+        <div className="mb-4">
+          <BackButton onClick={handleBack} />
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Skeleton key={i} className="h-28 md:h-36 rounded-lg" />
@@ -209,9 +200,12 @@ const ClientCategoryDetails = () => {
           <span className="font-semibold text-luxury-navy">{displayLabel}</span>
         </div>
       }
-      subtitle={backButton}
-      className="pt-1 bg-white" // Fondo blanco
+      className="pt-1 bg-white"
     >
+      <div className="mb-4">
+        <BackButton onClick={handleBack} />
+      </div>
+      
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => {
           // Determinar el icono para este servicio específico
@@ -220,7 +214,7 @@ const ClientCategoryDetails = () => {
           return (
             <Card 
               key={service.id}
-              className={`flex flex-col items-center p-3 md:p-6 hover:shadow-luxury transition-all cursor-pointer bg-[#F2F2F2] justify-center group ${isMobile ? 'h-28' : 'h-36'}`} // Tarjetas más oscuras
+              className={`flex flex-col items-center p-3 md:p-6 hover:shadow-luxury transition-all cursor-pointer bg-[#F2F2F2] justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
               onClick={() => handleServiceSelect(service.id)}
             >
               <div className="p-2 rounded-full bg-luxury-beige/50 mb-3 group-hover:bg-luxury-beige transition-colors">

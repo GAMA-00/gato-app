@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
+import BackButton from '@/components/ui/back-button';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -138,17 +138,11 @@ const ClientBooking = () => {
   return (
     <PageContainer
       title="Agenda tu servicio"
-      subtitle={
-        <Button 
-          variant="ghost" 
-          onClick={handleBack} 
-          className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={16} className="mr-1" />
-          <span>Volver</span>
-        </Button>
-      }
     >
+      <div className="mb-4">
+        <BackButton onClick={handleBack} />
+      </div>
+      
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Recurrence Selection */}
         <RecurrenceSelector 
