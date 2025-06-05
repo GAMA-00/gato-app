@@ -42,12 +42,13 @@ export const useAppointments = () => {
 
         console.log(`Found ${appointments.length} appointments`);
 
-        // Now enrich the appointments with user and residencia information
+        // Now enrich the appointments with complete location information
         const enrichedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
             let clientInfo = null;
             let providerInfo = null;
             let residenciaInfo = null;
+            let condominiumInfo = null;
 
             // Get client information if not external booking
             if (appointment.client_id && !appointment.external_booking) {
@@ -61,7 +62,8 @@ export const useAppointments = () => {
                     email,
                     house_number,
                     residencia_id,
-                    condominium_name
+                    condominium_name,
+                    condominium_id
                   `)
                   .eq('id', appointment.client_id)
                   .single();
@@ -83,7 +85,11 @@ export const useAppointments = () => {
                     id,
                     name,
                     phone,
-                    email
+                    email,
+                    house_number,
+                    residencia_id,
+                    condominium_name,
+                    condominium_id
                   `)
                   .eq('id', appointment.provider_id)
                   .single();
@@ -96,7 +102,7 @@ export const useAppointments = () => {
               }
             }
 
-            // Get residencia information if there's a residencia_id in the appointment or client
+            // Get residencia information - prioritize appointment's residencia_id, then client's
             const residenciaId = appointment.residencia_id || clientInfo?.residencia_id;
             if (residenciaId) {
               try {
@@ -104,7 +110,8 @@ export const useAppointments = () => {
                   .from('residencias')
                   .select(`
                     id,
-                    name
+                    name,
+                    address
                   `)
                   .eq('id', residenciaId)
                   .single();
@@ -116,6 +123,56 @@ export const useAppointments = () => {
                 console.error('Error fetching residencia data:', error);
               }
             }
+
+            // Get condominium information if available
+            const condominiumId = clientInfo?.condominium_id;
+            if (condominiumId && !condominiumId.startsWith('static-')) {
+              try {
+                const { data: condominiumData, error: condominiumError } = await supabase
+                  .from('condominiums')
+                  .select(`
+                    id,
+                    name
+                  `)
+                  .eq('id', condominiumId)
+                  .single();
+
+                if (!condominiumError && condominiumData) {
+                  condominiumInfo = condominiumData;
+                }
+              } catch (error) {
+                console.error('Error fetching condominium data:', error);
+              }
+            }
+
+            // Build complete location string
+            const buildLocationString = () => {
+              const parts = [];
+              
+              // Add residencia name
+              if (residenciaInfo?.name) {
+                parts.push(residenciaInfo.name);
+              }
+              
+              // Add condominium name (prioritize database condominium, then user's stored name)
+              const condominiumName = condominiumInfo?.name || clientInfo?.condominium_name;
+              if (condominiumName) {
+                parts.push(condominiumName);
+              }
+              
+              // Add house/apartment number
+              const houseNumber = appointment.apartment || clientInfo?.house_number;
+              if (houseNumber) {
+                parts.push(`#${houseNumber}`);
+              }
+              
+              return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+            };
+
+            // For external bookings, use the stored address
+            const locationString = appointment.external_booking || !appointment.client_id
+              ? (appointment.client_address || 'Ubicación externa')
+              : buildLocationString();
 
             // Build the enriched appointment object
             return {
@@ -132,11 +189,13 @@ export const useAppointments = () => {
                 : clientInfo?.email,
               client_condominium: appointment.external_booking
                 ? null
-                : clientInfo?.condominium_name,
+                : (condominiumInfo?.name || clientInfo?.condominium_name),
               // Provider information
               provider_name: providerInfo?.name || appointment.provider_name || 'Proveedor desconocido',
-              // Residencia information
+              // Complete location information
               residencias: residenciaInfo,
+              condominiums: condominiumInfo,
+              complete_location: locationString,
               // Additional metadata
               is_external: appointment.external_booking || !appointment.client_id,
               // User information for easier access
@@ -146,7 +205,8 @@ export const useAppointments = () => {
                 email: clientInfo.email,
                 house_number: clientInfo.house_number,
                 condominium_name: clientInfo.condominium_name,
-                residencias: residenciaInfo
+                residencias: residenciaInfo,
+                condominiums: condominiumInfo
               } : null
             };
           })

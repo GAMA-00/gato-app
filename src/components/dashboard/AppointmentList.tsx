@@ -115,42 +115,41 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return appointment.listings?.title || 'Servicio';
   };
 
-  // Enhanced location info function with consistent formatting
+  // Enhanced location info function using the new complete_location field
   const getLocationInfo = (appointment: any) => {
-    // For external bookings, use the stored client_address
-    if (appointment.is_external || appointment.external_booking) {
-      return appointment.client_address || 'Ubicación no especificada';
+    // Use the pre-computed complete location if available
+    if (appointment.complete_location) {
+      return appointment.complete_location;
     }
     
-    // For internal bookings, build the full location format: Residencia – Condominio – #Casa
+    // Fallback to building location manually (for backward compatibility)
+    if (appointment.is_external || appointment.external_booking) {
+      return appointment.client_address || 'Ubicación externa';
+    }
+    
     let locationParts = [];
     
     // Add residencia name if available
     if (appointment.residencias?.name) {
       locationParts.push(appointment.residencias.name);
-    } else if (appointment.residencia_id) {
-      locationParts.push('Residencia registrada');
     }
     
-    // Add condominium name - prioritize the user's stored condominium_name
-    if (appointment.users?.condominium_name) {
-      locationParts.push(appointment.users.condominium_name);
-    } else if (appointment.client_condominium) {
+    // Add condominium name
+    if (appointment.client_condominium) {
       locationParts.push(appointment.client_condominium);
     } else if (appointment.condominiums?.name) {
       locationParts.push(appointment.condominiums.name);
+    } else if (appointment.users?.condominium_name) {
+      locationParts.push(appointment.users.condominium_name);
     }
     
-    // Add house/apartment number with # prefix for consistency
+    // Add house/apartment number with # prefix
     if (appointment.apartment) {
       locationParts.push(`#${appointment.apartment}`);
-    } else if (appointment.house_number) {
-      locationParts.push(`#${appointment.house_number}`);
     } else if (appointment.users?.house_number) {
       locationParts.push(`#${appointment.users.house_number}`);
     }
     
-    // Return formatted location with em dash separator or fallback
     return locationParts.length > 0 
       ? locationParts.join(' – ') 
       : 'Ubicación no especificada';
@@ -209,13 +208,14 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
               const serviceName = getServiceName(appointment);
               const isExternal = appointment.is_external || appointment.external_booking;
               const contactInfo = getContactInfo(appointment);
+              const locationInfo = getLocationInfo(appointment);
               
               console.log(`Rendering appointment ${appointment.id}:`, {
                 displayName,
                 serviceName,
                 isExternal,
                 status: appointment.status,
-                location: getLocationInfo(appointment)
+                location: locationInfo
               });
               
               return (
@@ -263,7 +263,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                       <div className="flex items-start text-xs text-muted-foreground">
                         <MapPin className="h-3 w-3 mr-2 flex-shrink-0 mt-0.5" />
                         <span className="break-words leading-relaxed">
-                          {getLocationInfo(appointment)}
+                          {locationInfo}
                         </span>
                       </div>
                     </div>
