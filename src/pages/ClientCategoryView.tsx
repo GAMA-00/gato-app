@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -8,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Book, Home, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
 const iconMap: Record<string, LucideIcon> = {
@@ -97,11 +97,11 @@ const ClientCategoryView = () => {
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
               <Card className={cn(
                 "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
-                isMobile ? "p-4 h-28" : "p-8 h-48" // Reduced padding and height on mobile
+                isMobile ? "p-4 h-28" : "p-8 h-48"
               )}>
                 <div className={cn(
                   "flex items-center justify-center",
-                  isMobile ? "mb-2" : "mb-4" // Reduced margin on mobile
+                  isMobile ? "mb-2" : "mb-4"
                 )}>
                   <IconComponent 
                     size={iconSize}
@@ -112,7 +112,7 @@ const ClientCategoryView = () => {
                 <h3 className={cn(
                   "text-center font-semibold text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
                   textSizeClass,
-                  isMobile ? "px-1" : "px-2" // Reduced horizontal padding on mobile
+                  isMobile ? "px-1" : "px-2"
                 )}>
                   {categoryLabels[category.name] || category.label}
                 </h3>
