@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar, Home, Briefcase, CalendarClock, Award, Flame } from 'lucide-react';
+import { Calendar, Home, Briefcase, CalendarClock, Award, Flame, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NavItem from './NavItem';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
@@ -44,7 +44,8 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
           <span className="text-xs font-medium">{recurringServicesCount || 0}</span>
         </span>
       )
-    }
+    },
+    { to: '/profile', icon: User, label: 'Mi Perfil' }
   ];
   
   const navItems = isClientSection ? clientNavItems : providerNavItems;
@@ -57,6 +58,10 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
       
       if (itemPath === '/client/bookings') {
         return location.pathname.startsWith('/client/bookings');
+      }
+      
+      if (itemPath === '/profile') {
+        return location.pathname === '/profile';
       }
       
       if (location.pathname.includes('/client/services') || 

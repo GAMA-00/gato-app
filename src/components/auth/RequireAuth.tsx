@@ -8,7 +8,7 @@ interface RequireAuthProps {
   requirePaymentMethod?: boolean;
   clientOnly?: boolean; 
   providerOnly?: boolean; 
-  strictAuth?: boolean; // Parámetro para indicar si la autenticación es estrictamente requerida
+  strictAuth?: boolean;
 }
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ 
@@ -16,9 +16,9 @@ const RequireAuth: React.FC<RequireAuthProps> = ({
   requirePaymentMethod = false,
   clientOnly = false,
   providerOnly = false,
-  strictAuth = true // Changed default to true for more security
+  strictAuth = true
 }) => {
-  const { isAuthenticated, user, isLoading, isClient, isProvider } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -30,7 +30,7 @@ const RequireAuth: React.FC<RequireAuthProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Strict role-based routing
+  // Role-based routing - SOLO redirigir si está en una ruta específica de rol
   if (user) {
     // If this is a client-only route but user is not a client
     if (clientOnly && user.role !== 'client') {

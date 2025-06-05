@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, Award, Flame } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, Award, Flame, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
@@ -47,7 +47,8 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
           </span>
         </div>
       )
-    }
+    },
+    { to: '/profile', icon: User, label: 'Perfil' }
   ];
 
   const navItems = isClientSection ? clientNavItems : providerNavItems;
@@ -60,6 +61,10 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
       
       if (itemPath === '/client/bookings') {
         return location.pathname.startsWith('/client/bookings');
+      }
+      
+      if (itemPath === '/profile') {
+        return location.pathname === '/profile';
       }
       
       if (location.pathname.includes('/client/services') || 

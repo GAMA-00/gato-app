@@ -18,12 +18,8 @@ const Calendar = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Redirect clients away from provider pages
-  React.useEffect(() => {
-    if (user && user.role === 'client') {
-      navigate('/client');
-    }
-  }, [user, navigate]);
+  // Redirect clients away from provider pages - REMOVED automatic redirect
+  // Users should only be redirected if they explicitly access a provider-only route
   
   // Filter appointments - exclude cancelled and rejected appointments by default
   const filteredAppointments = appointments.filter((appointment: any) => {
@@ -39,9 +35,18 @@ const Calendar = () => {
     console.log("Confirmed appointments:", appointments.filter((app: any) => app.status === 'confirmed'));
   }, [appointments, currentCalendarDate]);
 
-  // If user is not a provider, don't render this page
+  // If user is not a provider, don't render this page (but don't redirect automatically)
   if (user && user.role !== 'provider') {
-    return null;
+    return (
+      <PageContainer title="Acceso restringido">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Esta página está disponible solo para proveedores de servicios.</p>
+          <Button onClick={() => navigate('/client')} className="mt-4">
+            Ir a servicios
+          </Button>
+        </div>
+      </PageContainer>
+    );
   }
 
   return (
