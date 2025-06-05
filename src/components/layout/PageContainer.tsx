@@ -22,28 +22,34 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-0 pb-24" : "pl-56 pt-4", // Adjusted left padding to match new sidebar width
+      isMobile ? "pt-0 pb-20" : "pl-56 pt-4", // Reduced bottom padding on mobile
       "min-h-screen w-full overflow-y-auto bg-white",
       className
     )}>
-      {/* Optimizado el padding para móvil y desktop */}
+      {/* Optimized padding and margins for mobile */}
       <div className={cn("p-1 md:p-6 max-w-7xl animate-fade-in")}>
         <div className={cn(
           "flex flex-col md:flex-row md:items-center justify-center gap-1",
-          isMobile ? "mt-0 mb-1" : "mb-6"
+          isMobile ? "mt-0 mb-2" : "mb-6" // Reduced bottom margin on mobile
         )}>
-          {/* Contenedor del título con márgenes adecuados y centrado */}
+          {/* Reduced spacing for title container */}
           <div className="w-full text-center">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-app-text">{title}</h1>
-            {subtitle && <div className="text-app-text/70 text-lg mt-1">{subtitle}</div>}
+            <h1 className={cn(
+              "font-bold tracking-tight text-app-text",
+              isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1" // Smaller title on mobile
+            )}>{title}</h1>
+            {subtitle && <div className={cn(
+              "text-app-text/70",
+              isMobile ? "text-base mt-0" : "text-lg mt-1" // Smaller subtitle on mobile, no top margin
+            )}>{subtitle}</div>}
           </div>
-          {action && <div className="flex-shrink-0 mt-2 md:mt-0">{action}</div>}
+          {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
         </div>
         
-        {/* Añadir espacio adicional entre el título y el contenido SOLO en móvil */}
-        {isMobile && <div className="h-4"></div>}
+        {/* Minimal spacing between title and content on mobile */}
+        {isMobile && <div className="h-2"></div>}
         
-        <div className="animate-slide-up pb-12">
+        <div className="animate-slide-up pb-4">
           {children}
         </div>
       </div>

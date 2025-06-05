@@ -65,25 +65,25 @@ const ClientCategoryView = () => {
         title="Explora nuestras categorías de servicio"
         className="pt-0 bg-white"
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-32 md:h-40 rounded-xl" />
+            <Skeleton key={i} className={cn(isMobile ? "h-28" : "h-32 md:h-40", "rounded-xl")} />
           ))}
         </div>
       </PageContainer>
     );
   }
 
-  // Define consistent icon size and stroke width for all icons
-  const iconSize = isMobile ? 32 : 48; // Consistent size for all icons
-  const strokeWidth = isMobile ? 2 : 1.8; // Consistent stroke width
+  // Define optimized icon size and stroke width for mobile
+  const iconSize = isMobile ? 28 : 48; // Smaller icons on mobile
+  const strokeWidth = isMobile ? 2 : 1.8;
   
   return (
     <PageContainer
       title="Explora nuestras categorías de servicio"
       className="pt-0 bg-white"
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {categoryOrder.map((categoryName) => {
           const category = categories.find(c => c.name === categoryName);
           if (!category) return null;
@@ -91,19 +91,29 @@ const ClientCategoryView = () => {
           // Obtener el icono según el nombre de la categoría
           const IconComponent = iconMap[category.name] || Book;
           
-          const textSizeClass = isMobile ? 'text-base' : 'text-lg'; // Texto más grande en desktop
+          const textSizeClass = isMobile ? 'text-sm' : 'text-lg'; // Smaller text on mobile
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
-              <Card className={`flex flex-col items-center justify-center ${isMobile ? 'p-6' : 'p-8'} hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group ${isMobile ? 'h-32' : 'h-48'}`}>
-                <div className="flex items-center justify-center mb-4">
+              <Card className={cn(
+                "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
+                isMobile ? "p-4 h-28" : "p-8 h-48" // Reduced padding and height on mobile
+              )}>
+                <div className={cn(
+                  "flex items-center justify-center",
+                  isMobile ? "mb-2" : "mb-4" // Reduced margin on mobile
+                )}>
                   <IconComponent 
                     size={iconSize}
                     strokeWidth={strokeWidth}
                     className="text-[#1A1A1A]" 
                   />
                 </div>
-                <h3 className={`text-center font-semibold ${textSizeClass} text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto px-2`}>
+                <h3 className={cn(
+                  "text-center font-semibold text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
+                  textSizeClass,
+                  isMobile ? "px-1" : "px-2" // Reduced horizontal padding on mobile
+                )}>
                   {categoryLabels[category.name] || category.label}
                 </h3>
               </Card>

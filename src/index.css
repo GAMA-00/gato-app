@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -143,9 +144,9 @@
     display: none; /* Chrome, Safari, Opera */
   }
   
-  /* Adjust for mobile bottom navigation */
+  /* Adjust for mobile bottom navigation - optimized spacing */
   .pb-safe {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 3.5rem);
   }
 }
 
@@ -193,7 +194,7 @@
   transition: opacity 300ms;
 }
 
-/* Mobile specific fixes */
+/* Mobile specific fixes - optimized for tighter spacing */
 @media (max-width: 768px) {
   .glassmorphism {
     @apply bg-white/95 backdrop-blur-md;
@@ -205,11 +206,22 @@
   }
   
   button, a {
-    @apply min-h-10 min-w-10; /* Aumentar área de toque */
+    @apply min-h-10 min-w-10; /* Touch target area */
   }
   
-  /* Ensure bottom padding for content to account for navigation */
+  /* Optimized bottom padding for content to account for navigation */
   main, .main-content {
-    padding-bottom: 4.5rem !important;
+    padding-bottom: 3.5rem !important; /* Reduced from 4.5rem */
+  }
+  
+  /* Optimize viewport usage on mobile */
+  h1 {
+    font-size: 1.25rem; /* Smaller on mobile */
+    line-height: 1.4;
+  }
+  
+  h2 {
+    font-size: 1.125rem;
+    line-height: 1.4;
   }
 }
