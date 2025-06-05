@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -34,6 +33,11 @@ const ClientBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
   const [selectedFrequency, setSelectedFrequency] = useState<string>('once');
   const [notes, setNotes] = useState<string>('');
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     console.log("ClientBooking mounted with booking data:", bookingData);
