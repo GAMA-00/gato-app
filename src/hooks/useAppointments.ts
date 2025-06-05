@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildLocationString, logLocationDebug, LocationData } from '@/utils/locationUtils';
 
 export const useAppointments = () => {
   const { user } = useAuth();
@@ -145,51 +146,21 @@ export const useAppointments = () => {
               }
             }
 
-            // Build complete location string with consistent logic
-            const buildLocationString = () => {
-              const parts = [];
-              
-              // Add residencia name
-              if (residenciaInfo?.name) {
-                parts.push(residenciaInfo.name);
-              }
-              
-              // Add condominium name - prioritize database condominium, then user's stored name
-              const condominiumName = condominiumInfo?.name || clientInfo?.condominium_name;
-              if (condominiumName) {
-                parts.push(condominiumName);
-              }
-              
-              // Add house/apartment number - prioritize appointment apartment, then client house_number
-              const houseNumber = appointment.apartment || clientInfo?.house_number;
-              if (houseNumber) {
-                // Ensure consistent format with "Casa" prefix if it's just a number
-                if (/^\d+$/.test(houseNumber)) {
-                  parts.push(`Casa ${houseNumber}`);
-                } else if (!houseNumber.toLowerCase().includes('casa') && !houseNumber.startsWith('#')) {
-                  parts.push(`Casa ${houseNumber}`);
-                } else if (houseNumber.startsWith('#')) {
-                  parts.push(houseNumber.replace('#', 'Casa '));
-                } else {
-                  parts.push(houseNumber);
-                }
-              }
-              
-              return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+            // Prepare location data
+            const locationData: LocationData = {
+              residenciaName: residenciaInfo?.name,
+              condominiumName: condominiumInfo?.name || clientInfo?.condominium_name,
+              houseNumber: clientInfo?.house_number,
+              apartment: appointment.apartment,
+              clientAddress: appointment.client_address,
+              isExternal: appointment.external_booking || !appointment.client_id
             };
 
-            // For external bookings, use the stored address
-            const locationString = appointment.external_booking || !appointment.client_id
-              ? (appointment.client_address || 'Ubicación externa')
-              : buildLocationString();
+            // Build the location string using the utility function
+            const locationString = buildLocationString(locationData);
 
-            console.log(`Building location for appointment ${appointment.id}:`, {
-              residencia: residenciaInfo?.name,
-              condominium: condominiumInfo?.name || clientInfo?.condominium_name,
-              apartment: appointment.apartment,
-              house_number: clientInfo?.house_number,
-              final_location: locationString
-            });
+            // Log debug information
+            logLocationDebug(appointment.id, locationData, locationString);
 
             // Build the enriched appointment object
             return {

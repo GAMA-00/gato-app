@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildLocationString, LocationData } from '@/utils/locationUtils';
 
 export interface ClientBooking {
   id: string;
@@ -152,37 +153,22 @@ export const useClientBookings = () => {
           const listing = listingsMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
           
-          // Build complete location string
-          const buildLocationString = () => {
-            if (appointment.external_booking) {
-              return appointment.client_address || 'Ubicación externa';
-            }
-
-            const parts = [];
-            
-            // Add residencia name
-            const residenciaId = appointment.residencia_id || provider?.residencia_id;
-            const residencia = residenciasMap.get(residenciaId);
-            if (residencia?.name) {
-              parts.push(residencia.name);
-            }
-            
-            // Add condominium name
-            const condominiumId = provider?.condominium_id;
-            const condominium = condominiumsMap.get(condominiumId);
-            const condominiumName = condominium?.name || provider?.condominium_name;
-            if (condominiumName) {
-              parts.push(condominiumName);
-            }
-            
-            // Add house number
-            const houseNumber = appointment.apartment || provider?.house_number;
-            if (houseNumber) {
-              parts.push(`#${houseNumber}`);
-            }
-
-            return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+          // Prepare location data for the utility function
+          const residenciaId = appointment.residencia_id || provider?.residencia_id;
+          const residencia = residenciasMap.get(residenciaId);
+          const condominiumId = provider?.condominium_id;
+          const condominium = condominiumsMap.get(condominiumId);
+          
+          const locationData: LocationData = {
+            residenciaName: residencia?.name,
+            condominiumName: condominium?.name || provider?.condominium_name,
+            houseNumber: provider?.house_number,
+            apartment: appointment.apartment,
+            clientAddress: appointment.client_address,
+            isExternal: appointment.external_booking
           };
+
+          const locationString = buildLocationString(locationData);
 
           const result = {
             id: appointment.id,
@@ -194,7 +180,7 @@ export const useClientBookings = () => {
             providerId: appointment.provider_id,
             providerName: provider?.name || 'Proveedor',
             isRated: ratedIds.has(appointment.id),
-            location: buildLocationString()
+            location: locationString
           };
 
           console.log(`Processed appointment ${appointment.id}:`, {
