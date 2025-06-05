@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -194,14 +195,16 @@ const ProviderProfilePage = () => {
       if (!providerId) return 0;
       
       const { data, error } = await supabase
-        .rpc('get_recurring_clients_count', { provider_id: providerId });
+        .rpc('get_recurring_clients_count' as any, { provider_id: providerId });
         
       if (error) {
         console.error('Error fetching recurring clients count:', error);
         return 0;
       }
       
-      return data || 0;
+      // Ensure we return a number
+      const count = Number(data);
+      return isNaN(count) ? 0 : count;
     },
     enabled: !!providerId
   });

@@ -889,6 +889,10 @@ export type Database = {
           appointment_id: string
         }[]
       }
+      get_recurring_clients_count: {
+        Args: { provider_id: string }
+        Returns: number
+      }
       submit_provider_rating: {
         Args: {
           p_provider_id: string
