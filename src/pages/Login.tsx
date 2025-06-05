@@ -100,7 +100,7 @@ const Login = () => {
       title="Iniciar Sesión" 
       subtitle="Accede a tu cuenta para gestionar tus reservas"
     >
-      <div className="max-w-md mx-auto mt-8">
+      <div className="max-w-md mx-auto mt-8 px-6 md:px-0">
         {loginError && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4 mr-2" />
