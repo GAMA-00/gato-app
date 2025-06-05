@@ -107,10 +107,10 @@ const JobRequests: React.FC<JobRequestsProps> = ({
               <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
                 {pendingRequests.length} pendiente{pendingRequests.length > 1 ? 's' : ''}
               </span>
-              {pendingRequests.some(req => req.is_external) && (
+              {pendingRequests.some(req => req.external_booking) && (
                 <span className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
                   <ExternalLink className="h-3 w-3" />
-                  {pendingRequests.filter(req => req.is_external).length} externa{pendingRequests.filter(req => req.is_external).length > 1 ? 's' : ''}
+                  {pendingRequests.filter(req => req.external_booking).length} externa{pendingRequests.filter(req => req.external_booking).length > 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -130,7 +130,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
         ) : pendingRequests.length > 0 ? (
           <div className="space-y-4">
             {pendingRequests.map((request: any) => {
-              const isExternal = request.is_external || request.external_booking;
+              const isExternal = request.external_booking;
               
               console.log(`Rendering request ${request.id}: clientName="${request.client_name}", isExternal=${isExternal}, location="${request.client_location}"`);
               

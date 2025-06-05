@@ -42,9 +42,7 @@ export const useClientBookings = () => {
             service_types(name)
           ),
           users!appointments_provider_id_fkey(
-            name as provider_name
-          ),
-          users!appointments_client_id_fkey(
+            name as provider_name,
             condominium_name,
             house_number
           ),
@@ -78,16 +76,16 @@ export const useClientBookings = () => {
           locationParts.push(appointment.residencias.name);
         }
         
-        // Add condominium name from client's user data
-        if (appointment.users?.condominium_name) {
-          locationParts.push(appointment.users.condominium_name);
+        // Add condominium name from provider's user data
+        if ((appointment.users as any)?.condominium_name) {
+          locationParts.push((appointment.users as any).condominium_name);
         }
         
         // Add house number
         if (appointment.apartment) {
           locationParts.push(`#${appointment.apartment}`);
-        } else if (appointment.users?.house_number) {
-          locationParts.push(`#${appointment.users.house_number}`);
+        } else if ((appointment.users as any)?.house_number) {
+          locationParts.push(`#${(appointment.users as any).house_number}`);
         }
 
         return {
