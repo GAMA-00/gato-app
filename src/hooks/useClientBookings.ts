@@ -36,6 +36,7 @@ export const useClientBookings = () => {
           provider_id,
           client_id,
           apartment,
+          residencia_id,
           listings!inner(
             title,
             service_type_id,
@@ -45,9 +46,6 @@ export const useClientBookings = () => {
             name,
             condominium_name,
             house_number
-          ),
-          residencias(
-            name
           )
         `)
         .eq('client_id', user.id)
@@ -59,6 +57,21 @@ export const useClientBookings = () => {
       }
 
       if (!appointments?.length) return [];
+
+      // Get residencias separately if needed
+      const residenciaIds = [...new Set(appointments.map(a => a.residencia_id).filter(Boolean))];
+      let residenciasMap = new Map();
+      
+      if (residenciaIds.length > 0) {
+        const { data: residencias } = await supabase
+          .from('residencias')
+          .select('id, name')
+          .in('id', residenciaIds);
+        
+        if (residencias) {
+          residenciasMap = new Map(residencias.map(r => [r.id, r]));
+        }
+      }
 
       // Get rated appointments
       const appointmentIds = appointments.map(a => a.id);
@@ -72,8 +85,9 @@ export const useClientBookings = () => {
         const locationParts = [];
         
         // Add residencia name
-        if (appointment.residencias?.name) {
-          locationParts.push(appointment.residencias.name);
+        const residencia = residenciasMap.get(appointment.residencia_id);
+        if (residencia?.name) {
+          locationParts.push(residencia.name);
         }
         
         // Add condominium name from provider's user data
