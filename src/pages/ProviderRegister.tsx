@@ -54,7 +54,7 @@ const ProviderRegister = () => {
       title="Crear Cuenta de Proveedor"
       subtitle="Regístrate para ofrecer tus servicios"
     >
-      <div className="max-w-md mx-auto mt-8">
+      <div className="max-w-md mx-auto mt-8 px-6 md:px-0">
         <RegisterForm 
           residencias={residencias}
           loadingResidencias={loadingResidencias}

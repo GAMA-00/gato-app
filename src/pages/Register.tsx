@@ -54,7 +54,7 @@ const Register = () => {
       title="Crear Cuenta de Cliente"
       subtitle="Regístrate para agendar servicios en tu residencia"
     >
-      <div className="max-w-md mx-auto mt-8">
+      <div className="max-w-md mx-auto mt-8 px-6 md:px-0">
         <RegisterForm 
           residencias={residencias}
           loadingResidencias={loadingResidencias}
