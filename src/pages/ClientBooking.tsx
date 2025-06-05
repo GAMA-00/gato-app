@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
 import RecurrenceSelector from '@/components/client/booking/RecurrenceSelector';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
@@ -133,21 +133,6 @@ const ClientBooking = () => {
       }
     >
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Service Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Resumen del servicio</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p><span className="font-medium">Servicio:</span> {bookingData.serviceName}</p>
-              <p><span className="font-medium">Proveedor:</span> {bookingData.providerName}</p>
-              <p><span className="font-medium">Duración:</span> {bookingData.duration} minutos</p>
-              <p><span className="font-medium">Precio:</span> ${bookingData.price.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Recurrence Selection */}
         <RecurrenceSelector 
           selectedFrequency={selectedFrequency}

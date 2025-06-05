@@ -231,6 +231,16 @@ const BookingSummary = () => {
     }
   };
 
+  const getRecurrenceText = (recurrence: string) => {
+    switch (recurrence) {
+      case 'weekly': return 'Semanal';
+      case 'biweekly': return 'Quincenal';
+      case 'monthly': return 'Mensual';
+      case 'once':
+      default: return 'Una vez';
+    }
+  };
+
   return (
     <PageContainer 
       title="Resumen de Reserva"
@@ -280,13 +290,11 @@ const BookingSummary = () => {
               </div>
             </div>
 
-            {bookingData.recurrence && bookingData.recurrence !== 'none' && (
+            {bookingData.recurrence && (
               <div className="p-3 bg-blue-50 rounded-md">
                 <p className="text-sm font-medium text-blue-800">Servicio Recurrente</p>
                 <p className="text-xs text-blue-600">
-                  {bookingData.recurrence === 'weekly' ? 'Semanal' :
-                   bookingData.recurrence === 'biweekly' ? 'Quincenal' :
-                   bookingData.recurrence === 'monthly' ? 'Mensual' : bookingData.recurrence}
+                  Recurrencia: {getRecurrenceText(bookingData.recurrence)}
                 </p>
               </div>
             )}
