@@ -10,16 +10,29 @@ import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 const Calendar = () => {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
-  const { blockedSlots, isLoading: blockedSlotsLoading } = useBlockedTimeSlots();
-  const { data: appointments = [], isLoading: appointmentsLoading, error, refetch } = useCalendarAppointments(currentCalendarDate);
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // If user is not a provider, don't render this page
+  // Hooks for data fetching
+  const { 
+    data: appointments = [], 
+    isLoading: appointmentsLoading, 
+    error: appointmentsError, 
+    refetch: refetchAppointments 
+  } = useCalendarAppointments(currentCalendarDate);
+  
+  const { 
+    blockedSlots, 
+    isLoading: blockedSlotsLoading,
+    refetch: refetchBlockedSlots 
+  } = useBlockedTimeSlots();
+  
+  // Early return for non-providers
   if (user && user.role !== 'provider') {
     return (
       <PageContainer title="Acceso restringido">
@@ -33,38 +46,60 @@ const Calendar = () => {
     );
   }
 
-  // Show loading state
+  // Loading state
   if (appointmentsLoading || blockedSlotsLoading) {
     return (
       <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">
-        <div className="animate-pulse space-y-6">
-          <div className="h-48 bg-muted rounded-lg" />
-          <div className="h-96 bg-muted rounded-lg" />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground">Cargando calendario...</p>
+          </div>
         </div>
       </PageContainer>
     );
   }
 
-  // Show error state with retry option
-  if (error) {
-    console.error("Calendar error:", error);
+  // Error state
+  if (appointmentsError) {
+    console.error("Calendar error:", appointmentsError);
     return (
       <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">
-        <Alert className="mb-6">
+        <Alert className="mb-6 border-red-200 bg-red-50">
           <AlertDescription>
-            <div className="flex items-center justify-between">
+            <div className="space-y-4">
               <div>
-                <p>Hubo un problema cargando el calendario.</p>
-                <details className="text-xs mt-2">
-                  <summary className="cursor-pointer">Detalles del error</summary>
-                  <div className="mt-1 text-muted-foreground">
-                    {error.message || 'Error desconocido'}
-                  </div>
-                </details>
+                <h4 className="font-medium text-red-800">Error al cargar el calendario</h4>
+                <p className="text-red-600 mt-1">
+                  No se pudieron cargar las citas. Por favor, intenta nuevamente.
+                </p>
               </div>
-              <Button onClick={() => refetch()} variant="outline" size="sm">
-                Reintentar
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => refetchAppointments()} 
+                  variant="outline" 
+                  size="sm"
+                  className="border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  Reintentar
+                </Button>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline" 
+                  size="sm"
+                  className="border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  Recargar página
+                </Button>
+              </div>
+              <details className="text-xs">
+                <summary className="cursor-pointer text-red-600 hover:text-red-800">
+                  Ver detalles del error
+                </summary>
+                <div className="mt-2 p-2 bg-red-100 rounded text-red-800 font-mono text-xs">
+                  {appointmentsError.message || 'Error desconocido'}
+                </div>
+              </details>
             </div>
           </AlertDescription>
         </Alert>
@@ -72,20 +107,20 @@ const Calendar = () => {
     );
   }
 
-  // Filter appointments - exclude cancelled and rejected
+  // Filter out cancelled and rejected appointments
   const filteredAppointments = appointments.filter((appointment: any) => {
     return appointment.status !== 'cancelled' && appointment.status !== 'rejected';
   });
 
-  // Debug log for calendar
+  // Debug logging
   React.useEffect(() => {
     console.log("=== CALENDAR DEBUG INFO ===");
     console.log("Current date:", currentCalendarDate.toISOString());
+    console.log("User ID:", user?.id);
     console.log("Total appointments:", appointments.length);
     console.log("Filtered appointments:", filteredAppointments.length);
     console.log("Blocked slots:", blockedSlots.length);
     
-    // Log appointment breakdown
     const breakdown = {
       pending: appointments.filter(app => app.status === 'pending').length,
       confirmed: appointments.filter(app => app.status === 'confirmed').length,
@@ -97,14 +132,17 @@ const Calendar = () => {
     };
     console.log("Appointment breakdown:", breakdown);
     console.log("==========================");
-  }, [appointments, filteredAppointments, blockedSlots, currentCalendarDate]);
+  }, [appointments, filteredAppointments, blockedSlots, currentCalendarDate, user?.id]);
 
   return (
     <PageContainer 
       title="Calendario" 
       subtitle="Administra tu agenda y citas"
       action={
-        <Button variant="outline" onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}>
+        <Button 
+          variant="outline" 
+          onClick={() => setShowBlockedTimeSlots(!showBlockedTimeSlots)}
+        >
           {showBlockedTimeSlots ? 'Ocultar Horarios Bloqueados' : 'Gestionar Disponibilidad'}
         </Button>
       }
