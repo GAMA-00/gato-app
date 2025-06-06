@@ -10,6 +10,7 @@ export interface ProcessedProvider {
   serviceName: string;
   serviceId: string;
   aboutMe: string;
+  serviceDescription?: string; // Added for showing service description in cards
   experience: number;
   servicesCompleted: number;
   recurringClients: number;
@@ -42,4 +43,14 @@ export interface BookingPreferences {
   selectedDays?: number[];
   timeSlot?: string;
   timePreference?: string;
+}
+
+export interface ServiceTypeData {
+  id?: string;
+  name?: string;
+  category?: {
+    id?: string;
+    name?: string;
+    label?: string;
+  };
 }

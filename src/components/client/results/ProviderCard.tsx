@@ -12,8 +12,8 @@ interface ProviderCardProps {
 }
 
 const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
-  // Extract first line of description
-  const shortDescription = provider.aboutMe?.split('\n')[0] || '';
+  // Extract first line of service description instead of provider aboutMe
+  const shortDescription = provider.serviceDescription?.split('\n')[0] || '';
 
   // Get all images from gallery (no limit)
   const allImages = provider.galleryImages || [];
@@ -87,20 +87,16 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
         <div className="border-t border-neutral-100 pt-2">
           <h4 className="font-semibold text-sm text-luxury-navy">{provider.serviceName}</h4>
           
-          {/* Short description */}
+          {/* Service description instead of provider about me */}
           {shortDescription && (
             <p className="text-xs text-luxury-gray-dark mt-1 line-clamp-2">
               {shortDescription}
             </p>
           )}
 
-          {/* Gallery Preview Section - Now below service name and description */}
+          {/* Gallery Preview Section - Now without "Ejemplos de trabajo" text */}
           {allImages.length > 0 && (
             <div className="mt-3">
-              <div className="flex items-center mb-2">
-                <ImageIcon className="h-3 w-3 mr-1 text-gray-500" />
-                <span className="text-xs text-gray-600">Ejemplos de trabajo</span>
-              </div>
               <div className="grid grid-cols-4 gap-1">
                 {allImages.map((image, index) => (
                   <div key={index} className="relative w-full h-16 rounded-md overflow-hidden bg-gray-100">
