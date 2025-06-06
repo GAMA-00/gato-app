@@ -15,14 +15,14 @@ export function useStats() {
         return null;
       }
 
-      console.log("Fetching stats for user:", user.id, "role:", user.role);
+      console.log("Fetching optimized stats for user:", user.id, "role:", user.role);
 
       try {
         const today = startOfToday();
         const weekStart = startOfWeek(today);
         const monthStart = startOfMonth(today);
 
-        // Initialize default stats
+        // Default stats
         const defaultStats = {
           todayAppointments: 0,
           weekAppointments: 0,
@@ -30,19 +30,24 @@ export function useStats() {
           activeClients: 0
         };
 
-        // Only query data specific to the user's role
         if (user.role === 'provider') {
-          console.log("Fetching provider stats...");
+          console.log("Fetching provider stats with optimized query...");
           
-          const { data: appointments, error: appointmentsError } = await supabase
+          // Single optimized query for all stats
+          const { data: appointments, error } = await supabase
             .from('appointments')
-            .select('*, listings(base_price)')
+            .select(`
+              start_time,
+              status,
+              client_id,
+              listings!inner(base_price)
+            `)
             .eq('provider_id', user.id)
-            .gte('start_time', monthStart.toISOString());
+            .gte('start_time', monthStart.toISOString())
+            .in('status', ['pending', 'confirmed', 'completed']);
 
-          if (appointmentsError) {
-            console.error("Error fetching provider appointments for stats:", appointmentsError);
-            // Return default stats instead of throwing
+          if (error) {
+            console.error("Error fetching provider stats:", error);
             return defaultStats;
           }
 
@@ -51,7 +56,7 @@ export function useStats() {
             return defaultStats;
           }
 
-          // Calculate stats in a single pass for better performance
+          // Calculate all stats in a single pass for maximum efficiency
           let todayCount = 0;
           let weekCount = 0;
           let monthRevenue = 0;
@@ -60,32 +65,29 @@ export function useStats() {
           appointments.forEach(app => {
             try {
               const appDate = new Date(app.start_time);
-              const isNotCancelled = app.status !== 'cancelled';
               
-              if (isNotCancelled) {
-                // Count today's appointments
-                if (appDate >= today) {
-                  todayCount++;
-                }
-                
-                // Count this week's appointments
-                if (appDate >= weekStart) {
-                  weekCount++;
-                }
-                
-                // Calculate month revenue from confirmed and completed appointments
-                if (['confirmed', 'completed'].includes(app.status)) {
-                  const price = app.listings?.base_price || 0;
-                  monthRevenue += parseFloat(price.toString());
-                }
-                
-                // Track unique clients
-                if (app.client_id) {
-                  uniqueClients.add(app.client_id);
-                }
+              // Count today's appointments
+              if (appDate >= today) {
+                todayCount++;
+              }
+              
+              // Count this week's appointments
+              if (appDate >= weekStart) {
+                weekCount++;
+              }
+              
+              // Calculate revenue from confirmed and completed appointments
+              if (['confirmed', 'completed'].includes(app.status)) {
+                const price = app.listings?.base_price || 0;
+                monthRevenue += parseFloat(price.toString());
+              }
+              
+              // Track unique clients
+              if (app.client_id) {
+                uniqueClients.add(app.client_id);
               }
             } catch (error) {
-              console.error("Error processing appointment:", app.id, error);
+              console.error("Error processing appointment for stats:", error);
             }
           });
 
@@ -97,16 +99,22 @@ export function useStats() {
           };
           
         } else if (user.role === 'client') {
-          console.log("Fetching client stats...");
+          console.log("Fetching client stats with optimized query...");
           
-          const { data: appointments, error: appointmentsError } = await supabase
+          const { data: appointments, error } = await supabase
             .from('appointments')
-            .select('*, listings(base_price)')
+            .select(`
+              start_time,
+              status,
+              provider_id,
+              listings!inner(base_price)
+            `)
             .eq('client_id', user.id)
-            .gte('start_time', monthStart.toISOString());
+            .gte('start_time', monthStart.toISOString())
+            .in('status', ['pending', 'confirmed', 'completed']);
 
-          if (appointmentsError) {
-            console.error("Error fetching client appointments for stats:", appointmentsError);
+          if (error) {
+            console.error("Error fetching client stats:", error);
             return defaultStats;
           }
 
@@ -115,7 +123,7 @@ export function useStats() {
             return defaultStats;
           }
 
-          // Calculate stats in a single pass
+          // Calculate stats efficiently
           let todayCount = 0;
           let weekCount = 0;
           let monthRevenue = 0;
@@ -124,28 +132,25 @@ export function useStats() {
           appointments.forEach(app => {
             try {
               const appDate = new Date(app.start_time);
-              const isNotCancelled = app.status !== 'cancelled';
               
-              if (isNotCancelled) {
-                if (appDate >= today) {
-                  todayCount++;
-                }
-                
-                if (appDate >= weekStart) {
-                  weekCount++;
-                }
-                
-                if (['confirmed', 'completed'].includes(app.status)) {
-                  const price = app.listings?.base_price || 0;
-                  monthRevenue += parseFloat(price.toString());
-                }
-                
-                if (app.provider_id) {
-                  uniqueProviders.add(app.provider_id);
-                }
+              if (appDate >= today) {
+                todayCount++;
+              }
+              
+              if (appDate >= weekStart) {
+                weekCount++;
+              }
+              
+              if (['confirmed', 'completed'].includes(app.status)) {
+                const price = app.listings?.base_price || 0;
+                monthRevenue += parseFloat(price.toString());
+              }
+              
+              if (app.provider_id) {
+                uniqueProviders.add(app.provider_id);
               }
             } catch (error) {
-              console.error("Error processing appointment:", app.id, error);
+              console.error("Error processing appointment for stats:", error);
             }
           });
 
@@ -157,13 +162,10 @@ export function useStats() {
           };
         }
 
-        // Return default empty stats if role doesn't match
-        console.log("Unknown role or no role specified, returning default stats");
         return defaultStats;
         
       } catch (error) {
-        console.error("Error in stats query:", error);
-        // Return default stats instead of throwing
+        console.error("Error in optimized stats query:", error);
         return {
           todayAppointments: 0,
           weekAppointments: 0,
@@ -173,15 +175,9 @@ export function useStats() {
       }
     },
     enabled: !!user,
-    staleTime: 300000, // 5 minutes
-    refetchInterval: 300000, // Refetch every 5 minutes
-    retry: 1, // Reduce retry attempts
-    refetchOnWindowFocus: false,
-    // Add error handling
-    meta: {
-      onError: (error: any) => {
-        console.error("Stats query failed:", error);
-      }
-    }
+    staleTime: 60000, // 1 minute
+    refetchInterval: 300000, // 5 minutes
+    retry: 1,
+    refetchOnWindowFocus: false
   });
 }

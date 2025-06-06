@@ -2,215 +2,135 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { buildLocationString, logLocationDebug, LocationData } from '@/utils/locationUtils';
+import { startOfToday, endOfTomorrow } from 'date-fns';
 
 export const useAppointments = () => {
   const { user } = useAuth();
-
+  
+  const today = startOfToday();
+  const tomorrowEnd = endOfTomorrow();
+  
   return useQuery({
-    queryKey: ['appointments', user?.id],
+    queryKey: ['appointments', user?.id, 'dashboard'],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) {
+        console.log('No user ID available for appointments');
+        return [];
+      }
 
-      console.log('Fetching appointments for user:', user.id, 'role:', user.role);
+      console.log('Fetching dashboard appointments for user:', user.id, 'role:', user.role);
 
       try {
-        // First, get the basic appointments data with listings and service types
-        const { data: appointments, error: appointmentsError } = await supabase
+        // Simple, focused query for dashboard - only today and tomorrow
+        const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
-            *,
-            listings!inner(
-              title,
-              service_type_id,
-              base_price,
-              duration,
-              service_types(name)
-            )
+            id,
+            provider_id,
+            client_id,
+            listing_id,
+            start_time,
+            end_time,
+            status,
+            notes,
+            client_name,
+            provider_name,
+            external_booking,
+            is_recurring_instance,
+            recurrence,
+            created_at
           `)
-          .or(`provider_id.eq.${user.id},client_id.eq.${user.id}`)
+          .eq(user.role === 'provider' ? 'provider_id' : 'client_id', user.id)
+          .gte('start_time', today.toISOString())
+          .lte('start_time', tomorrowEnd.toISOString())
+          .in('status', ['pending', 'confirmed', 'completed'])
           .order('start_time', { ascending: true });
 
-        if (appointmentsError) {
-          console.error('Error fetching appointments:', appointmentsError);
-          throw appointmentsError;
+        if (error) {
+          console.error('Error fetching appointments:', error);
+          throw new Error(`Error fetching appointments: ${error.message}`);
         }
 
-        if (!appointments || appointments.length === 0) {
-          console.log('No appointments found for user:', user.id);
-          return [];
+        const appointmentsList = appointments || [];
+        console.log(`Found ${appointmentsList.length} dashboard appointments`);
+
+        // Get unique listing IDs for a separate, smaller query
+        const listingIds = [...new Set(appointmentsList.map(apt => apt.listing_id).filter(Boolean))];
+        
+        // Fetch only essential listing data
+        let listingsMap: Record<string, any> = {};
+        if (listingIds.length > 0) {
+          try {
+            const { data: listings } = await supabase
+              .from('listings')
+              .select('id, title')
+              .in('id', listingIds);
+
+            if (listings) {
+              listingsMap = listings.reduce((acc, listing) => {
+                acc[listing.id] = { title: listing.title };
+                return acc;
+              }, {} as Record<string, any>);
+            }
+          } catch (error) {
+            console.warn('Could not fetch listings:', error);
+          }
         }
 
-        console.log(`Found ${appointments.length} appointments`);
+        // Get unique client/provider IDs for user data
+        const userRole = user.role;
+        const userIds = [...new Set(
+          appointmentsList.map(apt => 
+            userRole === 'provider' ? apt.client_id : apt.provider_id
+          ).filter(Boolean)
+        )];
+        
+        // Fetch minimal user data
+        let usersMap: Record<string, any> = {};
+        if (userIds.length > 0) {
+          try {
+            const { data: users } = await supabase
+              .from('users')
+              .select('id, name, phone')
+              .in('id', userIds);
 
-        // Now enrich the appointments with complete location information
-        const enrichedAppointments = await Promise.all(
-          appointments.map(async (appointment) => {
-            let clientInfo = null;
-            let providerInfo = null;
-            let residenciaInfo = null;
-            let condominiumInfo = null;
-
-            // Get client information if not external booking
-            if (appointment.client_id && !appointment.external_booking) {
-              try {
-                const { data: clientData, error: clientError } = await supabase
-                  .from('users')
-                  .select(`
-                    id,
-                    name,
-                    phone,
-                    email,
-                    house_number,
-                    residencia_id,
-                    condominium_name,
-                    condominium_id
-                  `)
-                  .eq('id', appointment.client_id)
-                  .single();
-
-                if (!clientError && clientData) {
-                  clientInfo = clientData;
-                }
-              } catch (error) {
-                console.error('Error fetching client data:', error);
-              }
+            if (users) {
+              usersMap = users.reduce((acc, user) => {
+                acc[user.id] = {
+                  name: user.name || '',
+                  phone: user.phone || ''
+                };
+                return acc;
+              }, {} as Record<string, any>);
             }
+          } catch (error) {
+            console.warn('Could not fetch users:', error);
+          }
+        }
 
-            // Get provider information
-            if (appointment.provider_id) {
-              try {
-                const { data: providerData, error: providerError } = await supabase
-                  .from('users')
-                  .select(`
-                    id,
-                    name,
-                    phone,
-                    email,
-                    house_number,
-                    residencia_id,
-                    condominium_name,
-                    condominium_id
-                  `)
-                  .eq('id', appointment.provider_id)
-                  .single();
+        // Enhanced appointments with minimal data
+        const enhancedAppointments = appointmentsList.map(appointment => ({
+          ...appointment,
+          listings: listingsMap[appointment.listing_id] || null,
+          users: appointment.client_id && userRole === 'provider' 
+            ? usersMap[appointment.client_id] || null 
+            : appointment.provider_id && userRole === 'client'
+            ? usersMap[appointment.provider_id] || null
+            : null
+        }));
 
-                if (!providerError && providerData) {
-                  providerInfo = providerData;
-                }
-              } catch (error) {
-                console.error('Error fetching provider data:', error);
-              }
-            }
-
-            // Get residencia information - prioritize appointment's residencia_id, then client's
-            const residenciaId = appointment.residencia_id || clientInfo?.residencia_id;
-            if (residenciaId) {
-              try {
-                const { data: residenciaData, error: residenciaError } = await supabase
-                  .from('residencias')
-                  .select(`
-                    id,
-                    name,
-                    address
-                  `)
-                  .eq('id', residenciaId)
-                  .single();
-
-                if (!residenciaError && residenciaData) {
-                  residenciaInfo = residenciaData;
-                }
-              } catch (error) {
-                console.error('Error fetching residencia data:', error);
-              }
-            }
-
-            // Get condominium information if available
-            const condominiumId = clientInfo?.condominium_id;
-            if (condominiumId && !condominiumId.startsWith('static-')) {
-              try {
-                const { data: condominiumData, error: condominiumError } = await supabase
-                  .from('condominiums')
-                  .select(`
-                    id,
-                    name
-                  `)
-                  .eq('id', condominiumId)
-                  .single();
-
-                if (!condominiumError && condominiumData) {
-                  condominiumInfo = condominiumData;
-                }
-              } catch (error) {
-                console.error('Error fetching condominium data:', error);
-              }
-            }
-
-            // Prepare location data
-            const locationData: LocationData = {
-              residenciaName: residenciaInfo?.name,
-              condominiumName: condominiumInfo?.name || clientInfo?.condominium_name,
-              houseNumber: clientInfo?.house_number,
-              apartment: appointment.apartment,
-              clientAddress: appointment.client_address,
-              isExternal: appointment.external_booking || !appointment.client_id
-            };
-
-            // Build the location string using the utility function
-            const locationString = buildLocationString(locationData);
-
-            // Log debug information
-            logLocationDebug(appointment.id, locationData, locationString);
-
-            // Build the enriched appointment object
-            return {
-              ...appointment,
-              // Client information
-              client_name: appointment.external_booking 
-                ? (appointment.client_name || 'Cliente Externo')
-                : (clientInfo?.name || 'Cliente sin nombre'),
-              client_phone: appointment.external_booking 
-                ? appointment.client_phone 
-                : clientInfo?.phone,
-              client_email: appointment.external_booking 
-                ? appointment.client_email 
-                : clientInfo?.email,
-              client_condominium: appointment.external_booking
-                ? null
-                : (condominiumInfo?.name || clientInfo?.condominium_name),
-              // Provider information
-              provider_name: providerInfo?.name || appointment.provider_name || 'Proveedor desconocido',
-              // Complete location information
-              residencias: residenciaInfo,
-              condominiums: condominiumInfo,
-              complete_location: locationString,
-              // Additional metadata
-              is_external: appointment.external_booking || !appointment.client_id,
-              // User information for easier access
-              users: clientInfo ? {
-                name: clientInfo.name,
-                phone: clientInfo.phone,
-                email: clientInfo.email,
-                house_number: clientInfo.house_number,
-                condominium_name: clientInfo.condominium_name,
-                residencias: residenciaInfo,
-                condominiums: condominiumInfo
-              } : null
-            };
-          })
-        );
-
-        console.log(`Returning ${enrichedAppointments.length} enriched appointments`);
-        return enrichedAppointments;
-
+        console.log(`Successfully processed ${enhancedAppointments.length} dashboard appointments`);
+        return enhancedAppointments;
+        
       } catch (error) {
-        console.error('Error in appointments query:', error);
+        console.error('Error in dashboard appointments query:', error);
         throw error;
       }
     },
     enabled: !!user?.id,
-    retry: 3,
-    staleTime: 60000, // 1 minute
-    refetchInterval: 300000, // 5 minutes
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 120000, // 2 minutes
+    retry: 1, // Reduce retry attempts for faster failure
+    refetchOnWindowFocus: false
   });
 };
