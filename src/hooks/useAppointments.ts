@@ -46,10 +46,6 @@ export const useAppointments = () => {
             listings!inner(
               id,
               title
-            ),
-            residencias(
-              id,
-              name
             )
           `)
           .eq(user.role === 'provider' ? 'provider_id' : 'client_id', user.id)
@@ -72,6 +68,11 @@ export const useAppointments = () => {
           appointmentsList.map(apt => 
             userRole === 'provider' ? apt.client_id : apt.provider_id
           ).filter(Boolean)
+        )];
+        
+        // Get unique residencia IDs to fetch residencia data
+        const residenciaIds = [...new Set(
+          appointmentsList.map(apt => apt.residencia_id).filter(Boolean)
         )];
         
         // Fetch user data including condominium information
@@ -102,6 +103,26 @@ export const useAppointments = () => {
           }
         }
 
+        // Fetch residencia data separately
+        let residenciasMap: Record<string, any> = {};
+        if (residenciaIds.length > 0) {
+          try {
+            const { data: residencias } = await supabase
+              .from('residencias')
+              .select('id, name, address')
+              .in('id', residenciaIds);
+
+            if (residencias) {
+              residenciasMap = residencias.reduce((acc, residencia) => {
+                acc[residencia.id] = residencia;
+                return acc;
+              }, {} as Record<string, any>);
+            }
+          } catch (error) {
+            console.warn('Could not fetch residencias:', error);
+          }
+        }
+
         // Enhanced appointments with complete location data
         const enhancedAppointments = appointmentsList.map(appointment => {
           const isExternal = appointment.external_booking;
@@ -111,9 +132,14 @@ export const useAppointments = () => {
             ? usersMap[appointment.provider_id] 
             : null;
 
+          // Get residencia info
+          const residenciaInfo = appointment.residencia_id 
+            ? residenciasMap[appointment.residencia_id] 
+            : null;
+
           // Build complete location string
           const locationData = {
-            residenciaName: appointment.residencias?.name,
+            residenciaName: residenciaInfo?.name,
             condominiumName: userInfo?.condominium_name || userInfo?.condominium_text,
             houseNumber: userInfo?.house_number,
             apartment: appointment.apartment,
@@ -130,6 +156,7 @@ export const useAppointments = () => {
             ...appointment,
             listings: appointment.listings,
             users: userInfo,
+            residencias: residenciaInfo,
             complete_location: completeLocation
           };
         });
