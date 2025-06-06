@@ -9,33 +9,17 @@ import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Calendar = () => {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
-  const { blockedSlots } = useBlockedTimeSlots();
-  const { data: appointments = [], isLoading } = useCalendarAppointments(currentCalendarDate);
+  const { blockedSlots, isLoading: blockedSlotsLoading } = useBlockedTimeSlots();
+  const { data: appointments = [], isLoading: appointmentsLoading, error } = useCalendarAppointments(currentCalendarDate);
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Redirect clients away from provider pages - REMOVED automatic redirect
-  // Users should only be redirected if they explicitly access a provider-only route
-  
-  // Filter appointments - exclude cancelled and rejected appointments by default
-  const filteredAppointments = appointments.filter((appointment: any) => {
-    // Always exclude cancelled and rejected appointments from the calendar view
-    return appointment.status !== 'cancelled' && appointment.status !== 'rejected';
-  });
-
-  // Log the appointments to debug
-  React.useEffect(() => {
-    console.log("Calendar appointments for date:", currentCalendarDate.toISOString());
-    console.log("All appointments:", appointments);
-    console.log("Pending appointments:", appointments.filter((app: any) => app.status === 'pending'));
-    console.log("Confirmed appointments:", appointments.filter((app: any) => app.status === 'confirmed'));
-  }, [appointments, currentCalendarDate]);
-
-  // If user is not a provider, don't render this page (but don't redirect automatically)
+  // If user is not a provider, don't render this page
   if (user && user.role !== 'provider') {
     return (
       <PageContainer title="Acceso restringido">
@@ -49,6 +33,65 @@ const Calendar = () => {
     );
   }
 
+  // Show loading state
+  if (appointmentsLoading || blockedSlotsLoading) {
+    return (
+      <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">
+        <div className="animate-pulse space-y-6">
+          <div className="h-48 bg-muted rounded-lg" />
+          <div className="h-96 bg-muted rounded-lg" />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    console.error("Calendar error:", error);
+    return (
+      <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">
+        <Alert className="mb-6">
+          <AlertDescription>
+            Hubo un problema cargando el calendario. Por favor, recarga la página.
+            <details className="text-xs mt-2">
+              <summary className="cursor-pointer">Detalles del error</summary>
+              <div className="mt-1 text-muted-foreground">
+                {error.message || 'Error desconocido'}
+              </div>
+            </details>
+          </AlertDescription>
+        </Alert>
+      </PageContainer>
+    );
+  }
+
+  // Filter appointments - exclude cancelled and rejected
+  const filteredAppointments = appointments.filter((appointment: any) => {
+    return appointment.status !== 'cancelled' && appointment.status !== 'rejected';
+  });
+
+  // Debug log for calendar
+  React.useEffect(() => {
+    console.log("=== CALENDAR DEBUG INFO ===");
+    console.log("Current date:", currentCalendarDate.toISOString());
+    console.log("Total appointments:", appointments.length);
+    console.log("Filtered appointments:", filteredAppointments.length);
+    console.log("Blocked slots:", blockedSlots.length);
+    
+    // Log appointment breakdown
+    const breakdown = {
+      pending: appointments.filter(app => app.status === 'pending').length,
+      confirmed: appointments.filter(app => app.status === 'confirmed').length,
+      completed: appointments.filter(app => app.status === 'completed').length,
+      recurring: appointments.filter(app => app.is_recurring_instance).length,
+      external: appointments.filter(app => app.external_booking).length,
+      cancelled: appointments.filter(app => app.status === 'cancelled').length,
+      rejected: appointments.filter(app => app.status === 'rejected').length
+    };
+    console.log("Appointment breakdown:", breakdown);
+    console.log("==========================");
+  }, [appointments, filteredAppointments, blockedSlots, currentCalendarDate]);
+
   return (
     <PageContainer 
       title="Calendario" 
@@ -60,7 +103,6 @@ const Calendar = () => {
       }
     >
       <div className="space-y-6">
-        {/* Use the new PendingRequestsCard component */}
         <PendingRequestsCard />
         
         {showBlockedTimeSlots && <BlockedTimeSlots />}
