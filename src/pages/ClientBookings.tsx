@@ -36,23 +36,32 @@ const RatingStars = ({
     setIsSubmitting(true);
     
     try {
-      // Use RPC call to submit rating with proper type casting
+      console.log('Submitting rating:', { appointmentId, providerId, rating });
+      
+      // Use RPC call to submit rating
       const { error } = await supabase
         .rpc('submit_provider_rating', {
           p_provider_id: providerId,
           p_client_id: user.id,
           p_appointment_id: appointmentId,
           p_rating: rating
-        }) as { data: null, error: Error | null };
+        });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error submitting rating:', error);
+        throw error;
+      }
       
+      console.log('Rating submitted successfully');
       toast.success('¡Gracias por calificar el servicio!');
       onRated();
       
-      // Refresh client bookings data
+      // Refresh relevant data
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
+      queryClient.invalidateQueries({ queryKey: ['provider'] });
     } catch (error: any) {
+      console.error('Rating submission error:', error);
       toast.error(`Error al calificar: ${error.message}`);
     } finally {
       setIsSubmitting(false);
