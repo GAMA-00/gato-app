@@ -14,7 +14,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return [];
       }
 
-      // Fetch listings for this service type
+      // Fetch listings for this service type with provider information
       const { data: listings, error: listingsError } = await supabase
         .from('listings')
         .select(`
@@ -25,7 +25,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           duration,
           provider_id,
           gallery_images,
-          users:provider_id (
+          users!provider_id (
             id,
             name,
             avatar_url,
@@ -54,13 +54,15 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       const processedProviders: ProcessedProvider[] = listings.map(listing => {
         const provider = listing.users;
         
-        // Parse gallery images
+        // Parse gallery images with proper type checking
         let galleryImages: string[] = [];
         try {
           if (listing.gallery_images) {
-            galleryImages = Array.isArray(listing.gallery_images) 
-              ? listing.gallery_images 
-              : JSON.parse(listing.gallery_images);
+            if (Array.isArray(listing.gallery_images)) {
+              galleryImages = listing.gallery_images.filter((img): img is string => typeof img === 'string');
+            } else if (typeof listing.gallery_images === 'string') {
+              galleryImages = JSON.parse(listing.gallery_images);
+            }
           }
         } catch (e) {
           console.error("Error parsing gallery images:", e);
