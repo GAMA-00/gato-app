@@ -83,7 +83,7 @@ export const useProviderAvailability = ({
           console.error('Error fetching recurring instances:', recurringError);
         }
 
-        // 3. Fetch blocked time slots for the specific day
+        // 3. Fetch blocked time slots for the specific day - TREAT AS OCCUPIED TIME
         const dayOfWeek = selectedDate.getDay();
         console.log('Fetching blocked time slots for day:', dayOfWeek);
         const { data: blockedSlots, error: blockedError } = await supabase
@@ -97,7 +97,23 @@ export const useProviderAvailability = ({
         }
 
         console.log('Blocked slots found:', blockedSlots);
-        console.log('Day of week for selected date:', dayOfWeek);
+
+        // Convert blocked time slots to appointment-like objects for unified processing
+        const blockedAppointments = (blockedSlots || []).map(blocked => {
+          const startTime = new Date(selectedDate);
+          startTime.setHours(blocked.start_hour, 0, 0, 0);
+          
+          const endTime = new Date(selectedDate);
+          endTime.setHours(blocked.end_hour, 0, 0, 0);
+          
+          return {
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            status: 'blocked' // Mark as blocked for identification
+          };
+        });
+
+        console.log('Converted blocked slots to appointments:', blockedAppointments);
 
         // 4. If recurrence is selected, check for conflicts in future dates
         let futureConflicts: any[] = [];
@@ -119,7 +135,7 @@ export const useProviderAvailability = ({
             futureDates.push(new Date(checkDate));
           }
 
-          // Check for conflicts on future dates
+          // Check for conflicts on future dates (including blocked slots)
           for (const futureDate of futureDates) {
             const futureStartOfDay = new Date(futureDate);
             futureStartOfDay.setHours(0, 0, 0, 0);
@@ -155,20 +171,44 @@ export const useProviderAvailability = ({
             if (futureRecurring) {
               futureConflicts.push(...futureRecurring);
             }
+
+            // Check future blocked slots
+            const futureDayOfWeek = futureDate.getDay();
+            const { data: futureBlockedSlots } = await supabase
+              .from('blocked_time_slots')
+              .select('start_hour, end_hour, day')
+              .eq('provider_id', providerId)
+              .or(`day.eq.${futureDayOfWeek},day.eq.-1`);
+
+            if (futureBlockedSlots) {
+              const futureBlockedAppointments = futureBlockedSlots.map(blocked => {
+                const startTime = new Date(futureDate);
+                startTime.setHours(blocked.start_hour, 0, 0, 0);
+                
+                const endTime = new Date(futureDate);
+                endTime.setHours(blocked.end_hour, 0, 0, 0);
+                
+                return {
+                  start_time: startTime.toISOString(),
+                  end_time: endTime.toISOString()
+                };
+              });
+              futureConflicts.push(...futureBlockedAppointments);
+            }
           }
         }
 
-        // Combine all conflicting appointments
+        // Combine all conflicting appointments INCLUDING blocked time slots
         const allConflicts = [
           ...(regularAppointments || []),
           ...(recurringInstances || []),
+          ...blockedAppointments, // Include blocked slots as conflicts
           ...futureConflicts
         ];
 
-        console.log(`Found ${allConflicts.length} conflicting appointments`);
-        console.log(`Found ${blockedSlots?.length || 0} blocked time slots`);
+        console.log(`Found ${allConflicts.length} conflicting time periods (including ${blockedAppointments.length} blocked slots)`);
 
-        // Filter available slots based on conflicts and blocked times
+        // Filter available slots based on conflicts (blocked slots are now treated as appointments)
         const availableSlots = timeSlots.filter(slot => {
           const [slotHour, slotMinute] = slot.time.split(':').map(Number);
           const slotStart = new Date(selectedDate);
@@ -177,38 +217,19 @@ export const useProviderAvailability = ({
           const slotEnd = new Date(slotStart);
           slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
 
-          // Check if this slot conflicts with any existing appointments
-          const hasAppointmentConflict = allConflicts.some(conflict => {
+          // Check if this slot conflicts with any existing appointments OR blocked time
+          const hasConflict = allConflicts.some(conflict => {
             const conflictStart = new Date(conflict.start_time);
             const conflictEnd = new Date(conflict.end_time);
             
             // Check for any overlap: slot starts before conflict ends AND slot ends after conflict starts
-            return (slotStart < conflictEnd && slotEnd > conflictStart);
-          });
-
-          // Check if this slot conflicts with blocked time
-          const hasBlockedConflict = blockedSlots?.some(blocked => {
-            // Convert slot time to decimal hours for easier comparison
-            const slotStartDecimal = slotHour + (slotMinute / 60);
-            const slotEndDecimal = slotStartDecimal + (serviceDuration / 60);
+            const overlaps = (slotStart < conflictEnd && slotEnd > conflictStart);
             
-            console.log(`Checking slot ${slot.time} (${slotStartDecimal.toFixed(2)}-${slotEndDecimal.toFixed(2)}) against blocked ${blocked.start_hour}-${blocked.end_hour} on day ${blocked.day}`);
-            
-            // Check if the blocked slot applies to this day
-            const blockedAppliesToDay = blocked.day === -1 || blocked.day === dayOfWeek;
-            
-            if (!blockedAppliesToDay) {
-              return false;
+            if (overlaps && conflict.status === 'blocked') {
+              console.log(`Slot ${slot.time} blocked by manual time block ${conflictStart.getHours()}:00-${conflictEnd.getHours()}:00`);
             }
             
-            // A slot is blocked if it overlaps with any blocked period
-            const hasOverlap = (slotStartDecimal < blocked.end_hour && slotEndDecimal > blocked.start_hour);
-            
-            if (hasOverlap) {
-              console.log(`BLOCKED: Slot ${slot.time} overlaps with blocked time ${blocked.start_hour}-${blocked.end_hour}`);
-            }
-            
-            return hasOverlap;
+            return overlaps;
           });
 
           // Additional check for recurring conflicts if this is a recurring booking
@@ -228,10 +249,10 @@ export const useProviderAvailability = ({
             });
           }
 
-          const isAvailable = !hasAppointmentConflict && !hasBlockedConflict && !hasRecurringConflict;
+          const isAvailable = !hasConflict && !hasRecurringConflict;
           
           if (!isAvailable) {
-            console.log(`Slot ${slot.time} is unavailable - Appointment conflict: ${hasAppointmentConflict}, Blocked: ${hasBlockedConflict}, Recurring conflict: ${hasRecurringConflict}`);
+            console.log(`Slot ${slot.time} is unavailable - Conflict: ${hasConflict}, Recurring conflict: ${hasRecurringConflict}`);
           }
 
           return isAvailable;
