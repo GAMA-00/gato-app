@@ -14,7 +14,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return [];
       }
 
-      // Fetch listings for this service type with provider information
+      // Fetch listings for this service type
       const { data: listings, error: listingsError } = await supabase
         .from('listings')
         .select(`
@@ -24,16 +24,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           base_price,
           duration,
           provider_id,
-          gallery_images,
-          users!provider_id (
-            id,
-            name,
-            avatar_url,
-            about_me,
-            experience_years,
-            average_rating,
-            created_at
-          )
+          gallery_images
         `)
         .eq('service_type_id', serviceId)
         .eq('is_active', true);
@@ -50,9 +41,33 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
 
       console.log("Found listings:", listings);
 
+      // Get unique provider IDs
+      const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
+
+      // Fetch provider information separately
+      const { data: providers, error: providersError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          name,
+          avatar_url,
+          about_me,
+          experience_years,
+          average_rating,
+          created_at
+        `)
+        .in('id', providerIds);
+
+      if (providersError) {
+        console.error("Error fetching providers:", providersError);
+        throw providersError;
+      }
+
+      console.log("Found providers:", providers);
+
       // Process the data into ProcessedProvider format
       const processedProviders: ProcessedProvider[] = listings.map(listing => {
-        const provider = listing.users;
+        const provider = providers?.find(p => p.id === listing.provider_id);
         
         // Parse gallery images with proper type checking
         let galleryImages: string[] = [];
