@@ -18,26 +18,29 @@ export const useCalendarAppointments = (currentDate: Date) => {
       console.log('Fetching calendar appointments for provider:', user.id);
       console.log('Date range:', format(startDate, 'yyyy-MM-dd'), 'to', format(endDate, 'yyyy-MM-dd'));
 
-      // Fetch regular appointments
+      // First, fetch regular appointments with only basic data
       const { data: regularAppointments, error: regularError } = await supabase
         .from('appointments')
         .select(`
-          *,
-          listings!inner(
-            title,
-            service_type_id,
-            service_types(name)
-          ),
-          users!appointments_client_id_fkey(
-            name,
-            phone,
-            email,
-            condominium_name,
-            house_number
-          ),
-          residencias(
-            name
-          )
+          id,
+          provider_id,
+          client_id,
+          listing_id,
+          start_time,
+          end_time,
+          status,
+          notes,
+          apartment,
+          client_address,
+          client_phone,
+          client_email,
+          client_name,
+          provider_name,
+          external_booking,
+          is_recurring_instance,
+          recurring_rule_id,
+          recurrence,
+          created_at
         `)
         .eq('provider_id', user.id)
         .gte('start_time', startDate.toISOString())
@@ -52,21 +55,75 @@ export const useCalendarAppointments = (currentDate: Date) => {
 
       console.log(`Found ${regularAppointments?.length || 0} regular appointments`);
 
+      // Fetch listing data separately for regular appointments
+      const listingIds = [...new Set(regularAppointments?.map(apt => apt.listing_id).filter(Boolean) || [])];
+      let listingsData = {};
+      
+      if (listingIds.length > 0) {
+        const { data: listings, error: listingsError } = await supabase
+          .from('listings')
+          .select(`
+            id,
+            title,
+            service_type_id,
+            service_types(name)
+          `)
+          .in('id', listingIds);
+
+        if (!listingsError && listings) {
+          listingsData = listings.reduce((acc, listing) => {
+            acc[listing.id] = listing;
+            return acc;
+          }, {} as Record<string, any>);
+        }
+      }
+
+      // Fetch user data separately for clients
+      const clientIds = [...new Set(regularAppointments?.map(apt => apt.client_id).filter(Boolean) || [])];
+      let usersData = {};
+      
+      if (clientIds.length > 0) {
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select(`
+            id,
+            name,
+            phone,
+            email,
+            condominium_name,
+            house_number
+          `)
+          .in('id', clientIds);
+
+        if (!usersError && users) {
+          usersData = users.reduce((acc, user) => {
+            acc[user.id] = user;
+            return acc;
+          }, {} as Record<string, any>);
+        }
+      }
+
+      // Enhance regular appointments with listing and user data
+      const enhancedRegularAppointments = (regularAppointments || []).map(appointment => ({
+        ...appointment,
+        listings: listingsData[appointment.listing_id] || null,
+        users: usersData[appointment.client_id] || null,
+        residencias: null // Add this for compatibility
+      }));
+
       // Fetch recurring instances
       const { data: recurringInstances, error: recurringError } = await supabase
         .from('recurring_instances')
         .select(`
-          *,
-          recurring_rules!inner(
-            *,
-            listings!inner(
-              title,
-              service_type_id,
-              service_types(name)
-            )
-          )
+          id,
+          recurring_rule_id,
+          instance_date,
+          start_time,
+          end_time,
+          status,
+          notes,
+          created_at
         `)
-        .eq('recurring_rules.provider_id', user.id)
         .gte('instance_date', format(startDate, 'yyyy-MM-dd'))
         .lte('instance_date', format(endDate, 'yyyy-MM-dd'))
         .in('status', ['scheduled', 'confirmed', 'completed'])
@@ -78,6 +135,59 @@ export const useCalendarAppointments = (currentDate: Date) => {
       }
 
       console.log(`Found ${recurringInstances?.length || 0} recurring instances`);
+
+      // Fetch recurring rules data for the instances
+      const ruleIds = [...new Set(recurringInstances?.map(inst => inst.recurring_rule_id).filter(Boolean) || [])];
+      let rulesData = {};
+      let ruleListingsData = {};
+      
+      if (ruleIds.length > 0) {
+        const { data: rules, error: rulesError } = await supabase
+          .from('recurring_rules')
+          .select(`
+            id,
+            provider_id,
+            client_id,
+            listing_id,
+            recurrence_type,
+            notes,
+            apartment,
+            client_address,
+            client_phone,
+            client_email,
+            client_name
+          `)
+          .in('id', ruleIds)
+          .eq('provider_id', user.id);
+
+        if (!rulesError && rules) {
+          rulesData = rules.reduce((acc, rule) => {
+            acc[rule.id] = rule;
+            return acc;
+          }, {} as Record<string, any>);
+
+          // Fetch listings for recurring rules
+          const ruleListingIds = [...new Set(rules.map(rule => rule.listing_id).filter(Boolean))];
+          if (ruleListingIds.length > 0) {
+            const { data: ruleListings, error: ruleListingsError } = await supabase
+              .from('listings')
+              .select(`
+                id,
+                title,
+                service_type_id,
+                service_types(name)
+              `)
+              .in('id', ruleListingIds);
+
+            if (!ruleListingsError && ruleListings) {
+              ruleListingsData = ruleListings.reduce((acc, listing) => {
+                acc[listing.id] = listing;
+                return acc;
+              }, {} as Record<string, any>);
+            }
+          }
+        }
+      }
 
       // Helper function to safely get listing title
       const getListingTitle = (listings: any) => {
@@ -98,41 +208,46 @@ export const useCalendarAppointments = (currentDate: Date) => {
       };
 
       // Transform recurring instances to match appointment format
-      const transformedRecurringInstances = (recurringInstances || []).map(instance => ({
-        id: instance.id,
-        provider_id: instance.recurring_rules?.provider_id,
-        client_id: instance.recurring_rules?.client_id,
-        listing_id: instance.recurring_rules?.listing_id,
-        start_time: instance.start_time,
-        end_time: instance.end_time,
-        status: instance.status,
-        notes: instance.notes || instance.recurring_rules?.notes,
-        apartment: instance.recurring_rules?.apartment,
-        client_address: instance.recurring_rules?.client_address,
-        client_phone: instance.recurring_rules?.client_phone,
-        client_email: instance.recurring_rules?.client_email,
-        client_name: instance.recurring_rules?.client_name,
-        recurring_rule_id: instance.recurring_rule_id,
-        is_recurring_instance: true,
-        recurrence: instance.recurring_rules?.recurrence_type,
-        external_booking: false,
-        created_at: instance.created_at,
-        // Add listings data for compatibility
-        listings: instance.recurring_rules?.listings,
-        // Add mock user data for recurring appointments
-        users: instance.recurring_rules?.client_name ? {
-          name: instance.recurring_rules.client_name,
-          phone: instance.recurring_rules.client_phone,
-          email: instance.recurring_rules.client_email,
-          condominium_name: null,
-          house_number: null
-        } : null,
-        residencias: null
-      }));
+      const transformedRecurringInstances = (recurringInstances || []).map(instance => {
+        const rule = rulesData[instance.recurring_rule_id];
+        const listing = rule ? ruleListingsData[rule.listing_id] : null;
+        
+        return {
+          id: instance.id,
+          provider_id: rule?.provider_id || user.id,
+          client_id: rule?.client_id,
+          listing_id: rule?.listing_id,
+          start_time: instance.start_time,
+          end_time: instance.end_time,
+          status: instance.status,
+          notes: instance.notes || rule?.notes,
+          apartment: rule?.apartment,
+          client_address: rule?.client_address,
+          client_phone: rule?.client_phone,
+          client_email: rule?.client_email,
+          client_name: rule?.client_name,
+          recurring_rule_id: instance.recurring_rule_id,
+          is_recurring_instance: true,
+          recurrence: rule?.recurrence_type,
+          external_booking: false,
+          created_at: instance.created_at,
+          // Add listings data for compatibility
+          listings: listing,
+          // Add mock user data for recurring appointments
+          users: rule?.client_name ? {
+            name: rule.client_name,
+            phone: rule.client_phone,
+            email: rule.client_email,
+            condominium_name: null,
+            house_number: null
+          } : null,
+          residencias: null
+        };
+      });
 
       // Combine all appointments
       const allAppointments = [
-        ...(regularAppointments || []),
+        ...enhancedRegularAppointments,
         ...transformedRecurringInstances
       ];
 

@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 const Calendar = () => {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const { blockedSlots, isLoading: blockedSlotsLoading } = useBlockedTimeSlots();
-  const { data: appointments = [], isLoading: appointmentsLoading, error } = useCalendarAppointments(currentCalendarDate);
+  const { data: appointments = [], isLoading: appointmentsLoading, error, refetch } = useCalendarAppointments(currentCalendarDate);
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -45,20 +45,27 @@ const Calendar = () => {
     );
   }
 
-  // Show error state
+  // Show error state with retry option
   if (error) {
     console.error("Calendar error:", error);
     return (
       <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">
         <Alert className="mb-6">
           <AlertDescription>
-            Hubo un problema cargando el calendario. Por favor, recarga la página.
-            <details className="text-xs mt-2">
-              <summary className="cursor-pointer">Detalles del error</summary>
-              <div className="mt-1 text-muted-foreground">
-                {error.message || 'Error desconocido'}
+            <div className="flex items-center justify-between">
+              <div>
+                <p>Hubo un problema cargando el calendario.</p>
+                <details className="text-xs mt-2">
+                  <summary className="cursor-pointer">Detalles del error</summary>
+                  <div className="mt-1 text-muted-foreground">
+                    {error.message || 'Error desconocido'}
+                  </div>
+                </details>
               </div>
-            </details>
+              <Button onClick={() => refetch()} variant="outline" size="sm">
+                Reintentar
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       </PageContainer>
