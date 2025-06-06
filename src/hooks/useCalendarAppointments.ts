@@ -54,7 +54,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
     queryKey: ['calendar-appointments', user?.id, format(startDate, 'yyyy-MM-dd'), format(endDate, 'yyyy-MM-dd')],
     queryFn: async (): Promise<EnhancedAppointment[]> => {
       if (!user?.id) {
-        console.log('No user ID available');
+        console.log('No user ID available for calendar');
         return [];
       }
 
@@ -62,8 +62,8 @@ export const useCalendarAppointments = (currentDate: Date) => {
         console.log('Fetching calendar appointments for provider:', user.id);
         console.log('Date range:', format(startDate, 'yyyy-MM-dd'), 'to', format(endDate, 'yyyy-MM-dd'));
 
-        // Fetch regular appointments
-        const { data: regularAppointments, error: regularError } = await supabase
+        // Fetch appointments with basic data only
+        const { data: appointments, error: appointmentsError } = await supabase
           .from('appointments')
           .select(`
             id,
@@ -92,178 +92,96 @@ export const useCalendarAppointments = (currentDate: Date) => {
           .in('status', ['pending', 'confirmed', 'completed'])
           .order('start_time', { ascending: true });
 
-        if (regularError) {
-          console.error('Error fetching regular appointments:', regularError);
-          throw new Error(`Error fetching appointments: ${regularError.message}`);
+        if (appointmentsError) {
+          console.error('Error fetching appointments:', appointmentsError);
+          throw new Error(`Error fetching appointments: ${appointmentsError.message}`);
         }
 
-        const appointments = regularAppointments || [];
-        console.log(`Found ${appointments.length} regular appointments`);
+        const appointmentsList = appointments || [];
+        console.log(`Found ${appointmentsList.length} appointments for calendar`);
 
-        // Fetch listings data separately
-        const listingIds = [...new Set(appointments.map(apt => apt.listing_id).filter(Boolean))];
-        let listingsMap: Record<string, any> = {};
+        // Get unique listing IDs for a separate query
+        const listingIds = [...new Set(appointmentsList.map(apt => apt.listing_id).filter(Boolean))];
         
+        // Fetch listings data separately
+        let listingsMap: Record<string, any> = {};
         if (listingIds.length > 0) {
-          const { data: listings, error: listingsError } = await supabase
-            .from('listings')
-            .select(`
-              id,
-              title,
-              service_type_id,
-              service_types(name)
-            `)
-            .in('id', listingIds);
+          try {
+            const { data: listings, error: listingsError } = await supabase
+              .from('listings')
+              .select(`
+                id,
+                title,
+                service_type_id,
+                service_types!inner(name)
+              `)
+              .in('id', listingIds);
 
-          if (!listingsError && listings) {
-            listingsMap = listings.reduce((acc, listing) => {
-              acc[listing.id] = listing;
-              return acc;
-            }, {} as Record<string, any>);
-          } else {
+            if (!listingsError && listings) {
+              listingsMap = listings.reduce((acc, listing) => {
+                acc[listing.id] = {
+                  title: listing.title,
+                  service_type_id: listing.service_type_id,
+                  service_types: listing.service_types
+                };
+                return acc;
+              }, {} as Record<string, any>);
+            } else {
+              console.warn('Could not fetch listings data:', listingsError);
+            }
+          } catch (listingsError) {
             console.warn('Error fetching listings:', listingsError);
           }
         }
 
-        // Fetch users data separately
-        const clientIds = [...new Set(appointments.map(apt => apt.client_id).filter(Boolean))];
-        let usersMap: Record<string, any> = {};
+        // Get unique client IDs for user data
+        const clientIds = [...new Set(appointmentsList.map(apt => apt.client_id).filter(Boolean))];
         
+        // Fetch users data separately
+        let usersMap: Record<string, any> = {};
         if (clientIds.length > 0) {
-          const { data: users, error: usersError } = await supabase
-            .from('users')
-            .select(`
-              id,
-              name,
-              phone,
-              email,
-              condominium_name,
-              house_number
-            `)
-            .in('id', clientIds);
+          try {
+            const { data: users, error: usersError } = await supabase
+              .from('users')
+              .select(`
+                id,
+                name,
+                phone,
+                email,
+                condominium_name,
+                house_number
+              `)
+              .in('id', clientIds);
 
-          if (!usersError && users) {
-            usersMap = users.reduce((acc, user) => {
-              acc[user.id] = user;
-              return acc;
-            }, {} as Record<string, any>);
-          } else {
+            if (!usersError && users) {
+              usersMap = users.reduce((acc, user) => {
+                acc[user.id] = {
+                  name: user.name || '',
+                  phone: user.phone || '',
+                  email: user.email || '',
+                  condominium_name: user.condominium_name,
+                  house_number: user.house_number
+                };
+                return acc;
+              }, {} as Record<string, any>);
+            } else {
+              console.warn('Could not fetch users data:', usersError);
+            }
+          } catch (usersError) {
             console.warn('Error fetching users:', usersError);
           }
         }
 
-        // Enhance appointments with related data
-        const enhancedAppointments: EnhancedAppointment[] = appointments.map(appointment => ({
+        // Transform appointments with enhanced data
+        const enhancedAppointments: EnhancedAppointment[] = appointmentsList.map(appointment => ({
           ...appointment,
           listings: listingsMap[appointment.listing_id] || null,
           users: appointment.client_id ? usersMap[appointment.client_id] || null : null,
           residencias: null
         }));
 
-        // Fetch recurring instances
-        let recurringInstances: EnhancedAppointment[] = [];
-        
-        try {
-          const { data: instances, error: recurringError } = await supabase
-            .from('recurring_instances')
-            .select(`
-              id,
-              recurring_rule_id,
-              instance_date,
-              start_time,
-              end_time,
-              status,
-              notes,
-              created_at
-            `)
-            .gte('instance_date', format(startDate, 'yyyy-MM-dd'))
-            .lte('instance_date', format(endDate, 'yyyy-MM-dd'))
-            .in('status', ['scheduled', 'confirmed', 'completed'])
-            .order('start_time', { ascending: true });
-
-          if (!recurringError && instances && instances.length > 0) {
-            // Fetch recurring rules for the instances
-            const ruleIds = [...new Set(instances.map(inst => inst.recurring_rule_id))];
-            const { data: rules, error: rulesError } = await supabase
-              .from('recurring_rules')
-              .select(`
-                id,
-                provider_id,
-                client_id,
-                listing_id,
-                recurrence_type,
-                notes,
-                apartment,
-                client_address,
-                client_phone,
-                client_email,
-                client_name
-              `)
-              .in('id', ruleIds)
-              .eq('provider_id', user.id);
-
-            if (!rulesError && rules) {
-              const rulesMap = rules.reduce((acc, rule) => {
-                acc[rule.id] = rule;
-                return acc;
-              }, {} as Record<string, any>);
-
-              // Transform recurring instances to match appointment format
-              recurringInstances = instances.map(instance => {
-                const rule = rulesMap[instance.recurring_rule_id];
-                const listing = rule ? listingsMap[rule.listing_id] : null;
-                
-                return {
-                  id: instance.id,
-                  provider_id: rule?.provider_id || user.id,
-                  client_id: rule?.client_id || null,
-                  listing_id: rule?.listing_id || '',
-                  start_time: instance.start_time,
-                  end_time: instance.end_time,
-                  status: instance.status,
-                  notes: instance.notes || rule?.notes || null,
-                  apartment: rule?.apartment || null,
-                  client_address: rule?.client_address || null,
-                  client_phone: rule?.client_phone || null,
-                  client_email: rule?.client_email || null,
-                  client_name: rule?.client_name || null,
-                  provider_name: null,
-                  recurring_rule_id: instance.recurring_rule_id,
-                  is_recurring_instance: true,
-                  recurrence: rule?.recurrence_type || null,
-                  external_booking: false,
-                  created_at: instance.created_at,
-                  listings: listing,
-                  users: rule?.client_name ? {
-                    name: rule.client_name,
-                    phone: rule.client_phone || '',
-                    email: rule.client_email || '',
-                    condominium_name: null,
-                    house_number: null
-                  } : null,
-                  residencias: null
-                };
-              });
-            }
-          }
-        } catch (recurringError) {
-          console.warn('Error fetching recurring instances:', recurringError);
-          // Continue without recurring instances
-        }
-
-        // Combine all appointments
-        const allAppointments = [...enhancedAppointments, ...recurringInstances];
-        
-        console.log(`Total appointments for calendar: ${allAppointments.length}`);
-        console.log('Appointments breakdown:', {
-          regular: enhancedAppointments.length,
-          recurring: recurringInstances.length,
-          confirmed: allAppointments.filter(apt => apt.status === 'confirmed').length,
-          pending: allAppointments.filter(apt => apt.status === 'pending').length,
-          external: allAppointments.filter(apt => apt.external_booking).length
-        });
-
-        return allAppointments;
+        console.log(`Successfully processed ${enhancedAppointments.length} appointments for calendar`);
+        return enhancedAppointments;
         
       } catch (error) {
         console.error('Error in calendar appointments query:', error);
@@ -275,7 +193,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
     refetchInterval: 120000, // 2 minutes
     retry: (failureCount, error) => {
       console.error(`Calendar query failed (attempt ${failureCount + 1}):`, error);
-      return failureCount < 2; // Retry up to 2 times
+      return failureCount < 2;
     }
   });
 };

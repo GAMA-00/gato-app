@@ -18,20 +18,6 @@ const Calendar = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Hooks for data fetching
-  const { 
-    data: appointments = [], 
-    isLoading: appointmentsLoading, 
-    error: appointmentsError, 
-    refetch: refetchAppointments 
-  } = useCalendarAppointments(currentCalendarDate);
-  
-  const { 
-    blockedSlots, 
-    isLoading: blockedSlotsLoading,
-    refetch: refetchBlockedSlots 
-  } = useBlockedTimeSlots();
-  
   // Early return for non-providers
   if (user && user.role !== 'provider') {
     return (
@@ -45,6 +31,29 @@ const Calendar = () => {
       </PageContainer>
     );
   }
+
+  // Hooks for data fetching
+  const { 
+    data: appointments = [], 
+    isLoading: appointmentsLoading, 
+    error: appointmentsError, 
+    refetch: refetchAppointments 
+  } = useCalendarAppointments(currentCalendarDate);
+  
+  const { 
+    blockedSlots = [], 
+    isLoading: blockedSlotsLoading,
+    refetch: refetchBlockedSlots 
+  } = useBlockedTimeSlots();
+
+  console.log('Calendar render state:', {
+    user: user?.id,
+    appointmentsLoading,
+    blockedSlotsLoading,
+    appointmentsError,
+    appointmentsCount: appointments.length,
+    blockedSlotsCount: blockedSlots.length
+  });
 
   // Loading state
   if (appointmentsLoading || blockedSlotsLoading) {
@@ -92,14 +101,6 @@ const Calendar = () => {
                   Recargar página
                 </Button>
               </div>
-              <details className="text-xs">
-                <summary className="cursor-pointer text-red-600 hover:text-red-800">
-                  Ver detalles del error
-                </summary>
-                <div className="mt-2 p-2 bg-red-100 rounded text-red-800 font-mono text-xs">
-                  {appointmentsError.message || 'Error desconocido'}
-                </div>
-              </details>
             </div>
           </AlertDescription>
         </Alert>
@@ -111,28 +112,6 @@ const Calendar = () => {
   const filteredAppointments = appointments.filter((appointment: any) => {
     return appointment.status !== 'cancelled' && appointment.status !== 'rejected';
   });
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log("=== CALENDAR DEBUG INFO ===");
-    console.log("Current date:", currentCalendarDate.toISOString());
-    console.log("User ID:", user?.id);
-    console.log("Total appointments:", appointments.length);
-    console.log("Filtered appointments:", filteredAppointments.length);
-    console.log("Blocked slots:", blockedSlots.length);
-    
-    const breakdown = {
-      pending: appointments.filter(app => app.status === 'pending').length,
-      confirmed: appointments.filter(app => app.status === 'confirmed').length,
-      completed: appointments.filter(app => app.status === 'completed').length,
-      recurring: appointments.filter(app => app.is_recurring_instance).length,
-      external: appointments.filter(app => app.external_booking).length,
-      cancelled: appointments.filter(app => app.status === 'cancelled').length,
-      rejected: appointments.filter(app => app.status === 'rejected').length
-    };
-    console.log("Appointment breakdown:", breakdown);
-    console.log("==========================");
-  }, [appointments, filteredAppointments, blockedSlots, currentCalendarDate, user?.id]);
 
   return (
     <PageContainer 
