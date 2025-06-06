@@ -79,6 +79,24 @@ export const useCalendarAppointments = (currentDate: Date) => {
 
       console.log(`Found ${recurringInstances?.length || 0} recurring instances`);
 
+      // Helper function to safely get listing title
+      const getListingTitle = (listings: any) => {
+        if (!listings) return 'Servicio';
+        if (Array.isArray(listings)) {
+          return listings[0]?.title || 'Servicio';
+        }
+        return listings.title || 'Servicio';
+      };
+
+      // Helper function to safely get user name
+      const getUserName = (users: any) => {
+        if (!users) return null;
+        if (typeof users === 'object' && 'name' in users) {
+          return users.name;
+        }
+        return null;
+      };
+
       // Transform recurring instances to match appointment format
       const transformedRecurringInstances = (recurringInstances || []).map(instance => ({
         id: instance.id,
@@ -126,8 +144,8 @@ export const useCalendarAppointments = (currentDate: Date) => {
           start: apt.start_time,
           end: apt.end_time,
           status: apt.status,
-          service: apt.listings?.title,
-          client: apt.client_name || apt.users?.name,
+          service: getListingTitle(apt.listings),
+          client: apt.client_name || getUserName(apt.users),
           is_recurring: apt.is_recurring_instance,
           external: apt.external_booking
         });
