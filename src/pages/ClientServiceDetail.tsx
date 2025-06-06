@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -15,7 +16,6 @@ import BookingSummary from '@/components/client/results/BookingSummary';
 import { ServiceVariant } from '@/components/client/service/types';
 import { useServiceDetail } from '@/components/client/service/useServiceDetail';
 import ProviderBio from '@/components/client/service/ProviderBio';
-import ServiceDescription from '@/components/client/service/ServiceDescription';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
 
 const ClientServiceDetail = () => {
@@ -171,19 +171,6 @@ const ClientServiceDetail = () => {
     duration: defaultDuration
   }];
 
-  const experienceYears = serviceDetails.provider?.experience_years || 0;
-  
-  // Calculate experience level from 1 to 5 based on years
-  const getExperienceLevel = (years: number) => {
-    if (years < 1) return 1;
-    if (years < 2) return 2;
-    if (years < 4) return 3;
-    if (years < 7) return 4;
-    return 5;
-  };
-
-  const experienceLevel = getExperienceLevel(experienceYears);
-  
   // Calculate provider level based on account creation date
   const getProviderLevel = (createdAt?: string) => {
     if (!createdAt) return { level: 1, name: 'Nuevo' };
@@ -264,8 +251,9 @@ const ClientServiceDetail = () => {
             )}
           </div>
           
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Especialista en {serviceDetails.service_type?.name || serviceDetails.title}
+          {/* Service Description - Now showing the actual service description */}
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto whitespace-pre-line">
+            {serviceDetails.description}
           </p>
           
           {/* Manual experience years - showing here as part of the profile summary */}
@@ -279,14 +267,8 @@ const ClientServiceDetail = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left Column: Service Details and Gallery */}
+          {/* Left Column: Gallery and Provider Info */}
           <div className="md:col-span-2 space-y-6">
-            {/* Service Description */}
-            <ServiceDescription 
-              description={serviceDetails.description} 
-              serviceType={serviceDetails.service_type} 
-            />
-            
             {/* Gallery - Showing all images */}
             <Card>
               <CardHeader className="pb-3">
