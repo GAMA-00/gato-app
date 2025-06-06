@@ -65,6 +65,31 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
 
       console.log("Found providers:", providers);
 
+      // Fetch recurring clients count for each provider
+      const recurringClientsPromises = providerIds.map(async (providerId) => {
+        try {
+          const { data, error } = await supabase
+            .rpc('get_recurring_clients_count', { provider_id: providerId });
+            
+          if (error) {
+            console.error('Error fetching recurring clients count for provider:', providerId, error);
+            return { providerId, count: 0 };
+          }
+          
+          const count = Number(data);
+          return { providerId, count: isNaN(count) ? 0 : count };
+        } catch (error) {
+          console.error('Error in recurring clients RPC for provider:', providerId, error);
+          return { providerId, count: 0 };
+        }
+      });
+
+      const recurringClientsResults = await Promise.all(recurringClientsPromises);
+      const recurringClientsMap = recurringClientsResults.reduce((acc, result) => {
+        acc[result.providerId] = result.count;
+        return acc;
+      }, {} as Record<string, number>);
+
       // Process the data into ProcessedProvider format
       const processedProviders: ProcessedProvider[] = listings.map(listing => {
         const provider = providers?.find(p => p.id === listing.provider_id);
@@ -102,7 +127,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           serviceDescription: listing.description || '', // Include service description
           experience: provider?.experience_years || 0,
           servicesCompleted: Math.floor(Math.random() * 50) + 10, // Simulated
-          recurringClients: Math.floor(Math.random() * 20) + 5, // Simulated
+          recurringClients: recurringClientsMap[listing.provider_id] || 0, // Use real data
           galleryImages: galleryImages,
           hasCertifications: false, // Would need additional query
           ratingCount: Math.floor(Math.random() * 100) + 10, // Simulated

@@ -68,7 +68,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
                 </span>
               </div>
               
-              {/* Clientes Recurrentes */}
+              {/* Clientes Recurrentes - Using real data now */}
               <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
                 <Users className="h-3 w-3 text-amber-600 mr-1" />
                 <span className="font-medium text-xs text-amber-700">{provider.recurringClients}</span>
