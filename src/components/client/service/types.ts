@@ -61,3 +61,13 @@ export interface ProviderData {
   role?: string;
   created_at?: string; // Added for provider level calculation
 }
+
+export interface ServiceTypeData {
+  id?: string;
+  name?: string;
+  category?: {
+    id?: string;
+    name?: string;
+    label?: string;
+  };
+}

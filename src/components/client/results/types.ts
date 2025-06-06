@@ -36,3 +36,10 @@ export interface ServiceItem {
   price: number;
   imageUrl?: string;
 }
+
+export interface BookingPreferences {
+  frequency?: string;
+  selectedDays?: number[];
+  timeSlot?: string;
+  timePreference?: string;
+}
