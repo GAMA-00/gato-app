@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { startOfToday, endOfTomorrow } from 'date-fns';
+import { buildLocationString, logLocationDebug } from '@/utils/locationUtils';
 
 export const useAppointments = () => {
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export const useAppointments = () => {
       console.log('Fetching dashboard appointments for user:', user.id, 'role:', user.role);
 
       try {
-        // Simple, focused query for dashboard - only today and tomorrow
+        // Enhanced query to get complete location data
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -38,7 +39,18 @@ export const useAppointments = () => {
             external_booking,
             is_recurring_instance,
             recurrence,
-            created_at
+            created_at,
+            client_address,
+            apartment,
+            residencia_id,
+            listings!inner(
+              id,
+              title
+            ),
+            residencias(
+              id,
+              name
+            )
           `)
           .eq(user.role === 'provider' ? 'provider_id' : 'client_id', user.id)
           .gte('start_time', today.toISOString())
@@ -54,30 +66,7 @@ export const useAppointments = () => {
         const appointmentsList = appointments || [];
         console.log(`Found ${appointmentsList.length} dashboard appointments`);
 
-        // Get unique listing IDs for a separate, smaller query
-        const listingIds = [...new Set(appointmentsList.map(apt => apt.listing_id).filter(Boolean))];
-        
-        // Fetch only essential listing data
-        let listingsMap: Record<string, any> = {};
-        if (listingIds.length > 0) {
-          try {
-            const { data: listings } = await supabase
-              .from('listings')
-              .select('id, title')
-              .in('id', listingIds);
-
-            if (listings) {
-              listingsMap = listings.reduce((acc, listing) => {
-                acc[listing.id] = { title: listing.title };
-                return acc;
-              }, {} as Record<string, any>);
-            }
-          } catch (error) {
-            console.warn('Could not fetch listings:', error);
-          }
-        }
-
-        // Get unique client/provider IDs for user data
+        // Get unique client IDs to fetch user data
         const userRole = user.role;
         const userIds = [...new Set(
           appointmentsList.map(apt => 
@@ -85,21 +74,26 @@ export const useAppointments = () => {
           ).filter(Boolean)
         )];
         
-        // Fetch minimal user data
+        // Fetch user data including condominium information
         let usersMap: Record<string, any> = {};
         if (userIds.length > 0) {
           try {
             const { data: users } = await supabase
               .from('users')
-              .select('id, name, phone')
+              .select(`
+                id, 
+                name, 
+                phone,
+                house_number,
+                condominium_name,
+                condominium_text,
+                residencia_id
+              `)
               .in('id', userIds);
 
             if (users) {
               usersMap = users.reduce((acc, user) => {
-                acc[user.id] = {
-                  name: user.name || '',
-                  phone: user.phone || ''
-                };
+                acc[user.id] = user;
                 return acc;
               }, {} as Record<string, any>);
             }
@@ -108,18 +102,39 @@ export const useAppointments = () => {
           }
         }
 
-        // Enhanced appointments with minimal data
-        const enhancedAppointments = appointmentsList.map(appointment => ({
-          ...appointment,
-          listings: listingsMap[appointment.listing_id] || null,
-          users: appointment.client_id && userRole === 'provider' 
-            ? usersMap[appointment.client_id] || null 
+        // Enhanced appointments with complete location data
+        const enhancedAppointments = appointmentsList.map(appointment => {
+          const isExternal = appointment.external_booking;
+          const userInfo = appointment.client_id && userRole === 'provider' 
+            ? usersMap[appointment.client_id] 
             : appointment.provider_id && userRole === 'client'
-            ? usersMap[appointment.provider_id] || null
-            : null
-        }));
+            ? usersMap[appointment.provider_id] 
+            : null;
 
-        console.log(`Successfully processed ${enhancedAppointments.length} dashboard appointments`);
+          // Build complete location string
+          const locationData = {
+            residenciaName: appointment.residencias?.name,
+            condominiumName: userInfo?.condominium_name || userInfo?.condominium_text,
+            houseNumber: userInfo?.house_number,
+            apartment: appointment.apartment,
+            clientAddress: appointment.client_address,
+            isExternal: isExternal
+          };
+
+          const completeLocation = buildLocationString(locationData);
+          
+          // Log for debugging
+          logLocationDebug(appointment.id, locationData, completeLocation);
+
+          return {
+            ...appointment,
+            listings: appointment.listings,
+            users: userInfo,
+            complete_location: completeLocation
+          };
+        });
+
+        console.log(`Successfully processed ${enhancedAppointments.length} dashboard appointments with location data`);
         return enhancedAppointments;
         
       } catch (error) {
@@ -130,7 +145,7 @@ export const useAppointments = () => {
     enabled: !!user?.id,
     staleTime: 30000, // 30 seconds
     refetchInterval: 120000, // 2 minutes
-    retry: 1, // Reduce retry attempts for faster failure
+    retry: 1,
     refetchOnWindowFocus: false
   });
 };

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Clock, Check, X, MapPin, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
@@ -9,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
+import { buildLocationString, logLocationDebug } from '@/utils/locationUtils';
 
 interface AppointmentListProps {
   appointments: any[];
@@ -115,44 +117,39 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return appointment.listings?.title || 'Servicio';
   };
 
-  // Enhanced location info function using the new complete_location field
+  // Enhanced location info function with better fallback logic
   const getLocationInfo = (appointment: any) => {
-    // Use the pre-computed complete location if available
+    console.log('Getting location for appointment:', appointment.id, appointment);
+    
+    // First, check if we have pre-computed complete location
     if (appointment.complete_location) {
+      console.log('Using pre-computed location:', appointment.complete_location);
       return appointment.complete_location;
     }
     
-    // Fallback to building location manually (for backward compatibility)
-    if (appointment.is_external || appointment.external_booking) {
-      return appointment.client_address || 'Ubicación externa';
+    // Fallback: build location manually from available data
+    const isExternal = appointment.external_booking || appointment.is_external;
+    
+    if (isExternal) {
+      const location = appointment.client_address || 'Ubicación externa';
+      console.log('External appointment location:', location);
+      return location;
     }
     
-    let locationParts = [];
+    // Build location from available data
+    const locationData = {
+      residenciaName: appointment.residencias?.name,
+      condominiumName: appointment.users?.condominium_name || appointment.users?.condominium_text,
+      houseNumber: appointment.users?.house_number,
+      apartment: appointment.apartment,
+      clientAddress: appointment.client_address,
+      isExternal: false
+    };
     
-    // Add residencia name if available
-    if (appointment.residencias?.name) {
-      locationParts.push(appointment.residencias.name);
-    }
+    const builtLocation = buildLocationString(locationData);
+    logLocationDebug(appointment.id, locationData, builtLocation);
     
-    // Add condominium name
-    if (appointment.client_condominium) {
-      locationParts.push(appointment.client_condominium);
-    } else if (appointment.condominiums?.name) {
-      locationParts.push(appointment.condominiums.name);
-    } else if (appointment.users?.condominium_name) {
-      locationParts.push(appointment.users.condominium_name);
-    }
-    
-    // Add house/apartment number with # prefix
-    if (appointment.apartment) {
-      locationParts.push(`#${appointment.apartment}`);
-    } else if (appointment.users?.house_number) {
-      locationParts.push(`#${appointment.users.house_number}`);
-    }
-    
-    return locationParts.length > 0 
-      ? locationParts.join(' – ') 
-      : 'Ubicación no especificada';
+    return builtLocation;
   };
 
   // Enhanced contact info function
@@ -215,7 +212,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                 serviceName,
                 isExternal,
                 status: appointment.status,
-                location: locationInfo
+                location: locationInfo,
+                rawAppointment: appointment
               });
               
               return (
