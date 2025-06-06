@@ -1,49 +1,8 @@
 
-export interface ServiceVariant {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-}
-
 export interface ClientResidencia {
+  id?: string;
   name: string;
-  address: string;
-}
-
-export interface CertificationFile {
-  name?: string;
-  url: string;
-  type: string;
-  size?: number;
-}
-
-export interface ServiceTypeData {
-  name: string;
-  category?: {
-    name: string;
-    label?: string;
-  }
-}
-
-// Update this interface to match the one in results/types.ts
-export interface ProviderData {
-  id: string; // Make sure this is required in both interfaces
-  name?: string;
-  about_me?: string;
-  experience_years?: number;
-  average_rating?: number;
-  users?: any; // This could be an array or object
-  email?: string;
-  phone?: string;
-  avatar_url?: string; // Add the missing avatar_url property
-  certificationFiles?: CertificationFile[];
-  hasCertifications?: boolean;
-  created_at?: string;
-  servicesCompleted?: number;
-  isVerified?: boolean;
-  certification_files?: any; // Add this to match database field
-  ratingCount?: number; // Add the missing ratingCount field
+  address?: string;
 }
 
 export interface ServiceDetailData {
@@ -52,13 +11,53 @@ export interface ServiceDetailData {
   description: string;
   base_price: number;
   duration: number;
+  provider_id: string;
+  service_type_id: string;
+  is_active: boolean;
+  gallery_images?: string[];
+  galleryImages?: string[];
+  service_type?: {
+    id?: string;
+    name?: string;
+    category?: {
+      id?: string;
+      name?: string;
+      label?: string;
+    }
+  };
   provider: ProviderData;
-  service_type: ServiceTypeData;
+  serviceVariants?: ServiceVariant[];
   clientResidencia?: ClientResidencia;
-  serviceVariants: ServiceVariant[];
-  galleryImages: string[];
   recurringClients?: number;
+}
+
+export interface ServiceVariant {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+}
+
+export interface CertificationFile {
+  name: string;
+  url: string;
+  type: string;
+  size?: number;
+}
+
+export interface ProviderData {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  about_me?: string;
+  avatar_url?: string;
+  experience_years?: number;
+  average_rating?: number;
+  certification_files?: any[];
+  certificationFiles?: CertificationFile[];
+  hasCertifications?: boolean;
   servicesCompleted?: number;
-  createdAt?: string;
-  updatedAt?: string;
+  role?: string;
+  created_at?: string; // Added for provider level calculation
 }

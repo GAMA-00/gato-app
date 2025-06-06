@@ -10,16 +10,19 @@ interface ProviderAchievementsProps {
 }
 
 const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderAchievementsProps) => {
-  // Calculate experience level from 1 to 5 based on years
-  const getExperienceLevel = (years: number) => {
-    if (years < 1) return 1;
-    if (years < 2) return 2;
-    if (years < 4) return 3;
-    if (years < 7) return 4;
-    return 5;
+  // Calculate provider level based on account creation date (time on platform)
+  const getProviderLevel = (joinDate: Date) => {
+    const now = new Date();
+    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    
+    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
+    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
+    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
+    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
+    return { level: 5, name: 'Maestro' };
   };
 
-  const experienceLevel = getExperienceLevel(provider.experienceYears);
+  const providerLevel = getProviderLevel(provider.joinDate);
   
   // Use actual rating or default to 5.0 for new providers
   const displayRating = provider.rating && provider.rating > 0 ? provider.rating : 5.0;
@@ -59,16 +62,16 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
             </div>
           </div>
 
-          {/* Nivel de Experiencia */}
+          {/* Nivel del Proveedor (basado en antigüedad en la plataforma) */}
           <div className="flex flex-col items-center text-center flex-1">
             <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-3">
               <Award className="h-5 w-5 text-amber-600" />
             </div>
             <div className="text-xs font-medium text-stone-600 mb-1">
-              Nivel de experiencia
+              Nivel del proveedor
             </div>
             <div className="text-lg font-semibold text-stone-800">
-              Nivel {experienceLevel}
+              {providerLevel.name}
             </div>
           </div>
         </div>

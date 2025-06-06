@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -208,6 +207,18 @@ const ProviderProfilePage = () => {
     },
     enabled: !!providerId
   });
+  
+  // Calculate provider level based on account creation date
+  const getProviderLevel = (joinDate: Date) => {
+    const now = new Date();
+    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    
+    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
+    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
+    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
+    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
+    return { level: 5, name: 'Maestro' };
+  };
   
   const handleServiceSelection = (serviceId: string, optionId: string) => {
     if (!bookingData) {

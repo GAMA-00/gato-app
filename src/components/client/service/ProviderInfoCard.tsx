@@ -18,24 +18,25 @@ const ProviderInfoCard = ({
   recurringClients = 0, 
   clientResidencia 
 }: ProviderInfoCardProps) => {
-  const experienceYears = provider?.experience_years || 0;
-  
-  // Calculate experience level from 1 to 5 based on years
-  const getExperienceLevel = (years: number) => {
-    if (years < 1) return 1;
-    if (years < 2) return 2;
-    if (years < 4) return 3;
-    if (years < 7) return 4;
-    return 5;
+  // Calculate provider level based on account creation date (time on platform)
+  const getProviderLevel = (createdAt?: string) => {
+    if (!createdAt) return { level: 1, name: 'Nuevo' };
+    
+    const joinDate = new Date(createdAt);
+    const now = new Date();
+    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    
+    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
+    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
+    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
+    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
+    return { level: 5, name: 'Maestro' };
   };
 
-  const experienceLevel = getExperienceLevel(experienceYears);
+  const providerLevel = getProviderLevel(provider?.created_at);
   
   // Use actual rating or default to 5.0 for new providers
   const displayRating = provider?.average_rating && provider.average_rating > 0 ? provider.average_rating : 5.0;
-  
-  console.log("ProviderInfoCard - Provider avatar URL:", provider?.avatar_url);
-  console.log("ProviderInfoCard - Provider name:", provider?.name);
   
   return (
     <Card className="bg-app-card border border-app-border">
@@ -68,10 +69,10 @@ const ProviderInfoCard = ({
                 <span className="text-amber-600 text-sm ml-1">recurrentes</span>
               </div>
               
-              {/* Nivel de Experiencia */}
+              {/* Nivel del Proveedor */}
               <div className="flex items-center bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
                 <Award className="h-4 w-4 text-amber-600 mr-2" />
-                <span className="font-medium text-amber-700">Nivel {experienceLevel}</span>
+                <span className="font-medium text-amber-700">{providerLevel.name}</span>
               </div>
               
               {/* Location Badge - Only show if client has a residence */}

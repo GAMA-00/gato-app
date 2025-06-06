@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -185,6 +184,23 @@ const ClientServiceDetail = () => {
 
   const experienceLevel = getExperienceLevel(experienceYears);
   
+  // Calculate provider level based on account creation date
+  const getProviderLevel = (createdAt?: string) => {
+    if (!createdAt) return { level: 1, name: 'Nuevo' };
+    
+    const joinDate = new Date(createdAt);
+    const now = new Date();
+    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    
+    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
+    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
+    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
+    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
+    return { level: 5, name: 'Maestro' };
+  };
+
+  const providerLevel = getProviderLevel(serviceDetails.provider?.created_at);
+  
   // Use actual rating or default to 5.0 for new providers
   const displayRating = serviceDetails.provider?.average_rating && serviceDetails.provider.average_rating > 0 
     ? serviceDetails.provider.average_rating 
@@ -233,10 +249,10 @@ const ClientServiceDetail = () => {
               <span className="text-amber-600 text-sm ml-1">recurrentes</span>
             </div>
             
-            {/* Nivel de Experiencia */}
+            {/* Nivel del Proveedor */}
             <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
               <Award className="h-5 w-5 text-amber-600 mr-2" />
-              <span className="font-medium text-amber-700 text-lg">Nivel {experienceLevel}</span>
+              <span className="font-medium text-amber-700 text-lg">{providerLevel.name}</span>
             </div>
             
             {/* Location Badge */}
@@ -251,6 +267,15 @@ const ClientServiceDetail = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Especialista en {serviceDetails.service_type?.name || serviceDetails.title}
           </p>
+          
+          {/* Manual experience years - showing here as part of the profile summary */}
+          {serviceDetails.provider.experience_years > 0 && (
+            <div className="inline-block bg-stone-50 px-4 py-2 rounded-md border border-stone-200 mt-4">
+              <span className="text-sm text-stone-700">
+                {serviceDetails.provider.experience_years} año{serviceDetails.provider.experience_years !== 1 ? 's' : ''} de experiencia profesional
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

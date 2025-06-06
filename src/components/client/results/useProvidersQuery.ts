@@ -50,7 +50,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       // Fetch user data for providers separately
       const { data: providers, error: providersError } = await supabase
         .from('users')
-        .select('id, name, avatar_url, about_me, experience_years, certification_files, average_rating')
+        .select('id, name, avatar_url, about_me, experience_years, certification_files, average_rating, created_at')
         .in('id', providerIds);
 
       if (providersError) {
@@ -135,6 +135,9 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         // Combine gallery images with certification images
         const allImages = [...galleryImages, ...certificationImages];
 
+        // Create a join date from created_at
+        const joinDate = provider?.created_at ? new Date(provider.created_at) : undefined;
+
         const processed: ProcessedProvider = {
           id: provider?.id || listing.provider_id,
           name: provider?.name || 'Proveedor',
@@ -150,12 +153,14 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           recurringClients: recurringClients,
           galleryImages: allImages,
           hasCertifications: !!provider?.certification_files,
-          ratingCount: 0 // We'll calculate this separately if needed
+          ratingCount: 0, // We'll calculate this separately if needed
+          joinDate: joinDate // Add join date for level calculation
         };
 
         console.log("Processed provider:", processed);
         console.log("Gallery images for provider:", processed.galleryImages);
         console.log("Recurring clients for provider:", recurringClients);
+        console.log("Join date for provider:", processed.joinDate);
         
         return processed;
       });

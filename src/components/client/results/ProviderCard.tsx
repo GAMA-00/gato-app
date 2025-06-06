@@ -18,16 +18,21 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   // Get all images from gallery (no limit)
   const allImages = provider.galleryImages || [];
 
-  // Calculate experience level from 1 to 5 based on years
-  const getExperienceLevel = (years: number) => {
-    if (years < 1) return 1;
-    if (years < 2) return 2;
-    if (years < 4) return 3;
-    if (years < 7) return 4;
-    return 5;
+  // Calculate provider level based on time on platform
+  const getProviderLevel = (joinDate?: Date) => {
+    if (!joinDate) return { level: 1, name: 'Nuevo' };
+    
+    const now = new Date();
+    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    
+    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
+    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
+    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
+    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
+    return { level: 5, name: 'Maestro' };
   };
 
-  const experienceLevel = getExperienceLevel(provider.experience || 0);
+  const providerLevel = getProviderLevel(provider.joinDate);
   
   // Use actual rating or default to 5.0 for new providers
   const displayRating = provider.rating && provider.rating > 0 ? provider.rating : 5.0;
@@ -69,10 +74,10 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
                 <span className="font-medium text-xs text-amber-700">{provider.recurringClients}</span>
               </div>
               
-              {/* Nivel de Experiencia */}
+              {/* Nivel del Proveedor */}
               <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
                 <Award className="h-3 w-3 text-amber-600 mr-1" />
-                <span className="font-medium text-xs text-amber-700">Nivel {experienceLevel}</span>
+                <span className="font-medium text-xs text-amber-700">{providerLevel.name}</span>
               </div>
             </div>
           </div>
