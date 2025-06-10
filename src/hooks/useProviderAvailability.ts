@@ -31,7 +31,7 @@ export const useProviderAvailability = ({
       setIsLoading(true);
       
       try {
-        console.log(`Checking availability for provider ${providerId} on ${format(selectedDate, 'yyyy-MM-dd')}`);
+        console.log(`Checking enhanced availability for provider ${providerId} on ${format(selectedDate, 'yyyy-MM-dd')}`);
         
         // Generate time slots from 7 AM to 7 PM every 30 minutes
         const timeSlots: TimeSlot[] = [];
@@ -98,6 +98,8 @@ export const useProviderAvailability = ({
           console.error('Error fetching blocked slots:', blockedError);
         }
 
+        console.log(`Found ${blockedSlots?.length || 0} blocked time slots for day ${dayOfWeek}`);
+
         // Convert blocked time slots to appointment-like objects
         const blockedAppointments = (blockedSlots || []).map(blocked => {
           const startTime = new Date(selectedDate);
@@ -112,6 +114,8 @@ export const useProviderAvailability = ({
             status: 'blocked'
           };
         });
+
+        console.log(`Converted ${blockedAppointments.length} blocked slots to time periods`);
 
         // 4. If recurrence is selected, check for conflicts in future dates
         let futureConflicts: any[] = [];
@@ -196,7 +200,7 @@ export const useProviderAvailability = ({
           }
         }
 
-        // Combine all conflicting appointments INCLUDING recurring instances
+        // Combine all conflicting appointments INCLUDING recurring instances and blocked slots
         const allConflicts = [
           ...(regularAppointments || []),
           ...(recurringInstances || []),
@@ -204,7 +208,7 @@ export const useProviderAvailability = ({
           ...futureConflicts
         ];
 
-        console.log(`Found ${allConflicts.length} conflicting time periods (${regularAppointments?.length || 0} regular, ${recurringInstances?.length || 0} recurring, ${blockedAppointments.length} blocked, ${futureConflicts.length} future conflicts)`);
+        console.log(`Total conflicts found: ${allConflicts.length} (${regularAppointments?.length || 0} regular, ${recurringInstances?.length || 0} recurring, ${blockedAppointments.length} blocked, ${futureConflicts.length} future conflicts)`);
 
         // Filter available slots based on conflicts
         const availableSlots = timeSlots.filter(slot => {
@@ -224,31 +228,13 @@ export const useProviderAvailability = ({
             const overlaps = (slotStart < conflictEnd && slotEnd > conflictStart);
             
             if (overlaps) {
-              console.log(`Slot ${slot.time} blocked by conflict ${conflictStart.getHours()}:${conflictStart.getMinutes()}-${conflictEnd.getHours()}:${conflictEnd.getMinutes()}`);
+              console.log(`Slot ${slot.time} blocked by conflict ${format(conflictStart, 'HH:mm')}-${format(conflictEnd, 'HH:mm')}`);
             }
             
             return overlaps;
           });
 
-          // Additional check for recurring conflicts if this is a recurring booking
-          let hasRecurringConflict = false;
-          if (recurrence !== 'once' && futureConflicts.length > 0) {
-            hasRecurringConflict = futureConflicts.some(conflict => {
-              const conflictStart = new Date(conflict.start_time);
-              const conflictEnd = new Date(conflict.end_time);
-              
-              const conflictTimeStart = conflictStart.getHours() * 60 + conflictStart.getMinutes();
-              const conflictTimeEnd = conflictEnd.getHours() * 60 + conflictEnd.getMinutes();
-              const slotTimeStart = slotHour * 60 + slotMinute;
-              const slotTimeEnd = slotTimeStart + serviceDuration;
-              
-              return (slotTimeStart < conflictTimeEnd && slotTimeEnd > conflictTimeStart);
-            });
-          }
-
-          const isAvailable = !hasConflict && !hasRecurringConflict;
-          
-          return isAvailable;
+          return !hasConflict;
         });
 
         setAvailableTimeSlots(availableSlots);
