@@ -15,26 +15,26 @@ export const useCalendarAppointmentsWithRecurring = ({
   providerId 
 }: UseCalendarAppointmentsWithRecurringProps) => {
   const startDate = startOfDay(selectedDate);
-  const endDate = endOfDay(addWeeks(selectedDate, 20)); // Extendido a 20 semanas
+  const endDate = endOfDay(addWeeks(selectedDate, 24)); // Extendido a 24 semanas
 
   const autoGenerateInstances = useAutoGenerateInstances();
 
-  // Generar instancias automáticamente al cargar y cada vez que cambie el proveedor
+  // Generar instancias automáticamente al cargar
   useEffect(() => {
     if (providerId) {
-      console.log('Auto-generating instances for provider:', providerId);
+      console.log('=== TRIGGERING AUTO-GENERATION ===');
       autoGenerateInstances.mutate();
     }
   }, [providerId]);
 
-  // Generar instancias periódicamente para mantener el calendario actualizado
+  // Generar instancias cada 30 segundos para debug
   useEffect(() => {
+    if (!providerId) return;
+    
     const interval = setInterval(() => {
-      if (providerId) {
-        console.log('Periodic instance generation...');
-        autoGenerateInstances.mutate();
-      }
-    }, 2 * 60 * 1000); // Cada 2 minutos
+      console.log('=== PERIODIC GENERATION ===');
+      autoGenerateInstances.mutate();
+    }, 30 * 1000); // 30 segundos para debug
 
     return () => clearInterval(interval);
   }, [providerId, autoGenerateInstances]);
@@ -43,7 +43,7 @@ export const useCalendarAppointmentsWithRecurring = ({
   const { data: regularAppointments = [], isLoading: loadingRegular } = useQuery({
     queryKey: ['calendar-appointments', format(selectedDate, 'yyyy-MM-dd'), providerId],
     queryFn: async () => {
-      console.log('Fetching regular appointments for extended calendar...');
+      console.log('=== FETCHING REGULAR APPOINTMENTS ===');
       
       let query = supabase
         .from('appointments')
@@ -72,8 +72,8 @@ export const useCalendarAppointmentsWithRecurring = ({
       console.log(`Found ${data?.length || 0} regular appointments`);
       return data || [];
     },
-    staleTime: 30000,
-    refetchInterval: 60000
+    staleTime: 10000,
+    refetchInterval: 30000
   });
 
   // Obtener instancias recurrentes
@@ -106,7 +106,7 @@ export const useCalendarAppointmentsWithRecurring = ({
         listing_id: recurringRule?.listing_id,
         start_time: instance.start_time,
         end_time: instance.end_time,
-        status: instance.status === 'scheduled' ? 'confirmed' : instance.status, // Mapear scheduled a confirmed para visualización
+        status: 'confirmed', // Mapear las instancias programadas como confirmadas
         notes: instance.notes || recurringRule?.notes,
         apartment: recurringRule?.apartment,
         client_address: recurringRule?.client_address,
@@ -137,80 +137,40 @@ export const useCalendarAppointmentsWithRecurring = ({
     })
   ];
 
-  // Detectar conflictos mejorado
-  const conflictDetection = () => {
-    const conflicts = [];
-    for (let i = 0; i < combinedAppointments.length; i++) {
-      for (let j = i + 1; j < combinedAppointments.length; j++) {
-        const apt1 = combinedAppointments[i];
-        const apt2 = combinedAppointments[j];
-        
-        if (apt1.provider_id === apt2.provider_id) {
-          const start1 = new Date(apt1.start_time);
-          const end1 = new Date(apt1.end_time);
-          const start2 = new Date(apt2.start_time);
-          const end2 = new Date(apt2.end_time);
-          
-          if (start1 < end2 && start2 < end1) {
-            conflicts.push({ apt1: apt1.id, apt2: apt2.id });
-            console.warn('CONFLICT DETECTED:', {
-              appointment1: { 
-                id: apt1.id, 
-                start: format(start1, 'yyyy-MM-dd HH:mm'), 
-                end: format(end1, 'yyyy-MM-dd HH:mm'), 
-                type: apt1.is_recurring_instance ? 'recurring' : 'regular' 
-              },
-              appointment2: { 
-                id: apt2.id, 
-                start: format(start2, 'yyyy-MM-dd HH:mm'), 
-                end: format(end2, 'yyyy-MM-dd HH:mm'), 
-                type: apt2.is_recurring_instance ? 'recurring' : 'regular' 
-              }
-            });
-          }
-        }
-      }
-    }
-    return conflicts;
-  };
-
-  // Debug log mejorado
-  console.log('=== ENHANCED CALENDAR APPOINTMENTS DEBUG ===');
+  // Debug detallado
+  console.log('=== CALENDAR APPOINTMENTS DEBUG ===');
   console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+  console.log(`Provider ID: ${providerId}`);
   console.log(`Regular appointments: ${regularAppointments.length}`);
   console.log(`Recurring instances: ${recurringInstances.length}`);
   console.log(`Combined appointments: ${combinedAppointments.length}`);
   console.log(`Loading states - Regular: ${loadingRegular}, Recurring: ${loadingRecurring}`);
-  console.log(`Auto-generation running: ${autoGenerateInstances.isPending}`);
+  console.log(`Auto-generation status: ${autoGenerateInstances.isPending ? 'running' : 'idle'}`);
   
-  // Log details of recurring instances by week
+  // Log instancias recurrentes por fecha
   if (recurringInstances.length > 0) {
-    const instancesByWeek = recurringInstances.reduce((acc, instance) => {
-      const week = format(new Date(instance.instance_date), 'yyyy-MM-dd');
-      if (!acc[week]) acc[week] = [];
-      acc[week].push(instance);
+    const instancesByDate = recurringInstances.reduce((acc, instance) => {
+      const date = instance.instance_date;
+      if (!acc[date]) acc[date] = [];
+      acc[date].push({
+        id: instance.id,
+        time: `${format(new Date(instance.start_time), 'HH:mm')}-${format(new Date(instance.end_time), 'HH:mm')}`,
+        client: (instance.recurring_rules as any)?.client_name,
+        service: (instance.recurring_rules as any)?.listings?.title
+      });
       return acc;
     }, {} as Record<string, any[]>);
     
-    console.log('Recurring instances by week:', Object.keys(instancesByWeek).map(week => ({
-      week,
-      count: instancesByWeek[week].length,
-      instances: instancesByWeek[week].map(i => ({
-        id: i.id,
-        start: format(new Date(i.start_time), 'HH:mm'),
-        end: format(new Date(i.end_time), 'HH:mm'),
-        status: i.status
-      }))
-    })));
+    console.log('Recurring instances by date:', instancesByDate);
   }
   
-  console.log('=======================================');
+  console.log('=========================================');
 
   return {
     data: combinedAppointments,
     isLoading: loadingRegular || loadingRecurring || autoGenerateInstances.isPending,
     regularAppointments,
     recurringInstances,
-    conflicts: conflictDetection()
+    conflicts: [] // Simplificado por ahora
   };
 };

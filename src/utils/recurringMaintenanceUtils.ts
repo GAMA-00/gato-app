@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Función para extender automáticamente las instancias recurrentes
 export const maintainRecurringInstances = async () => {
   try {
-    console.log('Running enhanced recurring instances maintenance...');
+    console.log('=== MAINTAINING RECURRING INSTANCES ===');
     
     const { data, error } = await supabase.rpc('extend_recurring_instances');
     
@@ -25,10 +25,10 @@ export const maintainRecurringInstances = async () => {
   }
 };
 
-// Función mejorada para generar instancias faltantes con más cobertura
+// Función mejorada para generar instancias faltantes con debug detallado
 export const generateMissingInstances = async () => {
   try {
-    console.log('Generating missing recurring instances with enhanced coverage...');
+    console.log('=== GENERATING MISSING INSTANCES ===');
     
     // Obtener todas las reglas activas
     const { data: activeRules, error: rulesError } = await supabase
@@ -46,7 +46,9 @@ export const generateMissingInstances = async () => {
       return 0;
     }
 
-    console.log(`Found ${activeRules.length} active recurring rules`);
+    console.log(`Found ${activeRules.length} active recurring rules:`, 
+      activeRules.map(r => ({ id: r.id, client: r.client_name, type: r.recurrence_type }))
+    );
 
     let totalGenerated = 0;
     
@@ -54,12 +56,13 @@ export const generateMissingInstances = async () => {
     for (const rule of activeRules) {
       try {
         // Verificar cuántas instancias futuras ya existen
+        const today = new Date().toISOString().split('T')[0];
         const { data: futureInstances, error: countError } = await supabase
           .from('recurring_appointment_instances')
-          .select('id', { count: 'exact' })
+          .select('id, instance_date', { count: 'exact' })
           .eq('recurring_rule_id', rule.id)
-          .gte('instance_date', new Date().toISOString().split('T')[0])
-          .order('instance_date', { ascending: false });
+          .gte('instance_date', today)
+          .order('instance_date', { ascending: true });
 
         if (countError) {
           console.error(`Error counting instances for rule ${rule.id}:`, countError);
@@ -68,15 +71,17 @@ export const generateMissingInstances = async () => {
 
         const existingCount = futureInstances?.length || 0;
         
-        // Si hay menos de 10 instancias futuras, generar más (aumentado de 5 a 10)
-        if (existingCount < 10) {
-          console.log(`Rule ${rule.id} (${rule.client_name}) has only ${existingCount} future instances, generating more...`);
+        console.log(`Rule ${rule.id} (${rule.client_name}): ${existingCount} future instances`);
+        
+        // Generar más si hay menos de 15 instancias futuras
+        if (existingCount < 15) {
+          console.log(`Generating instances for rule ${rule.id}...`);
           
           const { data: generated, error: generateError } = await supabase.rpc(
             'generate_recurring_appointment_instances',
             {
               p_rule_id: rule.id,
-              p_weeks_ahead: 20 // Aumentado de 12 a 20 semanas
+              p_weeks_ahead: 24 // Aumentado a 24 semanas
             }
           );
 
@@ -89,17 +94,19 @@ export const generateMissingInstances = async () => {
           totalGenerated += count;
           
           if (count > 0) {
-            console.log(`Generated ${count} instances for rule ${rule.id} (provider: ${rule.provider_id}, client: ${rule.client_name})`);
+            console.log(`✅ Generated ${count} instances for rule ${rule.id} (${rule.client_name})`);
+          } else {
+            console.log(`ℹ️ No new instances needed for rule ${rule.id} (${rule.client_name})`);
           }
         } else {
-          console.log(`Rule ${rule.id} (${rule.client_name}) already has ${existingCount} future instances, skipping...`);
+          console.log(`✅ Rule ${rule.id} (${rule.client_name}) has enough instances (${existingCount})`);
         }
       } catch (error) {
         console.error(`Exception generating instances for rule ${rule.id}:`, error);
       }
     }
 
-    console.log(`Total instances generated: ${totalGenerated}`);
+    console.log(`=== GENERATION COMPLETE: ${totalGenerated} total instances ===`);
     return totalGenerated;
     
   } catch (error) {
@@ -108,21 +115,25 @@ export const generateMissingInstances = async () => {
   }
 };
 
-// Hook mejorado para ejecutar el mantenimiento automáticamente con mayor frecuencia
+// Hook para ejecutar el mantenimiento automáticamente con mayor frecuencia para debug
 export const useRecurringMaintenance = () => {
   useEffect(() => {
+    console.log('=== INITIALIZING RECURRING MAINTENANCE ===');
+    
     // Ejecutar al montar el componente
     generateMissingInstances();
     
-    // Ejecutar cada 1 minuto para generar instancias faltantes (reducido de 3 minutos)
+    // Ejecutar cada 30 segundos para debug (normalmente sería más tiempo)
     const generateInterval = setInterval(() => {
+      console.log('=== PERIODIC MAINTENANCE ===');
       generateMissingInstances();
-    }, 1 * 60 * 1000); // 1 minuto
+    }, 30 * 1000); // 30 segundos para debug
     
-    // Ejecutar cada 5 minutos para extender instancias existentes (reducido de 10 minutos)
+    // Ejecutar extensión cada 2 minutos
     const maintainInterval = setInterval(() => {
+      console.log('=== PERIODIC EXTENSION ===');
       maintainRecurringInstances();
-    }, 5 * 60 * 1000); // 5 minutos
+    }, 2 * 60 * 1000); // 2 minutos
     
     return () => {
       clearInterval(generateInterval);
