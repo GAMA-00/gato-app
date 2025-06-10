@@ -15,22 +15,26 @@ export function useRecurringServices() {
       }
 
       try {
-        // Consultar citas recurrentes activas del usuario actual
-        const { data: appointments, error } = await supabase
-          .from('appointments')
-          .select('id, recurrence, status')
+        console.log('Fetching recurring services for user:', user.id);
+        
+        // Consultar reglas de recurrencia activas del usuario actual
+        const { data: recurringRules, error } = await supabase
+          .from('recurring_rules')
+          .select('id, recurrence_type, is_active')
           .eq('client_id', user.id)
-          .neq('recurrence', 'none') // Excluir servicios únicos
-          .in('status', ['pending', 'confirmed']); // Solo citas activas
+          .eq('is_active', true)
+          .in('recurrence_type', ['weekly', 'biweekly', 'monthly']); // Solo servicios recurrentes
 
         if (error) {
-          console.error('Error fetching recurring appointments:', error);
+          console.error('Error fetching recurring rules:', error);
           setCount(0);
           return;
         }
 
-        // Contar las citas recurrentes únicas
-        const recurringCount = appointments?.length || 0;
+        // Contar las reglas de recurrencia activas
+        const recurringCount = recurringRules?.length || 0;
+        console.log('User has', recurringCount, 'active recurring services');
+        
         setCount(recurringCount);
       } catch (err) {
         console.error('Error parsing recurring services:', err);

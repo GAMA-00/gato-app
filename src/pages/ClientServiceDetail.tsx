@@ -17,6 +17,8 @@ import { ServiceVariant } from '@/components/client/service/types';
 import { useServiceDetail } from '@/components/client/service/useServiceDetail';
 import ProviderBio from '@/components/client/service/ProviderBio';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const ClientServiceDetail = () => {
   const { providerId, serviceId } = useParams<{ providerId: string; serviceId: string }>();
@@ -34,6 +36,38 @@ const ClientServiceDetail = () => {
   
   // Use the custom hook to fetch service details
   const { serviceDetails, isLoading } = useServiceDetail(providerId, serviceId, user?.id);
+  
+  // Fetch REAL recurring clients count for this provider
+  const { data: recurringClientsCount = 0 } = useQuery({
+    queryKey: ['recurring-clients-real', providerId],
+    queryFn: async () => {
+      if (!providerId) return 0;
+      
+      console.log('Fetching REAL recurring clients count for provider:', providerId);
+      
+      const { data, error } = await supabase
+        .from('recurring_rules')
+        .select('client_id')
+        .eq('provider_id', providerId)
+        .eq('is_active', true)
+        .in('recurrence_type', ['weekly', 'biweekly', 'monthly']);
+        
+      if (error) {
+        console.error('Error fetching recurring clients count:', error);
+        return 0;
+      }
+      
+      // Count unique clients
+      const uniqueClients = new Set(data.map(rule => rule.client_id));
+      const count = uniqueClients.size;
+      
+      console.log('Real recurring clients count:', count);
+      console.log('Unique client IDs:', Array.from(uniqueClients));
+      
+      return count;
+    },
+    enabled: !!providerId
+  });
   
   const handleBack = () => {
     navigate(-1);
@@ -209,57 +243,57 @@ const ClientServiceDetail = () => {
     >
       <div className="max-w-4xl mx-auto animate-fade-in pb-24 md:pb-0">
         {/* Provider Header - Large Profile Section */}
-        <div className="bg-white rounded-lg p-8 mb-6 text-center">
-          <Avatar className="h-32 w-32 mx-auto mb-4 border-4 border-app-border">
+        <div className="bg-white rounded-lg p-4 sm:p-8 mb-6 text-center">
+          <Avatar className="h-24 w-24 sm:h-32 sm:w-32 mx-auto mb-4 border-4 border-app-border">
             <AvatarImage src={serviceDetails.provider?.avatar_url} alt={serviceDetails.provider?.name} />
-            <AvatarFallback className="bg-app-cardAlt text-app-text text-2xl">
+            <AvatarFallback className="bg-app-cardAlt text-app-text text-xl sm:text-2xl">
               {serviceDetails.provider?.name?.substring(0, 2).toUpperCase() || 'P'}
             </AvatarFallback>
           </Avatar>
           
-          <h1 className="text-3xl font-bold text-app-text mb-2">{serviceDetails.provider?.name || 'Proveedor'}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-app-text mb-2">{serviceDetails.provider?.name || 'Proveedor'}</h1>
           
-          {/* Metrics Row */}
-          <div className="flex flex-wrap justify-center gap-3 mb-6">
+          {/* Metrics Row - Smaller icons on mobile */}
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6">
             {/* Calificación Promedio */}
-            <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-              <Star className="h-5 w-5 fill-amber-600 text-amber-600 mr-2" />
-              <span className="font-medium text-amber-700 text-lg">
+            <div className="flex items-center bg-amber-50 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-amber-200">
+              <Star className="h-3 w-3 sm:h-5 sm:w-5 fill-amber-600 text-amber-600 mr-1 sm:mr-2" />
+              <span className="font-medium text-amber-700 text-sm sm:text-lg">
                 {displayRating.toFixed(1)}
               </span>
             </div>
             
-            {/* Clientes Recurrentes */}
-            <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-              <Users className="h-5 w-5 text-amber-600 mr-2" />
-              <span className="font-medium text-amber-700 text-lg">{serviceDetails.recurringClients || 0}</span>
-              <span className="text-amber-600 text-sm ml-1">recurrentes</span>
+            {/* Clientes Recurrentes - Using REAL count */}
+            <div className="flex items-center bg-amber-50 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-amber-200">
+              <Users className="h-3 w-3 sm:h-5 sm:w-5 text-amber-600 mr-1 sm:mr-2" />
+              <span className="font-medium text-amber-700 text-sm sm:text-lg">{recurringClientsCount}</span>
+              <span className="text-amber-600 text-xs sm:text-sm ml-1">recurrentes</span>
             </div>
             
             {/* Nivel del Proveedor */}
-            <div className="flex items-center bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-              <Award className="h-5 w-5 text-amber-600 mr-2" />
-              <span className="font-medium text-amber-700 text-lg">{providerLevel.name}</span>
+            <div className="flex items-center bg-amber-50 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-amber-200">
+              <Award className="h-3 w-3 sm:h-5 sm:w-5 text-amber-600 mr-1 sm:mr-2" />
+              <span className="font-medium text-amber-700 text-sm sm:text-lg">{providerLevel.name}</span>
             </div>
             
             {/* Location Badge */}
             {serviceDetails.clientResidencia && (
-              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-100 flex items-center gap-1 px-4 py-2">
-                <MapPin className="h-4 w-4" />
-                {serviceDetails.clientResidencia.name}
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-100 flex items-center gap-1 px-2 sm:px-4 py-1.5 sm:py-2">
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">{serviceDetails.clientResidencia.name}</span>
               </Badge>
             )}
           </div>
           
           {/* Service Description - Now showing the actual service description */}
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto whitespace-pre-line">
+          <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto whitespace-pre-line">
             {serviceDetails.description}
           </p>
           
           {/* Manual experience years - showing here as part of the profile summary */}
           {serviceDetails.provider.experience_years > 0 && (
-            <div className="inline-block bg-stone-50 px-4 py-2 rounded-md border border-stone-200 mt-4">
-              <span className="text-sm text-stone-700">
+            <div className="inline-block bg-stone-50 px-3 sm:px-4 py-2 rounded-md border border-stone-200 mt-4">
+              <span className="text-xs sm:text-sm text-stone-700">
                 {serviceDetails.provider.experience_years} año{serviceDetails.provider.experience_years !== 1 ? 's' : ''} de experiencia profesional
               </span>
             </div>

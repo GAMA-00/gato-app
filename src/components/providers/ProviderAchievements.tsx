@@ -3,6 +3,8 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Star, Users, Award } from 'lucide-react';
 import { ProviderProfile } from '@/lib/types';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProviderAchievementsProps {
   provider: ProviderProfile;
@@ -10,6 +12,37 @@ interface ProviderAchievementsProps {
 }
 
 const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderAchievementsProps) => {
+  // Fetch REAL recurring clients count for this provider
+  const { data: realRecurringClientsCount = recurringClientsCount } = useQuery({
+    queryKey: ['recurring-clients-real', provider.id],
+    queryFn: async () => {
+      if (!provider.id) return recurringClientsCount;
+      
+      console.log('Fetching REAL recurring clients count for provider:', provider.id);
+      
+      const { data, error } = await supabase
+        .from('recurring_rules')
+        .select('client_id')
+        .eq('provider_id', provider.id)
+        .eq('is_active', true)
+        .in('recurrence_type', ['weekly', 'biweekly', 'monthly']);
+        
+      if (error) {
+        console.error('Error fetching recurring clients count:', error);
+        return recurringClientsCount;
+      }
+      
+      // Count unique clients
+      const uniqueClients = new Set(data.map(rule => rule.client_id));
+      const count = uniqueClients.size;
+      
+      console.log('Real recurring clients count:', count);
+      
+      return count;
+    },
+    enabled: !!provider.id
+  });
+
   // Calculate provider level based on account creation date (time on platform)
   const getProviderLevel = (joinDate: Date) => {
     const now = new Date();
@@ -49,7 +82,7 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
             </div>
           </div>
 
-          {/* Clientes Recurrentes */}
+          {/* Clientes Recurrentes - Using REAL count */}
           <div className="flex flex-col items-center text-center flex-1">
             <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-3">
               <Users className="h-5 w-5 text-amber-600" />
@@ -58,7 +91,7 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
               Clientes recurrentes
             </div>
             <div className="text-lg font-semibold text-stone-800">
-              {recurringClientsCount}
+              {realRecurringClientsCount}
             </div>
           </div>
 
