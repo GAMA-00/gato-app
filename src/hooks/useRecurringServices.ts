@@ -34,6 +34,7 @@ export function useRecurringServices() {
         // Contar las reglas de recurrencia activas
         const recurringCount = recurringRules?.length || 0;
         console.log('User has', recurringCount, 'active recurring services');
+        console.log('Recurring rules found:', recurringRules);
         
         setCount(recurringCount);
       } catch (err) {
