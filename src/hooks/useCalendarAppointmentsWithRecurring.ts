@@ -25,7 +25,7 @@ export const useCalendarAppointmentsWithRecurring = ({
       console.log('Auto-generating instances for provider:', providerId);
       autoGenerateInstances.mutate();
     }
-  }, [providerId, selectedDate]);
+  }, [providerId]);
 
   // Obtener citas regulares
   const { data: regularAppointments = [], isLoading: loadingRegular } = useQuery({
@@ -60,8 +60,8 @@ export const useCalendarAppointmentsWithRecurring = ({
       console.log(`Found ${data?.length || 0} regular appointments`);
       return data || [];
     },
-    staleTime: 60000,
-    refetchInterval: 120000
+    staleTime: 30000,
+    refetchInterval: 60000
   });
 
   // Obtener instancias recurrentes
@@ -80,44 +80,49 @@ export const useCalendarAppointmentsWithRecurring = ({
       client_name: appointment.client_name || 'Cliente',
       client_phone: appointment.client_phone || '',
       client_email: appointment.client_email || '',
-      service_title: (appointment.listings as any)?.title || 'Servicio'
+      service_title: ((appointment.listings as any)?.title) || 'Servicio'
     })),
     // Instancias recurrentes - convertir a formato de appointment
-    ...recurringInstances.map(instance => ({
-      id: instance.id,
-      provider_id: (instance.recurring_rules as any)?.provider_id,
-      client_id: (instance.recurring_rules as any)?.client_id,
-      listing_id: (instance.recurring_rules as any)?.listing_id,
-      start_time: instance.start_time,
-      end_time: instance.end_time,
-      status: instance.status === 'scheduled' ? 'confirmed' : instance.status, // Mapear status
-      notes: instance.notes || (instance.recurring_rules as any)?.notes,
-      apartment: (instance.recurring_rules as any)?.apartment,
-      client_address: (instance.recurring_rules as any)?.client_address,
-      client_phone: (instance.recurring_rules as any)?.client_phone,
-      client_email: (instance.recurring_rules as any)?.client_email,
-      client_name: (instance.recurring_rules as any)?.client_name || 'Cliente',
-      recurring_rule_id: instance.recurring_rule_id,
-      is_recurring_instance: true,
-      recurrence: (instance.recurring_rules as any)?.recurrence_type,
-      service_title: ((instance.recurring_rules as any)?.listings as any)?.title || 'Servicio Recurrente',
-      // Campos adicionales para compatibilidad
-      provider_name: null,
-      admin_notes: null,
-      cancellation_time: null,
-      refund_percentage: null,
-      last_modified_by: null,
-      last_modified_at: null,
-      created_at: instance.created_at,
-      external_booking: false,
-      residencia_id: null,
-      recurrence_group_id: null,
-      // Compatibilidad con estructura de listings
-      listings: {
-        title: ((instance.recurring_rules as any)?.listings as any)?.title || 'Servicio Recurrente',
-        duration: ((instance.recurring_rules as any)?.listings as any)?.duration || 60
-      }
-    }))
+    ...recurringInstances.map(instance => {
+      const recurringRule = (instance.recurring_rules as any);
+      const listings = recurringRule?.listings;
+      
+      return {
+        id: instance.id,
+        provider_id: recurringRule?.provider_id,
+        client_id: recurringRule?.client_id,
+        listing_id: recurringRule?.listing_id,
+        start_time: instance.start_time,
+        end_time: instance.end_time,
+        status: instance.status === 'scheduled' ? 'confirmed' : instance.status,
+        notes: instance.notes || recurringRule?.notes,
+        apartment: recurringRule?.apartment,
+        client_address: recurringRule?.client_address,
+        client_phone: recurringRule?.client_phone,
+        client_email: recurringRule?.client_email,
+        client_name: recurringRule?.client_name || 'Cliente',
+        recurring_rule_id: instance.recurring_rule_id,
+        is_recurring_instance: true,
+        recurrence: recurringRule?.recurrence_type,
+        service_title: listings?.title || 'Servicio Recurrente',
+        // Campos adicionales para compatibilidad
+        provider_name: null,
+        admin_notes: null,
+        cancellation_time: null,
+        refund_percentage: null,
+        last_modified_by: null,
+        last_modified_at: null,
+        created_at: instance.created_at,
+        external_booking: false,
+        residencia_id: null,
+        recurrence_group_id: null,
+        // Compatibilidad con estructura de listings
+        listings: {
+          title: listings?.title || 'Servicio Recurrente',
+          duration: listings?.duration || 60
+        }
+      };
+    })
   ];
 
   // Detectar conflictos
@@ -154,6 +159,18 @@ export const useCalendarAppointmentsWithRecurring = ({
   console.log(`Combined appointments: ${combinedAppointments.length}`);
   console.log(`Loading states - Regular: ${loadingRegular}, Recurring: ${loadingRecurring}`);
   console.log(`Auto-generation running: ${autoGenerateInstances.isPending}`);
+  
+  // Log details of recurring instances
+  if (recurringInstances.length > 0) {
+    console.log('Recurring instances details:', recurringInstances.map(instance => ({
+      id: instance.id,
+      date: instance.instance_date,
+      start: instance.start_time,
+      end: instance.end_time,
+      status: instance.status
+    })));
+  }
+  
   console.log('=====================================');
 
   return {

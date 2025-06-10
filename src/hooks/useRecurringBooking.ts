@@ -146,11 +146,24 @@ export function useRecurringBooking() {
         toast.error('Regla creada pero hubo un problema generando las citas futuras');
       }
 
-      // Invalidar queries para actualizar la UI
-      queryClient.invalidateQueries({ queryKey: ['recurring-instances'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['all-recurring-rules'] });
+      // Invalidar queries múltiples veces para asegurar actualización
+      const queriesToInvalidate = [
+        ['recurring-instances'],
+        ['calendar-appointments'],
+        ['appointments'],
+        ['all-recurring-rules']
+      ];
+      
+      for (const queryKey of queriesToInvalidate) {
+        queryClient.invalidateQueries({ queryKey });
+      }
+      
+      // Esperar un poco y invalidar de nuevo para asegurar la actualización
+      setTimeout(() => {
+        for (const queryKey of queriesToInvalidate) {
+          queryClient.invalidateQueries({ queryKey });
+        }
+      }, 1000);
 
       return recurringRule;
       

@@ -61,7 +61,7 @@ export const useRecurringInstances = ({
   });
 };
 
-// Hook para generar instancias automáticamente para todas las reglas activas
+// Hook para generar instancias automáticamente
 export const useAutoGenerateInstances = () => {
   const queryClient = useQueryClient();
 
@@ -89,29 +89,27 @@ export const useAutoGenerateInstances = () => {
 
       let totalGenerated = 0;
       
+      // Generar instancias para cada regla activa
       for (const rule of activeRules) {
         try {
-          // Verificar si necesita generar más instancias
-          const { data: existingInstances, error: countError } = await supabase
+          // Verificar cuántas instancias futuras ya existen
+          const { data: futureInstances, error: countError } = await supabase
             .from('recurring_appointment_instances')
-            .select('instance_date')
+            .select('id', { count: 'exact' })
             .eq('recurring_rule_id', rule.id)
             .gte('instance_date', format(new Date(), 'yyyy-MM-dd'))
-            .order('instance_date', { ascending: false })
-            .limit(1);
+            .order('instance_date', { ascending: false });
 
           if (countError) {
-            console.error(`Error checking instances for rule ${rule.id}:`, countError);
+            console.error(`Error counting instances for rule ${rule.id}:`, countError);
             continue;
           }
 
-          // Si no hay instancias futuras o la última es muy cercana, generar más
-          const needsGeneration = !existingInstances || 
-            existingInstances.length === 0 || 
-            !isAfter(new Date(existingInstances[0].instance_date), addWeeks(new Date(), 3));
-
-          if (needsGeneration) {
-            console.log(`Generating instances for rule ${rule.id}`);
+          const existingCount = futureInstances?.length || 0;
+          
+          // Si hay menos de 5 instancias futuras, generar más
+          if (existingCount < 5) {
+            console.log(`Rule ${rule.id} has only ${existingCount} future instances, generating more...`);
             
             const { data: generatedCount, error: generateError } = await supabase.rpc(
               'generate_recurring_appointment_instances',
@@ -133,7 +131,7 @@ export const useAutoGenerateInstances = () => {
               console.log(`Generated ${count} instances for rule ${rule.id}`);
             }
           } else {
-            console.log(`Rule ${rule.id} already has sufficient future instances`);
+            console.log(`Rule ${rule.id} already has ${existingCount} future instances, skipping...`);
           }
         } catch (error) {
           console.error(`Exception generating instances for rule ${rule.id}:`, error);
