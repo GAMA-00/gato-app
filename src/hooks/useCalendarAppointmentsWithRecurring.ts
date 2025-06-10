@@ -27,7 +27,7 @@ export const useCalendarAppointmentsWithRecurring = ({
     }
   }, [providerId, selectedDate]);
 
-  // Obtener citas regulares con validación mejorada
+  // Obtener citas regulares
   const { data: regularAppointments = [], isLoading: loadingRegular } = useQuery({
     queryKey: ['calendar-appointments', format(selectedDate, 'yyyy-MM-dd'), providerId],
     queryFn: async () => {
@@ -44,7 +44,7 @@ export const useCalendarAppointmentsWithRecurring = ({
         `)
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
-        .in('status', ['pending', 'confirmed', 'completed']); // Exclude cancelled/rejected
+        .in('status', ['pending', 'confirmed', 'completed']);
 
       if (providerId) {
         query = query.eq('provider_id', providerId);
@@ -60,18 +60,18 @@ export const useCalendarAppointmentsWithRecurring = ({
       console.log(`Found ${data?.length || 0} regular appointments`);
       return data || [];
     },
-    staleTime: 60000, // 1 minute
-    refetchInterval: 120000 // 2 minutes
+    staleTime: 60000,
+    refetchInterval: 120000
   });
 
-  // Obtener instancias recurrentes con validación mejorada
+  // Obtener instancias recurrentes
   const { data: recurringInstances = [], isLoading: loadingRecurring } = useRecurringInstances({
     providerId,
     startDate,
     endDate
   });
 
-  // Combinar citas regulares y recurrentes con validación de conflictos
+  // Combinar citas regulares y recurrentes
   const combinedAppointments = [
     // Citas regulares
     ...regularAppointments.map(appointment => ({
@@ -82,25 +82,25 @@ export const useCalendarAppointmentsWithRecurring = ({
       client_email: appointment.client_email || '',
       service_title: (appointment.listings as any)?.title || 'Servicio'
     })),
-    // Instancias recurrentes
+    // Instancias recurrentes - convertir a formato de appointment
     ...recurringInstances.map(instance => ({
       id: instance.id,
-      provider_id: instance.recurring_rules?.provider_id,
-      client_id: instance.recurring_rules?.client_id,
-      listing_id: instance.recurring_rules?.listing_id,
+      provider_id: (instance.recurring_rules as any)?.provider_id,
+      client_id: (instance.recurring_rules as any)?.client_id,
+      listing_id: (instance.recurring_rules as any)?.listing_id,
       start_time: instance.start_time,
       end_time: instance.end_time,
-      status: instance.status,
-      notes: instance.notes || instance.recurring_rules?.notes,
-      apartment: instance.recurring_rules?.apartment,
-      client_address: instance.recurring_rules?.client_address,
-      client_phone: instance.recurring_rules?.client_phone,
-      client_email: instance.recurring_rules?.client_email,
-      client_name: instance.recurring_rules?.client_name || 'Cliente',
+      status: instance.status === 'scheduled' ? 'confirmed' : instance.status, // Mapear status
+      notes: instance.notes || (instance.recurring_rules as any)?.notes,
+      apartment: (instance.recurring_rules as any)?.apartment,
+      client_address: (instance.recurring_rules as any)?.client_address,
+      client_phone: (instance.recurring_rules as any)?.client_phone,
+      client_email: (instance.recurring_rules as any)?.client_email,
+      client_name: (instance.recurring_rules as any)?.client_name || 'Cliente',
       recurring_rule_id: instance.recurring_rule_id,
       is_recurring_instance: true,
-      recurrence: instance.recurring_rules?.recurrence_type,
-      service_title: (instance.recurring_rules?.listings as any)?.title || 'Servicio Recurrente',
+      recurrence: (instance.recurring_rules as any)?.recurrence_type,
+      service_title: ((instance.recurring_rules as any)?.listings as any)?.title || 'Servicio Recurrente',
       // Campos adicionales para compatibilidad
       provider_name: null,
       admin_notes: null,
@@ -114,13 +114,13 @@ export const useCalendarAppointmentsWithRecurring = ({
       recurrence_group_id: null,
       // Compatibilidad con estructura de listings
       listings: {
-        title: (instance.recurring_rules?.listings as any)?.title || 'Servicio Recurrente',
-        duration: (instance.recurring_rules?.listings as any)?.duration || 60
+        title: ((instance.recurring_rules as any)?.listings as any)?.title || 'Servicio Recurrente',
+        duration: ((instance.recurring_rules as any)?.listings as any)?.duration || 60
       }
     }))
   ];
 
-  // Detectar y reportar conflictos
+  // Detectar conflictos
   const conflictDetection = () => {
     const conflicts = [];
     for (let i = 0; i < combinedAppointments.length; i++) {
@@ -128,14 +128,12 @@ export const useCalendarAppointmentsWithRecurring = ({
         const apt1 = combinedAppointments[i];
         const apt2 = combinedAppointments[j];
         
-        // Solo verificar conflictos para el mismo proveedor
         if (apt1.provider_id === apt2.provider_id) {
           const start1 = new Date(apt1.start_time);
           const end1 = new Date(apt1.end_time);
           const start2 = new Date(apt2.start_time);
           const end2 = new Date(apt2.end_time);
           
-          // Verificar superposición
           if (start1 < end2 && start2 < end1) {
             conflicts.push({ apt1: apt1.id, apt2: apt2.id });
             console.warn('CONFLICT DETECTED:', {
@@ -149,15 +147,7 @@ export const useCalendarAppointmentsWithRecurring = ({
     return conflicts;
   };
 
-  // Ejecutar detección de conflictos en desarrollo
-  if (process.env.NODE_ENV === 'development') {
-    const conflicts = conflictDetection();
-    if (conflicts.length > 0) {
-      console.error(`Found ${conflicts.length} scheduling conflicts!`, conflicts);
-    }
-  }
-
-  // Debug log para el estado actual
+  // Debug log
   console.log('=== CALENDAR APPOINTMENTS DEBUG ===');
   console.log(`Regular appointments: ${regularAppointments.length}`);
   console.log(`Recurring instances: ${recurringInstances.length}`);

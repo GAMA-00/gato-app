@@ -35,9 +35,8 @@ export function useRecurringBooking() {
     try {
       const startDate = new Date(data.startTime).toISOString().split('T')[0];
       
-      // Si es "once" (una vez), crear una cita normal en lugar de una regla recurrente
+      // Si es "once" (una vez), crear una cita normal
       if (data.recurrenceType === 'once') {
-        // Obtener proveedor del listing
         const { data: listing } = await supabase
           .from('listings')
           .select('provider_id')
@@ -76,14 +75,13 @@ export function useRecurringBooking() {
 
         toast.success('Cita creada exitosamente');
         
-        // Invalidar queries para actualizar la UI
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
         queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
         
         return appointment;
       }
 
-      // Para citas recurrentes, obtener proveedor y crear la regla recurrente
+      // Para citas recurrentes, crear la regla recurrente
       const { data: listing } = await supabase
         .from('listings')
         .select('provider_id')
@@ -110,6 +108,7 @@ export function useRecurringBooking() {
           client_address: data.clientAddress,
           client_phone: data.clientPhone,
           client_email: data.clientEmail,
+          client_name: user.name || 'Cliente',
           apartment: data.apartment,
           is_active: true
         })
@@ -123,7 +122,7 @@ export function useRecurringBooking() {
 
       console.log('Recurring rule created successfully:', recurringRule);
 
-      // Generar inmediatamente las instancias para las próximas 10 semanas
+      // Generar inmediatamente las instancias para las próximas 12 semanas
       try {
         console.log('Generating initial instances for recurring rule:', recurringRule.id);
         
@@ -131,19 +130,20 @@ export function useRecurringBooking() {
           'generate_recurring_appointment_instances',
           {
             p_rule_id: recurringRule.id,
-            p_weeks_ahead: 10
+            p_weeks_ahead: 12
           }
         );
 
         if (generateError) {
           console.error('Error generating initial instances:', generateError);
-          // No fallar la creación por esto, solo advertir
           toast.error('Regla creada pero hubo un problema generando las citas futuras');
         } else {
           console.log(`Successfully generated ${generatedCount || 0} initial instances`);
+          toast.success(`Servicio recurrente creado exitosamente. Se generaron ${generatedCount || 0} citas programadas.`);
         }
       } catch (generateError) {
         console.error('Exception generating initial instances:', generateError);
+        toast.error('Regla creada pero hubo un problema generando las citas futuras');
       }
 
       // Invalidar queries para actualizar la UI
@@ -152,7 +152,6 @@ export function useRecurringBooking() {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['all-recurring-rules'] });
 
-      toast.success('Servicio recurrente creado exitosamente. Las citas se han programado automáticamente.');
       return recurringRule;
       
     } catch (error: any) {
