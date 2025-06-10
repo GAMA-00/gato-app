@@ -80,7 +80,7 @@ export const useCalendarAppointmentsWithRecurring = ({
       client_name: appointment.client_name || 'Cliente',
       client_phone: appointment.client_phone || '',
       client_email: appointment.client_email || '',
-      service_title: appointment.listings?.title || 'Servicio'
+      service_title: (appointment.listings as any)?.title || 'Servicio'
     })),
     // Instancias recurrentes
     ...recurringInstances.map(instance => ({
@@ -96,11 +96,11 @@ export const useCalendarAppointmentsWithRecurring = ({
       client_address: instance.recurring_rules?.client_address,
       client_phone: instance.recurring_rules?.client_phone,
       client_email: instance.recurring_rules?.client_email,
-      client_name: instance.recurring_rules?.users?.name || instance.recurring_rules?.client_name || 'Cliente',
+      client_name: instance.recurring_rules?.client_name || 'Cliente',
       recurring_rule_id: instance.recurring_rule_id,
       is_recurring_instance: true,
       recurrence: instance.recurring_rules?.recurrence_type,
-      service_title: instance.recurring_rules?.listings?.title || 'Servicio Recurrente',
+      service_title: (instance.recurring_rules?.listings as any)?.title || 'Servicio Recurrente',
       // Campos adicionales para compatibilidad
       provider_name: null,
       admin_notes: null,
@@ -114,8 +114,8 @@ export const useCalendarAppointmentsWithRecurring = ({
       recurrence_group_id: null,
       // Compatibilidad con estructura de listings
       listings: {
-        title: instance.recurring_rules?.listings?.title || 'Servicio Recurrente',
-        duration: instance.recurring_rules?.listings?.duration || 60
+        title: (instance.recurring_rules?.listings as any)?.title || 'Servicio Recurrente',
+        duration: (instance.recurring_rules?.listings as any)?.duration || 60
       }
     }))
   ];
