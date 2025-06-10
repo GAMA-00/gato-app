@@ -11,12 +11,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
+import { useRecurringMaintenance } from '@/utils/recurringMaintenanceUtils';
 
 const Calendar = () => {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Ejecutar mantenimiento automático de instancias recurrentes
+  useRecurringMaintenance();
   
   // Early return for non-providers
   if (user && user.role !== 'provider') {
@@ -58,7 +62,8 @@ const Calendar = () => {
     regularAppointmentsCount: regularAppointments.length,
     recurringInstancesCount: recurringInstances.length,
     conflicts: conflicts.length,
-    blockedSlotsCount: blockedSlots.length
+    blockedSlotsCount: blockedSlots.length,
+    currentDate: currentCalendarDate.toISOString().split('T')[0]
   });
 
   // Loading state
@@ -95,6 +100,21 @@ const Calendar = () => {
     >
       <div className="space-y-6">
         <PendingRequestsCard />
+        
+        {/* Show recurring instances info */}
+        {recurringInstances.length > 0 && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <AlertDescription>
+              <div className="space-y-2">
+                <h4 className="font-medium text-blue-800">Citas recurrentes activas</h4>
+                <p className="text-blue-600">
+                  Se muestran {recurringInstances.length} instancia{recurringInstances.length > 1 ? 's' : ''} de citas recurrentes 
+                  junto con {regularAppointments.length} cita{regularAppointments.length > 1 ? 's' : ''} regular{regularAppointments.length > 1 ? 'es' : ''}.
+                </p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
         
         {/* Show conflict warnings if any */}
         {conflicts.length > 0 && (

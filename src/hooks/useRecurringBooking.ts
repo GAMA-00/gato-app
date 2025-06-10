@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface RecurringBookingData {
   listingId: string;
@@ -21,6 +22,7 @@ interface RecurringBookingData {
 export function useRecurringBooking() {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const createRecurringBooking = async (data: RecurringBookingData) => {
     if (!user) {
@@ -73,6 +75,11 @@ export function useRecurringBooking() {
         }
 
         toast.success('Cita creada exitosamente');
+        
+        // Invalidar queries para actualizar la UI
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+        
         return appointment;
       }
 
@@ -115,6 +122,36 @@ export function useRecurringBooking() {
       }
 
       console.log('Recurring rule created successfully:', recurringRule);
+
+      // Generar inmediatamente las instancias para las próximas 10 semanas
+      try {
+        console.log('Generating initial instances for recurring rule:', recurringRule.id);
+        
+        const { data: generatedCount, error: generateError } = await supabase.rpc(
+          'generate_recurring_appointment_instances',
+          {
+            p_rule_id: recurringRule.id,
+            p_weeks_ahead: 10
+          }
+        );
+
+        if (generateError) {
+          console.error('Error generating initial instances:', generateError);
+          // No fallar la creación por esto, solo advertir
+          toast.error('Regla creada pero hubo un problema generando las citas futuras');
+        } else {
+          console.log(`Successfully generated ${generatedCount || 0} initial instances`);
+        }
+      } catch (generateError) {
+        console.error('Exception generating initial instances:', generateError);
+      }
+
+      // Invalidar queries para actualizar la UI
+      queryClient.invalidateQueries({ queryKey: ['recurring-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['all-recurring-rules'] });
+
       toast.success('Servicio recurrente creado exitosamente. Las citas se han programado automáticamente.');
       return recurringRule;
       

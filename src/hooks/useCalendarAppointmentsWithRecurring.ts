@@ -2,7 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addWeeks, startOfDay, endOfDay } from 'date-fns';
-import { useRecurringInstances, useGenerateRecurringInstances } from './useRecurringInstances';
+import { useRecurringInstances, useAutoGenerateInstances } from './useRecurringInstances';
+import { useEffect } from 'react';
 
 interface UseCalendarAppointmentsWithRecurringProps {
   selectedDate: Date;
@@ -16,7 +17,15 @@ export const useCalendarAppointmentsWithRecurring = ({
   const startDate = startOfDay(selectedDate);
   const endDate = endOfDay(addWeeks(selectedDate, 16)); // Próximas 16 semanas
 
-  const { generateInstances } = useGenerateRecurringInstances();
+  const autoGenerateInstances = useAutoGenerateInstances();
+
+  // Generar instancias automáticamente al cargar
+  useEffect(() => {
+    if (providerId) {
+      console.log('Auto-generating instances for provider:', providerId);
+      autoGenerateInstances.mutate();
+    }
+  }, [providerId, selectedDate]);
 
   // Obtener citas regulares con validación mejorada
   const { data: regularAppointments = [], isLoading: loadingRegular } = useQuery({
@@ -26,7 +35,18 @@ export const useCalendarAppointmentsWithRecurring = ({
       
       let query = supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          *,
+          listings(
+            title,
+            duration
+          ),
+          users!appointments_client_id_fkey(
+            name,
+            phone,
+            email
+          )
+        `)
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
         .in('status', ['pending', 'confirmed', 'completed']); // Exclude cancelled/rejected
@@ -56,60 +76,18 @@ export const useCalendarAppointmentsWithRecurring = ({
     endDate
   });
 
-  // Generar instancias faltantes si es necesario
-  const { data: allRules = [] } = useQuery({
-    queryKey: ['all-recurring-rules', providerId],
-    queryFn: async () => {
-      console.log('Fetching recurring rules...');
-      
-      let query = supabase
-        .from('recurring_rules')
-        .select('*')
-        .eq('is_active', true);
-
-      if (providerId) {
-        query = query.eq('provider_id', providerId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching recurring rules:', error);
-        return [];
-      }
-
-      console.log(`Found ${data?.length || 0} active recurring rules`);
-      return data || [];
-    },
-    staleTime: 300000 // 5 minutes
-  });
-
-  // Generar instancias faltantes automáticamente
-  useQuery({
-    queryKey: ['generate-missing-instances', format(selectedDate, 'yyyy-MM-dd'), providerId],
-    queryFn: async () => {
-      if (allRules.length === 0) return [];
-      
-      console.log('Generating missing recurring instances...');
-      
-      const promises = allRules.map(rule => 
-        generateInstances(rule.id, startDate, endDate).catch(error => {
-          console.warn(`Could not generate instances for rule ${rule.id}:`, error);
-          return 0;
-        })
-      );
-
-      const results = await Promise.all(promises);
-      console.log('Generated instances for rules:', results);
-      return results;
-    },
-    enabled: allRules.length > 0,
-    staleTime: 300000 // 5 minutes
-  });
-
   // Combinar citas regulares y recurrentes con validación de conflictos
   const combinedAppointments = [
-    ...regularAppointments,
+    // Citas regulares
+    ...regularAppointments.map(appointment => ({
+      ...appointment,
+      is_recurring_instance: false,
+      client_name: appointment.users?.name || appointment.client_name,
+      client_phone: appointment.users?.phone || appointment.client_phone,
+      client_email: appointment.users?.email || appointment.client_email,
+      service_title: appointment.listings?.title || 'Servicio'
+    })),
+    // Instancias recurrentes
     ...recurringInstances.map(instance => ({
       id: instance.id,
       provider_id: instance.recurring_rules?.provider_id,
@@ -123,10 +101,11 @@ export const useCalendarAppointmentsWithRecurring = ({
       client_address: instance.recurring_rules?.client_address,
       client_phone: instance.recurring_rules?.client_phone,
       client_email: instance.recurring_rules?.client_email,
-      client_name: instance.recurring_rules?.client_name,
+      client_name: instance.recurring_rules?.users?.name || instance.recurring_rules?.client_name || 'Cliente',
       recurring_rule_id: instance.recurring_rule_id,
       is_recurring_instance: true,
       recurrence: instance.recurring_rules?.recurrence_type,
+      service_title: instance.recurring_rules?.listings?.title || 'Servicio Recurrente',
       // Campos adicionales para compatibilidad
       provider_name: null,
       admin_notes: null,
@@ -137,7 +116,18 @@ export const useCalendarAppointmentsWithRecurring = ({
       created_at: instance.created_at,
       external_booking: false,
       residencia_id: null,
-      recurrence_group_id: null
+      recurrence_group_id: null,
+      // Compatibilidad con estructura de listings
+      listings: {
+        title: instance.recurring_rules?.listings?.title || 'Servicio Recurrente',
+        duration: instance.recurring_rules?.listings?.duration || 60
+      },
+      // Compatibilidad con estructura de users
+      users: {
+        name: instance.recurring_rules?.users?.name || instance.recurring_rules?.client_name,
+        phone: instance.recurring_rules?.users?.phone || instance.recurring_rules?.client_phone,
+        email: instance.recurring_rules?.users?.email || instance.recurring_rules?.client_email
+      }
     }))
   ];
 
@@ -160,8 +150,8 @@ export const useCalendarAppointmentsWithRecurring = ({
           if (start1 < end2 && start2 < end1) {
             conflicts.push({ apt1: apt1.id, apt2: apt2.id });
             console.warn('CONFLICT DETECTED:', {
-              appointment1: { id: apt1.id, start: start1, end: end1 },
-              appointment2: { id: apt2.id, start: start2, end: end2 }
+              appointment1: { id: apt1.id, start: start1, end: end1, type: apt1.is_recurring_instance ? 'recurring' : 'regular' },
+              appointment2: { id: apt2.id, start: start2, end: end2, type: apt2.is_recurring_instance ? 'recurring' : 'regular' }
             });
           }
         }
@@ -178,9 +168,18 @@ export const useCalendarAppointmentsWithRecurring = ({
     }
   }
 
+  // Debug log para el estado actual
+  console.log('=== CALENDAR APPOINTMENTS DEBUG ===');
+  console.log(`Regular appointments: ${regularAppointments.length}`);
+  console.log(`Recurring instances: ${recurringInstances.length}`);
+  console.log(`Combined appointments: ${combinedAppointments.length}`);
+  console.log(`Loading states - Regular: ${loadingRegular}, Recurring: ${loadingRecurring}`);
+  console.log(`Auto-generation running: ${autoGenerateInstances.isPending}`);
+  console.log('=====================================');
+
   return {
     data: combinedAppointments,
-    isLoading: loadingRegular || loadingRecurring,
+    isLoading: loadingRegular || loadingRecurring || autoGenerateInstances.isPending,
     regularAppointments,
     recurringInstances,
     conflicts: conflictDetection()
