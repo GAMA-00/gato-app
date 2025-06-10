@@ -40,11 +40,6 @@ export const useCalendarAppointmentsWithRecurring = ({
           listings(
             title,
             duration
-          ),
-          users!appointments_client_id_fkey(
-            name,
-            phone,
-            email
           )
         `)
         .gte('start_time', startDate.toISOString())
@@ -82,9 +77,9 @@ export const useCalendarAppointmentsWithRecurring = ({
     ...regularAppointments.map(appointment => ({
       ...appointment,
       is_recurring_instance: false,
-      client_name: appointment.users?.name || appointment.client_name,
-      client_phone: appointment.users?.phone || appointment.client_phone,
-      client_email: appointment.users?.email || appointment.client_email,
+      client_name: appointment.client_name || 'Cliente',
+      client_phone: appointment.client_phone || '',
+      client_email: appointment.client_email || '',
       service_title: appointment.listings?.title || 'Servicio'
     })),
     // Instancias recurrentes
@@ -121,12 +116,6 @@ export const useCalendarAppointmentsWithRecurring = ({
       listings: {
         title: instance.recurring_rules?.listings?.title || 'Servicio Recurrente',
         duration: instance.recurring_rules?.listings?.duration || 60
-      },
-      // Compatibilidad con estructura de users
-      users: {
-        name: instance.recurring_rules?.users?.name || instance.recurring_rules?.client_name,
-        phone: instance.recurring_rules?.users?.phone || instance.recurring_rules?.client_phone,
-        email: instance.recurring_rules?.users?.email || instance.recurring_rules?.client_email
       }
     }))
   ];
