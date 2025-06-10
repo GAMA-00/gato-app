@@ -436,6 +436,50 @@ export type Database = {
           },
         ]
       }
+      recurring_appointment_instances: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          instance_date: string
+          notes: string | null
+          recurring_rule_id: string
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          instance_date: string
+          notes?: string | null
+          recurring_rule_id: string
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          instance_date?: string
+          notes?: string | null
+          recurring_rule_id?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_appointment_instances_recurring_rule_id_fkey"
+            columns: ["recurring_rule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_instances: {
         Row: {
           created_at: string
@@ -878,6 +922,14 @@ export type Database = {
           user_residencia_id?: string
         }
         Returns: undefined
+      }
+      extend_recurring_instances: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      generate_recurring_appointment_instances: {
+        Args: { p_rule_id: string; p_weeks_ahead?: number }
+        Returns: number
       }
       generate_recurring_instances: {
         Args: { rule_id: string; start_range: string; end_range: string }

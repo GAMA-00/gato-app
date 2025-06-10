@@ -5,7 +5,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
 import PendingRequestsCard from '@/components/calendar/PendingRequestsCard';
 import BlockedTimeSlots from '@/components/calendar/BlockedTimeSlots';
-import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
+import { useCalendarAppointmentsWithRecurring } from '@/hooks/useCalendarAppointmentsWithRecurring';
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -32,13 +32,17 @@ const Calendar = () => {
     );
   }
 
-  // Hooks for data fetching
+  // Hooks for data fetching - now using the enhanced hook with recurring instances
   const { 
     data: appointments = [], 
     isLoading: appointmentsLoading, 
-    error: appointmentsError, 
-    refetch: refetchAppointments 
-  } = useCalendarAppointments(currentCalendarDate);
+    conflicts = [],
+    regularAppointments = [],
+    recurringInstances = []
+  } = useCalendarAppointmentsWithRecurring({
+    selectedDate: currentCalendarDate,
+    providerId: user?.id
+  });
   
   const { 
     blockedSlots = [], 
@@ -50,8 +54,10 @@ const Calendar = () => {
     user: user?.id,
     appointmentsLoading,
     blockedSlotsLoading,
-    appointmentsError,
     appointmentsCount: appointments.length,
+    regularAppointmentsCount: regularAppointments.length,
+    recurringInstancesCount: recurringInstances.length,
+    conflicts: conflicts.length,
     blockedSlotsCount: blockedSlots.length
   });
 
@@ -65,45 +71,6 @@ const Calendar = () => {
             <p className="text-muted-foreground">Cargando calendario...</p>
           </div>
         </div>
-      </PageContainer>
-    );
-  }
-
-  // Error state
-  if (appointmentsError) {
-    console.error("Calendar error:", appointmentsError);
-    return (
-      <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">
-        <Alert className="mb-6 border-red-200 bg-red-50">
-          <AlertDescription>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-red-800">Error al cargar el calendario</h4>
-                <p className="text-red-600 mt-1">
-                  No se pudieron cargar las citas. Por favor, intenta nuevamente.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => refetchAppointments()} 
-                  variant="outline" 
-                  size="sm"
-                  className="border-red-300 text-red-700 hover:bg-red-100"
-                >
-                  Reintentar
-                </Button>
-                <Button 
-                  onClick={() => window.location.reload()} 
-                  variant="outline" 
-                  size="sm"
-                  className="border-red-300 text-red-700 hover:bg-red-100"
-                >
-                  Recargar página
-                </Button>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
       </PageContainer>
     );
   }
@@ -128,6 +95,21 @@ const Calendar = () => {
     >
       <div className="space-y-6">
         <PendingRequestsCard />
+        
+        {/* Show conflict warnings if any */}
+        {conflicts.length > 0 && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertDescription>
+              <div className="space-y-2">
+                <h4 className="font-medium text-yellow-800">Conflictos detectados</h4>
+                <p className="text-yellow-600">
+                  Se detectaron {conflicts.length} conflicto{conflicts.length > 1 ? 's' : ''} de horarios en tu calendario. 
+                  Revisa las citas superpuestas.
+                </p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
         
         {showBlockedTimeSlots && <BlockedTimeSlots />}
         

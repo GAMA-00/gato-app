@@ -20,7 +20,7 @@ export const useRecurringInstances = ({
     queryKey: ['recurring-instances', providerId, format(startDate, 'yyyy-MM-dd'), format(finalEndDate, 'yyyy-MM-dd')],
     queryFn: async () => {
       let query = supabase
-        .from('recurring_instances')
+        .from('recurring_appointment_instances')
         .select(`
           *,
           recurring_rules!inner(
@@ -50,10 +50,9 @@ export const useRecurringInstances = ({
 // Hook para generar instancias dinámicamente cuando se necesiten
 export const useGenerateRecurringInstances = () => {
   const generateInstances = async (ruleId: string, startRange: Date, endRange: Date) => {
-    const { data, error } = await supabase.rpc('generate_recurring_instances', {
-      rule_id: ruleId,
-      start_range: format(startRange, 'yyyy-MM-dd'),
-      end_range: format(endRange, 'yyyy-MM-dd')
+    const { data, error } = await supabase.rpc('generate_recurring_appointment_instances', {
+      p_rule_id: ruleId,
+      p_weeks_ahead: Math.ceil((endRange.getTime() - startRange.getTime()) / (1000 * 60 * 60 * 24 * 7))
     });
 
     if (error) {

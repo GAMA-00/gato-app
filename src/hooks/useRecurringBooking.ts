@@ -35,12 +35,23 @@ export function useRecurringBooking() {
       
       // Si es "once" (una vez), crear una cita normal en lugar de una regla recurrente
       if (data.recurrenceType === 'once') {
+        // Obtener proveedor del listing
+        const { data: listing } = await supabase
+          .from('listings')
+          .select('provider_id')
+          .eq('id', data.listingId)
+          .single();
+
+        if (!listing) {
+          throw new Error('No se encontró el servicio');
+        }
+
         const { data: appointment, error } = await supabase
           .from('appointments')
           .insert({
             listing_id: data.listingId,
             client_id: user.id,
-            provider_id: '', // Se debe obtener del listing
+            provider_id: listing.provider_id,
             start_time: data.startTime,
             end_time: data.endTime,
             status: 'pending',
@@ -49,7 +60,7 @@ export function useRecurringBooking() {
             client_phone: data.clientPhone,
             client_email: data.clientEmail,
             apartment: data.apartment,
-            recurrence: 'once', // Establecer explícitamente como 'once'
+            recurrence: 'once',
             external_booking: false,
             is_recurring_instance: false
           })
@@ -65,13 +76,23 @@ export function useRecurringBooking() {
         return appointment;
       }
 
-      // Para citas recurrentes, crear la regla recurrente
+      // Para citas recurrentes, obtener proveedor y crear la regla recurrente
+      const { data: listing } = await supabase
+        .from('listings')
+        .select('provider_id')
+        .eq('id', data.listingId)
+        .single();
+
+      if (!listing) {
+        throw new Error('No se encontró el servicio');
+      }
+
       const { data: recurringRule, error } = await supabase
         .from('recurring_rules')
         .insert({
           listing_id: data.listingId,
           client_id: user.id,
-          provider_id: '', // Se debe obtener del listing
+          provider_id: listing.provider_id,
           recurrence_type: data.recurrenceType,
           start_date: startDate,
           start_time: new Date(data.startTime).toTimeString().split(' ')[0],
@@ -93,7 +114,8 @@ export function useRecurringBooking() {
         throw error;
       }
 
-      toast.success('Servicio recurrente creado exitosamente');
+      console.log('Recurring rule created successfully:', recurringRule);
+      toast.success('Servicio recurrente creado exitosamente. Las citas se han programado automáticamente.');
       return recurringRule;
       
     } catch (error: any) {
