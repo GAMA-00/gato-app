@@ -19,7 +19,7 @@ const Calendar = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Ejecutar mantenimiento automático de instancias recurrentes
+  // Ejecutar mantenimiento automático optimizado
   useRecurringMaintenance();
   
   // Early return for non-providers
@@ -36,7 +36,7 @@ const Calendar = () => {
     );
   }
 
-  // Hooks for data fetching - now using the enhanced hook with recurring instances
+  // Hooks optimizados para data fetching
   const { 
     data: appointments = [], 
     isLoading: appointmentsLoading, 
@@ -61,12 +61,11 @@ const Calendar = () => {
     appointmentsCount: appointments.length,
     regularAppointmentsCount: regularAppointments.length,
     recurringInstancesCount: recurringInstances.length,
-    conflicts: conflicts.length,
     blockedSlotsCount: blockedSlots.length,
     currentDate: currentCalendarDate.toISOString().split('T')[0]
   });
 
-  // Loading state
+  // Loading state optimizado
   if (appointmentsLoading || blockedSlotsLoading) {
     return (
       <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">

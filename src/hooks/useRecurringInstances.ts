@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format, addWeeks, isAfter, startOfDay } from 'date-fns';
+import { format, addWeeks } from 'date-fns';
 
 interface UseRecurringInstancesProps {
   providerId?: string;
@@ -14,7 +14,7 @@ export const useRecurringInstances = ({
   startDate, 
   endDate 
 }: UseRecurringInstancesProps) => {
-  const finalEndDate = endDate || addWeeks(startDate, 26); // Extendido a 26 semanas (6 meses)
+  const finalEndDate = endDate || addWeeks(startDate, 12); // Optimizado a 12 semanas
 
   return useQuery({
     queryKey: ['recurring-instances', providerId, format(startDate, 'yyyy-MM-dd'), format(finalEndDate, 'yyyy-MM-dd')],
@@ -54,32 +54,22 @@ export const useRecurringInstances = ({
       }
 
       console.log(`Found ${data?.length || 0} recurring instances`);
-      
-      // Debug detallado por instancia
-      if (data && data.length > 0) {
-        data.forEach(instance => {
-          const rule = instance.recurring_rules as any;
-          console.log(`Instance ${instance.id}: ${instance.instance_date} ${format(new Date(instance.start_time), 'HH:mm')} - Client: ${rule?.client_name}`);
-        });
-      }
-      
       return data || [];
     },
     enabled: !!startDate,
-    staleTime: 5000, // Reducido para debug
-    refetchInterval: 15000 // Más frecuente para debug
+    staleTime: 60000, // 1 minuto
+    refetchInterval: false // No auto-refetch para evitar bucles
   });
 };
 
-// Hook mejorado para generar instancias automáticamente con máxima agresividad
+// Hook optimizado para generar instancias automáticamente
 export const useAutoGenerateInstances = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      console.log('=== AUTO GENERATING INSTANCES (AGGRESSIVE) ===');
+      console.log('=== AUTO GENERATING INSTANCES ===');
       
-      // Obtener todas las reglas activas
       const { data: activeRules, error } = await supabase
         .from('recurring_rules')
         .select('id, recurrence_type, provider_id, start_date, client_name, is_active')
@@ -99,10 +89,8 @@ export const useAutoGenerateInstances = () => {
 
       let totalGenerated = 0;
       
-      // Generar instancias para cada regla activa
       for (const rule of activeRules) {
         try {
-          // Verificar cuántas instancias futuras ya existen
           const today = new Date().toISOString().split('T')[0];
           const { data: futureInstances, error: countError } = await supabase
             .from('recurring_appointment_instances')
@@ -119,15 +107,15 @@ export const useAutoGenerateInstances = () => {
           const existingCount = futureInstances?.length || 0;
           console.log(`Rule ${rule.id} (${rule.client_name}) has ${existingCount} future instances`);
           
-          // Generar más instancias si hay menos de 20 futuras (aumentado considerablemente)
-          if (existingCount < 20) {
+          // Generar más instancias si hay menos de 8 futuras (optimizado)
+          if (existingCount < 8) {
             console.log(`Generating more instances for rule ${rule.id}...`);
             
             const { data: generatedCount, error: generateError } = await supabase.rpc(
               'generate_recurring_appointment_instances',
               {
                 p_rule_id: rule.id,
-                p_weeks_ahead: 30 // Aumentado a 30 semanas
+                p_weeks_ahead: 15 // Optimizado
               }
             );
 
@@ -140,8 +128,6 @@ export const useAutoGenerateInstances = () => {
             totalGenerated += count;
             
             console.log(`✅ Generated ${count} new instances for rule ${rule.id} (${rule.client_name})`);
-          } else {
-            console.log(`✅ Rule ${rule.id} (${rule.client_name}) has enough future instances (${existingCount})`);
           }
         } catch (error) {
           console.error(`Exception generating instances for rule ${rule.id}:`, error);
@@ -153,34 +139,19 @@ export const useAutoGenerateInstances = () => {
     },
     onSuccess: (generatedCount) => {
       console.log(`Successfully generated ${generatedCount} instances`);
-      // Invalidar todas las queries relacionadas múltiples veces
-      const queries = [
-        ['recurring-instances'],
-        ['calendar-appointments'],
-        ['appointments'],
-        ['provider-availability']
-      ];
-      
-      queries.forEach(queryKey => {
-        queryClient.invalidateQueries({ queryKey });
-      });
-      
-      // Invalidar de nuevo después de un delay para asegurar actualización
-      setTimeout(() => {
-        queries.forEach(queryKey => {
-          queryClient.invalidateQueries({ queryKey });
-        });
-      }, 2000);
+      // Invalidar queries de forma controlada
+      queryClient.invalidateQueries({ queryKey: ['recurring-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
     }
   });
 };
 
-// Hook para generar instancias específicas cuando se necesiten
+// Hook para generar instancias específicas
 export const useGenerateRecurringInstances = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ ruleId, weeksAhead = 30 }: { ruleId: string; weeksAhead?: number }) => {
+    mutationFn: async ({ ruleId, weeksAhead = 15 }: { ruleId: string; weeksAhead?: number }) => {
       console.log(`Generating instances for rule ${ruleId}, weeks ahead: ${weeksAhead}`);
       
       const { data, error } = await supabase.rpc('generate_recurring_appointment_instances', {

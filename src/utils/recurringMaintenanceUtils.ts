@@ -1,5 +1,4 @@
 
-import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 // Función para extender automáticamente las instancias recurrentes
@@ -25,10 +24,10 @@ export const maintainRecurringInstances = async () => {
   }
 };
 
-// Función ultra-agresiva para generar instancias faltantes
+// Función optimizada para generar instancias faltantes
 export const generateMissingInstances = async () => {
   try {
-    console.log('=== GENERATING MISSING INSTANCES (ULTRA-AGGRESSIVE) ===');
+    console.log('=== GENERATING MISSING INSTANCES ===');
     
     // Obtener todas las reglas activas
     const { data: activeRules, error: rulesError } = await supabase
@@ -46,13 +45,11 @@ export const generateMissingInstances = async () => {
       return 0;
     }
 
-    console.log(`Found ${activeRules.length} active recurring rules:`, 
-      activeRules.map(r => ({ id: r.id, client: r.client_name, type: r.recurrence_type, active: r.is_active }))
-    );
+    console.log(`Found ${activeRules.length} active recurring rules`);
 
     let totalGenerated = 0;
     
-    // Generar instancias para cada regla activa con máxima agresividad
+    // Generar instancias para cada regla activa de forma más eficiente
     for (const rule of activeRules) {
       try {
         // Verificar cuántas instancias futuras ya existen
@@ -73,15 +70,15 @@ export const generateMissingInstances = async () => {
         
         console.log(`Rule ${rule.id} (${rule.client_name}): ${existingCount} future instances`);
         
-        // Generar más si hay menos de 25 instancias futuras (muy aumentado)
-        if (existingCount < 25) {
-          console.log(`🚀 Generating instances for rule ${rule.id}...`);
+        // Generar más si hay menos de 10 instancias futuras (reducido para ser más eficiente)
+        if (existingCount < 10) {
+          console.log(`Generating instances for rule ${rule.id}...`);
           
           const { data: generated, error: generateError } = await supabase.rpc(
             'generate_recurring_appointment_instances',
             {
               p_rule_id: rule.id,
-              p_weeks_ahead: 35 // Aumentado a 35 semanas (8+ meses)
+              p_weeks_ahead: 15 // Reducido a 15 semanas para mejor rendimiento
             }
           );
 
@@ -95,8 +92,6 @@ export const generateMissingInstances = async () => {
           
           if (count > 0) {
             console.log(`✅ Generated ${count} instances for rule ${rule.id} (${rule.client_name})`);
-          } else {
-            console.log(`ℹ️ No new instances needed for rule ${rule.id} (${rule.client_name})`);
           }
         } else {
           console.log(`✅ Rule ${rule.id} (${rule.client_name}) has enough instances (${existingCount})`);
@@ -115,29 +110,29 @@ export const generateMissingInstances = async () => {
   }
 };
 
-// Hook para ejecutar el mantenimiento automáticamente con máxima frecuencia para debug
+// Hook optimizado para ejecutar el mantenimiento de forma controlada
 export const useRecurringMaintenance = () => {
-  useEffect(() => {
-    console.log('=== INITIALIZING ULTRA-AGGRESSIVE RECURRING MAINTENANCE ===');
+  React.useEffect(() => {
+    console.log('=== INITIALIZING RECURRING MAINTENANCE ===');
     
     // Ejecutar inmediatamente al montar el componente
     generateMissingInstances();
     
-    // Ejecutar cada 5 segundos para debug (ultra-agresivo)
+    // Ejecutar cada 5 minutos (mucho más eficiente)
     const generateInterval = setInterval(() => {
-      console.log('=== ULTRA-PERIODIC MAINTENANCE ===');
+      console.log('=== PERIODIC MAINTENANCE ===');
       generateMissingInstances();
-    }, 5 * 1000); // 5 segundos para debug
+    }, 5 * 60 * 1000); // 5 minutos
     
-    // Ejecutar extensión cada 30 segundos
+    // Ejecutar extensión cada 10 minutos
     const maintainInterval = setInterval(() => {
-      console.log('=== ULTRA-PERIODIC EXTENSION ===');
+      console.log('=== PERIODIC EXTENSION ===');
       maintainRecurringInstances();
-    }, 30 * 1000); // 30 segundos
+    }, 10 * 60 * 1000); // 10 minutos
     
     return () => {
       clearInterval(generateInterval);
       clearInterval(maintainInterval);
     };
-  }, []);
+  }, []); // Sin dependencias para evitar re-ejecuciones
 };
