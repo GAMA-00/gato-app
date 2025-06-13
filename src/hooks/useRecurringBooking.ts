@@ -122,7 +122,7 @@ export function useRecurringBooking() {
 
       console.log('Recurring rule created successfully:', recurringRule);
 
-      // Generar inmediatamente las instancias para las próximas 12 semanas
+      // Generar inmediatamente las instancias para las próximas 20 semanas (aumentado)
       try {
         console.log('Generating initial instances for recurring rule:', recurringRule.id);
         
@@ -130,7 +130,7 @@ export function useRecurringBooking() {
           'generate_recurring_appointment_instances',
           {
             p_rule_id: recurringRule.id,
-            p_weeks_ahead: 12
+            p_weeks_ahead: 20 // Aumentado a 20 semanas
           }
         );
 
@@ -146,24 +146,32 @@ export function useRecurringBooking() {
         toast.error('Regla creada pero hubo un problema generando las citas futuras');
       }
 
-      // Invalidar queries múltiples veces para asegurar actualización
+      // Invalidar queries múltiples veces para asegurar actualización inmediata
       const queriesToInvalidate = [
         ['recurring-instances'],
         ['calendar-appointments'],
         ['appointments'],
-        ['all-recurring-rules']
+        ['all-recurring-rules'],
+        ['provider-availability']
       ];
       
+      // Invalidación inmediata
       for (const queryKey of queriesToInvalidate) {
         queryClient.invalidateQueries({ queryKey });
       }
       
-      // Esperar un poco y invalidar de nuevo para asegurar la actualización
+      // Invalidaciones adicionales para asegurar que se vean los cambios
       setTimeout(() => {
         for (const queryKey of queriesToInvalidate) {
           queryClient.invalidateQueries({ queryKey });
         }
       }, 1000);
+      
+      setTimeout(() => {
+        for (const queryKey of queriesToInvalidate) {
+          queryClient.invalidateQueries({ queryKey });
+        }
+      }, 3000);
 
       return recurringRule;
       

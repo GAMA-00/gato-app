@@ -15,28 +15,23 @@ export const useCalendarAppointmentsWithRecurring = ({
   providerId 
 }: UseCalendarAppointmentsWithRecurringProps) => {
   const startDate = startOfDay(selectedDate);
-  const endDate = endOfDay(addWeeks(selectedDate, 24)); // Extendido a 24 semanas
+  const endDate = endOfDay(addWeeks(selectedDate, 26)); // Extendido a 26 semanas
 
   const autoGenerateInstances = useAutoGenerateInstances();
 
-  // Generar instancias automáticamente al cargar
+  // Generar instancias automáticamente al cargar y cada 10 segundos para debug
   useEffect(() => {
     if (providerId) {
-      console.log('=== TRIGGERING AUTO-GENERATION ===');
+      console.log('=== TRIGGERING AGGRESSIVE AUTO-GENERATION ===');
       autoGenerateInstances.mutate();
+      
+      const interval = setInterval(() => {
+        console.log('=== PERIODIC AGGRESSIVE GENERATION ===');
+        autoGenerateInstances.mutate();
+      }, 10000); // Cada 10 segundos para debug
+
+      return () => clearInterval(interval);
     }
-  }, [providerId]);
-
-  // Generar instancias cada 30 segundos para debug
-  useEffect(() => {
-    if (!providerId) return;
-    
-    const interval = setInterval(() => {
-      console.log('=== PERIODIC GENERATION ===');
-      autoGenerateInstances.mutate();
-    }, 30 * 1000); // 30 segundos para debug
-
-    return () => clearInterval(interval);
   }, [providerId, autoGenerateInstances]);
 
   // Obtener citas regulares
@@ -72,18 +67,18 @@ export const useCalendarAppointmentsWithRecurring = ({
       console.log(`Found ${data?.length || 0} regular appointments`);
       return data || [];
     },
-    staleTime: 10000,
-    refetchInterval: 30000
+    staleTime: 5000,
+    refetchInterval: 15000
   });
 
-  // Obtener instancias recurrentes
+  // Obtener instancias recurrentes con máxima prioridad
   const { data: recurringInstances = [], isLoading: loadingRecurring } = useRecurringInstances({
     providerId,
     startDate,
     endDate
   });
 
-  // Combinar citas regulares y recurrentes
+  // Combinar citas regulares y recurrentes con mapeo mejorado
   const combinedAppointments = [
     // Citas regulares
     ...regularAppointments.map(appointment => ({
@@ -94,28 +89,34 @@ export const useCalendarAppointmentsWithRecurring = ({
       client_email: appointment.client_email || '',
       service_title: ((appointment.listings as any)?.title) || 'Servicio'
     })),
-    // Instancias recurrentes - convertir a formato de appointment
+    // Instancias recurrentes - convertir a formato de appointment con validación mejorada
     ...recurringInstances.map(instance => {
       const recurringRule = (instance.recurring_rules as any);
       const listings = recurringRule?.listings;
       
+      // Validar que tenemos los datos necesarios
+      if (!recurringRule) {
+        console.warn('Recurring instance without rule:', instance.id);
+        return null;
+      }
+      
       return {
         id: instance.id,
-        provider_id: recurringRule?.provider_id,
-        client_id: recurringRule?.client_id,
-        listing_id: recurringRule?.listing_id,
+        provider_id: recurringRule.provider_id,
+        client_id: recurringRule.client_id,
+        listing_id: recurringRule.listing_id,
         start_time: instance.start_time,
         end_time: instance.end_time,
-        status: 'confirmed', // Mapear las instancias programadas como confirmadas
-        notes: instance.notes || recurringRule?.notes,
-        apartment: recurringRule?.apartment,
-        client_address: recurringRule?.client_address,
-        client_phone: recurringRule?.client_phone,
-        client_email: recurringRule?.client_email,
-        client_name: recurringRule?.client_name || 'Cliente Recurrente',
+        status: instance.status || 'confirmed',
+        notes: instance.notes || recurringRule.notes,
+        apartment: recurringRule.apartment,
+        client_address: recurringRule.client_address,
+        client_phone: recurringRule.client_phone,
+        client_email: recurringRule.client_email,
+        client_name: recurringRule.client_name || 'Cliente Recurrente',
         recurring_rule_id: instance.recurring_rule_id,
         is_recurring_instance: true,
-        recurrence: recurringRule?.recurrence_type,
+        recurrence: recurringRule.recurrence_type,
         service_title: listings?.title || 'Servicio Recurrente',
         // Campos adicionales para compatibilidad
         provider_name: null,
@@ -134,12 +135,12 @@ export const useCalendarAppointmentsWithRecurring = ({
           duration: listings?.duration || 60
         }
       };
-    })
+    }).filter(Boolean) // Filtrar elementos null
   ];
 
-  // Debug detallado
-  console.log('=== CALENDAR APPOINTMENTS DEBUG ===');
-  console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+  // Debug extremadamente detallado
+  console.log('=== CALENDAR APPOINTMENTS DEBUG (ENHANCED) ===');
+  console.log(`Date range: ${format(startDate, 'yyyy-MM-dd HH:mm')} to ${format(endDate, 'yyyy-MM-dd HH:mm')}`);
   console.log(`Provider ID: ${providerId}`);
   console.log(`Regular appointments: ${regularAppointments.length}`);
   console.log(`Recurring instances: ${recurringInstances.length}`);
@@ -147,7 +148,15 @@ export const useCalendarAppointmentsWithRecurring = ({
   console.log(`Loading states - Regular: ${loadingRegular}, Recurring: ${loadingRecurring}`);
   console.log(`Auto-generation status: ${autoGenerateInstances.isPending ? 'running' : 'idle'}`);
   
-  // Log instancias recurrentes por fecha
+  // Log todas las citas combinadas
+  if (combinedAppointments.length > 0) {
+    console.log('All combined appointments:');
+    combinedAppointments.forEach(appointment => {
+      console.log(`- ${appointment.is_recurring_instance ? 'RECURRING' : 'REGULAR'}: ${appointment.client_name} - ${format(new Date(appointment.start_time), 'yyyy-MM-dd HH:mm')} (${appointment.service_title})`);
+    });
+  }
+  
+  // Log instancias recurrentes por fecha con más detalle
   if (recurringInstances.length > 0) {
     const instancesByDate = recurringInstances.reduce((acc, instance) => {
       const date = instance.instance_date;
@@ -156,15 +165,16 @@ export const useCalendarAppointmentsWithRecurring = ({
         id: instance.id,
         time: `${format(new Date(instance.start_time), 'HH:mm')}-${format(new Date(instance.end_time), 'HH:mm')}`,
         client: (instance.recurring_rules as any)?.client_name,
-        service: (instance.recurring_rules as any)?.listings?.title
+        service: (instance.recurring_rules as any)?.listings?.title,
+        status: instance.status
       });
       return acc;
     }, {} as Record<string, any[]>);
     
-    console.log('Recurring instances by date:', instancesByDate);
+    console.log('Recurring instances by date (detailed):', instancesByDate);
   }
   
-  console.log('=========================================');
+  console.log('========================================');
 
   return {
     data: combinedAppointments,

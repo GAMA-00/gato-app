@@ -14,7 +14,7 @@ export const useRecurringInstances = ({
   startDate, 
   endDate 
 }: UseRecurringInstancesProps) => {
-  const finalEndDate = endDate || addWeeks(startDate, 24); // Extendido a 24 semanas
+  const finalEndDate = endDate || addWeeks(startDate, 26); // Extendido a 26 semanas (6 meses)
 
   return useQuery({
     queryKey: ['recurring-instances', providerId, format(startDate, 'yyyy-MM-dd'), format(finalEndDate, 'yyyy-MM-dd')],
@@ -55,38 +55,34 @@ export const useRecurringInstances = ({
 
       console.log(`Found ${data?.length || 0} recurring instances`);
       
-      // Log por semana para debug
+      // Debug detallado por instancia
       if (data && data.length > 0) {
-        const byWeek = data.reduce((acc, instance) => {
-          const week = format(new Date(instance.instance_date), 'yyyy-MM-dd');
-          if (!acc[week]) acc[week] = [];
-          acc[week].push(instance);
-          return acc;
-        }, {} as Record<string, any[]>);
-        
-        console.log('Instances by week:', byWeek);
+        data.forEach(instance => {
+          const rule = instance.recurring_rules as any;
+          console.log(`Instance ${instance.id}: ${instance.instance_date} ${format(new Date(instance.start_time), 'HH:mm')} - Client: ${rule?.client_name}`);
+        });
       }
       
       return data || [];
     },
     enabled: !!startDate,
-    staleTime: 10000, // Reducido para debug
-    refetchInterval: 30000 // Más frecuente para debug
+    staleTime: 5000, // Reducido para debug
+    refetchInterval: 15000 // Más frecuente para debug
   });
 };
 
-// Hook mejorado para generar instancias automáticamente con más agresividad
+// Hook mejorado para generar instancias automáticamente con máxima agresividad
 export const useAutoGenerateInstances = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      console.log('=== AUTO GENERATING INSTANCES ===');
+      console.log('=== AUTO GENERATING INSTANCES (AGGRESSIVE) ===');
       
       // Obtener todas las reglas activas
       const { data: activeRules, error } = await supabase
         .from('recurring_rules')
-        .select('id, recurrence_type, provider_id, start_date, client_name')
+        .select('id, recurrence_type, provider_id, start_date, client_name, is_active')
         .eq('is_active', true);
 
       if (error) {
@@ -123,15 +119,15 @@ export const useAutoGenerateInstances = () => {
           const existingCount = futureInstances?.length || 0;
           console.log(`Rule ${rule.id} (${rule.client_name}) has ${existingCount} future instances`);
           
-          // Generar más instancias si hay menos de 15 futuras (aumentado)
-          if (existingCount < 15) {
+          // Generar más instancias si hay menos de 20 futuras (aumentado considerablemente)
+          if (existingCount < 20) {
             console.log(`Generating more instances for rule ${rule.id}...`);
             
             const { data: generatedCount, error: generateError } = await supabase.rpc(
               'generate_recurring_appointment_instances',
               {
                 p_rule_id: rule.id,
-                p_weeks_ahead: 24 // Aumentado a 24 semanas
+                p_weeks_ahead: 30 // Aumentado a 30 semanas
               }
             );
 
@@ -143,9 +139,9 @@ export const useAutoGenerateInstances = () => {
             const count = generatedCount || 0;
             totalGenerated += count;
             
-            console.log(`Generated ${count} new instances for rule ${rule.id}`);
+            console.log(`✅ Generated ${count} new instances for rule ${rule.id} (${rule.client_name})`);
           } else {
-            console.log(`Rule ${rule.id} has enough future instances (${existingCount})`);
+            console.log(`✅ Rule ${rule.id} (${rule.client_name}) has enough future instances (${existingCount})`);
           }
         } catch (error) {
           console.error(`Exception generating instances for rule ${rule.id}:`, error);
@@ -157,11 +153,24 @@ export const useAutoGenerateInstances = () => {
     },
     onSuccess: (generatedCount) => {
       console.log(`Successfully generated ${generatedCount} instances`);
-      // Invalidar todas las queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['recurring-instances'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
+      // Invalidar todas las queries relacionadas múltiples veces
+      const queries = [
+        ['recurring-instances'],
+        ['calendar-appointments'],
+        ['appointments'],
+        ['provider-availability']
+      ];
+      
+      queries.forEach(queryKey => {
+        queryClient.invalidateQueries({ queryKey });
+      });
+      
+      // Invalidar de nuevo después de un delay para asegurar actualización
+      setTimeout(() => {
+        queries.forEach(queryKey => {
+          queryClient.invalidateQueries({ queryKey });
+        });
+      }, 2000);
     }
   });
 };
@@ -171,7 +180,7 @@ export const useGenerateRecurringInstances = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ ruleId, weeksAhead = 24 }: { ruleId: string; weeksAhead?: number }) => {
+    mutationFn: async ({ ruleId, weeksAhead = 30 }: { ruleId: string; weeksAhead?: number }) => {
       console.log(`Generating instances for rule ${ruleId}, weeks ahead: ${weeksAhead}`);
       
       const { data, error } = await supabase.rpc('generate_recurring_appointment_instances', {
@@ -187,7 +196,8 @@ export const useGenerateRecurringInstances = () => {
       console.log(`Generated ${data || 0} new instances for rule ${ruleId}`);
       return data || 0;
     },
-    onSuccess: () => {
+    onSuccess: (generatedCount, variables) => {
+      console.log(`Successfully generated ${generatedCount} instances for rule ${variables.ruleId}`);
       queryClient.invalidateQueries({ queryKey: ['recurring-instances'] });
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
