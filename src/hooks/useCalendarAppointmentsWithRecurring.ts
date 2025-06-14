@@ -16,7 +16,7 @@ export const useCalendarAppointmentsWithRecurring = ({
   const startDate = startOfDay(selectedDate);
   const endDate = endOfDay(addWeeks(selectedDate, 12));
 
-  // Obtener todas las citas (regulares y recurrentes)
+  // Obtener todas las citas de la base de datos
   const { data: allAppointments = [], isLoading } = useQuery({
     queryKey: ['calendar-appointments', format(selectedDate, 'yyyy-MM-dd'), providerId],
     queryFn: async () => {
@@ -60,6 +60,7 @@ export const useCalendarAppointmentsWithRecurring = ({
     return isInRange && isNotRecurring;
   });
 
+  // Obtener solo las citas recurrentes base (is_recurring_instance = true)
   const recurringBaseAppointments = allAppointments.filter(appointment => {
     return appointment.recurrence && 
            appointment.recurrence !== 'none' && 
@@ -67,7 +68,9 @@ export const useCalendarAppointmentsWithRecurring = ({
            appointment.status !== 'cancelled';
   });
 
-  // Expandir las citas recurrentes usando el nuevo hook
+  console.log(`Found ${recurringBaseAppointments.length} recurring base appointments`);
+
+  // Expandir las citas recurrentes usando el hook
   const recurringInstances = useRecurringAppointments({
     recurringAppointments: recurringBaseAppointments,
     startDate,
@@ -76,7 +79,7 @@ export const useCalendarAppointmentsWithRecurring = ({
 
   // Combinar todas las citas
   const combinedAppointments = [
-    // Citas regulares
+    // Citas regulares con información completa
     ...regularAppointments.map(appointment => ({
       ...appointment,
       is_recurring_instance: false,
@@ -91,6 +94,18 @@ export const useCalendarAppointmentsWithRecurring = ({
   console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
   console.log(`Regular: ${regularAppointments.length}, Recurring Base: ${recurringBaseAppointments.length}, Recurring Instances: ${recurringInstances.length}`);
   console.log(`Combined Total: ${combinedAppointments.length}`);
+  
+  // Log some sample appointments for debugging
+  if (combinedAppointments.length > 0) {
+    console.log('Sample appointments:', combinedAppointments.slice(0, 3).map(app => ({
+      id: app.id,
+      client_name: app.client_name,
+      start_time: app.start_time,
+      is_recurring: app.is_recurring_instance,
+      recurrence: app.recurrence
+    })));
+  }
+  
   console.log('=======================================');
 
   return {

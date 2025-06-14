@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { addWeeks, addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
+import { addWeeks, addDays, format, startOfDay, endOfDay } from 'date-fns';
 
 interface RecurringAppointment {
   id: string;
@@ -19,7 +19,6 @@ interface RecurringAppointment {
   client_phone?: string;
   client_email?: string;
   is_recurring_instance: boolean;
-  // Campos adicionales para compatibilidad
   provider_name?: string;
   admin_notes?: string;
   cancellation_time?: string;
@@ -50,14 +49,18 @@ export const useRecurringAppointments = ({
   
   const expandedInstances = useMemo(() => {
     if (!recurringAppointments || recurringAppointments.length === 0) {
+      console.log('No recurring appointments to expand');
       return [];
     }
 
     const instances: RecurringAppointment[] = [];
     
     recurringAppointments.forEach((appointment) => {
+      console.log(`Processing recurring appointment: ${appointment.id} - ${appointment.recurrence}`);
+      
       // Solo procesar citas que tienen recurrencia activa
       if (!appointment.recurrence || appointment.recurrence === 'none' || appointment.status === 'cancelled') {
+        console.log(`Skipping appointment ${appointment.id} - no recurrence or cancelled`);
         return;
       }
 
@@ -65,11 +68,14 @@ export const useRecurringAppointments = ({
       const originalEnd = new Date(appointment.end_time);
       const appointmentDuration = originalEnd.getTime() - originalStart.getTime();
       
+      // Empezar desde la fecha original de la cita
       let currentDate = new Date(originalStart);
       let instanceCount = 0;
       const maxInstances = 156; // 3 años de instancias semanales
 
-      // Generar instancias futuras basadas en la recurrencia
+      console.log(`Generating instances from ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+
+      // Generar instancias desde la fecha original hasta la fecha final
       while (currentDate <= endDate && instanceCount < maxInstances) {
         // Verificar si esta instancia está dentro del rango solicitado
         if (currentDate >= startDate && currentDate <= endDate) {
@@ -128,6 +134,17 @@ export const useRecurringAppointments = ({
     });
 
     console.log(`Generated ${instances.length} recurring instances from ${recurringAppointments.length} base appointments`);
+    
+    // Log some sample instances for debugging
+    if (instances.length > 0) {
+      console.log('Sample recurring instances:', instances.slice(0, 3).map(inst => ({
+        id: inst.id,
+        client_name: inst.client_name,
+        start_time: inst.start_time,
+        recurrence: inst.recurrence
+      })));
+    }
+    
     return instances;
   }, [recurringAppointments, startDate, endDate]);
 
