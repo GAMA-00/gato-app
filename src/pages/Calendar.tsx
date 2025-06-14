@@ -11,16 +11,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
-import { useRecurringMaintenance } from '@/utils/recurringMaintenanceUtils';
 
 const Calendar = () => {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [showBlockedTimeSlots, setShowBlockedTimeSlots] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
-  
-  // Ejecutar mantenimiento automático optimizado
-  useRecurringMaintenance();
   
   // Early return for non-providers
   if (user && user.role !== 'provider') {
@@ -36,7 +32,7 @@ const Calendar = () => {
     );
   }
 
-  // Hooks optimizados para data fetching
+  // Hooks para obtener datos
   const { 
     data: appointments = [], 
     isLoading: appointmentsLoading, 
@@ -65,7 +61,7 @@ const Calendar = () => {
     currentDate: currentCalendarDate.toISOString().split('T')[0]
   });
 
-  // Loading state optimizado
+  // Loading state
   if (appointmentsLoading || blockedSlotsLoading) {
     return (
       <PageContainer title="Calendario" subtitle="Administra tu agenda y citas">
@@ -79,7 +75,7 @@ const Calendar = () => {
     );
   }
 
-  // Filter out cancelled and rejected appointments
+  // Filtrar citas canceladas o rechazadas
   const filteredAppointments = appointments.filter((appointment: any) => {
     return appointment.status !== 'cancelled' && appointment.status !== 'rejected';
   });
@@ -100,22 +96,23 @@ const Calendar = () => {
       <div className="space-y-6">
         <PendingRequestsCard />
         
-        {/* Show recurring instances info */}
+        {/* Mostrar información de citas recurrentes */}
         {recurringInstances.length > 0 && (
           <Alert className="border-blue-200 bg-blue-50">
             <AlertDescription>
               <div className="space-y-2">
                 <h4 className="font-medium text-blue-800">Citas recurrentes activas</h4>
                 <p className="text-blue-600">
-                  Se muestran {recurringInstances.length} instancia{recurringInstances.length > 1 ? 's' : ''} de citas recurrentes 
+                  Se muestran {recurringInstances.length} cita{recurringInstances.length > 1 ? 's' : ''} recurrente{recurringInstances.length > 1 ? 's' : ''} 
                   junto con {regularAppointments.length} cita{regularAppointments.length > 1 ? 's' : ''} regular{regularAppointments.length > 1 ? 'es' : ''}.
+                  Las citas recurrentes bloquean automáticamente los horarios futuros.
                 </p>
               </div>
             </AlertDescription>
           </Alert>
         )}
         
-        {/* Show conflict warnings if any */}
+        {/* Mostrar advertencias de conflicto si existen */}
         {conflicts.length > 0 && (
           <Alert className="border-yellow-200 bg-yellow-50">
             <AlertDescription>
