@@ -126,7 +126,7 @@ const Calendar = () => {
               <div className="space-y-2">
                 <h4 className="font-medium text-green-800">Citas recurrentes activas</h4>
                 <p className="text-green-600">
-                  Se muestran {recurringInst ances.length} cita{recurringInstances.length > 1 ? 's' : ''} recurrente{recurringInstances.length > 1 ? 's' : ''} 
+                  Se muestran {recurringInstances.length} cita{recurringInstances.length > 1 ? 's' : ''} recurrente{recurringInstances.length > 1 ? 's' : ''} 
                   junto con {regularAppointments.length} cita{regularAppointments.length > 1 ? 's' : ''} regular{regularAppointments.length > 1 ? 'es' : ''}.
                 </p>
               </div>
