@@ -32,11 +32,20 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   setExpandedId,
   blockedSlots
 }) => {
-  // Filter appointments for this day
+  // Filter appointments for this day - include ALL appointments that match the date
   const dayAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
     const isSameDate = isSameDay(appointmentDate, date);
     const isNotCancelledOrRejected = appointment.status !== 'cancelled' && appointment.status !== 'rejected';
+    
+    console.log(`Checking appointment for ${format(date, 'yyyy-MM-dd')}:`, {
+      appointmentId: appointment.id,
+      appointmentDate: format(appointmentDate, 'yyyy-MM-dd HH:mm'),
+      isSameDate,
+      status: appointment.status,
+      isRecurring: appointment.is_recurring_instance,
+      clientName: appointment.client_name
+    });
     
     return isSameDate && isNotCancelledOrRejected;
   });
@@ -54,6 +63,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   // Count external vs internal appointments
   const externalCount = dayAppointments.filter(app => app.external_booking || app.is_external).length;
   const recurringCount = dayAppointments.filter(app => app.is_recurring_instance).length;
+
+  console.log(`Day ${format(date, 'yyyy-MM-dd')} has ${dayAppointments.length} appointments (${recurringCount} recurring, ${externalCount} external)`);
 
   return (
     <div className="relative border-r last:border-r-0 calendar-day bg-white">
@@ -112,10 +123,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             />
           ))}
           
-          {/* Render appointments */}
-          {dayAppointments.map(appointment => (
+          {/* Render appointments - TODAS las citas del día */}
+          {dayAppointments.map((appointment, index) => (
             <AppointmentDisplay
-              key={appointment.id}
+              key={`${appointment.id}-${index}`}
               appointment={appointment}
               expanded={expandedId === appointment.id}
               onClick={() => setExpandedId(expandedId === appointment.id ? null : appointment.id)}
@@ -187,7 +198,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     });
     
     console.log(`=== CALENDAR WEEK ${format(startDate, 'MMM dd')} - ${format(endDate, 'MMM dd')} ===`);
-    console.log(`Total appointments in view: ${appointments.length}`);
+    console.log(`Total appointments received: ${appointments.length}`);
     console.log(`Appointments for this week: ${weekAppointments.length}`);
     console.log(`Blocked slots: ${blockedSlots.length}`);
     
@@ -201,6 +212,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       completed: weekAppointments.filter(app => app.status === 'completed').length
     };
     console.log('Week breakdown:', breakdown);
+    
+    // Log sample appointments
+    console.log('Sample appointments:', weekAppointments.slice(0, 5).map(app => ({
+      id: app.id,
+      client_name: app.client_name,
+      start_time: app.start_time,
+      is_recurring: app.is_recurring_instance,
+      status: app.status
+    })));
     console.log('=======================================');
   }, [appointments, startDate, endDate, blockedSlots]);
 

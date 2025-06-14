@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { addWeeks, addDays, format, startOfDay, endOfDay } from 'date-fns';
+import { addWeeks, addDays, format, startOfDay, endOfDay, addYears } from 'date-fns';
 
 interface RecurringAppointment {
   id: string;
@@ -71,18 +71,21 @@ export const useRecurringAppointments = ({
       // Empezar desde la fecha original de la cita
       let currentDate = new Date(originalStart);
       let instanceCount = 0;
-      const maxInstances = 156; // 3 años de instancias semanales
+      
+      // Generar instancias hasta 3 años en el futuro
+      const maxEndDate = addYears(new Date(), 3);
+      const actualEndDate = endDate > maxEndDate ? maxEndDate : endDate;
+      
+      console.log(`Generating instances from ${format(currentDate, 'yyyy-MM-dd')} to ${format(actualEndDate, 'yyyy-MM-dd')}`);
 
-      console.log(`Generating instances from ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
-
-      // Generar instancias desde la fecha original hasta la fecha final
-      while (currentDate <= endDate && instanceCount < maxInstances) {
+      // Generar instancias desde la fecha original hasta 3 años
+      while (currentDate <= actualEndDate && instanceCount < 500) { // límite de seguridad
         // Verificar si esta instancia está dentro del rango solicitado
         if (currentDate >= startDate && currentDate <= endDate) {
           const instanceEnd = new Date(currentDate.getTime() + appointmentDuration);
           
           instances.push({
-            id: `${appointment.id}-${format(currentDate, 'yyyy-MM-dd')}`,
+            id: `${appointment.id}-recurring-${format(currentDate, 'yyyy-MM-dd-HH-mm')}`,
             provider_id: appointment.provider_id,
             client_id: appointment.client_id,
             listing_id: appointment.listing_id,
@@ -125,15 +128,19 @@ export const useRecurringAppointments = ({
             break;
           default:
             // Si no es una recurrencia válida, salir del bucle
-            currentDate = new Date(endDate.getTime() + 1);
+            console.log(`Invalid recurrence type: ${appointment.recurrence}`);
+            currentDate = new Date(actualEndDate.getTime() + 1);
             break;
         }
         
         instanceCount++;
       }
+      
+      console.log(`Generated ${instances.filter(i => i.id.startsWith(appointment.id)).length} instances for appointment ${appointment.id}`);
     });
 
-    console.log(`Generated ${instances.length} recurring instances from ${recurringAppointments.length} base appointments`);
+    console.log(`=== RECURRING INSTANCES GENERATED ===`);
+    console.log(`Total instances: ${instances.length} from ${recurringAppointments.length} base appointments`);
     
     // Log some sample instances for debugging
     if (instances.length > 0) {
@@ -144,6 +151,7 @@ export const useRecurringAppointments = ({
         recurrence: inst.recurrence
       })));
     }
+    console.log('=====================================');
     
     return instances;
   }, [recurringAppointments, startDate, endDate]);

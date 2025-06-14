@@ -44,14 +44,14 @@ export const useCalendarAppointmentsWithRecurring = ({
         throw error;
       }
 
-      console.log(`Found ${data?.length || 0} total appointments`);
+      console.log(`Found ${data?.length || 0} total appointments from database`);
       return data || [];
     },
     staleTime: 30000,
     refetchInterval: false
   });
 
-  // Separar citas regulares y recurrentes
+  // Separar citas regulares (dentro del rango de fechas) y citas recurrentes base
   const regularAppointments = allAppointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
     const isInRange = appointmentDate >= startDate && appointmentDate <= endDate;
@@ -60,7 +60,7 @@ export const useCalendarAppointmentsWithRecurring = ({
     return isInRange && isNotRecurring;
   });
 
-  // Obtener solo las citas recurrentes base (is_recurring_instance = true)
+  // Obtener citas recurrentes base (is_recurring_instance = true y tienen recurrencia activa)
   const recurringBaseAppointments = allAppointments.filter(appointment => {
     return appointment.recurrence && 
            appointment.recurrence !== 'none' && 
@@ -68,16 +68,19 @@ export const useCalendarAppointmentsWithRecurring = ({
            appointment.status !== 'cancelled';
   });
 
-  console.log(`Found ${recurringBaseAppointments.length} recurring base appointments`);
+  console.log(`Regular appointments in range: ${regularAppointments.length}`);
+  console.log(`Recurring base appointments: ${recurringBaseAppointments.length}`);
 
-  // Expandir las citas recurrentes usando el hook
+  // Expandir las citas recurrentes usando el hook especializado
   const recurringInstances = useRecurringAppointments({
     recurringAppointments: recurringBaseAppointments,
     startDate,
     endDate
   });
 
-  // Combinar todas las citas
+  console.log(`Generated recurring instances: ${recurringInstances.length}`);
+
+  // Combinar TODAS las citas: regulares + instancias recurrentes
   const combinedAppointments = [
     // Citas regulares con información completa
     ...regularAppointments.map(appointment => ({
@@ -90,19 +93,22 @@ export const useCalendarAppointmentsWithRecurring = ({
     ...recurringInstances
   ];
 
-  console.log('=== CALENDAR APPOINTMENTS DEBUG ===');
+  console.log('=== FINAL CALENDAR APPOINTMENTS ===');
   console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
-  console.log(`Regular: ${regularAppointments.length}, Recurring Base: ${recurringBaseAppointments.length}, Recurring Instances: ${recurringInstances.length}`);
-  console.log(`Combined Total: ${combinedAppointments.length}`);
+  console.log(`Regular: ${regularAppointments.length}`);
+  console.log(`Recurring Base: ${recurringBaseAppointments.length}`);
+  console.log(`Recurring Instances: ${recurringInstances.length}`);
+  console.log(`TOTAL COMBINED: ${combinedAppointments.length}`);
   
-  // Log some sample appointments for debugging
+  // Mostrar algunos ejemplos para debug
   if (combinedAppointments.length > 0) {
-    console.log('Sample appointments:', combinedAppointments.slice(0, 3).map(app => ({
+    console.log('Sample combined appointments:', combinedAppointments.slice(0, 5).map(app => ({
       id: app.id,
       client_name: app.client_name,
       start_time: app.start_time,
       is_recurring: app.is_recurring_instance,
-      recurrence: app.recurrence
+      recurrence: app.recurrence,
+      status: app.status
     })));
   }
   
