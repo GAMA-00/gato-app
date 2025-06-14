@@ -10,8 +10,6 @@ interface RecurringBookingData {
   startTime: string;
   endTime: string;
   recurrenceType: string;
-  dayOfWeek?: number;
-  dayOfMonth?: number;
   notes?: string;
   clientAddress?: string;
   clientPhone?: string;
@@ -44,7 +42,7 @@ export function useRecurringBooking() {
         throw new Error('No se encontró el servicio');
       }
 
-      // Crear la cita base
+      // Crear la cita directamente en appointments con el campo recurrence
       const appointmentData = {
         listing_id: data.listingId,
         client_id: user.id,
@@ -77,13 +75,12 @@ export function useRecurringBooking() {
       if (data.recurrenceType === 'once') {
         toast.success('Cita creada exitosamente');
       } else {
-        toast.success(`Servicio recurrente ${data.recurrenceType} creado exitosamente. Los horarios se han bloqueado automáticamente.`);
+        toast.success(`Servicio recurrente ${data.recurrenceType} creado exitosamente.`);
       }
 
       // Invalidar queries para actualizar la UI
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
 
       return appointment;
       
