@@ -13,16 +13,27 @@ export const useCalendarAppointmentsWithRecurring = ({
   selectedDate, 
   providerId 
 }: UseCalendarAppointmentsWithRecurringProps) => {
+  // Reducir el rango a solo 4 semanas para optimizar
   const startDate = startOfDay(selectedDate);
-  const endDate = endOfDay(addWeeks(selectedDate, 12));
+  const endDate = endOfDay(addWeeks(selectedDate, 4));
 
-  // Obtener todas las citas de la base de datos
+  console.log('=== CALENDAR APPOINTMENTS HOOK START ===');
+  console.log(`Provider ID: ${providerId}`);
+  console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+
+  // Obtener TODAS las citas del proveedor - query simplificada
   const { data: allAppointments = [], isLoading } = useQuery({
-    queryKey: ['calendar-appointments', format(selectedDate, 'yyyy-MM-dd'), providerId],
+    queryKey: ['calendar-appointments-simple', format(selectedDate, 'yyyy-MM-dd'), providerId],
     queryFn: async () => {
-      console.log('=== FETCHING ALL APPOINTMENTS ===');
+      console.log('=== FETCHING ALL APPOINTMENTS - SIMPLIFIED ===');
       
-      let query = supabase
+      if (!providerId) {
+        console.log('No provider ID provided');
+        return [];
+      }
+
+      // Query super simple - solo obtener citas del proveedor
+      const { data, error } = await supabase
         .from('appointments')
         .select(`
           *,
@@ -31,47 +42,79 @@ export const useCalendarAppointmentsWithRecurring = ({
             duration
           )
         `)
-        .in('status', ['pending', 'confirmed', 'completed']);
-
-      if (providerId) {
-        query = query.eq('provider_id', providerId);
-      }
-
-      const { data, error } = await query;
+        .eq('provider_id', providerId)
+        .order('start_time', { ascending: true });
 
       if (error) {
         console.error('Error fetching appointments:', error);
         throw error;
       }
 
-      console.log(`Found ${data?.length || 0} total appointments from database`);
+      console.log(`Raw appointments from DB: ${data?.length || 0}`);
+      
+      // Log detallado de las primeras 3 citas
+      if (data && data.length > 0) {
+        console.log('First 3 appointments from DB:', data.slice(0, 3).map(app => ({
+          id: app.id,
+          client_name: app.client_name,
+          start_time: app.start_time,
+          status: app.status,
+          recurrence: app.recurrence,
+          is_recurring_instance: app.is_recurring_instance
+        })));
+      }
+
       return data || [];
     },
-    staleTime: 30000,
+    staleTime: 60000,
     refetchInterval: false
   });
 
-  // Separar citas regulares (dentro del rango de fechas) y citas recurrentes base
-  const regularAppointments = allAppointments.filter(appointment => {
-    const appointmentDate = new Date(appointment.start_time);
-    const isInRange = appointmentDate >= startDate && appointmentDate <= endDate;
-    const isNotRecurring = !appointment.recurrence || appointment.recurrence === 'none';
-    
-    return isInRange && isNotRecurring;
+  // Filtrar solo citas activas (no canceladas/rechazadas)
+  const activeAppointments = allAppointments.filter(appointment => {
+    const isActive = appointment.status !== 'cancelled' && appointment.status !== 'rejected';
+    return isActive;
   });
 
-  // Obtener citas recurrentes base (is_recurring_instance = true y tienen recurrencia activa)
-  const recurringBaseAppointments = allAppointments.filter(appointment => {
-    return appointment.recurrence && 
-           appointment.recurrence !== 'none' && 
-           appointment.is_recurring_instance === true &&
-           appointment.status !== 'cancelled';
+  console.log(`Active appointments: ${activeAppointments.length} out of ${allAppointments.length}`);
+
+  // Separar citas regulares y recurrentes de forma más simple
+  const regularAppointments = activeAppointments.filter(appointment => {
+    // Una cita regular es aquella que NO tiene recurrencia o recurrencia = 'none'
+    const isRegular = !appointment.recurrence || appointment.recurrence === 'none' || appointment.recurrence === null;
+    return isRegular;
   });
 
-  console.log(`Regular appointments in range: ${regularAppointments.length}`);
+  const recurringBaseAppointments = activeAppointments.filter(appointment => {
+    // Una cita recurrente es aquella que SÍ tiene recurrencia y no es 'none'
+    const isRecurring = appointment.recurrence && 
+                       appointment.recurrence !== 'none' && 
+                       appointment.recurrence !== null;
+    return isRecurring;
+  });
+
+  console.log(`Regular appointments: ${regularAppointments.length}`);
   console.log(`Recurring base appointments: ${recurringBaseAppointments.length}`);
 
-  // Expandir las citas recurrentes usando el hook especializado
+  if (regularAppointments.length > 0) {
+    console.log('Sample regular appointments:', regularAppointments.slice(0, 2).map(app => ({
+      id: app.id,
+      client_name: app.client_name,
+      start_time: app.start_time,
+      recurrence: app.recurrence
+    })));
+  }
+
+  if (recurringBaseAppointments.length > 0) {
+    console.log('Sample recurring appointments:', recurringBaseAppointments.slice(0, 2).map(app => ({
+      id: app.id,
+      client_name: app.client_name,
+      start_time: app.start_time,
+      recurrence: app.recurrence
+    })));
+  }
+
+  // Expandir las citas recurrentes
   const recurringInstances = useRecurringAppointments({
     recurringAppointments: recurringBaseAppointments,
     startDate,
@@ -80,44 +123,36 @@ export const useCalendarAppointmentsWithRecurring = ({
 
   console.log(`Generated recurring instances: ${recurringInstances.length}`);
 
-  // Combinar TODAS las citas: regulares + instancias recurrentes
+  // Filtrar citas regulares que estén en el rango de fechas
+  const regularInRange = regularAppointments.filter(appointment => {
+    const appointmentDate = new Date(appointment.start_time);
+    const isInRange = appointmentDate >= startDate && appointmentDate <= endDate;
+    return isInRange;
+  });
+
+  console.log(`Regular appointments in range: ${regularInRange.length}`);
+
+  // Combinar todas las citas
   const combinedAppointments = [
-    // Citas regulares con información completa
-    ...regularAppointments.map(appointment => ({
+    ...regularInRange.map(appointment => ({
       ...appointment,
       is_recurring_instance: false,
       client_name: appointment.client_name || 'Cliente',
       service_title: appointment.listings?.title || 'Servicio'
     })),
-    // Instancias recurrentes expandidas
     ...recurringInstances
   ];
 
-  console.log('=== FINAL CALENDAR APPOINTMENTS ===');
-  console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
-  console.log(`Regular: ${regularAppointments.length}`);
-  console.log(`Recurring Base: ${recurringBaseAppointments.length}`);
-  console.log(`Recurring Instances: ${recurringInstances.length}`);
+  console.log('=== FINAL CALENDAR RESULT ===');
+  console.log(`Regular in range: ${regularInRange.length}`);
+  console.log(`Recurring instances: ${recurringInstances.length}`);
   console.log(`TOTAL COMBINED: ${combinedAppointments.length}`);
-  
-  // Mostrar algunos ejemplos para debug
-  if (combinedAppointments.length > 0) {
-    console.log('Sample combined appointments:', combinedAppointments.slice(0, 5).map(app => ({
-      id: app.id,
-      client_name: app.client_name,
-      start_time: app.start_time,
-      is_recurring: app.is_recurring_instance,
-      recurrence: app.recurrence,
-      status: app.status
-    })));
-  }
-  
-  console.log('=======================================');
+  console.log('===============================');
 
   return {
     data: combinedAppointments,
     isLoading,
-    regularAppointments,
+    regularAppointments: regularInRange,
     recurringInstances,
     conflicts: []
   };

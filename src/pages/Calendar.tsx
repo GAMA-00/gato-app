@@ -18,6 +18,11 @@ const Calendar = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
+  console.log('=== CALENDAR PAGE RENDER ===');
+  console.log(`User ID: ${user?.id}`);
+  console.log(`User role: ${user?.role}`);
+  console.log(`Current date: ${currentCalendarDate.toISOString()}`);
+  
   // Early return for non-providers
   if (user && user.role !== 'provider') {
     return (
@@ -50,16 +55,14 @@ const Calendar = () => {
     refetch: refetchBlockedSlots 
   } = useBlockedTimeSlots();
 
-  console.log('Calendar render state:', {
-    user: user?.id,
-    appointmentsLoading,
-    blockedSlotsLoading,
-    appointmentsCount: appointments.length,
-    regularAppointmentsCount: regularAppointments.length,
-    recurringInstancesCount: recurringInstances.length,
-    blockedSlotsCount: blockedSlots.length,
-    currentDate: currentCalendarDate.toISOString().split('T')[0]
-  });
+  console.log('=== CALENDAR PAGE DATA ===');
+  console.log(`Appointments loading: ${appointmentsLoading}`);
+  console.log(`Blocked slots loading: ${blockedSlotsLoading}`);
+  console.log(`Total appointments: ${appointments.length}`);
+  console.log(`Regular appointments: ${regularAppointments.length}`);
+  console.log(`Recurring instances: ${recurringInstances.length}`);
+  console.log(`Blocked slots: ${blockedSlots.length}`);
+  console.log('============================');
 
   // Loading state
   if (appointmentsLoading || blockedSlotsLoading) {
@@ -75,10 +78,10 @@ const Calendar = () => {
     );
   }
 
-  // Filtrar citas canceladas o rechazadas
-  const filteredAppointments = appointments.filter((appointment: any) => {
-    return appointment.status !== 'cancelled' && appointment.status !== 'rejected';
-  });
+  // NO filtrar aquí - ya se filtró en el hook
+  const allAppointments = appointments;
+
+  console.log(`Final appointments passed to CalendarView: ${allAppointments.length}`);
 
   return (
     <PageContainer 
@@ -96,16 +99,35 @@ const Calendar = () => {
       <div className="space-y-6">
         <PendingRequestsCard />
         
+        {/* Debug information */}
+        <Alert className="border-blue-200 bg-blue-50">
+          <AlertDescription>
+            <div className="space-y-2">
+              <h4 className="font-medium text-blue-800">Estado del calendario</h4>
+              <p className="text-blue-600 text-sm">
+                Total: {allAppointments.length} citas | 
+                Regular: {regularAppointments.length} | 
+                Recurrentes: {recurringInstances.length} | 
+                Slots bloqueados: {blockedSlots.length}
+              </p>
+              {allAppointments.length === 0 && (
+                <p className="text-red-600 text-sm font-medium">
+                  ⚠️ No se encontraron citas. Verifica que existan citas en la base de datos para este proveedor.
+                </p>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+        
         {/* Mostrar información de citas recurrentes */}
         {recurringInstances.length > 0 && (
-          <Alert className="border-blue-200 bg-blue-50">
+          <Alert className="border-green-200 bg-green-50">
             <AlertDescription>
               <div className="space-y-2">
-                <h4 className="font-medium text-blue-800">Citas recurrentes activas</h4>
-                <p className="text-blue-600">
-                  Se muestran {recurringInstances.length} cita{recurringInstances.length > 1 ? 's' : ''} recurrente{recurringInstances.length > 1 ? 's' : ''} 
+                <h4 className="font-medium text-green-800">Citas recurrentes activas</h4>
+                <p className="text-green-600">
+                  Se muestran {recurringInst ances.length} cita{recurringInstances.length > 1 ? 's' : ''} recurrente{recurringInstances.length > 1 ? 's' : ''} 
                   junto con {regularAppointments.length} cita{regularAppointments.length > 1 ? 's' : ''} regular{regularAppointments.length > 1 ? 'es' : ''}.
-                  Las citas recurrentes bloquean automáticamente los horarios futuros.
                 </p>
               </div>
             </AlertDescription>
@@ -130,7 +152,7 @@ const Calendar = () => {
         {showBlockedTimeSlots && <BlockedTimeSlots />}
         
         <CalendarView 
-          appointments={filteredAppointments} 
+          appointments={allAppointments} 
           currentDate={currentCalendarDate}
           onDateChange={setCurrentCalendarDate}
           blockedSlots={blockedSlots}

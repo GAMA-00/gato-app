@@ -32,23 +32,31 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   setExpandedId,
   blockedSlots
 }) => {
-  // Filter appointments for this day - include ALL appointments that match the date
+  const dateString = format(date, 'yyyy-MM-dd');
+  
+  console.log(`\n=== CALENDAR DAY ${dateString} ===`);
+  console.log(`Total appointments received: ${appointments.length}`);
+
+  // Filtrar citas para este día específico
   const dayAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
-    const isSameDate = isSameDay(appointmentDate, date);
-    const isNotCancelledOrRejected = appointment.status !== 'cancelled' && appointment.status !== 'rejected';
+    const appointmentDateString = format(appointmentDate, 'yyyy-MM-dd');
+    const matches = appointmentDateString === dateString;
     
-    console.log(`Checking appointment for ${format(date, 'yyyy-MM-dd')}:`, {
-      appointmentId: appointment.id,
-      appointmentDate: format(appointmentDate, 'yyyy-MM-dd HH:mm'),
-      isSameDate,
-      status: appointment.status,
-      isRecurring: appointment.is_recurring_instance,
-      clientName: appointment.client_name
-    });
+    if (matches) {
+      console.log(`✓ Appointment matches ${dateString}:`, {
+        id: appointment.id,
+        client_name: appointment.client_name,
+        start_time: format(appointmentDate, 'yyyy-MM-dd HH:mm'),
+        status: appointment.status,
+        is_recurring: appointment.is_recurring_instance
+      });
+    }
     
-    return isSameDate && isNotCancelledOrRejected;
+    return matches;
   });
+
+  console.log(`Day ${dateString} final appointments: ${dayAppointments.length}`);
 
   // Get blocked time slots for this day
   const dayOfWeek = date.getDay();
@@ -60,11 +68,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, i) => i + CALENDAR_START_HOUR);
   const isCurrentDay = isToday(date);
 
-  // Count external vs internal appointments
-  const externalCount = dayAppointments.filter(app => app.external_booking || app.is_external).length;
+  // Count types of appointments
+  const regularCount = dayAppointments.filter(app => !app.is_recurring_instance).length;
   const recurringCount = dayAppointments.filter(app => app.is_recurring_instance).length;
-
-  console.log(`Day ${format(date, 'yyyy-MM-dd')} has ${dayAppointments.length} appointments (${recurringCount} recurring, ${externalCount} external)`);
+  const externalCount = dayAppointments.filter(app => app.external_booking || app.is_external).length;
 
   return (
     <div className="relative border-r last:border-r-0 calendar-day bg-white">
@@ -87,14 +94,19 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             <div className="text-blue-600">
               {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
             </div>
-            {externalCount > 0 && (
-              <div className="text-blue-500 text-[9px]">
-                {externalCount} externa{externalCount > 1 ? 's' : ''}
+            {regularCount > 0 && (
+              <div className="text-green-600 text-[9px]">
+                {regularCount} regular{regularCount > 1 ? 'es' : ''}
               </div>
             )}
             {recurringCount > 0 && (
               <div className="text-purple-500 text-[9px]">
                 {recurringCount} recurrente{recurringCount > 1 ? 's' : ''}
+              </div>
+            )}
+            {externalCount > 0 && (
+              <div className="text-blue-500 text-[9px]">
+                {externalCount} externa{externalCount > 1 ? 's' : ''}
               </div>
             )}
           </div>
@@ -123,7 +135,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             />
           ))}
           
-          {/* Render appointments - TODAS las citas del día */}
+          {/* Render ALL appointments for this day */}
           {dayAppointments.map((appointment, index) => (
             <AppointmentDisplay
               key={`${appointment.id}-${index}`}
@@ -192,37 +204,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Debug appointments for current week
   React.useEffect(() => {
-    const weekAppointments = appointments.filter(app => {
-      const appDate = new Date(app.start_time);
-      return appDate >= startDate && appDate <= endDate;
+    const weekStart = format(startDate, 'yyyy-MM-dd');
+    const weekEnd = format(endDate, 'yyyy-MM-dd');
+    
+    console.log(`\n=== CALENDAR VIEW RENDER ${weekStart} to ${weekEnd} ===`);
+    console.log(`Total appointments received by CalendarView: ${appointments.length}`);
+    
+    // Count appointments by type
+    const regular = appointments.filter(app => !app.is_recurring_instance).length;
+    const recurring = appointments.filter(app => app.is_recurring_instance).length;
+    
+    console.log(`Regular appointments: ${regular}`);
+    console.log(`Recurring appointments: ${recurring}`);
+    
+    // Show appointments for each day of the week
+    days.forEach(day => {
+      const dayString = format(day, 'yyyy-MM-dd');
+      const dayApps = appointments.filter(app => {
+        const appDate = format(new Date(app.start_time), 'yyyy-MM-dd');
+        return appDate === dayString;
+      });
+      console.log(`${dayString}: ${dayApps.length} appointments`);
     });
     
-    console.log(`=== CALENDAR WEEK ${format(startDate, 'MMM dd')} - ${format(endDate, 'MMM dd')} ===`);
-    console.log(`Total appointments received: ${appointments.length}`);
-    console.log(`Appointments for this week: ${weekAppointments.length}`);
-    console.log(`Blocked slots: ${blockedSlots.length}`);
-    
-    // Log breakdown
-    const breakdown = {
-      regular: weekAppointments.filter(app => !app.is_recurring_instance).length,
-      recurring: weekAppointments.filter(app => app.is_recurring_instance).length,
-      external: weekAppointments.filter(app => app.external_booking).length,
-      confirmed: weekAppointments.filter(app => app.status === 'confirmed').length,
-      pending: weekAppointments.filter(app => app.status === 'pending').length,
-      completed: weekAppointments.filter(app => app.status === 'completed').length
-    };
-    console.log('Week breakdown:', breakdown);
-    
-    // Log sample appointments
-    console.log('Sample appointments:', weekAppointments.slice(0, 5).map(app => ({
-      id: app.id,
-      client_name: app.client_name,
-      start_time: app.start_time,
-      is_recurring: app.is_recurring_instance,
-      status: app.status
-    })));
-    console.log('=======================================');
-  }, [appointments, startDate, endDate, blockedSlots]);
+    console.log('================================================');
+  }, [appointments, startDate, endDate, days]);
 
   return (
     <Card className="overflow-hidden border-0 shadow-medium">

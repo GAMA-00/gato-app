@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { addWeeks, addDays, format, startOfDay, endOfDay, addYears } from 'date-fns';
+import { addWeeks, addDays, addMonths, format, startOfDay, isAfter, isBefore } from 'date-fns';
 
 interface RecurringAppointment {
   id: string;
@@ -48,6 +48,10 @@ export const useRecurringAppointments = ({
 }: UseRecurringAppointmentsProps) => {
   
   const expandedInstances = useMemo(() => {
+    console.log('=== RECURRING APPOINTMENTS EXPANSION START ===');
+    console.log(`Input recurring appointments: ${recurringAppointments.length}`);
+    console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+
     if (!recurringAppointments || recurringAppointments.length === 0) {
       console.log('No recurring appointments to expand');
       return [];
@@ -55,36 +59,40 @@ export const useRecurringAppointments = ({
 
     const instances: RecurringAppointment[] = [];
     
-    recurringAppointments.forEach((appointment) => {
-      console.log(`Processing recurring appointment: ${appointment.id} - ${appointment.recurrence}`);
+    recurringAppointments.forEach((appointment, index) => {
+      console.log(`\n--- Processing recurring appointment ${index + 1}/${recurringAppointments.length} ---`);
+      console.log(`ID: ${appointment.id}`);
+      console.log(`Client: ${appointment.client_name}`);
+      console.log(`Recurrence: ${appointment.recurrence}`);
+      console.log(`Original start: ${appointment.start_time}`);
       
-      // Solo procesar citas que tienen recurrencia activa
-      if (!appointment.recurrence || appointment.recurrence === 'none' || appointment.status === 'cancelled') {
-        console.log(`Skipping appointment ${appointment.id} - no recurrence or cancelled`);
+      // Validar que tenga recurrencia
+      if (!appointment.recurrence || appointment.recurrence === 'none') {
+        console.log(`Skipping - no valid recurrence`);
         return;
       }
 
       const originalStart = new Date(appointment.start_time);
       const originalEnd = new Date(appointment.end_time);
-      const appointmentDuration = originalEnd.getTime() - originalStart.getTime();
       
-      // Empezar desde la fecha original de la cita
+      // Calcular duración de la cita
+      const durationMs = originalEnd.getTime() - originalStart.getTime();
+      
+      console.log(`Duration: ${durationMs / (1000 * 60)} minutes`);
+      
+      // Empezar desde la fecha original
       let currentDate = new Date(originalStart);
       let instanceCount = 0;
+      const maxInstances = 50; // Límite de seguridad para evitar bucles infinitos
       
-      // Generar instancias hasta 3 años en el futuro
-      const maxEndDate = addYears(new Date(), 3);
-      const actualEndDate = endDate > maxEndDate ? maxEndDate : endDate;
-      
-      console.log(`Generating instances from ${format(currentDate, 'yyyy-MM-dd')} to ${format(actualEndDate, 'yyyy-MM-dd')}`);
+      console.log(`Starting generation from: ${format(currentDate, 'yyyy-MM-dd HH:mm')}`);
 
-      // Generar instancias desde la fecha original hasta 3 años
-      while (currentDate <= actualEndDate && instanceCount < 500) { // límite de seguridad
-        // Verificar si esta instancia está dentro del rango solicitado
-        if (currentDate >= startDate && currentDate <= endDate) {
-          const instanceEnd = new Date(currentDate.getTime() + appointmentDuration);
+      while (instanceCount < maxInstances && isBefore(currentDate, endDate)) {
+        // Si la fecha actual está dentro del rango solicitado, crear instancia
+        if (!isBefore(currentDate, startDate) && !isAfter(currentDate, endDate)) {
+          const instanceEnd = new Date(currentDate.getTime() + durationMs);
           
-          instances.push({
+          const newInstance: RecurringAppointment = {
             id: `${appointment.id}-recurring-${format(currentDate, 'yyyy-MM-dd-HH-mm')}`,
             provider_id: appointment.provider_id,
             client_id: appointment.client_id,
@@ -94,7 +102,7 @@ export const useRecurringAppointments = ({
             status: appointment.status,
             recurrence: appointment.recurrence,
             client_name: appointment.client_name || 'Cliente Recurrente',
-            service_title: appointment.listings?.title || appointment.service_title || 'Servicio Recurrente',
+            service_title: appointment.listings?.title || 'Servicio Recurrente',
             notes: appointment.notes,
             apartment: appointment.apartment,
             client_address: appointment.client_address,
@@ -112,7 +120,10 @@ export const useRecurringAppointments = ({
             residencia_id: appointment.residencia_id,
             recurrence_group_id: appointment.recurrence_group_id,
             listings: appointment.listings
-          });
+          };
+          
+          instances.push(newInstance);
+          console.log(`Created instance: ${format(currentDate, 'yyyy-MM-dd HH:mm')}`);
         }
 
         // Calcular la siguiente fecha según el tipo de recurrencia
@@ -124,34 +135,33 @@ export const useRecurringAppointments = ({
             currentDate = addWeeks(currentDate, 2);
             break;
           case 'monthly':
-            currentDate = addDays(currentDate, 30); // Aproximado para mensual
+            currentDate = addMonths(currentDate, 1);
             break;
           default:
-            // Si no es una recurrencia válida, salir del bucle
-            console.log(`Invalid recurrence type: ${appointment.recurrence}`);
-            currentDate = new Date(actualEndDate.getTime() + 1);
+            console.log(`Unknown recurrence type: ${appointment.recurrence}`);
+            currentDate = new Date(endDate.getTime() + 1); // Salir del bucle
             break;
         }
         
         instanceCount++;
       }
       
-      console.log(`Generated ${instances.filter(i => i.id.startsWith(appointment.id)).length} instances for appointment ${appointment.id}`);
+      const appointmentInstances = instances.filter(i => i.id.startsWith(appointment.id));
+      console.log(`Generated ${appointmentInstances.length} instances for this appointment`);
     });
 
-    console.log(`=== RECURRING INSTANCES GENERATED ===`);
-    console.log(`Total instances: ${instances.length} from ${recurringAppointments.length} base appointments`);
+    console.log('=== RECURRING EXPANSION COMPLETE ===');
+    console.log(`Total instances generated: ${instances.length}`);
     
-    // Log some sample instances for debugging
     if (instances.length > 0) {
-      console.log('Sample recurring instances:', instances.slice(0, 3).map(inst => ({
-        id: inst.id,
+      console.log('Sample instances:', instances.slice(0, 3).map(inst => ({
+        id: inst.id.split('-recurring-')[0],
         client_name: inst.client_name,
-        start_time: inst.start_time,
+        start_time: format(new Date(inst.start_time), 'yyyy-MM-dd HH:mm'),
         recurrence: inst.recurrence
       })));
     }
-    console.log('=====================================');
+    console.log('======================================');
     
     return instances;
   }, [recurringAppointments, startDate, endDate]);
