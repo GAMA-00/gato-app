@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -14,6 +15,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { CancelAppointmentModal } from '@/components/client/booking/CancelAppointmentModal';
+import { RescheduleAppointmentModal } from '@/components/client/booking/RescheduleAppointmentModal';
 
 const RatingStars = ({ 
   appointmentId, 
@@ -106,31 +109,17 @@ const RatingStars = ({
 };
 
 const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: () => void }) => {
-  const isRecurring = booking.recurrence !== 'none';
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const isRecurring = booking.recurrence !== 'none' && booking.recurrence !== null;
   const isCompleted = booking.status === 'completed';
-  const queryClient = useQueryClient();
   
   const handleReschedule = () => {
-    toast.info("Función de reagendar en desarrollo");
+    setShowRescheduleModal(true);
   };
   
-  const handleCancel = async () => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'cancelled',
-          cancellation_time: new Date().toISOString()
-        })
-        .eq('id', booking.id);
-        
-      if (error) throw error;
-      
-      toast.success("Reserva cancelada exitosamente");
-      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-    } catch (error: any) {
-      toast.error(`Error al cancelar: ${error.message}`);
-    }
+  const handleCancel = () => {
+    setShowCancelModal(true);
   };
   
   // Mostrar el nombre del proveedor de forma mejorada
@@ -231,6 +220,27 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
           )}
         </div>
       </CardContent>
+
+      {/* Cancel Modal */}
+      <CancelAppointmentModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        appointmentId={booking.id}
+        isRecurring={isRecurring}
+        appointmentDate={booking.date}
+      />
+
+      {/* Reschedule Modal */}
+      <RescheduleAppointmentModal
+        isOpen={showRescheduleModal}
+        onClose={() => setShowRescheduleModal(false)}
+        appointmentId={booking.id}
+        providerId={booking.providerId}
+        isRecurring={isRecurring}
+        currentDate={booking.date}
+        serviceDuration={60} // Default duration, can be fetched from service data
+        recurrence={booking.recurrence}
+      />
     </Card>
   );
 };
