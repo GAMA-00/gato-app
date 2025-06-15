@@ -167,7 +167,7 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
             <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md border border-blue-200">
               <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
               <span className="text-xs text-blue-700">
-                Esta cita ha sido reagendada. Tu plan recurrente se mantiene sin cambios.
+                La próxima fecha ha sido reagendada. Tu plan recurrente se mantiene sin cambios.
               </span>
             </div>
           )}
