@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,13 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import PageContainer from '@/components/layout/PageContainer';
-import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/hooks/use-toast";
 
-// Validation schema - removed role field
+// Validation schema
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
@@ -25,6 +25,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetRole = searchParams.get('role'); // 'client' or 'provider'
   const { signIn } = useSupabaseAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,10 +63,12 @@ const Login = () => {
       setIsLoading(true);
       setLoginError(null);
       
+      const redirectUrl = targetRole === 'client' ? '/client' : '/dashboard';
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}${redirectUrl}`,
         }
       });
       
@@ -95,12 +99,38 @@ const Login = () => {
     }
   };
 
+  const handleBackToLanding = () => {
+    navigate('/');
+  };
+
+  const getTitle = () => {
+    if (targetRole === 'client') return 'Iniciar Sesión como Cliente';
+    if (targetRole === 'provider') return 'Iniciar Sesión como Proveedor';
+    return 'Iniciar Sesión';
+  };
+
+  const getRegisterLink = () => {
+    if (targetRole === 'provider') return '/register-provider';
+    return '/register';
+  };
+
   return (
     <PageContainer 
-      title="Iniciar Sesión" 
-      subtitle="Accede a tu cuenta para gestionar tus reservas"
+      title={getTitle()} 
+      subtitle="Accede a tu cuenta para gestionar tus servicios"
     >
       <div className="max-w-md mx-auto mt-8 px-6 md:px-0">
+        <div className="mb-6">
+          <Button 
+            variant="outline" 
+            onClick={handleBackToLanding}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver al inicio
+          </Button>
+        </div>
+
         {loginError && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4 mr-2" />
@@ -204,7 +234,7 @@ const Login = () => {
         
         <div className="mt-6 text-center">
           <p>¿No tienes una cuenta? {' '}
-            <Link to="/register" className="text-golden-whisker hover:underline">
+            <Link to={getRegisterLink()} className="text-golden-whisker hover:underline">
               Regístrate
             </Link>
           </p>

@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Menu, Repeat2 } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import UserInfo from './UserInfo';
-import { useAuth } from '@/contexts/AuthContext';
+import NavItems from './NavItems';
 
 interface MobileNavProps {
   isClientSection: boolean;
@@ -12,8 +12,6 @@ interface MobileNavProps {
 }
 
 const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
-  const { isAuthenticated } = useAuth();
-  
   return (
     <div className="w-full h-16 fixed top-0 left-0 z-50 border-b bg-white py-2 px-4 flex items-center justify-between">
       <div className="flex items-center">
@@ -44,19 +42,14 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
               </p>
             </div>
             
-            <Button 
-              variant="outline"
-              size="sm"
-              className="mx-4 mb-4 justify-start text-xs px-3 py-1.5 h-auto bg-white border border-amber-200 whitespace-normal" 
-              onClick={onSwitchView}
-            >
-              <Repeat2 className="mr-1.5 h-4 w-4 shrink-0" />
-              <span className="text-left leading-tight">
-                Cambiar a {isClientSection ? 'Vista de Proveedor' : 'Vista de Cliente'}
-              </span>
-            </Button>
-            
-            <UserInfo isClientSection={isClientSection} onSwitchView={onSwitchView} />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-shrink-0">
+                <NavItems isClientSection={isClientSection} onSwitchView={onSwitchView} />
+              </div>
+              <div className="mt-auto flex-shrink-0">
+                <UserInfo isClientSection={isClientSection} onSwitchView={onSwitchView} />
+              </div>
+            </div>
           </SheetContent>
         </Sheet>
       </div>

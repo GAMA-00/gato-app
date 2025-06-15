@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PaymentSetup from "./pages/PaymentSetup";
 import Profile from "./pages/Profile";
+import Landing from "./pages/Landing";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/auth/RequireAuth";
 import ClientProvidersList from "./pages/ClientProvidersList";
@@ -43,73 +44,82 @@ const queryClient = new QueryClient({
 const AppRoutes = () => {
   return (
     <>
-      <Navbar />
       <Routes>
-        {/* Landing page - Redirect to client category view (final version) */}
-        <Route path="/" element={<Navigate to="/client" replace />} />
+        {/* Landing page - New entry point */}
+        <Route path="/" element={<Navigate to="/landing" replace />} />
+        <Route path="/landing" element={<Landing />} />
         
-        {/* Auth Routes - These maintain the client context */}
+        {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register-provider" element={<ProviderRegister />} />
         <Route path="/payment-setup" element={<PaymentSetup />} />
-        <Route path="/profile" element={
-          <RequireAuth>
-            <Profile />
-          </RequireAuth>
-        } />
         
-        {/* Provider routes */}
-        <Route path="/dashboard" element={
-          <RequireAuth providerOnly={true}>
-            <Dashboard />
-          </RequireAuth>
+        {/* Routes with navbar */}
+        <Route path="/*" element={
+          <>
+            <Navbar />
+            <Routes>
+              <Route path="/profile" element={
+                <RequireAuth>
+                  <Profile />
+                </RequireAuth>
+              } />
+              
+              {/* Provider routes */}
+              <Route path="/dashboard" element={
+                <RequireAuth providerOnly={true}>
+                  <Dashboard />
+                </RequireAuth>
+              } />
+              <Route path="/calendar" element={
+                <RequireAuth providerOnly={true}>
+                  <Calendar />
+                </RequireAuth>
+              } />
+              <Route path="/services" element={
+                <RequireAuth providerOnly={true}>
+                  <Services />
+                </RequireAuth>
+              } />
+              <Route path="/achievements" element={
+                <RequireAuth providerOnly={true}>
+                  <Achievements />
+                </RequireAuth>
+              } />
+              
+              {/* Client routes - Updated routes with booking flow */}
+              <Route path="/client" element={<ClientCategoryView />} />
+              <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
+              <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
+              <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
+              <Route path="/client/service/:providerId/:serviceId" element={<ClientServiceDetail />} />
+              <Route path="/client/booking" element={
+                <RequireAuth clientOnly={true}>
+                  <ClientBooking />
+                </RequireAuth>
+              } />
+              <Route path="/client/booking-summary" element={
+                <RequireAuth clientOnly={true}>
+                  <BookingSummary />
+                </RequireAuth>
+              } />
+              <Route path="/client/bookings" element={<ClientBookings />} />
+              
+              {/* Legacy client routes */}
+              <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
+              <Route path="/client/services/:buildingId" element={<ClientServices />} />
+              <Route path="/client/book/:buildingId/:serviceId" element={
+                <RequireAuth clientOnly={true} requirePaymentMethod={true}>
+                  <ClientBookings />
+                </RequireAuth>
+              } />
+              
+              {/* Not found */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </>
         } />
-        <Route path="/calendar" element={
-          <RequireAuth providerOnly={true}>
-            <Calendar />
-          </RequireAuth>
-        } />
-        <Route path="/services" element={
-          <RequireAuth providerOnly={true}>
-            <Services />
-          </RequireAuth>
-        } />
-        <Route path="/achievements" element={
-          <RequireAuth providerOnly={true}>
-            <Achievements />
-          </RequireAuth>
-        } />
-        
-        {/* Client routes - Updated routes with booking flow */}
-        <Route path="/client" element={<ClientCategoryView />} />
-        <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
-        <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
-        <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
-        <Route path="/client/service/:providerId/:serviceId" element={<ClientServiceDetail />} />
-        <Route path="/client/booking" element={
-          <RequireAuth clientOnly={true}>
-            <ClientBooking />
-          </RequireAuth>
-        } />
-        <Route path="/client/booking-summary" element={
-          <RequireAuth clientOnly={true}>
-            <BookingSummary />
-          </RequireAuth>
-        } />
-        <Route path="/client/bookings" element={<ClientBookings />} />
-        
-        {/* Legacy client routes */}
-        <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
-        <Route path="/client/services/:buildingId" element={<ClientServices />} />
-        <Route path="/client/book/:buildingId/:serviceId" element={
-          <RequireAuth clientOnly={true} requirePaymentMethod={true}>
-            <ClientBookings />
-          </RequireAuth>
-        } />
-        
-        {/* Not found */}
-        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );

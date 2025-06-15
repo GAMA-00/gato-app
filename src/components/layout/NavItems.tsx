@@ -2,7 +2,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Calendar, Home, Briefcase, CalendarClock, Award, Flame, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import NavItem from './NavItem';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
@@ -23,7 +22,7 @@ interface NavItemType {
   counter?: number;
 }
 
-const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) => {
+const NavItems = ({ isClientSection, closeMenu }: NavItemsProps) => {
   const location = useLocation();
   const { count: recurringServicesCount } = useRecurringServices();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
@@ -32,7 +31,8 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/achievements', icon: Award, label: 'Logros' }
+    { to: '/achievements', icon: Award, label: 'Logros' },
+    { to: '/profile', icon: User, label: 'Mi Perfil' }
   ];
   
   const clientNavItems: NavItemType[] = [
@@ -94,22 +94,6 @@ const NavItems = ({ isClientSection, onSwitchView, closeMenu }: NavItemsProps) =
           counter={item.counter}
         />
       ))}
-      
-      <div className="mt-3 px-2">
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="w-full justify-start text-xs py-1.5 h-auto bg-white whitespace-normal"
-          onClick={() => {
-            if (closeMenu) closeMenu();
-            onSwitchView();
-          }}
-        >
-          <span className="text-left leading-tight">
-            Cambiar a Vista de {isClientSection ? 'Proveedor' : 'Cliente'}
-          </span>
-        </Button>
-      </div>
     </nav>
   );
 };

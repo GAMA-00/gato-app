@@ -6,18 +6,11 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Forzar recarga completa para actualizar estilos
-    const forceRefresh = () => {
-      console.log("Forcing a complete refresh with timestamp...");
-      // Agregamos un timestamp diferente para asegurar que no use caché
-      window.location.href = `/client?t=${Date.now()}&refresh=true`;
-    };
-    
-    // Ejecutar inmediatamente para una recarga completa
-    forceRefresh();
+    // Redirect to landing page
+    navigate('/landing');
   }, [navigate]);
 
-  // Retornamos un mensaje de carga mientras se redirecciona
+  // Return loading message while redirecting
   return (
     <div className="flex items-center justify-center h-screen">
       <p>Cargando...</p>
