@@ -27,16 +27,13 @@ const Landing = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Bienvenido a Gato
           </h1>
-          <p className="text-gray-600">
-            Selecciona cómo quieres acceder a la plataforma
-          </p>
         </div>
         
         <div className="space-y-4">
           <Button 
             onClick={handleClientLogin}
             size="lg"
-            className="w-full h-16 text-lg bg-green-600 hover:bg-green-700 text-white"
+            className="w-full h-16 text-lg"
           >
             <User className="mr-3 h-6 w-6" />
             Ingresar como Cliente
@@ -45,15 +42,12 @@ const Landing = () => {
           <Button 
             onClick={handleProviderLogin}
             size="lg"
-            className="w-full h-16 text-lg bg-blue-600 hover:bg-blue-700 text-white"
+            variant="outline"
+            className="w-full h-16 text-lg"
           >
             <Briefcase className="mr-3 h-6 w-6" />
             Ingresar como Proveedor
           </Button>
-        </div>
-        
-        <div className="mt-8 text-sm text-gray-500">
-          <p>¿No tienes cuenta? Te ayudaremos a crear una en el siguiente paso.</p>
         </div>
       </div>
     </div>
