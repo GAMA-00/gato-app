@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -292,6 +291,13 @@ const ClientBookings = () => {
     booking.status === 'completed' || booking.status === 'cancelled'
   ) || [];
   
+  // Count active recurring appointments
+  const activeRecurringCount = bookings?.filter(booking => 
+    booking.recurrence !== 'none' && 
+    booking.recurrence !== null && 
+    (booking.status === 'pending' || booking.status === 'confirmed')
+  ).length || 0;
+  
   const handleRated = () => {
     // Refresh the data
     queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
@@ -304,7 +310,7 @@ const ClientBookings = () => {
           <span>Mis Reservas</span>
           <div className="flex items-center text-red-500">
             <Flame className="h-5 w-5" />
-            <span className="font-medium ml-0.5">{recurringServicesCount || 0}</span>
+            <span className="font-medium ml-0.5">{activeRecurringCount}</span>
           </div>
         </div>
       }
