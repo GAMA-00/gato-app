@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -9,13 +8,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProviderAvailability } from '@/hooks/useProviderAvailability';
 import { format, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface RescheduleAppointmentModalProps {
   isOpen: boolean;
@@ -26,6 +26,8 @@ interface RescheduleAppointmentModalProps {
   currentDate: Date;
   serviceDuration: number;
   recurrence?: string;
+  listingId?: string;
+  recurrenceGroupId?: string;
 }
 
 export const RescheduleAppointmentModal = ({
@@ -36,13 +38,16 @@ export const RescheduleAppointmentModal = ({
   isRecurring,
   currentDate,
   serviceDuration,
-  recurrence = 'none'
+  recurrence = 'none',
+  listingId,
+  recurrenceGroupId
 }: RescheduleAppointmentModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(currentDate);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [rescheduleMode, setRescheduleMode] = useState<'single' | 'recurring' | null>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { availableTimeSlots, isLoading: slotsLoading } = useProviderAvailability({
     providerId,
@@ -57,36 +62,72 @@ export const RescheduleAppointmentModal = ({
   };
 
   const handleRescheduleSingle = async () => {
-    if (!selectedTime) {
+    if (!selectedTime || !user) {
       toast.error('Por favor selecciona una hora');
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log('Rescheduling single appointment:', appointmentId);
+      console.log('Rescheduling single instance of recurring appointment:', appointmentId);
       
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const newStartTime = new Date(selectedDate);
       newStartTime.setHours(hours, minutes, 0, 0);
-      
       const newEndTime = addMinutes(newStartTime, serviceDuration);
 
-      const { error } = await supabase
+      // Get original appointment details
+      const { data: originalAppointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', appointmentId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Create a new appointment record for the rescheduled instance
+      const { data: newAppointment, error: insertError } = await supabase
+        .from('appointments')
+        .insert({
+          provider_id: originalAppointment.provider_id,
+          client_id: originalAppointment.client_id,
+          listing_id: originalAppointment.listing_id,
+          start_time: newStartTime.toISOString(),
+          end_time: newEndTime.toISOString(),
+          status: 'pending',
+          recurrence: 'none',
+          is_recurring_instance: false,
+          recurrence_group_id: originalAppointment.recurrence_group_id || originalAppointment.id,
+          notes: `Reagendado desde cita recurrente original del ${format(currentDate, 'PPP', { locale: es })}`,
+          client_address: originalAppointment.client_address,
+          client_email: originalAppointment.client_email,
+          client_phone: originalAppointment.client_phone,
+          apartment: originalAppointment.apartment,
+          residencia_id: originalAppointment.residencia_id,
+          external_booking: originalAppointment.external_booking
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Mark the original appointment as "rescheduled" but keep it for reference
+      const { error: updateError } = await supabase
         .from('appointments')
         .update({
-          start_time: newStartTime.toISOString(),
-          end_time: newEndTime.toISOString()
+          status: 'rescheduled',
+          notes: `Reagendado a ${format(newStartTime, 'PPPp', { locale: es })}`
         })
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      toast.success('Cita reagendada exitosamente');
+      toast.success('Cita reagendada exitosamente. Pendiente de aprobación del proveedor.');
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
       onClose();
     } catch (error: any) {
-      console.error('Error rescheduling appointment:', error);
+      console.error('Error rescheduling single appointment:', error);
       toast.error(`Error al reagendar: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -103,19 +144,9 @@ export const RescheduleAppointmentModal = ({
     try {
       console.log('Rescheduling recurring appointment series:', appointmentId);
       
-      // Get the appointment details first
-      const { data: appointment, error: fetchError } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('id', appointmentId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const newStartTime = new Date(selectedDate);
       newStartTime.setHours(hours, minutes, 0, 0);
-      
       const newEndTime = addMinutes(newStartTime, serviceDuration);
 
       // Update the base appointment
@@ -164,8 +195,8 @@ export const RescheduleAppointmentModal = ({
               variant="outline"
               className="w-full justify-start gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
             >
-              <Clock className="h-4 w-4" />
-              {isRecurring ? 'Reagendar solo esta cita' : 'Reagendar cita'}
+              <RotateCcw className="h-4 w-4" />
+              {isRecurring ? 'Reagendar solo la próxima cita' : 'Reagendar cita'}
             </Button>
 
             {isRecurring && (
@@ -196,10 +227,13 @@ export const RescheduleAppointmentModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-blue-500" />
-            Reagendar {rescheduleMode === 'recurring' ? 'Serie de Citas' : 'Cita'}
+            Reagendar {rescheduleMode === 'recurring' ? 'Serie de Citas' : 'Próxima Cita'}
           </DialogTitle>
           <DialogDescription>
-            Selecciona una nueva fecha y hora disponible.
+            {rescheduleMode === 'single' 
+              ? 'Esta cita reagendada requerirá aprobación del proveedor. Tu plan recurrente se mantiene sin cambios.'
+              : 'Selecciona una nueva fecha y hora disponible para toda la serie.'
+            }
           </DialogDescription>
         </DialogHeader>
 

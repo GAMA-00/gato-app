@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, X, Flame, Star, MapPin } from 'lucide-react';
+import { Calendar, Clock, X, Flame, Star, MapPin, RotateCcw } from 'lucide-react';
 import { cn, formatTo12Hour } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { useClientBookings, ClientBooking } from '@/hooks/useClientBookings';
@@ -162,6 +162,16 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
           
           <p className="text-sm text-muted-foreground truncate">{booking.subcategory}</p>
           
+          {/* Show rescheduled indicator */}
+          {booking.isRescheduled && (
+            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md border border-blue-200">
+              <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
+              <span className="text-xs text-blue-700">
+                Esta cita ha sido reagendada. Tu plan recurrente se mantiene sin cambios.
+              </span>
+            </div>
+          )}
+          
           <div className="flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="truncate">
@@ -240,6 +250,8 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
         currentDate={booking.date}
         serviceDuration={60} // Default duration, can be fetched from service data
         recurrence={booking.recurrence}
+        listingId={booking.listingId}
+        recurrenceGroupId={booking.recurrenceGroupId}
       />
     </Card>
   );

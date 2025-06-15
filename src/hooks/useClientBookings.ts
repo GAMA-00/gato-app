@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,12 +8,16 @@ export interface ClientBooking {
   serviceName: string;
   subcategory: string;
   date: Date;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
   recurrence: string;
   providerId: string;
   providerName: string;
   isRated: boolean;
   location: string;
+  isRescheduled?: boolean;
+  originalRecurrenceGroupId?: string;
+  listingId?: string;
+  recurrenceGroupId?: string;
 }
 
 export const useClientBookings = () => {
@@ -28,7 +31,7 @@ export const useClientBookings = () => {
       console.log('Fetching client bookings for user:', user.id);
 
       try {
-        // First get appointments with basic data
+        // Get appointments with basic data including rescheduled ones
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -43,9 +46,13 @@ export const useClientBookings = () => {
             residencia_id,
             external_booking,
             client_address,
-            listing_id
+            listing_id,
+            recurrence_group_id,
+            notes,
+            is_recurring_instance
           `)
           .eq('client_id', user.id)
+          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rescheduled'])
           .order('start_time', { ascending: false });
 
         if (error) {
@@ -149,7 +156,20 @@ export const useClientBookings = () => {
 
         console.log('Processing appointments with complete data...');
 
-        return appointments.map(appointment => {
+        // Filter out rescheduled appointments that should be hidden from main view
+        // but keep the new rescheduled instances
+        const visibleAppointments = appointments.filter(appointment => {
+          // Hide original appointments that were rescheduled (status = 'rescheduled')
+          // but show the new appointments created from rescheduling
+          if (appointment.status === 'rescheduled' && 
+              appointment.recurrence !== 'none' && 
+              appointment.is_recurring_instance) {
+            return false; // Hide the original recurring appointment that was rescheduled
+          }
+          return true;
+        });
+
+        return visibleAppointments.map(appointment => {
           const listing = listingsMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
           
@@ -170,6 +190,11 @@ export const useClientBookings = () => {
 
           const locationString = buildLocationString(locationData);
 
+          // Check if this appointment is a rescheduled instance
+          const isRescheduled = appointment.recurrence_group_id && 
+                               appointment.recurrence === 'none' &&
+                               appointment.notes?.includes('Reagendado desde cita recurrente');
+
           const result = {
             id: appointment.id,
             serviceName: listing?.title || 'Servicio',
@@ -180,14 +205,19 @@ export const useClientBookings = () => {
             providerId: appointment.provider_id,
             providerName: provider?.name || 'Proveedor',
             isRated: ratedIds.has(appointment.id),
-            location: locationString
+            location: locationString,
+            isRescheduled,
+            originalRecurrenceGroupId: appointment.recurrence_group_id,
+            listingId: appointment.listing_id,
+            recurrenceGroupId: appointment.recurrence_group_id
           };
 
           console.log(`Processed appointment ${appointment.id}:`, {
             serviceName: result.serviceName,
             providerName: result.providerName,
             location: result.location,
-            status: result.status
+            status: result.status,
+            isRescheduled: result.isRescheduled
           });
 
           return result;
