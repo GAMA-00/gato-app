@@ -8,7 +8,7 @@ export interface ClientBooking {
   serviceName: string;
   subcategory: string;
   date: Date;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rescheduled';
   recurrence: string;
   providerId: string;
   providerName: string;
@@ -52,7 +52,7 @@ export const useClientBookings = () => {
             is_recurring_instance
           `)
           .eq('client_id', user.id)
-          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rescheduled'])
+          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rejected', 'rescheduled'])
           .order('start_time', { ascending: false });
 
         if (error) {
