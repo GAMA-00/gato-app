@@ -1,5 +1,5 @@
 
-export type AchievementLevel = 'bronce' | 'plata' | 'oro' | 'platino' | 'diamante';
+export type AchievementLevel = 'nuevo' | 'bronce' | 'plata' | 'oro' | 'platino' | 'diamante';
 
 export interface AchievementLevelInfo {
   level: AchievementLevel;
@@ -31,11 +31,20 @@ export interface ProviderAchievements {
 
 export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
+    level: 'nuevo',
+    name: 'Nuevo',
+    description: 'Proveedor recién registrado comenzando su trayectoria',
+    minJobs: 0,
+    maxJobs: 29,
+    color: '#3B82F6',
+    icon: 'award'
+  },
+  {
     level: 'bronce',
     name: 'Bronce',
     description: 'Proveedor principiante con experiencia inicial',
-    minJobs: 0,
-    maxJobs: 29,
+    minJobs: 30,
+    maxJobs: 99,
     color: '#CD7F32',
     icon: 'award'
   },
@@ -43,8 +52,8 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
     level: 'plata',
     name: 'Plata',
     description: 'Proveedor experimentado con historial sólido',
-    minJobs: 30,
-    maxJobs: 99,
+    minJobs: 100,
+    maxJobs: 499,
     color: '#C0C0C0',
     icon: 'star'
   },
@@ -52,8 +61,8 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
     level: 'oro',
     name: 'Oro',
     description: 'Proveedor altamente calificado y confiable',
-    minJobs: 100,
-    maxJobs: 499,
+    minJobs: 500,
+    maxJobs: 999,
     color: '#FFD700',
     icon: 'trophy'
   },
@@ -61,8 +70,8 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
     level: 'platino',
     name: 'Platino',
     description: 'Proveedor elite con excelencia demostrada',
-    minJobs: 500,
-    maxJobs: 999,
+    minJobs: 1000,
+    maxJobs: 2499,
     color: '#E5E4E2',
     icon: 'crown'
   },
@@ -70,7 +79,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
     level: 'diamante',
     name: 'Diamante',
     description: 'Proveedor maestro con trayectoria excepcional',
-    minJobs: 1000,
+    minJobs: 2500,
     maxJobs: Infinity,
     color: '#B9F2FF',
     icon: 'gem'

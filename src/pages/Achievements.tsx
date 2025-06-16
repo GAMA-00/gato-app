@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,7 +13,7 @@ const Achievements: React.FC = () => {
 
   if (error) {
     return (
-      <PageContainer title="Logros" subtitle="Sube de nivel y desbloquea recompensas">
+      <PageContainer title="Logros">
         <div className="text-center py-8">
           <p className="text-muted-foreground">Error al cargar los logros</p>
         </div>
@@ -24,7 +23,7 @@ const Achievements: React.FC = () => {
 
   if (isLoading || !achievements) {
     return (
-      <PageContainer title="Logros" subtitle="Sube de nivel y desbloquea recompensas">
+      <PageContainer title="Logros">
         <div className="space-y-8 animate-pulse">
           <div className="h-32 bg-gray-200 rounded-lg"></div>
           <div className="h-96 bg-gray-200 rounded-lg"></div>
@@ -41,7 +40,7 @@ const Achievements: React.FC = () => {
     : 100;
 
   return (
-    <PageContainer title="Logros" subtitle="Tu progreso basado en trabajos completados">
+    <PageContainer title="Logros">
       <div className="space-y-8">
         {/* Progreso Principal */}
         <Card className="glassmorphism border-primary/20">
