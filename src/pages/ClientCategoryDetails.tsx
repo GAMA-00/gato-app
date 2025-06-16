@@ -69,27 +69,30 @@ const ClientCategoryDetails = () => {
 
   if (isLoading) {
     return (
-      <PageContainer
-        title=""
-        className="pt-0 bg-white"
-      >
-        {/* Back button positioned absolutely in top-left */}
+      <div className="min-h-screen w-full bg-white relative">
+        {/* Back button positioned absolutely in top-left corner */}
         <div className="absolute top-4 left-4 z-10">
           <Skeleton className="h-10 w-24 rounded-lg" />
         </div>
 
         {/* Category title */}
-        <div className="text-center mb-6 mt-16">
-          <Skeleton className="h-8 w-32 mx-auto rounded" />
+        <div className="pt-20 pb-6">
+          <div className="text-center">
+            <Skeleton className="h-8 w-32 mx-auto rounded" />
+          </div>
         </div>
 
         {/* Services grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-4 md:px-6 max-w-4xl mx-auto">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-32 md:h-40 rounded-xl" />
-          ))}
+        <div className="px-4 md:px-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-32 md:h-40 rounded-xl" />
+              ))}
+            </div>
+          </div>
         </div>
-      </PageContainer>
+      </div>
     );
   }
 
@@ -97,63 +100,66 @@ const ClientCategoryDetails = () => {
   const IconComponent = iconMap[categoryName || ''] || Book;
 
   return (
-    <PageContainer
-      title=""
-      className="pt-0 bg-white relative"
-    >
+    <div className="min-h-screen w-full bg-white relative">
       {/* Back button positioned absolutely in top-left corner */}
       <div className="absolute top-4 left-4 z-10">
         <BackButton onClick={handleBack} />
       </div>
 
       {/* Category title with icon */}
-      <div className="text-center mb-8 mt-16">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <IconComponent 
-            size={isMobile ? 24 : 32}
-            strokeWidth={isMobile ? 2 : 1.8}
-            className="text-[#1A1A1A]" 
-          />
-          <h1 className={cn(
-            "font-bold tracking-tight text-app-text",
-            isMobile ? "text-xl" : "text-2xl md:text-3xl"
-          )}>
-            {categoryLabel}
-          </h1>
+      <div className="pt-20 pb-8">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <IconComponent 
+              size={isMobile ? 24 : 32}
+              strokeWidth={isMobile ? 2 : 1.8}
+              className="text-[#1A1A1A]" 
+            />
+            <h1 className={cn(
+              "font-bold tracking-tight text-app-text",
+              isMobile ? "text-xl" : "text-2xl md:text-3xl"
+            )}>
+              {categoryLabel}
+            </h1>
+          </div>
         </div>
       </div>
 
-      {/* Services grid with same styling as category cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 px-4 md:px-6 max-w-4xl mx-auto animate-fade-in">
-        {serviceTypes.map((serviceType) => {
-          return (
-            <div key={serviceType.id} onClick={() => handleServiceClick(serviceType.id)}>
-              <Card className={cn(
-                "relative overflow-hidden cursor-pointer transition-all duration-300 ease-in-out",
-                "bg-white border border-gray-200 shadow-md hover:shadow-lg",
-                "flex flex-col items-center justify-center",
-                "rounded-xl p-6",
-                isMobile ? "h-32 min-h-32" : "h-40 min-h-40"
-              )}>
-                <h3 className={cn(
-                  "text-center font-semibold text-[#1A1A1A] leading-tight",
-                  "overflow-wrap-anywhere hyphens-auto",
-                  isMobile ? "text-sm px-2" : "text-base px-3"
-                )}>
-                  {serviceType.name}
-                </h3>
-              </Card>
-            </div>
-          );
-        })}
-        
-        {serviceTypes.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <p className="text-muted-foreground">No hay servicios disponibles en esta categoría.</p>
+      {/* Services grid with consistent styling */}
+      <div className="px-4 md:px-6 pb-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
+            {serviceTypes.map((serviceType) => {
+              return (
+                <div key={serviceType.id} onClick={() => handleServiceClick(serviceType.id)}>
+                  <Card className={cn(
+                    "relative overflow-hidden cursor-pointer transition-all duration-300 ease-in-out",
+                    "bg-white border border-gray-200 shadow-md hover:shadow-lg",
+                    "flex flex-col items-center justify-center",
+                    "rounded-xl p-4",
+                    "h-32 min-h-32"
+                  )}>
+                    <h3 className={cn(
+                      "text-center font-semibold text-[#1A1A1A] leading-tight",
+                      "overflow-wrap-anywhere hyphens-auto",
+                      isMobile ? "text-sm px-2" : "text-base px-3"
+                    )}>
+                      {serviceType.name}
+                    </h3>
+                  </Card>
+                </div>
+              );
+            })}
+            
+            {serviceTypes.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">No hay servicios disponibles en esta categoría.</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
-    </PageContainer>
+    </div>
   );
 };
 
