@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
@@ -32,9 +33,31 @@ const categoryLabels: Record<string, string> = {
 // Nuevo orden específico para las categorías
 const categoryOrder = ['home', 'pets', 'classes', 'personal-care', 'sports', 'other'];
 
+// Preload all category icons
+const preloadCategoryIcons = () => {
+  const iconUrls = [
+    '/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png', // home
+    '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png', // pets
+    '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png', // classes
+    '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png', // personal-care
+    '/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png', // sports
+    '/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png', // other
+  ];
+  
+  iconUrls.forEach(url => {
+    const img = new Image();
+    img.src = url;
+  });
+};
+
 const ClientCategoryView = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  // Preload icons on component mount
+  useEffect(() => {
+    preloadCategoryIcons();
+  }, []);
 
   const { data: fetchedCategories = [], isLoading } = useQuery({
     queryKey: ['service-categories'],
@@ -127,6 +150,7 @@ const ClientCategoryView = () => {
                         "object-contain",
                         isMobile ? "w-20 h-20" : "w-24 h-24" // Increased size on mobile
                       )}
+                      loading="eager"
                     />
                   ) : iconComponent === 'custom-pets' ? (
                     <img 
@@ -136,6 +160,7 @@ const ClientCategoryView = () => {
                         "object-contain",
                         isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
+                      loading="eager"
                     />
                   ) : iconComponent === 'custom-classes' ? (
                     <img 
@@ -145,6 +170,7 @@ const ClientCategoryView = () => {
                         "object-contain",
                         isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
+                      loading="eager"
                     />
                   ) : iconComponent === 'custom-personal-care' ? (
                     <img 
@@ -154,6 +180,7 @@ const ClientCategoryView = () => {
                         "object-contain",
                         isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
+                      loading="eager"
                     />
                   ) : iconComponent === 'custom-sports' ? (
                     <img 
@@ -163,6 +190,7 @@ const ClientCategoryView = () => {
                         "object-contain",
                         isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
+                      loading="eager"
                     />
                   ) : iconComponent === 'custom-other' ? (
                     <img 
@@ -172,6 +200,7 @@ const ClientCategoryView = () => {
                         "object-contain",
                         isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
+                      loading="eager"
                     />
                   ) : (
                     React.createElement(iconComponent as LucideIcon, {

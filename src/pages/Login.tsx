@@ -53,7 +53,7 @@ const Login = () => {
     if (data && !error) {
       // The signIn function already handles role-based navigation
       // No need to specify navigation here as it's handled in useSupabaseAuth
-      // Removed toast notification
+      // No toast notification shown
     }
     setIsLoading(false);
   };
@@ -75,12 +75,10 @@ const Login = () => {
       if (error) {
         console.error('Error al iniciar sesión con Google:', error);
         setLoginError(error.message);
-        // Removed toast notification for Google errors
       }
     } catch (error: any) {
       console.error('Error inesperado:', error);
       setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
-      // Removed toast notification for unexpected errors
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +116,7 @@ const Login = () => {
       {/* Main content - centered */}
       <div className="flex-1 flex items-center justify-center px-4 md:px-6 pb-8">
         <div className="w-full max-w-md">
-          {/* Title only - subtitle removed */}
+          {/* Title only */}
           <div className="text-center mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               {getTitle()}

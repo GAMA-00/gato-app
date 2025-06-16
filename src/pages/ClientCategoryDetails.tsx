@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
@@ -38,10 +39,38 @@ const categoryLabels: Record<string, string> = {
   'other': 'Otros',
 };
 
+// Preload all icons
+const preloadAllIcons = () => {
+  const allIconUrls = [
+    // Category icons
+    '/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png', // home
+    '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png', // pets
+    '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png', // classes
+    '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png', // personal-care
+    '/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png', // sports
+    '/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png', // other
+    // Service type icons
+    '/lovable-uploads/6047527f-3ae9-4185-ac20-e270f9ca6564.png', // cleaning
+    '/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png', // ironing
+    '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png', // gardening
+    '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png', // maintenance
+  ];
+  
+  allIconUrls.forEach(url => {
+    const img = new Image();
+    img.src = url;
+  });
+};
+
 const ClientCategoryDetails = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  // Preload all icons on component mount
+  useEffect(() => {
+    preloadAllIcons();
+  }, []);
 
   const { data: serviceTypes = [], isLoading } = useQuery({
     queryKey: ['service-types', categoryName],
@@ -125,6 +154,7 @@ const ClientCategoryDetails = () => {
                   "object-contain",
                   isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
+                loading="eager"
               />
             ) : iconComponent === 'custom-pets' ? (
               <img 
@@ -134,6 +164,7 @@ const ClientCategoryDetails = () => {
                   "object-contain",
                   isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
+                loading="eager"
               />
             ) : iconComponent === 'custom-classes' ? (
               <img 
@@ -143,6 +174,7 @@ const ClientCategoryDetails = () => {
                   "object-contain",
                   isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
+                loading="eager"
               />
             ) : iconComponent === 'custom-personal-care' ? (
               <img 
@@ -152,6 +184,7 @@ const ClientCategoryDetails = () => {
                   "object-contain",
                   isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
+                loading="eager"
               />
             ) : iconComponent === 'custom-sports' ? (
               <img 
@@ -161,6 +194,7 @@ const ClientCategoryDetails = () => {
                   "object-contain",
                   isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
+                loading="eager"
               />
             ) : iconComponent === 'custom-other' ? (
               <img 
@@ -170,6 +204,7 @@ const ClientCategoryDetails = () => {
                   "object-contain",
                   isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
+                loading="eager"
               />
             ) : (
               React.createElement(iconComponent as LucideIcon, {
@@ -218,6 +253,7 @@ const ClientCategoryDetails = () => {
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
                             )}
+                            loading="eager"
                           />
                         )}
                         {serviceType.name === 'Planchado' && (
@@ -228,6 +264,7 @@ const ClientCategoryDetails = () => {
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
                             )}
+                            loading="eager"
                           />
                         )}
                         {serviceType.name === 'Jardinero' && (
@@ -238,6 +275,7 @@ const ClientCategoryDetails = () => {
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
                             )}
+                            loading="eager"
                           />
                         )}
                         {serviceType.name === 'Mantenimiento' && (
@@ -248,6 +286,7 @@ const ClientCategoryDetails = () => {
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
                             )}
+                            loading="eager"
                           />
                         )}
                       </div>
