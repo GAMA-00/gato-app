@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -67,11 +68,19 @@ const ClientCategoryView = () => {
             Explora nuestras categorías de servicio
           </div>
         }
-        className="pt-0 bg-white"
+        className={cn(
+          "pt-0 bg-white",
+          isMobile && "flex items-center justify-center min-h-screen"
+        )}
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto">
+        <div className={cn(
+          "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto",
+          isMobile ? "px-6 w-full" : "px-2 md:px-6"
+        )}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className={cn(isMobile ? "h-28" : "h-32 md:h-40", "rounded-xl")} />
+            <Skeleton key={i} className={cn(
+              isMobile ? "h-36 rounded-xl" : "h-32 md:h-40 rounded-xl"
+            )} />
           ))}
         </div>
       </PageContainer>
@@ -79,7 +88,7 @@ const ClientCategoryView = () => {
   }
 
   // Define optimized icon size and stroke width for mobile - increased by 50%
-  const iconSize = isMobile ? 42 : 72; // Increased from 28 to 42 and 48 to 72
+  const iconSize = isMobile ? 54 : 72; // Further increased for mobile
   const strokeWidth = isMobile ? 2 : 1.8;
   
   return (
@@ -89,9 +98,15 @@ const ClientCategoryView = () => {
           Explora nuestras categorías de servicio
         </div>
       }
-      className="pt-0 bg-white"
+      className={cn(
+        "pt-0 bg-white",
+        isMobile && "flex items-center justify-center min-h-screen"
+      )}
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto animate-fade-in">
+      <div className={cn(
+        "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto animate-fade-in",
+        isMobile ? "px-6 w-full" : "px-2 md:px-6"
+      )}>
         {categoryOrder.map((categoryName) => {
           const category = categories.find(c => c.name === categoryName);
           if (!category) return null;
@@ -99,17 +114,17 @@ const ClientCategoryView = () => {
           // Obtener el icono según el nombre de la categoría
           const iconComponent = iconMap[category.name] || Book;
           
-          const textSizeClass = isMobile ? 'text-sm' : 'text-lg'; // Smaller text on mobile
+          const textSizeClass = isMobile ? 'text-base font-semibold' : 'text-lg'; // Increased text size on mobile
           
           return (
             <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
               <Card className={cn(
                 "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
-                isMobile ? "p-4 h-28" : "p-8 h-48"
+                isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48" // Increased height and padding on mobile
               )}>
                 <div className={cn(
                   "flex items-center justify-center",
-                  isMobile ? "mb-2" : "mb-4"
+                  isMobile ? "mb-3" : "mb-4"
                 )}>
                   {iconComponent === 'custom-home' ? (
                     <img 
@@ -117,7 +132,7 @@ const ClientCategoryView = () => {
                       alt="Hogar"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-18 h-18" : "w-24 h-24"
+                        isMobile ? "w-20 h-20" : "w-24 h-24" // Increased size on mobile
                       )}
                     />
                   ) : iconComponent === 'custom-pets' ? (
@@ -126,7 +141,7 @@ const ClientCategoryView = () => {
                       alt="Mascotas"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-18 h-18" : "w-24 h-24"
+                        isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-classes' ? (
@@ -135,7 +150,7 @@ const ClientCategoryView = () => {
                       alt="Clases"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-18 h-18" : "w-24 h-24"
+                        isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-personal-care' ? (
@@ -144,7 +159,7 @@ const ClientCategoryView = () => {
                       alt="Cuidado Personal"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-18 h-18" : "w-24 h-24"
+                        isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-sports' ? (
@@ -153,7 +168,7 @@ const ClientCategoryView = () => {
                       alt="Deportes"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-18 h-18" : "w-24 h-24"
+                        isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-other' ? (
@@ -162,7 +177,7 @@ const ClientCategoryView = () => {
                       alt="Otros"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-18 h-18" : "w-24 h-24"
+                        isMobile ? "w-20 h-20" : "w-24 h-24"
                       )}
                     />
                   ) : (
@@ -174,9 +189,9 @@ const ClientCategoryView = () => {
                   )}
                 </div>
                 <h3 className={cn(
-                  "text-center font-semibold text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
+                  "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
                   textSizeClass,
-                  isMobile ? "px-1" : "px-2"
+                  isMobile ? "px-2" : "px-2"
                 )}>
                   {categoryLabels[category.name] || category.label}
                 </h3>

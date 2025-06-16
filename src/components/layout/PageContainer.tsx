@@ -28,13 +28,23 @@ const PageContainer: React.FC<PageContainerProps> = ({
     )}>
       {/* Centered container for all content */}
       <div className={cn(
-        "w-full flex justify-center items-center min-h-full",
+        "w-full min-h-full",
+        // Check if className contains flex items-center justify-center for special centering
+        className?.includes("flex items-center justify-center") 
+          ? "flex flex-col justify-center items-center" 
+          : "flex justify-center items-center",
         isMobile ? "p-1" : "p-6"
       )}>
-        <div className={cn("max-w-7xl w-full animate-fade-in flex flex-col items-center")}>
+        <div className={cn(
+          "max-w-7xl w-full animate-fade-in",
+          className?.includes("flex items-center justify-center") 
+            ? "flex flex-col items-center justify-center h-full" 
+            : "flex flex-col items-center"
+        )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            isMobile ? "mt-4 mb-2" : "mb-6" // Reduced from mt-16 to mt-4 for less space on mobile
+            isMobile ? "mt-4 mb-4" : "mb-6",
+            className?.includes("flex items-center justify-center") && isMobile ? "mb-6" : ""
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
@@ -50,10 +60,13 @@ const PageContainer: React.FC<PageContainerProps> = ({
             {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
           </div>
           
-          {/* Minimal spacing between title and content on mobile */}
-          {isMobile && <div className="h-2"></div>}
-          
-          <div className="animate-slide-up pb-4 flex justify-center w-full">
+          {/* Content area with conditional centering */}
+          <div className={cn(
+            "animate-slide-up pb-4 flex justify-center w-full",
+            className?.includes("flex items-center justify-center") 
+              ? "flex-1 items-center" 
+              : ""
+          )}>
             <div className="w-full flex justify-center">
               {children}
             </div>
