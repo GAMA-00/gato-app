@@ -43,7 +43,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            isMobile ? (isCenteredLayout ? "mb-4" : "mb-6") : "mb-6"
+            isMobile && isCenteredLayout ? "mb-4" : (isMobile ? "mb-6" : "mb-6")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
