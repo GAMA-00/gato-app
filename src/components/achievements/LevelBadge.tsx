@@ -50,10 +50,10 @@ const LevelBadge = ({ level, size = 'md', showText = true }: LevelBadgeProps) =>
 
   return (
     <Badge 
-      className={`flex items-center gap-1.5 ${sizeClasses[size]} font-semibold`}
+      className={`flex items-center gap-1.5 ${sizeClasses[size]} font-semibold border`}
       style={{ 
-        backgroundColor: `${levelInfo.color}20`,
-        color: levelInfo.color,
+        backgroundColor: levelInfo.color,
+        color: 'white',
         borderColor: levelInfo.color
       }}
     >
