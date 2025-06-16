@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -115,7 +116,7 @@ const ClientCategoryDetails = () => {
                 alt="Hogar"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-15 h-15" : "w-18 h-18"
+                  isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
               />
             ) : iconComponent === 'custom-pets' ? (
@@ -124,7 +125,7 @@ const ClientCategoryDetails = () => {
                 alt="Mascotas"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-15 h-15" : "w-18 h-18"
+                  isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
               />
             ) : iconComponent === 'custom-classes' ? (
@@ -133,7 +134,7 @@ const ClientCategoryDetails = () => {
                 alt="Clases"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-15 h-15" : "w-18 h-18"
+                  isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
               />
             ) : iconComponent === 'custom-personal-care' ? (
@@ -142,7 +143,7 @@ const ClientCategoryDetails = () => {
                 alt="Cuidado Personal"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-15 h-15" : "w-18 h-18"
+                  isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
               />
             ) : iconComponent === 'custom-sports' ? (
@@ -151,7 +152,7 @@ const ClientCategoryDetails = () => {
                 alt="Deportes"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-15 h-15" : "w-18 h-18"
+                  isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
               />
             ) : iconComponent === 'custom-other' ? (
@@ -160,12 +161,12 @@ const ClientCategoryDetails = () => {
                 alt="Otros"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-15 h-15" : "w-18 h-18"
+                  isMobile ? "w-20 h-20" : "w-24 h-24"
                 )}
               />
             ) : (
               React.createElement(iconComponent as LucideIcon, {
-                size: isMobile ? 36 : 48,
+                size: isMobile ? 54 : 72,
                 strokeWidth: isMobile ? 2 : 1.8,
                 className: "text-[#1A1A1A]"
               })
