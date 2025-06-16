@@ -28,12 +28,12 @@ const PageContainer: React.FC<PageContainerProps> = ({
     )}>
       {/* Centered container for all content */}
       <div className={cn(
-        "w-full flex justify-center",
+        "w-full flex justify-center items-center min-h-full",
         isMobile ? "p-1" : "p-6"
       )}>
-        <div className={cn("max-w-7xl w-full animate-fade-in")}>
+        <div className={cn("max-w-7xl w-full animate-fade-in flex flex-col items-center")}>
           <div className={cn(
-            "flex flex-col md:flex-row md:items-center justify-center gap-1",
+            "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
             isMobile ? "mt-16 mb-2" : "mb-6" // Further increased top margin on mobile for better spacing
           )}>
             {/* Center title container with full width */}
@@ -53,8 +53,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
           {/* Minimal spacing between title and content on mobile */}
           {isMobile && <div className="h-2"></div>}
           
-          <div className="animate-slide-up pb-4 flex justify-center">
-            <div className="w-full">
+          <div className="animate-slide-up pb-4 flex justify-center w-full">
+            <div className="w-full flex justify-center">
               {children}
             </div>
           </div>
