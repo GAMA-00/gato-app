@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -68,10 +67,7 @@ const ClientCategoryView = () => {
             Explora nuestras categorías de servicio
           </div>
         }
-        className={cn(
-          "pt-0 bg-white",
-          isMobile && "flex items-center justify-center min-h-screen"
-        )}
+        className="flex items-center justify-center"
       >
         <div className={cn(
           "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto",
@@ -98,10 +94,7 @@ const ClientCategoryView = () => {
           Explora nuestras categorías de servicio
         </div>
       }
-      className={cn(
-        "pt-0 bg-white",
-        isMobile && "flex items-center justify-center min-h-screen"
-      )}
+      className="flex items-center justify-center"
     >
       <div className={cn(
         "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto animate-fade-in",

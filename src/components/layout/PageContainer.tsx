@@ -20,20 +20,22 @@ const PageContainer: React.FC<PageContainerProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
+  // Check if this should be a centered layout (no scroll)
+  const isCenteredLayout = className?.includes("flex items-center justify-center");
+  
   return (
     <div className={cn(
       isMobile ? "pt-0 pb-0" : "pl-56 pt-4",
-      "min-h-screen w-full bg-white",
+      isCenteredLayout ? "h-screen w-full overflow-hidden bg-white" : "min-h-screen w-full bg-white",
       className
     )}>
-      {/* Scrollable container for all content */}
+      {/* Container for all content */}
       <div className={cn(
-        "w-full min-h-screen overflow-y-auto",
-        // Check if className contains flex items-center justify-center for special centering
-        className?.includes("flex items-center justify-center") 
-          ? "flex flex-col justify-center items-center" 
-          : "flex flex-col justify-center items-center",
-        isMobile ? "p-4 pb-20" : "p-6"
+        "w-full",
+        isCenteredLayout 
+          ? "h-full flex flex-col justify-center items-center" 
+          : "min-h-screen overflow-y-auto flex flex-col justify-center items-center",
+        isMobile ? (isCenteredLayout ? "p-4" : "p-4 pb-20") : "p-6"
       )}>
         <div className={cn(
           "max-w-7xl w-full animate-fade-in",
@@ -57,10 +59,10 @@ const PageContainer: React.FC<PageContainerProps> = ({
             {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
           </div>
           
-          {/* Content area with scroll capability */}
+          {/* Content area */}
           <div className={cn(
             "animate-slide-up flex justify-center w-full",
-            "flex-1 items-start"
+            isCenteredLayout ? "flex-1 items-center" : "flex-1 items-start"
           )}>
             <div className="w-full flex justify-center">
               {children}
