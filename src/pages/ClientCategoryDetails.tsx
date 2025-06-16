@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -22,8 +21,9 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
 };
 
 // Mapa de iconos específico para service types
-const serviceTypeIconMap: Record<string, 'custom-cleaning'> = {
+const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing'> = {
   'Limpieza': 'custom-cleaning',
+  'Planchado': 'custom-ironing',
 };
 
 // Nombres de categorías en español
@@ -212,6 +212,16 @@ const ClientCategoryDetails = () => {
                           <img 
                             src="/lovable-uploads/6047527f-3ae9-4185-ac20-e270f9ca6564.png"
                             alt="Limpieza"
+                            className={cn(
+                              "object-contain",
+                              isMobile ? "w-12 h-12" : "w-16 h-16"
+                            )}
+                          />
+                        )}
+                        {serviceType.name === 'Planchado' && (
+                          <img 
+                            src="/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png"
+                            alt="Planchado"
                             className={cn(
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
