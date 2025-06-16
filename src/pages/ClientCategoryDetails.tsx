@@ -21,10 +21,11 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
 };
 
 // Mapa de iconos específico para service types
-const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening'> = {
+const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance'> = {
   'Limpieza': 'custom-cleaning',
   'Planchado': 'custom-ironing',
   'Jardinero': 'custom-gardening',
+  'Mantenimiento': 'custom-maintenance',
 };
 
 // Nombres de categorías en español
@@ -233,6 +234,16 @@ const ClientCategoryDetails = () => {
                           <img 
                             src="/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png"
                             alt="Jardinería"
+                            className={cn(
+                              "object-contain",
+                              isMobile ? "w-12 h-12" : "w-16 h-16"
+                            )}
+                          />
+                        )}
+                        {serviceType.name === 'Mantenimiento' && (
+                          <img 
+                            src="/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png"
+                            alt="Mantenimiento"
                             className={cn(
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
