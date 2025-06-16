@@ -35,7 +35,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
         isCenteredLayout 
           ? "h-full flex flex-col justify-center items-center" 
           : "min-h-screen overflow-y-auto flex flex-col justify-center items-center",
-        isMobile ? (isCenteredLayout ? "p-0" : "p-4 pb-20") : "p-6"
+        // Eliminar padding en móvil para layout centrado
+        isMobile && isCenteredLayout ? "p-0" : (isMobile ? "p-4 pb-20" : "p-6")
       )}>
         <div className={cn(
           "max-w-7xl w-full animate-fade-in",
@@ -43,7 +44,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            isMobile && isCenteredLayout ? "mb-4" : (isMobile ? "mb-6" : "mb-6")
+            // Ajustar margen inferior para layout centrado en móvil
+            isMobile && isCenteredLayout ? "mb-2" : (isMobile ? "mb-6" : "mb-6")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
