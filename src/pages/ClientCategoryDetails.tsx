@@ -21,6 +21,11 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
   'other': 'custom-other',
 };
 
+// Mapa de iconos específico para service types
+const serviceTypeIconMap: Record<string, 'custom-cleaning'> = {
+  'Limpieza': 'custom-cleaning',
+};
+
 // Nombres de categorías en español
 const categoryLabels: Record<string, string> = {
   'classes': 'Clases',
@@ -186,6 +191,9 @@ const ClientCategoryDetails = () => {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
             {serviceTypes.map((serviceType) => {
+              // Check if this service type has a custom icon
+              const hasCustomIcon = serviceTypeIconMap[serviceType.name];
+              
               return (
                 <div key={serviceType.id} onClick={() => handleServiceClick(serviceType.id)}>
                   <Card className={cn(
@@ -193,8 +201,25 @@ const ClientCategoryDetails = () => {
                     "bg-[#F2F2F2] border border-gray-200 shadow-sm hover:shadow-md",
                     "flex flex-col items-center justify-center",
                     "rounded-xl p-4",
-                    "h-32 min-h-32"
+                    hasCustomIcon ? "h-40 min-h-40" : "h-32 min-h-32"
                   )}>
+                    {hasCustomIcon && (
+                      <div className={cn(
+                        "flex items-center justify-center mb-3",
+                        isMobile ? "mb-2" : "mb-3"
+                      )}>
+                        {serviceType.name === 'Limpieza' && (
+                          <img 
+                            src="/lovable-uploads/6047527f-3ae9-4185-ac20-e270f9ca6564.png"
+                            alt="Limpieza"
+                            className={cn(
+                              "object-contain",
+                              isMobile ? "w-12 h-12" : "w-16 h-16"
+                            )}
+                          />
+                        )}
+                      </div>
+                    )}
                     <h3 className={cn(
                       "text-center font-semibold text-[#1A1A1A] leading-tight",
                       "overflow-wrap-anywhere hyphens-auto",
