@@ -26,7 +26,9 @@ const PageContainer: React.FC<PageContainerProps> = ({
   return (
     <div className={cn(
       isMobile ? "pt-0 pb-0" : "pl-56 pt-4",
-      isCenteredLayout ? "h-screen w-full overflow-hidden bg-white" : "min-h-screen w-full bg-white",
+      isCenteredLayout 
+        ? (isMobile ? "h-screen w-full overflow-hidden bg-white" : "h-screen w-full overflow-hidden bg-white")
+        : "min-h-screen w-full bg-white",
       className
     )}>
       {/* Container for all content */}
@@ -35,8 +37,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
         isCenteredLayout 
           ? "h-full flex flex-col justify-center items-center" 
           : "min-h-screen overflow-y-auto flex flex-col justify-center items-center",
-        // Eliminar padding en móvil para layout centrado
-        isMobile && isCenteredLayout ? "p-0" : (isMobile ? "p-4 pb-20" : "p-6")
+        // Eliminar todo padding en móvil para layout centrado
+        isMobile && isCenteredLayout ? "p-0 m-0" : (isMobile ? "p-4 pb-20" : "p-6")
       )}>
         <div className={cn(
           "max-w-7xl w-full animate-fade-in",
@@ -44,8 +46,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            // Ajustar margen inferior para layout centrado en móvil
-            isMobile && isCenteredLayout ? "mb-2" : (isMobile ? "mb-6" : "mb-6")
+            // Eliminar margen inferior en layout centrado móvil
+            isMobile && isCenteredLayout ? "mb-0" : (isMobile ? "mb-6" : "mb-6")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">

@@ -13,7 +13,6 @@ import { Mail, Lock, LogIn, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from "@/hooks/use-toast";
 
 // Validation schema
 const loginSchema = z.object({
@@ -54,6 +53,7 @@ const Login = () => {
     if (data && !error) {
       // The signIn function already handles role-based navigation
       // No need to specify navigation here as it's handled in useSupabaseAuth
+      // Removed toast notification
     }
     setIsLoading(false);
   };
@@ -75,25 +75,12 @@ const Login = () => {
       if (error) {
         console.error('Error al iniciar sesión con Google:', error);
         setLoginError(error.message);
-        toast({
-          title: "Error",
-          description: 'Error al iniciar sesión con Google: ' + error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Redirigiendo",
-          description: "Redirigiendo a Google para autenticación...",
-        });
+        // Removed toast notification for Google errors
       }
     } catch (error: any) {
       console.error('Error inesperado:', error);
       setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
-      toast({
-        title: "Error",
-        description: "Error inesperado durante el inicio de sesión",
-        variant: "destructive"
-      });
+      // Removed toast notification for unexpected errors
     } finally {
       setIsLoading(false);
     }
