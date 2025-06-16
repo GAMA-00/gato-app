@@ -1,18 +1,13 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import BackButton from '@/components/ui/back-button';
-import { 
-  ArrowLeft, Book, Home, Scissors, Globe, Dumbbell, LucideIcon, Car,
-  Music, Paintbrush, ChefHat, Laptop, Shirt, User, Baby, Wrench, Heart, Flower, 
-  GraduationCap, Bike, Waves, Sparkles, Palette, Languages, Guitar, PersonStanding,
-  Hand, Eclipse, Sprout, HeartPulse, Shapes, Camera, ShowerHead, HeartHandshake, PawPrint, BicepsFlexed, HandHeart
-} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
+import { Book, Home, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -22,69 +17,8 @@ const iconMap: Record<string, LucideIcon> = {
   'personal-care': Scissors,
   'sports': Dumbbell,
   'home': Home,
-  'pets': PawPrint,  // Updated to PawPrint
+  'pets': PawPrint,
   'other': Globe,
-};
-
-// Mapa de iconos específico para tipos de servicio especiales
-const serviceIconMap: Record<string, LucideIcon> = {
-  // Hogar
-  'Lavacar': Car,
-  'Limpieza': Sparkles,
-  'Plomería': Wrench,
-  'Electricista': Wrench,
-  'Mantenimiento': Wrench,
-  'Jardinería': Sprout,  // Changed to Sprout as requested
-  'Jardinero': Sprout,   // Added Jardinero with Sprout icon
-  'Planchado': Shirt,    // Updated to Shirt
-  
-  // Clases
-  'Música': Music,
-  'Arte': Paintbrush,
-  'Cocina': ChefHat,
-  'Computación': Laptop,
-  'Idiomas': Languages,  // Updated to Languages
-  'Pintura': Palette,    // Added Pintura with Palette icon
-  'Instrumentos': Guitar, // Added Instrumentos with Guitar icon
-  'Tutorías Primaria': GraduationCap,  // Updated name
-  'Tutorías Secundaria': GraduationCap,  // Updated name
-  'Tutorias primaria': GraduationCap,  // Keep for backward compatibility
-  'Tutorias secundaria': GraduationCap,  // Keep for backward compatibility
-  
-  // Cuidado Personal
-  'Peluquería': Scissors,
-  'Manicure': Hand,      // Updated to Hand
-  'Pedicure': Sparkles,
-  'Maquillaje': User,
-  'Masaje': PersonStanding, // Updated to PersonStanding
-  'Fisioterapia': PersonStanding, // Added Fisioterapia
-  'Manicurista': Hand,   // Added Manicurista
-  'Masajista': PersonStanding, // Added Masajista
-  'Depilación': Scissors,  // Changed from ShowerHead to Scissors as requested
-  
-  // Deportes
-  'Natación': Waves,
-  'Ciclismo': Bike,
-  'Entrenamiento': Dumbbell,
-  'Pilates': BicepsFlexed,  // Added Pilates with BicepsFlexed icon
-  'Yoga': BicepsFlexed,     // Added Yoga with BicepsFlexed icon
-  'Mantenimiento bicicletas': Bike, // Added Mantenimiento bicicletas
-  'Tenis': Eclipse,      // Added Tenis
-  
-  // Mascotas
-  'Paseo': PawPrint,  // Updated to PawPrint
-  'Veterinario': PawPrint,  // Updated to PawPrint
-  'Peluquería canina': Scissors,
-  
-  // Otros servicios
-  'Cuidado infantil': Baby,
-  'Costura': Shirt,
-  'Chef privado': ChefHat, // Added Chef privado
-  'Cuidado Adulto mayor': HandHeart, // Changed to HandHeart as requested
-  'Cuidado Adulto Mayor': HandHeart, // Added variation with capital M
-  'Niñera': Shapes,      // Added Niñera
-  'Fotógrafo': Camera,  // Corrected spelling
-  'Fotografo': Camera    // Keep for backward compatibility
 };
 
 // Nombres de categorías en español
@@ -101,138 +35,121 @@ const ClientCategoryDetails = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
-  useEffect(() => {
-    console.log("ClientCategoryDetails rendered with category:", categoryName);
-  }, [categoryName]);
-  
-  // Obtain category information
-  const { data: categoryInfo, isLoading: loadingCategory } = useQuery({
-    queryKey: ['category-info', categoryName],
+
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ['services', categoryName],
     queryFn: async () => {
-      if (!categoryName) return null;
-      
       const { data, error } = await supabase
-        .from('service_categories')
+        .from('services')
         .select('*')
-        .eq('name', categoryName)
-        .single();
+        .eq('category', categoryName);
         
-      if (error) {
-        console.error("Error fetching category:", error);
-        toast.error("Error al cargar la categoría");
-        throw error;
-      }
-      
-      console.log("Category info fetched:", data);
+      if (error) throw error;
       return data;
-    },
-    enabled: !!categoryName
-  });
-  
-  // Get services for this category
-  const { data: services = [], isLoading: loadingServices } = useQuery({
-    queryKey: ['category-services', categoryName, categoryInfo?.id],
-    queryFn: async () => {
-      if (!categoryName || !categoryInfo) return [];
-      
-      const { data, error } = await supabase
-        .from('service_types')
-        .select('*')
-        .eq('category_id', categoryInfo.id)
-        .order('name');
-        
-      if (error) {
-        console.error("Error fetching services:", error);
-        toast.error("Error al cargar los servicios");
-        throw error;
-      }
-      
-      console.log("Services fetched:", data);
-      return data;
-    },
-    enabled: !!categoryName && !!categoryInfo
+    }
   });
 
-  // Handle service selection
-  const handleServiceSelect = (serviceId: string) => {
-    console.log("Service selected:", { serviceId, categoryName });
-    // Navigate directly to results instead of booking flow
+  const handleServiceClick = (serviceId: string) => {
     navigate(`/client/results/${categoryName}/${serviceId}`);
   };
 
-  // Go back to categories page
   const handleBack = () => {
     navigate('/client');
   };
 
-  const isLoading = loadingCategory || loadingServices;
-  
-  // Determinar el icono correcto para esta categoría
-  const CategoryIcon = categoryName ? iconMap[categoryName] || Book : Book;
-  
-  // Determinar la etiqueta en español
-  const displayLabel = categoryName ? categoryLabels[categoryName] || categoryInfo?.label || '' : '';
-
   if (isLoading) {
     return (
       <PageContainer
-        title="Cargando servicios..."
-        className="bg-white"
+        title=""
+        className="pt-0 bg-white"
       >
-        <div className="mb-4">
-          <BackButton onClick={handleBack} />
+        {/* Back button at the top */}
+        <div className="w-full flex justify-center mb-6">
+          <div className="w-full max-w-4xl px-2 md:px-6">
+            <div className="flex justify-start">
+              <Skeleton className="h-10 w-24 rounded-lg" />
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto">
+
+        {/* Category title */}
+        <div className="text-center mb-6">
+          <Skeleton className="h-8 w-32 mx-auto rounded" />
+        </div>
+
+        {/* Services grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-28 md:h-36 rounded-lg" />
+            <Skeleton key={i} className={cn(isMobile ? "h-28" : "h-32 md:h-40", "rounded-xl")} />
           ))}
         </div>
       </PageContainer>
     );
   }
 
+  const categoryLabel = categoryLabels[categoryName || ''] || categoryName;
+  const IconComponent = iconMap[categoryName || ''] || Book;
+
   return (
     <PageContainer
-      title={
-        <div className="flex items-center justify-center space-x-3 w-full">
-          <div className="p-2 rounded-lg bg-luxury-beige/70">
-            <CategoryIcon size={32} strokeWidth={2} className="text-luxury-navy" />
-          </div>
-          <span className="font-semibold text-luxury-navy">{displayLabel}</span>
-        </div>
-      }
-      className="pt-1 bg-white"
+      title=""
+      className="pt-0 bg-white"
     >
-      <div className="mb-4">
-        <BackButton onClick={handleBack} />
+      {/* Back button at the top - centered container */}
+      <div className="w-full flex justify-center mb-6">
+        <div className="w-full max-w-4xl px-2 md:px-6">
+          <div className="flex justify-start">
+            <BackButton onClick={handleBack} />
+          </div>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 px-2 md:px-4 max-w-4xl mx-auto animate-fade-in">
+
+      {/* Category title with icon */}
+      <div className="text-center mb-6">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <IconComponent 
+            size={isMobile ? 24 : 32}
+            strokeWidth={isMobile ? 2 : 1.8}
+            className="text-[#1A1A1A]" 
+          />
+          <h1 className={cn(
+            "font-bold tracking-tight text-app-text",
+            isMobile ? "text-xl" : "text-2xl md:text-3xl"
+          )}>
+            {categoryLabel}
+          </h1>
+        </div>
+      </div>
+
+      {/* Services grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto animate-fade-in">
         {services.map((service) => {
-          // Determinar el icono para este servicio específico
-          const ServiceIcon = serviceIconMap[service.name] || CategoryIcon;
+          const textSizeClass = isMobile ? 'text-sm' : 'text-lg';
           
           return (
-            <Card 
-              key={service.id}
-              className={`flex flex-col items-center p-3 md:p-6 hover:shadow-luxury transition-all cursor-pointer bg-[#F2F2F2] justify-center group ${isMobile ? 'h-28' : 'h-36'}`}
-              onClick={() => handleServiceSelect(service.id)}
-            >
-              <div className="p-2 rounded-full bg-luxury-beige/50 mb-3 group-hover:bg-luxury-beige transition-colors">
-                <ServiceIcon size={isMobile ? 24 : 30} strokeWidth={2} className="text-luxury-navy" />
-              </div>
-              <h3 className="text-center font-medium text-sm md:text-base text-luxury-navy">{service.name}</h3>
-            </Card>
+            <div key={service.id} onClick={() => handleServiceClick(service.id)}>
+              <Card className={cn(
+                "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
+                isMobile ? "p-4 h-28" : "p-8 h-48"
+              )}>
+                <h3 className={cn(
+                  "text-center font-semibold text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
+                  textSizeClass,
+                  isMobile ? "px-1" : "px-2"
+                )}>
+                  {service.name}
+                </h3>
+              </Card>
+            </div>
           );
         })}
+        
+        {services.length === 0 && (
+          <div className="col-span-full text-center py-12">
+            <p className="text-muted-foreground">No hay servicios disponibles en esta categoría.</p>
+          </div>
+        )}
       </div>
-      
-      {services.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-luxury-gray-dark">No hay servicios disponibles en esta categoría.</p>
-        </div>
-      )}
     </PageContainer>
   );
 };
