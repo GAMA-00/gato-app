@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -6,14 +7,14 @@ import BackButton from '@/components/ui/back-button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
+import { Book, Globe, Dumbbell, LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes'> = {
+const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care'> = {
   'classes': 'custom-classes',
-  'personal-care': Scissors,
+  'personal-care': 'custom-personal-care',
   'sports': Dumbbell,
   'home': 'custom-home',
   'pets': 'custom-pets',
@@ -131,6 +132,15 @@ const ClientCategoryDetails = () => {
               <img 
                 src="/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png"
                 alt="Clases"
+                className={cn(
+                  "object-contain",
+                  isMobile ? "w-10 h-10" : "w-12 h-12"
+                )}
+              />
+            ) : iconComponent === 'custom-personal-care' ? (
+              <img 
+                src="/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png"
+                alt="Cuidado Personal"
                 className={cn(
                   "object-contain",
                   isMobile ? "w-10 h-10" : "w-12 h-12"
