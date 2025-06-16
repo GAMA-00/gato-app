@@ -39,8 +39,8 @@ export function useProviderAchievements() {
       const currentLevelInfo = getProviderLevelByJobs(completedJobs);
       const nextLevelInfo = getNextLevel(currentLevelInfo.level);
 
-      // Calculate average rating
-      const ratingsData = appointments?.filter(app => app.provider_ratings?.length > 0) || [];
+      // Calculate average rating - filter appointments that have ratings
+      const ratingsData = appointments?.filter(app => app.provider_ratings && app.provider_ratings.length > 0) || [];
       const averageRating = ratingsData.length > 0
         ? ratingsData.reduce((sum, app) => sum + (app.provider_ratings[0]?.rating || 0), 0) / ratingsData.length
         : 0;
