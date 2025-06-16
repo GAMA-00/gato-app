@@ -36,21 +36,31 @@ const ClientCategoryDetails = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ['services', categoryName],
+  const { data: serviceTypes = [], isLoading } = useQuery({
+    queryKey: ['service-types', categoryName],
     queryFn: async () => {
+      // First get the category ID
+      const { data: categories, error: categoryError } = await supabase
+        .from('service_categories')
+        .select('id')
+        .eq('name', categoryName)
+        .single();
+        
+      if (categoryError) throw categoryError;
+      
+      // Then get service types for this category
       const { data, error } = await supabase
-        .from('services')
+        .from('service_types')
         .select('*')
-        .eq('category', categoryName);
+        .eq('category_id', categories.id);
         
       if (error) throw error;
       return data;
     }
   });
 
-  const handleServiceClick = (serviceId: string) => {
-    navigate(`/client/results/${categoryName}/${serviceId}`);
+  const handleServiceClick = (serviceTypeId: string) => {
+    navigate(`/client/results/${categoryName}/${serviceTypeId}`);
   };
 
   const handleBack = () => {
@@ -123,11 +133,11 @@ const ClientCategoryDetails = () => {
 
       {/* Services grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 px-2 md:px-6 max-w-4xl mx-auto animate-fade-in">
-        {services.map((service) => {
+        {serviceTypes.map((serviceType) => {
           const textSizeClass = isMobile ? 'text-sm' : 'text-lg';
           
           return (
-            <div key={service.id} onClick={() => handleServiceClick(service.id)}>
+            <div key={serviceType.id} onClick={() => handleServiceClick(serviceType.id)}>
               <Card className={cn(
                 "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
                 isMobile ? "p-4 h-28" : "p-8 h-48"
@@ -137,14 +147,14 @@ const ClientCategoryDetails = () => {
                   textSizeClass,
                   isMobile ? "px-1" : "px-2"
                 )}>
-                  {service.name}
+                  {serviceType.name}
                 </h3>
               </Card>
             </div>
           );
         })}
         
-        {services.length === 0 && (
+        {serviceTypes.length === 0 && (
           <div className="col-span-full text-center py-12">
             <p className="text-muted-foreground">No hay servicios disponibles en esta categoría.</p>
           </div>
