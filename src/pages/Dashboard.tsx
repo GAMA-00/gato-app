@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import AppointmentList from '@/components/dashboard/AppointmentList';
@@ -10,12 +11,14 @@ import { startOfToday, startOfTomorrow, isSameDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: appointments = [], isLoading: isLoadingAppointments, error: appointmentsError } = useAppointments();
   const { data: stats, isLoading: isLoadingStats, error: statsError } = useStats();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   
   const today = useMemo(() => startOfToday(), []);
   const tomorrow = useMemo(() => startOfTomorrow(), []);
@@ -163,9 +166,11 @@ const Dashboard = () => {
     if (user?.role === 'provider') {
       return (
         <div className="space-y-6">
-          {/* Custom greeting for providers */}
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-app-text mb-6">
+          {/* Custom greeting for providers with reduced mobile spacing */}
+          <div className={isMobile ? "mb-3" : "mb-6"}>
+            <h1 className={`font-bold tracking-tight text-app-text ${
+              isMobile ? "text-xl mb-3" : "text-2xl md:text-3xl mb-6"
+            }`}>
               Bienvenido {user?.name || 'Proveedor'}
             </h1>
           </div>
@@ -236,12 +241,12 @@ const Dashboard = () => {
     );
   };
 
-  // For providers, use PageContainer without title and subtitle
+  // For providers, use PageContainer without title and subtitle and reduced padding
   if (user?.role === 'provider') {
     return (
       <PageContainer 
         title=""
-        className="pt-0"
+        className={isMobile ? "pt-0" : "pt-0"}
       >
         {renderContent()}
       </PageContainer>
