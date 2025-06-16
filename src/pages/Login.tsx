@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -130,14 +131,11 @@ const Login = () => {
       {/* Main content - centered */}
       <div className="flex-1 flex items-center justify-center px-4 md:px-6 pb-8">
         <div className="w-full max-w-md">
-          {/* Title and subtitle */}
+          {/* Title only - subtitle removed */}
           <div className="text-center mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               {getTitle()}
             </h1>
-            <p className="text-gray-600 text-sm md:text-base">
-              Accede a tu cuenta para gestionar tus servicios
-            </p>
           </div>
 
           {/* Error alert */}
@@ -246,13 +244,14 @@ const Login = () => {
             </form>
           </Form>
           
-          {/* Register link */}
+          {/* Register link with larger button */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">¿No tienes una cuenta? {' '}
-              <Link to={getRegisterLink()} className="text-app-text hover:underline font-medium">
+            <p className="text-sm text-gray-600 mb-3">¿No tienes una cuenta? </p>
+            <Button variant="outline" size="lg" asChild className="w-full h-12 text-base font-medium">
+              <Link to={getRegisterLink()}>
                 Regístrate
               </Link>
-            </p>
+            </Button>
           </div>
         </div>
       </div>
