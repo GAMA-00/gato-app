@@ -22,7 +22,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className={cn(
-      isMobile ? "pt-0 pb-20" : "pl-56 pt-4", // Reduced bottom padding on mobile
+      isMobile ? "pt-0 pb-20" : "pl-56 pt-4",
       "min-h-screen w-full overflow-y-auto bg-white",
       className
     )}>
@@ -43,19 +43,19 @@ const PageContainer: React.FC<PageContainerProps> = ({
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            isMobile ? "mt-4 mb-4" : "mb-6",
+            isMobile ? "mt-1 mb-4" : "mb-6", // Reduced top margin from mt-4 to mt-1
             className?.includes("flex items-center justify-center") && isMobile ? "mb-6" : ""
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
               <h1 className={cn(
                 "font-bold tracking-tight text-app-text text-center",
-                isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1" // Smaller title on mobile
+                isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1"
               )}>{title}</h1>
             </div>
             {subtitle && <div className={cn(
               "text-app-text/70 text-center w-full",
-              isMobile ? "text-base mt-0" : "text-lg mt-1" // Smaller subtitle on mobile, no top margin
+              isMobile ? "text-base mt-0" : "text-lg mt-1"
             )}>{subtitle}</div>}
             {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
           </div>
