@@ -6,16 +6,16 @@ import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Home, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
+import { Book, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon> = {
+const iconMap: Record<string, LucideIcon | 'custom-home'> = {
   'classes': Book,
   'personal-care': Scissors,
   'sports': Dumbbell,
-  'home': Home,
+  'home': 'custom-home',
   'pets': PawPrint,
   'other': Globe,
 };
@@ -98,7 +98,7 @@ const ClientCategoryView = () => {
           if (!category) return null;
           
           // Obtener el icono según el nombre de la categoría
-          const IconComponent = iconMap[category.name] || Book;
+          const iconComponent = iconMap[category.name] || Book;
           
           const textSizeClass = isMobile ? 'text-sm' : 'text-lg'; // Smaller text on mobile
           
@@ -112,11 +112,22 @@ const ClientCategoryView = () => {
                   "flex items-center justify-center",
                   isMobile ? "mb-2" : "mb-4"
                 )}>
-                  <IconComponent 
-                    size={iconSize}
-                    strokeWidth={strokeWidth}
-                    className="text-[#1A1A1A]" 
-                  />
+                  {iconComponent === 'custom-home' ? (
+                    <img 
+                      src="/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png"
+                      alt="Hogar"
+                      className={cn(
+                        "object-contain",
+                        isMobile ? "w-7 h-7" : "w-12 h-12"
+                      )}
+                    />
+                  ) : (
+                    React.createElement(iconComponent as LucideIcon, {
+                      size: iconSize,
+                      strokeWidth: strokeWidth,
+                      className: "text-[#1A1A1A]"
+                    })
+                  )}
                 </div>
                 <h3 className={cn(
                   "text-center font-semibold text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",

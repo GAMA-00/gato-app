@@ -7,16 +7,16 @@ import BackButton from '@/components/ui/back-button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Home, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
+import { Book, Scissors, PawPrint, Globe, Dumbbell, LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon> = {
+const iconMap: Record<string, LucideIcon | 'custom-home'> = {
   'classes': Book,
   'personal-care': Scissors,
   'sports': Dumbbell,
-  'home': Home,
+  'home': 'custom-home',
   'pets': PawPrint,
   'other': Globe,
 };
@@ -97,7 +97,7 @@ const ClientCategoryDetails = () => {
   }
 
   const categoryLabel = categoryLabels[categoryName || ''] || categoryName;
-  const IconComponent = iconMap[categoryName || ''] || Book;
+  const iconComponent = iconMap[categoryName || ''] || Book;
 
   return (
     <div className="min-h-screen w-full bg-white relative">
@@ -110,11 +110,22 @@ const ClientCategoryDetails = () => {
       <div className="pt-20 pb-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <IconComponent 
-              size={isMobile ? 24 : 32}
-              strokeWidth={isMobile ? 2 : 1.8}
-              className="text-[#1A1A1A]" 
-            />
+            {iconComponent === 'custom-home' ? (
+              <img 
+                src="/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png"
+                alt="Hogar"
+                className={cn(
+                  "object-contain",
+                  isMobile ? "w-6 h-6" : "w-8 h-8"
+                )}
+              />
+            ) : (
+              React.createElement(iconComponent as LucideIcon, {
+                size: isMobile ? 24 : 32,
+                strokeWidth: isMobile ? 2 : 1.8,
+                className: "text-[#1A1A1A]"
+              })
+            )}
             <h1 className={cn(
               "font-bold tracking-tight text-app-text",
               isMobile ? "text-xl" : "text-2xl md:text-3xl"
@@ -134,7 +145,7 @@ const ClientCategoryDetails = () => {
                 <div key={serviceType.id} onClick={() => handleServiceClick(serviceType.id)}>
                   <Card className={cn(
                     "relative overflow-hidden cursor-pointer transition-all duration-300 ease-in-out",
-                    "bg-white border border-gray-200 shadow-md hover:shadow-lg",
+                    "bg-[#F2F2F2] border border-gray-200 shadow-sm hover:shadow-md",
                     "flex flex-col items-center justify-center",
                     "rounded-xl p-4",
                     "h-32 min-h-32"
