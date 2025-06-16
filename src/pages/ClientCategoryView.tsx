@@ -10,13 +10,13 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care' | 'custom-sports'> = {
+const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care' | 'custom-sports' | 'custom-other'> = {
   'classes': 'custom-classes',
   'personal-care': 'custom-personal-care',
   'sports': 'custom-sports',
   'home': 'custom-home',
   'pets': 'custom-pets',
-  'other': Globe,
+  'other': 'custom-other',
 };
 
 // Nombres de categorías en español
@@ -78,8 +78,8 @@ const ClientCategoryView = () => {
     );
   }
 
-  // Define optimized icon size and stroke width for mobile
-  const iconSize = isMobile ? 28 : 48; // Smaller icons on mobile
+  // Define optimized icon size and stroke width for mobile - increased by 50%
+  const iconSize = isMobile ? 42 : 72; // Increased from 28 to 42 and 48 to 72
   const strokeWidth = isMobile ? 2 : 1.8;
   
   return (
@@ -117,7 +117,7 @@ const ClientCategoryView = () => {
                       alt="Hogar"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-12 h-12" : "w-16 h-16"
+                        isMobile ? "w-18 h-18" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-pets' ? (
@@ -126,7 +126,7 @@ const ClientCategoryView = () => {
                       alt="Mascotas"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-12 h-12" : "w-16 h-16"
+                        isMobile ? "w-18 h-18" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-classes' ? (
@@ -135,7 +135,7 @@ const ClientCategoryView = () => {
                       alt="Clases"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-12 h-12" : "w-16 h-16"
+                        isMobile ? "w-18 h-18" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-personal-care' ? (
@@ -144,7 +144,7 @@ const ClientCategoryView = () => {
                       alt="Cuidado Personal"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-12 h-12" : "w-16 h-16"
+                        isMobile ? "w-18 h-18" : "w-24 h-24"
                       )}
                     />
                   ) : iconComponent === 'custom-sports' ? (
@@ -153,12 +153,21 @@ const ClientCategoryView = () => {
                       alt="Deportes"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-12 h-12" : "w-16 h-16"
+                        isMobile ? "w-18 h-18" : "w-24 h-24"
+                      )}
+                    />
+                  ) : iconComponent === 'custom-other' ? (
+                    <img 
+                      src="/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png"
+                      alt="Otros"
+                      className={cn(
+                        "object-contain",
+                        isMobile ? "w-18 h-18" : "w-24 h-24"
                       )}
                     />
                   ) : (
                     React.createElement(iconComponent as LucideIcon, {
-                      size: isMobile ? 48 : 64,
+                      size: iconSize,
                       strokeWidth: strokeWidth,
                       className: "text-[#1A1A1A]"
                     })

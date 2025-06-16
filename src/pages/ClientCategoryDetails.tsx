@@ -11,13 +11,13 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care' | 'custom-sports'> = {
+const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care' | 'custom-sports' | 'custom-other'> = {
   'classes': 'custom-classes',
   'personal-care': 'custom-personal-care',
   'sports': 'custom-sports',
   'home': 'custom-home',
   'pets': 'custom-pets',
-  'other': Globe,
+  'other': 'custom-other',
 };
 
 // Nombres de categorías en español
@@ -115,7 +115,7 @@ const ClientCategoryDetails = () => {
                 alt="Hogar"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-10 h-10" : "w-12 h-12"
+                  isMobile ? "w-15 h-15" : "w-18 h-18"
                 )}
               />
             ) : iconComponent === 'custom-pets' ? (
@@ -124,7 +124,7 @@ const ClientCategoryDetails = () => {
                 alt="Mascotas"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-10 h-10" : "w-12 h-12"
+                  isMobile ? "w-15 h-15" : "w-18 h-18"
                 )}
               />
             ) : iconComponent === 'custom-classes' ? (
@@ -133,7 +133,7 @@ const ClientCategoryDetails = () => {
                 alt="Clases"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-10 h-10" : "w-12 h-12"
+                  isMobile ? "w-15 h-15" : "w-18 h-18"
                 )}
               />
             ) : iconComponent === 'custom-personal-care' ? (
@@ -142,7 +142,7 @@ const ClientCategoryDetails = () => {
                 alt="Cuidado Personal"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-10 h-10" : "w-12 h-12"
+                  isMobile ? "w-15 h-15" : "w-18 h-18"
                 )}
               />
             ) : iconComponent === 'custom-sports' ? (
@@ -151,12 +151,21 @@ const ClientCategoryDetails = () => {
                 alt="Deportes"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-10 h-10" : "w-12 h-12"
+                  isMobile ? "w-15 h-15" : "w-18 h-18"
+                )}
+              />
+            ) : iconComponent === 'custom-other' ? (
+              <img 
+                src="/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png"
+                alt="Otros"
+                className={cn(
+                  "object-contain",
+                  isMobile ? "w-15 h-15" : "w-18 h-18"
                 )}
               />
             ) : (
               React.createElement(iconComponent as LucideIcon, {
-                size: isMobile ? 24 : 32,
+                size: isMobile ? 36 : 48,
                 strokeWidth: isMobile ? 2 : 1.8,
                 className: "text-[#1A1A1A]"
               })
