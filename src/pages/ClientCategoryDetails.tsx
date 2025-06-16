@@ -12,12 +12,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon | 'custom-home'> = {
+const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets'> = {
   'classes': Book,
   'personal-care': Scissors,
   'sports': Dumbbell,
   'home': 'custom-home',
-  'pets': PawPrint,
+  'pets': 'custom-pets',
   'other': Globe,
 };
 
@@ -114,6 +114,15 @@ const ClientCategoryDetails = () => {
               <img 
                 src="/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png"
                 alt="Hogar"
+                className={cn(
+                  "object-contain",
+                  isMobile ? "w-10 h-10" : "w-12 h-12"
+                )}
+              />
+            ) : iconComponent === 'custom-pets' ? (
+              <img 
+                src="/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png"
+                alt="Mascotas"
                 className={cn(
                   "object-contain",
                   isMobile ? "w-8 h-8" : "w-10 h-10"
