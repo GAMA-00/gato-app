@@ -40,9 +40,9 @@ export function useProviderAchievements() {
       const nextLevelInfo = getNextLevel(currentLevelInfo.level);
 
       // Calculate average rating - filter appointments that have ratings
-      const ratingsData = appointments?.filter(app => app.provider_ratings && app.provider_ratings.length > 0) || [];
+      const ratingsData = appointments?.filter(app => app.provider_ratings && app.provider_ratings.rating) || [];
       const averageRating = ratingsData.length > 0
-        ? ratingsData.reduce((sum, app) => sum + (app.provider_ratings[0]?.rating || 0), 0) / ratingsData.length
+        ? ratingsData.reduce((sum, app) => sum + (app.provider_ratings?.rating || 0), 0) / ratingsData.length
         : 0;
 
       // Build rating history
@@ -51,7 +51,7 @@ export function useProviderAchievements() {
         clientName: appointment.client_name || 'Cliente',
         appointmentDate: new Date(appointment.start_time),
         servicePrice: appointment.listings?.base_price || 0,
-        rating: appointment.provider_ratings[0]?.rating || 0,
+        rating: appointment.provider_ratings?.rating || 0,
         serviceName: appointment.listings?.title
       }));
 
