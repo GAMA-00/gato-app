@@ -16,12 +16,12 @@ export const buildLocationString = (data: LocationData): string => {
 
   const parts: string[] = [];
   
-  // Add residencia name
+  // Add residencia name (required for consistent format)
   if (data.residenciaName) {
     parts.push(data.residenciaName);
   }
   
-  // Add condominium name
+  // Add condominium name (required for consistent format)
   if (data.condominiumName) {
     parts.push(data.condominiumName);
   }
@@ -29,18 +29,12 @@ export const buildLocationString = (data: LocationData): string => {
   // Add house/apartment number - prioritize apartment, then house_number
   const houseNumber = data.apartment || data.houseNumber;
   if (houseNumber) {
-    // Ensure consistent format with "Casa" prefix if it's just a number
-    if (/^\d+$/.test(houseNumber)) {
-      parts.push(`Casa ${houseNumber}`);
-    } else if (!houseNumber.toLowerCase().includes('casa') && !houseNumber.startsWith('#')) {
-      parts.push(`Casa ${houseNumber}`);
-    } else if (houseNumber.startsWith('#')) {
-      parts.push(houseNumber.replace('#', 'Casa '));
-    } else {
-      parts.push(houseNumber);
-    }
+    // Format house number consistently without "Casa" prefix, just the number
+    const cleanNumber = houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '');
+    parts.push(cleanNumber);
   }
   
+  // Return in the standardized format: Residencia – Condominio – Número
   return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
 };
 
