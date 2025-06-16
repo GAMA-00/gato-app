@@ -43,9 +43,9 @@ const LevelBadge = ({ level, size = 'md', showText = true }: LevelBadgeProps) =>
   const IconComponent = iconMap[levelInfo.icon as keyof typeof iconMap] || Award;
   
   const sizeClasses = {
-    sm: 'h-4 w-4 text-xs px-2 py-1',
-    md: 'h-5 w-5 text-sm px-3 py-1.5', 
-    lg: 'h-6 w-6 text-base px-4 py-2'
+    sm: 'text-xs px-2 py-1 min-h-6',
+    md: 'text-sm px-3 py-1.5 min-h-7', 
+    lg: 'text-base px-4 py-2 min-h-8'
   };
 
   const iconSizes = {
@@ -56,7 +56,7 @@ const LevelBadge = ({ level, size = 'md', showText = true }: LevelBadgeProps) =>
 
   return (
     <Badge 
-      className={`flex items-center gap-1.5 ${sizeClasses[size]} font-semibold border whitespace-nowrap`}
+      className={`flex items-center justify-center gap-1.5 ${sizeClasses[size]} font-semibold border whitespace-nowrap inline-flex`}
       style={{ 
         backgroundColor: levelInfo.color,
         color: 'white',
@@ -64,7 +64,7 @@ const LevelBadge = ({ level, size = 'md', showText = true }: LevelBadgeProps) =>
       }}
     >
       <IconComponent className={iconSizes[size]} />
-      {showText && levelInfo.name}
+      {showText && <span className="leading-none">{levelInfo.name}</span>}
     </Badge>
   );
 };
