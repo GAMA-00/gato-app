@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -11,10 +10,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care'> = {
+const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care' | 'custom-sports'> = {
   'classes': 'custom-classes',
   'personal-care': 'custom-personal-care',
-  'sports': Dumbbell,
+  'sports': 'custom-sports',
   'home': 'custom-home',
   'pets': 'custom-pets',
   'other': Globe,
@@ -143,6 +142,15 @@ const ClientCategoryView = () => {
                     <img 
                       src="/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png"
                       alt="Cuidado Personal"
+                      className={cn(
+                        "object-contain",
+                        isMobile ? "w-12 h-12" : "w-16 h-16"
+                      )}
+                    />
+                  ) : iconComponent === 'custom-sports' ? (
+                    <img 
+                      src="/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png"
+                      alt="Deportes"
                       className={cn(
                         "object-contain",
                         isMobile ? "w-12 h-12" : "w-16 h-16"
