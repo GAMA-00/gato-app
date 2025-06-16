@@ -63,10 +63,6 @@ const Achievements: React.FC = () => {
                     <LevelBadge level={achievements.currentLevel} size="md" />
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <TrendingUp className="h-4 w-4" />
-                      <span>{achievements.totalCompletedJobs} trabajos completados</span>
-                    </div>
                     {achievements.averageRating > 0 && (
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
@@ -79,12 +75,7 @@ const Achievements: React.FC = () => {
               
               <div className="bg-secondary/50 px-4 py-3 rounded-lg w-full md:w-auto md:min-w-[300px]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{achievements.totalCompletedJobs} trabajos</span>
-                  {nextLevelInfo && (
-                    <span className="text-xs text-muted-foreground">
-                      Siguiente: {nextLevelInfo.minJobs} trabajos
-                    </span>
-                  )}
+                  <span className="font-medium">{achievements.totalCompletedJobs} trabajos completados</span>
                 </div>
                 {nextLevelInfo ? (
                   <>
@@ -110,9 +101,6 @@ const Achievements: React.FC = () => {
             {ACHIEVEMENT_LEVELS.map((level) => {
               const isCurrentLevel = level.level === achievements.currentLevel;
               const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
-              const levelProgress = isCurrentLevel 
-                ? ((achievements.totalCompletedJobs - level.minJobs) / (level.maxJobs - level.minJobs)) * 100
-                : 0;
               
               return (
                 <Card 
@@ -132,16 +120,14 @@ const Achievements: React.FC = () => {
                       </div>
                       <h4 className="font-semibold text-sm mb-1">{level.name}</h4>
                       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                        {level.minJobs === 0 ? '0' : level.minJobs}{level.maxJobs !== Infinity ? `-${level.maxJobs}` : '+'} trabajos
+                        +{level.minJobs === 0 ? '0' : level.minJobs} trabajos
                       </p>
                       
-                      <Progress 
-                        value={isAchieved ? 100 : isCurrentLevel ? levelProgress : 0} 
-                        className="h-2 mb-2" 
-                      />
-                      
                       {isCurrentLevel && (
-                        <LevelBadge level={level.level} size="sm" showText={false} />
+                        <div className="space-y-2">
+                          <LevelBadge level={level.level} size="sm" showText={false} />
+                          <div className="text-xs text-primary font-medium">Actual</div>
+                        </div>
                       )}
                       {isAchieved && !isCurrentLevel && (
                         <div className="text-xs text-green-600 font-medium">Completado</div>
