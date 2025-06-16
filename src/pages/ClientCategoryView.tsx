@@ -118,7 +118,7 @@ const ClientCategoryView = () => {
                       alt="Hogar"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-7 h-7" : "w-12 h-12"
+                        isMobile ? "w-10 h-10" : "w-16 h-16"
                       )}
                     />
                   ) : (

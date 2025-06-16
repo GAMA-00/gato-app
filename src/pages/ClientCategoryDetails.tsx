@@ -116,7 +116,7 @@ const ClientCategoryDetails = () => {
                 alt="Hogar"
                 className={cn(
                   "object-contain",
-                  isMobile ? "w-6 h-6" : "w-8 h-8"
+                  isMobile ? "w-8 h-8" : "w-10 h-10"
                 )}
               />
             ) : (
