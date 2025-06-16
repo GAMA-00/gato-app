@@ -30,7 +30,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
       <div className={cn("p-1 md:p-6 max-w-7xl animate-fade-in")}>
         <div className={cn(
           "flex flex-col md:flex-row md:items-center justify-center gap-1",
-          isMobile ? "mt-8 mb-2" : "mb-6" // Increased top margin on mobile
+          isMobile ? "mt-16 mb-2" : "mb-6" // Further increased top margin on mobile for better spacing
         )}>
           {/* Center title container with full width */}
           <div className="w-full flex justify-center">
