@@ -218,12 +218,19 @@ const BookingSummary = () => {
   };
 
   const getLocationDisplay = () => {
-    return buildLocationString({
-      residenciaName: user.buildingName,
-      condominiumName: user.condominiumName,
-      houseNumber: user.houseNumber,
-      apartment: user.apartment
-    });
+    const locationData = {
+      residenciaName: user.buildingName || '',
+      condominiumName: user.condominiumName || '',
+      houseNumber: user.houseNumber || '',
+      apartment: user.apartment || ''
+    };
+    
+    console.log('Location data for display:', locationData);
+    
+    const result = buildLocationString(locationData);
+    console.log('Built location string:', result);
+    
+    return result;
   };
 
   const formatDate = (date: Date) => {

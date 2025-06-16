@@ -29,12 +29,20 @@ export const buildLocationString = (data: LocationData): string => {
   // Add house/apartment number - prioritize apartment, then house_number
   const houseNumber = data.apartment || data.houseNumber;
   if (houseNumber) {
-    // Format house number consistently without "Casa" prefix, just the number
-    const cleanNumber = houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '');
-    parts.push(cleanNumber);
+    // Format house number consistently, removing any existing prefixes
+    const cleanNumber = houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
+    if (cleanNumber) {
+      parts.push(cleanNumber);
+    }
   }
   
   // Return in the standardized format: Residencia – Condominio – Número
+  // Only return if we have all three parts for complete address
+  if (parts.length >= 2) {
+    return parts.join(' – ');
+  }
+  
+  // Fallback if incomplete data
   return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
 };
 
