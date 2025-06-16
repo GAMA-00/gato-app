@@ -5,6 +5,9 @@ import { Calendar, Home, Briefcase, CalendarClock, Award, Flame, User } from 'lu
 import NavItem from './NavItem';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
+import { useProviderAchievements } from '@/hooks/useProviderAchievements';
+import { useAuth } from '@/contexts/AuthContext';
+import LevelBadge from '@/components/achievements/LevelBadge';
 
 interface NavItemsProps {
   isClientSection: boolean;
@@ -24,14 +27,23 @@ interface NavItemType {
 
 const NavItems = ({ isClientSection, closeMenu }: NavItemsProps) => {
   const location = useLocation();
+  const { user } = useAuth();
   const { count: recurringServicesCount } = useRecurringServices();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
+  const { data: achievements } = useProviderAchievements();
   
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/achievements', icon: Award, label: 'Logros' },
+    { 
+      to: '/achievements', 
+      icon: Award, 
+      label: 'Logros',
+      customBadge: achievements ? (
+        <LevelBadge level={achievements.currentLevel} size="sm" showText={false} />
+      ) : undefined
+    },
     { to: '/profile', icon: User, label: 'Mi Perfil' }
   ];
   

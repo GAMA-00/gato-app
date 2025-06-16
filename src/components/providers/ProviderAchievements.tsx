@@ -1,10 +1,12 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Star, Users, Award } from 'lucide-react';
+import { Star, Users, TrendingUp } from 'lucide-react';
 import { ProviderProfile } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getProviderLevelByJobs } from '@/lib/achievementTypes';
+import LevelBadge from '@/components/achievements/LevelBadge';
 
 interface ProviderAchievementsProps {
   provider: ProviderProfile;
@@ -12,50 +14,35 @@ interface ProviderAchievementsProps {
 }
 
 const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderAchievementsProps) => {
-  // Fetch REAL recurring clients count for this provider
-  const { data: realRecurringClientsCount = recurringClientsCount } = useQuery({
-    queryKey: ['recurring-clients-real', provider.id],
+  // Fetch completed jobs count for this provider
+  const { data: completedJobsCount = 0 } = useQuery({
+    queryKey: ['completed-jobs', provider.id],
     queryFn: async () => {
-      if (!provider.id) return recurringClientsCount;
+      if (!provider.id) return 0;
       
-      console.log('Fetching REAL recurring clients count for provider:', provider.id);
+      console.log('Fetching completed jobs count for provider:', provider.id);
       
       const { data, error } = await supabase
-        .from('recurring_rules')
-        .select('client_id')
+        .from('appointments')
+        .select('id')
         .eq('provider_id', provider.id)
-        .eq('is_active', true)
-        .in('recurrence_type', ['weekly', 'biweekly', 'monthly']);
+        .in('status', ['confirmed', 'completed']);
         
       if (error) {
-        console.error('Error fetching recurring clients count:', error);
-        return recurringClientsCount;
+        console.error('Error fetching completed jobs count:', error);
+        return 0;
       }
       
-      // Count unique clients
-      const uniqueClients = new Set(data.map(rule => rule.client_id));
-      const count = uniqueClients.size;
-      
-      console.log('Real recurring clients count:', count);
+      const count = data?.length || 0;
+      console.log('Completed jobs count:', count);
       
       return count;
     },
     enabled: !!provider.id
   });
 
-  // Calculate provider level based on account creation date (time on platform)
-  const getProviderLevel = (joinDate: Date) => {
-    const now = new Date();
-    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-    
-    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
-    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
-    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
-    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
-    return { level: 5, name: 'Maestro' };
-  };
-
-  const providerLevel = getProviderLevel(provider.joinDate);
+  // Get provider level based on completed jobs
+  const providerLevel = getProviderLevelByJobs(completedJobsCount);
   
   // Use actual rating or default to 5.0 for new providers
   const displayRating = provider.rating && provider.rating > 0 ? provider.rating : 5.0;
@@ -63,8 +50,9 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
   return (
     <Card className="bg-white border border-stone-200 shadow-sm">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-medium text-stone-800">
+        <CardTitle className="text-lg font-medium text-stone-800 flex items-center justify-between">
           Méritos
+          <LevelBadge level={providerLevel.level} size="sm" />
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -82,29 +70,29 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
             </div>
           </div>
 
-          {/* Clientes Recurrentes - Using REAL count */}
+          {/* Trabajos Completados */}
           <div className="flex flex-col items-center text-center flex-1">
-            <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-3">
-              <Users className="h-5 w-5 text-amber-600" />
+            <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center mb-3">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="text-xs font-medium text-stone-600 mb-1">
+              Trabajos completados
+            </div>
+            <div className="text-lg font-semibold text-stone-800">
+              {completedJobsCount}
+            </div>
+          </div>
+
+          {/* Clientes Recurrentes */}
+          <div className="flex flex-col items-center text-center flex-1">
+            <div className="w-12 h-12 rounded-full bg-green-50 border border-green-200 flex items-center justify-center mb-3">
+              <Users className="h-5 w-5 text-green-600" />
             </div>
             <div className="text-xs font-medium text-stone-600 mb-1">
               Clientes recurrentes
             </div>
             <div className="text-lg font-semibold text-stone-800">
-              {realRecurringClientsCount}
-            </div>
-          </div>
-
-          {/* Nivel del Proveedor (basado en antigüedad en la plataforma) */}
-          <div className="flex flex-col items-center text-center flex-1">
-            <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-3">
-              <Award className="h-5 w-5 text-amber-600" />
-            </div>
-            <div className="text-xs font-medium text-stone-600 mb-1">
-              Nivel del proveedor
-            </div>
-            <div className="text-lg font-semibold text-stone-800">
-              {providerLevel.name}
+              {recurringClientsCount}
             </div>
           </div>
         </div>
