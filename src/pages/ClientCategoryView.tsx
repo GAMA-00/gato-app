@@ -10,8 +10,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 // Mapa de iconos específico para cada categoría
-const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets'> = {
-  'classes': Book,
+const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes'> = {
+  'classes': 'custom-classes',
   'personal-care': Scissors,
   'sports': Dumbbell,
   'home': 'custom-home',
@@ -117,7 +117,7 @@ const ClientCategoryView = () => {
                       alt="Hogar"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-12 h-12" : "w-20 h-20"
+                        isMobile ? "w-12 h-12" : "w-16 h-16"
                       )}
                     />
                   ) : iconComponent === 'custom-pets' ? (
@@ -126,12 +126,21 @@ const ClientCategoryView = () => {
                       alt="Mascotas"
                       className={cn(
                         "object-contain",
-                        isMobile ? "w-10 h-10" : "w-16 h-16"
+                        isMobile ? "w-12 h-12" : "w-16 h-16"
+                      )}
+                    />
+                  ) : iconComponent === 'custom-classes' ? (
+                    <img 
+                      src="/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png"
+                      alt="Clases"
+                      className={cn(
+                        "object-contain",
+                        isMobile ? "w-12 h-12" : "w-16 h-16"
                       )}
                     />
                   ) : (
                     React.createElement(iconComponent as LucideIcon, {
-                      size: iconSize,
+                      size: isMobile ? 48 : 64,
                       strokeWidth: strokeWidth,
                       className: "text-[#1A1A1A]"
                     })
