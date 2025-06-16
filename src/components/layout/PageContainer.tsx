@@ -23,16 +23,16 @@ const PageContainer: React.FC<PageContainerProps> = ({
   return (
     <div className={cn(
       isMobile ? "pt-0 pb-0" : "pl-56 pt-4",
-      "min-h-screen w-full overflow-hidden bg-white",
+      "h-screen w-full overflow-hidden bg-white",
       className
     )}>
       {/* Centered container for all content */}
       <div className={cn(
-        "w-full",
+        "w-full h-full",
         // Check if className contains flex items-center justify-center for special centering
         className?.includes("flex items-center justify-center") 
-          ? "min-h-screen flex flex-col justify-center items-center" 
-          : "min-h-screen flex justify-center items-center",
+          ? "flex flex-col justify-center items-center" 
+          : "flex flex-col justify-center items-center",
         isMobile ? "p-4" : "p-6"
       )}>
         <div className={cn(
