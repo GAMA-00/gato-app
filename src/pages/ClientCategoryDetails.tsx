@@ -21,9 +21,10 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
 };
 
 // Mapa de iconos específico para service types
-const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing'> = {
+const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening'> = {
   'Limpieza': 'custom-cleaning',
   'Planchado': 'custom-ironing',
+  'Jardinero': 'custom-gardening',
 };
 
 // Nombres de categorías en español
@@ -228,6 +229,16 @@ const ClientCategoryDetails = () => {
                             )}
                           />
                         )}
+                        {serviceType.name === 'Jardinero' && (
+                          <img 
+                            src="/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png"
+                            alt="Jardinería"
+                            className={cn(
+                              "object-contain",
+                              isMobile ? "w-12 h-12" : "w-16 h-16"
+                            )}
+                          />
+                        )}
                       </div>
                     )}
                     <h3 className={cn(
@@ -235,7 +246,7 @@ const ClientCategoryDetails = () => {
                       "overflow-wrap-anywhere hyphens-auto",
                       isMobile ? "text-sm px-2" : "text-base px-3"
                     )}>
-                      {serviceType.name}
+                      {serviceType.name === 'Jardinero' ? 'Jardinería' : serviceType.name}
                     </h3>
                   </Card>
                 </div>
