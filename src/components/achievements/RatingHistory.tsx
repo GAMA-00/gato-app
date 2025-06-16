@@ -108,7 +108,7 @@ const RatingHistoryComponent = ({ ratingHistory, isLoading }: RatingHistoryProps
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  <span>₡{rating.servicePrice.toLocaleString()}</span>
+                  <span>${rating.servicePrice.toLocaleString()}</span>
                 </div>
               </div>
               

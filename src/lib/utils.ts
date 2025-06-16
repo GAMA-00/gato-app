@@ -46,3 +46,23 @@ export function formatTo24Hour(time12: string): string {
   
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
+
+/**
+ * Formats a price value to USD currency format
+ * @param amount - The amount to format
+ * @param decimals - Number of decimal places (default: 2)
+ */
+export function formatCurrency(amount: number, decimals: number = 2): string {
+  return `$${amount.toFixed(decimals)}`;
+}
+
+/**
+ * Formats a price value with localized number formatting in USD
+ * @param amount - The amount to format
+ */
+export function formatCurrencyLocalized(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+}
