@@ -5,6 +5,7 @@ import { Star, User, Calendar, DollarSign } from 'lucide-react';
 import { RatingHistory } from '@/lib/achievementTypes';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/utils';
 
 interface RatingHistoryProps {
   ratingHistory: RatingHistory[];
@@ -108,7 +109,7 @@ const RatingHistoryComponent = ({ ratingHistory, isLoading }: RatingHistoryProps
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  <span>${rating.servicePrice.toLocaleString()}</span>
+                  <span>${formatCurrency(rating.servicePrice)}</span>
                 </div>
               </div>
               

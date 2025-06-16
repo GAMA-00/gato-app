@@ -3,6 +3,7 @@ import React from 'react';
 import { Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 
 interface Comment {
   id: string;
@@ -11,6 +12,7 @@ interface Comment {
   date: Date;
   rating: number;
   comment: string;
+  servicePrice?: number;
 }
 
 interface RatingSectionProps {
@@ -55,6 +57,9 @@ const RatingSection: React.FC<RatingSectionProps> = ({ comments }) => {
                 <div>
                   <h4 className="font-medium">{comment.clientName}</h4>
                   <p className="text-xs text-muted-foreground">{comment.serviceName}</p>
+                  {comment.servicePrice && (
+                    <p className="text-xs text-muted-foreground">${formatCurrency(comment.servicePrice)}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   {renderStars(comment.rating)}

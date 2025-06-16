@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Clock, Calendar } from 'lucide-react';
 import { ServiceVariant } from '@/components/client/service/types';
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/utils';
 
 interface BookingSummaryProps {
   selectedVariants: ServiceVariant[];
@@ -30,7 +31,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
           <div key={variant.id || index} className="mb-5">
             <div className="flex justify-between items-center mb-1">
               <h3 className="font-medium">{variant.name}</h3>
-              <span className="font-semibold">${Number(variant.price).toFixed(2)}</span>
+              <span className="font-semibold">${formatCurrency(Number(variant.price))}</span>
             </div>
             <div className="flex items-center text-muted-foreground">
               <Clock size={16} className="mr-1" />
@@ -43,7 +44,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
         
         <div className="flex justify-between items-center mb-1 font-bold">
           <span className="text-lg">Total</span>
-          <span className="text-lg">${totalPrice.toFixed(2)}</span>
+          <span className="text-lg">${formatCurrency(totalPrice)}</span>
         </div>
         <div className="flex items-center text-muted-foreground">
           <Clock size={16} className="mr-1" />

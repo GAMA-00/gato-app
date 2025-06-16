@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -215,10 +214,9 @@ const BookingSummary = () => {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CR', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'CRC',
-      minimumFractionDigits: 0,
+      currency: 'USD',
     }).format(price);
   };
 

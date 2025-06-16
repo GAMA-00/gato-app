@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, Plus } from 'lucide-react';
 import { ServiceVariant } from '@/components/client/service/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface ServiceVariantsSelectorProps {
   variants: ServiceVariant[];
@@ -51,7 +52,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                   <Clock className="h-4 w-4 mr-1" />
                   <span>{variant.duration}h</span>
                   <span className="mx-2">•</span>
-                  <span>${Number(variant.price).toFixed(2)}</span>
+                  <span>${formatCurrency(Number(variant.price))}</span>
                 </div>
               </div>
               
