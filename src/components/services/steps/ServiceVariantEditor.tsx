@@ -123,15 +123,19 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                     name={`serviceVariants.${index}.price`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Precio ($)</FormLabel>
+                        <FormLabel className="text-xs">Precio</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            min="1" 
-                            placeholder="Precio" 
-                            value={variant.price}
-                            onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
-                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input 
+                              type="number" 
+                              min="1" 
+                              placeholder="Precio" 
+                              value={variant.price}
+                              onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
+                              className="pl-7"
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

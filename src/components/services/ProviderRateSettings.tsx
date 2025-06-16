@@ -41,7 +41,7 @@ const ProviderRateSettings: React.FC<ProviderRateSettingsProps> = ({
         <div className="flex items-end gap-4">
           <div className="flex-1">
             <label htmlFor="base-rate" className="block text-sm font-medium mb-2">
-              Tu tarifa por hora ($)
+              Tu tarifa por hora
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
