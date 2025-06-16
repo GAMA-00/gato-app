@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageContainer from '@/components/layout/PageContainer';
+import { buildLocationString } from '@/utils/locationUtils';
 
 interface BookingData {
   providerId: string;
@@ -58,7 +59,6 @@ const BookingSummary = () => {
     return (
       <PageContainer 
         title="Error"
-        subtitle="No se encontraron datos de reserva"
       >
         <Alert>
           <AlertDescription>
@@ -85,7 +85,6 @@ const BookingSummary = () => {
     return (
       <PageContainer 
         title="Error"
-        subtitle="Datos incompletos"
       >
         <Alert>
           <AlertDescription>
@@ -105,7 +104,6 @@ const BookingSummary = () => {
     return (
       <PageContainer 
         title="Cargando..."
-        subtitle="Preparando tu resumen de reserva"
       >
         <div className="space-y-4">
           <Skeleton className="h-8 w-64" />
@@ -140,7 +138,6 @@ const BookingSummary = () => {
     return (
       <PageContainer 
         title="Error"
-        subtitle="Fecha no válida"
       >
         <Alert>
           <AlertDescription>
@@ -221,28 +218,12 @@ const BookingSummary = () => {
   };
 
   const getLocationDisplay = () => {
-    const locationParts = [];
-    
-    // Add residencia name if available
-    if (user.buildingName) {
-      locationParts.push(user.buildingName);
-    } else if (user.residenciaId) {
-      locationParts.push('Residencia registrada');
-    }
-    
-    // Add condominium name if available
-    if (user.condominiumName) {
-      locationParts.push(user.condominiumName);
-    }
-    
-    // Add house number with # prefix for consistency
-    if (user.houseNumber) {
-      locationParts.push(`#${user.houseNumber}`);
-    } else if (user.apartment) {
-      locationParts.push(`#${user.apartment}`);
-    }
-    
-    return locationParts.length > 0 ? locationParts.join(' – ') : 'Ubicación no especificada';
+    return buildLocationString({
+      residenciaName: user.buildingName,
+      condominiumName: user.condominiumName,
+      houseNumber: user.houseNumber,
+      apartment: user.apartment
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -267,7 +248,6 @@ const BookingSummary = () => {
   return (
     <PageContainer 
       title="Resumen de Reserva"
-      subtitle="Revisa los detalles antes de confirmar"
       action={
         <Button 
           variant="ghost" 
