@@ -218,17 +218,23 @@ const BookingSummary = () => {
   };
 
   const getLocationDisplay = () => {
+    console.log('User object in getLocationDisplay:', user);
+    console.log('Building name:', user?.buildingName);
+    console.log('Condominium name:', user?.condominiumName);
+    console.log('House number:', user?.houseNumber);
+    console.log('Apartment:', user?.apartment);
+    
     const locationData = {
-      residenciaName: user.buildingName || '',
-      condominiumName: user.condominiumName || '',
-      houseNumber: user.houseNumber || '',
-      apartment: user.apartment || ''
+      residenciaName: user?.buildingName || user?.building_name || '',
+      condominiumName: user?.condominiumName || user?.condominium_name || '',
+      houseNumber: user?.houseNumber || user?.house_number || '',
+      apartment: user?.apartment || ''
     };
     
-    console.log('Location data for display:', locationData);
+    console.log('Location data prepared:', locationData);
     
     const result = buildLocationString(locationData);
-    console.log('Built location string:', result);
+    console.log('Final location string:', result);
     
     return result;
   };

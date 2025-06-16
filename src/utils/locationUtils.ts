@@ -14,21 +14,23 @@ export const buildLocationString = (data: LocationData): string => {
     return data.clientAddress || 'Ubicación externa';
   }
 
+  console.log('Building location with data:', data);
+
   const parts: string[] = [];
   
-  // Add residencia name (required for consistent format)
-  if (data.residenciaName) {
-    parts.push(data.residenciaName);
+  // Add residencia name
+  if (data.residenciaName && data.residenciaName.trim()) {
+    parts.push(data.residenciaName.trim());
   }
   
-  // Add condominium name (required for consistent format)
-  if (data.condominiumName) {
-    parts.push(data.condominiumName);
+  // Add condominium name
+  if (data.condominiumName && data.condominiumName.trim()) {
+    parts.push(data.condominiumName.trim());
   }
   
   // Add house/apartment number - prioritize apartment, then house_number
   const houseNumber = data.apartment || data.houseNumber;
-  if (houseNumber) {
+  if (houseNumber && houseNumber.toString().trim()) {
     // Format house number consistently, removing any existing prefixes
     const cleanNumber = houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
     if (cleanNumber) {
@@ -36,14 +38,19 @@ export const buildLocationString = (data: LocationData): string => {
     }
   }
   
+  console.log('Location parts:', parts);
+  
   // Return in the standardized format: Residencia – Condominio – Número
-  // Only return if we have all three parts for complete address
-  if (parts.length >= 2) {
+  if (parts.length >= 3) {
     return parts.join(' – ');
+  } else if (parts.length >= 2) {
+    return parts.join(' – ');
+  } else if (parts.length === 1) {
+    return parts[0];
   }
   
-  // Fallback if incomplete data
-  return parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+  // Fallback if no data
+  return 'Ubicación no especificada';
 };
 
 export const logLocationDebug = (appointmentId: string, data: LocationData, finalLocation: string): void => {

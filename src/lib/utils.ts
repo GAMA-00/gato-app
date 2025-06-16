@@ -10,18 +10,22 @@ export function cn(...inputs: ClassValue[]) {
  * @param minutes - Duration in minutes
  */
 export function formatDuration(minutes: number): string {
+  if (!minutes || minutes === 0) {
+    return '0min';
+  }
+  
   if (minutes < 60) {
     return `${minutes}min`;
   }
   
   const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
+  const remainingMinutes = minutes % 60;
   
-  if (mins === 0) {
+  if (remainingMinutes === 0) {
     return `${hours}h`;
   }
   
-  return `${hours}h ${mins}min`;
+  return `${hours}h ${remainingMinutes}min`;
 }
 
 /**
