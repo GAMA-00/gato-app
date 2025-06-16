@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -225,9 +226,9 @@ const BookingSummary = () => {
     console.log('Apartment:', user?.apartment);
     
     const locationData = {
-      residenciaName: user?.buildingName || user?.building_name || '',
-      condominiumName: user?.condominiumName || user?.condominium_name || '',
-      houseNumber: user?.houseNumber || user?.house_number || '',
+      residenciaName: user?.buildingName || '',
+      condominiumName: user?.condominiumName || '',
+      houseNumber: user?.houseNumber || '',
       apartment: user?.apartment || ''
     };
     
