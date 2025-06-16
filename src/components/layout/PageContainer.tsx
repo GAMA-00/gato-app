@@ -26,31 +26,38 @@ const PageContainer: React.FC<PageContainerProps> = ({
       "min-h-screen w-full overflow-y-auto bg-white",
       className
     )}>
-      {/* Optimized padding and margins for mobile */}
-      <div className={cn("p-1 md:p-6 max-w-7xl animate-fade-in")}>
-        <div className={cn(
-          "flex flex-col md:flex-row md:items-center justify-center gap-1",
-          isMobile ? "mt-16 mb-2" : "mb-6" // Further increased top margin on mobile for better spacing
-        )}>
-          {/* Center title container with full width */}
-          <div className="w-full flex justify-center">
-            <h1 className={cn(
-              "font-bold tracking-tight text-app-text text-center",
-              isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1" // Smaller title on mobile
-            )}>{title}</h1>
+      {/* Centered container for all content */}
+      <div className={cn(
+        "w-full flex justify-center",
+        isMobile ? "p-1" : "p-6"
+      )}>
+        <div className={cn("max-w-7xl w-full animate-fade-in")}>
+          <div className={cn(
+            "flex flex-col md:flex-row md:items-center justify-center gap-1",
+            isMobile ? "mt-16 mb-2" : "mb-6" // Further increased top margin on mobile for better spacing
+          )}>
+            {/* Center title container with full width */}
+            <div className="w-full flex justify-center">
+              <h1 className={cn(
+                "font-bold tracking-tight text-app-text text-center",
+                isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1" // Smaller title on mobile
+              )}>{title}</h1>
+            </div>
+            {subtitle && <div className={cn(
+              "text-app-text/70 text-center w-full",
+              isMobile ? "text-base mt-0" : "text-lg mt-1" // Smaller subtitle on mobile, no top margin
+            )}>{subtitle}</div>}
+            {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
           </div>
-          {subtitle && <div className={cn(
-            "text-app-text/70 text-center w-full",
-            isMobile ? "text-base mt-0" : "text-lg mt-1" // Smaller subtitle on mobile, no top margin
-          )}>{subtitle}</div>}
-          {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
-        </div>
-        
-        {/* Minimal spacing between title and content on mobile */}
-        {isMobile && <div className="h-2"></div>}
-        
-        <div className="animate-slide-up pb-4">
-          {children}
+          
+          {/* Minimal spacing between title and content on mobile */}
+          {isMobile && <div className="h-2"></div>}
+          
+          <div className="animate-slide-up pb-4 flex justify-center">
+            <div className="w-full">
+              {children}
+            </div>
+          </div>
         </div>
       </div>
     </div>
