@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import AppointmentList from '@/components/dashboard/AppointmentList';
@@ -164,6 +163,13 @@ const Dashboard = () => {
     if (user?.role === 'provider') {
       return (
         <div className="space-y-6">
+          {/* Custom greeting for providers */}
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-app-text mb-6">
+              Bienvenido {user?.name || 'Proveedor'}
+            </h1>
+          </div>
+
           {/* Priority: Today's appointments first */}
           <AppointmentList
             appointments={activeAppointmentsToday}
@@ -230,6 +236,19 @@ const Dashboard = () => {
     );
   };
 
+  // For providers, use PageContainer without title and subtitle
+  if (user?.role === 'provider') {
+    return (
+      <PageContainer 
+        title=""
+        className="pt-0"
+      >
+        {renderContent()}
+      </PageContainer>
+    );
+  }
+
+  // For clients and others, keep the original title and subtitle
   return (
     <PageContainer 
       title="Inicio" 
