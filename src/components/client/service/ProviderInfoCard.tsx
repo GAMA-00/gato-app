@@ -2,12 +2,14 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, Users, Award, MapPin } from 'lucide-react';
+import { Star, Users, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProviderData } from '@/components/client/service/types';
 import { ClientResidencia } from './types';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getProviderLevelByJobs } from '@/lib/achievementTypes';
+import LevelBadge from '@/components/achievements/LevelBadge';
 
 interface ProviderInfoCardProps {
   provider: ProviderData;
@@ -51,22 +53,30 @@ const ProviderInfoCard = ({
     enabled: !!provider?.id
   });
 
-  // Calculate provider level based on account creation date (time on platform)
-  const getProviderLevel = (createdAt?: string) => {
-    if (!createdAt) return { level: 1, name: 'Nuevo' };
-    
-    const joinDate = new Date(createdAt);
-    const now = new Date();
-    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-    
-    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
-    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
-    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
-    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
-    return { level: 5, name: 'Maestro' };
-  };
+  // Fetch completed jobs count for this provider to determine level
+  const { data: completedJobsCount = 0 } = useQuery({
+    queryKey: ['completed-jobs-count', provider?.id],
+    queryFn: async () => {
+      if (!provider?.id) return 0;
+      
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('provider_id', provider.id)
+        .in('status', ['confirmed', 'completed']);
+        
+      if (error) {
+        console.error('Error fetching completed jobs count:', error);
+        return 0;
+      }
+      
+      return data?.length || 0;
+    },
+    enabled: !!provider?.id
+  });
 
-  const providerLevel = getProviderLevel(provider?.created_at);
+  // Get provider level based on completed jobs
+  const providerLevel = getProviderLevelByJobs(completedJobsCount);
   
   // Use actual rating or default to 5.0 for new providers
   const displayRating = provider?.average_rating && provider.average_rating > 0 ? provider.average_rating : 5.0;
@@ -83,7 +93,10 @@ const ProviderInfoCard = ({
           </Avatar>
           
           <div className="ml-4 space-y-3">
-            <h3 className="text-lg font-semibold text-app-text">{provider?.name || 'Proveedor'}</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-app-text">{provider?.name || 'Proveedor'}</h3>
+              <LevelBadge level={providerLevel.level} size="sm" />
+            </div>
             
             {/* Metrics Row */}
             <div className="flex flex-wrap gap-2">
@@ -100,12 +113,6 @@ const ProviderInfoCard = ({
                 <Users className="h-4 w-4 text-amber-600 mr-2" />
                 <span className="font-medium text-amber-700">{realRecurringClientsCount}</span>
                 <span className="text-amber-600 text-sm ml-1">recurrentes</span>
-              </div>
-              
-              {/* Nivel del Proveedor */}
-              <div className="flex items-center bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
-                <Award className="h-4 w-4 text-amber-600 mr-2" />
-                <span className="font-medium text-amber-700">{providerLevel.name}</span>
               </div>
               
               {/* Location Badge - Only show if client has a residence */}

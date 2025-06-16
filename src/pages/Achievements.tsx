@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -59,7 +60,7 @@ const Achievements: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h2 className="text-2xl font-bold">Nivel {currentLevelInfo?.name}</h2>
-                    <LevelBadge level={achievements.currentLevel} size="md" />
+                    <LevelBadge level={achievements.currentLevel} size="lg" />
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     {achievements.averageRating > 0 && (
@@ -96,7 +97,7 @@ const Achievements: React.FC = () => {
         {/* Progresión de Niveles */}
         <div className="mb-8">
           <h3 className="text-lg font-medium mb-4">Progresión de Niveles</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             {ACHIEVEMENT_LEVELS.map((level) => {
               const isCurrentLevel = level.level === achievements.currentLevel;
               const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
@@ -124,7 +125,6 @@ const Achievements: React.FC = () => {
                       
                       {isCurrentLevel && (
                         <div className="space-y-2">
-                          <LevelBadge level={level.level} size="sm" showText={false} />
                           <div className="text-xs text-primary font-medium">Actual</div>
                         </div>
                       )}

@@ -48,16 +48,22 @@ const LevelBadge = ({ level, size = 'md', showText = true }: LevelBadgeProps) =>
     lg: 'h-6 w-6 text-base px-4 py-2'
   };
 
+  const iconSizes = {
+    sm: 'h-3 w-3',
+    md: 'h-4 w-4',
+    lg: 'h-5 w-5'
+  };
+
   return (
     <Badge 
-      className={`flex items-center gap-1.5 ${sizeClasses[size]} font-semibold border`}
+      className={`flex items-center gap-1.5 ${sizeClasses[size]} font-semibold border whitespace-nowrap`}
       style={{ 
         backgroundColor: levelInfo.color,
         color: 'white',
         borderColor: levelInfo.color
       }}
     >
-      <IconComponent className={`${size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : 'h-5 w-5'}`} />
+      <IconComponent className={iconSizes[size]} />
       {showText && levelInfo.name}
     </Badge>
   );

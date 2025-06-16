@@ -51,8 +51,10 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
     <Card className="bg-white border border-stone-200 shadow-sm">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-medium text-stone-800 flex items-center justify-between">
-          Méritos
-          <LevelBadge level={providerLevel.level} size="sm" />
+          <div className="flex items-center gap-3">
+            Méritos
+            <LevelBadge level={providerLevel.level} size="md" />
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
