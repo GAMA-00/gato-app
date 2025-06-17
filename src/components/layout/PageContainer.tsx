@@ -42,17 +42,17 @@ const PageContainer: React.FC<PageContainerProps> = ({
         <div className={cn(
           "max-w-7xl w-full animate-fade-in",
           "flex flex-col items-center justify-center",
-          isCenteredLayout && isMobile ? "h-full" : ""
+          isCenteredLayout && isMobile ? "h-full justify-center" : ""
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            isMobile && isCenteredLayout ? "mb-4" : (isMobile ? "mb-6" : "mb-6")
+            isMobile && isCenteredLayout ? "mb-2" : (isMobile ? "mb-6" : "mb-6")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
               <h1 className={cn(
                 "font-bold tracking-tight text-app-text text-center",
-                isMobile ? "text-xl mb-2" : "text-2xl md:text-3xl mb-1"
+                isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1"
               )}>{title}</h1>
             </div>
             {subtitle && <div className={cn(
@@ -65,7 +65,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
           {/* Content area */}
           <div className={cn(
             "animate-slide-up flex justify-center w-full",
-            isCenteredLayout ? "flex-1 items-center" : "flex-1 items-start"
+            isCenteredLayout ? "flex-1 items-center justify-center" : "flex-1 items-start"
           )}>
             <div className="w-full flex justify-center">
               {children}
