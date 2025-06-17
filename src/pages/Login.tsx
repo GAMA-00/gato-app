@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -30,6 +29,18 @@ const Login = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  console.log('📱 ==> LOGIN PAGE RENDER');
+  console.log('📱 URL actual:', window.location.href);
+  console.log('📱 Target role:', targetRole);
+  console.log('📱 Auth states:', {
+    isLoading,
+    authLoading,
+    isSubmitting,
+    isAuthenticated,
+    userRole: user?.role,
+    userEmail: user?.email
+  });
+  
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -40,34 +51,63 @@ const Login = () => {
 
   // Only redirect if user is actually authenticated with a session
   useEffect(() => {
+    console.log('📱 useEffect de redirección ejecutándose...');
+    console.log('📱 Estados para redirección:', {
+      isLoading,
+      isAuthenticated,
+      userRole: user?.role,
+      userName: user?.name
+    });
+    
     // Wait for auth context to finish loading before making decisions
-    if (isLoading) return;
+    if (isLoading) {
+      console.log('📱 AuthContext aún cargando, esperando...');
+      return;
+    }
     
     if (isAuthenticated && user) {
-      console.log('User authenticated, redirecting...', user);
+      console.log('📱 Usuario autenticado detectado, procesando redirección...');
+      console.log('📱 Datos del usuario para redirección:', {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      });
       
       if (user.role === 'provider') {
+        console.log('📱 Redirigiendo proveedor a /dashboard');
         navigate('/dashboard', { replace: true });
       } else if (user.role === 'client') {
+        console.log('📱 Redirigiendo cliente a /client');
         navigate('/client', { replace: true });
       } else {
+        console.log('📱 Redirigiendo usuario genérico a /profile');
         navigate('/profile', { replace: true });
       }
+    } else {
+      console.log('📱 No hay usuario autenticado, mostrando formulario de login');
     }
   }, [isAuthenticated, user, navigate, isLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
-    console.log('Login attempt started for email:', values.email);
+    console.log('📱 INICIO DE SESIÓN INICIADO');
+    console.log('📱 Email del formulario:', values.email);
+    console.log('📱 Timestamp de inicio:', new Date().toISOString());
+    
     setIsSubmitting(true);
     setLoginError(null);
     
     try {
+      console.log('📱 Llamando a signIn...');
       const { data, error } = await signIn(values.email, values.password);
       
-      console.log('Login response:', { data: !!data, error: error?.message });
+      console.log('📱 Respuesta de signIn:', {
+        tieneData: !!data,
+        errorMessage: error?.message,
+        timestamp: new Date().toISOString()
+      });
       
       if (error) {
-        console.error('Login error:', error);
+        console.error('📱 ERROR en signIn:', error);
         let errorMessage = 'Error durante el inicio de sesión';
         
         // Handle specific Supabase errors
@@ -81,16 +121,20 @@ const Login = () => {
           errorMessage = error.message;
         }
         
+        console.log('📱 Mensaje de error procesado:', errorMessage);
         setLoginError(errorMessage);
         setIsSubmitting(false);
         return;
       }
       
-      // Success is handled by the useSupabaseAuth hook and AuthContext
-      console.log('Login successful, navigation handled by auth hook');
+      console.log('📱 signIn exitoso, la redirección será manejada por useEffect');
       
     } catch (error: any) {
-      console.error('Unexpected login error:', error);
+      console.error('📱 EXCEPCIÓN en onSubmit:', {
+        message: error.message,
+        stack: error.stack,
+        fullError: error
+      });
       setLoginError('Error inesperado durante el inicio de sesión');
       setIsSubmitting(false);
     }
@@ -141,17 +185,19 @@ const Login = () => {
 
   const totalLoading = authLoading || isSubmitting;
 
-  console.log('Login page render state:', {
+  console.log('📱 Estados finales antes de render:', {
     isLoading,
     authLoading,
     isSubmitting,
     isAuthenticated,
     userRole: user?.role,
-    totalLoading
+    totalLoading,
+    mostrarFormulario: !isLoading
   });
 
   // Show loading only for a brief moment while checking auth
   if (isLoading) {
+    console.log('📱 Mostrando pantalla de carga...');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -161,6 +207,8 @@ const Login = () => {
       </div>
     );
   }
+
+  console.log('📱 Renderizando formulario de login...');
 
   // Always show the login form if not authenticated
   return (

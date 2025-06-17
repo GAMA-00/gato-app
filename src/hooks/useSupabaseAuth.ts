@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,40 +10,75 @@ export const useSupabaseAuth = () => {
   const [loading, setLoading] = useState(false);
 
   const signIn = async (email: string, password: string) => {
-    console.log('=== useSupabaseAuth.signIn START ===');
-    console.log('Email:', email);
+    console.log('🔥 ==> useSupabaseAuth.signIn INICIADO');
+    console.log('🔥 Email recibido:', email);
+    console.log('🔥 Password length:', password?.length || 0);
+    console.log('🔥 Supabase client URL:', supabase.supabaseUrl);
+    console.log('🔥 Supabase client key (first 20 chars):', supabase.supabaseKey?.substring(0, 20));
     
     setLoading(true);
+    console.log('🔥 Estado loading establecido a true');
     
     try {
+      // Verificar el estado inicial de la sesión
+      console.log('🔥 Verificando sesión actual antes de limpiar...');
+      const { data: currentSession } = await supabase.auth.getSession();
+      console.log('🔥 Sesión actual:', currentSession?.session ? 'EXISTE' : 'NO EXISTE');
+      
       // Clear any previous session first
-      await supabase.auth.signOut();
+      console.log('🔥 Limpiando sesión anterior...');
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        console.log('🔥 Error al limpiar sesión:', signOutError);
+      } else {
+        console.log('🔥 Sesión limpiada exitosamente');
+      }
       
       // Sign in with new credentials
+      console.log('🔥 Iniciando signInWithPassword...');
+      console.log('🔥 Timestamp antes de signIn:', new Date().toISOString());
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log('Supabase auth response:', { 
-        hasUser: !!data?.user, 
-        hasSession: !!data?.session, 
-        error: error?.message 
+      console.log('🔥 Timestamp después de signIn:', new Date().toISOString());
+      console.log('🔥 Respuesta de Supabase auth:', {
+        tieneData: !!data,
+        tieneUser: !!data?.user,
+        tieneSession: !!data?.session,
+        errorMessage: error?.message,
+        errorCode: error?.status,
+        errorDetails: error
       });
 
       if (error) {
-        console.error('Supabase auth error:', error);
+        console.error('🔥 ERROR EN SUPABASE AUTH:', {
+          message: error.message,
+          status: error.status,
+          statusCode: error.__isAuthError,
+          fullError: error
+        });
         setLoading(false);
         return { data: null, error };
       }
 
       if (!data?.user || !data?.session) {
-        console.error('No user or session in auth response');
+        console.error('🔥 ERROR: No hay user o session en la respuesta');
+        console.log('🔥 Data completa recibida:', data);
         setLoading(false);
         return { data: null, error: { message: 'Error en la respuesta de autenticación' } };
       }
 
-      console.log('Auth successful, fetching user profile...');
+      console.log('🔥 Auth exitoso! Datos del usuario:', {
+        userId: data.user.id,
+        userEmail: data.user.email,
+        sessionAccessToken: data.session.access_token ? 'PRESENTE' : 'AUSENTE',
+        sessionRefreshToken: data.session.refresh_token ? 'PRESENTE' : 'AUSENTE'
+      });
+      
+      console.log('🔥 Obteniendo perfil de usuario desde la tabla users...');
       
       // Fetch user profile with error handling
       const { data: profile, error: profileError } = await supabase
@@ -51,14 +87,20 @@ export const useSupabaseAuth = () => {
         .eq('id', data.user.id)
         .single();
 
-      console.log('Profile fetch result:', { 
-        hasProfile: !!profile, 
-        profileError: profileError?.message,
-        role: profile?.role 
+      console.log('🔥 Resultado de la consulta del perfil:', {
+        tieneProfile: !!profile,
+        profileErrorMessage: profileError?.message,
+        profileErrorCode: profileError?.code,
+        profileErrorDetails: profileError,
+        profileRole: profile?.role,
+        profileData: profile
       });
 
       if (profileError || !profile) {
-        console.error('Error fetching user profile:', profileError);
+        console.error('🔥 ERROR obteniendo perfil de usuario:', {
+          error: profileError,
+          hasProfile: !!profile
+        });
         setLoading(false);
         return { data: null, error: profileError || { message: 'No se encontró el perfil de usuario' } };
       }
@@ -80,20 +122,26 @@ export const useSupabaseAuth = () => {
         condominiumName: profile.condominium_name || '',
       };
 
-      console.log('Updating AuthContext with user data:', userData);
+      console.log('🔥 Objeto de usuario creado:', userData);
+      console.log('🔥 Llamando a login() del AuthContext...');
 
       // Update AuthContext
       login(userData);
 
-      // Navigate based on role - let AuthContext handle this naturally
-      console.log('Login successful, navigation will be handled by Login component');
+      console.log('🔥 AuthContext actualizado exitosamente');
+      console.log('🔥 Login completado exitosamente para usuario:', userData.email, 'con rol:', userData.role);
 
       setLoading(false);
-      console.log('=== useSupabaseAuth.signIn END (SUCCESS) ===');
+      console.log('🔥 Estado loading establecido a false');
+      console.log('🔥 ==> useSupabaseAuth.signIn COMPLETADO EXITOSAMENTE');
       return { data, error: null };
       
     } catch (error: any) {
-      console.error('=== useSupabaseAuth.signIn ERROR ===', error);
+      console.error('🔥 EXCEPCIÓN CAPTURADA EN useSupabaseAuth.signIn:', {
+        message: error.message,
+        stack: error.stack,
+        fullError: error
+      });
       setLoading(false);
       return { data: null, error: { message: error.message || 'Error inesperado durante el inicio de sesión' } };
     }
