@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 export const useSupabaseAuth = () => {
   const navigate = useNavigate();
@@ -13,19 +14,17 @@ export const useSupabaseAuth = () => {
     console.log('🔥 ==> useSupabaseAuth.signIn INICIADO');
     console.log('🔥 Email recibido:', email);
     console.log('🔥 Password length:', password?.length || 0);
-    console.log('🔥 Supabase client URL:', supabase.supabaseUrl);
-    console.log('🔥 Supabase client key (first 20 chars):', supabase.supabaseKey?.substring(0, 20));
+    console.log('🔥 Supabase client URL:', SUPABASE_URL);
+    console.log('🔥 Supabase client key (first 20 chars):', SUPABASE_PUBLISHABLE_KEY?.substring(0, 20));
     
     setLoading(true);
     console.log('🔥 Estado loading establecido a true');
     
     try {
-      // Verificar el estado inicial de la sesión
       console.log('🔥 Verificando sesión actual antes de limpiar...');
       const { data: currentSession } = await supabase.auth.getSession();
       console.log('🔥 Sesión actual:', currentSession?.session ? 'EXISTE' : 'NO EXISTE');
       
-      // Clear any previous session first
       console.log('🔥 Limpiando sesión anterior...');
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) {
@@ -34,7 +33,6 @@ export const useSupabaseAuth = () => {
         console.log('🔥 Sesión limpiada exitosamente');
       }
       
-      // Sign in with new credentials
       console.log('🔥 Iniciando signInWithPassword...');
       console.log('🔥 Timestamp antes de signIn:', new Date().toISOString());
       
@@ -57,7 +55,7 @@ export const useSupabaseAuth = () => {
         console.error('🔥 ERROR EN SUPABASE AUTH:', {
           message: error.message,
           status: error.status,
-          statusCode: error.__isAuthError,
+          name: error.name,
           fullError: error
         });
         setLoading(false);
@@ -80,7 +78,6 @@ export const useSupabaseAuth = () => {
       
       console.log('🔥 Obteniendo perfil de usuario desde la tabla users...');
       
-      // Fetch user profile with error handling
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
@@ -105,7 +102,6 @@ export const useSupabaseAuth = () => {
         return { data: null, error: profileError || { message: 'No se encontró el perfil de usuario' } };
       }
 
-      // Create complete user object
       const userData = {
         id: profile.id,
         name: profile.name || data.user.user_metadata?.name || '',
@@ -125,7 +121,6 @@ export const useSupabaseAuth = () => {
       console.log('🔥 Objeto de usuario creado:', userData);
       console.log('🔥 Llamando a login() del AuthContext...');
 
-      // Update AuthContext
       login(userData);
 
       console.log('🔥 AuthContext actualizado exitosamente');

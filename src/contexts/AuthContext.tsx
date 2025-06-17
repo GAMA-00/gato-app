@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { SUPABASE_URL } from '@/integrations/supabase/client';
 
 // Define the user types with different roles
 export interface User {
@@ -46,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('🚀 ==> AuthContext - INICIALIZANDO');
-    console.log('🚀 Supabase URL:', supabase.supabaseUrl);
+    console.log('🚀 Supabase URL:', SUPABASE_URL);
     console.log('🚀 Timestamp de inicialización:', new Date().toISOString());
     
     let mounted = true;
@@ -57,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('🚀 TIMEOUT DE LOADING ALCANZADO - forzando isLoading a false');
         setIsLoading(false);
       }
-    }, 3000); // Reducido a 3 segundos para debugging
+    }, 3000);
 
     const initializeAuth = async () => {
       try {
@@ -90,7 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(initialSession);
         } else {
           console.log('🚀 No hay sesión inicial, verificando localStorage...');
-          // No session, try localStorage as fallback
           const storedUser = localStorage.getItem('gato_user');
           if (storedUser) {
             try {
@@ -110,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        // Always set loading to false after initial check
         console.log('🚀 Estableciendo isLoading a false después de verificación inicial');
         setIsLoading(false);
         clearTimeout(loadingTimeout);
@@ -124,7 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Set up auth state listener
     console.log('🚀 Configurando listener de cambios de auth...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -152,13 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.removeItem('gato_user');
         }
         
-        // Ensure loading is false after any auth state change
         console.log('🚀 Estableciendo isLoading a false después de cambio de auth');
         setIsLoading(false);
       }
     );
 
-    // Initialize auth
     console.log('🚀 Ejecutando initializeAuth...');
     initializeAuth();
 
@@ -264,7 +260,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('gato_user');
     } catch (error) {
       console.error('🚀 ERROR durante logout:', error);
-      // Clear local state even if Supabase call fails
       setUser(null);
       setSession(null);
       localStorage.removeItem('gato_user');

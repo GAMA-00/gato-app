@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -12,7 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-// Validation schema
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
@@ -49,7 +49,6 @@ const Login = () => {
     }
   });
 
-  // Only redirect if user is actually authenticated with a session
   useEffect(() => {
     console.log('📱 useEffect de redirección ejecutándose...');
     console.log('📱 Estados para redirección:', {
@@ -59,7 +58,6 @@ const Login = () => {
       userName: user?.name
     });
     
-    // Wait for auth context to finish loading before making decisions
     if (isLoading) {
       console.log('📱 AuthContext aún cargando, esperando...');
       return;
@@ -110,7 +108,6 @@ const Login = () => {
         console.error('📱 ERROR en signIn:', error);
         let errorMessage = 'Error durante el inicio de sesión';
         
-        // Handle specific Supabase errors
         if (error.message?.includes('Invalid login credentials')) {
           errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
         } else if (error.message?.includes('Email not confirmed')) {
@@ -145,7 +142,7 @@ const Login = () => {
       setIsSubmitting(true);
       setLoginError(null);
       
-      console.log('Google sign-in attempt started');
+      console.log('📱 Google sign-in attempt started');
       
       const redirectUrl = targetRole === 'client' ? '/client' : '/dashboard';
       
@@ -157,12 +154,12 @@ const Login = () => {
       });
       
       if (error) {
-        console.error('Error al iniciar sesión con Google:', error);
+        console.error('📱 Error al iniciar sesión con Google:', error);
         setLoginError(error.message);
         setIsSubmitting(false);
       }
     } catch (error: any) {
-      console.error('Error inesperado:', error);
+      console.error('📱 Error inesperado:', error);
       setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
       setIsSubmitting(false);
     }
@@ -195,7 +192,6 @@ const Login = () => {
     mostrarFormulario: !isLoading
   });
 
-  // Show loading only for a brief moment while checking auth
   if (isLoading) {
     console.log('📱 Mostrando pantalla de carga...');
     return (
@@ -210,10 +206,8 @@ const Login = () => {
 
   console.log('📱 Renderizando formulario de login...');
 
-  // Always show the login form if not authenticated
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header with back button - fixed at top */}
       <div className="flex-shrink-0 p-4 md:p-6">
         <Button 
           variant="outline" 
@@ -226,17 +220,14 @@ const Login = () => {
         </Button>
       </div>
 
-      {/* Main content - centered */}
       <div className="flex-1 flex items-center justify-center px-4 md:px-6 pb-8">
         <div className="w-full max-w-md">
-          {/* Title only */}
           <div className="text-center mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               {getTitle()}
             </h1>
           </div>
 
-          {/* Error alert */}
           {loginError && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4 mr-2" />
@@ -244,7 +235,6 @@ const Login = () => {
             </Alert>
           )}
           
-          {/* Google sign in and divider */}
           <div className="space-y-4 mb-6">
             <Button 
               type="button" 
@@ -273,7 +263,6 @@ const Login = () => {
             </div>
           </div>
           
-          {/* Login form */}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
@@ -344,7 +333,6 @@ const Login = () => {
             </form>
           </Form>
           
-          {/* Register link with larger button */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 mb-3">¿No tienes una cuenta? </p>
             <Button variant="outline" size="lg" asChild className="w-full h-12 text-base font-medium" disabled={totalLoading}>
