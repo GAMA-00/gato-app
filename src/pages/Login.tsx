@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,9 +8,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Lock, LogIn, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -22,11 +22,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const targetRole = searchParams.get('role');
-  const { signIn, loading } = useSupabaseAuth();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [userType, setUserType] = useState<'client' | 'provider' | null>(null);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -36,83 +34,64 @@ const Login = () => {
     }
   });
 
-  // Redirección simple cuando el usuario ya está autenticado
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      if (user.role === 'provider') {
-        navigate('/dashboard', { replace: true });
-      } else {
-        navigate('/client', { replace: true });
-      }
-    }
-  }, [isAuthenticated, user, navigate, isLoading]);
-
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
     
-    const { data, error } = await signIn(values.email, values.password);
+    const result = await login(values.email, values.password);
     
-    if (error) {
-      let errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
-      
-      if (error.message?.includes('Email not confirmed')) {
-        errorMessage = 'Por favor confirma tu email antes de iniciar sesión.';
-      } else if (error.message?.includes('Too many requests')) {
-        errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
-      }
-      
-      setLoginError(errorMessage);
-      toast.error(errorMessage);
-    } else if (data?.user) {
+    if (result.success) {
       toast.success('¡Inicio de sesión exitoso!');
+      // Redirect based on user role - this will be handled by App.tsx
+      window.location.href = '/dashboard';
+    } else {
+      setLoginError(result.error || 'Error al iniciar sesión');
+      toast.error(result.error || 'Error al iniciar sesión');
     }
   };
 
-  const getTitle = () => {
-    if (targetRole === 'client') return 'Iniciar Sesión como Cliente';
-    if (targetRole === 'provider') return 'Iniciar Sesión como Proveedor';
-    return 'Iniciar Sesión';
-  };
-
-  const getRegisterLink = () => {
-    if (targetRole === 'provider') return '/register-provider';
-    return '/register';
-  };
-
-  // Mostrar loading solo mientras se verifica la sesión inicial
-  if (isLoading) {
+  if (!userType) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin mx-auto h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-muted-foreground">Verificando sesión...</p>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Selecciona tu tipo de usuario</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={() => setUserType('client')}
+              className="w-full h-12"
+              variant="outline"
+            >
+              Soy Cliente
+            </Button>
+            <Button 
+              onClick={() => setUserType('provider')}
+              className="w-full h-12"
+            >
+              Soy Proveedor
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-shrink-0 p-4 md:p-6">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/landing', { replace: true })}
-          className="flex items-center gap-2"
-          disabled={loading}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver al inicio
-        </Button>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center px-4 md:px-6 pb-8">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              {getTitle()}
-            </h1>
-          </div>
-
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">
+            Iniciar Sesión como {userType === 'client' ? 'Cliente' : 'Proveedor'}
+          </CardTitle>
+          <Button 
+            variant="ghost" 
+            onClick={() => setUserType(null)}
+            className="text-sm text-muted-foreground"
+          >
+            Cambiar tipo de usuario
+          </Button>
+        </CardHeader>
+        <CardContent>
           {loginError && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
@@ -135,7 +114,7 @@ const Login = () => {
                           placeholder="correo@ejemplo.com" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={loading}
+                          disabled={isLoading}
                         />
                       </div>
                     </FormControl>
@@ -158,7 +137,7 @@ const Login = () => {
                           placeholder="••••••" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={loading}
+                          disabled={isLoading}
                         />
                       </div>
                     </FormControl>
@@ -170,9 +149,9 @@ const Login = () => {
               <Button 
                 type="submit" 
                 className="w-full h-12"
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? (
+                {isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
                     <span>Iniciando sesión...</span>
@@ -186,17 +165,8 @@ const Login = () => {
               </Button>
             </form>
           </Form>
-          
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 mb-3">¿No tienes una cuenta?</p>
-            <Button variant="outline" size="lg" asChild className="w-full h-12">
-              <Link to={getRegisterLink()}>
-                Regístrate
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -15,7 +15,6 @@ interface NavItemsProps {
   closeMenu?: () => void;
 }
 
-// Define the NavItemType to properly type the navigation items
 interface NavItemType {
   to: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -74,11 +73,6 @@ const NavItems = ({ isClientSection, closeMenu }: NavItemsProps) => {
       
       if (itemPath === '/profile') {
         return location.pathname === '/profile';
-      }
-      
-      if (location.pathname.includes('/client/services') || 
-          location.pathname.includes('/client/book')) {
-        return itemPath === '/client';
       }
       
       return location.pathname === itemPath;

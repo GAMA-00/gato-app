@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -8,139 +8,66 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  residenciaId: string;
-  buildingName: string;
-  hasPaymentMethod: boolean;
-  role: 'client' | 'provider' | 'admin';
+  role: 'client' | 'provider';
   avatarUrl?: string;
-  apartment?: string;
-  houseNumber?: string;
-  condominiumId?: string; 
-  condominiumName?: string;
-  offerBuildings?: string[];
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
-  register: (user: User) => void;
-  logout: () => void;
-  updateUserPaymentMethod: (hasPaymentMethod: boolean) => void;
-  updateUserAvatar: (avatarUrl: string) => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isLoading: boolean;
-  isClient: boolean;
-  isProvider: boolean;
-  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user && mounted) {
-          await loadUser(session.user);
-        }
-      } catch (error) {
-        console.error('Error loading session:', error);
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        if (event === 'SIGNED_OUT' || !session) {
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          await loadUser(session.user);
-          setIsLoading(false);
-        }
-      }
-    );
-
-    initAuth();
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const isValidRole = (role: string): role is 'client' | 'provider' | 'admin' => {
-    return ['client', 'provider', 'admin'].includes(role);
-  };
-
-  const loadUser = async (supabaseUser: SupabaseUser) => {
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    
     try {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', supabaseUser.id)
-        .single();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      const userRole = profile?.role && isValidRole(profile.role) ? profile.role : 'client';
+      if (error) {
+        setIsLoading(false);
+        return { success: false, error: error.message };
+      }
 
-      const userData: User = {
-        id: supabaseUser.id,
-        name: profile?.name || supabaseUser.email?.split('@')[0] || 'Usuario',
-        email: profile?.email || supabaseUser.email || '',
-        phone: profile?.phone || '',
-        residenciaId: profile?.residencia_id || '',
-        buildingName: '',
-        hasPaymentMethod: profile?.has_payment_method || false,
-        role: userRole,
-        avatarUrl: profile?.avatar_url || '',
-        apartment: profile?.house_number || '',
-        houseNumber: profile?.house_number || '',
-        condominiumId: profile?.condominium_id || '',
-        condominiumName: profile?.condominium_name || '',
-      };
-      
-      setUser(userData);
+      if (data.user) {
+        // Get user profile
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        const userData: User = {
+          id: data.user.id,
+          name: profile?.name || data.user.email?.split('@')[0] || 'Usuario',
+          email: profile?.email || data.user.email || '',
+          phone: profile?.phone || '',
+          role: (profile?.role === 'provider') ? 'provider' : 'client',
+          avatarUrl: profile?.avatar_url || '',
+        };
+        
+        setUser(userData);
+        setIsLoading(false);
+        return { success: true };
+      }
     } catch (error) {
-      console.error('Error loading user profile:', error);
-      const basicUser: User = {
-        id: supabaseUser.id,
-        name: supabaseUser.email?.split('@')[0] || 'Usuario',
-        email: supabaseUser.email || '',
-        phone: '',
-        residenciaId: '',
-        buildingName: '',
-        hasPaymentMethod: false,
-        role: 'client',
-        avatarUrl: '',
-        apartment: '',
-        houseNumber: '',
-        condominiumId: '',
-        condominiumName: '',
-      };
-      setUser(basicUser);
+      setIsLoading(false);
+      return { success: false, error: 'Error de conexión' };
     }
-  };
 
-  const login = (userData: User) => {
-    setUser(userData);
-  };
-
-  const register = (userData: User) => {
-    setUser(userData);
+    setIsLoading(false);
+    return { success: false, error: 'Error desconocido' };
   };
 
   const logout = async () => {
@@ -152,36 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
     }
   };
-  
-  const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
-    if (user) {
-      setUser({ ...user, hasPaymentMethod });
-    }
-  };
-
-  const updateUserAvatar = (avatarUrl: string) => {
-    if (user) {
-      setUser({ ...user, avatarUrl });
-    }
-  };
-
-  const isClient = user?.role === 'client';
-  const isProvider = user?.role === 'provider';
-  const isAdmin = user?.role === 'admin';
 
   return (
     <AuthContext.Provider value={{ 
       user, 
       isAuthenticated: !!user, 
-      login, 
-      register, 
+      login,
       logout,
-      updateUserPaymentMethod,
-      updateUserAvatar,
-      isLoading,
-      isClient,
-      isProvider,
-      isAdmin
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>
