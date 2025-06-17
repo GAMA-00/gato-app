@@ -53,9 +53,9 @@ const serviceTypeImageUrls: Record<string, string> = {
   'Planchado': '/lovable-uploads/4dd64b16-03f3-45bb-bebc-188ff928779b.png',
   'Jardinero': '/lovable-uploads/431b8b90-dc9d-4672-a888-f58db64827dc.png',
   'Mantenimiento': '/lovable-uploads/24e54baf-3cf6-41b3-a409-5d709cdcdea5.png',
-  'Chef Privado': '/lovable-uploads/70c88179-bab3-4858-8767-3909be90700c.png',
+  'Chef Privado': '/lovable-uploads/884a985a-9ea1-46b2-9b84-f4f0e472138f.png',
   'Lavacar': '/lovable-uploads/a6adbbab-4b35-433d-bccc-28ecf1f6e144.png',
-  'Paseo de Perros': '/lovable-uploads/49c0771a-fcc7-443a-8bf4-ce92d2a80a26.png',
+  'Paseo de Perros': '/lovable-uploads/bcd7b687-ff20-4036-b242-7973ba844180.png',
   'Pet grooming': '/lovable-uploads/ce12c763-c1e5-4dea-91e0-78b386608ca1.png',
   'Veterinario': '/lovable-uploads/bc600f5b-81c3-4589-9558-a17f9bb7f093.png',
 };
