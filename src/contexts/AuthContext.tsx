@@ -41,23 +41,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Inicializar autenticación de forma simple
+    let mounted = true;
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        if (session?.user && mounted) {
           await loadUser(session.user);
         }
       } catch (error) {
         console.error('Error loading session:', error);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    // Listener de cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null);
           setIsLoading(false);
@@ -74,9 +78,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
+
+  const isValidRole = (role: string): role is 'client' | 'provider' | 'admin' => {
+    return ['client', 'provider', 'admin'].includes(role);
+  };
 
   const loadUser = async (supabaseUser: SupabaseUser) => {
     try {
@@ -86,6 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', supabaseUser.id)
         .single();
 
+      const userRole = profile?.role && isValidRole(profile.role) ? profile.role : 'client';
+
       const userData: User = {
         id: supabaseUser.id,
         name: profile?.name || supabaseUser.email?.split('@')[0] || 'Usuario',
@@ -94,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         residenciaId: profile?.residencia_id || '',
         buildingName: '',
         hasPaymentMethod: profile?.has_payment_method || false,
-        role: profile?.role || 'client',
+        role: userRole,
         avatarUrl: profile?.avatar_url || '',
         apartment: profile?.house_number || '',
         houseNumber: profile?.house_number || '',
@@ -105,7 +116,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
     } catch (error) {
       console.error('Error loading user profile:', error);
-      // Crear usuario básico si falla la carga del perfil
       const basicUser: User = {
         id: supabaseUser.id,
         name: supabaseUser.email?.split('@')[0] || 'Usuario',
