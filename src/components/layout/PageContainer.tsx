@@ -37,7 +37,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
         isCenteredLayout 
           ? "flex flex-col justify-center items-center" 
           : "min-h-screen overflow-y-auto flex flex-col justify-center items-center",
-        isMobile && isCenteredLayout ? "p-4" : (isMobile ? "p-4 pb-20" : "p-6")
+        // Reducir padding dramáticamente en móvil para centrar layout
+        isMobile && isCenteredLayout ? "p-2" : (isMobile ? "p-4 pb-20" : "p-6")
       )}>
         <div className={cn(
           "max-w-7xl w-full animate-fade-in",
@@ -46,29 +47,30 @@ const PageContainer: React.FC<PageContainerProps> = ({
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            // Eliminar completamente el margin-bottom para reducir el espacio
-            isMobile && isCenteredLayout ? "mb-0" : (isMobile ? "mb-3" : "mb-4")
+            // Eliminar completamente los márgenes en móvil para centrar layout
+            isMobile && isCenteredLayout ? "mb-0" : (isMobile ? "mb-2" : "mb-4")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
               <h1 className={cn(
                 "font-bold tracking-tight text-app-text text-center",
-                isMobile ? "text-xl mb-0" : "text-2xl md:text-3xl mb-0"
+                // Reducir tamaño de texto en móvil para ganar espacio
+                isMobile ? "text-lg mb-0" : "text-2xl md:text-3xl mb-0"
               )}>{title}</h1>
             </div>
             {subtitle && <div className={cn(
               "text-app-text/70 text-center w-full",
-              isMobile ? "text-base mt-0" : "text-lg mt-0"
+              isMobile ? "text-sm mt-0" : "text-lg mt-0"
             )}>{subtitle}</div>}
             {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
           </div>
           
-          {/* Content area - reducir aún más el espacio */}
+          {/* Content area - eliminar margen superior en móvil para layout centrado */}
           <div className={cn(
             "animate-slide-up flex justify-center w-full",
             isCenteredLayout ? "flex-1 items-center justify-center" : "flex-1 items-start",
-            // Reducir el margen superior para acercar más las categorías al título
-            isMobile && isCenteredLayout ? "mt-2" : "mt-4"
+            // Eliminar margen superior en móvil para maximizar espacio
+            isMobile && isCenteredLayout ? "mt-0" : "mt-4"
           )}>
             <div className="w-full flex justify-center">
               {children}
