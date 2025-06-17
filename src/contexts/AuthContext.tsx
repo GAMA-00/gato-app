@@ -41,35 +41,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
-    const initializeAuth = async () => {
+    // Inicializar autenticación de forma simple
+    const initAuth = async () => {
       try {
-        // Check current session
         const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user && mounted) {
-          await loadUserFromSession(session.user);
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
+        if (session?.user) {
+          await loadUser(session.user);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (mounted) {
-          setIsLoading(false);
-        }
+        console.error('Error loading session:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    // Set up auth listener
+    // Listener de cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
-
-        console.log('Auth event:', event);
-        
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null);
           setIsLoading(false);
@@ -77,68 +65,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (event === 'SIGNED_IN' && session?.user) {
-          await loadUserFromSession(session.user);
+          await loadUser(session.user);
           setIsLoading(false);
         }
       }
     );
 
-    initializeAuth();
+    initAuth();
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  const loadUserFromSession = async (supabaseUser: SupabaseUser) => {
+  const loadUser = async (supabaseUser: SupabaseUser) => {
     try {
-      // Try to get user profile
       const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
 
-      if (profile) {
-        const userData: User = {
-          id: profile.id,
-          name: profile.name || supabaseUser.email?.split('@')[0] || 'Usuario',
-          email: profile.email || supabaseUser.email || '',
-          phone: profile.phone || '',
-          residenciaId: profile.residencia_id || '',
-          buildingName: '',
-          hasPaymentMethod: profile.has_payment_method || false,
-          role: profile.role as 'client' | 'provider' | 'admin',
-          avatarUrl: profile.avatar_url || '',
-          apartment: profile.house_number || '',
-          houseNumber: profile.house_number || '',
-          condominiumId: profile.condominium_id || '',
-          condominiumName: profile.condominium_name || '',
-        };
-        setUser(userData);
-      } else {
-        // Create basic user if no profile exists
-        const basicUser: User = {
-          id: supabaseUser.id,
-          name: supabaseUser.email?.split('@')[0] || 'Usuario',
-          email: supabaseUser.email || '',
-          phone: '',
-          residenciaId: '',
-          buildingName: '',
-          hasPaymentMethod: false,
-          role: 'client',
-          avatarUrl: '',
-          apartment: '',
-          houseNumber: '',
-          condominiumId: '',
-          condominiumName: '',
-        };
-        setUser(basicUser);
-      }
+      const userData: User = {
+        id: supabaseUser.id,
+        name: profile?.name || supabaseUser.email?.split('@')[0] || 'Usuario',
+        email: profile?.email || supabaseUser.email || '',
+        phone: profile?.phone || '',
+        residenciaId: profile?.residencia_id || '',
+        buildingName: '',
+        hasPaymentMethod: profile?.has_payment_method || false,
+        role: profile?.role || 'client',
+        avatarUrl: profile?.avatar_url || '',
+        apartment: profile?.house_number || '',
+        houseNumber: profile?.house_number || '',
+        condominiumId: profile?.condominium_id || '',
+        condominiumName: profile?.condominium_name || '',
+      };
+      
+      setUser(userData);
     } catch (error) {
       console.error('Error loading user profile:', error);
-      // Set basic user even if profile loading fails
+      // Crear usuario básico si falla la carga del perfil
       const basicUser: User = {
         id: supabaseUser.id,
         name: supabaseUser.email?.split('@')[0] || 'Usuario',
@@ -160,12 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (userData: User) => {
     setUser(userData);
-    setIsLoading(false);
   };
 
   const register = (userData: User) => {
     setUser(userData);
-    setIsLoading(false);
   };
 
   const logout = async () => {
