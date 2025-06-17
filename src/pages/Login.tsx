@@ -37,24 +37,40 @@ const Login = () => {
   });
 
   useEffect(() => {
+    console.log('Login: useEffect - checking auth state', { 
+      isLoading, 
+      isAuthenticated, 
+      user: !!user, 
+      userRole: user?.role 
+    });
+
     if (!isLoading && isAuthenticated && user) {
-      console.log('User authenticated, redirecting...', user.role);
+      console.log('Login: User authenticated, redirecting based on role:', user.role);
       
-      if (user.role === 'provider') {
-        navigate('/dashboard', { replace: true });
-      } else if (user.role === 'client') {
-        navigate('/client', { replace: true });
-      } else {
-        navigate('/profile', { replace: true });
-      }
+      // Force immediate redirect based on user role
+      setTimeout(() => {
+        if (user.role === 'provider') {
+          console.log('Login: Redirecting to provider dashboard');
+          navigate('/dashboard', { replace: true });
+        } else if (user.role === 'client') {
+          console.log('Login: Redirecting to client services');
+          navigate('/client', { replace: true });
+        } else {
+          console.log('Login: Redirecting to profile for unknown role');
+          navigate('/profile', { replace: true });
+        }
+      }, 100); // Small delay to ensure state is settled
     }
   }, [isAuthenticated, user, navigate, isLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
+    console.log('Login: Attempting login with:', values.email);
     setLoginError(null);
     
     try {
       const { data, error } = await signIn(values.email, values.password);
+      
+      console.log('Login: Sign in result', { data: !!data, error });
       
       if (error) {
         let errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
@@ -65,13 +81,21 @@ const Login = () => {
           errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
         }
         
+        console.error('Login: Authentication error:', error.message);
         setLoginError(errorMessage);
         toast.error(errorMessage);
       } else if (data?.user) {
+        console.log('Login: Authentication successful for user:', data.user.id);
         toast.success('¡Inicio de sesión exitoso!');
+        
+        // Wait a bit for the auth context to update
+        setTimeout(() => {
+          console.log('Login: Checking if redirect is needed...');
+          // The useEffect will handle the redirect
+        }, 500);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login: Exception during login:', error);
       setLoginError('Error al iniciar sesión. Intenta de nuevo.');
       toast.error('Error al iniciar sesión. Intenta de nuevo.');
     }
@@ -89,15 +113,18 @@ const Login = () => {
   };
 
   if (isLoading) {
+    console.log('Login: Showing loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin mx-auto h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-muted-foreground">Cargando...</p>
+          <p className="text-muted-foreground">Verificando sesión...</p>
         </div>
       </div>
     );
   }
+
+  console.log('Login: Rendering login form');
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
