@@ -50,21 +50,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     let mounted = true;
     
-    // Initialize auth immediately
+    // Set loading timeout as safety net
+    const loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.log('=== Auth loading timeout reached, setting loading to false ===');
+        setIsLoading(false);
+      }
+    }, 5000); // 5 second timeout
+
     const initializeAuth = async () => {
       try {
-        // Get current session first
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log('=== Getting initial session ===');
+        
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
-        console.log('=== Initial Session ===', { hasSession: !!currentSession });
+        if (error) {
+          console.error('Error getting session:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('=== Initial session check ===', { 
+          hasSession: !!initialSession,
+          hasUser: !!initialSession?.user 
+        });
         
-        if (currentSession?.user) {
-          await loadUserProfile(currentSession.user);
-          setSession(currentSession);
+        if (initialSession?.user) {
+          await loadUserProfile(initialSession.user);
+          setSession(initialSession);
         } else {
-          // Try localStorage as fallback
+          // No session, try localStorage as fallback
           const storedUser = localStorage.getItem('gato_user');
           if (storedUser) {
             try {
@@ -78,11 +95,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
+        // Always set loading to false after initial check
         setIsLoading(false);
+        clearTimeout(loadingTimeout);
+        
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Error in initializeAuth:', error);
         if (mounted) {
           setIsLoading(false);
+          clearTimeout(loadingTimeout);
         }
       }
     };
@@ -90,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('=== Auth State Change ===', { event, hasSession: !!session });
+        console.log('=== Auth State Change ===', { event, hasSession: !!session, hasUser: !!session?.user });
         
         if (!mounted) return;
         
@@ -105,15 +126,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.removeItem('gato_user');
         }
         
-        // Always set loading to false after processing auth change
+        // Ensure loading is false after any auth state change
         setIsLoading(false);
       }
     );
 
+    // Initialize auth
     initializeAuth();
 
     return () => {
       mounted = false;
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -136,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profile) {
         const userData: User = {
           id: profile.id,
-          name: profile.name || '',
+          name: profile.name || supabaseUser.user_metadata?.name || '',
           email: profile.email || supabaseUser.email || '',
           phone: profile.phone || '',
           residenciaId: profile.residencia_id || '',

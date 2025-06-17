@@ -38,12 +38,14 @@ const Login = () => {
     }
   });
 
-  // Redirect authenticated users immediately
+  // Only redirect if user is actually authenticated with a session
   useEffect(() => {
-    if (isAuthenticated && user && !isLoading) {
-      console.log('User already authenticated, redirecting...', user);
+    // Wait for auth context to finish loading before making decisions
+    if (isLoading) return;
+    
+    if (isAuthenticated && user) {
+      console.log('User authenticated, redirecting...', user);
       
-      // Immediate redirect without delay
       if (user.role === 'provider') {
         navigate('/dashboard', { replace: true });
       } else if (user.role === 'client') {
@@ -148,7 +150,7 @@ const Login = () => {
     totalLoading
   });
 
-  // Simple loading screen while checking authentication
+  // Show loading only for a brief moment while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -160,6 +162,7 @@ const Login = () => {
     );
   }
 
+  // Always show the login form if not authenticated
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header with back button - fixed at top */}

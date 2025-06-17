@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +15,7 @@ export const useSupabaseAuth = () => {
     setLoading(true);
     
     try {
-      // Clear any previous session
+      // Clear any previous session first
       await supabase.auth.signOut();
       
       // Sign in with new credentials
@@ -45,7 +44,7 @@ export const useSupabaseAuth = () => {
 
       console.log('Auth successful, fetching user profile...');
       
-      // Fetch user profile
+      // Fetch user profile with error handling
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
@@ -67,7 +66,7 @@ export const useSupabaseAuth = () => {
       // Create complete user object
       const userData = {
         id: profile.id,
-        name: profile.name || '',
+        name: profile.name || data.user.user_metadata?.name || '',
         email: profile.email || data.user.email || '',
         phone: profile.phone || '',
         residenciaId: profile.residencia_id || '',
@@ -86,19 +85,8 @@ export const useSupabaseAuth = () => {
       // Update AuthContext
       login(userData);
 
-      // Navigate immediately based on role
-      console.log('Navigating based on role:', profile.role);
-      
-      // Use setTimeout to ensure state is updated before navigation
-      setTimeout(() => {
-        if (profile.role === 'client') {
-          navigate('/client', { replace: true });
-        } else if (profile.role === 'provider') {
-          navigate('/dashboard', { replace: true });
-        } else {
-          navigate('/profile', { replace: true });
-        }
-      }, 100);
+      // Navigate based on role - let AuthContext handle this naturally
+      console.log('Login successful, navigation will be handled by Login component');
 
       setLoading(false);
       console.log('=== useSupabaseAuth.signIn END (SUCCESS) ===');
