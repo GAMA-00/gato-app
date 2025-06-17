@@ -9,7 +9,6 @@ import { useCalendarAppointmentsWithRecurring } from '@/hooks/useCalendarAppoint
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
 const Calendar = () => {
@@ -78,10 +77,14 @@ const Calendar = () => {
     );
   }
 
-  // NO filtrar aquí - ya se filtró en el hook
-  const allAppointments = appointments;
+  // Filter out completed appointments - only show pending appointments and blocked slots
+  const pendingAppointments = appointments.filter(appointment => 
+    appointment.status !== 'completed' && 
+    appointment.status !== 'cancelled' && 
+    appointment.status !== 'rejected'
+  );
 
-  console.log(`Final appointments passed to CalendarView: ${allAppointments.length}`);
+  console.log(`Filtered pending appointments: ${pendingAppointments.length} out of ${appointments.length}`);
 
   return (
     <PageContainer 
@@ -99,60 +102,10 @@ const Calendar = () => {
       <div className="space-y-6">
         <PendingRequestsCard />
         
-        {/* Debug information */}
-        <Alert className="border-blue-200 bg-blue-50">
-          <AlertDescription>
-            <div className="space-y-2">
-              <h4 className="font-medium text-blue-800">Estado del calendario</h4>
-              <p className="text-blue-600 text-sm">
-                Total: {allAppointments.length} citas | 
-                Regular: {regularAppointments.length} | 
-                Recurrentes: {recurringInstances.length} | 
-                Slots bloqueados: {blockedSlots.length}
-              </p>
-              {allAppointments.length === 0 && (
-                <p className="text-red-600 text-sm font-medium">
-                  ⚠️ No se encontraron citas. Verifica que existan citas en la base de datos para este proveedor.
-                </p>
-              )}
-            </div>
-          </AlertDescription>
-        </Alert>
-        
-        {/* Mostrar información de citas recurrentes */}
-        {recurringInstances.length > 0 && (
-          <Alert className="border-green-200 bg-green-50">
-            <AlertDescription>
-              <div className="space-y-2">
-                <h4 className="font-medium text-green-800">Citas recurrentes activas</h4>
-                <p className="text-green-600">
-                  Se muestran {recurringInstances.length} cita{recurringInstances.length > 1 ? 's' : ''} recurrente{recurringInstances.length > 1 ? 's' : ''} 
-                  junto con {regularAppointments.length} cita{regularAppointments.length > 1 ? 's' : ''} regular{regularAppointments.length > 1 ? 'es' : ''}.
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {/* Mostrar advertencias de conflicto si existen */}
-        {conflicts.length > 0 && (
-          <Alert className="border-yellow-200 bg-yellow-50">
-            <AlertDescription>
-              <div className="space-y-2">
-                <h4 className="font-medium text-yellow-800">Conflictos detectados</h4>
-                <p className="text-yellow-600">
-                  Se detectaron {conflicts.length} conflicto{conflicts.length > 1 ? 's' : ''} de horarios en tu calendario. 
-                  Revisa las citas superpuestas.
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-        
         {showBlockedTimeSlots && <BlockedTimeSlots />}
         
         <CalendarView 
-          appointments={allAppointments} 
+          appointments={pendingAppointments} 
           currentDate={currentCalendarDate}
           onDateChange={setCurrentCalendarDate}
           blockedSlots={blockedSlots}

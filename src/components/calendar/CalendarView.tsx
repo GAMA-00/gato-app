@@ -34,29 +34,12 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 }) => {
   const dateString = format(date, 'yyyy-MM-dd');
   
-  console.log(`\n=== CALENDAR DAY ${dateString} ===`);
-  console.log(`Total appointments received: ${appointments.length}`);
-
-  // Filtrar citas para este día específico
+  // Filter appointments for this specific day
   const dayAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
     const appointmentDateString = format(appointmentDate, 'yyyy-MM-dd');
-    const matches = appointmentDateString === dateString;
-    
-    if (matches) {
-      console.log(`✓ Appointment matches ${dateString}:`, {
-        id: appointment.id,
-        client_name: appointment.client_name,
-        start_time: format(appointmentDate, 'yyyy-MM-dd HH:mm'),
-        status: appointment.status,
-        is_recurring: appointment.is_recurring_instance
-      });
-    }
-    
-    return matches;
+    return appointmentDateString === dateString;
   });
-
-  console.log(`Day ${dateString} final appointments: ${dayAppointments.length}`);
 
   // Get blocked time slots for this day
   const dayOfWeek = date.getDay();
@@ -135,7 +118,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             />
           ))}
           
-          {/* Render ALL appointments for this day */}
+          {/* Render pending appointments for this day */}
           {dayAppointments.map((appointment, index) => (
             <AppointmentDisplay
               key={`${appointment.id}-${index}`}
@@ -170,7 +153,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const currentDate = propCurrentDate || internalCurrentDate;
   
   const handleDateChange = (newDate: Date) => {
-    console.log('Calendar view date changing to:', format(newDate, 'yyyy-MM-dd'));
     if (onDateChange) {
       onDateChange(newDate);
     } else {
@@ -201,34 +183,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     handleDateChange(today);
     setExpandedId(null);
   };
-
-  // Debug appointments for current week
-  React.useEffect(() => {
-    const weekStart = format(startDate, 'yyyy-MM-dd');
-    const weekEnd = format(endDate, 'yyyy-MM-dd');
-    
-    console.log(`\n=== CALENDAR VIEW RENDER ${weekStart} to ${weekEnd} ===`);
-    console.log(`Total appointments received by CalendarView: ${appointments.length}`);
-    
-    // Count appointments by type
-    const regular = appointments.filter(app => !app.is_recurring_instance).length;
-    const recurring = appointments.filter(app => app.is_recurring_instance).length;
-    
-    console.log(`Regular appointments: ${regular}`);
-    console.log(`Recurring appointments: ${recurring}`);
-    
-    // Show appointments for each day of the week
-    days.forEach(day => {
-      const dayString = format(day, 'yyyy-MM-dd');
-      const dayApps = appointments.filter(app => {
-        const appDate = format(new Date(app.start_time), 'yyyy-MM-dd');
-        return appDate === dayString;
-      });
-      console.log(`${dayString}: ${dayApps.length} appointments`);
-    });
-    
-    console.log('================================================');
-  }, [appointments, startDate, endDate, days]);
 
   return (
     <Card className="overflow-hidden border-0 shadow-medium">
