@@ -21,9 +21,9 @@ export const useSupabaseAuth = () => {
     }
 
     if (data?.user) {
-      // Get user profile to determine role
+      // Get user profile to determine role from users table
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('role')
         .eq('id', data.user.id)
         .single();
