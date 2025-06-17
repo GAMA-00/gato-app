@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -131,8 +130,8 @@ const ClientServiceDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen w-full bg-white relative">
-        {/* Back button positioned absolutely in top-left corner */}
-        <div className="absolute top-4 left-4 z-10">
+        {/* Back button positioned absolutely flush with screen edge */}
+        <div className="absolute top-4 left-0 z-10 pl-4">
           <Skeleton className="h-10 w-24 rounded-lg" />
         </div>
 
@@ -168,8 +167,8 @@ const ClientServiceDetail = () => {
   if (!serviceDetails) {
     return (
       <div className="min-h-screen w-full bg-white relative">
-        {/* Back button positioned absolutely in top-left corner */}
-        <div className="absolute top-4 left-4 z-10">
+        {/* Back button positioned absolutely flush with screen edge */}
+        <div className="absolute top-4 left-0 z-10 pl-4">
           <BackButton onClick={handleBack} />
         </div>
 
@@ -219,8 +218,8 @@ const ClientServiceDetail = () => {
   
   return (
     <div className="min-h-screen w-full bg-white relative">
-      {/* Back button positioned absolutely in top-left corner */}
-      <div className="absolute top-4 left-4 z-10">
+      {/* Back button positioned absolutely flush with screen edge */}
+      <div className="absolute top-4 left-0 z-10 pl-4">
         <BackButton onClick={handleBack} />
       </div>
 
