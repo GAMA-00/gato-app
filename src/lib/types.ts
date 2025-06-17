@@ -1,3 +1,4 @@
+
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -59,7 +60,7 @@ export interface Residencia {
   address: string;
 }
 
-export type UserRole = 'client' | 'provider' | 'admin';
+export type UserRole = 'client' | 'provider';
 
 export type RecurrencePattern = 
   | 'none'
@@ -194,7 +195,7 @@ export interface User {
   role: UserRole;
   avatarUrl: string;
   condominiumId: string;
-  condominiumName: string; // Add this new field
+  condominiumName: string;
   houseNumber: string;
   apartment?: string;
 }
