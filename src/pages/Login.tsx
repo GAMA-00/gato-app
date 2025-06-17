@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -51,9 +50,7 @@ const Login = () => {
     }
     
     if (data && !error) {
-      // The signIn function already handles role-based navigation
-      // No need to specify navigation here as it's handled in useSupabaseAuth
-      // No toast notification shown
+      // No toast notification - silent redirect
     }
     setIsLoading(false);
   };

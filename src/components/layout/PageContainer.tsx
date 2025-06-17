@@ -23,44 +23,30 @@ const PageContainer: React.FC<PageContainerProps> = ({
   // Check if this should be a centered layout (no scroll)
   const isCenteredLayout = className?.includes("flex items-center justify-center");
   
-  // Scroll to bottom effect for centered layouts on mobile
-  useEffect(() => {
-    if (isCenteredLayout && isMobile) {
-      // Small delay to ensure content is rendered
-      const timer = setTimeout(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: 'smooth'
-        });
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isCenteredLayout, isMobile]);
-  
   return (
     <div className={cn(
       isMobile ? "pt-0 pb-0" : "pl-56 pt-4",
       isCenteredLayout 
-        ? (isMobile ? "min-h-screen w-full bg-white" : "h-screen w-full overflow-hidden bg-white")
+        ? (isMobile ? "h-screen w-full bg-white overflow-hidden" : "h-screen w-full overflow-hidden bg-white")
         : "min-h-screen w-full bg-white",
       className
     )}>
       {/* Container for all content */}
       <div className={cn(
-        "w-full",
+        "w-full h-full",
         isCenteredLayout 
-          ? "min-h-screen flex flex-col justify-center items-center" 
+          ? "flex flex-col justify-center items-center" 
           : "min-h-screen overflow-y-auto flex flex-col justify-center items-center",
-        isMobile && isCenteredLayout ? "p-0 m-0" : (isMobile ? "p-4 pb-20" : "p-6")
+        isMobile && isCenteredLayout ? "p-4" : (isMobile ? "p-4 pb-20" : "p-6")
       )}>
         <div className={cn(
           "max-w-7xl w-full animate-fade-in",
-          "flex flex-col items-center justify-center"
+          "flex flex-col items-center justify-center",
+          isCenteredLayout && isMobile ? "h-full" : ""
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            isMobile && isCenteredLayout ? "mb-0" : (isMobile ? "mb-6" : "mb-6")
+            isMobile && isCenteredLayout ? "mb-4" : (isMobile ? "mb-6" : "mb-6")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
