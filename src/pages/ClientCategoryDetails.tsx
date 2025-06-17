@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -20,13 +21,16 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
 };
 
 // Mapa de iconos específico para service types
-const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance' | 'custom-chef' | 'custom-lavacar'> = {
+const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance' | 'custom-chef' | 'custom-lavacar' | 'custom-dog-walking' | 'custom-pet-grooming' | 'custom-veterinarian'> = {
   'Limpieza': 'custom-cleaning',
   'Planchado': 'custom-ironing',
   'Jardinero': 'custom-gardening',
   'Mantenimiento': 'custom-maintenance',
   'Chef Privado': 'custom-chef',
   'Lavacar': 'custom-lavacar',
+  'Paseo de Perros': 'custom-dog-walking',
+  'Pet grooming': 'custom-pet-grooming',
+  'Veterinario': 'custom-veterinarian',
 };
 
 // Nombres de categorías en español
@@ -56,6 +60,9 @@ const serviceTypeImageUrls: Record<string, string> = {
   'Mantenimiento': '/lovable-uploads/24e54baf-3cf6-41b3-a409-5d709cdcdea5.png',
   'Chef Privado': '/lovable-uploads/70c88179-bab3-4858-8767-3909be90700c.png',
   'Lavacar': '/lovable-uploads/a6adbbab-4b35-433d-bccc-28ecf1f6e144.png',
+  'Paseo de Perros': '/lovable-uploads/49c0771a-fcc7-443a-8bf4-ce92d2a80a26.png',
+  'Pet grooming': '/lovable-uploads/ce12c763-c1e5-4dea-91e0-78b386608ca1.png',
+  'Veterinario': '/lovable-uploads/bc600f5b-81c3-4589-9558-a17f9bb7f093.png',
 };
 
 // Preload estratégico solo de imágenes críticas
@@ -68,8 +75,14 @@ const preloadCriticalImages = (categoryName: string) => {
     img.crossOrigin = 'anonymous';
   }
   
-  // Preload de los primeros 3 service types que suelen ser más comunes, incluyendo Chef Privado
-  const criticalServices = ['Limpieza', 'Mantenimiento', 'Chef Privado'];
+  // Preload de los primeros 3 service types que suelen ser más comunes
+  let criticalServices: string[] = [];
+  if (categoryName === 'home') {
+    criticalServices = ['Limpieza', 'Mantenimiento', 'Chef Privado'];
+  } else if (categoryName === 'pets') {
+    criticalServices = ['Paseo de Perros', 'Pet grooming', 'Veterinario'];
+  }
+  
   criticalServices.forEach(serviceName => {
     const serviceImageUrl = serviceTypeImageUrls[serviceName];
     if (serviceImageUrl) {
