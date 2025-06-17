@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -22,11 +21,12 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
 };
 
 // Mapa de iconos específico para service types
-const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance'> = {
+const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance' | 'custom-chef'> = {
   'Limpieza': 'custom-cleaning',
   'Planchado': 'custom-ironing',
   'Jardinero': 'custom-gardening',
   'Mantenimiento': 'custom-maintenance',
+  'Chef Privado': 'custom-chef',
 };
 
 // Nombres de categorías en español
@@ -54,6 +54,7 @@ const preloadAllIcons = () => {
     '/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png', // ironing
     '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png', // gardening
     '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png', // maintenance
+    '/lovable-uploads/8f847814-1104-4151-9449-f9e9703ad38b.png', // chef
   ];
   
   allIconUrls.forEach(url => {
@@ -282,6 +283,17 @@ const ClientCategoryDetails = () => {
                           <img 
                             src="/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png"
                             alt="Mantenimiento"
+                            className={cn(
+                              "object-contain",
+                              isMobile ? "w-12 h-12" : "w-16 h-16"
+                            )}
+                            loading="eager"
+                          />
+                        )}
+                        {serviceType.name === 'Chef Privado' && (
+                          <img 
+                            src="/lovable-uploads/8f847814-1104-4151-9449-f9e9703ad38b.png"
+                            alt="Chef Privado"
                             className={cn(
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
