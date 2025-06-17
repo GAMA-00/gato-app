@@ -6,7 +6,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import { toast } from 'sonner';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { useResidencias } from '@/hooks/useResidencias';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 
 const Register = () => {
@@ -28,37 +27,13 @@ const Register = () => {
     });
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/payment-setup`,
-        }
-      });
-      
-      if (error) {
-        console.error('Error al iniciar sesión con Google:', error);
-        toast.error('Error al iniciar sesión con Google: ' + error.message);
-      } else {
-        toast.info('Redirigiendo a Google para autenticación...');
-      }
-    } catch (error: any) {
-      console.error('Error inesperado:', error);
-      toast.error('Error inesperado durante el inicio de sesión');
-    }
-  };
-
   return (
-    <PageContainer
-      title="Crear Cuenta de Cliente"
-    >
+    <PageContainer title="Crear Cuenta de Cliente">
       <div className="max-w-md mx-auto mt-12 md:mt-8 px-6 md:px-0">
         <RegisterForm 
           residencias={residencias}
           loadingResidencias={loadingResidencias}
           onRegisterSuccess={handleRegisterSuccess}
-          onGoogleSignIn={handleGoogleSignIn}
           userRole="client"
         />
         
