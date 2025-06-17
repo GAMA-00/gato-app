@@ -42,16 +42,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    console.log('Inicializando contexto de autenticación');
-    
     let mounted = true;
     
-    // Configurar listener de cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Cambio de estado de auth:', event, !!session);
+        console.log('Auth state change:', event, !!session);
         setSession(session);
         
         if (session?.user && event !== 'SIGNED_OUT') {
@@ -65,8 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Verificar sesión existente
-    const checkSession = async () => {
+    const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         
@@ -75,30 +71,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (initialSession?.user) {
           setSession(initialSession);
           await loadUserProfile(initialSession.user);
-        } else {
-          // Verificar localStorage como respaldo
-          const storedUser = localStorage.getItem('gato_user');
-          if (storedUser) {
-            try {
-              const parsedUser = JSON.parse(storedUser);
-              setUser(parsedUser);
-            } catch (error) {
-              localStorage.removeItem('gato_user');
-            }
-          }
         }
         
         setIsLoading(false);
-        
       } catch (error) {
-        console.error('Error verificando sesión:', error);
+        console.error('Error inicializando auth:', error);
         if (mounted) {
           setIsLoading(false);
         }
       }
     };
 
-    checkSession();
+    initializeAuth();
 
     return () => {
       mounted = false;

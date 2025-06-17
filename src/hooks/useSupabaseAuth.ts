@@ -9,8 +9,6 @@ export const useSupabaseAuth = () => {
     setLoading(true);
     
     try {
-      console.log('Iniciando sesión para:', email);
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -22,13 +20,7 @@ export const useSupabaseAuth = () => {
         return { data: null, error };
       }
 
-      if (!data?.user || !data?.session) {
-        console.error('Respuesta de autenticación incompleta');
-        setLoading(false);
-        return { data: null, error: { message: 'Error en la respuesta de autenticación' } };
-      }
-
-      console.log('Usuario autenticado exitosamente:', data.user.id);
+      console.log('Usuario autenticado exitosamente:', data.user?.id);
       setLoading(false);
       return { data, error: null };
       
@@ -42,15 +34,10 @@ export const useSupabaseAuth = () => {
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     
-    const redirectUrl = `${window.location.origin}/`;
-    
     try {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
       });
 
       setLoading(false);

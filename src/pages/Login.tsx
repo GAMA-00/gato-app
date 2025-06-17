@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -26,7 +27,6 @@ const Login = () => {
   const { signIn, loading: authLoading } = useSupabaseAuth();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -38,56 +38,45 @@ const Login = () => {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      console.log('Redirigiendo usuario autenticado:', user.role);
+      console.log('Usuario autenticado, redirigiendo:', user.role);
       
-      // Redirección directa basada en el rol
-      switch (user.role) {
-        case 'provider':
-          navigate('/dashboard', { replace: true });
-          break;
-        case 'client':
-          navigate('/client', { replace: true });
-          break;
-        default:
-          navigate('/profile', { replace: true });
-          break;
+      if (user.role === 'provider') {
+        navigate('/dashboard', { replace: true });
+      } else if (user.role === 'client') {
+        navigate('/client', { replace: true });
+      } else {
+        navigate('/profile', { replace: true });
       }
     }
   }, [isAuthenticated, user, navigate, isLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
-    setIsSubmitting(true);
     setLoginError(null);
     
     try {
       const { data, error } = await signIn(values.email, values.password);
       
       if (error) {
-        let errorMessage = 'Error durante el inicio de sesión';
+        let errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
         
-        if (error.message?.includes('Invalid login credentials')) {
-          errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
-        } else if (error.message?.includes('Email not confirmed')) {
+        if (error.message?.includes('Email not confirmed')) {
           errorMessage = 'Por favor confirma tu email antes de iniciar sesión.';
         } else if (error.message?.includes('Too many requests')) {
           errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
-        } else if (error.message) {
-          errorMessage = error.message;
         }
         
         setLoginError(errorMessage);
+        toast.error(errorMessage);
+      } else if (data?.user) {
+        toast.success('¡Inicio de sesión exitoso!');
       }
       
     } catch (error: any) {
-      console.error('Excepción durante login:', error);
-      setLoginError('Error inesperado durante el inicio de sesión');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error durante login:', error);
+      const errorMessage = 'Error inesperado durante el inicio de sesión';
+      setLoginError(errorMessage);
+      toast.error(errorMessage);
     }
-  };
-
-  const handleBackToLanding = () => {
-    navigate('/landing', { replace: true });
   };
 
   const getTitle = () => {
@@ -100,8 +89,6 @@ const Login = () => {
     if (targetRole === 'provider') return '/register-provider';
     return '/register';
   };
-
-  const totalLoading = authLoading || isSubmitting;
 
   if (isLoading) {
     return (
@@ -119,9 +106,9 @@ const Login = () => {
       <div className="flex-shrink-0 p-4 md:p-6">
         <Button 
           variant="outline" 
-          onClick={handleBackToLanding}
+          onClick={() => navigate('/landing', { replace: true })}
           className="flex items-center gap-2"
-          disabled={totalLoading}
+          disabled={authLoading}
         >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio
@@ -138,8 +125,8 @@ const Login = () => {
 
           {loginError && (
             <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <AlertDescription className="text-sm">{loginError}</AlertDescription>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{loginError}</AlertDescription>
             </Alert>
           )}
           
@@ -150,7 +137,7 @@ const Login = () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium">Correo Electrónico</FormLabel>
+                    <FormLabel>Correo Electrónico</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -158,7 +145,7 @@ const Login = () => {
                           placeholder="correo@ejemplo.com" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={totalLoading}
+                          disabled={authLoading}
                         />
                       </div>
                     </FormControl>
@@ -172,7 +159,7 @@ const Login = () => {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium">Contraseña</FormLabel>
+                    <FormLabel>Contraseña</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -181,7 +168,7 @@ const Login = () => {
                           placeholder="••••••" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={totalLoading}
+                          disabled={authLoading}
                         />
                       </div>
                     </FormControl>
@@ -190,32 +177,29 @@ const Login = () => {
                 )}
               />
               
-              <div className="pt-2">
-                <Button 
-                  type="submit" 
-                  size="login"
-                  className="w-full justify-center bg-app-text text-white hover:bg-app-text/90 text-sm h-12"
-                  disabled={totalLoading}
-                >
-                  {totalLoading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                      <span>Iniciando sesión...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Iniciar Sesión
-                    </>
-                  )}
-                </Button>
-              </div>
+              <Button 
+                type="submit" 
+                className="w-full h-12"
+                disabled={authLoading}
+              >
+                {authLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                    <span>Iniciando sesión...</span>
+                  </div>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Iniciar Sesión
+                  </>
+                )}
+              </Button>
             </form>
           </Form>
           
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 mb-3">¿No tienes una cuenta? </p>
-            <Button variant="outline" size="lg" asChild className="w-full h-12 text-base font-medium" disabled={totalLoading}>
+            <p className="text-sm text-gray-600 mb-3">¿No tienes una cuenta?</p>
+            <Button variant="outline" size="lg" asChild className="w-full h-12">
               <Link to={getRegisterLink()}>
                 Regístrate
               </Link>
