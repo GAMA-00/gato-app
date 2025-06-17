@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -54,7 +55,7 @@ const serviceTypeImageUrls: Record<string, string> = {
   'Planchado': '/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png',
   'Jardinero': '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png',
   'Mantenimiento': '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png',
-  'Chef Privado': '/lovable-uploads/54c0f357-4d50-4623-a49f-1446ffaf2539.png',
+  'Chef Privado': '/lovable-uploads/8920f161-fe99-4f6a-8709-c7ea46d585c8.png',
   'Lavacar': '/lovable-uploads/948ef535-f554-4a69-b690-581d742377b7.png',
 };
 
