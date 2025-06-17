@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, X, Flame, Star, MapPin, RotateCcw } from 'lucide-react';
+import { Calendar, Clock, X, Flame, Star, MapPin, RotateCcw, RefreshCw } from 'lucide-react';
 import { cn, formatTo12Hour } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { useClientBookings, ClientBooking } from '@/hooks/useClientBookings';
@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { CancelAppointmentModal } from '@/components/client/booking/CancelAppointmentModal';
 import { RescheduleAppointmentModal } from '@/components/client/booking/RescheduleAppointmentModal';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const RatingStars = ({ 
   appointmentId, 
@@ -38,9 +39,6 @@ const RatingStars = ({
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting rating:', { appointmentId, providerId, rating });
-      
-      // Use RPC call to submit rating
       const { error } = await supabase
         .rpc('submit_provider_rating', {
           p_provider_id: providerId,
@@ -49,21 +47,12 @@ const RatingStars = ({
           p_rating: rating
         });
         
-      if (error) {
-        console.error('Error submitting rating:', error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log('Rating submitted successfully');
       toast.success('¡Gracias por calificar el servicio!');
       onRated();
-      
-      // Refresh relevant data
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['providers'] });
-      queryClient.invalidateQueries({ queryKey: ['provider'] });
     } catch (error: any) {
-      console.error('Rating submission error:', error);
       toast.error(`Error al calificar: ${error.message}`);
     } finally {
       setIsSubmitting(false);
@@ -121,13 +110,10 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
     setShowCancelModal(true);
   };
   
-  // Mostrar el nombre del proveedor de forma mejorada
   const getProviderName = () => {
     if (booking.providerName && booking.providerName !== 'Proveedor desconocido') {
-      console.log(`Using provider name: ${booking.providerName}`);
       return booking.providerName;
     }
-    console.log("Fallback to generic provider name for booking:", booking.id);
     return 'Proveedor';
   };
   
@@ -143,7 +129,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
                   <Flame className="h-4 w-4" />
                 </div>
               )}
-              {/* Show instance indicator for recurring appointments */}
               {booking.isRecurringInstance && (
                 <div className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex-shrink-0">
                   Instancia
@@ -167,7 +152,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
           
           <p className="text-sm text-muted-foreground truncate">{booking.subcategory}</p>
           
-          {/* Show rescheduled indicator */}
           {booking.isRescheduled && (
             <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md border border-blue-200">
               <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
@@ -188,7 +172,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
             </span>
           </div>
           
-          {/* Show complete location */}
           <div className="flex items-start text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
             <span className="break-words leading-relaxed">
@@ -201,7 +184,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
             <span className="font-medium truncate block">{getProviderName()}</span>
           </div>
           
-          {/* Show rating component for completed appointments that haven't been rated yet */}
           {isCompleted && !booking.isRated && (
             <RatingStars 
               appointmentId={booking.id} 
@@ -210,7 +192,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
             />
           )}
           
-          {/* Only show action buttons for upcoming appointments */}
           {(booking.status === 'pending' || booking.status === 'confirmed') && (
             <div className="flex gap-2 pt-2">
               <Button 
@@ -236,7 +217,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
         </div>
       </CardContent>
 
-      {/* Cancel Modal */}
       <CancelAppointmentModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
@@ -245,7 +225,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
         appointmentDate={booking.date}
       />
 
-      {/* Reschedule Modal */}
       <RescheduleAppointmentModal
         isOpen={showRescheduleModal}
         onClose={() => setShowRescheduleModal(false)}
@@ -253,7 +232,7 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
         providerId={booking.providerId}
         isRecurring={isRecurring}
         currentDate={booking.date}
-        serviceDuration={60} // Default duration, can be fetched from service data
+        serviceDuration={60}
         recurrence={booking.recurrence}
         listingId={booking.listingId}
         recurrenceGroupId={booking.recurrenceGroupId}
@@ -286,14 +265,11 @@ const ClientBookings = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { count: recurringServicesCount } = useRecurringServices();
-  const { data: bookings, isLoading, error } = useClientBookings();
+  const { data: bookings, isLoading, error, refetch } = useClientBookings();
   
   console.log('=== CLIENT BOOKINGS PAGE ===');
   console.log(`Total bookings received: ${bookings?.length || 0}`);
-  console.log(`Recurring instances: ${bookings?.filter(b => b.isRecurringInstance).length || 0}`);
-  console.log(`Regular appointments: ${bookings?.filter(b => !b.isRecurringInstance).length || 0}`);
   
-  // Filter for upcoming and past bookings (based on date and status)
   const upcomingBookings = bookings?.filter(booking => 
     booking.status === 'pending' || booking.status === 'confirmed'
   ) || [];
@@ -302,20 +278,17 @@ const ClientBookings = () => {
     booking.status === 'completed' || booking.status === 'cancelled'
   ) || [];
   
-  console.log(`Upcoming bookings: ${upcomingBookings.length}`);
-  console.log(`Past bookings: ${pastBookings.length}`);
-  
-  // Count active recurring appointments (including individual instances)
   const activeRecurringCount = bookings?.filter(booking => 
     booking.isRecurringInstance && 
     (booking.status === 'pending' || booking.status === 'confirmed')
   ).length || 0;
   
-  console.log(`Active recurring instances: ${activeRecurringCount}`);
-  
   const handleRated = () => {
-    // Refresh the data
     queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+  };
+
+  const handleRetry = () => {
+    refetch();
   };
 
   return (
@@ -337,9 +310,25 @@ const ClientBookings = () => {
       }
     >
       {error && (
-        <div className="bg-red-50 p-4 rounded-lg mb-6 text-red-800">
-          <p>Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente más tarde.</p>
-        </div>
+        <Alert className="mb-6">
+          <AlertDescription className="space-y-4">
+            <div>
+              <h4 className="font-medium text-red-800">Error al cargar las reservas</h4>
+              <p className="text-red-600 mt-1">
+                Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente.
+              </p>
+            </div>
+            <Button 
+              onClick={handleRetry}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Reintentar
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
       
       <div className="space-y-6 px-1">
