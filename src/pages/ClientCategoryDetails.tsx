@@ -50,12 +50,12 @@ const categoryImageUrls: Record<string, string> = {
 };
 
 const serviceTypeImageUrls: Record<string, string> = {
-  'Limpieza': '/lovable-uploads/6047527f-3ae9-4185-ac20-e270f9ca6564.png',
-  'Planchado': '/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png',
-  'Jardinero': '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png',
-  'Mantenimiento': '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png',
-  'Chef Privado': '/lovable-uploads/8920f161-fe99-4f6a-8709-c7ea46d585c8.png',
-  'Lavacar': '/lovable-uploads/948ef535-f554-4a69-b690-581d742377b7.png',
+  'Limpieza': '/lovable-uploads/763bd89f-c937-40f1-8225-a9eede2cdde0.png',
+  'Planchado': '/lovable-uploads/4dd64b16-03f3-45bb-bebc-188ff928779b.png',
+  'Jardinero': '/lovable-uploads/431b8b90-dc9d-4672-a888-f58db64827dc.png',
+  'Mantenimiento': '/lovable-uploads/24e54baf-3cf6-41b3-a409-5d709cdcdea5.png',
+  'Chef Privado': '/lovable-uploads/70c88179-bab3-4858-8767-3909be90700c.png',
+  'Lavacar': '/lovable-uploads/a6adbbab-4b35-433d-bccc-28ecf1f6e144.png',
 };
 
 // Preload estratégico solo de imágenes críticas
