@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import BackButton from '@/components/ui/back-button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Globe, Dumbbell, LucideIcon } from 'lucide-react';
+import { Book, Dumbbell, Globe, LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -40,45 +39,183 @@ const categoryLabels: Record<string, string> = {
   'other': 'Otros',
 };
 
-// Preload all icons
-const preloadAllIcons = () => {
-  const allIconUrls = [
-    // Category icons
-    '/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png', // home
-    '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png', // pets
-    '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png', // classes
-    '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png', // personal-care
-    '/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png', // sports
-    '/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png', // other
-    // Service type icons
-    '/lovable-uploads/6047527f-3ae9-4185-ac20-e270f9ca6564.png', // cleaning
-    '/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png', // ironing
-    '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png', // gardening
-    '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png', // maintenance
-    '/lovable-uploads/54c0f357-4d50-4623-a49f-1446ffaf2539.png', // chef
-    '/lovable-uploads/948ef535-f554-4a69-b690-581d742377b7.png', // lavacar
-  ];
-  
-  allIconUrls.forEach(url => {
+// URLs organizadas para mejor gestión
+const categoryImageUrls: Record<string, string> = {
+  'home': '/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png',
+  'pets': '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png',
+  'classes': '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png',
+  'personal-care': '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png',
+  'sports': '/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png',
+  'other': '/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png',
+};
+
+const serviceTypeImageUrls: Record<string, string> = {
+  'Limpieza': '/lovable-uploads/6047527f-3ae9-4185-ac20-e270f9ca6564.png',
+  'Planchado': '/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png',
+  'Jardinero': '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png',
+  'Mantenimiento': '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png',
+  'Chef Privado': '/lovable-uploads/54c0f357-4d50-4623-a49f-1446ffaf2539.png',
+  'Lavacar': '/lovable-uploads/948ef535-f554-4a69-b690-581d742377b7.png',
+};
+
+// Preload estratégico solo de imágenes críticas
+const preloadCriticalImages = (categoryName: string) => {
+  // Preload del icono de categoría
+  const categoryImageUrl = categoryImageUrls[categoryName];
+  if (categoryImageUrl) {
     const img = new Image();
-    img.src = url;
+    img.src = categoryImageUrl;
+    img.crossOrigin = 'anonymous';
+  }
+  
+  // Preload de los primeros 3 service types que suelen ser más comunes
+  const criticalServices = ['Limpieza', 'Mantenimiento', 'Jardinero'];
+  criticalServices.forEach(serviceName => {
+    const serviceImageUrl = serviceTypeImageUrls[serviceName];
+    if (serviceImageUrl) {
+      const img = new Image();
+      img.src = serviceImageUrl;
+      img.crossOrigin = 'anonymous';
+    }
   });
+};
+
+// Componente optimizado para iconos de categoría
+const CategoryIcon: React.FC<{
+  categoryName: string;
+  isMobile: boolean;
+}> = ({ categoryName, isMobile }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  const iconComponent = iconMap[categoryName || ''] || Book;
+  const imageUrl = categoryImageUrls[categoryName];
+  
+  if (!imageUrl || imageError) {
+    return React.createElement(iconComponent as LucideIcon, {
+      size: isMobile ? 54 : 72,
+      strokeWidth: isMobile ? 2 : 1.8,
+      className: "text-[#1A1A1A]"
+    });
+  }
+  
+  return (
+    <div className="relative">
+      {!imageLoaded && (
+        <Skeleton className={cn(
+          "absolute inset-0 rounded",
+          isMobile ? "w-20 h-20" : "w-24 h-24"
+        )} />
+      )}
+      <img 
+        src={imageUrl}
+        alt={categoryLabels[categoryName] || categoryName}
+        className={cn(
+          "object-contain transition-opacity duration-200",
+          isMobile ? "w-20 h-20" : "w-24 h-24",
+          imageLoaded ? "opacity-100" : "opacity-0"
+        )}
+        loading="eager"
+        decoding="async"
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageError(true)}
+        style={{ imageRendering: 'crisp-edges' }}
+      />
+    </div>
+  );
+};
+
+// Componente optimizado para iconos de service types
+const ServiceTypeIcon: React.FC<{
+  serviceName: string;
+  isMobile: boolean;
+  isVisible: boolean;
+}> = ({ serviceName, isMobile, isVisible }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  const imageUrl = serviceTypeImageUrls[serviceName];
+  
+  if (!imageUrl || imageError) {
+    return null;
+  }
+  
+  return (
+    <div className={cn(
+      "flex items-center justify-center mb-3",
+      isMobile ? "mb-2" : "mb-3"
+    )}>
+      {!imageLoaded && (
+        <Skeleton className={cn(
+          "rounded",
+          isMobile ? "w-12 h-12" : "w-16 h-16"
+        )} />
+      )}
+      <img 
+        src={imageUrl}
+        alt={serviceName}
+        className={cn(
+          "object-contain transition-opacity duration-200",
+          isMobile ? "w-12 h-12" : "w-16 h-16",
+          imageLoaded ? "opacity-100" : "opacity-0"
+        )}
+        loading={isVisible ? "eager" : "lazy"}
+        decoding="async"
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageError(true)}
+        style={{ imageRendering: 'crisp-edges' }}
+      />
+    </div>
+  );
 };
 
 const ClientCategoryDetails = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
 
-  // Preload all icons on component mount
+  // Preload crítico solo al montar el componente
   useEffect(() => {
-    preloadAllIcons();
+    if (categoryName) {
+      preloadCriticalImages(categoryName);
+    }
+  }, [categoryName]);
+
+  // Intersection Observer para service types
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const serviceId = entry.target.getAttribute('data-service-id');
+            if (serviceId) {
+              setVisibleItems(prev => new Set([...prev, serviceId]));
+            }
+          }
+        });
+      },
+      { 
+        rootMargin: '50px',
+        threshold: 0.1
+      }
+    );
+
+    const timer = setTimeout(() => {
+      document.querySelectorAll('[data-service-id]').forEach(el => {
+        observer.observe(el);
+      });
+    }, 100);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, []);
 
   const { data: serviceTypes = [], isLoading } = useQuery({
     queryKey: ['service-types', categoryName],
     queryFn: async () => {
-      // First get the category ID
       const { data: categories, error: categoryError } = await supabase
         .from('service_categories')
         .select('id')
@@ -87,7 +224,6 @@ const ClientCategoryDetails = () => {
         
       if (categoryError) throw categoryError;
       
-      // Then get service types for this category
       const { data, error } = await supabase
         .from('service_types')
         .select('*')
@@ -95,7 +231,9 @@ const ClientCategoryDetails = () => {
         
       if (error) throw error;
       return data;
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const handleServiceClick = (serviceTypeId: string) => {
@@ -136,7 +274,6 @@ const ClientCategoryDetails = () => {
   }
 
   const categoryLabel = categoryLabels[categoryName || ''] || categoryName;
-  const iconComponent = iconMap[categoryName || ''] || Book;
 
   return (
     <div className="min-h-screen w-full bg-white relative">
@@ -149,73 +286,10 @@ const ClientCategoryDetails = () => {
       <div className="pt-20 pb-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            {iconComponent === 'custom-home' ? (
-              <img 
-                src="/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png"
-                alt="Hogar"
-                className={cn(
-                  "object-contain",
-                  isMobile ? "w-20 h-20" : "w-24 h-24"
-                )}
-                loading="eager"
-              />
-            ) : iconComponent === 'custom-pets' ? (
-              <img 
-                src="/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png"
-                alt="Mascotas"
-                className={cn(
-                  "object-contain",
-                  isMobile ? "w-20 h-20" : "w-24 h-24"
-                )}
-                loading="eager"
-              />
-            ) : iconComponent === 'custom-classes' ? (
-              <img 
-                src="/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png"
-                alt="Clases"
-                className={cn(
-                  "object-contain",
-                  isMobile ? "w-20 h-20" : "w-24 h-24"
-                )}
-                loading="eager"
-              />
-            ) : iconComponent === 'custom-personal-care' ? (
-              <img 
-                src="/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png"
-                alt="Cuidado Personal"
-                className={cn(
-                  "object-contain",
-                  isMobile ? "w-20 h-20" : "w-24 h-24"
-                )}
-                loading="eager"
-              />
-            ) : iconComponent === 'custom-sports' ? (
-              <img 
-                src="/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png"
-                alt="Deportes"
-                className={cn(
-                  "object-contain",
-                  isMobile ? "w-20 h-20" : "w-24 h-24"
-                )}
-                loading="eager"
-              />
-            ) : iconComponent === 'custom-other' ? (
-              <img 
-                src="/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png"
-                alt="Otros"
-                className={cn(
-                  "object-contain",
-                  isMobile ? "w-20 h-20" : "w-24 h-24"
-                )}
-                loading="eager"
-              />
-            ) : (
-              React.createElement(iconComponent as LucideIcon, {
-                size: isMobile ? 54 : 72,
-                strokeWidth: isMobile ? 2 : 1.8,
-                className: "text-[#1A1A1A]"
-              })
-            )}
+            <CategoryIcon 
+              categoryName={categoryName || ''}
+              isMobile={isMobile}
+            />
             <h1 className={cn(
               "font-bold tracking-tight text-app-text",
               isMobile ? "text-xl" : "text-2xl md:text-3xl"
@@ -231,11 +305,15 @@ const ClientCategoryDetails = () => {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
             {serviceTypes.map((serviceType) => {
-              // Check if this service type has a custom icon
-              const hasCustomIcon = serviceTypeIconMap[serviceType.name];
+              const hasCustomIcon = serviceTypeImageUrls[serviceType.name];
+              const isVisible = visibleItems.has(serviceType.id);
               
               return (
-                <div key={serviceType.id} onClick={() => handleServiceClick(serviceType.id)}>
+                <div 
+                  key={serviceType.id} 
+                  onClick={() => handleServiceClick(serviceType.id)}
+                  data-service-id={serviceType.id}
+                >
                   <Card className={cn(
                     "relative overflow-hidden cursor-pointer transition-all duration-300 ease-in-out",
                     "bg-[#F2F2F2] border border-gray-200 shadow-sm hover:shadow-md",
@@ -244,77 +322,11 @@ const ClientCategoryDetails = () => {
                     hasCustomIcon ? "h-40 min-h-40" : "h-32 min-h-32"
                   )}>
                     {hasCustomIcon && (
-                      <div className={cn(
-                        "flex items-center justify-center mb-3",
-                        isMobile ? "mb-2" : "mb-3"
-                      )}>
-                        {serviceType.name === 'Limpieza' && (
-                          <img 
-                            src="/lovable-uploads/6047527f-3ae9-4185-ac20-e270f9ca6564.png"
-                            alt="Limpieza"
-                            className={cn(
-                              "object-contain",
-                              isMobile ? "w-12 h-12" : "w-16 h-16"
-                            )}
-                            loading="eager"
-                          />
-                        )}
-                        {serviceType.name === 'Planchado' && (
-                          <img 
-                            src="/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png"
-                            alt="Planchado"
-                            className={cn(
-                              "object-contain",
-                              isMobile ? "w-12 h-12" : "w-16 h-16"
-                            )}
-                            loading="eager"
-                          />
-                        )}
-                        {serviceType.name === 'Jardinero' && (
-                          <img 
-                            src="/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png"
-                            alt="Jardinería"
-                            className={cn(
-                              "object-contain",
-                              isMobile ? "w-12 h-12" : "w-16 h-16"
-                            )}
-                            loading="eager"
-                          />
-                        )}
-                        {serviceType.name === 'Mantenimiento' && (
-                          <img 
-                            src="/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png"
-                            alt="Mantenimiento"
-                            className={cn(
-                              "object-contain",
-                              isMobile ? "w-12 h-12" : "w-16 h-16"
-                            )}
-                            loading="eager"
-                          />
-                        )}
-                        {serviceType.name === 'Chef Privado' && (
-                          <img 
-                            src="/lovable-uploads/54c0f357-4d50-4623-a49f-1446ffaf2539.png"
-                            alt="Chef Privado"
-                            className={cn(
-                              "object-contain",
-                              isMobile ? "w-12 h-12" : "w-16 h-16"
-                            )}
-                            loading="eager"
-                          />
-                        )}
-                        {serviceType.name === 'Lavacar' && (
-                          <img 
-                            src="/lovable-uploads/948ef535-f554-4a69-b690-581d742377b7.png"
-                            alt="Lavacar"
-                            className={cn(
-                              "object-contain",
-                              isMobile ? "w-12 h-12" : "w-16 h-16"
-                            )}
-                            loading="eager"
-                          />
-                        )}
-                      </div>
+                      <ServiceTypeIcon 
+                        serviceName={serviceType.name}
+                        isMobile={isMobile}
+                        isVisible={isVisible}
+                      />
                     )}
                     <h3 className={cn(
                       "text-center font-semibold text-[#1A1A1A] leading-tight",

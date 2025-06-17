@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
@@ -33,30 +33,119 @@ const categoryLabels: Record<string, string> = {
 // Nuevo orden específico para las categorías
 const categoryOrder = ['home', 'pets', 'classes', 'personal-care', 'sports', 'other'];
 
-// Preload all category icons
-const preloadCategoryIcons = () => {
-  const iconUrls = [
-    '/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png', // home
-    '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png', // pets
-    '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png', // classes
-    '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png', // personal-care
-    '/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png', // sports
-    '/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png', // other
-  ];
+// URLs de imágenes para preload estratégico
+const categoryImageUrls: Record<string, string> = {
+  'home': '/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png',
+  'pets': '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png',
+  'classes': '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png',
+  'personal-care': '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png',
+  'sports': '/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png',
+  'other': '/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png',
+};
+
+// Preload estratégico solo de las primeras 4 imágenes (las más visibles)
+const preloadCriticalIcons = () => {
+  const criticalCategories = ['home', 'pets', 'classes', 'personal-care'];
   
-  iconUrls.forEach(url => {
+  criticalCategories.forEach(category => {
     const img = new Image();
-    img.src = url;
+    img.src = categoryImageUrls[category];
+    // Configurar cache headers
+    img.crossOrigin = 'anonymous';
   });
+};
+
+// Componente para manejar imágenes con lazy loading y fallback
+const CategoryIcon: React.FC<{
+  categoryName: string;
+  isMobile: boolean;
+  isVisible: boolean;
+}> = ({ categoryName, isMobile, isVisible }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  const iconComponent = iconMap[categoryName] || Book;
+  const imageUrl = categoryImageUrls[categoryName];
+  
+  if (!imageUrl || imageError) {
+    // Fallback a icono Lucide si no hay imagen personalizada o hay error
+    return React.createElement(iconComponent as LucideIcon, {
+      size: isMobile ? 54 : 72,
+      strokeWidth: isMobile ? 2 : 1.8,
+      className: "text-[#1A1A1A]"
+    });
+  }
+  
+  return (
+    <div className="relative">
+      {!imageLoaded && (
+        <Skeleton className={cn(
+          "absolute inset-0 rounded",
+          isMobile ? "w-20 h-20" : "w-24 h-24"
+        )} />
+      )}
+      <img 
+        src={imageUrl}
+        alt={categoryLabels[categoryName] || categoryName}
+        className={cn(
+          "object-contain transition-opacity duration-200",
+          isMobile ? "w-20 h-20" : "w-24 h-24",
+          imageLoaded ? "opacity-100" : "opacity-0"
+        )}
+        loading={isVisible ? "eager" : "lazy"}
+        decoding="async"
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageError(true)}
+        style={{
+          imageRendering: 'crisp-edges',
+          // Hint al navegador para optimizar caching
+          willChange: imageLoaded ? 'auto' : 'opacity'
+        }}
+      />
+    </div>
+  );
 };
 
 const ClientCategoryView = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
 
-  // Preload icons on component mount
+  // Preload crítico solo al montar el componente
   useEffect(() => {
-    preloadCategoryIcons();
+    preloadCriticalIcons();
+  }, []);
+
+  // Intersection Observer para lazy loading más preciso
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const categoryName = entry.target.getAttribute('data-category');
+            if (categoryName) {
+              setVisibleItems(prev => new Set([...prev, categoryName]));
+            }
+          }
+        });
+      },
+      { 
+        rootMargin: '50px',
+        threshold: 0.1
+      }
+    );
+
+    // Observar elementos después de que se rendericen
+    const timer = setTimeout(() => {
+      document.querySelectorAll('[data-category]').forEach(el => {
+        observer.observe(el);
+      });
+    }, 100);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, []);
 
   const { data: fetchedCategories = [], isLoading } = useQuery({
@@ -68,7 +157,9 @@ const ClientCategoryView = () => {
         
       if (error) throw error;
       return data;
-    }
+    },
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+    gcTime: 10 * 60 * 1000, // Mantener en cache por 10 minutos
   });
 
   // Organizar categorías en el orden deseado
@@ -106,9 +197,7 @@ const ClientCategoryView = () => {
     );
   }
 
-  // Define optimized icon size and stroke width for mobile - increased by 50%
-  const iconSize = isMobile ? 54 : 72; // Further increased for mobile
-  const strokeWidth = isMobile ? 2 : 1.8;
+  const textSizeClass = isMobile ? 'text-base font-semibold' : 'text-lg';
   
   return (
     <PageContainer
@@ -127,88 +216,27 @@ const ClientCategoryView = () => {
           const category = categories.find(c => c.name === categoryName);
           if (!category) return null;
           
-          // Obtener el icono según el nombre de la categoría
-          const iconComponent = iconMap[category.name] || Book;
-          
-          const textSizeClass = isMobile ? 'text-base font-semibold' : 'text-lg'; // Increased text size on mobile
+          const isVisible = visibleItems.has(categoryName);
           
           return (
-            <div key={category.id} onClick={() => handleCategoryClick(category.name)}>
+            <div 
+              key={category.id} 
+              onClick={() => handleCategoryClick(category.name)}
+              data-category={categoryName}
+            >
               <Card className={cn(
                 "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
-                isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48" // Increased height and padding on mobile
+                isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48"
               )}>
                 <div className={cn(
                   "flex items-center justify-center",
                   isMobile ? "mb-3" : "mb-4"
                 )}>
-                  {iconComponent === 'custom-home' ? (
-                    <img 
-                      src="/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png"
-                      alt="Hogar"
-                      className={cn(
-                        "object-contain",
-                        isMobile ? "w-20 h-20" : "w-24 h-24" // Increased size on mobile
-                      )}
-                      loading="eager"
-                    />
-                  ) : iconComponent === 'custom-pets' ? (
-                    <img 
-                      src="/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png"
-                      alt="Mascotas"
-                      className={cn(
-                        "object-contain",
-                        isMobile ? "w-20 h-20" : "w-24 h-24"
-                      )}
-                      loading="eager"
-                    />
-                  ) : iconComponent === 'custom-classes' ? (
-                    <img 
-                      src="/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png"
-                      alt="Clases"
-                      className={cn(
-                        "object-contain",
-                        isMobile ? "w-20 h-20" : "w-24 h-24"
-                      )}
-                      loading="eager"
-                    />
-                  ) : iconComponent === 'custom-personal-care' ? (
-                    <img 
-                      src="/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png"
-                      alt="Cuidado Personal"
-                      className={cn(
-                        "object-contain",
-                        isMobile ? "w-20 h-20" : "w-24 h-24"
-                      )}
-                      loading="eager"
-                    />
-                  ) : iconComponent === 'custom-sports' ? (
-                    <img 
-                      src="/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png"
-                      alt="Deportes"
-                      className={cn(
-                        "object-contain",
-                        isMobile ? "w-20 h-20" : "w-24 h-24"
-                      )}
-                      loading="eager"
-                    />
-                  ) : iconComponent === 'custom-other' ? (
-                    <img 
-                      src="/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png"
-                      alt="Otros"
-                      className={cn(
-                        "object-contain",
-                        isMobile ? "w-20 h-20" : "w-24 h-24"
-                      )}
-                      loading="eager"
-                    />
-                  ) : (
-                    React.createElement(iconComponent as LucideIcon, {
-                      size: iconSize,
-                      strokeWidth: strokeWidth,
-                      className: "text-[#1A1A1A]"
-                    })
-                  )}
+                  <CategoryIcon 
+                    categoryName={categoryName}
+                    isMobile={isMobile}
+                    isVisible={isVisible}
+                  />
                 </div>
                 <h3 className={cn(
                   "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
