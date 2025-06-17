@@ -46,26 +46,29 @@ const PageContainer: React.FC<PageContainerProps> = ({
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            isMobile && isCenteredLayout ? "mb-2" : (isMobile ? "mb-6" : "mb-6")
+            // Eliminar completamente el margin-bottom para reducir el espacio
+            isMobile && isCenteredLayout ? "mb-0" : (isMobile ? "mb-3" : "mb-4")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
               <h1 className={cn(
                 "font-bold tracking-tight text-app-text text-center",
-                isMobile ? "text-xl mb-1" : "text-2xl md:text-3xl mb-1"
+                isMobile ? "text-xl mb-0" : "text-2xl md:text-3xl mb-0"
               )}>{title}</h1>
             </div>
             {subtitle && <div className={cn(
               "text-app-text/70 text-center w-full",
-              isMobile ? "text-base" : "text-lg mt-1"
+              isMobile ? "text-base mt-0" : "text-lg mt-0"
             )}>{subtitle}</div>}
             {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
           </div>
           
-          {/* Content area */}
+          {/* Content area - reducir aún más el espacio */}
           <div className={cn(
             "animate-slide-up flex justify-center w-full",
-            isCenteredLayout ? "flex-1 items-center justify-center" : "flex-1 items-start"
+            isCenteredLayout ? "flex-1 items-center justify-center" : "flex-1 items-start",
+            // Reducir el margen superior para acercar más las categorías al título
+            isMobile && isCenteredLayout ? "mt-2" : "mt-4"
           )}>
             <div className="w-full flex justify-center">
               {children}
