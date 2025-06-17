@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
@@ -37,6 +36,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
+    console.log('=== STARTING LOGIN ===');
+    console.log('Email:', email);
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -45,17 +46,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        console.error('Login error:', error);
         setIsLoading(false);
         return { success: false, error: error.message };
       }
 
       if (data.user) {
+        console.log('Auth user:', data.user.id);
+        
         // Get user profile
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('users')
           .select('*')
           .eq('id', data.user.id)
           .single();
+
+        if (profileError) {
+          console.error('Profile error:', profileError);
+          setIsLoading(false);
+          return { success: false, error: 'Error al cargar perfil' };
+        }
+
+        console.log('User profile:', profile);
 
         const userData: User = {
           id: data.user.id,
@@ -70,14 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           condominiumId: profile?.condominium_id || '',
           condominiumName: profile?.condominium_name || profile?.condominium_text || '',
           houseNumber: profile?.house_number || '',
-          apartment: '', // Set empty since it's not in the database
+          apartment: '',
         };
         
+        console.log('Setting user data:', userData);
         setUser(userData);
         setIsLoading(false);
         return { success: true };
       }
     } catch (error) {
+      console.error('Login exception:', error);
       setIsLoading(false);
       return { success: false, error: 'Error de conexión' };
     }
@@ -87,9 +101,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    console.log('=== LOGGING OUT ===');
     try {
       await supabase.auth.signOut();
       setUser(null);
+      console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
       setUser(null);
@@ -107,6 +123,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser({ ...user, avatarUrl });
     }
   };
+
+  console.log('AuthProvider render - user:', user?.id, 'isAuthenticated:', !!user);
 
   return (
     <AuthContext.Provider value={{ 
