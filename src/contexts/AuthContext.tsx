@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
-// Define the user types with different roles
 export interface User {
   id: string;
   name: string;
@@ -21,7 +20,6 @@ export interface User {
   offerBuildings?: string[];
 }
 
-// Authentication context interface
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -36,76 +34,31 @@ interface AuthContextType {
   isAdmin: boolean;
 }
 
-// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider for the context
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
+    console.log('=== AUTH CONTEXT INITIALIZATION ===');
+    
     let mounted = true;
     
-    // Set loading timeout as safety net
-    const loadingTimeout = setTimeout(() => {
-      if (mounted) {
-        setIsLoading(false);
-      }
-    }, 3000);
-
-    const initializeAuth = async () => {
-      try {
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-        
-        if (error) {
-          console.error('Error obteniendo sesión inicial:', error);
-          setIsLoading(false);
-          clearTimeout(loadingTimeout);
-          return;
-        }
-
-        if (initialSession?.user) {
-          await loadUserProfile(initialSession.user);
-          setSession(initialSession);
-        } else {
-          // Check localStorage as fallback
-          const storedUser = localStorage.getItem('gato_user');
-          if (storedUser) {
-            try {
-              const parsedUser = JSON.parse(storedUser);
-              setUser(parsedUser);
-            } catch (error) {
-              console.error('Error parseando usuario de localStorage:', error);
-              localStorage.removeItem('gato_user');
-            }
-          }
-        }
-        
-        setIsLoading(false);
-        clearTimeout(loadingTimeout);
-        
-      } catch (error) {
-        console.error('Error en initializeAuth:', error);
-        if (mounted) {
-          setIsLoading(false);
-          clearTimeout(loadingTimeout);
-        }
-      }
-    };
-
+    // Setup auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
+        console.log('Auth state change:', event, !!session);
         setSession(session);
         
         if (session?.user && event !== 'SIGNED_OUT') {
+          console.log('Loading user profile for:', session.user.id);
           await loadUserProfile(session.user);
         } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing state');
           setUser(null);
           localStorage.removeItem('gato_user');
         }
@@ -114,17 +67,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    initializeAuth();
+    // Then check for existing session
+    const checkSession = async () => {
+      try {
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('Initial session check:', !!initialSession);
+        
+        if (initialSession?.user) {
+          setSession(initialSession);
+          await loadUserProfile(initialSession.user);
+        } else {
+          // Check localStorage as fallback
+          const storedUser = localStorage.getItem('gato_user');
+          if (storedUser) {
+            try {
+              const parsedUser = JSON.parse(storedUser);
+              console.log('Restored user from localStorage:', parsedUser.role);
+              setUser(parsedUser);
+            } catch (error) {
+              console.error('Error parsing stored user:', error);
+              localStorage.removeItem('gato_user');
+            }
+          }
+        }
+        
+        setIsLoading(false);
+        
+      } catch (error) {
+        console.error('Error in session check:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    checkSession();
 
     return () => {
       mounted = false;
-      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
+      console.log('Loading profile for user:', supabaseUser.id);
+      
       const { data: profile, error } = await supabase
         .from('users')
         .select('*')
@@ -132,14 +129,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error cargando perfil de usuario:', error);
+        console.error('Error loading user profile:', error);
         return;
       }
 
       if (profile) {
         const userData: User = {
           id: profile.id,
-          name: profile.name || supabaseUser.user_metadata?.name || '',
+          name: profile.name || '',
           email: profile.email || supabaseUser.email || '',
           phone: profile.phone || '',
           residenciaId: profile.residencia_id || '',
@@ -153,30 +150,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           condominiumName: profile.condominium_name || '',
         };
 
+        console.log('Setting user data:', { role: userData.role, name: userData.name });
         setUser(userData);
         localStorage.setItem('gato_user', JSON.stringify(userData));
       }
     } catch (error) {
-      console.error('Excepción cargando perfil de usuario:', error);
+      console.error('Exception loading user profile:', error);
     }
   };
 
-  // Login function
   const login = (userData: User) => {
+    console.log('Manual login:', userData.role, userData.name);
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
     setIsLoading(false);
   };
 
-  // Register function
   const register = (userData: User) => {
+    console.log('Manual register:', userData.role, userData.name);
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
     setIsLoading(false);
   };
 
-  // Logout function
   const logout = async () => {
+    console.log('Logging out user');
     setIsLoading(true);
     try {
       await supabase.auth.signOut();
@@ -184,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       localStorage.removeItem('gato_user');
     } catch (error) {
-      console.error('Error durante logout:', error);
+      console.error('Error during logout:', error);
       setUser(null);
       setSession(null);
       localStorage.removeItem('gato_user');
@@ -193,7 +191,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  // Update user payment method
   const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
     if (user) {
       const updatedUser = { ...user, hasPaymentMethod };
@@ -210,7 +207,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Check if the user is a client, provider, or admin
   const isClient = user?.role === 'client';
   const isProvider = user?.role === 'provider';
   const isAdmin = user?.role === 'admin';
@@ -234,7 +230,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Hook to use the context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

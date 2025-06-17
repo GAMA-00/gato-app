@@ -13,20 +13,29 @@ export const useSupabaseAuth = () => {
     setLoading(true);
     
     try {
+      console.log('=== STARTING SIGN IN PROCESS ===');
+      console.log('Email:', email);
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
+      console.log('Auth response:', { data: !!data, error: !!error });
+
       if (error) {
+        console.error('Sign in error:', error);
         setLoading(false);
         return { data: null, error };
       }
 
       if (!data?.user || !data?.session) {
+        console.error('Missing user or session in response');
         setLoading(false);
         return { data: null, error: { message: 'Error en la respuesta de autenticación' } };
       }
+
+      console.log('User authenticated successfully:', data.user.id);
 
       // Obtener perfil de usuario
       const { data: profile, error: profileError } = await supabase
@@ -35,14 +44,17 @@ export const useSupabaseAuth = () => {
         .eq('id', data.user.id)
         .single();
 
+      console.log('Profile fetch result:', { profile: !!profile, profileError: !!profileError });
+
       if (profileError || !profile) {
+        console.error('Profile error:', profileError);
         setLoading(false);
         return { data: null, error: profileError || { message: 'No se encontró el perfil de usuario' } };
       }
 
       const userData = {
         id: profile.id,
-        name: profile.name || data.user.user_metadata?.name || '',
+        name: profile.name || '',
         email: profile.email || data.user.email || '',
         phone: profile.phone || '',
         residenciaId: profile.residencia_id || '',
@@ -56,11 +68,16 @@ export const useSupabaseAuth = () => {
         condominiumName: profile.condominium_name || '',
       };
 
+      console.log('Processed user data:', { role: userData.role, name: userData.name });
+
       login(userData);
       setLoading(false);
+      
+      console.log('=== SIGN IN COMPLETE ===');
       return { data, error: null };
       
     } catch (error: any) {
+      console.error('Sign in exception:', error);
       setLoading(false);
       return { data: null, error: { message: error.message || 'Error inesperado durante el inicio de sesión' } };
     }
@@ -73,7 +90,7 @@ export const useSupabaseAuth = () => {
     
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         options: {
           emailRedirectTo: redirectUrl
@@ -93,7 +110,7 @@ export const useSupabaseAuth = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (!error) {
-        navigate('/', { replace: true });
+        navigate('/landing', { replace: true });
       }
       setLoading(false);
       return { error };
