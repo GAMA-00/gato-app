@@ -49,17 +49,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('=== AuthContext - Initializing ===');
     
-    // Set up auth state listener FIRST
+    let mounted = true;
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('=== Auth State Change ===', { event, session: !!session });
+        
+        if (!mounted) return;
+        
         setSession(session);
         
         if (session?.user && event !== 'SIGNED_OUT') {
           console.log('Session found, loading user profile...');
           await loadUserProfile(session.user);
         } else {
-          // User logged out or no session
           console.log('No session or signed out, clearing user data');
           setUser(null);
           localStorage.removeItem('gato_user');
@@ -68,31 +72,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('=== Initial Session Check ===', { session: !!session });
-      setSession(session);
-      
-      if (session?.user) {
-        loadUserProfile(session.user);
-      } else {
-        // Try to load from localStorage as fallback
-        const storedUser = localStorage.getItem('gato_user');
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            console.log('=== Loading user from localStorage ===', parsedUser);
-            setUser(parsedUser);
-          } catch (error) {
-            console.error('Error parsing stored user:', error);
-            localStorage.removeItem('gato_user');
+    // Check for existing session
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('=== Initial Session Check ===', { session: !!session });
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        
+        if (session?.user) {
+          await loadUserProfile(session.user);
+        } else {
+          // Try to load from localStorage as fallback
+          const storedUser = localStorage.getItem('gato_user');
+          if (storedUser) {
+            try {
+              const parsedUser = JSON.parse(storedUser);
+              console.log('=== Loading user from localStorage ===', parsedUser);
+              setUser(parsedUser);
+            } catch (error) {
+              console.error('Error parsing stored user:', error);
+              localStorage.removeItem('gato_user');
+            }
           }
+          setIsLoading(false);
         }
-        setIsLoading(false);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
@@ -118,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: profile.email || supabaseUser.email || '',
           phone: profile.phone || '',
           residenciaId: profile.residencia_id || '',
-          buildingName: '', // Will be populated from residencias lookup if needed
+          buildingName: '',
           hasPaymentMethod: profile.has_payment_method || false,
           role: profile.role as 'client' | 'provider' | 'admin',
           avatarUrl: profile.avatar_url || '',
@@ -157,10 +177,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = async () => {
     console.log('=== AuthContext - Logout ===');
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    localStorage.removeItem('gato_user');
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      localStorage.removeItem('gato_user');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Clear local state even if Supabase call fails
+      setUser(null);
+      setSession(null);
+      localStorage.removeItem('gato_user');
+    }
   };
   
   // Update user payment method
@@ -173,7 +201,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update user avatar
   const updateUserAvatar = (avatarUrl: string) => {
     console.log('=== AuthContext - Update Avatar ===', avatarUrl);
     

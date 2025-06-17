@@ -25,9 +25,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const targetRole = searchParams.get('role'); // 'client' or 'provider'
+  const targetRole = searchParams.get('role');
   const { signIn, loading: authLoading } = useSupabaseAuth();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: contextLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -41,17 +41,17 @@ const Login = () => {
 
   // Redirect authenticated users
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && !contextLoading) {
       console.log('User already authenticated, redirecting...', user);
       if (user.role === 'provider') {
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       } else if (user.role === 'client') {
-        navigate('/client');
+        navigate('/client', { replace: true });
       } else {
-        navigate('/profile');
+        navigate('/profile', { replace: true });
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, contextLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
     console.log('Login attempt started for email:', values.email);
@@ -65,22 +65,31 @@ const Login = () => {
       
       if (error) {
         console.error('Login error:', error);
-        setLoginError(error.message || 'Error durante el inicio de sesión');
+        let errorMessage = 'Error durante el inicio de sesión';
+        
+        // Manejar errores específicos de Supabase
+        if (error.message?.includes('Invalid login credentials')) {
+          errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+        } else if (error.message?.includes('Email not confirmed')) {
+          errorMessage = 'Por favor confirma tu email antes de iniciar sesión.';
+        } else if (error.message?.includes('Too many requests')) {
+          errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        setLoginError(errorMessage);
         setIsSubmitting(false);
         return;
       }
       
-      if (data?.user) {
-        console.log('Login successful, user data received');
-        // Don't set loading to false here - let the auth context handle navigation
-      } else {
-        console.warn('Login completed but no user data received');
-        setLoginError('Error inesperado durante el inicio de sesión');
-        setIsSubmitting(false);
-      }
+      // Si llegamos aquí, el login fue exitoso
+      // El hook useSupabaseAuth ya maneja la navegación
+      console.log('Login successful');
+      
     } catch (error: any) {
       console.error('Unexpected login error:', error);
-      setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
+      setLoginError('Error inesperado durante el inicio de sesión');
       setIsSubmitting(false);
     }
   };
@@ -114,7 +123,7 @@ const Login = () => {
   };
 
   const handleBackToLanding = () => {
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   const getTitle = () => {
@@ -128,15 +137,28 @@ const Login = () => {
     return '/register';
   };
 
-  const isLoading = authLoading || isSubmitting;
+  const isLoading = authLoading || isSubmitting || contextLoading;
 
   console.log('Login page render state:', {
     isLoading,
     authLoading,
     isSubmitting,
+    contextLoading,
     isAuthenticated,
     userRole: user?.role
   });
+
+  // Show loading while context is initializing
+  if (contextLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin mx-auto h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
+          <p className="text-muted-foreground">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
