@@ -39,19 +39,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    
+    // Configurar listener de cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
+        console.log('Auth event:', event);
         
-        console.log('Auth state change:', event, !!session);
-        setSession(session);
-        
-        if (session?.user && event !== 'SIGNED_OUT') {
+        if (session?.user) {
           await loadUserProfile(session.user);
         } else {
           setUser(null);
@@ -62,32 +57,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    const initializeAuth = async () => {
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-        
-        if (initialSession?.user) {
-          setSession(initialSession);
-          await loadUserProfile(initialSession.user);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error inicializando auth:', error);
-        if (mounted) {
-          setIsLoading(false);
-        }
+    // Verificar sesión inicial
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        await loadUserProfile(session.user);
       }
+      
+      setIsLoading(false);
     };
 
-    initializeAuth();
+    checkInitialSession();
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
@@ -139,20 +122,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    setIsLoading(true);
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      localStorage.removeItem('gato_user');
-    } catch (error) {
-      console.error('Error durante logout:', error);
-      setUser(null);
-      setSession(null);
-      localStorage.removeItem('gato_user');
-    } finally {
-      setIsLoading(false);
-    }
+    await supabase.auth.signOut();
+    setUser(null);
+    localStorage.removeItem('gato_user');
   };
   
   const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
@@ -178,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
-      isAuthenticated: !!user && !!session, 
+      isAuthenticated: !!user, 
       login, 
       register, 
       logout,

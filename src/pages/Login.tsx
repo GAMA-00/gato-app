@@ -24,7 +24,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetRole = searchParams.get('role');
-  const { signIn, loading: authLoading } = useSupabaseAuth();
+  const { signIn, loading } = useSupabaseAuth();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   
@@ -38,8 +38,6 @@ const Login = () => {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      console.log('Usuario autenticado, redirigiendo:', user.role);
-      
       if (user.role === 'provider') {
         navigate('/dashboard', { replace: true });
       } else if (user.role === 'client') {
@@ -53,29 +51,21 @@ const Login = () => {
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
     
-    try {
-      const { data, error } = await signIn(values.email, values.password);
+    const { data, error } = await signIn(values.email, values.password);
+    
+    if (error) {
+      let errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
       
-      if (error) {
-        let errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
-        
-        if (error.message?.includes('Email not confirmed')) {
-          errorMessage = 'Por favor confirma tu email antes de iniciar sesión.';
-        } else if (error.message?.includes('Too many requests')) {
-          errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
-        }
-        
-        setLoginError(errorMessage);
-        toast.error(errorMessage);
-      } else if (data?.user) {
-        toast.success('¡Inicio de sesión exitoso!');
+      if (error.message?.includes('Email not confirmed')) {
+        errorMessage = 'Por favor confirma tu email antes de iniciar sesión.';
+      } else if (error.message?.includes('Too many requests')) {
+        errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
       }
       
-    } catch (error: any) {
-      console.error('Error durante login:', error);
-      const errorMessage = 'Error inesperado durante el inicio de sesión';
       setLoginError(errorMessage);
       toast.error(errorMessage);
+    } else if (data?.user) {
+      toast.success('¡Inicio de sesión exitoso!');
     }
   };
 
@@ -108,7 +98,7 @@ const Login = () => {
           variant="outline" 
           onClick={() => navigate('/landing', { replace: true })}
           className="flex items-center gap-2"
-          disabled={authLoading}
+          disabled={loading}
         >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio
@@ -145,7 +135,7 @@ const Login = () => {
                           placeholder="correo@ejemplo.com" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={authLoading}
+                          disabled={loading}
                         />
                       </div>
                     </FormControl>
@@ -168,7 +158,7 @@ const Login = () => {
                           placeholder="••••••" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={authLoading}
+                          disabled={loading}
                         />
                       </div>
                     </FormControl>
@@ -180,9 +170,9 @@ const Login = () => {
               <Button 
                 type="submit" 
                 className="w-full h-12"
-                disabled={authLoading}
+                disabled={loading}
               >
-                {authLoading ? (
+                {loading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
                     <span>Iniciando sesión...</span>
