@@ -65,12 +65,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: (profile?.role === 'provider') ? 'provider' : 'client',
           avatarUrl: profile?.avatar_url || '',
           residenciaId: profile?.residencia_id || '',
-          buildingName: profile?.building_name || '',
+          buildingName: profile?.condominium_name || profile?.condominium_text || '',
           hasPaymentMethod: profile?.has_payment_method || false,
           condominiumId: profile?.condominium_id || '',
           condominiumName: profile?.condominium_name || profile?.condominium_text || '',
           houseNumber: profile?.house_number || '',
-          apartment: profile?.apartment || '',
+          apartment: '', // Set empty since it's not in the database
         };
         
         setUser(userData);
