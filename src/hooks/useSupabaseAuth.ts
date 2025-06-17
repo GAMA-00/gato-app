@@ -8,32 +8,47 @@ export const useSupabaseAuth = () => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    setLoading(false);
-    return { data, error };
+      setLoading(false);
+      return { data, error };
+    } catch (error) {
+      setLoading(false);
+      return { data: null, error };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    setLoading(false);
-    return { data, error };
+      setLoading(false);
+      return { data, error };
+    } catch (error) {
+      setLoading(false);
+      return { data: null, error };
+    }
   };
 
   const signOut = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signOut();
-    setLoading(false);
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      setLoading(false);
+      return { error };
+    } catch (error) {
+      setLoading(false);
+      return { error };
+    }
   };
 
   return {

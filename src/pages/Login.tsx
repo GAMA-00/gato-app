@@ -38,6 +38,8 @@ const Login = () => {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
+      console.log('User authenticated, redirecting...', user.role);
+      
       if (user.role === 'provider') {
         navigate('/dashboard', { replace: true });
       } else if (user.role === 'client') {
@@ -51,21 +53,27 @@ const Login = () => {
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
     
-    const { data, error } = await signIn(values.email, values.password);
-    
-    if (error) {
-      let errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+    try {
+      const { data, error } = await signIn(values.email, values.password);
       
-      if (error.message?.includes('Email not confirmed')) {
-        errorMessage = 'Por favor confirma tu email antes de iniciar sesión.';
-      } else if (error.message?.includes('Too many requests')) {
-        errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
+      if (error) {
+        let errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+        
+        if (error.message?.includes('Email not confirmed')) {
+          errorMessage = 'Por favor confirma tu email antes de iniciar sesión.';
+        } else if (error.message?.includes('Too many requests')) {
+          errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
+        }
+        
+        setLoginError(errorMessage);
+        toast.error(errorMessage);
+      } else if (data?.user) {
+        toast.success('¡Inicio de sesión exitoso!');
       }
-      
-      setLoginError(errorMessage);
-      toast.error(errorMessage);
-    } else if (data?.user) {
-      toast.success('¡Inicio de sesión exitoso!');
+    } catch (error) {
+      console.error('Login error:', error);
+      setLoginError('Error al iniciar sesión. Intenta de nuevo.');
+      toast.error('Error al iniciar sesión. Intenta de nuevo.');
     }
   };
 

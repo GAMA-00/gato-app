@@ -39,38 +39,64 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Configurar listener de cambios de autenticación
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setIsLoading(false);
+            setIsInitialized(true);
+          }
+          return;
+        }
+
+        if (session?.user && mounted) {
+          await loadUserProfile(session.user);
+        }
+
+        if (mounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted || !isInitialized) return;
+
         console.log('Auth event:', event);
         
-        if (session?.user) {
-          await loadUserProfile(session.user);
-        } else {
+        if (event === 'SIGNED_OUT' || !session?.user) {
           setUser(null);
           localStorage.removeItem('gato_user');
+        } else if (event === 'SIGNED_IN' && session?.user) {
+          await loadUserProfile(session.user);
         }
-        
-        setIsLoading(false);
       }
     );
 
-    // Verificar sesión inicial
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        await loadUserProfile(session.user);
-      }
-      
-      setIsLoading(false);
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
     };
-
-    checkInitialSession();
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
@@ -82,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error cargando perfil:', error);
+        console.error('Error loading profile:', error);
         return;
       }
 
@@ -107,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('gato_user', JSON.stringify(userData));
       }
     } catch (error) {
-      console.error('Excepción cargando perfil:', error);
+      console.error('Exception loading profile:', error);
     }
   };
 
@@ -122,9 +148,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    localStorage.removeItem('gato_user');
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      localStorage.removeItem('gato_user');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
   
   const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
