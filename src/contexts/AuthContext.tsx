@@ -41,67 +41,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AuthProvider: Initializing auth...');
-    
-    // Set up auth state listener
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Check current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user && mounted) {
+          await loadUserFromSession(session.user);
+        }
+        
+        if (mounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('AuthProvider: Auth state change:', event, !!session);
+        if (!mounted) return;
+
+        console.log('Auth event:', event);
         
-        if (event === 'SIGNED_OUT' || !session?.user) {
-          console.log('AuthProvider: User signed out');
+        if (event === 'SIGNED_OUT' || !session) {
           setUser(null);
           setIsLoading(false);
           return;
         }
         
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('AuthProvider: User signed in, loading profile...');
-          await loadUserProfile(session.user);
+          await loadUserFromSession(session.user);
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
 
-    // Check initial session
-    const checkInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('AuthProvider: Initial session check:', !!session);
-        
-        if (session?.user) {
-          await loadUserProfile(session.user);
-        }
-      } catch (error) {
-        console.error('AuthProvider: Error checking session:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkInitialSession();
+    initializeAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  const loadUserProfile = async (supabaseUser: SupabaseUser) => {
+  const loadUserFromSession = async (supabaseUser: SupabaseUser) => {
     try {
-      console.log('AuthProvider: Loading profile for user:', supabaseUser.id);
-      
-      const { data: profile, error } = await supabase
+      // Try to get user profile
+      const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
 
-      if (error || !profile) {
-        console.log('AuthProvider: No profile found, creating basic user');
+      if (profile) {
+        const userData: User = {
+          id: profile.id,
+          name: profile.name || supabaseUser.email?.split('@')[0] || 'Usuario',
+          email: profile.email || supabaseUser.email || '',
+          phone: profile.phone || '',
+          residenciaId: profile.residencia_id || '',
+          buildingName: '',
+          hasPaymentMethod: profile.has_payment_method || false,
+          role: profile.role as 'client' | 'provider' | 'admin',
+          avatarUrl: profile.avatar_url || '',
+          apartment: profile.house_number || '',
+          houseNumber: profile.house_number || '',
+          condominiumId: profile.condominium_id || '',
+          condominiumName: profile.condominium_name || '',
+        };
+        setUser(userData);
+      } else {
+        // Create basic user if no profile exists
         const basicUser: User = {
           id: supabaseUser.id,
-          name: supabaseUser.user_metadata?.name || '',
+          name: supabaseUser.email?.split('@')[0] || 'Usuario',
           email: supabaseUser.email || '',
           phone: '',
           residenciaId: '',
@@ -114,36 +134,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           condominiumId: '',
           condominiumName: '',
         };
-        
         setUser(basicUser);
-        return;
       }
-
-      const userData: User = {
-        id: profile.id,
-        name: profile.name || '',
-        email: profile.email || supabaseUser.email || '',
-        phone: profile.phone || '',
-        residenciaId: profile.residencia_id || '',
-        buildingName: '',
-        hasPaymentMethod: profile.has_payment_method || false,
-        role: profile.role as 'client' | 'provider' | 'admin',
-        avatarUrl: profile.avatar_url || '',
-        apartment: profile.house_number || '',
-        houseNumber: profile.house_number || '',
-        condominiumId: profile.condominium_id || '',
-        condominiumName: profile.condominium_name || '',
-      };
-
-      console.log('AuthProvider: Profile loaded successfully:', userData);
-      setUser(userData);
-      
     } catch (error) {
-      console.error('AuthProvider: Error loading profile:', error);
-      // Set basic user to prevent blocking
+      console.error('Error loading user profile:', error);
+      // Set basic user even if profile loading fails
       const basicUser: User = {
         id: supabaseUser.id,
-        name: supabaseUser.user_metadata?.name || '',
+        name: supabaseUser.email?.split('@')[0] || 'Usuario',
         email: supabaseUser.email || '',
         phone: '',
         residenciaId: '',
@@ -156,50 +154,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         condominiumId: '',
         condominiumName: '',
       };
-      
       setUser(basicUser);
     }
   };
 
   const login = (userData: User) => {
-    console.log('AuthProvider: Manual login:', userData);
     setUser(userData);
+    setIsLoading(false);
   };
 
   const register = (userData: User) => {
-    console.log('AuthProvider: Manual register:', userData);
     setUser(userData);
+    setIsLoading(false);
   };
 
   const logout = async () => {
     try {
-      console.log('AuthProvider: Logging out...');
       await supabase.auth.signOut();
       setUser(null);
     } catch (error) {
-      console.error('AuthProvider: Error signing out:', error);
+      console.error('Logout error:', error);
+      setUser(null);
     }
   };
   
   const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
     if (user) {
-      const updatedUser = { ...user, hasPaymentMethod };
-      setUser(updatedUser);
+      setUser({ ...user, hasPaymentMethod });
     }
   };
 
   const updateUserAvatar = (avatarUrl: string) => {
     if (user) {
-      const updatedUser = { ...user, avatarUrl };
-      setUser(updatedUser);
+      setUser({ ...user, avatarUrl });
     }
   };
 
   const isClient = user?.role === 'client';
   const isProvider = user?.role === 'provider';
   const isAdmin = user?.role === 'admin';
-
-  console.log('AuthProvider: Current state - user:', !!user, 'loading:', isLoading);
 
   return (
     <AuthContext.Provider value={{ 

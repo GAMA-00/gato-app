@@ -36,23 +36,26 @@ const Login = () => {
     }
   });
 
-  // Simple redirect logic
+  // Redirect authenticated users
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      console.log('Login: Redirecting authenticated user with role:', user.role);
+    if (isAuthenticated && user && !isLoading) {
+      console.log('Redirecting authenticated user:', user.role);
       
-      if (user.role === 'provider') {
-        navigate('/dashboard', { replace: true });
-      } else if (user.role === 'client') {
-        navigate('/client', { replace: true });
-      } else {
-        navigate('/profile', { replace: true });
-      }
+      // Add a small delay to ensure state is stable
+      setTimeout(() => {
+        if (user.role === 'provider') {
+          navigate('/dashboard', { replace: true });
+        } else if (user.role === 'client') {
+          navigate('/client', { replace: true });
+        } else {
+          navigate('/profile', { replace: true });
+        }
+      }, 100);
     }
   }, [isAuthenticated, user, navigate, isLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
-    console.log('Login: Attempting login with:', values.email);
+    console.log('Attempting login...');
     setLoginError(null);
     
     const { data, error } = await signIn(values.email, values.password);
@@ -66,11 +69,11 @@ const Login = () => {
         errorMessage = 'Demasiados intentos. Intenta de nuevo en unos minutos.';
       }
       
-      console.error('Login: Authentication error:', error.message);
+      console.error('Login error:', error.message);
       setLoginError(errorMessage);
       toast.error(errorMessage);
     } else if (data?.user) {
-      console.log('Login: Authentication successful');
+      console.log('Login successful');
       toast.success('¡Inicio de sesión exitoso!');
     }
   };
@@ -86,13 +89,13 @@ const Login = () => {
     return '/register';
   };
 
-  // Show loading only when actually loading
+  // Show loading screen only for a brief moment
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin mx-auto h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-muted-foreground">Verificando sesión...</p>
+          <p className="text-muted-foreground">Cargando...</p>
         </div>
       </div>
     );
