@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +20,6 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const navigate = useNavigate();
   const { login, isLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [userType, setUserType] = useState<'client' | 'provider' | null>(null);
@@ -41,8 +39,7 @@ const Login = () => {
     
     if (result.success) {
       toast.success('¡Inicio de sesión exitoso!');
-      // Redirect based on user role - this will be handled by App.tsx
-      window.location.href = '/dashboard';
+      // No hacer redirección manual - dejar que AuthContext y App.tsx manejen esto
     } else {
       setLoginError(result.error || 'Error al iniciar sesión');
       toast.error(result.error || 'Error al iniciar sesión');

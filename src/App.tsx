@@ -53,159 +53,156 @@ const AppRoutes = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Iniciando sesión...</p>
+          <p className="text-muted-foreground">Cargando...</p>
         </div>
       </div>
     );
   }
 
+  // If not authenticated, show only auth routes
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/register-provider" element={<ProviderRegister />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  // User is authenticated
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={
-        isAuthenticated ? 
-          <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace /> 
-          : <Login />
-      } />
-      <Route path="/register" element={<Register />} />
-      <Route path="/register-provider" element={<ProviderRegister />} />
-      
-      {/* Root redirect */}
+      {/* Root redirect based on user role */}
       <Route path="/" element={
-        isAuthenticated ? 
-          <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace /> 
-          : <Navigate to="/login" replace />
+        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
       } />
       
-      {/* Protected routes - all require authentication */}
-      {isAuthenticated ? (
+      {/* Shared routes */}
+      <Route path="/profile" element={
         <>
-          {/* Shared routes */}
-          <Route path="/profile" element={
-            <>
-              <Navbar />
-              <Profile />
-            </>
-          } />
-          
-          <Route path="/payment-setup" element={
-            <>
-              <Navbar />
-              <PaymentSetup />
-            </>
-          } />
-          
-          {/* Provider routes */}
-          {user?.role === 'provider' && (
-            <>
-              <Route path="/dashboard" element={
-                <>
-                  <Navbar />
-                  <Dashboard />
-                </>
-              } />
-              <Route path="/calendar" element={
-                <>
-                  <Navbar />
-                  <Calendar />
-                </>
-              } />
-              <Route path="/services" element={
-                <>
-                  <Navbar />
-                  <Services />
-                </>
-              } />
-              <Route path="/achievements" element={
-                <>
-                  <Navbar />
-                  <Achievements />
-                </>
-              } />
-            </>
-          )}
-          
-          {/* Client routes */}
-          {user?.role === 'client' && (
-            <>
-              <Route path="/client" element={
-                <>
-                  <Navbar />
-                  <ClientCategoryView />
-                </>
-              } />
-              <Route path="/client/category/:categoryName" element={
-                <>
-                  <Navbar />
-                  <ClientCategoryDetails />
-                </>
-              } />
-              <Route path="/client/results/:categoryName/:serviceId" element={
-                <>
-                  <Navbar />
-                  <ClientResultsView />
-                </>
-              } />
-              <Route path="/client/provider/:providerId" element={
-                <>
-                  <Navbar />
-                  <ProviderProfile />
-                </>
-              } />
-              <Route path="/client/service/:providerId/:serviceId" element={
-                <>
-                  <Navbar />
-                  <ClientServiceDetail />
-                </>
-              } />
-              <Route path="/client/booking" element={
-                <>
-                  <Navbar />
-                  <ClientBooking />
-                </>
-              } />
-              <Route path="/client/booking-summary" element={
-                <>
-                  <Navbar />
-                  <BookingSummary />
-                </>
-              } />
-              <Route path="/client/bookings" element={
-                <>
-                  <Navbar />
-                  <ClientBookings />
-                </>
-              } />
-              <Route path="/client/services/:category/:subcat" element={
-                <>
-                  <Navbar />
-                  <ClientProvidersList />
-                </>
-              } />
-              <Route path="/client/services/:buildingId" element={
-                <>
-                  <Navbar />
-                  <ClientServices />
-                </>
-              } />
-            </>
-          )}
-          
-          {/* Redirect wrong role routes */}
+          <Navbar />
+          <Profile />
+        </>
+      } />
+      
+      <Route path="/payment-setup" element={
+        <>
+          <Navbar />
+          <PaymentSetup />
+        </>
+      } />
+      
+      {/* Provider routes */}
+      {user?.role === 'provider' && (
+        <>
           <Route path="/dashboard" element={
-            user?.role === 'client' ? <Navigate to="/client" replace /> : <Navigate to="/dashboard" replace />
+            <>
+              <Navbar />
+              <Dashboard />
+            </>
           } />
-          <Route path="/client" element={
-            user?.role === 'provider' ? <Navigate to="/dashboard" replace /> : <Navigate to="/client" replace />
+          <Route path="/calendar" element={
+            <>
+              <Navbar />
+              <Calendar />
+            </>
+          } />
+          <Route path="/services" element={
+            <>
+              <Navbar />
+              <Services />
+            </>
+          } />
+          <Route path="/achievements" element={
+            <>
+              <Navbar />
+              <Achievements />
+            </>
           } />
         </>
-      ) : (
-        // If not authenticated, redirect all protected routes to login
-        <Route path="*" element={<Navigate to="/login" replace />} />
       )}
       
-      {/* Not found for authenticated users */}
-      {isAuthenticated && <Route path="*" element={<NotFound />} />}
+      {/* Client routes */}
+      {user?.role === 'client' && (
+        <>
+          <Route path="/client" element={
+            <>
+              <Navbar />
+              <ClientCategoryView />
+            </>
+          } />
+          <Route path="/client/category/:categoryName" element={
+            <>
+              <Navbar />
+              <ClientCategoryDetails />
+            </>
+          } />
+          <Route path="/client/results/:categoryName/:serviceId" element={
+            <>
+              <Navbar />
+              <ClientResultsView />
+            </>
+          } />
+          <Route path="/client/provider/:providerId" element={
+            <>
+              <Navbar />
+              <ProviderProfile />
+            </>
+          } />
+          <Route path="/client/service/:providerId/:serviceId" element={
+            <>
+              <Navbar />
+              <ClientServiceDetail />
+            </>
+          } />
+          <Route path="/client/booking" element={
+            <>
+              <Navbar />
+              <ClientBooking />
+            </>
+          } />
+          <Route path="/client/booking-summary" element={
+            <>
+              <Navbar />
+              <BookingSummary />
+            </>
+          } />
+          <Route path="/client/bookings" element={
+            <>
+              <Navbar />
+              <ClientBookings />
+            </>
+          } />
+          <Route path="/client/services/:category/:subcat" element={
+            <>
+              <Navbar />
+              <ClientProvidersList />
+            </>
+          } />
+          <Route path="/client/services/:buildingId" element={
+            <>
+              <Navbar />
+              <ClientServices />
+            </>
+          } />
+        </>
+      )}
+      
+      {/* Redirect auth routes if already authenticated */}
+      <Route path="/login" element={
+        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
+      } />
+      <Route path="/register" element={
+        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
+      } />
+      <Route path="/register-provider" element={
+        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
+      } />
+      
+      {/* Catch all */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
