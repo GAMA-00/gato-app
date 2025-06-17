@@ -200,57 +200,87 @@ const ClientCategoryView = () => {
   const textSizeClass = isMobile ? 'text-base font-semibold' : 'text-lg';
   
   return (
-    <PageContainer
-      title={
-        <div className="text-center w-full">
-          Explora nuestras categorías de servicio
-        </div>
-      }
-      className="flex items-center justify-center"
-    >
+    <div className={cn(
+      isMobile ? "pt-0 pb-0" : "pl-56 pt-4",
+      "min-h-screen w-full bg-white"
+    )}>
+      {/* Container for all content with tighter spacing on mobile */}
       <div className={cn(
-        "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto animate-fade-in",
-        isMobile ? "px-6 w-full" : "px-2 md:px-6"
+        "w-full h-full flex flex-col justify-start items-center",
+        isMobile ? "px-6 pt-4 pb-20" : "p-6"
       )}>
-        {categoryOrder.map((categoryName) => {
-          const category = categories.find(c => c.name === categoryName);
-          if (!category) return null;
-          
-          const isVisible = visibleItems.has(categoryName);
-          
-          return (
-            <div 
-              key={category.id} 
-              onClick={() => handleCategoryClick(category.name)}
-              data-category={categoryName}
-            >
-              <Card className={cn(
-                "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
-                isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48"
+        <div className={cn(
+          "max-w-7xl w-full animate-fade-in",
+          "flex flex-col items-center justify-start"
+        )}>
+          {/* Title with reduced margin on mobile */}
+          <div className={cn(
+            "flex flex-col justify-center gap-1 w-full",
+            isMobile ? "mb-6" : "mb-4"
+          )}>
+            <div className="w-full flex justify-center">
+              <h1 className={cn(
+                "font-bold tracking-tight text-app-text text-center",
+                isMobile ? "text-2xl mb-0" : "text-2xl md:text-3xl mb-0"
               )}>
-                <div className={cn(
-                  "flex items-center justify-center",
-                  isMobile ? "mb-3" : "mb-4"
-                )}>
-                  <CategoryIcon 
-                    categoryName={categoryName}
-                    isMobile={isMobile}
-                    isVisible={isVisible}
-                  />
-                </div>
-                <h3 className={cn(
-                  "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
-                  textSizeClass,
-                  isMobile ? "px-2" : "px-2"
-                )}>
-                  {categoryLabels[category.name] || category.label}
-                </h3>
-              </Card>
+                Explora nuestras categorías de servicio
+              </h1>
             </div>
-          );
-        })}
+          </div>
+          
+          {/* Content area with reduced top margin on mobile */}
+          <div className={cn(
+            "animate-slide-up flex justify-center w-full flex-1 items-start",
+            isMobile ? "mt-0" : "mt-4"
+          )}>
+            <div className="w-full flex justify-center">
+              <div className={cn(
+                "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto",
+                isMobile ? "w-full" : "px-2 md:px-6"
+              )}>
+                {categoryOrder.map((categoryName) => {
+                  const category = categories.find(c => c.name === categoryName);
+                  if (!category) return null;
+                  
+                  const isVisible = visibleItems.has(categoryName);
+                  
+                  return (
+                    <div 
+                      key={category.id} 
+                      onClick={() => handleCategoryClick(category.name)}
+                      data-category={categoryName}
+                    >
+                      <Card className={cn(
+                        "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
+                        isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48"
+                      )}>
+                        <div className={cn(
+                          "flex items-center justify-center",
+                          isMobile ? "mb-3" : "mb-4"
+                        )}>
+                          <CategoryIcon 
+                            categoryName={categoryName}
+                            isMobile={isMobile}
+                            isVisible={isVisible}
+                          />
+                        </div>
+                        <h3 className={cn(
+                          "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
+                          textSizeClass,
+                          isMobile ? "px-2" : "px-2"
+                        )}>
+                          {categoryLabels[category.name] || category.label}
+                        </h3>
+                      </Card>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </PageContainer>
+    </div>
   );
 };
 
