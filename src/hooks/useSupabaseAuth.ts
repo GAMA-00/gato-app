@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,9 +16,10 @@ export const useSupabaseAuth = () => {
     setLoading(true);
     
     try {
-      // Limpiar cualquier sesión previa
+      // Clear any previous session
       await supabase.auth.signOut();
       
+      // Sign in with new credentials
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -44,7 +45,7 @@ export const useSupabaseAuth = () => {
 
       console.log('Auth successful, fetching user profile...');
       
-      // Obtener perfil de usuario
+      // Fetch user profile
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
@@ -63,7 +64,7 @@ export const useSupabaseAuth = () => {
         return { data: null, error: profileError || { message: 'No se encontró el perfil de usuario' } };
       }
 
-      // Crear objeto de usuario completo
+      // Create complete user object
       const userData = {
         id: profile.id,
         name: profile.name || '',
@@ -82,19 +83,22 @@ export const useSupabaseAuth = () => {
 
       console.log('Updating AuthContext with user data:', userData);
 
-      // Actualizar AuthContext
+      // Update AuthContext
       login(userData);
 
-      // Navegar según el rol sin delay
+      // Navigate immediately based on role
       console.log('Navigating based on role:', profile.role);
       
-      if (profile.role === 'client') {
-        navigate('/client', { replace: true });
-      } else if (profile.role === 'provider') {
-        navigate('/dashboard', { replace: true });
-      } else {
-        navigate('/profile', { replace: true });
-      }
+      // Use setTimeout to ensure state is updated before navigation
+      setTimeout(() => {
+        if (profile.role === 'client') {
+          navigate('/client', { replace: true });
+        } else if (profile.role === 'provider') {
+          navigate('/dashboard', { replace: true });
+        } else {
+          navigate('/profile', { replace: true });
+        }
+      }, 100);
 
       setLoading(false);
       console.log('=== useSupabaseAuth.signIn END (SUCCESS) ===');

@@ -8,7 +8,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import PageContainer from '@/components/layout/PageContainer';
 import { Mail, Lock, LogIn, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -27,7 +26,7 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const targetRole = searchParams.get('role');
   const { signIn, loading: authLoading } = useSupabaseAuth();
-  const { user, isAuthenticated, isLoading: contextLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -39,10 +38,12 @@ const Login = () => {
     }
   });
 
-  // Redirect authenticated users
+  // Redirect authenticated users immediately
   useEffect(() => {
-    if (isAuthenticated && user && !contextLoading) {
+    if (isAuthenticated && user && !isLoading) {
       console.log('User already authenticated, redirecting...', user);
+      
+      // Immediate redirect without delay
       if (user.role === 'provider') {
         navigate('/dashboard', { replace: true });
       } else if (user.role === 'client') {
@@ -51,7 +52,7 @@ const Login = () => {
         navigate('/profile', { replace: true });
       }
     }
-  }, [isAuthenticated, user, navigate, contextLoading]);
+  }, [isAuthenticated, user, navigate, isLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
     console.log('Login attempt started for email:', values.email);
@@ -67,7 +68,7 @@ const Login = () => {
         console.error('Login error:', error);
         let errorMessage = 'Error durante el inicio de sesión';
         
-        // Manejar errores específicos de Supabase
+        // Handle specific Supabase errors
         if (error.message?.includes('Invalid login credentials')) {
           errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
         } else if (error.message?.includes('Email not confirmed')) {
@@ -83,9 +84,8 @@ const Login = () => {
         return;
       }
       
-      // Si llegamos aquí, el login fue exitoso
-      // El hook useSupabaseAuth ya maneja la navegación
-      console.log('Login successful');
+      // Success is handled by the useSupabaseAuth hook and AuthContext
+      console.log('Login successful, navigation handled by auth hook');
       
     } catch (error: any) {
       console.error('Unexpected login error:', error);
@@ -137,19 +137,19 @@ const Login = () => {
     return '/register';
   };
 
-  const isLoading = authLoading || isSubmitting || contextLoading;
+  const totalLoading = authLoading || isSubmitting;
 
   console.log('Login page render state:', {
     isLoading,
     authLoading,
     isSubmitting,
-    contextLoading,
     isAuthenticated,
-    userRole: user?.role
+    userRole: user?.role,
+    totalLoading
   });
 
-  // Show loading while context is initializing
-  if (contextLoading) {
+  // Simple loading screen while checking authentication
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -168,7 +168,7 @@ const Login = () => {
           variant="outline" 
           onClick={handleBackToLanding}
           className="flex items-center gap-2"
-          disabled={isLoading}
+          disabled={totalLoading}
         >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio
@@ -201,7 +201,7 @@ const Login = () => {
               size="login"
               className="w-full flex items-center justify-center gap-2 text-sm" 
               onClick={handleGoogleSignIn}
-              disabled={isLoading}
+              disabled={totalLoading}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-4 w-4">
                 <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
@@ -209,7 +209,7 @@ const Login = () => {
                 <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
                 <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
               </svg>
-              {isLoading ? 'Procesando...' : 'Continuar con Google'}
+              {totalLoading ? 'Procesando...' : 'Continuar con Google'}
             </Button>
 
             <div className="relative">
@@ -238,7 +238,7 @@ const Login = () => {
                           placeholder="correo@ejemplo.com" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={isLoading}
+                          disabled={totalLoading}
                         />
                       </div>
                     </FormControl>
@@ -261,7 +261,7 @@ const Login = () => {
                           placeholder="••••••" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={isLoading}
+                          disabled={totalLoading}
                         />
                       </div>
                     </FormControl>
@@ -275,9 +275,9 @@ const Login = () => {
                   type="submit" 
                   size="login"
                   className="w-full justify-center bg-app-text text-white hover:bg-app-text/90 text-sm h-12"
-                  disabled={isLoading}
+                  disabled={totalLoading}
                 >
-                  {isLoading ? (
+                  {totalLoading ? (
                     <div className="flex items-center justify-center">
                       <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
                       <span>Iniciando sesión...</span>
@@ -296,7 +296,7 @@ const Login = () => {
           {/* Register link with larger button */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 mb-3">¿No tienes una cuenta? </p>
-            <Button variant="outline" size="lg" asChild className="w-full h-12 text-base font-medium" disabled={isLoading}>
+            <Button variant="outline" size="lg" asChild className="w-full h-12 text-base font-medium" disabled={totalLoading}>
               <Link to={getRegisterLink()}>
                 Regístrate
               </Link>

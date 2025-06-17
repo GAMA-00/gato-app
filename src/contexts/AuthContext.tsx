@@ -45,60 +45,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
-  // Initialize auth state and listen for changes
   useEffect(() => {
     console.log('=== AuthContext - Initializing ===');
     
     let mounted = true;
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('=== Auth State Change ===', { event, session: !!session });
-        
-        if (!mounted) return;
-        
-        setSession(session);
-        
-        if (session?.user && event !== 'SIGNED_OUT') {
-          console.log('Session found, loading user profile...');
-          await loadUserProfile(session.user);
-        } else {
-          console.log('No session or signed out, clearing user data');
-          setUser(null);
-          localStorage.removeItem('gato_user');
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // Check for existing session
+    // Initialize auth immediately
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('=== Initial Session Check ===', { session: !!session });
+        // Get current session first
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
-        setSession(session);
+        console.log('=== Initial Session ===', { hasSession: !!currentSession });
         
-        if (session?.user) {
-          await loadUserProfile(session.user);
+        if (currentSession?.user) {
+          await loadUserProfile(currentSession.user);
+          setSession(currentSession);
         } else {
-          // Try to load from localStorage as fallback
+          // Try localStorage as fallback
           const storedUser = localStorage.getItem('gato_user');
           if (storedUser) {
             try {
               const parsedUser = JSON.parse(storedUser);
-              console.log('=== Loading user from localStorage ===', parsedUser);
+              console.log('=== Loading user from localStorage ===');
               setUser(parsedUser);
             } catch (error) {
               console.error('Error parsing stored user:', error);
               localStorage.removeItem('gato_user');
             }
           }
-          setIsLoading(false);
         }
+        
+        setIsLoading(false);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
@@ -106,6 +86,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('=== Auth State Change ===', { event, hasSession: !!session });
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        
+        if (session?.user && event !== 'SIGNED_OUT') {
+          console.log('Session active, loading profile...');
+          await loadUserProfile(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing data');
+          setUser(null);
+          localStorage.removeItem('gato_user');
+        }
+        
+        // Always set loading to false after processing auth change
+        setIsLoading(false);
+      }
+    );
 
     initializeAuth();
 
@@ -127,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error loading user profile:', error);
-        setIsLoading(false);
         return;
       }
 
@@ -152,11 +154,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userData);
         localStorage.setItem('gato_user', JSON.stringify(userData));
       }
-      
-      setIsLoading(false);
     } catch (error) {
       console.error('Unexpected error loading user profile:', error);
-      setIsLoading(false);
     }
   };
 
@@ -165,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('=== AuthContext - Login ===', userData);
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
+    setIsLoading(false);
   };
 
   // Register function
@@ -172,11 +172,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('=== AuthContext - Register ===', userData);
     setUser(userData);
     localStorage.setItem('gato_user', JSON.stringify(userData));
+    setIsLoading(false);
   };
 
   // Logout function
   const logout = async () => {
     console.log('=== AuthContext - Logout ===');
+    setIsLoading(true);
     try {
       await supabase.auth.signOut();
       setUser(null);
@@ -188,6 +190,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       localStorage.removeItem('gato_user');
+    } finally {
+      setIsLoading(false);
     }
   };
   
