@@ -55,15 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('=== Auth State Change ===', { event, session: !!session });
         setSession(session);
         
-        if (session?.user) {
+        if (session?.user && event !== 'SIGNED_OUT') {
+          console.log('Session found, loading user profile...');
           await loadUserProfile(session.user);
         } else {
-          // User logged out
+          // User logged out or no session
+          console.log('No session or signed out, clearing user data');
           setUser(null);
           localStorage.removeItem('gato_user');
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
 
@@ -78,9 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Try to load from localStorage as fallback
         const storedUser = localStorage.getItem('gato_user');
         if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          console.log('=== Loading user from localStorage ===', parsedUser);
-          setUser(parsedUser);
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            console.log('=== Loading user from localStorage ===', parsedUser);
+            setUser(parsedUser);
+          } catch (error) {
+            console.error('Error parsing stored user:', error);
+            localStorage.removeItem('gato_user');
+          }
         }
         setIsLoading(false);
       }

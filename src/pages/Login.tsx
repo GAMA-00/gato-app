@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -25,9 +26,10 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetRole = searchParams.get('role'); // 'client' or 'provider'
-  const { signIn } = useSupabaseAuth();
+  const { signIn, loading: authLoading } = useSupabaseAuth();
+  const { user, isAuthenticated } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,28 +39,58 @@ const Login = () => {
     }
   });
 
+  // Redirect authenticated users
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User already authenticated, redirecting...', user);
+      if (user.role === 'provider') {
+        navigate('/dashboard');
+      } else if (user.role === 'client') {
+        navigate('/client');
+      } else {
+        navigate('/profile');
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
+
   const onSubmit = async (values: LoginFormValues) => {
-    setIsLoading(true);
+    console.log('Login attempt started for email:', values.email);
+    setIsSubmitting(true);
     setLoginError(null);
     
-    const { data, error } = await signIn(values.email, values.password);
-    
-    if (error) {
-      setLoginError(error.message);
-      setIsLoading(false);
-      return;
+    try {
+      const { data, error } = await signIn(values.email, values.password);
+      
+      console.log('Login response:', { data: !!data, error: error?.message });
+      
+      if (error) {
+        console.error('Login error:', error);
+        setLoginError(error.message || 'Error durante el inicio de sesión');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (data?.user) {
+        console.log('Login successful, user data received');
+        // Don't set loading to false here - let the auth context handle navigation
+      } else {
+        console.warn('Login completed but no user data received');
+        setLoginError('Error inesperado durante el inicio de sesión');
+        setIsSubmitting(false);
+      }
+    } catch (error: any) {
+      console.error('Unexpected login error:', error);
+      setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
+      setIsSubmitting(false);
     }
-    
-    if (data && !error) {
-      // No toast notification - silent redirect
-    }
-    setIsLoading(false);
   };
   
   const handleGoogleSignIn = async () => {
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
       setLoginError(null);
+      
+      console.log('Google sign-in attempt started');
       
       const redirectUrl = targetRole === 'client' ? '/client' : '/dashboard';
       
@@ -72,12 +104,12 @@ const Login = () => {
       if (error) {
         console.error('Error al iniciar sesión con Google:', error);
         setLoginError(error.message);
+        setIsSubmitting(false);
       }
     } catch (error: any) {
       console.error('Error inesperado:', error);
       setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
-    } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -96,6 +128,16 @@ const Login = () => {
     return '/register';
   };
 
+  const isLoading = authLoading || isSubmitting;
+
+  console.log('Login page render state:', {
+    isLoading,
+    authLoading,
+    isSubmitting,
+    isAuthenticated,
+    userRole: user?.role
+  });
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header with back button - fixed at top */}
@@ -104,6 +146,7 @@ const Login = () => {
           variant="outline" 
           onClick={handleBackToLanding}
           className="flex items-center gap-2"
+          disabled={isLoading}
         >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio
@@ -144,7 +187,7 @@ const Login = () => {
                 <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
                 <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
               </svg>
-              Continuar con Google
+              {isLoading ? 'Procesando...' : 'Continuar con Google'}
             </Button>
 
             <div className="relative">
@@ -172,7 +215,8 @@ const Login = () => {
                         <Input 
                           placeholder="correo@ejemplo.com" 
                           className="pl-10 h-12" 
-                          {...field} 
+                          {...field}
+                          disabled={isLoading}
                         />
                       </div>
                     </FormControl>
@@ -194,7 +238,8 @@ const Login = () => {
                           type="password" 
                           placeholder="••••••" 
                           className="pl-10 h-12" 
-                          {...field} 
+                          {...field}
+                          disabled={isLoading}
                         />
                       </div>
                     </FormControl>
@@ -229,7 +274,7 @@ const Login = () => {
           {/* Register link with larger button */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 mb-3">¿No tienes una cuenta? </p>
-            <Button variant="outline" size="lg" asChild className="w-full h-12 text-base font-medium">
+            <Button variant="outline" size="lg" asChild className="w-full h-12 text-base font-medium" disabled={isLoading}>
               <Link to={getRegisterLink()}>
                 Regístrate
               </Link>
