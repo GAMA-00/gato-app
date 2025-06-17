@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
   onAcceptRequest,
   onDeclineRequest
 }) => {
-  const { data: appointments = [], isLoading, isError } = useAppointments();
+  const { data: appointments = [], isLoading, error } = useAppointments();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
@@ -123,7 +122,7 @@ const JobRequests: React.FC<JobRequestsProps> = ({
             <Skeleton className="h-[200px] w-full" />
             <Skeleton className="h-[200px] w-full" />
           </div>
-        ) : isError ? (
+        ) : error ? (
           <div className="text-center py-6 text-red-500">
             <p>Error al cargar solicitudes</p>
           </div>
