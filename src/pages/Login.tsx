@@ -29,18 +29,6 @@ const Login = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  console.log('📱 ==> LOGIN PAGE RENDER');
-  console.log('📱 URL actual:', window.location.href);
-  console.log('📱 Target role:', targetRole);
-  console.log('📱 Auth states:', {
-    isLoading,
-    authLoading,
-    isSubmitting,
-    isAuthenticated,
-    userRole: user?.role,
-    userEmail: user?.email
-  });
-  
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -50,62 +38,25 @@ const Login = () => {
   });
 
   useEffect(() => {
-    console.log('📱 useEffect de redirección ejecutándose...');
-    console.log('📱 Estados para redirección:', {
-      isLoading,
-      isAuthenticated,
-      userRole: user?.role,
-      userName: user?.name
-    });
-    
-    if (isLoading) {
-      console.log('📱 AuthContext aún cargando, esperando...');
-      return;
-    }
-    
-    if (isAuthenticated && user) {
-      console.log('📱 Usuario autenticado detectado, procesando redirección...');
-      console.log('📱 Datos del usuario para redirección:', {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      });
-      
+    if (!isLoading && isAuthenticated && user) {
       if (user.role === 'provider') {
-        console.log('📱 Redirigiendo proveedor a /dashboard');
         navigate('/dashboard', { replace: true });
       } else if (user.role === 'client') {
-        console.log('📱 Redirigiendo cliente a /client');
         navigate('/client', { replace: true });
       } else {
-        console.log('📱 Redirigiendo usuario genérico a /profile');
         navigate('/profile', { replace: true });
       }
-    } else {
-      console.log('📱 No hay usuario autenticado, mostrando formulario de login');
     }
   }, [isAuthenticated, user, navigate, isLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
-    console.log('📱 INICIO DE SESIÓN INICIADO');
-    console.log('📱 Email del formulario:', values.email);
-    console.log('📱 Timestamp de inicio:', new Date().toISOString());
-    
     setIsSubmitting(true);
     setLoginError(null);
     
     try {
-      console.log('📱 Llamando a signIn...');
       const { data, error } = await signIn(values.email, values.password);
       
-      console.log('📱 Respuesta de signIn:', {
-        tieneData: !!data,
-        errorMessage: error?.message,
-        timestamp: new Date().toISOString()
-      });
-      
       if (error) {
-        console.error('📱 ERROR en signIn:', error);
         let errorMessage = 'Error durante el inicio de sesión';
         
         if (error.message?.includes('Invalid login credentials')) {
@@ -118,20 +69,15 @@ const Login = () => {
           errorMessage = error.message;
         }
         
-        console.log('📱 Mensaje de error procesado:', errorMessage);
         setLoginError(errorMessage);
         setIsSubmitting(false);
         return;
       }
       
-      console.log('📱 signIn exitoso, la redirección será manejada por useEffect');
+      // La redirección será manejada por useEffect
       
     } catch (error: any) {
-      console.error('📱 EXCEPCIÓN en onSubmit:', {
-        message: error.message,
-        stack: error.stack,
-        fullError: error
-      });
+      console.error('Error en onSubmit:', error);
       setLoginError('Error inesperado durante el inicio de sesión');
       setIsSubmitting(false);
     }
@@ -141,8 +87,6 @@ const Login = () => {
     try {
       setIsSubmitting(true);
       setLoginError(null);
-      
-      console.log('📱 Google sign-in attempt started');
       
       const redirectUrl = targetRole === 'client' ? '/client' : '/dashboard';
       
@@ -154,12 +98,12 @@ const Login = () => {
       });
       
       if (error) {
-        console.error('📱 Error al iniciar sesión con Google:', error);
+        console.error('Error al iniciar sesión con Google:', error);
         setLoginError(error.message);
         setIsSubmitting(false);
       }
     } catch (error: any) {
-      console.error('📱 Error inesperado:', error);
+      console.error('Error inesperado:', error);
       setLoginError(error.message || 'Error inesperado durante el inicio de sesión');
       setIsSubmitting(false);
     }
@@ -182,18 +126,7 @@ const Login = () => {
 
   const totalLoading = authLoading || isSubmitting;
 
-  console.log('📱 Estados finales antes de render:', {
-    isLoading,
-    authLoading,
-    isSubmitting,
-    isAuthenticated,
-    userRole: user?.role,
-    totalLoading,
-    mostrarFormulario: !isLoading
-  });
-
   if (isLoading) {
-    console.log('📱 Mostrando pantalla de carga...');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -203,8 +136,6 @@ const Login = () => {
       </div>
     );
   }
-
-  console.log('📱 Renderizando formulario de login...');
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
