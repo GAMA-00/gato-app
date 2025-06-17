@@ -5,7 +5,7 @@ import BackButton from '@/components/ui/back-button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Dumbbell, Globe, LucideIcon } from 'lucide-react';
+import { Book, Dumbbell, Globe, LucideIcon, ChefHat } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -68,14 +68,15 @@ const preloadCriticalImages = (categoryName: string) => {
     img.crossOrigin = 'anonymous';
   }
   
-  // Preload de los primeros 3 service types que suelen ser más comunes
-  const criticalServices = ['Limpieza', 'Mantenimiento', 'Jardinero'];
+  // Preload de los primeros 3 service types que suelen ser más comunes, incluyendo Chef Privado
+  const criticalServices = ['Limpieza', 'Mantenimiento', 'Chef Privado'];
   criticalServices.forEach(serviceName => {
     const serviceImageUrl = serviceTypeImageUrls[serviceName];
     if (serviceImageUrl) {
       const img = new Image();
       img.src = serviceImageUrl;
       img.crossOrigin = 'anonymous';
+      console.log(`Preloading image for ${serviceName}: ${serviceImageUrl}`);
     }
   });
 };
@@ -125,7 +126,7 @@ const CategoryIcon: React.FC<{
   );
 };
 
-// Componente optimizado para iconos de service types
+// Componente optimizado para iconos de service types con fallback mejorado para Chef Privado
 const ServiceTypeIcon: React.FC<{
   serviceName: string;
   isMobile: boolean;
@@ -135,6 +136,24 @@ const ServiceTypeIcon: React.FC<{
   const [imageError, setImageError] = useState(false);
   
   const imageUrl = serviceTypeImageUrls[serviceName];
+  
+  console.log(`ServiceTypeIcon - Service: ${serviceName}, Image URL: ${imageUrl}, Loaded: ${imageLoaded}, Error: ${imageError}`);
+  
+  // Fallback específico para Chef Privado si hay error con la imagen
+  if (imageError && serviceName === 'Chef Privado') {
+    return (
+      <div className={cn(
+        "flex items-center justify-center mb-3",
+        isMobile ? "mb-2" : "mb-3"
+      )}>
+        <ChefHat 
+          size={isMobile ? 48 : 64}
+          strokeWidth={1.5}
+          className="text-[#1A1A1A]"
+        />
+      </div>
+    );
+  }
   
   if (!imageUrl || imageError) {
     return null;
@@ -161,8 +180,14 @@ const ServiceTypeIcon: React.FC<{
         )}
         loading={isVisible ? "eager" : "lazy"}
         decoding="async"
-        onLoad={() => setImageLoaded(true)}
-        onError={() => setImageError(true)}
+        onLoad={() => {
+          console.log(`Image loaded successfully for ${serviceName}`);
+          setImageLoaded(true);
+        }}
+        onError={(e) => {
+          console.error(`Error loading image for ${serviceName}:`, e);
+          setImageError(true);
+        }}
         style={{ imageRendering: 'crisp-edges' }}
       />
     </div>
