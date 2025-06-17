@@ -54,7 +54,7 @@ const preloadAllIcons = () => {
     '/lovable-uploads/76ed8eca-0a47-4f10-9c81-4952f3bbffac.png', // ironing
     '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png', // gardening
     '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png', // maintenance
-    '/lovable-uploads/8f847814-1104-4151-9449-f9e9703ad38b.png', // chef
+    '/lovable-uploads/7277ac8a-a1d9-4762-b5c9-9ba674b096cd.png', // chef
   ];
   
   allIconUrls.forEach(url => {
@@ -292,7 +292,7 @@ const ClientCategoryDetails = () => {
                         )}
                         {serviceType.name === 'Chef Privado' && (
                           <img 
-                            src="/lovable-uploads/8f847814-1104-4151-9449-f9e9703ad38b.png"
+                            src="/lovable-uploads/7277ac8a-a1d9-4762-b5c9-9ba674b096cd.png"
                             alt="Chef Privado"
                             className={cn(
                               "object-contain",
