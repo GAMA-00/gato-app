@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
@@ -41,49 +41,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AuthProvider: Initializing...');
+    console.log('AuthProvider: Initializing auth...');
     
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('AuthProvider: Initial session check', { session, error });
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('AuthProvider: Auth state change:', event, !!session);
         
-        if (error) {
-          console.error('AuthProvider: Error getting session:', error);
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          console.log('AuthProvider: User signed out');
+          setUser(null);
           setIsLoading(false);
           return;
         }
-
-        if (session?.user) {
-          console.log('AuthProvider: Found existing session, loading profile...');
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('AuthProvider: User signed in, loading profile...');
           await loadUserProfile(session.user);
         }
         
         setIsLoading(false);
+      }
+    );
+
+    // Check initial session
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('AuthProvider: Initial session check:', !!session);
+        
+        if (session?.user) {
+          await loadUserProfile(session.user);
+        }
       } catch (error) {
-        console.error('AuthProvider: Exception getting session:', error);
+        console.error('AuthProvider: Error checking session:', error);
+      } finally {
         setIsLoading(false);
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('AuthProvider: Auth state changed', { event, session });
-        
-        if (event === 'SIGNED_OUT' || !session?.user) {
-          console.log('AuthProvider: User signed out or no session');
-          setUser(null);
-          localStorage.removeItem('gato_user');
-        } else if (event === 'SIGNED_IN' && session?.user) {
-          console.log('AuthProvider: User signed in, loading profile...');
-          await loadUserProfile(session.user);
-        }
-      }
-    );
-
-    getInitialSession();
+    checkInitialSession();
 
     return () => {
       subscription.unsubscribe();
@@ -100,11 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', supabaseUser.id)
         .single();
 
-      console.log('AuthProvider: Profile query result', { profile, error });
-
-      if (error) {
-        console.error('AuthProvider: Error loading profile:', error);
-        // If profile doesn't exist, create a basic user object
+      if (error || !profile) {
+        console.log('AuthProvider: No profile found, creating basic user');
         const basicUser: User = {
           id: supabaseUser.id,
           name: supabaseUser.user_metadata?.name || '',
@@ -121,36 +115,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           condominiumName: '',
         };
         
-        console.log('AuthProvider: Using basic user data:', basicUser);
         setUser(basicUser);
-        localStorage.setItem('gato_user', JSON.stringify(basicUser));
         return;
       }
 
-      if (profile) {
-        const userData: User = {
-          id: profile.id,
-          name: profile.name || '',
-          email: profile.email || supabaseUser.email || '',
-          phone: profile.phone || '',
-          residenciaId: profile.residencia_id || '',
-          buildingName: '',
-          hasPaymentMethod: profile.has_payment_method || false,
-          role: profile.role as 'client' | 'provider' | 'admin',
-          avatarUrl: profile.avatar_url || '',
-          apartment: profile.house_number || '',
-          houseNumber: profile.house_number || '',
-          condominiumId: profile.condominium_id || '',
-          condominiumName: profile.condominium_name || '',
-        };
+      const userData: User = {
+        id: profile.id,
+        name: profile.name || '',
+        email: profile.email || supabaseUser.email || '',
+        phone: profile.phone || '',
+        residenciaId: profile.residencia_id || '',
+        buildingName: '',
+        hasPaymentMethod: profile.has_payment_method || false,
+        role: profile.role as 'client' | 'provider' | 'admin',
+        avatarUrl: profile.avatar_url || '',
+        apartment: profile.house_number || '',
+        houseNumber: profile.house_number || '',
+        condominiumId: profile.condominium_id || '',
+        condominiumName: profile.condominium_name || '',
+      };
 
-        console.log('AuthProvider: Setting user data:', userData);
-        setUser(userData);
-        localStorage.setItem('gato_user', JSON.stringify(userData));
-      }
+      console.log('AuthProvider: Profile loaded successfully:', userData);
+      setUser(userData);
+      
     } catch (error) {
-      console.error('AuthProvider: Exception loading profile:', error);
-      // Still set a basic user to prevent infinite loading
+      console.error('AuthProvider: Error loading profile:', error);
+      // Set basic user to prevent blocking
       const basicUser: User = {
         id: supabaseUser.id,
         name: supabaseUser.user_metadata?.name || '',
@@ -167,22 +157,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         condominiumName: '',
       };
       
-      console.log('AuthProvider: Exception - using basic user data:', basicUser);
       setUser(basicUser);
-      localStorage.setItem('gato_user', JSON.stringify(basicUser));
     }
   };
 
   const login = (userData: User) => {
-    console.log('AuthProvider: Manual login called with:', userData);
+    console.log('AuthProvider: Manual login:', userData);
     setUser(userData);
-    localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
   const register = (userData: User) => {
-    console.log('AuthProvider: Manual register called with:', userData);
+    console.log('AuthProvider: Manual register:', userData);
     setUser(userData);
-    localStorage.setItem('gato_user', JSON.stringify(userData));
   };
 
   const logout = async () => {
@@ -190,7 +176,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Logging out...');
       await supabase.auth.signOut();
       setUser(null);
-      localStorage.removeItem('gato_user');
     } catch (error) {
       console.error('AuthProvider: Error signing out:', error);
     }
@@ -200,7 +185,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       const updatedUser = { ...user, hasPaymentMethod };
       setUser(updatedUser);
-      localStorage.setItem('gato_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -208,7 +192,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       const updatedUser = { ...user, avatarUrl };
       setUser(updatedUser);
-      localStorage.setItem('gato_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -216,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isProvider = user?.role === 'provider';
   const isAdmin = user?.role === 'admin';
 
-  console.log('AuthProvider: Current state', { user: !!user, isAuthenticated: !!user, isLoading });
+  console.log('AuthProvider: Current state - user:', !!user, 'loading:', isLoading);
 
   return (
     <AuthContext.Provider value={{ 
