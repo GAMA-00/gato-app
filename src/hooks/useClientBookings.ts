@@ -1,7 +1,10 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRecurringAppointments } from './useRecurringAppointments';
 import { buildLocationString, LocationData } from '@/utils/locationUtils';
+import { startOfDay, endOfDay, addMonths, subMonths } from 'date-fns';
 
 export interface ClientBooking {
   id: string;
@@ -18,6 +21,8 @@ export interface ClientBooking {
   originalRecurrenceGroupId?: string;
   listingId?: string;
   recurrenceGroupId?: string;
+  isRecurringInstance?: boolean;
+  originalAppointmentId?: string;
 }
 
 export const useClientBookings = () => {
@@ -28,6 +33,7 @@ export const useClientBookings = () => {
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
+      console.log('=== FETCHING CLIENT BOOKINGS WITH RECURRING ===');
       console.log('Fetching client bookings for user:', user.id);
 
       try {
@@ -67,8 +73,41 @@ export const useClientBookings = () => {
 
         console.log(`Found ${appointments.length} appointments for client`);
 
+        // Separate regular and recurring appointments
+        const regularAppointments = appointments.filter(app => 
+          !app.recurrence || app.recurrence === 'none' || app.status === 'completed'
+        );
+        
+        const recurringBaseAppointments = appointments.filter(app => 
+          app.recurrence && 
+          app.recurrence !== 'none' && 
+          app.status !== 'completed' &&
+          app.status !== 'cancelled'
+        );
+
+        console.log(`Regular appointments: ${regularAppointments.length}`);
+        console.log(`Recurring base appointments: ${recurringBaseAppointments.length}`);
+
+        // Generate recurring instances for a wider range to include past appointments
+        const startDate = startOfDay(subMonths(new Date(), 6)); // 6 months back
+        const endDate = endOfDay(addMonths(new Date(), 6)); // 6 months forward
+
+        const recurringInstances = useRecurringAppointments({
+          recurringAppointments: recurringBaseAppointments,
+          startDate,
+          endDate
+        });
+
+        console.log(`Generated ${recurringInstances.length} recurring instances`);
+
+        // Combine all appointments for processing
+        const allAppointmentsForProcessing = [
+          ...regularAppointments,
+          ...recurringInstances
+        ];
+
         // Get unique listing IDs to fetch service information
-        const listingIds = [...new Set(appointments.map(a => a.listing_id).filter(Boolean))];
+        const listingIds = [...new Set(allAppointmentsForProcessing.map(a => a.listing_id).filter(Boolean))];
         let listingsMap = new Map();
 
         if (listingIds.length > 0) {
@@ -88,7 +127,7 @@ export const useClientBookings = () => {
         }
 
         // Get unique provider IDs to fetch provider information
-        const providerIds = [...new Set(appointments.map(a => a.provider_id).filter(Boolean))];
+        const providerIds = [...new Set(allAppointmentsForProcessing.map(a => a.provider_id).filter(Boolean))];
         let providersMap = new Map();
 
         if (providerIds.length > 0) {
@@ -111,7 +150,7 @@ export const useClientBookings = () => {
 
         // Get unique residencia IDs for batch fetching
         const residenciaIds = [...new Set(
-          appointments
+          allAppointmentsForProcessing
             .map(a => a.residencia_id || providersMap.get(a.provider_id)?.residencia_id)
             .filter(Boolean)
         )];
@@ -130,7 +169,7 @@ export const useClientBookings = () => {
 
         // Get unique condominium IDs for batch fetching
         const condominiumIds = [...new Set(
-          appointments
+          allAppointmentsForProcessing
             .map(a => providersMap.get(a.provider_id)?.condominium_id)
             .filter(id => id && !id.startsWith('static-'))
         )];
@@ -147,8 +186,8 @@ export const useClientBookings = () => {
           }
         }
 
-        // Get rated appointments
-        const appointmentIds = appointments.map(a => a.id);
+        // Get rated appointments - include both regular and recurring instance IDs
+        const appointmentIds = allAppointmentsForProcessing.map(a => a.id);
         const { data: ratedAppointments } = await supabase
           .rpc('get_rated_appointments', { appointment_ids: appointmentIds });
 
@@ -157,19 +196,16 @@ export const useClientBookings = () => {
         console.log('Processing appointments with complete data...');
 
         // Filter out rescheduled appointments that should be hidden from main view
-        // but keep the new rescheduled instances
-        const visibleAppointments = appointments.filter(appointment => {
-          // Hide original appointments that were rescheduled (status = 'rescheduled')
-          // but show the new appointments created from rescheduling
+        const visibleAppointments = allAppointmentsForProcessing.filter(appointment => {
           if (appointment.status === 'rescheduled' && 
               appointment.recurrence !== 'none' && 
               appointment.is_recurring_instance) {
-            return false; // Hide the original recurring appointment that was rescheduled
+            return false;
           }
           return true;
         });
 
-        return visibleAppointments.map(appointment => {
+        const processedBookings = visibleAppointments.map(appointment => {
           const listing = listingsMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
           
@@ -195,7 +231,11 @@ export const useClientBookings = () => {
                                appointment.recurrence === 'none' &&
                                appointment.notes?.includes('Reagendado desde cita recurrente');
 
-          const result = {
+          // Determine if this is a recurring instance
+          const isRecurringInstance = appointment.is_recurring_instance || 
+                                    (appointment.recurrence && appointment.recurrence !== 'none');
+
+          const result: ClientBooking = {
             id: appointment.id,
             serviceName: listing?.title || 'Servicio',
             subcategory: listing?.service_types?.name || 'Servicio',
@@ -209,19 +249,29 @@ export const useClientBookings = () => {
             isRescheduled,
             originalRecurrenceGroupId: appointment.recurrence_group_id,
             listingId: appointment.listing_id,
-            recurrenceGroupId: appointment.recurrence_group_id
+            recurrenceGroupId: appointment.recurrence_group_id,
+            isRecurringInstance,
+            originalAppointmentId: isRecurringInstance ? appointment.id.split('-recurring-')[0] : undefined
           };
 
-          console.log(`Processed appointment ${appointment.id}:`, {
+          console.log(`Processed booking ${appointment.id}:`, {
             serviceName: result.serviceName,
             providerName: result.providerName,
             location: result.location,
             status: result.status,
+            isRecurringInstance: result.isRecurringInstance,
             isRescheduled: result.isRescheduled
           });
 
           return result;
         });
+
+        console.log(`=== CLIENT BOOKINGS PROCESSING COMPLETE ===`);
+        console.log(`Total processed bookings: ${processedBookings.length}`);
+        console.log(`Recurring instances: ${processedBookings.filter(b => b.isRecurringInstance).length}`);
+        console.log(`Regular appointments: ${processedBookings.filter(b => !b.isRecurringInstance).length}`);
+
+        return processedBookings;
 
       } catch (error) {
         console.error('Error in useClientBookings:', error);

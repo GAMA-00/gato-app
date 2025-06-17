@@ -23,11 +23,12 @@ const Dashboard = () => {
   const today = useMemo(() => startOfToday(), []);
   const tomorrow = useMemo(() => startOfTomorrow(), []);
   
+  console.log("=== DASHBOARD RENDER ===");
   console.log("Dashboard - User:", user?.id, user?.role);
   console.log("Dashboard - Appointments loading:", isLoadingAppointments, "Count:", appointments?.length || 0);
   console.log("Dashboard - Stats loading:", isLoadingStats);
   
-  // Optimized appointment filtering with early returns
+  // Enhanced appointment filtering with recurring instances
   const { todaysAppointments, tomorrowsAppointments, activeAppointmentsToday } = useMemo(() => {
     if (!appointments?.length) {
       return {
@@ -42,11 +43,24 @@ const Dashboard = () => {
       const todaysAppts: any[] = [];
       const tomorrowsAppts: any[] = [];
       
+      console.log("=== FILTERING APPOINTMENTS ===");
+      console.log(`Processing ${appointments.length} total appointments`);
+      
       // Single pass through appointments for efficiency
       appointments.forEach(app => {
         if (app.status === 'cancelled') return;
         
         const appDate = new Date(app.start_time);
+        
+        console.log(`Processing appointment ${app.id}:`, {
+          date: appDate.toLocaleDateString(),
+          isToday: isSameDay(appDate, today),
+          isTomorrow: isSameDay(appDate, tomorrow),
+          status: app.status,
+          isRecurring: app.is_recurring_instance,
+          clientName: app.client_name,
+          serviceName: app.service_title || app.listings?.title
+        });
         
         if (isSameDay(appDate, today)) {
           todaysAppts.push(app);
@@ -63,6 +77,13 @@ const Dashboard = () => {
       const activeToday = todaysAppts.filter(app => 
         app.status !== 'completed' && new Date(app.end_time) > now
       );
+
+      console.log("=== APPOINTMENT FILTERING RESULTS ===");
+      console.log(`Today's appointments: ${todaysAppts.length}`);
+      console.log(`Tomorrow's appointments: ${tomorrowsAppts.length}`);
+      console.log(`Active today: ${activeToday.length}`);
+      console.log(`Recurring instances today: ${todaysAppts.filter(a => a.is_recurring_instance).length}`);
+      console.log(`Recurring instances tomorrow: ${tomorrowsAppts.filter(a => a.is_recurring_instance).length}`);
 
       return {
         todaysAppointments: todaysAppts,
@@ -87,7 +108,9 @@ const Dashboard = () => {
       try {
         const now = new Date();
         const toUpdate = appointments.filter(
-          app => app.status === 'confirmed' && new Date(app.end_time) < now
+          app => app.status === 'confirmed' && 
+                 new Date(app.end_time) < now &&
+                 !app.is_recurring_instance // Only update regular appointments, not recurring instances
         );
 
         if (toUpdate.length > 0) {
@@ -175,7 +198,7 @@ const Dashboard = () => {
             </h1>
           </div>
 
-          {/* Priority: Today's appointments first */}
+          {/* Priority: Today's appointments first - includes recurring instances */}
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Citas de Hoy"
@@ -183,7 +206,7 @@ const Dashboard = () => {
             emptyMessage="No hay citas programadas para hoy"
           />
 
-          {/* Tomorrow's appointments */}
+          {/* Tomorrow's appointments - includes recurring instances */}
           <AppointmentList
             appointments={tomorrowsAppointments}
             title="Citas de Mañana"

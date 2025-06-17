@@ -2,177 +2,95 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { startOfToday, endOfTomorrow } from 'date-fns';
-import { buildLocationString, logLocationDebug } from '@/utils/locationUtils';
+import { useRecurringAppointments } from './useRecurringAppointments';
+import { startOfToday, endOfDay, addDays } from 'date-fns';
 
 export const useAppointments = () => {
   const { user } = useAuth();
-  
-  const today = startOfToday();
-  const tomorrowEnd = endOfTomorrow();
-  
-  return useQuery({
-    queryKey: ['appointments', user?.id, 'dashboard'],
+
+  // Get regular appointments
+  const { data: regularAppointments = [], isLoading: isLoadingRegular, error } = useQuery({
+    queryKey: ['appointments', user?.id],
     queryFn: async () => {
-      if (!user?.id) {
-        console.log('No user ID available for appointments');
-        return [];
+      if (!user?.id) return [];
+
+      console.log('=== FETCHING APPOINTMENTS FOR DASHBOARD ===');
+      console.log(`User ID: ${user.id}, Role: ${user.role}`);
+
+      let query = supabase
+        .from('appointments')
+        .select(`
+          *,
+          listings(
+            title,
+            duration
+          )
+        `)
+        .order('start_time', { ascending: true });
+
+      // Filter by user role
+      if (user.role === 'provider') {
+        query = query.eq('provider_id', user.id);
+      } else if (user.role === 'client') {
+        query = query.eq('client_id', user.id);
       }
 
-      console.log('Fetching dashboard appointments for user:', user.id, 'role:', user.role);
+      const { data, error } = await query;
 
-      try {
-        // Enhanced query to get complete location data
-        const { data: appointments, error } = await supabase
-          .from('appointments')
-          .select(`
-            id,
-            provider_id,
-            client_id,
-            listing_id,
-            start_time,
-            end_time,
-            status,
-            notes,
-            client_name,
-            provider_name,
-            external_booking,
-            is_recurring_instance,
-            recurrence,
-            created_at,
-            client_address,
-            apartment,
-            residencia_id,
-            listings!inner(
-              id,
-              title
-            )
-          `)
-          .eq(user.role === 'provider' ? 'provider_id' : 'client_id', user.id)
-          .gte('start_time', today.toISOString())
-          .lte('start_time', tomorrowEnd.toISOString())
-          .in('status', ['pending', 'confirmed', 'completed'])
-          .order('start_time', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching appointments:', error);
-          throw new Error(`Error fetching appointments: ${error.message}`);
-        }
-
-        const appointmentsList = appointments || [];
-        console.log(`Found ${appointmentsList.length} dashboard appointments`);
-
-        // Get unique client IDs to fetch user data
-        const userRole = user.role;
-        const userIds = [...new Set(
-          appointmentsList.map(apt => 
-            userRole === 'provider' ? apt.client_id : apt.provider_id
-          ).filter(Boolean)
-        )];
-        
-        // Get unique residencia IDs to fetch residencia data
-        const residenciaIds = [...new Set(
-          appointmentsList.map(apt => apt.residencia_id).filter(Boolean)
-        )];
-        
-        // Fetch user data including condominium information
-        let usersMap: Record<string, any> = {};
-        if (userIds.length > 0) {
-          try {
-            const { data: users } = await supabase
-              .from('users')
-              .select(`
-                id, 
-                name, 
-                phone,
-                house_number,
-                condominium_name,
-                condominium_text,
-                residencia_id
-              `)
-              .in('id', userIds);
-
-            if (users) {
-              usersMap = users.reduce((acc, user) => {
-                acc[user.id] = user;
-                return acc;
-              }, {} as Record<string, any>);
-            }
-          } catch (error) {
-            console.warn('Could not fetch users:', error);
-          }
-        }
-
-        // Fetch residencia data separately
-        let residenciasMap: Record<string, any> = {};
-        if (residenciaIds.length > 0) {
-          try {
-            const { data: residencias } = await supabase
-              .from('residencias')
-              .select('id, name, address')
-              .in('id', residenciaIds);
-
-            if (residencias) {
-              residenciasMap = residencias.reduce((acc, residencia) => {
-                acc[residencia.id] = residencia;
-                return acc;
-              }, {} as Record<string, any>);
-            }
-          } catch (error) {
-            console.warn('Could not fetch residencias:', error);
-          }
-        }
-
-        // Enhanced appointments with complete location data
-        const enhancedAppointments = appointmentsList.map(appointment => {
-          const isExternal = appointment.external_booking;
-          const userInfo = appointment.client_id && userRole === 'provider' 
-            ? usersMap[appointment.client_id] 
-            : appointment.provider_id && userRole === 'client'
-            ? usersMap[appointment.provider_id] 
-            : null;
-
-          // Get residencia info
-          const residenciaInfo = appointment.residencia_id 
-            ? residenciasMap[appointment.residencia_id] 
-            : null;
-
-          // Build complete location string
-          const locationData = {
-            residenciaName: residenciaInfo?.name,
-            condominiumName: userInfo?.condominium_name || userInfo?.condominium_text,
-            houseNumber: userInfo?.house_number,
-            apartment: appointment.apartment,
-            clientAddress: appointment.client_address,
-            isExternal: isExternal
-          };
-
-          const completeLocation = buildLocationString(locationData);
-          
-          // Log for debugging
-          logLocationDebug(appointment.id, locationData, completeLocation);
-
-          return {
-            ...appointment,
-            listings: appointment.listings,
-            users: userInfo,
-            residencias: residenciaInfo,
-            complete_location: completeLocation
-          };
-        });
-
-        console.log(`Successfully processed ${enhancedAppointments.length} dashboard appointments with location data`);
-        return enhancedAppointments;
-        
-      } catch (error) {
-        console.error('Error in dashboard appointments query:', error);
+      if (error) {
+        console.error('Error fetching appointments:', error);
         throw error;
       }
+
+      console.log(`Fetched ${data?.length || 0} regular appointments`);
+      return data || [];
     },
     enabled: !!user?.id,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 120000, // 2 minutes
-    retry: 1,
-    refetchOnWindowFocus: false
   });
+
+  // Separate regular and recurring appointments
+  const regularOnly = regularAppointments.filter(app => 
+    !app.recurrence || app.recurrence === 'none'
+  );
+  
+  const recurringBase = regularAppointments.filter(app => 
+    app.recurrence && app.recurrence !== 'none'
+  );
+
+  console.log(`Regular appointments: ${regularOnly.length}`);
+  console.log(`Recurring base appointments: ${recurringBase.length}`);
+
+  // Generate recurring instances for the next 30 days
+  const today = startOfToday();
+  const endDate = endOfDay(addDays(today, 30));
+  
+  const recurringInstances = useRecurringAppointments({
+    recurringAppointments: recurringBase,
+    startDate: today,
+    endDate: endDate
+  });
+
+  console.log(`Generated recurring instances: ${recurringInstances.length}`);
+
+  // Combine all appointments
+  const allAppointments = [
+    ...regularOnly.map(app => ({
+      ...app,
+      is_recurring_instance: false,
+      client_name: app.client_name || 'Cliente',
+      service_title: app.listings?.title || 'Servicio'
+    })),
+    ...recurringInstances
+  ];
+
+  console.log(`Total combined appointments: ${allAppointments.length}`);
+  console.log('=== APPOINTMENTS FETCH COMPLETE ===');
+
+  return {
+    data: allAppointments,
+    isLoading: isLoadingRegular,
+    error,
+    regularAppointments: regularOnly,
+    recurringInstances
+  };
 };

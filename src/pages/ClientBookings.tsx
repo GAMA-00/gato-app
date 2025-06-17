@@ -110,7 +110,7 @@ const RatingStars = ({
 const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: () => void }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const isRecurring = booking.recurrence !== 'none' && booking.recurrence !== null;
+  const isRecurring = booking.isRecurringInstance || (booking.recurrence !== 'none' && booking.recurrence !== null);
   const isCompleted = booking.status === 'completed';
   
   const handleReschedule = () => {
@@ -141,6 +141,12 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
               {isRecurring && (
                 <div className="flex items-center ml-2 text-red-500 flex-shrink-0">
                   <Flame className="h-4 w-4" />
+                </div>
+              )}
+              {/* Show instance indicator for recurring appointments */}
+              {booking.isRecurringInstance && (
+                <div className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex-shrink-0">
+                  Instancia
                 </div>
               )}
             </div>
@@ -174,7 +180,7 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
           <div className="flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="truncate">
-              {isRecurring ? (
+              {isRecurring && !booking.isRecurringInstance ? (
                 `Todos los ${format(booking.date, 'EEEE', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
               ) : (
                 `${format(booking.date, 'PPP', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
@@ -282,6 +288,11 @@ const ClientBookings = () => {
   const { count: recurringServicesCount } = useRecurringServices();
   const { data: bookings, isLoading, error } = useClientBookings();
   
+  console.log('=== CLIENT BOOKINGS PAGE ===');
+  console.log(`Total bookings received: ${bookings?.length || 0}`);
+  console.log(`Recurring instances: ${bookings?.filter(b => b.isRecurringInstance).length || 0}`);
+  console.log(`Regular appointments: ${bookings?.filter(b => !b.isRecurringInstance).length || 0}`);
+  
   // Filter for upcoming and past bookings (based on date and status)
   const upcomingBookings = bookings?.filter(booking => 
     booking.status === 'pending' || booking.status === 'confirmed'
@@ -291,12 +302,16 @@ const ClientBookings = () => {
     booking.status === 'completed' || booking.status === 'cancelled'
   ) || [];
   
-  // Count active recurring appointments
+  console.log(`Upcoming bookings: ${upcomingBookings.length}`);
+  console.log(`Past bookings: ${pastBookings.length}`);
+  
+  // Count active recurring appointments (including individual instances)
   const activeRecurringCount = bookings?.filter(booking => 
-    booking.recurrence !== 'none' && 
-    booking.recurrence !== null && 
+    booking.isRecurringInstance && 
     (booking.status === 'pending' || booking.status === 'confirmed')
   ).length || 0;
+  
+  console.log(`Active recurring instances: ${activeRecurringCount}`);
   
   const handleRated = () => {
     // Refresh the data
@@ -329,7 +344,14 @@ const ClientBookings = () => {
       
       <div className="space-y-6 px-1">
         <section>
-          <h2 className="text-lg font-medium mb-4">Citas Próximas</h2>
+          <h2 className="text-lg font-medium mb-4">
+            Citas Próximas 
+            {upcomingBookings.length > 0 && (
+              <span className="text-sm text-muted-foreground ml-2">
+                ({upcomingBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
+              </span>
+            )}
+          </h2>
           {isLoading ? (
             <div>
               <BookingSkeleton />
@@ -349,7 +371,14 @@ const ClientBookings = () => {
         </section>
         
         <section>
-          <h2 className="text-lg font-medium mb-4">Citas Pasadas</h2>
+          <h2 className="text-lg font-medium mb-4">
+            Citas Pasadas
+            {pastBookings.length > 0 && (
+              <span className="text-sm text-muted-foreground ml-2">
+                ({pastBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
+              </span>
+            )}
+          </h2>
           {isLoading ? (
             <div>
               <BookingSkeleton />
