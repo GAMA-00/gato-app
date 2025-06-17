@@ -21,12 +21,13 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
 };
 
 // Mapa de iconos específico para service types
-const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance' | 'custom-chef'> = {
+const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance' | 'custom-chef' | 'custom-lavacar'> = {
   'Limpieza': 'custom-cleaning',
   'Planchado': 'custom-ironing',
   'Jardinero': 'custom-gardening',
   'Mantenimiento': 'custom-maintenance',
   'Chef Privado': 'custom-chef',
+  'Lavacar': 'custom-lavacar',
 };
 
 // Nombres de categorías en español
@@ -55,6 +56,7 @@ const preloadAllIcons = () => {
     '/lovable-uploads/2e2cb502-c37d-45c1-b1f6-a8d5fee54f0f.png', // gardening
     '/lovable-uploads/e56c24e8-62d3-4d57-a8e9-7095604747b5.png', // maintenance
     '/lovable-uploads/7277ac8a-a1d9-4762-b5c9-9ba674b096cd.png', // chef
+    '/lovable-uploads/948ef535-f554-4a69-b690-581d742377b7.png', // lavacar
   ];
   
   allIconUrls.forEach(url => {
@@ -294,6 +296,17 @@ const ClientCategoryDetails = () => {
                           <img 
                             src="/lovable-uploads/7277ac8a-a1d9-4762-b5c9-9ba674b096cd.png"
                             alt="Chef Privado"
+                            className={cn(
+                              "object-contain",
+                              isMobile ? "w-12 h-12" : "w-16 h-16"
+                            )}
+                            loading="eager"
+                          />
+                        )}
+                        {serviceType.name === 'Lavacar' && (
+                          <img 
+                            src="/lovable-uploads/948ef535-f554-4a69-b690-581d742377b7.png"
+                            alt="Lavacar"
                             className={cn(
                               "object-contain",
                               isMobile ? "w-12 h-12" : "w-16 h-16"
