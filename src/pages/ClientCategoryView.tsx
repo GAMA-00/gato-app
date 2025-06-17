@@ -35,7 +35,7 @@ const categoryOrder = ['home', 'pets', 'classes', 'personal-care', 'sports', 'ot
 
 // URLs de imágenes para preload estratégico
 const categoryImageUrls: Record<string, string> = {
-  'home': '/lovable-uploads/f07d1b81-bbce-4517-9604-c3f62da6a1cc.png',
+  'home': '/lovable-uploads/11446302-74b0-4775-bc77-01fbf112f8f0.png',
   'pets': '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png',
   'classes': '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png',
   'personal-care': '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png',
