@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, ChevronRight, Clock, Users, Award, ImageIcon } from 'lucide-react';
 import { ProcessedProvider } from './types';
 import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface ProviderCardProps {
   provider: ProcessedProvider;
@@ -12,6 +14,8 @@ interface ProviderCardProps {
 }
 
 const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
+  const isMobile = useIsMobile();
+  
   // Extract first line of service description instead of provider aboutMe
   const shortDescription = provider.serviceDescription?.split('\n')[0] || '';
 
@@ -39,14 +43,16 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
 
   return (
     <Card 
-      key={provider.id}
-      className="overflow-hidden hover:shadow-luxury transition-shadow cursor-pointer animate-fade-in bg-[#F2F2F2] border border-neutral-100"
+      className={cn(
+        "overflow-hidden hover:shadow-luxury transition-shadow cursor-pointer animate-fade-in bg-[#F2F2F2] border border-neutral-100 w-full",
+        isMobile ? "mx-0" : "mx-auto"
+      )}
       onClick={() => onClick(provider)}
     >
-      <CardContent className="p-4">
+      <CardContent className={cn("p-4", isMobile ? "p-3" : "p-4")}>
         {/* Provider Info Section */}
         <div className="flex items-start mb-3">
-          <Avatar className="h-12 w-12 border border-neutral-100 flex-shrink-0">
+          <Avatar className={cn("border border-neutral-100 flex-shrink-0", isMobile ? "h-10 w-10" : "h-12 w-12")}>
             <AvatarImage src={provider.avatar || undefined} alt={provider.name} />
             <AvatarFallback className="bg-luxury-beige text-luxury-navy">
               {provider.name.substring(0, 2).toUpperCase()}
@@ -55,28 +61,28 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
           
           <div className="ml-3 flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-luxury-navy truncate">{provider.name}</h3>
+              <h3 className={cn("font-medium text-luxury-navy truncate", isMobile ? "text-sm" : "text-base")}>{provider.name}</h3>
             </div>
             
-            {/* Metrics Row - Reorganized for better desktop layout */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Metrics Row - Optimized for mobile */}
+            <div className="flex flex-wrap items-center gap-1.5">
               {/* Calificación */}
-              <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200 flex-shrink-0">
-                <Star className="h-3 w-3 fill-amber-600 text-amber-600 mr-1" />
+              <div className="flex items-center bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 flex-shrink-0">
+                <Star className="h-2.5 w-2.5 fill-amber-600 text-amber-600 mr-0.5" />
                 <span className="font-medium text-xs text-amber-700">
                   {displayRating.toFixed(1)}
                 </span>
               </div>
               
-              {/* Clientes Recurrentes - Using the actual count from provider data */}
-              <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200 flex-shrink-0">
-                <Users className="h-3 w-3 text-amber-600 mr-1" />
+              {/* Clientes Recurrentes */}
+              <div className="flex items-center bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 flex-shrink-0">
+                <Users className="h-2.5 w-2.5 text-amber-600 mr-0.5" />
                 <span className="font-medium text-xs text-amber-700">{provider.recurringClients}</span>
               </div>
               
               {/* Nivel del Proveedor */}
-              <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-200 flex-shrink-0">
-                <Award className="h-3 w-3 text-amber-600 mr-1" />
+              <div className="flex items-center bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 flex-shrink-0">
+                <Award className="h-2.5 w-2.5 text-amber-600 mr-0.5" />
                 <span className="font-medium text-xs text-amber-700">{providerLevel.name}</span>
               </div>
             </div>
@@ -85,27 +91,26 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
         
         {/* Service Info Section */}
         <div className="border-t border-neutral-100 pt-3">
-          <h4 className="font-semibold text-sm text-luxury-navy mb-1">{provider.serviceName}</h4>
+          <h4 className={cn("font-semibold text-luxury-navy mb-1", isMobile ? "text-sm" : "text-base")}>{provider.serviceName}</h4>
           
-          {/* Service description instead of provider about me */}
+          {/* Service description */}
           {shortDescription && (
-            <p className="text-xs text-luxury-gray-dark mb-3 line-clamp-2">
+            <p className={cn("text-luxury-gray-dark mb-3 line-clamp-2", isMobile ? "text-xs" : "text-sm")}>
               {shortDescription}
             </p>
           )}
 
-          {/* Gallery Preview Section */}
+          {/* Gallery Preview Section - Optimized for mobile */}
           {allImages.length > 0 && (
             <div className="mb-3">
-              <div className="grid grid-cols-4 gap-1">
-                {allImages.map((image, index) => (
-                  <div key={index} className="relative w-full h-16 rounded-md overflow-hidden bg-gray-100">
+              <div className={cn("grid gap-1", isMobile ? "grid-cols-4" : "grid-cols-4")}>
+                {allImages.slice(0, 4).map((image, index) => (
+                  <div key={index} className={cn("relative w-full rounded-md overflow-hidden bg-gray-100", isMobile ? "h-12" : "h-16")}>
                     <img 
                       src={image} 
                       alt={`Trabajo ${index + 1}`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        // Hide broken images
                         e.currentTarget.style.display = 'none';
                       }}
                     />
@@ -126,7 +131,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
             </div>
             
             <div className="flex items-center flex-shrink-0">
-              <span className="font-medium text-base mr-2 text-luxury-navy">${provider.price.toFixed(2)}</span>
+              <span className={cn("font-medium mr-2 text-luxury-navy", isMobile ? "text-sm" : "text-base")}>${provider.price.toFixed(2)}</span>
               <ChevronRight className="h-4 w-4 text-luxury-gray-dark" />
             </div>
           </div>

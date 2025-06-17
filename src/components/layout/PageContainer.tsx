@@ -36,41 +36,41 @@ const PageContainer: React.FC<PageContainerProps> = ({
         "w-full h-full",
         isCenteredLayout 
           ? "flex flex-col justify-center items-center" 
-          : "min-h-screen overflow-y-auto flex flex-col justify-center items-center",
-        // Eliminar padding completamente en móvil para centrar layout
-        isMobile && isCenteredLayout ? "p-1" : (isMobile ? "p-4 pb-20" : "p-6")
+          : "min-h-screen overflow-y-auto flex flex-col justify-start items-center",
+        // Eliminar padding superior en mobile para maximizar espacio
+        isMobile && isCenteredLayout ? "p-1" : (isMobile ? "px-4 pt-2 pb-20" : "p-6")
       )}>
         <div className={cn(
           "max-w-7xl w-full animate-fade-in",
-          "flex flex-col items-center justify-center",
+          "flex flex-col items-center justify-start",
           isCenteredLayout && isMobile ? "h-full justify-center" : ""
         )}>
           <div className={cn(
             "flex flex-col md:flex-row md:items-center justify-center gap-1 w-full",
-            // Eliminar completamente todos los márgenes en móvil para centrar layout
-            isMobile && isCenteredLayout ? "mb-0" : (isMobile ? "mb-2" : "mb-4")
+            // Reducir margen inferior en móvil
+            isMobile && isCenteredLayout ? "mb-0" : (isMobile ? "mb-1" : "mb-4")
           )}>
             {/* Center title container with full width */}
             <div className="w-full flex justify-center">
               <h1 className={cn(
                 "font-bold tracking-tight text-app-text text-center",
-                // Reducir más el tamaño de texto en móvil para ganar espacio
-                isMobile ? "text-base mb-0" : "text-2xl md:text-3xl mb-0"
+                // Reducir tamaño de texto en móvil
+                isMobile ? "text-lg mb-0" : "text-2xl md:text-3xl mb-0"
               )}>{title}</h1>
             </div>
             {subtitle && <div className={cn(
               "text-app-text/70 text-center w-full",
-              isMobile ? "text-xs mt-0" : "text-lg mt-0"
+              isMobile ? "text-sm mt-0" : "text-lg mt-0"
             )}>{subtitle}</div>}
             {action && <div className="flex-shrink-0 mt-1 md:mt-0">{action}</div>}
           </div>
           
-          {/* Content area - eliminar completamente cualquier margen en móvil */}
+          {/* Content area - minimizar espacios en móvil */}
           <div className={cn(
             "animate-slide-up flex justify-center w-full",
             isCenteredLayout ? "flex-1 items-center justify-center" : "flex-1 items-start",
-            // Eliminar cualquier margen superior en móvil para maximizar espacio
-            isMobile && isCenteredLayout ? "-mt-2" : "mt-4"
+            // Reducir margen superior en móvil
+            isMobile && isCenteredLayout ? "-mt-2" : (isMobile ? "mt-1" : "mt-4")
           )}>
             <div className="w-full flex justify-center">
               {children}

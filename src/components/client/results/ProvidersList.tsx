@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +8,7 @@ import { AlertCircle } from 'lucide-react';
 import ProviderCard from './ProviderCard';
 import { useProvidersQuery } from './useProvidersQuery';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProvidersListProps {
   categoryName: string;
@@ -16,6 +18,7 @@ interface ProvidersListProps {
 const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   console.log("ProvidersList rendered with:", { categoryName, serviceId });
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const { data: providers, isLoading, error } = useProvidersQuery(serviceId, categoryName);
   
@@ -76,22 +79,16 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Buscando profesionales...</h2>
-          <p className="text-muted-foreground">Esto puede tomar unos segundos</p>
+          <h2 className={`font-bold mb-2 ${isMobile ? 'text-lg' : 'text-2xl'}`}>Buscando profesionales...</h2>
+          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>Esto puede tomar unos segundos</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="space-y-4">
+            <div key={i} className="w-full">
               <Skeleton className="h-48 w-full rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
             </div>
           ))}
         </div>
@@ -114,8 +111,8 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto">
-          <h2 className="text-xl font-semibold mb-4">No se encontraron profesionales</h2>
-          <p className="text-muted-foreground mb-6">
+          <h2 className={`font-semibold mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>No se encontraron profesionales</h2>
+          <p className={`text-muted-foreground mb-6 ${isMobile ? 'text-sm' : 'text-base'}`}>
             No hay profesionales disponibles para este servicio en este momento.
           </p>
           <p className="text-sm text-muted-foreground">
@@ -127,14 +124,16 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   }
   
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-4">
+      {/* Single column layout for mobile with full width cards */}
+      <div className="flex flex-col gap-4 w-full">
         {providers.map((provider) => (
-          <ProviderCard 
-            key={provider.id} 
-            provider={provider}
-            onClick={handleProviderSelection}
-          />
+          <div key={provider.id} className="w-full">
+            <ProviderCard 
+              provider={provider}
+              onClick={handleProviderSelection}
+            />
+          </div>
         ))}
       </div>
     </div>
