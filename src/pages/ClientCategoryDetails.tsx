@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -43,11 +42,11 @@ const categoryLabels: Record<string, string> = {
 // URLs organizadas para mejor gestión
 const categoryImageUrls: Record<string, string> = {
   'home': '/lovable-uploads/11446302-74b0-4775-bc77-01fbf112f8f0.png',
-  'pets': '/lovable-uploads/2a5a7cb4-2bbb-4182-8e3e-104e97e9e4a4.png',
-  'classes': '/lovable-uploads/0270a22a-9e98-44c3-822d-78902b399852.png',
-  'personal-care': '/lovable-uploads/418f124f-c897-4235-af63-b3bfa86e82b0.png',
-  'sports': '/lovable-uploads/32716d11-a812-4004-80ce-c321b2875dbd.png',
-  'other': '/lovable-uploads/93a01a24-483d-4e55-81ad-283713da9c6b.png',
+  'pets': '/lovable-uploads/7613f29b-5528-4db5-9357-1d3724a98d5d.png',
+  'classes': '/lovable-uploads/19672ce3-748b-4ea7-86dc-b281bb9b8d45.png',
+  'personal-care': '/lovable-uploads/f5cf3911-b44f-47e9-b52e-4e16ab8b8987.png',
+  'sports': '/lovable-uploads/44391171-f4e7-4ef6-8866-864fdade5d3c.png',
+  'other': '/lovable-uploads/65de903f-70f1-4130-87f0-8152a49381fe.png',
 };
 
 const serviceTypeImageUrls: Record<string, string> = {
