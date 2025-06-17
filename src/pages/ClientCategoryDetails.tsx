@@ -6,7 +6,7 @@ import BackButton from '@/components/ui/back-button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Dumbbell, Globe, LucideIcon, ChefHat } from 'lucide-react';
+import { Book, Dumbbell, Globe, LucideIcon, ChefHat, Dog, Scissors, Stethoscope } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -20,17 +20,12 @@ const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'cust
   'other': 'custom-other',
 };
 
-// Mapa de iconos específico para service types
-const serviceTypeIconMap: Record<string, 'custom-cleaning' | 'custom-ironing' | 'custom-gardening' | 'custom-maintenance' | 'custom-chef' | 'custom-lavacar' | 'custom-dog-walking' | 'custom-pet-grooming' | 'custom-veterinarian'> = {
-  'Limpieza': 'custom-cleaning',
-  'Planchado': 'custom-ironing',
-  'Jardinero': 'custom-gardening',
-  'Mantenimiento': 'custom-maintenance',
-  'Chef Privado': 'custom-chef',
-  'Lavacar': 'custom-lavacar',
-  'Paseo de Perros': 'custom-dog-walking',
-  'Pet grooming': 'custom-pet-grooming',
-  'Veterinario': 'custom-veterinarian',
+// Mapa de iconos fallback para service types
+const serviceTypeFallbackIcons: Record<string, LucideIcon> = {
+  'Chef Privado': ChefHat,
+  'Paseo de Perros': Dog,
+  'Pet grooming': Scissors,
+  'Veterinario': Stethoscope,
 };
 
 // Nombres de categorías en español
@@ -139,36 +134,35 @@ const CategoryIcon: React.FC<{
   );
 };
 
-// Componente optimizado para iconos de service types con fallback mejorado para Chef Privado
+// Componente simplificado para iconos de service types - SIEMPRE carga eager
 const ServiceTypeIcon: React.FC<{
   serviceName: string;
   isMobile: boolean;
-  isVisible: boolean;
-}> = ({ serviceName, isMobile, isVisible }) => {
+}> = ({ serviceName, isMobile }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   
   const imageUrl = serviceTypeImageUrls[serviceName];
+  const fallbackIcon = serviceTypeFallbackIcons[serviceName];
   
   console.log(`ServiceTypeIcon - Service: ${serviceName}, Image URL: ${imageUrl}, Loaded: ${imageLoaded}, Error: ${imageError}`);
   
-  // Fallback específico para Chef Privado si hay error con la imagen
-  if (imageError && serviceName === 'Chef Privado') {
-    return (
-      <div className={cn(
-        "flex items-center justify-center mb-3",
-        isMobile ? "mb-2" : "mb-3"
-      )}>
-        <ChefHat 
-          size={isMobile ? 48 : 64}
-          strokeWidth={1.5}
-          className="text-[#1A1A1A]"
-        />
-      </div>
-    );
-  }
-  
-  if (!imageUrl || imageError) {
+  // Si hay error o no hay imagen, mostrar fallback icon
+  if (imageError || !imageUrl) {
+    if (fallbackIcon) {
+      return (
+        <div className={cn(
+          "flex items-center justify-center mb-3",
+          isMobile ? "mb-2" : "mb-3"
+        )}>
+          {React.createElement(fallbackIcon, {
+            size: isMobile ? 48 : 64,
+            strokeWidth: 1.5,
+            className: "text-[#1A1A1A]"
+          })}
+        </div>
+      );
+    }
     return null;
   }
   
@@ -191,7 +185,7 @@ const ServiceTypeIcon: React.FC<{
           isMobile ? "w-12 h-12" : "w-16 h-16",
           imageLoaded ? "opacity-100" : "opacity-0"
         )}
-        loading={isVisible ? "eager" : "lazy"}
+        loading="eager"
         decoding="async"
         onLoad={() => {
           console.log(`Image loaded successfully for ${serviceName}`);
@@ -211,7 +205,6 @@ const ClientCategoryDetails = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
 
   // Preload crítico solo al montar el componente
   useEffect(() => {
@@ -219,37 +212,6 @@ const ClientCategoryDetails = () => {
       preloadCriticalImages(categoryName);
     }
   }, [categoryName]);
-
-  // Intersection Observer para service types
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const serviceId = entry.target.getAttribute('data-service-id');
-            if (serviceId) {
-              setVisibleItems(prev => new Set([...prev, serviceId]));
-            }
-          }
-        });
-      },
-      { 
-        rootMargin: '50px',
-        threshold: 0.1
-      }
-    );
-
-    const timer = setTimeout(() => {
-      document.querySelectorAll('[data-service-id]').forEach(el => {
-        observer.observe(el);
-      });
-    }, 100);
-
-    return () => {
-      observer.disconnect();
-      clearTimeout(timer);
-    };
-  }, []);
 
   const { data: serviceTypes = [], isLoading } = useQuery({
     queryKey: ['service-types', categoryName],
@@ -344,13 +306,11 @@ const ClientCategoryDetails = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
             {serviceTypes.map((serviceType) => {
               const hasCustomIcon = serviceTypeImageUrls[serviceType.name];
-              const isVisible = visibleItems.has(serviceType.id);
               
               return (
                 <div 
                   key={serviceType.id} 
                   onClick={() => handleServiceClick(serviceType.id)}
-                  data-service-id={serviceType.id}
                 >
                   <Card className={cn(
                     "relative overflow-hidden cursor-pointer transition-all duration-300 ease-in-out",
@@ -363,7 +323,6 @@ const ClientCategoryDetails = () => {
                       <ServiceTypeIcon 
                         serviceName={serviceType.name}
                         isMobile={isMobile}
-                        isVisible={isVisible}
                       />
                     )}
                     <h3 className={cn(
