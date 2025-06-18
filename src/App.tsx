@@ -40,6 +40,9 @@ const queryClient = new QueryClient({
 const AppRoutes = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   
+  console.log('AppRoutes render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'userRole:', user?.role);
+  
+  // Show loading screen while auth is initializing
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -51,6 +54,7 @@ const AppRoutes = () => {
     );
   }
 
+  // If not authenticated, show only auth routes
   if (!isAuthenticated) {
     return (
       <Routes>
@@ -64,55 +68,60 @@ const AppRoutes = () => {
 
   // Authenticated routes
   return (
-    <Routes>
-      {/* Root redirect based on user role */}
-      <Route 
-        path="/" 
-        element={
-          <Navigate 
-            to={user?.role === 'provider' ? "/dashboard" : "/client"} 
-            replace 
-          />
-        } 
-      />
-      
-      {/* Shared routes */}
-      <Route path="/profile" element={<><Navbar /><Profile /></>} />
-      <Route path="/payment-setup" element={<><Navbar /><PaymentSetup /></>} />
-      
-      {/* Provider routes */}
-      {user?.role === 'provider' && (
-        <>
-          <Route path="/dashboard" element={<><Navbar /><Dashboard /></>} />
-          <Route path="/calendar" element={<><Navbar /><Calendar /></>} />
-          <Route path="/services" element={<><Navbar /><Services /></>} />
-          <Route path="/achievements" element={<><Navbar /><Achievements /></>} />
-        </>
-      )}
-      
-      {/* Client routes */}
-      {user?.role === 'client' && (
-        <>
-          <Route path="/client" element={<><Navbar /><ClientCategoryView /></>} />
-          <Route path="/client/category/:categoryName" element={<><Navbar /><ClientCategoryDetails /></>} />
-          <Route path="/client/results/:categoryName/:serviceId" element={<><Navbar /><ClientResultsView /></>} />
-          <Route path="/client/provider/:providerId" element={<><Navbar /><ProviderProfile /></>} />
-          <Route path="/client/service/:providerId/:serviceId" element={<><Navbar /><ClientServiceDetail /></>} />
-          <Route path="/client/booking" element={<><Navbar /><ClientBooking /></>} />
-          <Route path="/client/booking-summary" element={<><Navbar /><BookingSummary /></>} />
-          <Route path="/client/bookings" element={<><Navbar /><ClientBookings /></>} />
-          <Route path="/client/services/:category/:subcat" element={<><Navbar /><ClientProvidersList /></>} />
-          <Route path="/client/services/:buildingId" element={<><Navbar /><ClientServices /></>} />
-        </>
-      )}
-      
-      {/* Catch all */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <Navbar />
+      <Routes>
+        {/* Root redirect based on user role */}
+        <Route 
+          path="/" 
+          element={
+            <Navigate 
+              to={user?.role === 'provider' ? "/dashboard" : "/client"} 
+              replace 
+            />
+          } 
+        />
+        
+        {/* Shared routes */}
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/payment-setup" element={<PaymentSetup />} />
+        
+        {/* Provider routes */}
+        {user?.role === 'provider' && (
+          <>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/achievements" element={<Achievements />} />
+          </>
+        )}
+        
+        {/* Client routes */}
+        {user?.role === 'client' && (
+          <>
+            <Route path="/client" element={<ClientCategoryView />} />
+            <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
+            <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
+            <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
+            <Route path="/client/service/:providerId/:serviceId" element={<ClientServiceDetail />} />
+            <Route path="/client/booking" element={<ClientBooking />} />
+            <Route path="/client/booking-summary" element={<BookingSummary />} />
+            <Route path="/client/bookings" element={<ClientBookings />} />
+            <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
+            <Route path="/client/services/:buildingId" element={<ClientServices />} />
+          </>
+        )}
+        
+        {/* Catch all */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 
 const App = () => {
+  console.log('App component rendering...');
+  
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>

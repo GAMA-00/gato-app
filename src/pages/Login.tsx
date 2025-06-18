@@ -20,8 +20,9 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [userType, setUserType] = useState<'client' | 'provider' | null>(null);
   
   const form = useForm<LoginFormValues>({
@@ -34,15 +35,24 @@ const Login = () => {
 
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
+    setIsSubmitting(true);
     
-    const result = await login(values.email, values.password);
-    
-    if (result.success) {
-      toast.success('¡Inicio de sesión exitoso!');
-      // No manual redirect - let the auth context handle it
-    } else {
-      setLoginError(result.error || 'Error al iniciar sesión');
-      toast.error(result.error || 'Error al iniciar sesión');
+    try {
+      const result = await login(values.email, values.password);
+      
+      if (result.success) {
+        toast.success('¡Inicio de sesión exitoso!');
+        // Auth context will handle navigation automatically
+      } else {
+        setLoginError(result.error || 'Error al iniciar sesión');
+        toast.error(result.error || 'Error al iniciar sesión');
+      }
+    } catch (error) {
+      console.error('Login submission error:', error);
+      setLoginError('Error inesperado al iniciar sesión');
+      toast.error('Error inesperado al iniciar sesión');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -111,7 +121,7 @@ const Login = () => {
                           placeholder="correo@ejemplo.com" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={isLoading}
+                          disabled={isSubmitting}
                         />
                       </div>
                     </FormControl>
@@ -134,7 +144,7 @@ const Login = () => {
                           placeholder="••••••" 
                           className="pl-10 h-12" 
                           {...field}
-                          disabled={isLoading}
+                          disabled={isSubmitting}
                         />
                       </div>
                     </FormControl>
@@ -146,9 +156,9 @@ const Login = () => {
               <Button 
                 type="submit" 
                 className="w-full h-12"
-                disabled={isLoading}
+                disabled={isSubmitting}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
                     <span>Iniciando sesión...</span>

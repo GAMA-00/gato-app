@@ -34,22 +34,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
 
   const loadUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
     try {
+      console.log('Loading profile for user:', authUser.id);
+      
       const { data: profile, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
         .single();
 
-      if (error || !profile) {
+      if (error) {
         console.error('Profile loading error:', error);
         return null;
       }
 
-      return {
+      if (!profile) {
+        console.error('No profile found');
+        return null;
+      }
+
+      const userData: User = {
         id: authUser.id,
         name: profile.name || authUser.email?.split('@')[0] || 'Usuario',
         email: profile.email || authUser.email || '',
@@ -64,6 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         houseNumber: profile.house_number || '',
         apartment: '',
       };
+
+      console.log('User profile loaded successfully:', userData);
+      return userData;
     } catch (error) {
       console.error('Exception loading user profile:', error);
       return null;
@@ -71,73 +80,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const initializeAuth = async () => {
-      try {
-        // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
-        if (!isMounted) return;
-        
-        if (initialSession?.user) {
-          setSession(initialSession);
-          const userData = await loadUserProfile(initialSession.user);
-          if (isMounted && userData) {
-            setUser(userData);
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Set up auth state listener
+    console.log('AuthProvider initializing...');
+    
+    // Single auth state listener to handle all auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (!isMounted) return;
+      async (event, session) => {
+        console.log('Auth state changed:', event, !!session);
         
-        console.log('Auth state changed:', event);
-        
-        if (event === 'SIGNED_IN' && newSession?.user) {
-          setSession(newSession);
-          const userData = await loadUserProfile(newSession.user);
-          if (isMounted && userData) {
-            setUser(userData);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setSession(null);
+        if (session?.user) {
+          const userData = await loadUserProfile(session.user);
+          setUser(userData);
+        } else {
           setUser(null);
         }
+        
+        // Always set loading to false after processing
+        setIsLoading(false);
       }
     );
 
-    // Initialize auth
-    initializeAuth();
-
     return () => {
-      isMounted = false;
+      console.log('AuthProvider cleanup');
       subscription.unsubscribe();
     };
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
 
       if (error) {
+        console.error('Login error:', error);
         return { success: false, error: error.message };
       }
 
       if (data.user && data.session) {
-        // Auth state change listener will handle the rest
+        console.log('Login successful');
         return { success: true };
       }
 
@@ -150,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      console.log('Logging out...');
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
@@ -168,7 +152,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAuthenticated = !!user && !!session;
+  const isAuthenticated = !!user;
+
+  console.log('AuthProvider render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', !!user);
 
   return (
     <AuthContext.Provider value={{ 
