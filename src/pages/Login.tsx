@@ -21,7 +21,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { login, user, isAuthenticated } = useAuth();
+  const { login, user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -40,12 +40,12 @@ const Login = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && !authLoading) {
       const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
-      console.log('User already authenticated, redirecting to:', redirectTo);
+      console.log('User authenticated, redirecting to:', redirectTo);
       navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, authLoading]);
 
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
@@ -57,8 +57,8 @@ const Login = () => {
       
       if (result.success) {
         toast.success('¡Inicio de sesión exitoso!');
-        console.log('Login successful, AuthContext will handle navigation');
-        // Navigation will be handled by the useEffect above when user state updates
+        console.log('Login successful');
+        // Navigation will be handled by the useEffect above
       } else {
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
@@ -73,7 +73,19 @@ const Login = () => {
     }
   };
 
-  // Don't render anything if already authenticated (will redirect)
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
+          <p className="text-sm text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render login form if already authenticated
   if (isAuthenticated) {
     return null;
   }

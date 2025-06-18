@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
@@ -34,8 +34,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const loadUserProfile = useCallback(async (authUser: SupabaseUser): Promise<User | null> => {
+  const loadUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
     try {
       console.log('Loading profile for user:', authUser.id);
       
@@ -77,92 +78,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Exception loading user profile:', error);
       return null;
     }
-  }, []);
+  };
 
   useEffect(() => {
-    console.log('AuthProvider initializing...');
-    
     let mounted = true;
-
+    
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
+        
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting initial session:', error);
+          console.error('Error getting session:', error);
           if (mounted) {
             setIsLoading(false);
+            setIsInitialized(true);
           }
           return;
         }
 
+        // Load user profile if session exists
         if (session?.user && mounted) {
-          try {
-            const userData = await loadUserProfile(session.user);
-            if (mounted) {
-              setUser(userData);
-            }
-          } catch (error) {
-            console.error('Error loading initial profile:', error);
-            if (mounted) {
-              setUser(null);
-            }
+          const userData = await loadUserProfile(session.user);
+          if (mounted) {
+            setUser(userData);
           }
         }
         
         if (mounted) {
           setIsLoading(false);
+          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
         if (mounted) {
           setIsLoading(false);
+          setIsInitialized(true);
         }
       }
     };
 
-    // Set up auth listener
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, !!session);
         
         if (!mounted) return;
 
-        if (session?.user) {
+        if (event === 'SIGNED_IN' && session?.user) {
+          setIsLoading(true);
           try {
             const userData = await loadUserProfile(session.user);
             setUser(userData);
           } catch (error) {
-            console.error('Error loading user profile:', error);
+            console.error('Error loading profile on sign in:', error);
             setUser(null);
           }
-        } else {
+          setIsLoading(false);
+        } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
 
     // Initialize auth
     initializeAuth();
 
-    // Timeout fallback
-    const timeout = setTimeout(() => {
-      if (mounted) {
-        console.warn('Auth initialization timeout - forcing loading to false');
-        setIsLoading(false);
-      }
-    }, 8000);
-
     return () => {
-      console.log('AuthProvider cleanup');
+      console.log('Auth cleanup');
       mounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
-  }, [loadUserProfile]);
+  }, []); // Empty dependency array to avoid infinite loops
 
   const login = async (email: string, password: string) => {
     try {
@@ -180,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user && data.session) {
         console.log('Login successful');
+        // The auth state change listener will handle loading the profile
         return { success: true };
       }
 
@@ -200,17 +191,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserPaymentMethod = useCallback((hasPaymentMethod: boolean) => {
+  const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
     setUser(prev => prev ? { ...prev, hasPaymentMethod } : null);
-  }, []);
+  };
 
-  const updateUserAvatar = useCallback((avatarUrl: string) => {
+  const updateUserAvatar = (avatarUrl: string) => {
     setUser(prev => prev ? { ...prev, avatarUrl } : null);
-  }, []);
+  };
 
   const isAuthenticated = !!user;
 
-  console.log('AuthProvider render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', !!user);
+  console.log('AuthProvider render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', !!user, 'initialized:', isInitialized);
 
   return (
     <AuthContext.Provider value={{ 
