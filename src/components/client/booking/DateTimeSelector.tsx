@@ -4,7 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarIcon, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useProviderAvailability } from '@/hooks/useProviderAvailability';
@@ -30,7 +31,13 @@ const DateTimeSelector = ({
   selectedFrequency = 'once'
 }: DateTimeSelectorProps) => {
   
-  const { availableTimeSlots, isLoading } = useProviderAvailability({
+  const { 
+    availableTimeSlots, 
+    isLoading, 
+    isRefreshing, 
+    lastUpdated, 
+    refreshAvailability 
+  } = useProviderAvailability({
     providerId,
     selectedDate: selectedDate || new Date(),
     serviceDuration,
@@ -65,6 +72,11 @@ const DateTimeSelector = ({
       case 'monthly': return 'mensual';
       default: return '';
     }
+  };
+
+  const formatLastUpdated = (date: Date | null) => {
+    if (!date) return '';
+    return format(date, "HH:mm:ss");
   };
 
   return (
@@ -113,9 +125,31 @@ const DateTimeSelector = ({
           
           {/* Time Selection Section */}
           <div>
-            <Label className="text-base font-medium mb-3 block">
-              Selecciona la hora
-            </Label>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-base font-medium">
+                Selecciona la hora
+              </Label>
+              
+              {/* Refresh Button */}
+              <div className="flex items-center gap-2">
+                {lastUpdated && (
+                  <span className="text-xs text-gray-500">
+                    Actualizado: {formatLastUpdated(lastUpdated)}
+                  </span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refreshAvailability}
+                  disabled={isRefreshing}
+                  className="h-8 px-3"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+                </Button>
+              </div>
+            </div>
+            
             {selectedDate ? (
               <div className="space-y-4">
                 {isLoading ? (
@@ -170,6 +204,16 @@ const DateTimeSelector = ({
                     <div className="text-xs text-gray-400 mt-2">
                       Todos los horarios están ocupados o bloqueados
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={refreshAvailability}
+                      className="mt-3"
+                      disabled={isRefreshing}
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      Intentar de nuevo
+                    </Button>
                   </div>
                 )}
               </div>
