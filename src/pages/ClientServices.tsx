@@ -17,10 +17,10 @@ const ClientServices = () => {
   const { user } = useAuth();
   
   const { data: listings = [], isLoading } = useQuery({
-    queryKey: ['client-services', user?.residencia_id],
+    queryKey: ['client-services', user?.residenciaId],
     queryFn: async () => {
-      if (!user?.residencia_id) {
-        console.log('No residencia_id found for user, returning empty array');
+      if (!user?.residenciaId) {
+        console.log('No residenciaId found for user, returning empty array');
         return [];
       }
 
@@ -29,7 +29,7 @@ const ClientServices = () => {
         const { data: listingResidencias, error: lrError } = await supabase
           .from('listing_residencias')
           .select('listing_id')
-          .eq('residencia_id', user.residencia_id);
+          .eq('residencia_id', user.residenciaId);
           
         if (lrError) {
           console.error('Error fetching listing residencias:', lrError);
@@ -38,7 +38,7 @@ const ClientServices = () => {
         
         // If no listings for this residencia, return empty array
         if (!listingResidencias || listingResidencias.length === 0) {
-          console.log('No listings found for residencia:', user.residencia_id);
+          console.log('No listings found for residencia:', user.residenciaId);
           return [];
         }
         
@@ -101,7 +101,7 @@ const ClientServices = () => {
             duration: typeof listing.duration === 'number' ? listing.duration : 0,
             providerId: listing.provider_id,
             providerName: provider?.name || 'Proveedor',
-            residenciaIds: [user.residencia_id],
+            residenciaIds: [user.residenciaId],
             createdAt: new Date(listing.created_at)
           };
         });
@@ -110,7 +110,7 @@ const ClientServices = () => {
         return [];
       }
     },
-    enabled: !!user?.residencia_id
+    enabled: !!user?.residenciaId
   });
 
   // Group listings by category
@@ -164,7 +164,7 @@ const ClientServices = () => {
   }
 
   // Show message if user doesn't have a residencia assigned
-  if (!user?.residencia_id) {
+  if (!user?.residenciaId) {
     return (
       <PageContainer
         title="Servicios Disponibles"
@@ -260,7 +260,7 @@ const ClientServices = () => {
           );
         })}
         
-        {listings.length === 0 && user?.residencia_id && (
+        {listings.length === 0 && user?.residenciaId && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No hay servicios disponibles en tu residencia todavía.</p>
           </div>
