@@ -39,6 +39,7 @@ const Login = () => {
     
     if (result.success) {
       toast.success('¡Inicio de sesión exitoso!');
+      // No manual redirect - let the auth context handle it
     } else {
       setLoginError(result.error || 'Error al iniciar sesión');
       toast.error(result.error || 'Error al iniciar sesión');

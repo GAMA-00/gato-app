@@ -40,7 +40,6 @@ const queryClient = new QueryClient({
 const AppRoutes = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   
-  // Show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -52,7 +51,6 @@ const AppRoutes = () => {
     );
   }
 
-  // Not authenticated - show auth routes only
   if (!isAuthenticated) {
     return (
       <Routes>
@@ -67,10 +65,16 @@ const AppRoutes = () => {
   // Authenticated routes
   return (
     <Routes>
-      {/* Root redirect */}
-      <Route path="/" element={
-        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
-      } />
+      {/* Root redirect based on user role */}
+      <Route 
+        path="/" 
+        element={
+          <Navigate 
+            to={user?.role === 'provider' ? "/dashboard" : "/client"} 
+            replace 
+          />
+        } 
+      />
       
       {/* Shared routes */}
       <Route path="/profile" element={<><Navbar /><Profile /></>} />

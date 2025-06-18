@@ -36,57 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-        
-        if (session && !error) {
-          setSession(session);
-          await loadUserProfile(session.user);
-        }
-      } catch (error) {
-        console.error('Error getting initial session:', error);
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    getInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        console.log('Auth state changed:', event);
-        
-        setSession(session);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          await loadUserProfile(session.user);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-        
-        setIsLoading(false);
-      }
-    );
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const loadUserProfile = async (authUser: SupabaseUser) => {
+  const loadUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
     try {
       const { data: profile, error } = await supabase
         .from('users')
@@ -94,38 +44,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', authUser.id)
         .single();
 
-      if (error) {
+      if (error || !profile) {
         console.error('Profile loading error:', error);
-        return;
+        return null;
       }
 
-      if (profile) {
-        const userData: User = {
-          id: authUser.id,
-          name: profile.name || authUser.email?.split('@')[0] || 'Usuario',
-          email: profile.email || authUser.email || '',
-          phone: profile.phone || '',
-          role: (profile.role === 'provider') ? 'provider' : 'client',
-          avatarUrl: profile.avatar_url || '',
-          residenciaId: profile.residencia_id || '',
-          buildingName: profile.condominium_name || profile.condominium_text || '',
-          hasPaymentMethod: profile.has_payment_method || false,
-          condominiumId: profile.condominium_id || '',
-          condominiumName: profile.condominium_name || profile.condominium_text || '',
-          houseNumber: profile.house_number || '',
-          apartment: '',
-        };
-        
-        setUser(userData);
-      }
+      return {
+        id: authUser.id,
+        name: profile.name || authUser.email?.split('@')[0] || 'Usuario',
+        email: profile.email || authUser.email || '',
+        phone: profile.phone || '',
+        role: (profile.role === 'provider') ? 'provider' : 'client',
+        avatarUrl: profile.avatar_url || '',
+        residenciaId: profile.residencia_id || '',
+        buildingName: profile.condominium_name || profile.condominium_text || '',
+        hasPaymentMethod: profile.has_payment_method || false,
+        condominiumId: profile.condominium_id || '',
+        condominiumName: profile.condominium_name || profile.condominium_text || '',
+        houseNumber: profile.house_number || '',
+        apartment: '',
+      };
     } catch (error) {
       console.error('Exception loading user profile:', error);
+      return null;
     }
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        if (initialSession?.user) {
+          setSession(initialSession);
+          const userData = await loadUserProfile(initialSession.user);
+          if (isMounted && userData) {
+            setUser(userData);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        if (!isMounted) return;
+        
+        console.log('Auth state changed:', event);
+        
+        if (event === 'SIGNED_IN' && newSession?.user) {
+          setSession(newSession);
+          const userData = await loadUserProfile(newSession.user);
+          if (isMounted && userData) {
+            setUser(userData);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        }
+      }
+    );
+
+    // Initialize auth
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -133,7 +133,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        setIsLoading(false);
         return { success: false, error: error.message };
       }
 
@@ -142,11 +141,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       }
 
-      setIsLoading(false);
       return { success: false, error: 'Error de autenticación' };
     } catch (error) {
       console.error('Login exception:', error);
-      setIsLoading(false);
       return { success: false, error: 'Error de conexión' };
     }
   };
@@ -154,12 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
     } catch (error) {
       console.error('Logout error:', error);
-      setUser(null);
-      setSession(null);
     }
   };
 
