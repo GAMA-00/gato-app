@@ -48,10 +48,10 @@ const LoadingScreen = () => (
   </div>
 );
 
-const AppRoutes = () => {
+const AppContent = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   
-  console.log('AppRoutes render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'userRole:', user?.role);
+  console.log('AppContent render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'userRole:', user?.role);
   
   // Show loading screen while auth is initializing
   if (isLoading) {
@@ -131,7 +131,7 @@ const App = () => {
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <AppRoutes />
+            <AppContent />
             <Toaster />
             <Sonner />
           </AuthProvider>
