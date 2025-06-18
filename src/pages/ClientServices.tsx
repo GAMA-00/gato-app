@@ -1,88 +1,116 @@
+
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import BackButton from '@/components/ui/back-button';
-import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCommissionRate } from '@/hooks/useCommissionRate';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SERVICE_CATEGORIES } from '@/lib/data';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ClientServices = () => {
-  const { residenciaId } = useParams();
   const navigate = useNavigate();
   const { commissionRate } = useCommissionRate();
+  const { user } = useAuth();
   
   const { data: listings = [], isLoading } = useQuery({
-    queryKey: ['client-services', residenciaId],
+    queryKey: ['client-services', user?.residencia_id],
     queryFn: async () => {
-      // Query listings and related residencia associations
-      const { data: listingResidencias, error: lrError } = await supabase
-        .from('listing_residencias')
-        .select('listing_id')
-        .eq('residencia_id', residenciaId);
+      if (!user?.residencia_id) {
+        console.log('No residencia_id found for user, returning empty array');
+        return [];
+      }
+
+      try {
+        // Query listings and related residencia associations
+        const { data: listingResidencias, error: lrError } = await supabase
+          .from('listing_residencias')
+          .select('listing_id')
+          .eq('residencia_id', user.residencia_id);
+          
+        if (lrError) {
+          console.error('Error fetching listing residencias:', lrError);
+          throw lrError;
+        }
         
-      if (lrError) throw lrError;
-      
-      // If no listings for this residencia, return empty array
-      if (!listingResidencias || listingResidencias.length === 0) return [];
-      
-      // Get the actual listings
-      const { data: listingsData, error: listingsError } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          service_type:service_type_id(
-            name,
-            category:category_id(
+        // If no listings for this residencia, return empty array
+        if (!listingResidencias || listingResidencias.length === 0) {
+          console.log('No listings found for residencia:', user.residencia_id);
+          return [];
+        }
+        
+        // Get the actual listings
+        const { data: listingsData, error: listingsError } = await supabase
+          .from('listings')
+          .select(`
+            *,
+            service_type:service_type_id(
               name,
-              label
+              category:category_id(
+                name,
+                label
+              )
             )
-          )
-        `)
-        .in('id', listingResidencias.map(lr => lr.listing_id));
+          `)
+          .in('id', listingResidencias.map(lr => lr.listing_id))
+          .eq('is_active', true);
+          
+        if (listingsError) {
+          console.error('Error fetching listings:', listingsError);
+          throw listingsError;
+        }
         
-      if (listingsError) throw listingsError;
-      
-      // Get unique provider IDs from listings
-      const providerIds = [...new Set(listingsData.map(listing => listing.provider_id))];
-      
-      // Fetch provider data from users table
-      const { data: providers, error: providersError } = await supabase
-        .from('users')
-        .select('id, name')
-        .in('id', providerIds)
-        .eq('role', 'provider');
+        // Get unique provider IDs from listings
+        const providerIds = [...new Set(listingsData.map(listing => listing.provider_id))];
         
-      if (providersError) throw providersError;
-      
-      // Create provider map for easy lookup
-      const providerMap = Object.fromEntries(
-        (providers || []).map(provider => [provider.id, provider])
-      );
-      
-      return listingsData.map(listing => {
-        const provider = providerMap[listing.provider_id];
+        if (providerIds.length === 0) {
+          return [];
+        }
         
-        return {
-          id: listing.id,
-          title: listing.title,
-          description: listing.description,
-          categoryId: listing.service_type?.category?.name || '',
-          categoryName: listing.service_type?.category?.label || 'Otros',
-          serviceTypeName: listing.service_type?.name || '',
-          price: typeof listing.base_price === 'number' ? listing.base_price : 0,
-          duration: typeof listing.duration === 'number' ? listing.duration : 0,
-          providerId: listing.provider_id,
-          providerName: provider?.name || 'Proveedor',
-          residenciaIds: [residenciaId],
-          createdAt: new Date(listing.created_at)
-        };
-      });
-    }
+        // Fetch provider data from users table
+        const { data: providers, error: providersError } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', providerIds)
+          .eq('role', 'provider');
+          
+        if (providersError) {
+          console.error('Error fetching providers:', providersError);
+          throw providersError;
+        }
+        
+        // Create provider map for easy lookup
+        const providerMap = Object.fromEntries(
+          (providers || []).map(provider => [provider.id, provider])
+        );
+        
+        return listingsData.map(listing => {
+          const provider = providerMap[listing.provider_id];
+          
+          return {
+            id: listing.id,
+            title: listing.title,
+            description: listing.description,
+            categoryId: listing.service_type?.category?.name || '',
+            categoryName: listing.service_type?.category?.label || 'Otros',
+            serviceTypeName: listing.service_type?.name || '',
+            price: typeof listing.base_price === 'number' ? listing.base_price : 0,
+            duration: typeof listing.duration === 'number' ? listing.duration : 0,
+            providerId: listing.provider_id,
+            providerName: provider?.name || 'Proveedor',
+            residenciaIds: [user.residencia_id],
+            createdAt: new Date(listing.created_at)
+          };
+        });
+      } catch (error) {
+        console.error('Error in client services query:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.residencia_id
   });
 
   // Group listings by category
@@ -106,25 +134,12 @@ const ClientServices = () => {
   };
 
   const handleBookService = (serviceId: string) => {
-    navigate(`/client/book/${residenciaId}/${serviceId}`);
+    navigate(`/client/service/${serviceId}`);
   };
 
-  // Handle back navigation
   const handleBack = () => {
     navigate(-1);
   };
-
-  // Back button component
-  const backButton = (
-    <Button 
-      variant="outline" 
-      onClick={handleBack} 
-      className="px-4 py-2 h-auto border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#FEEBCB]/50 hover:text-[#1A1A1A]"
-    >
-      <ArrowLeft size={16} className="mr-2" />
-      <span>Volver</span>
-    </Button>
-  );
 
   if (isLoading) {
     return (
@@ -132,9 +147,6 @@ const ClientServices = () => {
         title="Servicios Disponibles"
         className="pt-1"
       >
-        <div className="mb-4">
-          <BackButton onClick={handleBack} />
-        </div>
         <div className="grid gap-8">
           {[1, 2, 3].map(i => (
             <div key={i} className="space-y-4">
@@ -151,15 +163,30 @@ const ClientServices = () => {
     );
   }
 
+  // Show message if user doesn't have a residencia assigned
+  if (!user?.residencia_id) {
+    return (
+      <PageContainer
+        title="Servicios Disponibles"
+        className="pt-1"
+      >
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">
+            Para ver los servicios disponibles, necesitas tener una residencia asignada.
+          </p>
+          <Button onClick={() => navigate('/profile')}>
+            Configurar Perfil
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer
       title="Servicios Disponibles"
       className="pt-1"
     >
-      <div className="mb-4">
-        <BackButton onClick={handleBack} />
-      </div>
-      
       <div className="space-y-12">
         {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => {
           // Obtener la información de categoría o usar valores predeterminados
@@ -221,7 +248,7 @@ const ClientServices = () => {
                             className="flex-1"
                             onClick={() => handleBookService(listing.id)}
                           >
-                            Reservar
+                            Ver Detalles
                           </Button>
                         </div>
                       </div>
@@ -233,9 +260,9 @@ const ClientServices = () => {
           );
         })}
         
-        {listings.length === 0 && (
+        {listings.length === 0 && user?.residencia_id && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No hay servicios disponibles en esta residencia todavía.</p>
+            <p className="text-muted-foreground">No hay servicios disponibles en tu residencia todavía.</p>
           </div>
         )}
       </div>
