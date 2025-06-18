@@ -10,6 +10,7 @@ import { CalendarRange, CreditCard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Credit card form schema for clients
 const creditCardSchema = z.object({
@@ -22,14 +23,16 @@ const creditCardSchema = z.object({
 export type CreditCardFormValues = z.infer<typeof creditCardSchema>;
 
 interface ClientPaymentFormProps {
-  userId: string;
-  onSuccess: (hasPaymentMethod: boolean) => void;
-  onSubmit: () => void;
+  onSuccess: () => void;
+  onError: (error: string) => void;
+  onSkip: () => void;
+  isSubmitting: boolean;
+  setIsSubmitting: (value: boolean) => void;
 }
 
-export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPaymentFormProps) => {
+export const ClientPaymentForm = ({ onSuccess, onError, onSkip, isSubmitting, setIsSubmitting }: ClientPaymentFormProps) => {
+  const { user } = useAuth();
   const [error, setError] = React.useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const clientForm = useForm<CreditCardFormValues>({
     resolver: zodResolver(creditCardSchema),
@@ -42,12 +45,8 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
   });
 
   const handleClientSubmit = async (values: CreditCardFormValues) => {
-    if (!userId) {
-      toast({
-        title: "Error",
-        description: "Usuario no autenticado",
-        variant: "destructive"
-      });
+    if (!user?.id) {
+      onError("Usuario no autenticado");
       return;
     }
     
@@ -55,13 +54,13 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
     setIsSubmitting(true);
     
     try {
-      console.log("Guardando método de pago para el usuario:", userId);
+      console.log("Guardando método de pago para el usuario:", user.id);
       
       // Verificar primero que el usuario exista en la tabla users
       const { data: existingUser, error: userCheckError } = await supabase
         .from('users')
         .select('id')
-        .eq('id', userId)
+        .eq('id', user.id)
         .single();
       
       if (userCheckError || !existingUser) {
@@ -71,7 +70,7 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
         const { error: insertError } = await supabase
           .from('users')
           .insert({
-            id: userId,
+            id: user.id,
             role: 'client',
             has_payment_method: false
           });
@@ -84,7 +83,7 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
       
       // Una vez que nos aseguramos que el usuario existe, insertamos el método de pago
       const { error } = await supabase.from('payment_methods').insert({
-        user_id: userId,
+        user_id: user.id,
         method_type: 'card',
         cardholder_name: values.cardholderName,
         card_number: values.cardNumber.substring(values.cardNumber.length - 4), // Solo guardamos los últimos 4 dígitos por seguridad
@@ -100,17 +99,18 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
       await supabase
         .from('users')
         .update({ has_payment_method: true })
-        .eq('id', userId);
+        .eq('id', user.id);
       
-      onSuccess(true);
+      onSuccess();
       toast({
         title: "Éxito",
         description: "¡Método de pago registrado exitosamente!"
       });
-      onSubmit();
     } catch (error: any) {
       console.error('Error al guardar método de pago:', error);
-      setError(`Error al guardar la información de pago: ${error.message || 'Intente nuevamente'}`);
+      const errorMessage = `Error al guardar la información de pago: ${error.message || 'Intente nuevamente'}`;
+      setError(errorMessage);
+      onError(errorMessage);
       toast({
         title: "Error",
         description: "Error al guardar la información de pago",
@@ -122,64 +122,31 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
   };
 
   return (
-    <Form {...clientForm}>
-      <form onSubmit={clientForm.handleSubmit(handleClientSubmit)} className="space-y-6">
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        <FormField
-          control={clientForm.control}
-          name="cardNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Número de Tarjeta</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="**** **** **** ****" 
-                    className="pl-10" 
-                    {...field} 
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Configurar Método de Pago</h2>
+        <p className="text-muted-foreground">Agrega tu tarjeta de crédito para realizar pagos</p>
+      </div>
+
+      <Form {...clientForm}>
+        <form onSubmit={clientForm.handleSubmit(handleClientSubmit)} className="space-y-6">
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-        />
-        
-        <FormField
-          control={clientForm.control}
-          name="cardholderName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nombre del Titular</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Como aparece en la tarjeta" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="flex gap-4">
+          
           <FormField
             control={clientForm.control}
-            name="expiryDate"
+            name="cardNumber"
             render={({ field }) => (
-              <FormItem className="w-1/2">
-                <FormLabel>Fecha de Expiración</FormLabel>
+              <FormItem>
+                <FormLabel>Número de Tarjeta</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <CalendarRange className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      placeholder="MM/YY" 
+                      placeholder="**** **** **** ****" 
                       className="pl-10" 
                       {...field} 
                     />
@@ -192,14 +159,13 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
           
           <FormField
             control={clientForm.control}
-            name="cvv"
+            name="cardholderName"
             render={({ field }) => (
-              <FormItem className="w-1/2">
-                <FormLabel>CVV</FormLabel>
+              <FormItem>
+                <FormLabel>Nombre del Titular</FormLabel>
                 <FormControl>
                   <Input 
-                    type="password" 
-                    placeholder="•••" 
+                    placeholder="Como aparece en la tarjeta" 
                     {...field} 
                   />
                 </FormControl>
@@ -207,21 +173,74 @@ export const ClientPaymentForm = ({ userId, onSuccess, onSubmit }: ClientPayment
               </FormItem>
             )}
           />
-        </div>
-        
-        <Button 
-          type="submit" 
-          className="w-full bg-golden-whisker text-heading hover:bg-golden-whisker-hover"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></span>
-              Procesando...
-            </>
-          ) : "Guardar"}
-        </Button>
-      </form>
-    </Form>
+          
+          <div className="flex gap-4">
+            <FormField
+              control={clientForm.control}
+              name="expiryDate"
+              render={({ field }) => (
+                <FormItem className="w-1/2">
+                  <FormLabel>Fecha de Expiración</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <CalendarRange className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="MM/YY" 
+                        className="pl-10" 
+                        {...field} 
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={clientForm.control}
+              name="cvv"
+              render={({ field }) => (
+                <FormItem className="w-1/2">
+                  <FormLabel>CVV</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="•••" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="flex gap-4">
+            <Button 
+              type="submit" 
+              className="flex-1 bg-golden-whisker text-heading hover:bg-golden-whisker-hover"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></span>
+                  Procesando...
+                </>
+              ) : "Guardar"}
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onSkip}
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              Omitir por ahora
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 };
