@@ -36,40 +36,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
-  // Initialize auth state
   useEffect(() => {
-    console.log('=== INITIALIZING AUTH ===');
-    
-    // Get current session
-    const initializeAuth = async () => {
+    let mounted = true;
+
+    // Get initial session
+    const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('Initial session check:', session?.user?.id, error);
         
-        if (session?.user && !error) {
-          await loadUserProfile(session.user);
+        if (!mounted) return;
+        
+        if (session && !error) {
           setSession(session);
+          await loadUserProfile(session.user);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Error getting initial session:', error);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    initializeAuth();
+    getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
+        if (!mounted) return;
+        
+        console.log('Auth state changed:', event);
+        
+        setSession(session);
         
         if (event === 'SIGNED_IN' && session?.user) {
           await loadUserProfile(session.user);
-          setSession(session);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          setSession(null);
         }
         
         setIsLoading(false);
@@ -77,14 +81,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const loadUserProfile = async (authUser: SupabaseUser) => {
     try {
-      console.log('Loading user profile for:', authUser.id);
-      
       const { data: profile, error } = await supabase
         .from('users')
         .select('*')
@@ -113,7 +116,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           apartment: '',
         };
         
-        console.log('User profile loaded:', userData.id, userData.role);
         setUser(userData);
       }
     } catch (error) {
@@ -122,7 +124,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string) => {
-    console.log('=== STARTING LOGIN ===');
     setIsLoading(true);
     
     try {
@@ -132,14 +133,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Login error:', error);
         setIsLoading(false);
         return { success: false, error: error.message };
       }
 
       if (data.user && data.session) {
-        console.log('Login successful:', data.user.id);
-        // The onAuthStateChange will handle the user profile loading
+        // Auth state change listener will handle the rest
         return { success: true };
       }
 
@@ -153,12 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    console.log('=== LOGGING OUT ===');
     try {
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
-      console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
       setUser(null);
@@ -178,9 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAuthenticated = !!(user && session);
-
-  console.log('AuthProvider render - user:', user?.id, 'authenticated:', isAuthenticated, 'loading:', isLoading);
+  const isAuthenticated = !!user && !!session;
 
   return (
     <AuthContext.Provider value={{ 

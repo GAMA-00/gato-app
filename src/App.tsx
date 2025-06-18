@@ -15,7 +15,7 @@ import PaymentSetup from "./pages/PaymentSetup";
 import Profile from "./pages/Profile";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
-// Updated pages - final version
+// Client pages
 import ClientCategoryView from "./pages/ClientCategoryView";
 import ClientCategoryDetails from "./pages/ClientCategoryDetails";
 import ClientResultsView from "./pages/ClientResultsView";
@@ -28,7 +28,6 @@ import ClientBooking from "./pages/ClientBooking";
 import ProviderRegister from "./pages/ProviderRegister";
 import ClientProvidersList from "./pages/ClientProvidersList";
 
-// Create a client for React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -38,16 +37,10 @@ const queryClient = new QueryClient({
   },
 });
 
-// Main App Routes
 const AppRoutes = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   
-  console.log('=== APP ROUTES RENDER ===');
-  console.log('isAuthenticated:', isAuthenticated);
-  console.log('user:', user?.id, user?.role);
-  console.log('isLoading:', isLoading);
-
-  // Show loading while checking auth
+  // Show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -59,7 +52,7 @@ const AppRoutes = () => {
     );
   }
 
-  // If not authenticated, show only auth routes
+  // Not authenticated - show auth routes only
   if (!isAuthenticated) {
     return (
       <Routes>
@@ -71,135 +64,43 @@ const AppRoutes = () => {
     );
   }
 
-  // User is authenticated
+  // Authenticated routes
   return (
     <Routes>
-      {/* Root redirect based on user role */}
+      {/* Root redirect */}
       <Route path="/" element={
         <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
       } />
       
       {/* Shared routes */}
-      <Route path="/profile" element={
-        <>
-          <Navbar />
-          <Profile />
-        </>
-      } />
-      
-      <Route path="/payment-setup" element={
-        <>
-          <Navbar />
-          <PaymentSetup />
-        </>
-      } />
+      <Route path="/profile" element={<><Navbar /><Profile /></>} />
+      <Route path="/payment-setup" element={<><Navbar /><PaymentSetup /></>} />
       
       {/* Provider routes */}
       {user?.role === 'provider' && (
         <>
-          <Route path="/dashboard" element={
-            <>
-              <Navbar />
-              <Dashboard />
-            </>
-          } />
-          <Route path="/calendar" element={
-            <>
-              <Navbar />
-              <Calendar />
-            </>
-          } />
-          <Route path="/services" element={
-            <>
-              <Navbar />
-              <Services />
-            </>
-          } />
-          <Route path="/achievements" element={
-            <>
-              <Navbar />
-              <Achievements />
-            </>
-          } />
+          <Route path="/dashboard" element={<><Navbar /><Dashboard /></>} />
+          <Route path="/calendar" element={<><Navbar /><Calendar /></>} />
+          <Route path="/services" element={<><Navbar /><Services /></>} />
+          <Route path="/achievements" element={<><Navbar /><Achievements /></>} />
         </>
       )}
       
       {/* Client routes */}
       {user?.role === 'client' && (
         <>
-          <Route path="/client" element={
-            <>
-              <Navbar />
-              <ClientCategoryView />
-            </>
-          } />
-          <Route path="/client/category/:categoryName" element={
-            <>
-              <Navbar />
-              <ClientCategoryDetails />
-            </>
-          } />
-          <Route path="/client/results/:categoryName/:serviceId" element={
-            <>
-              <Navbar />
-              <ClientResultsView />
-            </>
-          } />
-          <Route path="/client/provider/:providerId" element={
-            <>
-              <Navbar />
-              <ProviderProfile />
-            </>
-          } />
-          <Route path="/client/service/:providerId/:serviceId" element={
-            <>
-              <Navbar />
-              <ClientServiceDetail />
-            </>
-          } />
-          <Route path="/client/booking" element={
-            <>
-              <Navbar />
-              <ClientBooking />
-            </>
-          } />
-          <Route path="/client/booking-summary" element={
-            <>
-              <Navbar />
-              <BookingSummary />
-            </>
-          } />
-          <Route path="/client/bookings" element={
-            <>
-              <Navbar />
-              <ClientBookings />
-            </>
-          } />
-          <Route path="/client/services/:category/:subcat" element={
-            <>
-              <Navbar />
-              <ClientProvidersList />
-            </>
-          } />
-          <Route path="/client/services/:buildingId" element={
-            <>
-              <Navbar />
-              <ClientServices />
-            </>
-          } />
+          <Route path="/client" element={<><Navbar /><ClientCategoryView /></>} />
+          <Route path="/client/category/:categoryName" element={<><Navbar /><ClientCategoryDetails /></>} />
+          <Route path="/client/results/:categoryName/:serviceId" element={<><Navbar /><ClientResultsView /></>} />
+          <Route path="/client/provider/:providerId" element={<><Navbar /><ProviderProfile /></>} />
+          <Route path="/client/service/:providerId/:serviceId" element={<><Navbar /><ClientServiceDetail /></>} />
+          <Route path="/client/booking" element={<><Navbar /><ClientBooking /></>} />
+          <Route path="/client/booking-summary" element={<><Navbar /><BookingSummary /></>} />
+          <Route path="/client/bookings" element={<><Navbar /><ClientBookings /></>} />
+          <Route path="/client/services/:category/:subcat" element={<><Navbar /><ClientProvidersList /></>} />
+          <Route path="/client/services/:buildingId" element={<><Navbar /><ClientServices /></>} />
         </>
       )}
-      
-      {/* Redirect auth routes if already authenticated */}
-      <Route path="/login" element={
-        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
-      } />
-      <Route path="/register" element={
-        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
-      } />
-      <Route path="/register-provider" element={
-        <Navigate to={user?.role === 'provider' ? "/dashboard" : "/client"} replace />
-      } />
       
       {/* Catch all */}
       <Route path="*" element={<NotFound />} />

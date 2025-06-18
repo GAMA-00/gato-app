@@ -39,7 +39,6 @@ const Login = () => {
     
     if (result.success) {
       toast.success('¡Inicio de sesión exitoso!');
-      // No hacer redirección manual - dejar que AuthContext y App.tsx manejen esto
     } else {
       setLoginError(result.error || 'Error al iniciar sesión');
       toast.error(result.error || 'Error al iniciar sesión');
