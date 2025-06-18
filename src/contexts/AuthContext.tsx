@@ -84,6 +84,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     let mounted = true;
 
+    // Set up auth listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, !!session);
+        
+        if (!mounted) return;
+
+        // Only handle synchronous state updates
+        if (session?.user) {
+          // Defer profile loading to avoid blocking the auth state change
+          loadUserProfile(session.user).then((userData) => {
+            if (mounted) {
+              setUser(userData);
+              setIsLoading(false);
+            }
+          }).catch((error) => {
+            console.error('Error loading user profile:', error);
+            if (mounted) {
+              setUser(null);
+              setIsLoading(false);
+            }
+          });
+        } else {
+          if (mounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
+        }
+      }
+    );
+
+    // Get initial session after setting up listener
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -98,9 +130,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (mounted) {
           if (session?.user) {
-            const userData = await loadUserProfile(session.user);
-            if (mounted) {
-              setUser(userData);
+            try {
+              const userData = await loadUserProfile(session.user);
+              if (mounted) {
+                setUser(userData);
+              }
+            } catch (error) {
+              console.error('Error loading initial profile:', error);
+              if (mounted) {
+                setUser(null);
+              }
             }
           } else {
             setUser(null);
@@ -115,35 +154,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Set up auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, !!session);
-        
-        if (!mounted) return;
-
-        if (session?.user) {
-          const userData = await loadUserProfile(session.user);
-          if (mounted) {
-            setUser(userData);
-            setIsLoading(false);
-          }
-        } else {
-          if (mounted) {
-            setUser(null);
-            setIsLoading(false);
-          }
-        }
-      }
-    );
-
     // Initialize auth
     initializeAuth();
+
+    // Timeout fallback to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.warn('Auth initialization timeout - forcing loading to false');
+        setIsLoading(false);
+      }
+    }, 10000); // 10 second timeout
 
     return () => {
       console.log('AuthProvider cleanup');
       mounted = false;
       subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, [loadUserProfile]);
 

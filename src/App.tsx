@@ -32,7 +32,14 @@ import NotFound from '@/pages/NotFound';
 import AuthRoute from '@/components/AuthRoute';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
   return (
