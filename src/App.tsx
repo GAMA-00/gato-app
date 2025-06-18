@@ -48,6 +48,30 @@ const LoadingScreen = () => (
   </div>
 );
 
+// Route protection component
+const ProtectedRoute = ({ 
+  children, 
+  allowedRoles 
+}: { 
+  children: React.ReactNode;
+  allowedRoles: ('client' | 'provider')[];
+}) => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!allowedRoles.includes(user.role)) {
+    // Redirect to appropriate home based on user role
+    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
+    console.log(`User role ${user.role} not allowed for this route, redirecting to ${redirectTo}`);
+    return <Navigate to={redirectTo} replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 const AppContent = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   
@@ -70,7 +94,7 @@ const AppContent = () => {
     );
   }
 
-  // Authenticated routes
+  // Authenticated routes with navbar
   return (
     <>
       <Navbar />
@@ -90,33 +114,123 @@ const AppContent = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/payment-setup" element={<PaymentSetup />} />
         
-        {/* Provider routes */}
-        {user?.role === 'provider' && (
-          <>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/achievements" element={<Achievements />} />
-          </>
-        )}
+        {/* Provider routes - protected */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['provider']}>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/calendar" 
+          element={
+            <ProtectedRoute allowedRoles={['provider']}>
+              <Calendar />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/services" 
+          element={
+            <ProtectedRoute allowedRoles={['provider']}>
+              <Services />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/achievements" 
+          element={
+            <ProtectedRoute allowedRoles={['provider']}>
+              <Achievements />
+            </ProtectedRoute>
+          } 
+        />
         
-        {/* Client routes */}
-        {user?.role === 'client' && (
-          <>
-            <Route path="/client" element={<ClientCategoryView />} />
-            <Route path="/client/category/:categoryName" element={<ClientCategoryDetails />} />
-            <Route path="/client/results/:categoryName/:serviceId" element={<ClientResultsView />} />
-            <Route path="/client/provider/:providerId" element={<ProviderProfile />} />
-            <Route path="/client/service/:providerId/:serviceId" element={<ClientServiceDetail />} />
-            <Route path="/client/booking" element={<ClientBooking />} />
-            <Route path="/client/booking-summary" element={<BookingSummary />} />
-            <Route path="/client/bookings" element={<ClientBookings />} />
-            <Route path="/client/services/:category/:subcat" element={<ClientProvidersList />} />
-            <Route path="/client/services/:buildingId" element={<ClientServices />} />
-          </>
-        )}
+        {/* Client routes - protected */}
+        <Route 
+          path="/client" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientCategoryView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/category/:categoryName" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientCategoryDetails />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/results/:categoryName/:serviceId" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientResultsView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/provider/:providerId" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ProviderProfile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/service/:providerId/:serviceId" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientServiceDetail />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/booking" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientBooking />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/booking-summary" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <BookingSummary />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/bookings" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientBookings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/services/:category/:subcat" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientProvidersList />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/client/services/:buildingId" 
+          element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientServices />
+            </ProtectedRoute>
+          } 
+        />
         
-        {/* Catch all */}
+        {/* Catch all - 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

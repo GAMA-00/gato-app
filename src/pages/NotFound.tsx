@@ -2,24 +2,32 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     console.error(
       "404 Error: Usuario intentó acceder a una ruta inexistente:",
-      location.pathname
+      location.pathname,
+      "User role:", user?.role
     );
-  }, [location.pathname]);
+  }, [location.pathname, user?.role]);
 
   const handleGoBack = () => {
     navigate(-1);
   };
 
   const handleGoHome = () => {
-    navigate("/client");
+    // Redirect based on user role
+    if (user?.role === 'provider') {
+      navigate("/dashboard");
+    } else {
+      navigate("/client");
+    }
   };
 
   return (

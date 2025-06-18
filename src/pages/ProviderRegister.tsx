@@ -15,7 +15,9 @@ const ProviderRegister = () => {
   
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      // Redirect based on user role
+      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
+      navigate(redirectTo);
     }
   }, [user, navigate]);
 
