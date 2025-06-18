@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   // If user doesn't have the required role, redirect appropriately
   if (user && !allowedRoles.includes(user.role)) {
-    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
+    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     return <Navigate to={redirectTo} replace />;
   }
 
