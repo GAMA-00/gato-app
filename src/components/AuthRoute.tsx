@@ -10,7 +10,7 @@ interface AuthRouteProps {
 const AuthRoute = ({ children }: AuthRouteProps) => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
-  console.log('AuthRoute - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated);
+  console.log('AuthRoute - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user role:', user?.role);
 
   // Show loading while checking authentication
   if (isLoading) {

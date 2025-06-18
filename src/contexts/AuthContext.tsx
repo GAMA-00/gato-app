@@ -84,40 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     let mounted = true;
 
-    // Set up auth listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, !!session);
-        
-        if (!mounted) return;
-
-        // Only handle synchronous state updates
-        if (session?.user) {
-          // Defer profile loading to avoid blocking the auth state change
-          loadUserProfile(session.user).then((userData) => {
-            if (mounted) {
-              setUser(userData);
-              setIsLoading(false);
-            }
-          }).catch((error) => {
-            console.error('Error loading user profile:', error);
-            if (mounted) {
-              setUser(null);
-              setIsLoading(false);
-            }
-          });
-        } else {
-          if (mounted) {
-            setUser(null);
-            setIsLoading(false);
-          }
-        }
-      }
-    );
-
-    // Get initial session after setting up listener
     const initializeAuth = async () => {
       try {
+        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -128,22 +97,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        if (mounted) {
-          if (session?.user) {
-            try {
-              const userData = await loadUserProfile(session.user);
-              if (mounted) {
-                setUser(userData);
-              }
-            } catch (error) {
-              console.error('Error loading initial profile:', error);
-              if (mounted) {
-                setUser(null);
-              }
+        if (session?.user && mounted) {
+          try {
+            const userData = await loadUserProfile(session.user);
+            if (mounted) {
+              setUser(userData);
             }
-          } else {
-            setUser(null);
+          } catch (error) {
+            console.error('Error loading initial profile:', error);
+            if (mounted) {
+              setUser(null);
+            }
           }
+        }
+        
+        if (mounted) {
           setIsLoading(false);
         }
       } catch (error) {
@@ -154,16 +122,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    // Set up auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, !!session);
+        
+        if (!mounted) return;
+
+        if (session?.user) {
+          try {
+            const userData = await loadUserProfile(session.user);
+            setUser(userData);
+          } catch (error) {
+            console.error('Error loading user profile:', error);
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
     // Initialize auth
     initializeAuth();
 
-    // Timeout fallback to prevent infinite loading
+    // Timeout fallback
     const timeout = setTimeout(() => {
-      if (mounted && isLoading) {
+      if (mounted) {
         console.warn('Auth initialization timeout - forcing loading to false');
         setIsLoading(false);
       }
-    }, 10000); // 10 second timeout
+    }, 8000);
 
     return () => {
       console.log('AuthProvider cleanup');
