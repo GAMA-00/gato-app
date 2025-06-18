@@ -7,23 +7,25 @@ import { useAuth } from "@/contexts/AuthContext";
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
     console.error(
       "404 Error: Usuario intentó acceder a una ruta inexistente:",
       location.pathname,
+      "User authenticated:", isAuthenticated,
       "User role:", user?.role
     );
-  }, [location.pathname, user?.role]);
+  }, [location.pathname, user?.role, isAuthenticated]);
 
   const handleGoBack = () => {
     navigate(-1);
   };
 
   const handleGoHome = () => {
-    // Redirect based on user role
-    if (user?.role === 'provider') {
+    if (!isAuthenticated) {
+      navigate("/login");
+    } else if (user?.role === 'provider') {
       navigate("/dashboard");
     } else {
       navigate("/client");
@@ -47,7 +49,7 @@ const NotFound = () => {
             Regresar
           </Button>
           <Button onClick={handleGoHome}>
-            Ir al Inicio
+            {!isAuthenticated ? 'Ir al Login' : 'Ir al Inicio'}
           </Button>
         </div>
       </div>

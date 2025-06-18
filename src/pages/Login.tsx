@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +21,8 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userType, setUserType] = useState<'client' | 'provider' | null>(null);
@@ -33,16 +35,27 @@ const Login = () => {
     }
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
+      console.log('User already authenticated, redirecting to:', redirectTo);
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
     setIsSubmitting(true);
     
     try {
+      console.log('Attempting login for:', values.email);
       const result = await login(values.email, values.password);
       
       if (result.success) {
         toast.success('¡Inicio de sesión exitoso!');
-        // Navigation is handled automatically by AuthContext
+        console.log('Login successful, AuthContext will handle navigation');
+        // Navigation will be handled by the useEffect above when user state updates
       } else {
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
@@ -56,6 +69,11 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Don't render anything if already authenticated (will redirect)
+  if (isAuthenticated) {
+    return null;
+  }
 
   if (!userType) {
     return (
@@ -173,6 +191,19 @@ const Login = () => {
               </Button>
             </form>
           </Form>
+          
+          <div className="mt-6 text-center">
+            <p className="text-muted-foreground mb-2">
+              ¿No tienes cuenta?
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(userType === 'provider' ? '/register-provider' : '/register')}
+              disabled={isSubmitting}
+            >
+              Crear cuenta como {userType === 'client' ? 'Cliente' : 'Proveedor'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

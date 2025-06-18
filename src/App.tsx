@@ -48,7 +48,24 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Route protection component
+// Auth Route wrapper - redirects authenticated users
+const AuthRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+  
+  if (isAuthenticated && user) {
+    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
+    console.log(`User already authenticated, redirecting to ${redirectTo}`);
+    return <Navigate to={redirectTo} replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Protected Route wrapper - redirects unauthenticated users  
 const ProtectedRoute = ({ 
   children, 
   allowedRoles 
@@ -56,14 +73,18 @@ const ProtectedRoute = ({
   children: React.ReactNode;
   allowedRoles: ('client' | 'provider')[];
 }) => {
-  const { user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   
-  if (!user) {
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+  
+  if (!isAuthenticated) {
+    console.log('User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
-  if (!allowedRoles.includes(user.role)) {
-    // Redirect to appropriate home based on user role
+  if (user && !allowedRoles.includes(user.role)) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
     console.log(`User role ${user.role} not allowed for this route, redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
@@ -72,49 +93,58 @@ const ProtectedRoute = ({
   return <>{children}</>;
 };
 
-const AppContent = () => {
+// Root redirect component
+const RootRedirect = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   
-  console.log('AppContent render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'userRole:', user?.role);
-  
-  // Show loading screen while auth is initializing
   if (isLoading) {
     return <LoadingScreen />;
   }
-
-  // If not authenticated, show only auth routes
+  
   if (!isAuthenticated) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/register-provider" element={<ProviderRegister />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
+    return <Navigate to="/login" replace />;
   }
+  
+  const redirectTo = user?.role === 'provider' ? '/dashboard' : '/client';
+  return <Navigate to={redirectTo} replace />;
+};
 
-  // Authenticated routes with navbar
+const AppContent = () => {
+  const { isAuthenticated } = useAuth();
+  
+  console.log('AppContent render - isAuthenticated:', isAuthenticated);
+
   return (
     <>
-      <Navbar />
+      {isAuthenticated && <Navbar />}
       <Routes>
-        {/* Root redirect based on user role */}
+        {/* Root redirect */}
+        <Route path="/" element={<RootRedirect />} />
+        
+        {/* Auth routes - redirect if already authenticated */}
+        <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+        <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
+        <Route path="/register-provider" element={<AuthRoute><ProviderRegister /></AuthRoute>} />
+        
+        {/* Shared protected routes */}
         <Route 
-          path="/" 
+          path="/profile" 
           element={
-            <Navigate 
-              to={user?.role === 'provider' ? "/dashboard" : "/client"} 
-              replace 
-            />
+            <ProtectedRoute allowedRoles={['client', 'provider']}>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/payment-setup" 
+          element={
+            <ProtectedRoute allowedRoles={['client', 'provider']}>
+              <PaymentSetup />
+            </ProtectedRoute>
           } 
         />
         
-        {/* Shared routes */}
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/payment-setup" element={<PaymentSetup />} />
-        
-        {/* Provider routes - protected */}
+        {/* Provider protected routes */}
         <Route 
           path="/dashboard" 
           element={
@@ -148,7 +178,7 @@ const AppContent = () => {
           } 
         />
         
-        {/* Client routes - protected */}
+        {/* Client protected routes */}
         <Route 
           path="/client" 
           element={
