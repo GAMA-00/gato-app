@@ -21,7 +21,7 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
 
   // If user is authenticated, redirect to appropriate dashboard
   if (isAuthenticated && user) {
-    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
+    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     return <Navigate to={redirectTo} replace />;
   }
 

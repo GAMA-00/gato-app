@@ -47,7 +47,7 @@ const NavItems = ({ isClientSection, closeMenu }: NavItemsProps) => {
   ];
   
   const clientNavItems: NavItemType[] = [
-    { to: '/client', icon: Briefcase, label: 'Servicios' },
+    { to: '/client/categories', icon: Briefcase, label: 'Servicios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Mis Reservas', 
       customBadge: (
         <span className="flex items-center text-red-500">
@@ -63,8 +63,8 @@ const NavItems = ({ isClientSection, closeMenu }: NavItemsProps) => {
 
   const isNavItemActive = (itemPath: string) => {
     if (isClientSection) {
-      if (itemPath === '/client') {
-        return location.pathname === '/client';
+      if (itemPath === '/client/categories') {
+        return location.pathname === '/client/categories' || location.pathname.startsWith('/client/category');
       }
       
       if (itemPath === '/client/bookings') {

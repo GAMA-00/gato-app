@@ -25,7 +25,7 @@ const Navbar = () => {
     if (isClientSection) {
       navigate('/dashboard');
     } else {
-      navigate('/client');
+      navigate('/client/categories');
     }
   };
 
