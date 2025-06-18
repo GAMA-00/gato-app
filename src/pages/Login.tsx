@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,9 +23,12 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const Login = () => {
   const { login, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userType, setUserType] = useState<'client' | 'provider' | null>(null);
+  
+  // Get user type from URL params, default to client if not provided
+  const userType = (searchParams.get('type') as 'client' | 'provider') || 'client';
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -75,33 +78,6 @@ const Login = () => {
     return null;
   }
 
-  if (!userType) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Selecciona tu tipo de usuario</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button 
-              onClick={() => setUserType('client')}
-              className="w-full h-12"
-              variant="outline"
-            >
-              Soy Cliente
-            </Button>
-            <Button 
-              onClick={() => setUserType('provider')}
-              className="w-full h-12"
-            >
-              Soy Proveedor
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
@@ -111,10 +87,10 @@ const Login = () => {
           </CardTitle>
           <Button 
             variant="ghost" 
-            onClick={() => setUserType(null)}
+            onClick={() => navigate('/')}
             className="text-sm text-muted-foreground"
           >
-            Cambiar tipo de usuario
+            ← Volver al inicio
           </Button>
         </CardHeader>
         <CardContent>

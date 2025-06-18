@@ -30,7 +30,7 @@ const LandingPage = () => {
         <div className="w-full space-y-4">
           {/* Client Button - Black */}
           <Button 
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login?type=client')}
             className="w-full h-14 bg-black text-white hover:bg-gray-800 rounded-xl text-base font-medium"
             size="lg"
           >
@@ -40,7 +40,7 @@ const LandingPage = () => {
           
           {/* Provider Button - White with border */}
           <Button 
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login?type=provider')}
             variant="outline"
             className="w-full h-14 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 rounded-xl text-base font-medium"
             size="lg"
