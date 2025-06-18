@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
@@ -34,8 +34,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
-  const loadUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading && !authInitialized) {
+        console.warn('Auth initialization timeout - forcing loading to false');
+        setIsLoading(false);
+        setAuthInitialized(true);
+      }
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [isLoading, authInitialized]);
+
+  const loadUserProfile = useCallback(async (authUser: SupabaseUser): Promise<User | null> => {
     try {
       console.log('Loading profile for user:', authUser.id);
       
@@ -77,33 +91,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Exception loading user profile:', error);
       return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     console.log('AuthProvider initializing...');
     
-    // Single auth state listener to handle all auth changes
+    let mounted = true;
+
+    // Get initial session
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+        }
+
+        if (mounted) {
+          if (session?.user) {
+            // Defer profile loading to avoid blocking
+            setTimeout(async () => {
+              if (mounted) {
+                const userData = await loadUserProfile(session.user);
+                if (mounted) {
+                  setUser(userData);
+                }
+              }
+            }, 0);
+          } else {
+            setUser(null);
+          }
+          
+          setIsLoading(false);
+          setAuthInitialized(true);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setIsLoading(false);
+          setAuthInitialized(true);
+        }
+      }
+    };
+
+    // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, !!session);
         
+        if (!mounted) return;
+
+        // Synchronous state updates only
         if (session?.user) {
-          const userData = await loadUserProfile(session.user);
-          setUser(userData);
+          // Defer async profile loading
+          setTimeout(async () => {
+            if (mounted) {
+              const userData = await loadUserProfile(session.user);
+              if (mounted) {
+                setUser(userData);
+              }
+            }
+          }, 0);
         } else {
           setUser(null);
         }
-        
-        // Always set loading to false after processing
-        setIsLoading(false);
+
+        if (!authInitialized) {
+          setIsLoading(false);
+          setAuthInitialized(true);
+        }
       }
     );
 
+    // Initialize auth
+    initializeAuth();
+
     return () => {
       console.log('AuthProvider cleanup');
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserProfile, authInitialized]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -135,22 +203,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Logging out...');
       await supabase.auth.signOut();
+      setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
-  const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
-    if (user) {
-      setUser({ ...user, hasPaymentMethod });
-    }
-  };
+  const updateUserPaymentMethod = useCallback((hasPaymentMethod: boolean) => {
+    setUser(prev => prev ? { ...prev, hasPaymentMethod } : null);
+  }, []);
 
-  const updateUserAvatar = (avatarUrl: string) => {
-    if (user) {
-      setUser({ ...user, avatarUrl });
-    }
-  };
+  const updateUserAvatar = useCallback((avatarUrl: string) => {
+    setUser(prev => prev ? { ...prev, avatarUrl } : null);
+  }, []);
 
   const isAuthenticated = !!user;
 

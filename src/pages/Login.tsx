@@ -42,15 +42,16 @@ const Login = () => {
       
       if (result.success) {
         toast.success('¡Inicio de sesión exitoso!');
-        // Auth context will handle navigation automatically
+        // Navigation is handled automatically by AuthContext
       } else {
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
       }
     } catch (error) {
       console.error('Login submission error:', error);
-      setLoginError('Error inesperado al iniciar sesión');
-      toast.error('Error inesperado al iniciar sesión');
+      const errorMessage = 'Error inesperado al iniciar sesión';
+      setLoginError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
