@@ -95,7 +95,8 @@ const ClientProvidersList = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {providers.map((listing) => {
-              const userData = listing.users as any;
+              // Safe access to users data - already filtered in query
+              const userData = listing.users as { id: string; name?: string; avatar_url?: string; average_rating?: number };
               return (
                 <Card 
                   key={listing.id}

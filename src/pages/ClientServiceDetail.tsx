@@ -80,7 +80,8 @@ const ClientServiceDetail = () => {
     );
   }
 
-  const userData = service.users as any;
+  // Safe access to users data
+  const userData = service.users as { id: string; name?: string; avatar_url?: string; average_rating?: number; phone?: string };
 
   return (
     <>
