@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
@@ -31,6 +32,7 @@ import NotFound from '@/pages/NotFound';
 // Import components
 import AuthRoute from '@/components/AuthRoute';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { Navigate } from 'react-router-dom';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,7 +58,8 @@ function App() {
               <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
               <Route path="/register-provider" element={<AuthRoute><ProviderRegister /></AuthRoute>} />
               
-              {/* Client routes - Updated main route to categories */}
+              {/* Client routes - Add redirect for /client to /client/categories */}
+              <Route path="/client" element={<Navigate to="/client/categories" replace />} />
               <Route path="/client/categories" element={<ProtectedRoute allowedRoles={['client']}><ClientCategoryView /></ProtectedRoute>} />
               <Route path="/client/services" element={<ProtectedRoute allowedRoles={['client']}><ClientServices /></ProtectedRoute>} />
               <Route path="/client/category/:categoryId" element={<ProtectedRoute allowedRoles={['client']}><ClientCategoryDetails /></ProtectedRoute>} />
