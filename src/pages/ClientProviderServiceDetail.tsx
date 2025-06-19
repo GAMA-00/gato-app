@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,22 +21,22 @@ const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedVariant, setSelectedVariant] = React.useState<any>(null);
+  const [selectedVariants, setSelectedVariants] = React.useState<any[]>([]);
 
   const { serviceDetails, isLoading, error } = useServiceDetail(providerId, serviceId, user?.id);
 
   const handleBookService = () => {
-    if (!serviceDetails || !selectedVariant) {
+    if (!serviceDetails || selectedVariants.length === 0) {
       toast.error('Por favor selecciona una opción de servicio');
       return;
     }
 
-    // Navigate to booking page with the selected variant
+    // Navigate to booking page with the selected variants
     navigate(`/client/booking/${serviceId}`, {
       state: {
         providerId,
         serviceDetails,
-        selectedVariant
+        selectedVariants
       }
     });
   };
@@ -111,12 +110,16 @@ const ClientProviderServiceDetail = () => {
     reviews: []
   };
 
-  // Set default variant if none selected
-  React.useEffect(() => {
-    if (serviceDetails.serviceVariants?.length > 0 && !selectedVariant) {
-      setSelectedVariant(serviceDetails.serviceVariants[0]);
+  // Transform service type data for ServiceDescription component
+  const serviceTypeData = {
+    id: serviceDetails.service_type?.id,
+    name: serviceDetails.service_type?.name || serviceDetails.title,
+    category: {
+      id: serviceDetails.service_type?.category?.id,
+      name: serviceDetails.service_type?.category?.name || serviceDetails.service_type?.category?.label || 'Servicio',
+      label: serviceDetails.service_type?.category?.label || serviceDetails.service_type?.category?.name || 'Servicio'
     }
-  }, [serviceDetails.serviceVariants, selectedVariant]);
+  };
 
   return (
     <>
@@ -147,7 +150,7 @@ const ClientProviderServiceDetail = () => {
                 
                 <ServiceDescription 
                   description={serviceDetails.description}
-                  providerName={serviceDetails.provider.name}
+                  serviceType={serviceTypeData}
                 />
 
                 {/* Service Variants Selector */}
@@ -156,18 +159,16 @@ const ClientProviderServiceDetail = () => {
                     <h4 className="text-lg font-medium">Opciones de servicio</h4>
                     <ServiceVariantsSelector
                       variants={serviceDetails.serviceVariants}
-                      selectedVariant={selectedVariant}
-                      onVariantSelect={setSelectedVariant}
+                      onSelectVariant={setSelectedVariants}
                     />
                   </div>
                 )}
 
                 {/* Price Information */}
-                {selectedVariant && (
+                {selectedVariants.length > 0 && (
                   <PriceInformation
-                    basePrice={selectedVariant.price}
-                    duration={selectedVariant.duration}
-                    variant={selectedVariant}
+                    basePrice={selectedVariants[0].price}
+                    duration={selectedVariants[0].duration}
                   />
                 )}
 
@@ -177,7 +178,7 @@ const ClientProviderServiceDetail = () => {
                     onClick={handleBookService}
                     size="lg"
                     className="w-full md:w-auto bg-luxury-navy hover:bg-luxury-navy/90"
-                    disabled={!selectedVariant}
+                    disabled={selectedVariants.length === 0}
                   >
                     <Calendar className="mr-2 h-5 w-5" />
                     Agendar Cita
