@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +21,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { login, user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -37,11 +37,6 @@ const Login = () => {
     }
   });
 
-  // Don't redirect here, let AuthRoute handle it
-  useEffect(() => {
-    console.log('Login component - authLoading:', authLoading, 'isAuthenticated:', isAuthenticated, 'user:', user);
-  }, [authLoading, isAuthenticated, user]);
-
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
     setIsSubmitting(true);
@@ -52,7 +47,7 @@ const Login = () => {
       
       if (result.success) {
         toast.success('¡Inicio de sesión exitoso!');
-        console.log('Login successful, navigation will be handled by AuthRoute');
+        console.log('Login successful');
       } else {
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
@@ -66,18 +61,6 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
-
-  // Show loading while auth is initializing
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-sm text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">

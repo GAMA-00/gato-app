@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
     const initializeAuth = async () => {
       try {
@@ -90,46 +90,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error('Error getting session:', error);
-          if (isMounted) {
+          if (mounted) {
             setIsLoading(false);
           }
           return;
         }
 
-        if (session?.user && isMounted) {
+        if (session?.user && mounted) {
           const userData = await loadUserProfile(session.user);
-          if (isMounted) {
+          if (mounted) {
             setUser(userData);
           }
         }
         
-        if (isMounted) {
+        if (mounted) {
           setIsLoading(false);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (isMounted) {
+        if (mounted) {
           setIsLoading(false);
         }
       }
     };
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, !!session);
         
-        if (!isMounted) return;
+        if (!mounted) return;
 
         if (event === 'SIGNED_IN' && session?.user) {
           setIsLoading(true);
           const userData = await loadUserProfile(session.user);
-          if (isMounted) {
+          if (mounted) {
             setUser(userData);
             setIsLoading(false);
           }
         } else if (event === 'SIGNED_OUT') {
-          if (isMounted) {
+          if (mounted) {
             setUser(null);
             setIsLoading(false);
           }
@@ -140,8 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
 
     return () => {
-      console.log('Auth cleanup');
-      isMounted = false;
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -191,8 +189,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isAuthenticated = !!user;
-
-  console.log('AuthProvider render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user role:', user?.role);
 
   return (
     <AuthContext.Provider value={{ 
