@@ -20,7 +20,7 @@ const ClientServiceDetail = () => {
         .from('listings')
         .select(`
           *,
-          users:provider_id (
+          users!listings_provider_id_fkey (
             id,
             name,
             avatar_url,
@@ -77,7 +77,7 @@ const ClientServiceDetail = () => {
   return (
     <>
       <Navbar />
-      <PageContainer title={service.title} subtitle={`Por ${service.users?.name}`}>
+      <PageContainer title={service.title} subtitle={`Por ${service.users?.name || 'Proveedor'}`}>
         <div className="space-y-6">
           <Button 
             variant="ghost" 
@@ -95,8 +95,7 @@ const ClientServiceDetail = () => {
                 <p className="text-muted-foreground mb-4">{service.description}</p>
                 <div className="space-y-2">
                   <p><strong>Precio:</strong> ₡{service.base_price}</p>
-                  <p><strong>Duración:</strong> {service.duration_minutes} minutos</p>
-                  <p><strong>Categoría:</strong> {service.category}</p>
+                  <p><strong>Duración:</strong> {service.duration} minutos</p>
                 </div>
               </div>
               

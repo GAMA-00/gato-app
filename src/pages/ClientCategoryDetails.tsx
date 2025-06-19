@@ -19,11 +19,17 @@ const ClientCategoryDetails = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_types')
-        .select('*')
-        .eq('category_name', categoryId);
+        .select(`
+          *,
+          category:service_categories(
+            name,
+            label
+          )
+        `)
+        .eq('category.name', categoryId);
         
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!categoryId,
   });
@@ -63,18 +69,28 @@ const ClientCategoryDetails = () => {
             Volver a categorías
           </Button>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {serviceTypes.map((serviceType) => (
-              <Card 
-                key={serviceType.id}
-                className="p-6 hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => navigate(`/client/providers?serviceType=${serviceType.name}`)}
-              >
-                <h3 className="font-semibold text-lg mb-2">{serviceType.label}</h3>
-                <p className="text-muted-foreground text-sm">{serviceType.description}</p>
-              </Card>
-            ))}
-          </div>
+          {serviceTypes.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                No hay tipos de servicio disponibles para esta categoría.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {serviceTypes.map((serviceType) => (
+                <Card 
+                  key={serviceType.id}
+                  className="p-6 hover:shadow-lg transition-all cursor-pointer"
+                  onClick={() => navigate(`/client/providers?serviceType=${serviceType.name}`)}
+                >
+                  <h3 className="font-semibold text-lg mb-2">{serviceType.name}</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Servicio de {serviceType.name}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </PageContainer>
     </>

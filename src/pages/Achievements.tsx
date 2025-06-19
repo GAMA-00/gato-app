@@ -8,6 +8,7 @@ import AchievementCard from '@/components/achievements/AchievementCard';
 import RatingHistory from '@/components/achievements/RatingHistory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
+import { getProviderLevelByJobs } from '@/lib/achievementTypes';
 import Navbar from '@/components/layout/Navbar';
 
 const Achievements = () => {
@@ -47,6 +48,8 @@ const Achievements = () => {
     );
   }
 
+  const currentLevelInfo = getProviderLevelByJobs(achievements.totalCompletedJobs);
+
   return (
     <>
       <Navbar />
@@ -57,31 +60,20 @@ const Achievements = () => {
       >
         <div className="space-y-8">
           <LevelCard 
-            level={achievements.currentLevel}
-            progress={achievements.progressToNextLevel}
-            totalAppointments={achievements.totalAppointments}
+            level={currentLevelInfo}
+            progress={achievements.jobsToNextLevel}
+            totalAppointments={achievements.totalCompletedJobs}
             averageRating={achievements.averageRating}
-            recurringClients={achievements.recurringClients}
+            recurringClients={0}
           />
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {achievements.unlockedAchievements.map((achievement) => (
-              <AchievementCard 
-                key={achievement.id} 
-                achievement={achievement} 
-                isUnlocked={true}
-              />
-            ))}
-            {achievements.availableAchievements.map((achievement) => (
-              <AchievementCard 
-                key={achievement.id} 
-                achievement={achievement} 
-                isUnlocked={false}
-              />
-            ))}
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              Sistema de logros en desarrollo
+            </p>
           </div>
           
-          <RatingHistory />
+          <RatingHistory ratingHistory={achievements.ratingHistory} />
         </div>
       </PageContainer>
     </>

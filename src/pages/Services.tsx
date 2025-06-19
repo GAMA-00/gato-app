@@ -7,7 +7,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
 
 const Services = () => {
-  const { data: listings = [], isLoading } = useListings();
+  const { listings, isLoading } = useListings();
+
+  const handleEditService = (service: any) => {
+    console.log('Edit service:', service);
+  };
+
+  const handleDeleteService = (service: any) => {
+    console.log('Delete service:', service);
+  };
 
   if (isLoading) {
     return (
@@ -34,7 +42,12 @@ const Services = () => {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {listings.map((listing) => (
-            <ServiceCard key={listing.id} listing={listing} />
+            <ServiceCard 
+              key={listing.id} 
+              service={listing} 
+              onEdit={handleEditService}
+              onDelete={handleDeleteService}
+            />
           ))}
         </div>
       </PageContainer>

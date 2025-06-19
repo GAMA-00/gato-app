@@ -35,7 +35,7 @@ const Clients = () => {
       
       // Remove duplicates and flatten
       const uniqueClients = data.reduce((acc: any[], curr) => {
-        if (!acc.find(client => client.id === curr.users?.id)) {
+        if (curr.users && !acc.find(client => client.id === curr.users.id)) {
           acc.push(curr.users);
         }
         return acc;
@@ -45,6 +45,14 @@ const Clients = () => {
     },
     enabled: !!user?.id,
   });
+
+  const handleEditClient = (client: any) => {
+    console.log('Edit client:', client);
+  };
+
+  const handleDeleteClient = (client: any) => {
+    console.log('Delete client:', client);
+  };
 
   if (isLoading) {
     return (
@@ -71,7 +79,12 @@ const Clients = () => {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {clients.map((client) => (
-            <ClientCard key={client.id} client={client} />
+            <ClientCard 
+              key={client.id} 
+              client={client} 
+              onEdit={handleEditClient}
+              onDelete={handleDeleteClient}
+            />
           ))}
         </div>
       </PageContainer>

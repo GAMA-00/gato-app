@@ -23,7 +23,7 @@ const ClientProvidersList = () => {
         .from('listings')
         .select(`
           *,
-          users:provider_id (
+          users!listings_provider_id_fkey (
             id,
             name,
             avatar_url,
@@ -32,12 +32,21 @@ const ClientProvidersList = () => {
         `);
       
       if (serviceType) {
-        query = query.eq('service_type', serviceType);
+        // First get service_type_id
+        const { data: serviceTypeData } = await supabase
+          .from('service_types')
+          .select('id')
+          .eq('name', serviceType)
+          .single();
+          
+        if (serviceTypeData) {
+          query = query.eq('service_type_id', serviceTypeData.id);
+        }
       }
       
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!serviceType,
   });
@@ -92,7 +101,7 @@ const ClientProvidersList = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{listing.users?.name}</h3>
+                    <h3 className="font-semibold">{listing.users?.name || 'Proveedor'}</h3>
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 mr-1" />
                       <span className="text-sm">

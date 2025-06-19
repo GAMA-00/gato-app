@@ -51,29 +51,56 @@ const ProviderProfile = () => {
     return (
       <>
         <Navbar />
-        <PageContainer title="Proveedor no encontrado">
+        <PageContainer title="Proveedor no encontrado" subtitle="">
           <p>El proveedor que buscas no existe.</p>
         </PageContainer>
       </>
     );
   }
 
+  // Transform provider data to match ProviderProfile interface
+  const transformedProvider = {
+    id: provider.id,
+    name: provider.name || '',
+    avatar: provider.avatar_url,
+    rating: provider.average_rating || 0,
+    ratingCount: 0,
+    aboutMe: provider.about_me || '',
+    galleryImages: [],
+    experienceYears: provider.experience_years || 0,
+    hasCertifications: !!provider.certification_files,
+    certificationFiles: provider.certification_files,
+    handlesDangerousDogs: false,
+    servicesCompleted: 0,
+    isVerified: false,
+    joinDate: new Date(provider.created_at),
+    detailedRatings: {
+      service: 0,
+      valueForMoney: 0,
+      friendliness: 0,
+      materials: 0,
+      professionalism: 0,
+      punctuality: 0,
+    },
+    reviews: []
+  };
+
   return (
     <>
       <Navbar />
-      <PageContainer>
+      <PageContainer title="Perfil del Proveedor" subtitle="">
         <div className="space-y-8">
-          <ProviderHeader provider={provider} />
+          <ProviderHeader provider={transformedProvider} />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              <ProviderAbout provider={provider} />
-              <ProviderServices providerId={providerId!} />
-              <ProviderReviews providerId={providerId!} />
+              <ProviderAbout provider={transformedProvider} />
+              <ProviderServices provider={transformedProvider} />
+              <ProviderReviews provider={transformedProvider} />
             </div>
             <div className="space-y-6">
-              <ProviderInfo provider={provider} />
-              <ProviderAchievements providerId={providerId!} />
-              <ProviderGallery providerId={providerId!} />
+              <ProviderInfo provider={transformedProvider} />
+              <ProviderAchievements provider={transformedProvider} />
+              <ProviderGallery provider={transformedProvider} />
             </div>
           </div>
         </div>
