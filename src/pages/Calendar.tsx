@@ -17,10 +17,14 @@ const Calendar = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
+      const now = new Date();
+      
       const { data, error } = await supabase
         .from('appointments')
         .select('*')
         .or(`provider_id.eq.${user.id},client_id.eq.${user.id}`)
+        .gte('end_time', now.toISOString()) // Only future appointments
+        .not('status', 'in', '(cancelled,rejected)') // Exclude cancelled and rejected
         .order('start_time', { ascending: true });
         
       if (error) throw error;

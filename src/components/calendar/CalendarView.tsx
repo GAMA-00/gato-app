@@ -51,15 +51,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, i) => i + CALENDAR_START_HOUR);
   const isCurrentDay = isToday(date);
 
-  // Count types of appointments
-  const regularCount = dayAppointments.filter(app => !app.is_recurring_instance).length;
-  const recurringCount = dayAppointments.filter(app => app.is_recurring_instance).length;
-  const externalCount = dayAppointments.filter(app => app.external_booking || app.is_external).length;
-
   return (
     <div className="relative border-r last:border-r-0 calendar-day bg-white">
-      {/* Fixed header */}
-      <div className="h-20 py-2 text-center border-b bg-white flex-shrink-0 flex flex-col justify-between">
+      {/* Fixed header - Removed appointment counts */}
+      <div className="h-16 py-2 text-center border-b bg-white flex-shrink-0 flex flex-col justify-between">
         <div className={cn("text-xs uppercase tracking-wide", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
         </div>
@@ -72,26 +67,12 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             <span className="text-sm">{format(date, 'd')}</span>
           )}
         </div>
+        {/* Show only total appointment count if there are any */}
         {dayAppointments.length > 0 && (
-          <div className="text-[10px] font-medium space-y-0.5">
+          <div className="text-[10px] font-medium">
             <div className="text-blue-600">
               {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
             </div>
-            {regularCount > 0 && (
-              <div className="text-green-600 text-[9px]">
-                {regularCount} regular{regularCount > 1 ? 'es' : ''}
-              </div>
-            )}
-            {recurringCount > 0 && (
-              <div className="text-purple-500 text-[9px]">
-                {recurringCount} recurrente{recurringCount > 1 ? 's' : ''}
-              </div>
-            )}
-            {externalCount > 0 && (
-              <div className="text-blue-500 text-[9px]">
-                {externalCount} externa{externalCount > 1 ? 's' : ''}
-              </div>
-            )}
           </div>
         )}
       </div>

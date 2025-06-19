@@ -5,10 +5,10 @@ import { Repeat, ExternalLink, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Status color mapping
+// Status color mapping - Updated colors per requirements
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Green
-  pending:      { bg: "#FFF3E0", border: "#FF9100", text: "#924C00" }, // Orange
+  confirmed:    { bg: "#F2FCE2", border: "#75C632", text: "#256029" }, // Green for confirmed
+  pending:      { bg: "#FFF3E0", border: "#FF9100", text: "#924C00" }, // Orange for pending requests
   completed:    { bg: "#EEE", border: "#8E9196", text: "#555" },       // Grey
   rejected:     { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }, // Red
   cancelled:    { bg: "#FFEBEE", border: "#E57373", text: "#C62828" }, // Red
@@ -121,7 +121,8 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
     >
       <div className="flex items-start gap-1 h-full">
         <div className="flex-shrink-0 flex items-center gap-1">
-          {isRecurring && <Repeat className="h-2 w-2 text-blue-600 flex-shrink-0" />}
+          {/* Purple recurring icon for recurring appointments */}
+          {isRecurring && <Repeat className="h-2 w-2 text-purple-600 flex-shrink-0" />}
           {isExternal && <ExternalLink className="h-2 w-2 text-blue-500 flex-shrink-0" />}
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
@@ -157,8 +158,8 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
           <div className="flex gap-2 mt-1">
             {isRecurring && (
               <div className="flex items-center gap-1">
-                <Repeat className="h-2 w-2 text-blue-600" />
-                <span className="text-blue-600 text-[9px]">{recurrenceLabel}</span>
+                <Repeat className="h-2 w-2 text-purple-600" />
+                <span className="text-purple-600 text-[9px]">{recurrenceLabel}</span>
               </div>
             )}
             {isExternal && (
