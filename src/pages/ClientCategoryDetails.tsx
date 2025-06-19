@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -119,9 +118,6 @@ const ClientCategoryDetails = () => {
                       </div>
                       <div>
                         <h3 className="font-medium text-sm text-gray-900 mb-1">{serviceType.name}</h3>
-                        <p className="text-xs text-gray-500">
-                          Encuentra profesionales
-                        </p>
                       </div>
                     </div>
                   </Card>
