@@ -28,7 +28,7 @@ const Dashboard = () => {
   console.log("Dashboard - Appointments loading:", isLoadingAppointments, "Count:", appointments?.length || 0);
   console.log("Dashboard - Stats loading:", isLoadingStats);
   
-  // Enhanced appointment filtering with recurring instances
+  // Enhanced appointment filtering with deduplication
   const { todaysAppointments, tomorrowsAppointments, activeAppointmentsToday } = useMemo(() => {
     if (!appointments?.length) {
       return {
@@ -40,20 +40,46 @@ const Dashboard = () => {
 
     try {
       const now = new Date();
-      const todaysAppts: any[] = [];
-      const tomorrowsAppts: any[] = [];
       
       console.log("=== FILTERING APPOINTMENTS ===");
       console.log(`Processing ${appointments.length} total appointments`);
       
-      // Single pass through appointments for efficiency
+      // Create a Map to deduplicate appointments by time slot
+      const appointmentsByTimeSlot = new Map();
+      
+      // Process appointments and deduplicate
       appointments.forEach(app => {
-        if (app.status === 'cancelled') return;
+        if (app.status === 'cancelled' || app.status === 'rejected') return;
         
+        const appDate = new Date(app.start_time);
+        const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}`;
+        
+        // Check if we already have an appointment for this time slot
+        if (appointmentsByTimeSlot.has(timeSlotKey)) {
+          const existing = appointmentsByTimeSlot.get(timeSlotKey);
+          // Prefer regular appointments over recurring instances
+          if (!existing.is_recurring_instance && app.is_recurring_instance) {
+            console.log(`Skipping duplicate recurring instance: ${app.client_name} at ${appDate.toLocaleString()}`);
+            return;
+          } else if (existing.is_recurring_instance && !app.is_recurring_instance) {
+            console.log(`Replacing recurring instance with regular appointment: ${app.client_name} at ${appDate.toLocaleString()}`);
+          }
+        }
+        
+        appointmentsByTimeSlot.set(timeSlotKey, app);
+      });
+      
+      // Convert back to array and filter by date
+      const uniqueAppointments = Array.from(appointmentsByTimeSlot.values());
+      const todaysAppts: any[] = [];
+      const tomorrowsAppts: any[] = [];
+      
+      uniqueAppointments.forEach(app => {
         const appDate = new Date(app.start_time);
         
         console.log(`Processing appointment ${app.id}:`, {
           date: appDate.toLocaleDateString(),
+          time: appDate.toLocaleTimeString(),
           isToday: isSameDay(appDate, today),
           isTomorrow: isSameDay(appDate, tomorrow),
           status: app.status,
@@ -79,11 +105,18 @@ const Dashboard = () => {
       );
 
       console.log("=== APPOINTMENT FILTERING RESULTS ===");
+      console.log(`Total unique appointments: ${uniqueAppointments.length}`);
       console.log(`Today's appointments: ${todaysAppts.length}`);
       console.log(`Tomorrow's appointments: ${tomorrowsAppts.length}`);
       console.log(`Active today: ${activeToday.length}`);
-      console.log(`Recurring instances today: ${todaysAppts.filter(a => a.is_recurring_instance).length}`);
-      console.log(`Recurring instances tomorrow: ${tomorrowsAppts.filter(a => a.is_recurring_instance).length}`);
+      
+      // Log details of tomorrow's appointments for debugging
+      if (tomorrowsAppts.length > 0) {
+        console.log("Tomorrow's appointments details:");
+        tomorrowsAppts.forEach((app, index) => {
+          console.log(`${index + 1}. ${app.client_name} - ${new Date(app.start_time).toLocaleTimeString()} - ${app.is_recurring_instance ? 'Recurring' : 'Regular'}`);
+        });
+      }
 
       return {
         todaysAppointments: todaysAppts,

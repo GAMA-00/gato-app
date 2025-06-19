@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addWeeks, startOfDay, endOfDay } from 'date-fns';
@@ -13,26 +12,26 @@ export const useCalendarAppointmentsWithRecurring = ({
   selectedDate, 
   providerId 
 }: UseCalendarAppointmentsWithRecurringProps) => {
-  // Reducir el rango a solo 4 semanas para optimizar
+  // Extend range to 8 weeks for better coverage
   const startDate = startOfDay(selectedDate);
-  const endDate = endOfDay(addWeeks(selectedDate, 4));
+  const endDate = endOfDay(addWeeks(selectedDate, 8));
 
   console.log('=== CALENDAR APPOINTMENTS HOOK START ===');
   console.log(`Provider ID: ${providerId}`);
   console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
 
-  // Obtener TODAS las citas del proveedor - query simplificada
+  // Get ALL appointments for the provider - simplified query
   const { data: allAppointments = [], isLoading } = useQuery({
-    queryKey: ['calendar-appointments-simple', format(selectedDate, 'yyyy-MM-dd'), providerId],
+    queryKey: ['calendar-appointments-with-recurring', format(selectedDate, 'yyyy-MM-dd'), providerId],
     queryFn: async () => {
-      console.log('=== FETCHING ALL APPOINTMENTS - SIMPLIFIED ===');
+      console.log('=== FETCHING ALL APPOINTMENTS ===');
       
       if (!providerId) {
         console.log('No provider ID provided');
         return [];
       }
 
-      // Query super simple - solo obtener citas del proveedor
+      // Get all appointments for the provider - no date filtering yet
       const { data, error } = await supabase
         .from('appointments')
         .select(`
@@ -43,6 +42,7 @@ export const useCalendarAppointmentsWithRecurring = ({
           )
         `)
         .eq('provider_id', providerId)
+        .not('status', 'in', '(cancelled,rejected)')
         .order('start_time', { ascending: true });
 
       if (error) {
@@ -51,26 +51,13 @@ export const useCalendarAppointmentsWithRecurring = ({
       }
 
       console.log(`Raw appointments from DB: ${data?.length || 0}`);
-      
-      // Log detallado de las primeras 3 citas
-      if (data && data.length > 0) {
-        console.log('First 3 appointments from DB:', data.slice(0, 3).map(app => ({
-          id: app.id,
-          client_name: app.client_name,
-          start_time: app.start_time,
-          status: app.status,
-          recurrence: app.recurrence,
-          is_recurring_instance: app.is_recurring_instance
-        })));
-      }
-
       return data || [];
     },
     staleTime: 60000,
     refetchInterval: false
   });
 
-  // Filtrar solo citas activas (no canceladas/rechazadas)
+  // Filter active appointments (not cancelled/rejected)
   const activeAppointments = allAppointments.filter(appointment => {
     const isActive = appointment.status !== 'cancelled' && appointment.status !== 'rejected';
     return isActive;
@@ -78,43 +65,27 @@ export const useCalendarAppointmentsWithRecurring = ({
 
   console.log(`Active appointments: ${activeAppointments.length} out of ${allAppointments.length}`);
 
-  // Separar citas regulares y recurrentes de forma más simple
+  // Separate regular and recurring appointments
   const regularAppointments = activeAppointments.filter(appointment => {
-    // Una cita regular es aquella que NO tiene recurrencia o recurrencia = 'none'
-    const isRegular = !appointment.recurrence || appointment.recurrence === 'none' || appointment.recurrence === null;
+    const isRegular = !appointment.recurrence || 
+                     appointment.recurrence === 'none' || 
+                     appointment.recurrence === null ||
+                     appointment.is_recurring_instance === true; // Include recurring instances as regular
     return isRegular;
   });
 
   const recurringBaseAppointments = activeAppointments.filter(appointment => {
-    // Una cita recurrente es aquella que SÍ tiene recurrencia y no es 'none'
     const isRecurring = appointment.recurrence && 
                        appointment.recurrence !== 'none' && 
-                       appointment.recurrence !== null;
+                       appointment.recurrence !== null &&
+                       !appointment.is_recurring_instance; // Only base recurring appointments
     return isRecurring;
   });
 
-  console.log(`Regular appointments: ${regularAppointments.length}`);
+  console.log(`Regular appointments (including instances): ${regularAppointments.length}`);
   console.log(`Recurring base appointments: ${recurringBaseAppointments.length}`);
 
-  if (regularAppointments.length > 0) {
-    console.log('Sample regular appointments:', regularAppointments.slice(0, 2).map(app => ({
-      id: app.id,
-      client_name: app.client_name,
-      start_time: app.start_time,
-      recurrence: app.recurrence
-    })));
-  }
-
-  if (recurringBaseAppointments.length > 0) {
-    console.log('Sample recurring appointments:', recurringBaseAppointments.slice(0, 2).map(app => ({
-      id: app.id,
-      client_name: app.client_name,
-      start_time: app.start_time,
-      recurrence: app.recurrence
-    })));
-  }
-
-  // Expandir las citas recurrentes
+  // Generate recurring instances
   const recurringInstances = useRecurringAppointments({
     recurringAppointments: recurringBaseAppointments,
     startDate,
@@ -123,7 +94,7 @@ export const useCalendarAppointmentsWithRecurring = ({
 
   console.log(`Generated recurring instances: ${recurringInstances.length}`);
 
-  // Filtrar citas regulares que estén en el rango de fechas
+  // Filter regular appointments in date range
   const regularInRange = regularAppointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
     const isInRange = appointmentDate >= startDate && appointmentDate <= endDate;
@@ -132,25 +103,51 @@ export const useCalendarAppointmentsWithRecurring = ({
 
   console.log(`Regular appointments in range: ${regularInRange.length}`);
 
-  // Combinar todas las citas
-  const combinedAppointments = [
+  // Combine and deduplicate appointments
+  const allCombined = [
     ...regularInRange.map(appointment => ({
       ...appointment,
-      is_recurring_instance: false,
+      is_recurring_instance: appointment.is_recurring_instance || false,
       client_name: appointment.client_name || 'Cliente',
       service_title: appointment.listings?.title || 'Servicio'
     })),
     ...recurringInstances
   ];
 
+  // Remove duplicates by creating a unique key for each appointment slot
+  const uniqueAppointments = allCombined.reduce((acc, appointment) => {
+    const key = `${appointment.provider_id}-${appointment.start_time}-${appointment.end_time}`;
+    
+    // If we haven't seen this time slot before, add it
+    if (!acc.has(key)) {
+      acc.set(key, appointment);
+    } else {
+      // If we have seen it, prefer regular appointments over generated instances
+      const existing = acc.get(key);
+      if (!existing.is_recurring_instance && appointment.is_recurring_instance) {
+        // Keep existing regular appointment
+        console.log(`Skipping duplicate recurring instance for ${appointment.start_time}`);
+      } else if (existing.is_recurring_instance && !appointment.is_recurring_instance) {
+        // Replace with regular appointment
+        acc.set(key, appointment);
+        console.log(`Replacing recurring instance with regular appointment for ${appointment.start_time}`);
+      }
+    }
+    
+    return acc;
+  }, new Map());
+
+  const finalAppointments = Array.from(uniqueAppointments.values());
+
   console.log('=== FINAL CALENDAR RESULT ===');
   console.log(`Regular in range: ${regularInRange.length}`);
   console.log(`Recurring instances: ${recurringInstances.length}`);
-  console.log(`TOTAL COMBINED: ${combinedAppointments.length}`);
+  console.log(`Combined total: ${allCombined.length}`);
+  console.log(`After deduplication: ${finalAppointments.length}`);
   console.log('===============================');
 
   return {
-    data: combinedAppointments,
+    data: finalAppointments,
     isLoading,
     regularAppointments: regularInRange,
     recurringInstances,

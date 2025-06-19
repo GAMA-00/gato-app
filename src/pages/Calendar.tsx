@@ -4,33 +4,17 @@ import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useCalendarAppointmentsWithRecurring } from '@/hooks/useCalendarAppointmentsWithRecurring';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
 
 const Calendar = () => {
   const { user } = useAuth();
+  const currentDate = new Date();
 
-  const { data: appointments = [], isLoading } = useQuery({
-    queryKey: ['calendar-appointments', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const now = new Date();
-      
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('*')
-        .or(`provider_id.eq.${user.id},client_id.eq.${user.id}`)
-        .gte('end_time', now.toISOString()) // Only future appointments
-        .not('status', 'in', '(cancelled,rejected)') // Exclude cancelled and rejected
-        .order('start_time', { ascending: true });
-        
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
+  const { data: appointments = [], isLoading } = useCalendarAppointmentsWithRecurring({
+    selectedDate: currentDate,
+    providerId: user?.id
   });
 
   if (isLoading) {
@@ -75,7 +59,7 @@ const Calendar = () => {
                 </div>
               )}
               
-              {/* Calendar view */}
+              {/* Calendar view with all appointments including recurring instances */}
               <div className="w-full">
                 <CalendarView appointments={appointments} />
               </div>
