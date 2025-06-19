@@ -24,7 +24,7 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
     );
   }
 
-  // If authenticated, redirect to appropriate dashboard
+  // If authenticated and has role, redirect to appropriate dashboard
   if (isAuthenticated && user?.role) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('AuthRoute - Redirecting authenticated user to:', redirectTo);

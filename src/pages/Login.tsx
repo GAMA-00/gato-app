@@ -47,7 +47,7 @@ const Login = () => {
       
       if (result.success) {
         toast.success('¡Inicio de sesión exitoso!');
-        console.log('Login successful');
+        console.log('Login successful - AuthRoute will handle navigation');
       } else {
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
