@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -111,7 +110,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthContext: Found existing session');
           setSession(currentSession);
           
-          // Always try to load profile, but don't block on it
+          // Crear usuario básico inmediatamente para permitir la redirección
+          const basicUser = createUserFromAuth(currentSession.user);
+          setUser(basicUser);
+          
+          // Luego intentar cargar el perfil completo en segundo plano
           try {
             const userData = await loadUserProfile(currentSession.user);
             if (mounted) {
@@ -119,9 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (profileError) {
             console.error('AuthContext: Profile load failed:', profileError);
-            if (mounted) {
-              setUser(createUserFromAuth(currentSession.user));
-            }
+            // Ya tenemos el usuario básico, así que no hay problema
           }
         } else {
           console.log('AuthContext: No existing session');
@@ -155,6 +156,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthContext: User authenticated, loading profile');
           setSession(currentSession);
           
+          // Crear usuario básico inmediatamente
+          const basicUser = createUserFromAuth(currentSession.user);
+          setUser(basicUser);
+          
           // Load profile but don't block the auth flow
           try {
             const userData = await loadUserProfile(currentSession.user);
@@ -163,9 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (profileError) {
             console.error('AuthContext: Profile load failed in auth change:', profileError);
-            if (mounted) {
-              setUser(createUserFromAuth(currentSession.user));
-            }
+            // Ya tenemos el usuario básico
           }
         } else {
           console.log('AuthContext: No session, clearing state');

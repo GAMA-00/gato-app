@@ -23,10 +23,19 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
     );
   }
 
-  if (isAuthenticated && user) {
-    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
-    console.log('AuthRoute: Redirecting authenticated user to:', redirectTo);
-    return <Navigate to={redirectTo} replace />;
+  // Si el usuario está autenticado, redirigir inmediatamente
+  // No esperar a que se cargue el perfil completo
+  if (isAuthenticated) {
+    // Si tenemos el rol del usuario, usar la redirección específica
+    if (user?.role) {
+      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
+      console.log('AuthRoute: Redirecting authenticated user with role to:', redirectTo);
+      return <Navigate to={redirectTo} replace />;
+    } else {
+      // Si no tenemos el rol, redirigir a la página de categorías como cliente por defecto
+      console.log('AuthRoute: Redirecting authenticated user without role to client categories');
+      return <Navigate to="/client/categories" replace />;
+    }
   }
 
   console.log('AuthRoute: Showing auth content');
