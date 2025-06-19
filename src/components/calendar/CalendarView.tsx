@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -53,8 +52,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
 
   return (
     <div className="relative border-r last:border-r-0 calendar-day bg-white">
-      {/* Fixed header - Removed appointment counts */}
-      <div className="h-16 py-2 text-center border-b bg-white flex-shrink-0 flex flex-col justify-between">
+      {/* Fixed header - No appointment counts */}
+      <div className="h-16 py-2 text-center border-b bg-white flex-shrink-0 flex flex-col justify-center">
         <div className={cn("text-xs uppercase tracking-wide", !isCurrentMonth && "text-muted-foreground")}>
           {format(date, 'EEE', { locale: es })}
         </div>
@@ -67,14 +66,6 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             <span className="text-sm">{format(date, 'd')}</span>
           )}
         </div>
-        {/* Show only total appointment count if there are any */}
-        {dayAppointments.length > 0 && (
-          <div className="text-[10px] font-medium">
-            <div className="text-blue-600">
-              {dayAppointments.length} cita{dayAppointments.length > 1 ? 's' : ''}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Time slots container */}
