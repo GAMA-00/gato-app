@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -127,16 +126,16 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
             Solicitudes de Reserva
           </div>
           {groupedRequests.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
                 {groupedRequests.length} solicitud{groupedRequests.length > 1 ? 'es' : ''}
                 {totalPendingCount > groupedRequests.length && (
-                  <span className="text-xs ml-1">({totalPendingCount} citas)</span>
+                  <span className="ml-1">({totalPendingCount} citas)</span>
                 )}
               </span>
               {externalCount > 0 && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
-                  <ExternalLink className="h-3 w-3" />
+                <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap">
+                  <ExternalLink className="h-2.5 w-2.5" />
                   {externalCount} externa{externalCount > 1 ? 's' : ''}
                 </span>
               )}
@@ -173,16 +172,16 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap">
                         <div className="font-medium">{request.client_name}</div>
                         {isExternal && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 text-xs">
-                            <ExternalLink className="h-3 w-3" />
+                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 text-[10px] px-1 py-0">
+                            <ExternalLink className="h-2.5 w-2.5" />
                             Externa
                           </Badge>
                         )}
-                        <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 flex items-center gap-1 text-xs">
-                          <Repeat className="h-3 w-3" />
+                        <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 flex items-center gap-1 text-[10px] px-1 py-0">
+                          <Repeat className="h-2.5 w-2.5" />
                           {recurrenceDisplay}
                         </Badge>
                       </div>
