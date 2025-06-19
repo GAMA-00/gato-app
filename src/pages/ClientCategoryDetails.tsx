@@ -75,6 +75,10 @@ const ClientCategoryDetails = () => {
     'planchado': '/lovable-uploads/cb20f484-db92-4a96-9734-e3c343529266.png',
     'jardin': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
     'jardinero': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
+    'mantenimiento': '/lovable-uploads/bd6c577e-1953-44ff-ac4e-f2c9fc5ebef3.png',
+    'chef': '/lovable-uploads/56fd025e-2847-4d55-af93-1b8c7391277d.png',
+    'lavacar': '/lovable-uploads/26896390-5198-4e8f-bbe9-8b2940b77897.png',
+    'lava car': '/lovable-uploads/26896390-5198-4e8f-bbe9-8b2940b77897.png',
   };
 
   // Get specific service icon based on service name
