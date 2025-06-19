@@ -141,16 +141,16 @@ const ClientCategoryDetails = () => {
                     onClick={() => navigate(`/client/results?serviceId=${serviceType.id}&categoryName=${encodeURIComponent(categoryLabel)}`)}
                   >
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="w-12 h-12 bg-luxury-navy rounded-full flex items-center justify-center">
+                      <div className="w-20 h-20 bg-luxury-navy rounded-full flex items-center justify-center">
                         {serviceIcon.type === 'image' ? (
                           <img 
                             src={serviceIcon.src} 
                             alt={serviceType.name}
-                            className="w-8 h-8 object-contain"
+                            className="w-16 h-16 object-contain"
                           />
                         ) : (
                           React.createElement(serviceIcon.component, {
-                            className: "h-6 w-6 text-white"
+                            className: "h-10 w-10 text-white"
                           })
                         )}
                       </div>
