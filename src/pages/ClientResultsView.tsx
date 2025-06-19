@@ -26,6 +26,7 @@ const ClientResultsView = () => {
           
           <PageContainer 
             title="Profesionales disponibles"
+            className="pt-20" // Add top padding to avoid overlap
           >
             <div className="space-y-4">
               <ProvidersList 
@@ -49,7 +50,11 @@ const ClientResultsView = () => {
           <BackButton onClick={() => navigate(-1)} />
         </div>
         
-        <PageContainer title="Resultados de Búsqueda" subtitle={`Buscando: ${query}`}>
+        <PageContainer 
+          title="Resultados de Búsqueda" 
+          subtitle={`Buscando: ${query}`}
+          className="pt-20" // Add top padding to avoid overlap
+        >
           <div className="space-y-4">
             <div className="text-center py-12">
               <p className="text-muted-foreground">
