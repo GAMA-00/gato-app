@@ -11,6 +11,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Navbar from '@/components/layout/Navbar';
 
+interface ValidUser {
+  id: string;
+  name?: string;
+  avatar_url?: string;
+  average_rating?: number;
+}
+
+interface ValidListing {
+  id: string;
+  title: string;
+  description: string;
+  base_price: number;
+  users: ValidUser;
+}
+
 const ClientProvidersList = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -48,13 +63,13 @@ const ClientProvidersList = () => {
       if (error) throw error;
       
       // Filter out items with invalid users data and ensure proper typing
-      return (data || []).filter((item): item is typeof item & { users: { id: string; name?: string; avatar_url?: string; average_rating?: number } } => 
-        item && 
-        item.users !== null &&
-        item.users !== undefined &&
-        typeof item.users === 'object' && 
-        'id' in item.users
-      );
+      return (data || []).filter((item): item is ValidListing => {
+        return item && 
+               item.users !== null &&
+               item.users !== undefined &&
+               typeof item.users === 'object' && 
+               'id' in item.users;
+      });
     },
     enabled: !!serviceType,
   });

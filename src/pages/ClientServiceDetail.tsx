@@ -9,13 +9,30 @@ import { ArrowLeft, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
 
+interface ValidServiceUser {
+  id: string;
+  name?: string;
+  avatar_url?: string;
+  average_rating?: number;
+  phone?: string;
+}
+
+interface ValidServiceData {
+  id: string;
+  title: string;
+  description: string;
+  base_price: number;
+  duration: number;
+  users: ValidServiceUser;
+}
+
 const ClientServiceDetail = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
 
   const { data: service, isLoading } = useQuery({
     queryKey: ['service-detail', serviceId],
-    queryFn: async () => {
+    queryFn: async (): Promise<ValidServiceData | null> => {
       const { data, error } = await supabase
         .from('listings')
         .select(`
@@ -34,11 +51,16 @@ const ClientServiceDetail = () => {
       if (error) throw error;
       
       // Ensure users data is valid with proper null checking
-      if (!data || !data.users || data.users === null || typeof data.users !== 'object' || !('id' in data.users)) {
+      if (!data || 
+          !data.users || 
+          data.users === null || 
+          data.users === undefined ||
+          typeof data.users !== 'object' || 
+          !('id' in data.users)) {
         throw new Error('Invalid provider data');
       }
       
-      return data as typeof data & { users: { id: string; name?: string; avatar_url?: string; average_rating?: number; phone?: string } };
+      return data as ValidServiceData;
     },
     enabled: !!serviceId,
   });
@@ -61,7 +83,7 @@ const ClientServiceDetail = () => {
     );
   }
 
-  if (!service || !service.users) {
+  if (!service) {
     return (
       <>
         <Navbar />

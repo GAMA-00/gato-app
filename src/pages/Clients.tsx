@@ -17,6 +17,19 @@ interface ClientData {
   avatar_url?: string;
 }
 
+interface ValidClientUser {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+}
+
+interface ValidAppointmentData {
+  client_id: string;
+  users: ValidClientUser;
+}
+
 const Clients = () => {
   const { user } = useAuth();
 
@@ -42,15 +55,19 @@ const Clients = () => {
         
       if (error) throw error;
       
-      // Remove duplicates and flatten, filtering out invalid entries with proper typing
-      const uniqueClients = data.reduce((acc: ClientData[], curr) => {
-        if (curr && 
-            curr.users && 
-            curr.users !== null &&
-            curr.users !== undefined &&
-            typeof curr.users === 'object' && 
-            'id' in curr.users && 
-            !acc.find(client => client.id === (curr.users as any).id)) {
+      // Filter and validate data with proper typing
+      const validData = (data || []).filter((curr): curr is ValidAppointmentData => {
+        return curr && 
+               curr.users && 
+               curr.users !== null &&
+               curr.users !== undefined &&
+               typeof curr.users === 'object' && 
+               'id' in curr.users;
+      });
+      
+      // Remove duplicates and flatten
+      const uniqueClients = validData.reduce((acc: ClientData[], curr) => {
+        if (!acc.find(client => client.id === curr.users.id)) {
           acc.push(curr.users as ClientData);
         }
         return acc;
