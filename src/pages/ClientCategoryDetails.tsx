@@ -81,6 +81,13 @@ const ClientCategoryDetails = () => {
     'lava car': '/lovable-uploads/26896390-5198-4e8f-bbe9-8b2940b77897.png',
   };
 
+  // Map of custom images for pets category services
+  const petsServiceImages: Record<string, string> = {
+    'paseo': '/lovable-uploads/121fbde3-9cdb-4972-907d-4bac918cccaf.png',
+    'grooming': '/lovable-uploads/95029500-66a6-4711-833a-d209d54b6f47.png',
+    'veterinario': '/lovable-uploads/99cfe636-bb09-4d44-966a-e1a7f6c2d8a8.png',
+  };
+
   // Get specific service icon based on service name
   const getServiceTypeIcon = (serviceName: string) => {
     const normalizedName = serviceName.toLowerCase();
@@ -88,6 +95,15 @@ const ClientCategoryDetails = () => {
     // Check if this is a home category service with custom image
     if (categoryId === 'home') {
       for (const [key, imagePath] of Object.entries(homeServiceImages)) {
+        if (normalizedName.includes(key)) {
+          return { type: 'image', src: imagePath };
+        }
+      }
+    }
+    
+    // Check if this is a pets category service with custom image
+    if (categoryId === 'pets') {
+      for (const [key, imagePath] of Object.entries(petsServiceImages)) {
         if (normalizedName.includes(key)) {
           return { type: 'image', src: imagePath };
         }
@@ -145,16 +161,16 @@ const ClientCategoryDetails = () => {
                     onClick={() => navigate(`/client/results?serviceId=${serviceType.id}&categoryName=${encodeURIComponent(categoryLabel)}`)}
                   >
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="w-20 h-20 bg-luxury-navy rounded-full flex items-center justify-center">
+                      <div className="w-24 h-24 bg-luxury-navy rounded-full flex items-center justify-center">
                         {serviceIcon.type === 'image' ? (
                           <img 
                             src={serviceIcon.src} 
                             alt={serviceType.name}
-                            className="w-16 h-16 object-contain"
+                            className="w-20 h-20 object-contain"
                           />
                         ) : (
                           React.createElement(serviceIcon.component, {
-                            className: "h-10 w-10 text-white"
+                            className: "h-12 w-12 text-white"
                           })
                         )}
                       </div>
