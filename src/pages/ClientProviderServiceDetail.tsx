@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,15 +7,16 @@ import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
-import ProviderHeader from '@/components/providers/ProviderHeader';
-import ProviderInfo from '@/components/providers/ProviderInfo';
-import ProviderAbout from '@/components/providers/ProviderAbout';
-import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAchievements from '@/components/providers/ProviderAchievements';
 import ServiceDescription from '@/components/client/service/ServiceDescription';
-import PriceInformation from '@/components/client/service/PriceInformation';
+import ProviderGallery from '@/components/providers/ProviderGallery';
+import ProviderAbout from '@/components/providers/ProviderAbout';
+import ProviderCertifications from '@/components/client/service/ProviderCertifications';
 import ServiceVariantsSelector from '@/components/client/results/ServiceVariantsSelector';
+import PriceInformation from '@/components/client/service/PriceInformation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ClientProviderServiceDetail = () => {
@@ -124,8 +126,8 @@ const ClientProviderServiceDetail = () => {
   return (
     <>
       <Navbar />
-      <PageContainer title="Detalles del Servicio" subtitle="">
-        <div className="space-y-8">
+      <PageContainer title="" subtitle="">
+        <div className="max-w-4xl mx-auto space-y-8">
           {/* Back button */}
           <Button 
             variant="ghost" 
@@ -136,69 +138,91 @@ const ClientProviderServiceDetail = () => {
             Volver
           </Button>
 
-          {/* Provider Header with booking mode */}
-          <ProviderHeader provider={transformedProvider} bookingMode={true} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main content */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Service Details */}
-              <div id="provider-services" className="space-y-6">
-                <h3 className="text-2xl font-semibold text-luxury-navy">
-                  {serviceDetails.title}
-                </h3>
-                
-                <ServiceDescription 
-                  description={serviceDetails.description}
-                  serviceType={serviceTypeData}
-                />
-
-                {/* Service Variants Selector */}
-                {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-medium">Opciones de servicio</h4>
-                    <ServiceVariantsSelector
-                      variants={serviceDetails.serviceVariants}
-                      onSelectVariant={setSelectedVariants}
-                    />
-                  </div>
-                )}
-
-                {/* Price Information */}
-                {selectedVariants.length > 0 && (
-                  <PriceInformation
-                    basePrice={selectedVariants[0].price}
-                    duration={selectedVariants[0].duration}
-                  />
-                )}
-
-                {/* Booking Button */}
-                <div className="flex justify-center pt-6">
-                  <Button 
-                    onClick={handleBookService}
-                    size="lg"
-                    className="w-full md:w-auto bg-luxury-navy hover:bg-luxury-navy/90"
-                    disabled={selectedVariants.length === 0}
-                  >
-                    <Calendar className="mr-2 h-5 w-5" />
-                    Agendar Cita
-                  </Button>
-                </div>
+          {/* 1. Foto de Perfil y Nombre */}
+          <div className="text-center space-y-4">
+            <Avatar className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg">
+              <AvatarImage src={transformedProvider.avatar} alt={transformedProvider.name} />
+              <AvatarFallback className="text-2xl bg-luxury-navy text-white">
+                {transformedProvider.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div>
+              <h1 className="text-3xl font-bold text-luxury-navy mb-2">
+                {transformedProvider.name}
+              </h1>
+              <div className="flex items-center justify-center gap-2">
+                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                <span className="font-medium text-lg">
+                  {transformedProvider.rating.toFixed(1)}
+                </span>
+                <span className="text-muted-foreground">
+                  ({transformedProvider.ratingCount} valoraciones)
+                </span>
               </div>
-
-              {/* Provider About Section */}
-              <ProviderAbout provider={transformedProvider} />
             </div>
+          </div>
 
-            {/* Sidebar */}
+          {/* 2. Méritos */}
+          <ProviderAchievements 
+            provider={transformedProvider} 
+            recurringClientsCount={serviceDetails.recurringClients || 0}
+          />
+
+          {/* 3. Descripción del servicio */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold text-luxury-navy">
+              {serviceDetails.title}
+            </h2>
+            <ServiceDescription 
+              description={serviceDetails.description}
+              serviceType={serviceTypeData}
+            />
+          </div>
+
+          {/* 4. Galería de trabajos */}
+          <ProviderGallery provider={transformedProvider} />
+
+          {/* 5. Sobre Mí */}
+          <ProviderAbout provider={transformedProvider} />
+
+          {/* 6. Certificación Profesional */}
+          <ProviderCertifications 
+            certifications={transformedProvider.certificationFiles}
+          />
+
+          {/* 7. Servicios Disponibles */}
+          {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
             <div className="space-y-6">
-              <ProviderInfo provider={transformedProvider} />
-              <ProviderAchievements 
-                provider={transformedProvider} 
-                recurringClientsCount={serviceDetails.recurringClients || 0}
+              <h3 className="text-2xl font-semibold text-luxury-navy">
+                Servicios Disponibles
+              </h3>
+              <ServiceVariantsSelector
+                variants={serviceDetails.serviceVariants}
+                onSelectVariant={setSelectedVariants}
               />
-              <ProviderGallery provider={transformedProvider} />
+              
+              {/* Price Information */}
+              {selectedVariants.length > 0 && (
+                <PriceInformation
+                  basePrice={selectedVariants[0].price}
+                  duration={selectedVariants[0].duration}
+                />
+              )}
             </div>
+          )}
+
+          {/* 8. Botón "Agendar Servicio" */}
+          <div className="flex justify-center pt-8 pb-12">
+            <Button 
+              onClick={handleBookService}
+              size="lg"
+              className="w-full md:w-auto bg-luxury-navy hover:bg-luxury-navy/90 text-lg px-12 py-4"
+              disabled={selectedVariants.length === 0}
+            >
+              <Calendar className="mr-3 h-6 w-6" />
+              Agendar Servicio
+            </Button>
           </div>
         </div>
       </PageContainer>
