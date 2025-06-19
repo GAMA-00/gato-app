@@ -97,11 +97,6 @@ const DateTimeSelector = ({
           <div>
             <Label className="text-base font-medium mb-3 block">
               Selecciona la fecha
-              {selectedFrequency !== 'once' && (
-                <span className="text-sm text-gray-600 block mt-1">
-                  Esta será la fecha de inicio de la recurrencia {getRecurrenceText(selectedFrequency)}
-                </span>
-              )}
             </Label>
             <div className="flex justify-center">
               <Calendar
