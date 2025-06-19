@@ -46,6 +46,8 @@ const Clients = () => {
       const uniqueClients = data.reduce((acc: ClientData[], curr) => {
         if (curr && 
             curr.users && 
+            curr.users !== null &&
+            curr.users !== undefined &&
             typeof curr.users === 'object' && 
             'id' in curr.users && 
             !acc.find(client => client.id === (curr.users as any).id)) {

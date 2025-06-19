@@ -51,6 +51,7 @@ const ClientProvidersList = () => {
       return (data || []).filter((item): item is typeof item & { users: { id: string; name?: string; avatar_url?: string; average_rating?: number } } => 
         item && 
         item.users !== null &&
+        item.users !== undefined &&
         typeof item.users === 'object' && 
         'id' in item.users
       );
