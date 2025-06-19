@@ -105,6 +105,26 @@ const ClientCategoryDetails = () => {
     'arte': '/lovable-uploads/1eb5b922-24f4-472f-9474-62d3123e0ff0.png',
   };
 
+  // Map of custom images for personal-care category services
+  const personalCareServiceImages: Record<string, string> = {
+    'peluqueria': '/lovable-uploads/92c8e6fd-f64c-405f-89b3-d687e1feb69d.png',
+    'peluquería': '/lovable-uploads/92c8e6fd-f64c-405f-89b3-d687e1feb69d.png',
+    'cabello': '/lovable-uploads/92c8e6fd-f64c-405f-89b3-d687e1feb69d.png',
+    'manicurista': '/lovable-uploads/d1e8fd1d-5a89-413a-b895-79cb58c06e4c.png',
+    'manicure': '/lovable-uploads/d1e8fd1d-5a89-413a-b895-79cb58c06e4c.png',
+    'uñas': '/lovable-uploads/d1e8fd1d-5a89-413a-b895-79cb58c06e4c.png',
+    'depilación': '/lovable-uploads/c78e3ba3-f32e-4a98-943c-d7d3480de2a2.png',
+    'depilacion': '/lovable-uploads/c78e3ba3-f32e-4a98-943c-d7d3480de2a2.png',
+    'cera': '/lovable-uploads/c78e3ba3-f32e-4a98-943c-d7d3480de2a2.png',
+    'masajista': '/lovable-uploads/949df310-202f-4b3f-af36-76e7450a1a11.png',
+    'masaje': '/lovable-uploads/949df310-202f-4b3f-af36-76e7450a1a11.png',
+    'relajación': '/lovable-uploads/949df310-202f-4b3f-af36-76e7450a1a11.png',
+    'relajacion': '/lovable-uploads/949df310-202f-4b3f-af36-76e7450a1a11.png',
+    'fisioterapia': '/lovable-uploads/39418bbd-bfcb-4da3-bd68-1c80242e31d8.png',
+    'fisioterapeuta': '/lovable-uploads/39418bbd-bfcb-4da3-bd68-1c80242e31d8.png',
+    'terapia': '/lovable-uploads/39418bbd-bfcb-4da3-bd68-1c80242e31d8.png',
+  };
+
   // Get specific service icon based on service name
   const getServiceTypeIcon = (serviceName: string) => {
     const normalizedName = serviceName.toLowerCase();
@@ -130,6 +150,15 @@ const ClientCategoryDetails = () => {
     // Check if this is a classes category service with custom image
     if (categoryId === 'classes') {
       for (const [key, imagePath] of Object.entries(classesServiceImages)) {
+        if (normalizedName.includes(key)) {
+          return { type: 'image', src: imagePath };
+        }
+      }
+    }
+    
+    // Check if this is a personal-care category service with custom image
+    if (categoryId === 'personal-care') {
+      for (const [key, imagePath] of Object.entries(personalCareServiceImages)) {
         if (normalizedName.includes(key)) {
           return { type: 'image', src: imagePath };
         }
