@@ -59,8 +59,7 @@ function App() {
               {/* Client routes - Updated main route to categories */}
               <Route path="/client/categories" element={<ProtectedRoute allowedRoles={['client']}><ClientCategoryView /></ProtectedRoute>} />
               <Route path="/client/services" element={<ProtectedRoute allowedRoles={['client']}><ClientServices /></ProtectedRoute>} />
-              <Route path="/client/category/:categoryId" element={<ProtectedRoute allowedRoles={['client']}><ClientCategoryView /></ProtectedRoute>} />
-              <Route path="/client/category/:categoryId/details" element={<ProtectedRoute allowedRoles={['client']}><ClientCategoryDetails /></ProtectedRoute>} />
+              <Route path="/client/category/:categoryId" element={<ProtectedRoute allowedRoles={['client']}><ClientCategoryDetails /></ProtectedRoute>} />
               <Route path="/client/providers" element={<ProtectedRoute allowedRoles={['client']}><ClientProvidersList /></ProtectedRoute>} />
               <Route path="/client/results" element={<ProtectedRoute allowedRoles={['client']}><ClientResultsView /></ProtectedRoute>} />
               <Route path="/client/service/:serviceId" element={<ProtectedRoute allowedRoles={['client']}><ClientServiceDetail /></ProtectedRoute>} />

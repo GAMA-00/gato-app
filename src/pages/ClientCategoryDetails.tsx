@@ -14,25 +14,36 @@ const ClientCategoryDetails = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
 
-  const { data: serviceTypes = [], isLoading } = useQuery({
-    queryKey: ['service-types', categoryId],
+  const { data: categoryData, isLoading: categoryLoading } = useQuery({
+    queryKey: ['category', categoryId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('*')
+        .eq('name', categoryId)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!categoryId,
+  });
+
+  const { data: serviceTypes = [], isLoading: serviceTypesLoading } = useQuery({
+    queryKey: ['service-types', categoryData?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_types')
-        .select(`
-          *,
-          category:service_categories(
-            name,
-            label
-          )
-        `)
-        .eq('category.name', categoryId);
+        .select('*')
+        .eq('category_id', categoryData.id);
         
       if (error) throw error;
       return data || [];
     },
-    enabled: !!categoryId,
+    enabled: !!categoryData?.id,
   });
+
+  const isLoading = categoryLoading || serviceTypesLoading;
 
   if (isLoading) {
     return (
@@ -55,10 +66,12 @@ const ClientCategoryDetails = () => {
     );
   }
 
+  const categoryLabel = categoryData?.label || categoryId;
+
   return (
     <>
       <Navbar />
-      <PageContainer title="Tipos de Servicio" subtitle={`Categoría: ${categoryId}`}>
+      <PageContainer title="Tipos de Servicio" subtitle={`Categoría: ${categoryLabel}`}>
         <div className="space-y-4">
           <Button 
             variant="ghost" 
@@ -85,7 +98,7 @@ const ClientCategoryDetails = () => {
                 >
                   <h3 className="font-semibold text-lg mb-2">{serviceType.name}</h3>
                   <p className="text-muted-foreground text-sm">
-                    Servicio de {serviceType.name}
+                    Encuentra proveedores de {serviceType.name}
                   </p>
                 </Card>
               ))}
