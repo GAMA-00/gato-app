@@ -151,10 +151,10 @@ const ClientCategoryDetails = () => {
     'ninera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
     'babysitter': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
     'cuidado': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
-    'cuidado adulto mayor': '/lovable-uploads/6a66e56e-9bfa-4a91-b611-02f9a177e78a.png',
-    'adulto mayor': '/lovable-uploads/6a66e56e-9bfa-4a91-b611-02f9a177e78a.png',
-    'enfermeria': '/lovable-uploads/6a66e56e-9bfa-4a91-b611-02f9a177e78a.png',
-    'enfermería': '/lovable-uploads/6a66e56e-9bfa-4a91-b611-02f9a177e78a.png',
+    'cuidado adulto mayor': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
+    'adulto mayor': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
+    'enfermeria': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
+    'enfermería': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
   };
 
   // Get specific service icon based on service name
