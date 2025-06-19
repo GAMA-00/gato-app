@@ -20,9 +20,7 @@ export const petsServiceImages: Record<string, string> = {
 
 // Map of custom images for classes category services
 export const classesServiceImages: Record<string, string> = {
-  'tutorías primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
   'primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
-  'tutorías secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
   'secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
   'idiomas': '/lovable-uploads/ee35d00e-2237-4815-a151-f04446309b1f.png',
   'idioma': '/lovable-uploads/ee35d00e-2237-4815-a151-f04446309b1f.png',
@@ -80,8 +78,8 @@ export const otherServiceImages: Record<string, string> = {
   'ninera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
   'babysitter': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
   'cuidado': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
-  'cuidado adulto mayor': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
-  'adulto mayor': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
-  'enfermeria': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
-  'enfermería': '/lovable-uploads/b69da166-7af3-4f25-a769-6a3defdc3edd.png',
+  'cuidado adulto mayor': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
+  'adulto mayor': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
+  'enfermeria': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
+  'enfermería': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
 };
