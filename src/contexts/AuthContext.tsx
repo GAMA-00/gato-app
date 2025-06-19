@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -70,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        if (currentSession?.user && event !== 'SIGNED_OUT') {
+        if (currentSession?.user) {
           console.log('AuthContext: Setting user from session');
           setSession(currentSession);
           setUser(createUserFromSession(currentSession.user));
