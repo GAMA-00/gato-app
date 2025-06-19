@@ -6,7 +6,6 @@ import { validateBookingSlot } from '@/utils/bookingValidation';
 import { buildLocationString } from '@/utils/locationUtils';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, MapPin, Clock, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
@@ -32,9 +31,12 @@ const ClientBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [notes, setNotes] = useState('');
 
-  // Scroll to top when component mounts
+  // Scroll to top when component mounts - improved version
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use setTimeout to ensure the page is fully rendered before scrolling
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 0);
   }, []);
 
   // Validation
@@ -303,7 +305,6 @@ const ClientBooking = () => {
         </div>
         
         {/* Scroll to top button */}
-        <ScrollToTop />
       </PageContainer>
     </>
   );
