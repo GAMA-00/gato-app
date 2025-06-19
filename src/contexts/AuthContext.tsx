@@ -33,10 +33,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const createBasicUserFromAuth = (authUser: SupabaseUser): User => {
+  const createUserFromAuth = (authUser: SupabaseUser): User => {
     return {
       id: authUser.id,
       name: authUser.email?.split('@')[0] || 'Usuario',
@@ -64,15 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', authUser.id)
         .single();
 
-      if (error) {
-        console.error('AuthContext: Profile loading error:', error);
-        console.log('AuthContext: Using basic user data from auth');
-        return createBasicUserFromAuth(authUser);
-      }
-
-      if (!profile) {
-        console.error('AuthContext: No profile found, using basic auth data');
-        return createBasicUserFromAuth(authUser);
+      if (error || !profile) {
+        console.log('AuthContext: No profile found, using basic auth data');
+        return createUserFromAuth(authUser);
       }
 
       const userData: User = {
@@ -95,90 +89,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return userData;
     } catch (error) {
       console.error('AuthContext: Exception loading user profile:', error);
-      console.log('AuthContext: Falling back to basic auth data');
-      return createBasicUserFromAuth(authUser);
+      return createUserFromAuth(authUser);
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    let authTimeout: NodeJS.Timeout;
-    
+
     console.log('AuthContext: Starting initialization');
 
-    // Safety timeout to prevent infinite loading
-    authTimeout = setTimeout(() => {
-      if (mounted && isLoading) {
-        console.warn('AuthContext: Auth initialization timeout, forcing completion');
-        setIsLoading(false);
-      }
-    }, 5000);
-
-    // Use only onAuthStateChange to handle all auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('AuthContext: Auth state changed -', event, !!session);
+      async (event, currentSession) => {
+        console.log('AuthContext: Auth state changed -', event, !!currentSession);
         
         if (!mounted) return;
 
-        if (event === 'INITIAL_SESSION') {
-          if (session?.user) {
-            console.log('AuthContext: Initial session found, loading profile');
-            setSession(session);
-            try {
-              const userData = await loadUserProfile(session.user);
-              if (mounted) {
-                setUser(userData);
-                setIsLoading(false);
-                clearTimeout(authTimeout);
-              }
-            } catch (error) {
-              console.error('AuthContext: Failed to load profile, using basic data');
-              if (mounted) {
-                setUser(createBasicUserFromAuth(session.user));
-                setIsLoading(false);
-                clearTimeout(authTimeout);
-              }
-            }
-          } else {
-            console.log('AuthContext: No initial session');
-            if (mounted) {
-              setSession(null);
-              setUser(null);
-              setIsLoading(false);
-              clearTimeout(authTimeout);
-            }
-          }
-        } else if (event === 'SIGNED_IN' && session?.user) {
-          console.log('AuthContext: User signed in, loading profile');
-          setSession(session);
-          try {
-            const userData = await loadUserProfile(session.user);
+        try {
+          if (currentSession?.user) {
+            console.log('AuthContext: User authenticated, loading profile');
+            setSession(currentSession);
+            
+            const userData = await loadUserProfile(currentSession.user);
             if (mounted) {
               setUser(userData);
-              setIsLoading(false);
-              clearTimeout(authTimeout);
             }
-          } catch (error) {
-            console.error('AuthContext: Failed to load profile on signin, using basic data');
-            if (mounted) {
-              setUser(createBasicUserFromAuth(session.user));
-              setIsLoading(false);
-              clearTimeout(authTimeout);
-            }
-          }
-        } else if (event === 'SIGNED_OUT') {
-          console.log('AuthContext: User signed out');
-          if (mounted) {
+          } else {
+            console.log('AuthContext: No session, clearing state');
             setSession(null);
             setUser(null);
-            setIsLoading(false);
-            clearTimeout(authTimeout);
           }
-        } else if (event === 'TOKEN_REFRESHED' && session) {
-          console.log('AuthContext: Token refreshed');
+        } catch (error) {
+          console.error('AuthContext: Error in auth state change:', error);
+          if (currentSession?.user && mounted) {
+            setSession(currentSession);
+            setUser(createUserFromAuth(currentSession.user));
+          }
+        } finally {
           if (mounted) {
-            setSession(session);
+            setIsLoading(false);
           }
         }
       }
@@ -186,7 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
-      clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -206,8 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user && data.session) {
-        console.log('AuthContext: Login successful, session established');
-        // onAuthStateChange will handle the state update automatically
+        console.log('AuthContext: Login successful');
         return { success: true };
       }
 
@@ -222,7 +168,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('AuthContext: Logging out');
       await supabase.auth.signOut();
-      // onAuthStateChange will handle the state cleanup
     } catch (error) {
       console.error('AuthContext: Logout error:', error);
     }
@@ -236,7 +181,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(prev => prev ? { ...prev, avatarUrl } : null);
   };
 
-  // Simplified authentication check - based on session existence
   const isAuthenticated = !!session;
 
   console.log('AuthContext: Current state -', { 

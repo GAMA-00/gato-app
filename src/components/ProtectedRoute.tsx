@@ -18,7 +18,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     allowedRoles 
   });
 
-  // Show loading while verifying authentication
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -30,26 +29,17 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // If not authenticated, redirect to login
   if (!isAuthenticated) {
     console.log('ProtectedRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  // If authenticated but no user data yet, allow access (fallback)
-  if (!user) {
-    console.log('ProtectedRoute: Authenticated but no user data, allowing access');
-    return <>{children}</>;
-  }
-
-  // If the user doesn't have the required role, redirect to their appropriate dashboard
-  if (!allowedRoles.includes(user.role)) {
+  if (user && !allowedRoles.includes(user.role)) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('ProtectedRoute: User role not allowed, redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  // If authenticated and has the correct role, show the content
   console.log('ProtectedRoute: Showing protected content');
   return <>{children}</>;
 };
