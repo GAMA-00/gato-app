@@ -5,11 +5,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useProviderAvailability } from '@/hooks/useProviderAvailability';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DateTimeSelectorProps {
   selectedDate: Date | undefined;
@@ -73,11 +72,6 @@ const DateTimeSelector = ({
     }
   };
 
-  const formatLastUpdated = (date: Date | null) => {
-    if (!date) return '';
-    return format(date, "HH:mm:ss");
-  };
-
   // Clear selected time when date changes or no slots available
   React.useEffect(() => {
     if (selectedTime && availableTimeSlots.length > 0) {
@@ -121,29 +115,14 @@ const DateTimeSelector = ({
             </div>
           </div>
           
-          {/* Recurrence Info Alert */}
-          {selectedFrequency !== 'once' && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Al seleccionar una recurrencia {getRecurrenceText(selectedFrequency)}, se creará una reserva automática 
-                que se repetirá indefinidamente hasta que sea cancelada por el cliente o proveedor.
-              </AlertDescription>
-            </Alert>
-          )}
-          
           {/* Time Selection Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <Label className="text-base font-medium">
-                Selecciona la hora
-              </Label>
-              
               {/* Refresh Button */}
-              <div className="flex items-center gap-2">
-                {lastUpdated && (
-                  <span className="text-xs text-gray-500">
-                    Actualizado: {formatLastUpdated(lastUpdated)}
+              <div className="flex items-center gap-2 ml-auto">
+                {lastUpdated && !isRefreshing && (
+                  <span className="text-xs text-green-600 flex items-center gap-1">
+                    Actualizado ✅
                   </span>
                 )}
                 <Button
@@ -151,7 +130,7 @@ const DateTimeSelector = ({
                   size="sm"
                   onClick={refreshAvailability}
                   disabled={isRefreshing || !selectedDate}
-                  className="h-8 px-3"
+                  className="h-8 px-3 text-xs"
                 >
                   <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
                   {isRefreshing ? 'Actualizando...' : 'Actualizar'}
