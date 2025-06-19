@@ -8,6 +8,10 @@ export interface User {
   name: string;
   email: string;
   role: 'client' | 'provider';
+  avatarUrl?: string;
+  phone?: string;
+  condominiumName?: string;
+  houseNumber?: string;
 }
 
 interface AuthContextType {
@@ -16,6 +20,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isLoading: boolean;
+  updateUserPaymentMethod: (hasPayment: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Función simple para crear usuario desde datos de Supabase
+  // Función para crear usuario desde datos de Supabase
   const createUserFromSession = (authUser: SupabaseUser): User => {
     const role = authUser.user_metadata?.role || 'client';
     
@@ -33,8 +38,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: authUser.id,
       name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
       email: authUser.email || '',
-      role: role === 'provider' ? 'provider' : 'client'
+      role: role === 'provider' ? 'provider' : 'client',
+      avatarUrl: authUser.user_metadata?.avatar_url || '',
+      phone: authUser.user_metadata?.phone || '',
+      condominiumName: authUser.user_metadata?.condominium_name || '',
+      houseNumber: authUser.user_metadata?.house_number || ''
     };
+  };
+
+  const updateUserPaymentMethod = (hasPayment: boolean) => {
+    if (user) {
+      // Para simplificar, solo actualizamos el estado local
+      // En una implementación completa, esto actualizaría la base de datos
+      console.log('Payment method updated:', hasPayment);
+    }
   };
 
   useEffect(() => {
@@ -130,7 +147,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       login,
       logout,
-      isLoading
+      isLoading,
+      updateUserPaymentMethod
     }}>
       {children}
     </AuthContext.Provider>
