@@ -120,18 +120,26 @@ const ClientBooking = () => {
 
   const formatPrice = (price: number | string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return `$${numPrice.toLocaleString('es-CR', {
+    return numPrice.toLocaleString('es-CR', {
       minimumFractionDigits: 0
-    })}`;
+    });
   };
 
-  // Build client location string
+  // Build client location string with debugging
   const clientLocation = buildLocationString({
     residenciaName: user?.condominiumName,
     condominiumName: user?.condominiumName,
     houseNumber: user?.houseNumber,
     apartment: user?.apartment
   });
+
+  console.log('User data for location:', {
+    condominiumName: user?.condominiumName,
+    houseNumber: user?.houseNumber,
+    apartment: user?.apartment
+  });
+
+  console.log('Final client location:', clientLocation);
 
   return (
     <>
@@ -180,7 +188,7 @@ const ClientBooking = () => {
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">
-                        {formatPrice(selectedVariant.price)}
+                        ${formatPrice(selectedVariant.price)}
                       </span>
                     </div>
                   </>
@@ -249,7 +257,7 @@ const ClientBooking = () => {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Precio:</span>
-                        <span className="font-medium">{formatPrice(selectedVariant.price)}</span>
+                        <span className="font-medium">${formatPrice(selectedVariant.price)}</span>
                       </div>
                     </div>
                   )}
