@@ -34,7 +34,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const loadUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
     try {
@@ -81,41 +80,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    let mounted = true;
-    
+    let isMounted = true;
+
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
         
-        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting session:', error);
-          if (mounted) {
+          if (isMounted) {
             setIsLoading(false);
-            setIsInitialized(true);
           }
           return;
         }
 
-        // Load user profile if session exists
-        if (session?.user && mounted) {
+        if (session?.user && isMounted) {
           const userData = await loadUserProfile(session.user);
-          if (mounted) {
+          if (isMounted) {
             setUser(userData);
           }
         }
         
-        if (mounted) {
+        if (isMounted) {
           setIsLoading(false);
-          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (mounted) {
+        if (isMounted) {
           setIsLoading(false);
-          setIsInitialized(true);
         }
       }
     };
@@ -125,34 +119,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         console.log('Auth state changed:', event, !!session);
         
-        if (!mounted) return;
+        if (!isMounted) return;
 
         if (event === 'SIGNED_IN' && session?.user) {
           setIsLoading(true);
-          try {
-            const userData = await loadUserProfile(session.user);
+          const userData = await loadUserProfile(session.user);
+          if (isMounted) {
             setUser(userData);
-          } catch (error) {
-            console.error('Error loading profile on sign in:', error);
-            setUser(null);
+            setIsLoading(false);
           }
-          setIsLoading(false);
         } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setIsLoading(false);
+          if (isMounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
         }
       }
     );
 
-    // Initialize auth
     initializeAuth();
 
     return () => {
       console.log('Auth cleanup');
-      mounted = false;
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to avoid infinite loops
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -170,7 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user && data.session) {
         console.log('Login successful');
-        // The auth state change listener will handle loading the profile
         return { success: true };
       }
 
@@ -201,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!user;
 
-  console.log('AuthProvider render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', !!user, 'initialized:', isInitialized);
+  console.log('AuthProvider render - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user role:', user?.role);
 
   return (
     <AuthContext.Provider value={{ 

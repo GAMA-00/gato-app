@@ -27,7 +27,6 @@ const Login = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Get user type from URL params, default to client if not provided
   const userType = (searchParams.get('type') as 'client' | 'provider') || 'client';
   
   const form = useForm<LoginFormValues>({
@@ -38,14 +37,10 @@ const Login = () => {
     }
   });
 
-  // Redirect if already authenticated
+  // Don't redirect here, let AuthRoute handle it
   useEffect(() => {
-    if (isAuthenticated && user && !authLoading) {
-      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
-      console.log('User authenticated, redirecting to:', redirectTo);
-      navigate(redirectTo, { replace: true });
-    }
-  }, [isAuthenticated, user, navigate, authLoading]);
+    console.log('Login component - authLoading:', authLoading, 'isAuthenticated:', isAuthenticated, 'user:', user);
+  }, [authLoading, isAuthenticated, user]);
 
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
@@ -57,8 +52,7 @@ const Login = () => {
       
       if (result.success) {
         toast.success('¡Inicio de sesión exitoso!');
-        console.log('Login successful');
-        // Navigation will be handled by the useEffect above
+        console.log('Login successful, navigation will be handled by AuthRoute');
       } else {
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
@@ -83,11 +77,6 @@ const Login = () => {
         </div>
       </div>
     );
-  }
-
-  // Don't render login form if already authenticated
-  if (isAuthenticated) {
-    return null;
   }
 
   return (
