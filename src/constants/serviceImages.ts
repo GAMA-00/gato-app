@@ -74,12 +74,14 @@ export const otherServiceImages: Record<string, string> = {
   'fotógrafo': '/lovable-uploads/918f1c80-5836-4209-97ae-1b16ec7534d9.png',
   'fotografia': '/lovable-uploads/918f1c80-5836-4209-97ae-1b16ec7534d9.png',
   'fotografía': '/lovable-uploads/918f1c80-5836-4209-97ae-1b16ec7534d9.png',
-  'niñera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
-  'ninera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
-  'babysitter': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
-  'cuidado': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+  // Términos específicos primero para evitar conflictos
   'cuidado adulto mayor': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
   'adulto mayor': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
   'enfermeria': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
   'enfermería': '/lovable-uploads/7802cece-8eac-4ca8-9b7d-62ff22c7c708.png',
+  // Términos más generales después
+  'niñera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+  'ninera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+  'babysitter': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+  'cuidado': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
 };
