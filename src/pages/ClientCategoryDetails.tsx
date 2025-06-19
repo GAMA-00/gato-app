@@ -49,7 +49,7 @@ const ClientCategoryDetails = () => {
     return (
       <>
         <Navbar />
-        <PageContainer title="Tipos de Servicio" subtitle="Cargando...">
+        <PageContainer title="Cargando..." subtitle="">
           <div className="space-y-4">
             <Button variant="ghost" className="mb-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -90,10 +90,10 @@ const ClientCategoryDetails = () => {
   // Map of custom images for classes category services
   const classesServiceImages: Record<string, string> = {
     'tutorías primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
-    'tutorias primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
+    'tutorías primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
     'primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
     'tutorías secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
-    'tutorias secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
+    'tutorías secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
     'secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
     'idiomas': '/lovable-uploads/ee35d00e-2237-4815-a151-f04446309b1f.png',
     'idioma': '/lovable-uploads/ee35d00e-2237-4815-a151-f04446309b1f.png',
@@ -237,7 +237,7 @@ const ClientCategoryDetails = () => {
   return (
     <>
       <Navbar />
-      <PageContainer title="Tipos de Servicio" subtitle={`Categoría: ${categoryLabel}`}>
+      <PageContainer title={categoryLabel} subtitle="">
         <div className="space-y-4">
           <Button 
             variant="ghost" 
