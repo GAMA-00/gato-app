@@ -234,16 +234,6 @@ const ClientProviderServiceDetail = () => {
                     onSelectVariant={setSelectedVariants}
                   />
                 </div>
-                
-                {/* Price Information */}
-                {selectedVariants.length > 0 && (
-                  <div className="px-2 sm:px-0">
-                    <PriceInformation
-                      basePrice={selectedVariants[0].price}
-                      duration={selectedVariants[0].duration}
-                    />
-                  </div>
-                )}
               </div>
             )}
 
