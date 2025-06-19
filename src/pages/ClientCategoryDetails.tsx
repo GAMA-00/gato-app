@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -125,6 +126,22 @@ const ClientCategoryDetails = () => {
     'terapia': '/lovable-uploads/39418bbd-bfcb-4da3-bd68-1c80242e31d8.png',
   };
 
+  // Map of custom images for sports category services
+  const sportsServiceImages: Record<string, string> = {
+    'entrenador personal': '/lovable-uploads/6208d524-23f4-4da3-a5fa-24368fe78a37.png',
+    'entrenador': '/lovable-uploads/6208d524-23f4-4da3-a5fa-24368fe78a37.png',
+    'personal': '/lovable-uploads/6208d524-23f4-4da3-a5fa-24368fe78a37.png',
+    'fitness': '/lovable-uploads/6208d524-23f4-4da3-a5fa-24368fe78a37.png',
+    'yoga': '/lovable-uploads/2b8dca29-207b-477f-9210-30abc0b5bd09.png',
+    'pilates': '/lovable-uploads/211eb627-4974-4ade-b35a-d621e5330e80.png',
+    'tenis': '/lovable-uploads/67815296-ce95-4fea-a5e0-c001c93a7170.png',
+    'tennis': '/lovable-uploads/67815296-ce95-4fea-a5e0-c001c93a7170.png',
+    'mantenimiento bicicletas': '/lovable-uploads/28b5b123-ea57-472a-9cd2-6eba0e00243e.png',
+    'bicicletas': '/lovable-uploads/28b5b123-ea57-472a-9cd2-6eba0e00243e.png',
+    'bicicleta': '/lovable-uploads/28b5b123-ea57-472a-9cd2-6eba0e00243e.png',
+    'bike': '/lovable-uploads/28b5b123-ea57-472a-9cd2-6eba0e00243e.png',
+  };
+
   // Get specific service icon based on service name
   const getServiceTypeIcon = (serviceName: string) => {
     const normalizedName = serviceName.toLowerCase();
@@ -159,6 +176,15 @@ const ClientCategoryDetails = () => {
     // Check if this is a personal-care category service with custom image
     if (categoryId === 'personal-care') {
       for (const [key, imagePath] of Object.entries(personalCareServiceImages)) {
+        if (normalizedName.includes(key)) {
+          return { type: 'image', src: imagePath };
+        }
+      }
+    }
+    
+    // Check if this is a sports category service with custom image
+    if (categoryId === 'sports') {
+      for (const [key, imagePath] of Object.entries(sportsServiceImages)) {
         if (normalizedName.includes(key)) {
           return { type: 'image', src: imagePath };
         }
