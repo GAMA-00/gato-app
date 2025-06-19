@@ -35,7 +35,7 @@ const Clients = () => {
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['provider-clients', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<ClientData[]> => {
       if (!user?.id) return [];
       
       const { data, error } = await supabase
@@ -56,19 +56,33 @@ const Clients = () => {
       if (error) throw error;
       
       // Filter and validate data with proper typing
-      const validData = (data || []).filter((curr): curr is ValidAppointmentData => {
-        return curr && 
-               curr.users && 
-               curr.users !== null &&
-               curr.users !== undefined &&
-               typeof curr.users === 'object' && 
-               'id' in curr.users;
-      });
+      const validData: ValidAppointmentData[] = [];
+      
+      if (data) {
+        for (const curr of data) {
+          if (curr && 
+              curr.users !== null &&
+              curr.users !== undefined &&
+              typeof curr.users === 'object' && 
+              'id' in curr.users) {
+            validData.push({
+              client_id: curr.client_id,
+              users: curr.users as ValidClientUser
+            });
+          }
+        }
+      }
       
       // Remove duplicates and flatten
       const uniqueClients = validData.reduce((acc: ClientData[], curr) => {
         if (!acc.find(client => client.id === curr.users.id)) {
-          acc.push(curr.users as ClientData);
+          acc.push({
+            id: curr.users.id,
+            name: curr.users.name,
+            email: curr.users.email,
+            phone: curr.users.phone,
+            avatar_url: curr.users.avatar_url
+          });
         }
         return acc;
       }, []);

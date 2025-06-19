@@ -36,7 +36,11 @@ const ClientServiceDetail = () => {
       const { data, error } = await supabase
         .from('listings')
         .select(`
-          *,
+          id,
+          title,
+          description,
+          base_price,
+          duration,
           users!listings_provider_id_fkey (
             id,
             name,
@@ -60,7 +64,14 @@ const ClientServiceDetail = () => {
         throw new Error('Invalid provider data');
       }
       
-      return data as ValidServiceData;
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        base_price: data.base_price,
+        duration: data.duration,
+        users: data.users as ValidServiceUser
+      };
     },
     enabled: !!serviceId,
   });
@@ -102,7 +113,6 @@ const ClientServiceDetail = () => {
     );
   }
 
-  // TypeScript now knows users is properly typed due to the query type assertion
   const userData = service.users;
 
   return (

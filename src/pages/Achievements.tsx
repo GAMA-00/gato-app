@@ -7,7 +7,7 @@ import LevelCard from '@/components/achievements/LevelCard';
 import RatingHistory from '@/components/achievements/RatingHistory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
-import { ACHIEVEMENT_LEVELS, AchievementLevelInfo } from '@/lib/achievementTypes';
+import { ACHIEVEMENT_LEVELS } from '@/lib/achievementTypes';
 import Navbar from '@/components/layout/Navbar';
 
 const Achievements = () => {
@@ -70,7 +70,7 @@ const Achievements = () => {
       >
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ACHIEVEMENT_LEVELS.map((level: AchievementLevelInfo) => {
+            {ACHIEVEMENT_LEVELS.map((level) => {
               const isCurrentLevel = level.level === currentLevel.level;
               const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
               const progress = isCurrentLevel ? progressPercentage : 0;

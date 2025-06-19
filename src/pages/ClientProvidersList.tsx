@@ -33,11 +33,14 @@ const ClientProvidersList = () => {
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers', serviceType],
-    queryFn: async () => {
+    queryFn: async (): Promise<ValidListing[]> => {
       let query = supabase
         .from('listings')
         .select(`
-          *,
+          id,
+          title,
+          description,
+          base_price,
           users!listings_provider_id_fkey (
             id,
             name,
@@ -63,13 +66,27 @@ const ClientProvidersList = () => {
       if (error) throw error;
       
       // Filter out items with invalid users data and ensure proper typing
-      return (data || []).filter((item): item is ValidListing => {
-        return item && 
-               item.users !== null &&
-               item.users !== undefined &&
-               typeof item.users === 'object' && 
-               'id' in item.users;
-      });
+      const validListings: ValidListing[] = [];
+      
+      if (data) {
+        for (const item of data) {
+          if (item && 
+              item.users !== null &&
+              item.users !== undefined &&
+              typeof item.users === 'object' && 
+              'id' in item.users) {
+            validListings.push({
+              id: item.id,
+              title: item.title,
+              description: item.description,
+              base_price: item.base_price,
+              users: item.users as ValidUser
+            });
+          }
+        }
+      }
+      
+      return validListings;
     },
     enabled: !!serviceType,
   });
@@ -111,7 +128,6 @@ const ClientProvidersList = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {providers.map((listing) => {
-              // TypeScript now knows users is properly typed due to the filter above
               const userData = listing.users;
               return (
                 <Card 
