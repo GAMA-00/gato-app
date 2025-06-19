@@ -29,7 +29,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Función para crear usuario desde datos de Supabase
   const createUserFromSession = (authUser: SupabaseUser): User => {
@@ -63,20 +62,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, currentSession) => {
         console.log('AuthContext: Auth state changed -', event, !!currentSession);
         
-        // Si estamos en proceso de logout, ignorar cambios de sesión
-        if (isLoggingOut) {
-          console.log('AuthContext: Ignoring auth change during logout');
+        if (event === 'SIGNED_OUT' || !currentSession) {
+          console.log('AuthContext: User signed out, clearing state');
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
           return;
         }
         
-        if (currentSession?.user) {
+        if (currentSession?.user && event !== 'SIGNED_OUT') {
           console.log('AuthContext: Setting user from session');
           setSession(currentSession);
           setUser(createUserFromSession(currentSession.user));
-        } else {
-          console.log('AuthContext: Clearing user session');
-          setSession(null);
-          setUser(null);
         }
         
         setIsLoading(false);
@@ -87,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       console.log('AuthContext: Initial session check -', !!currentSession);
       
-      if (currentSession?.user && !isLoggingOut) {
+      if (currentSession?.user) {
         setSession(currentSession);
         setUser(createUserFromSession(currentSession.user));
       } else {
@@ -101,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [isLoggingOut]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -131,50 +128,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     console.log('AuthContext: Starting logout process');
-    setIsLoggingOut(true);
     
     try {
-      // Limpiar estado local inmediatamente
+      // Limpiar estado inmediatamente
       setUser(null);
       setSession(null);
       
-      // Limpiar localStorage antes del signOut
-      try {
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('supabase.auth.')) {
-            localStorage.removeItem(key);
-          }
-        });
-      } catch (error) {
-        console.error('AuthContext: Error clearing localStorage:', error);
+      // Limpiar localStorage de Supabase
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('supabase.auth.')) {
+          keysToRemove.push(key);
+        }
       }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
       
-      // Intentar cerrar sesión en Supabase
-      console.log('AuthContext: Attempting Supabase signOut');
-      await supabase.auth.signOut({ scope: 'global' });
-      console.log('AuthContext: Supabase signOut completed');
+      // Cerrar sesión en Supabase
+      await supabase.auth.signOut();
+      console.log('AuthContext: Logout completed successfully');
+      
+      // Redirección inmediata
+      window.location.replace('/login');
       
     } catch (error) {
-      console.error('AuthContext: Logout error (continuing anyway):', error);
+      console.error('AuthContext: Logout error:', error);
+      // Aún así, forzar limpieza y redirección
+      setUser(null);
+      setSession(null);
+      window.location.replace('/login');
     }
-    
-    // Esperar un momento para asegurar que la sesión se haya limpiado
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Forzar navegación al login
-    console.log('AuthContext: Redirecting to login');
-    setIsLoggingOut(false);
-    window.location.href = '/login';
   };
 
-  const isAuthenticated = !!session && !!user && !isLoggingOut;
+  const isAuthenticated = !!session && !!user;
 
   console.log('AuthContext: Current state -', { 
     isLoading, 
     isAuthenticated, 
     hasUser: !!user, 
     hasSession: !!session,
-    isLoggingOut,
     userRole: user?.role 
   });
 
