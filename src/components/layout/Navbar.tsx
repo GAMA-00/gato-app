@@ -29,6 +29,11 @@ const Navbar = () => {
     }
   };
 
+  // Don't render navbar on landing page for unauthenticated users
+  if (!user && location.pathname === '/') {
+    return null;
+  }
+
   if (isMobile) {
     return (
       <>

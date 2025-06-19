@@ -1,8 +1,8 @@
-
 import React, { useEffect, useMemo } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import AppointmentList from '@/components/dashboard/AppointmentList';
 import DashboardStats from '@/components/dashboard/DashboardStats';
+import Navbar from '@/components/layout/Navbar';
 import { Calendar, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -140,19 +140,24 @@ const Dashboard = () => {
   // Enhanced loading state with priority information
   if (isLoadingAppointments) {
     return (
-      <PageContainer title="Inicio" subtitle="Cargando tu información...">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <div className="space-y-2">
-              <p className="text-lg font-medium">Cargando dashboard...</p>
-              <p className="text-sm text-muted-foreground">
-                Obteniendo tus citas de hoy y mañana
-              </p>
+      <>
+        <Navbar />
+        <div className="md:ml-52">
+          <PageContainer title="Inicio" subtitle="Cargando tu información...">
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">Cargando dashboard...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Obteniendo tus citas de hoy y mañana
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          </PageContainer>
         </div>
-      </PageContainer>
+      </>
     );
   }
 
@@ -160,27 +165,32 @@ const Dashboard = () => {
   if (appointmentsError) {
     console.error("Dashboard appointments error:", appointmentsError);
     return (
-      <PageContainer title="Inicio" subtitle="Error al cargar">
-        <Alert className="mb-6">
-          <AlertDescription className="space-y-4">
-            <div>
-              <h4 className="font-medium text-red-800">Error al cargar las citas</h4>
-              <p className="text-red-600 mt-1">
-                No se pudieron cargar tus citas. Por favor, intenta nuevamente.
-              </p>
-            </div>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Recargar página
-            </button>
-          </AlertDescription>
-        </Alert>
-        
-        {/* Show stats if available, even if appointments failed */}
-        {stats && !statsError && !isLoadingStats && <DashboardStats stats={stats} />}
-      </PageContainer>
+      <>
+        <Navbar />
+        <div className="md:ml-52">
+          <PageContainer title="Inicio" subtitle="Error al cargar">
+            <Alert className="mb-6">
+              <AlertDescription className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-red-800">Error al cargar las citas</h4>
+                  <p className="text-red-600 mt-1">
+                    No se pudieron cargar tus citas. Por favor, intenta nuevamente.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Recargar página
+                </button>
+              </AlertDescription>
+            </Alert>
+            
+            {/* Show stats if available, even if appointments failed */}
+            {stats && !statsError && !isLoadingStats && <DashboardStats stats={stats} />}
+          </PageContainer>
+        </div>
+      </>
     );
   }
 
@@ -267,24 +277,34 @@ const Dashboard = () => {
   // For providers, use PageContainer without title and subtitle and reduced padding
   if (user?.role === 'provider') {
     return (
-      <PageContainer 
-        title=""
-        className={isMobile ? "pt-0" : "pt-0"}
-      >
-        {renderContent()}
-      </PageContainer>
+      <>
+        <Navbar />
+        <div className="md:ml-52">
+          <PageContainer 
+            title=""
+            className={isMobile ? "pt-0" : "pt-0"}
+          >
+            {renderContent()}
+          </PageContainer>
+        </div>
+      </>
     );
   }
 
   // For clients and others, keep the original title and subtitle
   return (
-    <PageContainer 
-      title="Inicio" 
-      subtitle="Bienvenido de nuevo"
-      className="pt-0"
-    >
-      {renderContent()}
-    </PageContainer>
+    <>
+      <Navbar />
+      <div className="md:ml-52">
+        <PageContainer 
+          title="Inicio" 
+          subtitle="Bienvenido de nuevo"
+          className="pt-0"
+        >
+          {renderContent()}
+        </PageContainer>
+      </div>
+    </>
   );
 };
 
