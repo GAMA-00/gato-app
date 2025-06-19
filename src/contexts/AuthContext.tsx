@@ -124,10 +124,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      console.log('AuthContext: Logging out');
-      await supabase.auth.signOut();
+      console.log('AuthContext: Attempting logout');
+      setIsLoading(true);
+      
+      // Limpiar estado local primero
+      setUser(null);
+      setSession(null);
+      
+      // Intentar cerrar sesión en Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('AuthContext: Logout error:', error);
+        // Incluso si hay error, mantenemos el estado local limpio
+      } else {
+        console.log('AuthContext: Logout successful');
+      }
+      
+      // Limpiar localStorage como medida adicional
+      localStorage.removeItem('supabase.auth.token');
+      
+      // Forzar recarga de la página para limpiar completamente el estado
+      window.location.href = '/login';
+      
     } catch (error) {
-      console.error('AuthContext: Logout error:', error);
+      console.error('AuthContext: Logout exception:', error);
+      // Incluso si hay excepción, limpiar estado y redirigir
+      setUser(null);
+      setSession(null);
+      window.location.href = '/login';
+    } finally {
+      setIsLoading(false);
     }
   };
 

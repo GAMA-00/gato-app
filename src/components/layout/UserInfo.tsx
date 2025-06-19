@@ -15,9 +15,18 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      console.log('UserInfo: Logout button clicked');
+      await logout();
+    } catch (error) {
+      console.error('UserInfo: Error during logout:', error);
+      // Fallback: navegar directamente al login
+      navigate('/login');
+    }
   };
   
   const handleProfileNavigation = () => {
@@ -61,6 +70,7 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
         size="sm"
         className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5 h-auto"
         onClick={handleLogout}
+        type="button"
       >
         <LogOut className="mr-1.5 h-3.5 w-3.5" />
         Cerrar Sesión
