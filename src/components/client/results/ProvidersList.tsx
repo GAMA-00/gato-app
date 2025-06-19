@@ -116,9 +116,6 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   return (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <h2 className={`font-bold mb-2 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-          Profesionales disponibles
-        </h2>
         <p className={`text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>
           {providers.length} profesional{providers.length !== 1 ? 'es' : ''} encontrado{providers.length !== 1 ? 's' : ''}
         </p>
