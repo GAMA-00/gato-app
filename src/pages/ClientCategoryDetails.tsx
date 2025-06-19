@@ -90,9 +90,7 @@ const ClientCategoryDetails = () => {
   // Map of custom images for classes category services
   const classesServiceImages: Record<string, string> = {
     'tutorías primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
-    'tutorías primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
     'primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
-    'tutorías secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
     'tutorías secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
     'secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
     'idiomas': '/lovable-uploads/ee35d00e-2237-4815-a151-f04446309b1f.png',
