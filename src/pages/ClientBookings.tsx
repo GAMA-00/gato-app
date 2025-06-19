@@ -306,12 +306,6 @@ const ClientBookings = () => {
               </div>
             </div>
           }
-          subtitle="Ver y administrar tus citas"
-          action={
-            <Button onClick={() => navigate('/client/categories')}>
-              Reservar Nuevo Servicio
-            </Button>
-          }
         >
           {error && (
             <Alert className="mb-6">
@@ -337,14 +331,6 @@ const ClientBookings = () => {
           
           <div className="space-y-6 px-1">
             <section>
-              <h2 className="text-lg font-medium mb-4">
-                Citas Próximas 
-                {upcomingBookings.length > 0 && (
-                  <span className="text-sm text-muted-foreground ml-2">
-                    ({upcomingBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
-                  </span>
-                )}
-              </h2>
               {isLoading ? (
                 <div>
                   <BookingSkeleton />
