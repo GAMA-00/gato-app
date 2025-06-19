@@ -82,6 +82,12 @@ const ClientServiceDetail = () => {
     enabled: !!serviceId,
   });
 
+  const handleBookingNavigation = () => {
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    navigate(`/client/booking/${service.id}`);
+  };
+
   if (isLoading) {
     return (
       <>
@@ -150,7 +156,7 @@ const ClientServiceDetail = () => {
                 <Button 
                   size="lg" 
                   className="w-full"
-                  onClick={() => navigate(`/client/booking/${service.id}`)}
+                  onClick={handleBookingNavigation}
                 >
                   <Calendar className="mr-2 h-5 w-5" />
                   Reservar Cita

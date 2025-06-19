@@ -24,6 +24,12 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
     return `${hours}${mins > 0 ? `h ${mins}m` : 'h'}`;
   };
   
+  const handleScheduleClick = () => {
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    onSchedule();
+  };
+  
   return (
     <Card className="shadow-sm sticky top-4 mb-6">
       <CardContent className="p-6">
@@ -53,7 +59,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
       </CardContent>
       <CardFooter>
         <Button 
-          onClick={onSchedule} 
+          onClick={handleScheduleClick} 
           className="w-full bg-green-500 hover:bg-green-600 text-white font-medium"
           size="lg"
         >
