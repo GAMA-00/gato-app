@@ -163,8 +163,16 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
               console.log(`Rendering request ${request.id}: clientName="${request.client_name}", isGroup=${isGroup}, appointmentCount=${request.appointment_count}`);
               
               return (
-                <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">
-                  <div className="flex items-start gap-3 mb-3">
+                <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200 relative">
+                  {/* Recurrence indicator positioned in top-right corner */}
+                  <div className="absolute top-3 right-3">
+                    <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 flex items-center gap-1 text-[10px] px-1 py-0">
+                      <Repeat className="h-2.5 w-2.5" />
+                      {recurrenceDisplay}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 mb-3 pr-20">
                     <Avatar className="h-10 w-10 border border-amber-200 flex-shrink-0">
                       <AvatarImage alt={request.client_name} />
                       <AvatarFallback className="bg-amber-100 text-amber-800">
@@ -180,10 +188,6 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
                             Externa
                           </Badge>
                         )}
-                        <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 flex items-center gap-1 text-[10px] px-1 py-0">
-                          <Repeat className="h-2.5 w-2.5" />
-                          {recurrenceDisplay}
-                        </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {request.service_name}
