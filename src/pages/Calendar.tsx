@@ -60,7 +60,6 @@ const Calendar = () => {
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-app-text mb-2">
                 Calendario
               </h1>
-              <p className="text-app-text/70">Gestiona tus citas y horarios</p>
             </div>
             
             {/* Content */}
