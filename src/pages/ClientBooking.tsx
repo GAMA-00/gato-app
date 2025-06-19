@@ -87,8 +87,8 @@ const ClientBooking = () => {
       endTime: endDateTime.toISOString(),
       recurrenceType: selectedFrequency,
       notes,
-      clientAddress: user.condominium_name && user.house_number 
-        ? `${user.condominium_name}, Casa ${user.house_number}`
+      clientAddress: user.condominiumName && user.houseNumber 
+        ? `${user.condominiumName}, Casa ${user.houseNumber}`
         : '',
       clientPhone: user.phone || '',
       clientEmail: user.email || '',
@@ -149,8 +149,8 @@ const ClientBooking = () => {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {user?.condominium_name && user?.house_number 
-                      ? `${user.condominium_name}, Casa ${user.house_number}`
+                    {user?.condominiumName && user?.houseNumber 
+                      ? `${user.condominiumName}, Casa ${user.houseNumber}`
                       : 'Ubicación no especificada'
                     }
                   </span>
@@ -253,8 +253,8 @@ const ClientBooking = () => {
                   <div>
                     <p className="font-medium text-sm mb-1">Ubicación:</p>
                     <p className="text-sm">
-                      {user?.condominium_name && user?.house_number 
-                        ? `${user.condominium_name}, Casa ${user.house_number}`
+                      {user?.condominiumName && user?.houseNumber 
+                        ? `${user.condominiumName}, Casa ${user.houseNumber}`
                         : 'Ubicación no especificada'
                       }
                     </p>

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -12,6 +11,7 @@ export interface User {
   phone?: string;
   condominiumName?: string;
   houseNumber?: string;
+  apartment?: string;
 }
 
 interface AuthContextType {
@@ -45,7 +45,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       avatarUrl: authUser.user_metadata?.avatar_url || '',
       phone: authUser.user_metadata?.phone || '',
       condominiumName: authUser.user_metadata?.condominium_name || '',
-      houseNumber: authUser.user_metadata?.house_number || ''
+      houseNumber: authUser.user_metadata?.house_number || '',
+      apartment: authUser.user_metadata?.apartment || ''
     };
   };
 
