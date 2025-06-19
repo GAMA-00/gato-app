@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useServiceDetail } from '@/components/client/service/useServiceDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
+import BackButton from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import ServiceDescription from '@/components/client/service/ServiceDescription';
 import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAbout from '@/components/providers/ProviderAbout';
@@ -65,6 +66,15 @@ const ClientProviderServiceDetail = () => {
         selectedVariants
       }
     });
+  };
+
+  const handleBack = () => {
+    // Try to go to the providers list for the service category, or fallback to categories
+    if (serviceDetails?.service_type?.category?.id) {
+      navigate(`/client/providers/${serviceDetails.service_type.category.id}`);
+    } else {
+      navigate('/client/categories');
+    }
   };
 
   if (isLoading) {
@@ -156,14 +166,7 @@ const ClientProviderServiceDetail = () => {
       <PageContainer title="" subtitle="">
         <div className="max-w-4xl mx-auto space-y-8 px-4 sm:px-4 md:px-0">
           {/* Back button */}
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(-1)}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
+          <BackButton onClick={handleBack} className="mb-4" />
 
           {/* 1. Foto de Perfil, Nombre, Calificación y Nivel */}
           <div className="text-center space-y-4">
