@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +6,7 @@ import { validateBookingSlot } from '@/utils/bookingValidation';
 import { buildLocationString } from '@/utils/locationUtils';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
+import ScrollToTop from '@/components/ui/scroll-to-top';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, MapPin, Clock, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
@@ -301,6 +301,9 @@ const ClientBooking = () => {
             </div>
           </div>
         </div>
+        
+        {/* Scroll to top button */}
+        <ScrollToTop />
       </PageContainer>
     </>
   );
