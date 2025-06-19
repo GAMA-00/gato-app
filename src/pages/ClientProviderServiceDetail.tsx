@@ -228,9 +228,6 @@ const ClientProviderServiceDetail = () => {
             {/* 6. Servicios Disponibles */}
             {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
               <div className="space-y-6 w-full">
-                <h3 className="text-xl sm:text-2xl font-semibold text-luxury-navy px-2">
-                  Servicios Disponibles
-                </h3>
                 <div className="px-2 sm:px-0">
                   <ServiceVariantsSelector
                     variants={serviceDetails.serviceVariants}
