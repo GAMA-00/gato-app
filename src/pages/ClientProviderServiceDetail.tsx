@@ -7,13 +7,13 @@ import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
-import ProviderAchievements from '@/components/providers/ProviderAchievements';
 import ServiceDescription from '@/components/client/service/ServiceDescription';
 import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAbout from '@/components/providers/ProviderAbout';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
 import ServiceVariantsSelector from '@/components/client/results/ServiceVariantsSelector';
 import PriceInformation from '@/components/client/service/PriceInformation';
+import ProviderExperienceLevel from '@/components/client/results/ProviderExperienceLevel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star } from 'lucide-react';
@@ -48,7 +48,7 @@ const ClientProviderServiceDetail = () => {
       <>
         <Navbar />
         <PageContainer title="Cargando..." subtitle="">
-          <div className="space-y-6">
+          <div className="space-y-6 px-4 md:px-0">
             <Skeleton className="h-48 w-full rounded-lg" />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
@@ -71,7 +71,7 @@ const ClientProviderServiceDetail = () => {
       <>
         <Navbar />
         <PageContainer title="Error" subtitle="">
-          <div className="text-center py-12">
+          <div className="text-center py-12 px-4 md:px-0">
             <p className="text-muted-foreground mb-4">
               No se pudo cargar la información del servicio
             </p>
@@ -127,7 +127,7 @@ const ClientProviderServiceDetail = () => {
     <>
       <Navbar />
       <PageContainer title="" subtitle="">
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-8 px-4 md:px-0">
           {/* Back button */}
           <Button 
             variant="ghost" 
@@ -138,7 +138,7 @@ const ClientProviderServiceDetail = () => {
             Volver
           </Button>
 
-          {/* 1. Foto de Perfil y Nombre */}
+          {/* 1. Foto de Perfil, Nombre, Calificación y Nivel */}
           <div className="text-center space-y-4">
             <Avatar className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg">
               <AvatarImage src={transformedProvider.avatar} alt={transformedProvider.name} />
@@ -148,28 +148,30 @@ const ClientProviderServiceDetail = () => {
             </Avatar>
             
             <div>
-              <h1 className="text-3xl font-bold text-luxury-navy mb-2">
+              <h1 className="text-3xl font-bold text-luxury-navy mb-3">
                 {transformedProvider.name}
               </h1>
-              <div className="flex items-center justify-center gap-2">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium text-lg">
-                  {transformedProvider.rating.toFixed(1)}
-                </span>
-                <span className="text-muted-foreground">
-                  ({transformedProvider.ratingCount} valoraciones)
-                </span>
+              
+              {/* Calificación y Nivel de Experiencia */}
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  <span className="font-medium text-lg">
+                    {transformedProvider.rating.toFixed(1)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    ({transformedProvider.ratingCount} valoraciones)
+                  </span>
+                </div>
+                <ProviderExperienceLevel 
+                  experienceYears={transformedProvider.experienceYears} 
+                  className="text-sm"
+                />
               </div>
             </div>
           </div>
 
-          {/* 2. Méritos */}
-          <ProviderAchievements 
-            provider={transformedProvider} 
-            recurringClientsCount={serviceDetails.recurringClients || 0}
-          />
-
-          {/* 3. Descripción del servicio */}
+          {/* 2. Descripción del servicio */}
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold text-luxury-navy">
               {serviceDetails.title}
@@ -180,18 +182,18 @@ const ClientProviderServiceDetail = () => {
             />
           </div>
 
-          {/* 4. Galería de trabajos */}
+          {/* 3. Galería de trabajos */}
           <ProviderGallery provider={transformedProvider} />
 
-          {/* 5. Sobre Mí */}
+          {/* 4. Sobre Mí */}
           <ProviderAbout provider={transformedProvider} />
 
-          {/* 6. Certificación Profesional */}
+          {/* 5. Certificación Profesional */}
           <ProviderCertifications 
             certifications={transformedProvider.certificationFiles}
           />
 
-          {/* 7. Servicios Disponibles */}
+          {/* 6. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
             <div className="space-y-6">
               <h3 className="text-2xl font-semibold text-luxury-navy">
@@ -212,7 +214,7 @@ const ClientProviderServiceDetail = () => {
             </div>
           )}
 
-          {/* 8. Botón "Agendar Servicio" */}
+          {/* 7. Botón "Agendar Servicio" */}
           <div className="flex justify-center pt-8 pb-12">
             <Button 
               onClick={handleBookService}
