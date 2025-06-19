@@ -4,16 +4,36 @@ import { Trophy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { AchievementLevelInfo } from '@/lib/types';
+import { AchievementLevelInfo } from '@/lib/achievementTypes';
 
 // Map of icons for different achievement levels
-import { User, Shield, Star, Award } from 'lucide-react';
+import { User, Shield, Star, Award, Crown } from 'lucide-react';
+
+// Custom Gem icon component since it's not in lucide-react
+const GemIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 3h12l4 6-10 13L2 9l4-6z" />
+    <path d="M11 3 8 9l4 13 4-13-3-6" />
+    <path d="M2 9h20" />
+  </svg>
+);
 
 const iconMap: Record<string, React.ReactNode> = {
   'user': <User className="h-4 w-4" />,
   'shield': <Shield className="h-4 w-4" />,
   'star': <Star className="h-4 w-4" />,
   'award': <Award className="h-4 w-4" />,
+  'trophy': <Trophy className="h-4 w-4" />,
+  'crown': <Crown className="h-4 w-4" />,
+  'gem': <GemIcon className="h-4 w-4" />,
 };
 
 const LevelCard: React.FC<{ 
@@ -53,8 +73,8 @@ const LevelCard: React.FC<{
           />
           
           <div className="flex items-center justify-between text-xs mt-1">
-            <span>{level.minPoints} pts</span>
-            {level.maxPoints !== Infinity && <span>{level.maxPoints} pts</span>}
+            <span>{level.minJobs} trabajos</span>
+            {level.maxJobs !== Infinity && <span>{level.maxJobs} trabajos</span>}
           </div>
         </div>
         
