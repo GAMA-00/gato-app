@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addWeeks, startOfDay, endOfDay } from 'date-fns';
@@ -31,7 +32,7 @@ export const useCalendarAppointmentsWithRecurring = ({
         return [];
       }
 
-      // Get all appointments for the provider - no date filtering yet
+      // Get all appointments for the provider - exclude completed and cancelled appointments
       const { data, error } = await supabase
         .from('appointments')
         .select(`
@@ -42,7 +43,7 @@ export const useCalendarAppointmentsWithRecurring = ({
           )
         `)
         .eq('provider_id', providerId)
-        .not('status', 'in', '(cancelled,rejected)')
+        .not('status', 'in', '(cancelled,rejected,completed)')
         .order('start_time', { ascending: true });
 
       if (error) {
@@ -57,9 +58,9 @@ export const useCalendarAppointmentsWithRecurring = ({
     refetchInterval: false
   });
 
-  // Filter active appointments (not cancelled/rejected)
+  // Filter active appointments (not cancelled/rejected/completed)
   const activeAppointments = allAppointments.filter(appointment => {
-    const isActive = appointment.status !== 'cancelled' && appointment.status !== 'rejected';
+    const isActive = !['cancelled', 'rejected', 'completed'].includes(appointment.status);
     return isActive;
   });
 
