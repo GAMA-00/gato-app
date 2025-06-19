@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -88,6 +87,24 @@ const ClientCategoryDetails = () => {
     'veterinario': '/lovable-uploads/99cfe636-bb09-4d44-966a-e1a7f6c2d8a8.png',
   };
 
+  // Map of custom images for classes category services
+  const classesServiceImages: Record<string, string> = {
+    'tutorías primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
+    'tutorias primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
+    'primaria': '/lovable-uploads/fe78ad3e-cb50-4344-a2ec-b8df7a28a823.png',
+    'tutorías secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
+    'tutorias secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
+    'secundaria': '/lovable-uploads/9a88309d-ece9-4315-9566-3eb06a065458.png',
+    'idiomas': '/lovable-uploads/ee35d00e-2237-4815-a151-f04446309b1f.png',
+    'idioma': '/lovable-uploads/ee35d00e-2237-4815-a151-f04446309b1f.png',
+    'instrumentos': '/lovable-uploads/c7afa41f-0259-4355-887d-655febbe4367.png',
+    'instrumento': '/lovable-uploads/c7afa41f-0259-4355-887d-655febbe4367.png',
+    'música': '/lovable-uploads/c7afa41f-0259-4355-887d-655febbe4367.png',
+    'musica': '/lovable-uploads/c7afa41f-0259-4355-887d-655febbe4367.png',
+    'pintura': '/lovable-uploads/1eb5b922-24f4-472f-9474-62d3123e0ff0.png',
+    'arte': '/lovable-uploads/1eb5b922-24f4-472f-9474-62d3123e0ff0.png',
+  };
+
   // Get specific service icon based on service name
   const getServiceTypeIcon = (serviceName: string) => {
     const normalizedName = serviceName.toLowerCase();
@@ -104,6 +121,15 @@ const ClientCategoryDetails = () => {
     // Check if this is a pets category service with custom image
     if (categoryId === 'pets') {
       for (const [key, imagePath] of Object.entries(petsServiceImages)) {
+        if (normalizedName.includes(key)) {
+          return { type: 'image', src: imagePath };
+        }
+      }
+    }
+    
+    // Check if this is a classes category service with custom image
+    if (categoryId === 'classes') {
+      for (const [key, imagePath] of Object.entries(classesServiceImages)) {
         if (normalizedName.includes(key)) {
           return { type: 'image', src: imagePath };
         }
