@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
+import * as LucideIcons from 'lucide-react';
 
 const ClientCategoryDetails = () => {
   const { categoryId } = useParams();
@@ -55,7 +56,7 @@ const ClientCategoryDetails = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Button>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <Skeleton key={i} className="h-32 rounded-lg" />
               ))}
@@ -67,6 +68,19 @@ const ClientCategoryDetails = () => {
   }
 
   const categoryLabel = categoryData?.label || categoryId;
+
+  // Get the category icon from the database
+  const getServiceIcon = (iconName: string) => {
+    if (!iconName) return LucideIcons.Briefcase;
+    
+    // Convert icon name to PascalCase for Lucide icons
+    const iconKey = iconName.charAt(0).toUpperCase() + iconName.slice(1).replace(/-/g, '');
+    const IconComponent = (LucideIcons as any)[iconKey];
+    
+    return IconComponent || LucideIcons.Briefcase;
+  };
+
+  const CategoryIcon = getServiceIcon(categoryData?.icon || 'briefcase');
 
   return (
     <>
@@ -89,19 +103,30 @@ const ClientCategoryDetails = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {serviceTypes.map((serviceType) => (
-                <Card 
-                  key={serviceType.id}
-                  className="p-6 hover:shadow-lg transition-all cursor-pointer"
-                  onClick={() => navigate(`/client/providers?serviceType=${serviceType.name}`)}
-                >
-                  <h3 className="font-semibold text-lg mb-2">{serviceType.name}</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Encuentra proveedores de {serviceType.name}
-                  </p>
-                </Card>
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {serviceTypes.map((serviceType) => {
+                const ServiceIcon = CategoryIcon; // Use the same icon as the category
+                
+                return (
+                  <Card 
+                    key={serviceType.id}
+                    className="p-4 hover:shadow-lg transition-all cursor-pointer bg-white border border-gray-100"
+                    onClick={() => navigate(`/client/results?serviceId=${serviceType.id}&categoryName=${encodeURIComponent(categoryLabel)}`)}
+                  >
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div className="w-12 h-12 bg-luxury-navy rounded-full flex items-center justify-center">
+                        <ServiceIcon className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-sm text-gray-900 mb-1">{serviceType.name}</h3>
+                        <p className="text-xs text-gray-500">
+                          Encuentra profesionales
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

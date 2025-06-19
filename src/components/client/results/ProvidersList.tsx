@@ -97,11 +97,12 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   }
   
   if (error) {
+    console.error("Error in ProvidersList:", error);
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Error al cargar los profesionales. Por favor, inténtalo de nuevo.
+          Error al cargar los profesionales: {error.message}
         </AlertDescription>
       </Alert>
     );
@@ -125,6 +126,15 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   
   return (
     <div className="space-y-4">
+      <div className="text-center mb-6">
+        <h2 className={`font-bold mb-2 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+          Profesionales disponibles
+        </h2>
+        <p className={`text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>
+          {providers.length} profesional{providers.length !== 1 ? 'es' : ''} encontrado{providers.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+      
       {/* Single column layout for mobile with full width cards */}
       <div className="flex flex-col gap-4 w-full">
         {providers.map((provider) => (

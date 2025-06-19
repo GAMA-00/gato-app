@@ -14,7 +14,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return [];
       }
 
-      // Fetch listings for this service type
+      // Fetch active listings for this service type with provider information
       const { data: listings, error: listingsError } = await supabase
         .from('listings')
         .select(`
@@ -24,7 +24,17 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           base_price,
           duration,
           provider_id,
-          gallery_images
+          gallery_images,
+          service_variants,
+          users!listings_provider_id_fkey (
+            id,
+            name,
+            avatar_url,
+            about_me,
+            experience_years,
+            average_rating,
+            created_at
+          )
         `)
         .eq('service_type_id', serviceId)
         .eq('is_active', true);
@@ -41,29 +51,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
 
       console.log("Found listings:", listings);
 
-      // Get unique provider IDs
+      // Get unique provider IDs for recurring clients count
       const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
-
-      // Fetch provider information separately
-      const { data: providers, error: providersError } = await supabase
-        .from('users')
-        .select(`
-          id,
-          name,
-          avatar_url,
-          about_me,
-          experience_years,
-          average_rating,
-          created_at
-        `)
-        .in('id', providerIds);
-
-      if (providersError) {
-        console.error("Error fetching providers:", providersError);
-        throw providersError;
-      }
-
-      console.log("Found providers:", providers);
 
       // Fetch recurring clients count for each provider
       const recurringClientsPromises = providerIds.map(async (providerId) => {
@@ -91,49 +80,51 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       }, {} as Record<string, number>);
 
       // Process the data into ProcessedProvider format
-      const processedProviders: ProcessedProvider[] = listings.map(listing => {
-        const provider = providers?.find(p => p.id === listing.provider_id);
-        
-        // Parse gallery images with proper type checking
-        let galleryImages: string[] = [];
-        try {
-          if (listing.gallery_images) {
-            if (Array.isArray(listing.gallery_images)) {
-              galleryImages = listing.gallery_images.filter((img): img is string => typeof img === 'string');
-            } else if (typeof listing.gallery_images === 'string') {
-              galleryImages = JSON.parse(listing.gallery_images);
+      const processedProviders: ProcessedProvider[] = listings
+        .filter(listing => listing.users) // Only include listings with valid user data
+        .map(listing => {
+          const provider = listing.users;
+          
+          // Parse gallery images with proper type checking
+          let galleryImages: string[] = [];
+          try {
+            if (listing.gallery_images) {
+              if (Array.isArray(listing.gallery_images)) {
+                galleryImages = listing.gallery_images.filter((img): img is string => typeof img === 'string');
+              } else if (typeof listing.gallery_images === 'string') {
+                galleryImages = JSON.parse(listing.gallery_images);
+              }
             }
+          } catch (e) {
+            console.error("Error parsing gallery images:", e);
           }
-        } catch (e) {
-          console.error("Error parsing gallery images:", e);
-        }
 
-        // Calculate join date from created_at
-        let joinDate: Date | undefined;
-        if (provider?.created_at) {
-          joinDate = new Date(provider.created_at);
-        }
+          // Calculate join date from created_at
+          let joinDate: Date | undefined;
+          if (provider?.created_at) {
+            joinDate = new Date(provider.created_at);
+          }
 
-        return {
-          id: listing.provider_id,
-          name: provider?.name || 'Proveedor',
-          avatar: provider?.avatar_url || null,
-          rating: provider?.average_rating || 5.0,
-          price: listing.base_price || 0,
-          duration: listing.duration || 60,
-          serviceName: listing.title || 'Servicio',
-          serviceId: listing.id,
-          aboutMe: provider?.about_me || '',
-          serviceDescription: listing.description || '', // Include service description
-          experience: provider?.experience_years || 0,
-          servicesCompleted: Math.floor(Math.random() * 50) + 10, // Simulated
-          recurringClients: recurringClientsMap[listing.provider_id] || 0, // Use real data
-          galleryImages: galleryImages,
-          hasCertifications: false, // Would need additional query
-          ratingCount: Math.floor(Math.random() * 100) + 10, // Simulated
-          joinDate: joinDate
-        };
-      });
+          return {
+            id: listing.provider_id,
+            name: provider?.name || 'Proveedor',
+            avatar: provider?.avatar_url || null,
+            rating: provider?.average_rating || 5.0,
+            price: listing.base_price || 0,
+            duration: listing.duration || 60,
+            serviceName: listing.title || 'Servicio',
+            serviceId: listing.id,
+            aboutMe: provider?.about_me || '',
+            serviceDescription: listing.description || '',
+            experience: provider?.experience_years || 0,
+            servicesCompleted: Math.floor(Math.random() * 50) + 10, // Simulated
+            recurringClients: recurringClientsMap[listing.provider_id] || 0,
+            galleryImages: galleryImages,
+            hasCertifications: false,
+            ratingCount: Math.floor(Math.random() * 100) + 10, // Simulated
+            joinDate: joinDate
+          };
+        });
 
       console.log("Processed providers:", processedProviders);
       return processedProviders;
