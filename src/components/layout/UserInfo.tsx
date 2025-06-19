@@ -19,13 +19,14 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('UserInfo: Logout button clicked');
+    
     try {
-      console.log('UserInfo: Logout button clicked');
       await logout();
     } catch (error) {
-      console.error('UserInfo: Error during logout:', error);
-      // Fallback: navegar directamente al login
-      navigate('/login');
+      console.error('UserInfo: Error during logout, forcing redirect:', error);
+      // Si hay cualquier error, forzar redirección
+      window.location.href = '/login';
     }
   };
   

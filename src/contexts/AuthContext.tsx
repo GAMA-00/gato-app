@@ -123,39 +123,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    console.log('AuthContext: Starting logout process');
+    
     try {
-      console.log('AuthContext: Attempting logout');
-      setIsLoading(true);
-      
-      // Limpiar estado local primero
+      // Limpiar estado local inmediatamente
       setUser(null);
       setSession(null);
       
-      // Intentar cerrar sesión en Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('AuthContext: Logout error:', error);
-        // Incluso si hay error, mantenemos el estado local limpio
+      // Intentar cerrar sesión en Supabase solo si hay una sesión activa
+      if (session) {
+        console.log('AuthContext: Attempting Supabase signOut');
+        await supabase.auth.signOut();
+        console.log('AuthContext: Supabase signOut completed');
       } else {
-        console.log('AuthContext: Logout successful');
+        console.log('AuthContext: No active session, skipping Supabase signOut');
       }
       
-      // Limpiar localStorage como medida adicional
-      localStorage.removeItem('supabase.auth.token');
-      
-      // Forzar recarga de la página para limpiar completamente el estado
-      window.location.href = '/login';
-      
     } catch (error) {
-      console.error('AuthContext: Logout exception:', error);
-      // Incluso si hay excepción, limpiar estado y redirigir
-      setUser(null);
-      setSession(null);
-      window.location.href = '/login';
-    } finally {
-      setIsLoading(false);
+      console.error('AuthContext: Logout error (continuing anyway):', error);
     }
+    
+    // Limpiar cualquier token restante en localStorage
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('supabase.auth.')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (error) {
+      console.error('AuthContext: Error clearing localStorage:', error);
+    }
+    
+    // Forzar navegación al login
+    console.log('AuthContext: Redirecting to login');
+    window.location.href = '/login';
   };
 
   const isAuthenticated = !!session && !!user;
