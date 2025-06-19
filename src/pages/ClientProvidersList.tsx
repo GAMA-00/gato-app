@@ -46,7 +46,13 @@ const ClientProvidersList = () => {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Filter out items with query errors and ensure users data exists
+      return (data || []).filter(item => 
+        item.users && 
+        typeof item.users === 'object' && 
+        'id' in item.users
+      );
     },
     enabled: !!serviceType,
   });
@@ -87,36 +93,39 @@ const ClientProvidersList = () => {
           </Button>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {providers.map((listing) => (
-              <Card 
-                key={listing.id}
-                className="p-6 hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => navigate(`/client/service/${listing.id}`)}
-              >
-                <div className="flex items-center mb-4">
-                  <Avatar className="h-12 w-12 mr-3">
-                    <AvatarImage src={listing.users?.avatar_url} />
-                    <AvatarFallback>
-                      <User className="h-6 w-6" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">{listing.users?.name || 'Proveedor'}</h3>
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                      <span className="text-sm">
-                        {listing.users?.average_rating?.toFixed(1) || 'Sin calificar'}
-                      </span>
+            {providers.map((listing) => {
+              const userData = listing.users as any;
+              return (
+                <Card 
+                  key={listing.id}
+                  className="p-6 hover:shadow-lg transition-all cursor-pointer"
+                  onClick={() => navigate(`/client/service/${listing.id}`)}
+                >
+                  <div className="flex items-center mb-4">
+                    <Avatar className="h-12 w-12 mr-3">
+                      <AvatarImage src={userData?.avatar_url} />
+                      <AvatarFallback>
+                        <User className="h-6 w-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-semibold">{userData?.name || 'Proveedor'}</h3>
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                        <span className="text-sm">
+                          {userData?.average_rating?.toFixed(1) || 'Sin calificar'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <h4 className="font-medium mb-2">{listing.title}</h4>
-                <p className="text-muted-foreground text-sm mb-3">{listing.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">₡{listing.base_price}</span>
-                </div>
-              </Card>
-            ))}
+                  <h4 className="font-medium mb-2">{listing.title}</h4>
+                  <p className="text-muted-foreground text-sm mb-3">{listing.description}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold">₡{listing.base_price}</span>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </PageContainer>

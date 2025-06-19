@@ -4,7 +4,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProviderAchievements } from '@/hooks/useProviderAchievements';
 import LevelCard from '@/components/achievements/LevelCard';
-import AchievementCard from '@/components/achievements/AchievementCard';
 import RatingHistory from '@/components/achievements/RatingHistory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';

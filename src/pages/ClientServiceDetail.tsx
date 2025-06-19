@@ -32,6 +32,12 @@ const ClientServiceDetail = () => {
         .single();
         
       if (error) throw error;
+      
+      // Ensure users data is valid
+      if (!data.users || typeof data.users !== 'object' || !('id' in data.users)) {
+        throw new Error('Invalid provider data');
+      }
+      
       return data;
     },
     enabled: !!serviceId,
@@ -74,10 +80,12 @@ const ClientServiceDetail = () => {
     );
   }
 
+  const userData = service.users as any;
+
   return (
     <>
       <Navbar />
-      <PageContainer title={service.title} subtitle={`Por ${service.users?.name || 'Proveedor'}`}>
+      <PageContainer title={service.title} subtitle={`Por ${userData?.name || 'Proveedor'}`}>
         <div className="space-y-6">
           <Button 
             variant="ghost" 

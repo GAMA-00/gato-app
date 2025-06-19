@@ -69,7 +69,11 @@ const ProviderProfile = () => {
     galleryImages: [],
     experienceYears: provider.experience_years || 0,
     hasCertifications: !!provider.certification_files,
-    certificationFiles: provider.certification_files,
+    certificationFiles: Array.isArray(provider.certification_files) 
+      ? provider.certification_files 
+      : provider.certification_files 
+        ? [provider.certification_files] 
+        : [],
     handlesDangerousDogs: false,
     servicesCompleted: 0,
     isVerified: false,
