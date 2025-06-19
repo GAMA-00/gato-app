@@ -60,14 +60,22 @@ const Clients = () => {
       
       if (data) {
         for (const curr of data) {
+          // Check if curr and users exist and are valid
           if (curr && 
-              curr.users !== null &&
-              curr.users !== undefined &&
+              curr.users && 
               typeof curr.users === 'object' && 
-              'id' in curr.users) {
+              !Array.isArray(curr.users) &&
+              'id' in curr.users &&
+              typeof curr.users.id === 'string') {
             validData.push({
               client_id: curr.client_id,
-              users: curr.users as ValidClientUser
+              users: {
+                id: curr.users.id,
+                name: curr.users.name || undefined,
+                email: curr.users.email || undefined,
+                phone: curr.users.phone || undefined,
+                avatar_url: curr.users.avatar_url || undefined
+              }
             });
           }
         }

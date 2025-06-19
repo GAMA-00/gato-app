@@ -70,17 +70,24 @@ const ClientProvidersList = () => {
       
       if (data) {
         for (const item of data) {
+          // Check if item and users exist and are valid
           if (item && 
-              item.users !== null &&
-              item.users !== undefined &&
+              item.users && 
               typeof item.users === 'object' && 
-              'id' in item.users) {
+              !Array.isArray(item.users) &&
+              'id' in item.users &&
+              typeof item.users.id === 'string') {
             validListings.push({
               id: item.id,
               title: item.title,
               description: item.description,
               base_price: item.base_price,
-              users: item.users as ValidUser
+              users: {
+                id: item.users.id,
+                name: item.users.name || undefined,
+                avatar_url: item.users.avatar_url || undefined,
+                average_rating: item.users.average_rating || undefined
+              }
             });
           }
         }
@@ -137,17 +144,17 @@ const ClientProvidersList = () => {
                 >
                   <div className="flex items-center mb-4">
                     <Avatar className="h-12 w-12 mr-3">
-                      <AvatarImage src={userData?.avatar_url} />
+                      <AvatarImage src={userData.avatar_url} />
                       <AvatarFallback>
                         <User className="h-6 w-6" />
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold">{userData?.name || 'Proveedor'}</h3>
+                      <h3 className="font-semibold">{userData.name || 'Proveedor'}</h3>
                       <div className="flex items-center">
                         <Star className="h-4 w-4 text-yellow-400 mr-1" />
                         <span className="text-sm">
-                          {userData?.average_rating?.toFixed(1) || 'Sin calificar'}
+                          {userData.average_rating?.toFixed(1) || 'Sin calificar'}
                         </span>
                       </div>
                     </div>

@@ -57,10 +57,10 @@ const ClientServiceDetail = () => {
       // Ensure users data is valid with proper null checking
       if (!data || 
           !data.users || 
-          data.users === null || 
-          data.users === undefined ||
           typeof data.users !== 'object' || 
-          !('id' in data.users)) {
+          Array.isArray(data.users) ||
+          !('id' in data.users) ||
+          typeof data.users.id !== 'string') {
         throw new Error('Invalid provider data');
       }
       
@@ -70,7 +70,13 @@ const ClientServiceDetail = () => {
         description: data.description,
         base_price: data.base_price,
         duration: data.duration,
-        users: data.users as ValidServiceUser
+        users: {
+          id: data.users.id,
+          name: data.users.name || undefined,
+          avatar_url: data.users.avatar_url || undefined,
+          average_rating: data.users.average_rating || undefined,
+          phone: data.users.phone || undefined
+        }
       };
     },
     enabled: !!serviceId,
@@ -118,7 +124,7 @@ const ClientServiceDetail = () => {
   return (
     <>
       <Navbar />
-      <PageContainer title={service.title} subtitle={`Por ${userData?.name || 'Proveedor'}`}>
+      <PageContainer title={service.title} subtitle={`Por ${userData.name || 'Proveedor'}`}>
         <div className="space-y-6">
           <Button 
             variant="ghost" 
