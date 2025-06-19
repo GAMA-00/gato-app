@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ClientCard from '@/components/clients/ClientCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
+import { Client } from '@/lib/types';
 
 interface ClientData {
   id: string;
@@ -90,14 +91,30 @@ const Clients = () => {
         className="pt-0"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {clients.map((client) => (
-            <ClientCard 
-              key={client.id} 
-              client={client} 
-              onEdit={handleEditClient}
-              onDelete={handleDeleteClient}
-            />
-          ))}
+          {clients.map((client) => {
+            // Transform ClientData to Client for the component
+            const transformedClient: Client = {
+              id: client.id,
+              name: client.name || '',
+              email: client.email || '',
+              phone: client.phone || '',
+              address: '', // Default value since not available
+              notes: '', // Default value since not available
+              createdAt: new Date(), // Default value since not available
+              isRecurring: false, // Default value since not available
+              preferredProviders: [], // Default value since not available
+              totalBookings: 0 // Default value since not available
+            };
+            
+            return (
+              <ClientCard 
+                key={client.id} 
+                client={transformedClient} 
+                onEdit={handleEditClient}
+                onDelete={handleDeleteClient}
+              />
+            );
+          })}
         </div>
       </PageContainer>
     </>
