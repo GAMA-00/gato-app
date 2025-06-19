@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -68,18 +69,27 @@ const ClientCategoryDetails = () => {
 
   const categoryLabel = categoryData?.label || categoryId;
 
-  // Get the category icon from the database
-  const getServiceIcon = (iconName: string) => {
-    if (!iconName) return LucideIcons.Briefcase;
+  // Get specific service icon based on service name
+  const getServiceTypeIcon = (serviceName: string) => {
+    const normalizedName = serviceName.toLowerCase();
     
-    // Convert icon name to PascalCase for Lucide icons
-    const iconKey = iconName.charAt(0).toUpperCase() + iconName.slice(1).replace(/-/g, '');
-    const IconComponent = (LucideIcons as any)[iconKey];
+    if (normalizedName.includes('limpieza')) {
+      return LucideIcons.Sparkles;
+    } else if (normalizedName.includes('planchado')) {
+      return LucideIcons.Shirt;
+    } else if (normalizedName.includes('jardin')) {
+      return LucideIcons.Trees;
+    } else if (normalizedName.includes('mantenimiento')) {
+      return LucideIcons.Wrench;
+    } else if (normalizedName.includes('chef') || normalizedName.includes('cocin')) {
+      return LucideIcons.ChefHat;
+    } else if (normalizedName.includes('lavacar') || normalizedName.includes('lava car')) {
+      return LucideIcons.Car;
+    }
     
-    return IconComponent || LucideIcons.Briefcase;
+    // Default fallback icon
+    return LucideIcons.Briefcase;
   };
-
-  const CategoryIcon = getServiceIcon(categoryData?.icon || 'briefcase');
 
   return (
     <>
@@ -104,7 +114,7 @@ const ClientCategoryDetails = () => {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {serviceTypes.map((serviceType) => {
-                const ServiceIcon = CategoryIcon; // Use the same icon as the category
+                const ServiceIcon = getServiceTypeIcon(serviceType.name);
                 
                 return (
                   <Card 
