@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
@@ -30,6 +30,11 @@ const ClientBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [notes, setNotes] = useState('');
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Validation
   const isBookingValid = selectedDate && selectedTime && selectedVariants?.length > 0;
@@ -124,17 +129,24 @@ const ClientBooking = () => {
   return (
     <>
       <Navbar />
-      <PageContainer title="Reservar Servicio" subtitle="">
+      <PageContainer title="" subtitle="">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Back button */}
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(-1)}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
+          {/* Back button positioned in top left corner above title */}
+          <div className="w-full">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate(-1)}
+              className="mb-2 p-0 h-auto text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Button>
+            
+            {/* Title */}
+            <h1 className="text-2xl md:text-3xl font-bold text-luxury-navy mb-6">
+              Reservar Servicio
+            </h1>
+          </div>
 
           {/* Service summary */}
           <Card>
