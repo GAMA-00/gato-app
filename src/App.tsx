@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
@@ -21,6 +20,7 @@ import ClientCategoryDetails from '@/pages/ClientCategoryDetails';
 import ClientProvidersList from '@/pages/ClientProvidersList';
 import ClientResultsView from '@/pages/ClientResultsView';
 import ClientServiceDetail from '@/pages/ClientServiceDetail';
+import ClientProviderServiceDetail from '@/pages/ClientProviderServiceDetail';
 import ClientBooking from '@/pages/ClientBooking';
 import BookingSummary from '@/pages/BookingSummary';
 import ClientBookings from '@/pages/ClientBookings';
@@ -62,6 +62,9 @@ function App() {
               <Route path="/client/category/:categoryId" element={<ProtectedRoute allowedRoles={['client']}><ClientCategoryDetails /></ProtectedRoute>} />
               <Route path="/client/providers" element={<ProtectedRoute allowedRoles={['client']}><ClientProvidersList /></ProtectedRoute>} />
               <Route path="/client/results" element={<ProtectedRoute allowedRoles={['client']}><ClientResultsView /></ProtectedRoute>} />
+              {/* NEW: Specific provider service detail route */}
+              <Route path="/client/service/:providerId/:serviceId" element={<ProtectedRoute allowedRoles={['client']}><ClientProviderServiceDetail /></ProtectedRoute>} />
+              {/* EXISTING: General service detail route as fallback */}
               <Route path="/client/service/:serviceId" element={<ProtectedRoute allowedRoles={['client']}><ClientServiceDetail /></ProtectedRoute>} />
               <Route path="/client/booking/:serviceId" element={<ProtectedRoute allowedRoles={['client']}><ClientBooking /></ProtectedRoute>} />
               <Route path="/client/booking-summary" element={<ProtectedRoute allowedRoles={['client']}><BookingSummary /></ProtectedRoute>} />
