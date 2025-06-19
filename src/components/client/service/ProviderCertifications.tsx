@@ -43,9 +43,9 @@ const ProviderCertifications = ({ certifications }: ProviderCertificationsProps)
                 size="sm"
                 variant="ghost"
                 onClick={() => window.open(file.url, '_blank')}
-                className="text-blue-700"
+                className="text-blue-700 font-medium"
               >
-                Ver <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                Certificación <ExternalLink className="h-3.5 w-3.5 ml-1" />
               </Button>
             </div>
           ))}

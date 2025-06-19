@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ChevronRight, Image } from 'lucide-react';
+import { Image } from 'lucide-react';
 import { ProviderProfile } from '@/lib/types';
 import ServiceGallery from '@/components/client/results/ServiceGallery';
 
@@ -72,7 +70,7 @@ const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
     console.log("📭 No images found, showing empty state");
     return (
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardHeader className="pb-3">
           <CardTitle>Galería de trabajos</CardTitle>
         </CardHeader>
         <CardContent>
@@ -87,12 +85,8 @@ const ProviderGallery = ({ provider }: ProviderGalleryProps) => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
+      <CardHeader className="pb-3">
         <CardTitle>Galería de trabajos</CardTitle>
-        
-        <Button variant="ghost" size="sm" className="text-luxury-navy">
-          Ver todos <ChevronRight className="h-4 w-4 ml-1" />
-        </Button>
       </CardHeader>
       <CardContent>
         <ServiceGallery 

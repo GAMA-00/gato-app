@@ -1,7 +1,6 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { ProviderProfile } from '@/lib/types';
 
 interface ProviderAboutProps {
@@ -9,12 +8,6 @@ interface ProviderAboutProps {
 }
 
 const ProviderAbout = ({ provider }: ProviderAboutProps) => {
-  const [expanded, setExpanded] = useState(false);
-  
-  const toggleExpanded = () => {
-    setExpanded(!expanded);
-  };
-
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -33,29 +26,7 @@ const ProviderAbout = ({ provider }: ProviderAboutProps) => {
           )}
           
           {/* About me text content */}
-          {expanded ? (
-            <>
-              <p className="text-muted-foreground">{provider.aboutMe}</p>
-              <Button 
-                variant="link" 
-                onClick={toggleExpanded}
-                className="p-0 h-auto text-luxury-navy"
-              >
-                Ver menos
-              </Button>
-            </>
-          ) : (
-            <>
-              <p className="text-muted-foreground line-clamp-3">{provider.aboutMe}</p>
-              <Button 
-                variant="link" 
-                onClick={toggleExpanded}
-                className="p-0 h-auto text-luxury-navy"
-              >
-                Ver más
-              </Button>
-            </>
-          )}
+          <p className="text-muted-foreground">{provider.aboutMe}</p>
         </div>
       </CardContent>
     </Card>
