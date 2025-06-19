@@ -13,11 +13,14 @@ import ProviderAbout from '@/components/providers/ProviderAbout';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
 import ServiceVariantsSelector from '@/components/client/results/ServiceVariantsSelector';
 import PriceInformation from '@/components/client/service/PriceInformation';
-import ProviderExperienceLevel from '@/components/client/results/ProviderExperienceLevel';
+import LevelBadge from '@/components/achievements/LevelBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { getProviderLevelByJobs } from '@/lib/achievementTypes';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
@@ -26,6 +29,28 @@ const ClientProviderServiceDetail = () => {
   const [selectedVariants, setSelectedVariants] = React.useState<any[]>([]);
 
   const { serviceDetails, isLoading, error } = useServiceDetail(providerId, serviceId, user?.id);
+
+  // Fetch completed jobs count to determine real achievement level
+  const { data: completedJobsCount = 0 } = useQuery({
+    queryKey: ['completed-jobs', providerId],
+    queryFn: async () => {
+      if (!providerId) return 0;
+      
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('provider_id', providerId)
+        .in('status', ['confirmed', 'completed']);
+        
+      if (error) {
+        console.error('Error fetching completed jobs count:', error);
+        return 0;
+      }
+      
+      return data?.length || 0;
+    },
+    enabled: !!providerId
+  });
 
   const handleBookService = () => {
     if (!serviceDetails || selectedVariants.length === 0) {
@@ -112,6 +137,9 @@ const ClientProviderServiceDetail = () => {
     reviews: []
   };
 
+  // Get provider level based on completed jobs (real achievement level)
+  const providerLevel = getProviderLevelByJobs(completedJobsCount);
+
   // Transform service type data for ServiceDescription component
   const serviceTypeData = {
     id: serviceDetails.service_type?.id,
@@ -127,7 +155,7 @@ const ClientProviderServiceDetail = () => {
     <>
       <Navbar />
       <PageContainer title="" subtitle="">
-        <div className="max-w-4xl mx-auto space-y-8 px-4 md:px-0">
+        <div className="max-w-4xl mx-auto space-y-8 px-2 sm:px-4 md:px-0">
           {/* Back button */}
           <Button 
             variant="ghost" 
@@ -147,55 +175,58 @@ const ClientProviderServiceDetail = () => {
               </AvatarFallback>
             </Avatar>
             
-            <div>
-              <h1 className="text-3xl font-bold text-luxury-navy mb-3">
+            <div className="px-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-luxury-navy mb-3 break-words">
                 {transformedProvider.name}
               </h1>
               
               {/* Calificación y Nivel de Experiencia */}
-              <div className="flex items-center justify-center gap-4 flex-wrap">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                   <span className="font-medium text-lg">
                     {transformedProvider.rating.toFixed(1)}
                   </span>
-                  <span className="text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     ({transformedProvider.ratingCount} valoraciones)
                   </span>
                 </div>
-                <ProviderExperienceLevel 
-                  experienceYears={transformedProvider.experienceYears} 
-                  className="text-sm"
-                />
+                <LevelBadge level={providerLevel.level} size="md" />
               </div>
             </div>
           </div>
 
           {/* 2. Descripción del servicio */}
-          <div className="space-y-4">
+          <div className="space-y-4 px-2">
             <h2 className="text-2xl font-semibold text-luxury-navy">
               {serviceDetails.title}
             </h2>
-            <ServiceDescription 
-              description={serviceDetails.description}
-              serviceType={serviceTypeData}
-            />
+            <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-6">
+              <h3 className="text-lg font-medium mb-3">Descripción del servicio</h3>
+              <p className="text-muted-foreground whitespace-pre-line">{serviceDetails.description}</p>
+            </div>
           </div>
 
           {/* 3. Galería de trabajos */}
-          <ProviderGallery provider={transformedProvider} />
+          <div className="px-2">
+            <ProviderGallery provider={transformedProvider} />
+          </div>
 
           {/* 4. Sobre Mí */}
-          <ProviderAbout provider={transformedProvider} />
+          <div className="px-2">
+            <ProviderAbout provider={transformedProvider} />
+          </div>
 
           {/* 5. Certificación Profesional */}
-          <ProviderCertifications 
-            certifications={transformedProvider.certificationFiles}
-          />
+          <div className="px-2">
+            <ProviderCertifications 
+              certifications={transformedProvider.certificationFiles}
+            />
+          </div>
 
           {/* 6. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-            <div className="space-y-6">
+            <div className="space-y-6 px-2">
               <h3 className="text-2xl font-semibold text-luxury-navy">
                 Servicios Disponibles
               </h3>
@@ -215,7 +246,7 @@ const ClientProviderServiceDetail = () => {
           )}
 
           {/* 7. Botón "Agendar Servicio" */}
-          <div className="flex justify-center pt-8 pb-12">
+          <div className="flex justify-center pt-8 pb-12 px-2">
             <Button 
               onClick={handleBookService}
               size="lg"
