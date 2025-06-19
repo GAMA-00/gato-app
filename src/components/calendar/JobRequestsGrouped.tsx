@@ -104,6 +104,17 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
       .toUpperCase();
   };
 
+  // Helper function to get recurrence display text
+  const getRecurrenceDisplay = (request: any) => {
+    const isGroup = request.appointment_count > 1;
+    
+    if (!isGroup) {
+      return 'Una vez';
+    }
+    
+    return request.recurrence_label || 'Recurrente';
+  };
+
   const totalPendingCount = groupedRequests.reduce((sum, req) => sum + req.appointment_count, 0);
   const externalCount = groupedRequests.filter(req => req.is_external).length;
 
@@ -117,14 +128,14 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
           </div>
           {groupedRequests.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                 {groupedRequests.length} solicitud{groupedRequests.length > 1 ? 'es' : ''}
                 {totalPendingCount > groupedRequests.length && (
                   <span className="text-xs ml-1">({totalPendingCount} citas)</span>
                 )}
               </span>
               {externalCount > 0 && (
-                <span className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
+                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
                   <ExternalLink className="h-3 w-3" />
                   {externalCount} externa{externalCount > 1 ? 's' : ''}
                 </span>
@@ -148,6 +159,7 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
             {groupedRequests.map((request: any) => {
               const isGroup = request.appointment_count > 1;
               const isExternal = request.is_external;
+              const recurrenceDisplay = getRecurrenceDisplay(request);
               
               console.log(`Rendering request ${request.id}: clientName="${request.client_name}", isGroup=${isGroup}, appointmentCount=${request.appointment_count}`);
               
@@ -169,12 +181,10 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
                             Externa
                           </Badge>
                         )}
-                        {isGroup && (
-                          <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 flex items-center gap-1 text-xs">
-                            <Repeat className="h-3 w-3" />
-                            {request.recurrence_label} ({request.appointment_count} citas)
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 flex items-center gap-1 text-xs">
+                          <Repeat className="h-3 w-3" />
+                          {recurrenceDisplay}
+                        </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {request.service_name}
@@ -204,7 +214,7 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
                               {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
                               {isGroup && (
                                 <span className="text-green-600 ml-2">
-                                  ({request.recurrence_label})
+                                  ({request.appointment_count} citas)
                                 </span>
                               )}
                             </div>
