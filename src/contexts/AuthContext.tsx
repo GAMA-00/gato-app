@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
@@ -29,6 +29,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Flag para controlar el proceso de logout y evitar reautenticación
+  const isLoggingOutRef = useRef(false);
 
   // Función para crear usuario desde datos de Supabase
   const createUserFromSession = (authUser: SupabaseUser): User => {
@@ -54,13 +57,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Función para limpiar completamente el localStorage de Supabase
+  const clearSupabaseStorage = () => {
+    try {
+      console.log('AuthContext: Clearing Supabase storage');
+      
+      // Lista de patrones de claves que usa Supabase
+      const supabasePatterns = [
+        'supabase.auth.',
+        'sb-',
+        'supabase-auth-token',
+        'supabase_auth_token',
+        'sb-auth-token',
+        'supabase.session',
+        'sb-session'
+      ];
+      
+      // Obtener todas las claves antes de eliminar
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          const shouldRemove = supabasePatterns.some(pattern => key.includes(pattern));
+          if (shouldRemove) {
+            keysToRemove.push(key);
+          }
+        }
+      }
+      
+      // Eliminar todas las claves identificadas
+      keysToRemove.forEach(key => {
+        console.log('AuthContext: Removing localStorage key:', key);
+        localStorage.removeItem(key);
+      });
+      
+      // También limpiar sessionStorage por si acaso
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key) {
+          const shouldRemove = supabasePatterns.some(pattern => key.includes(pattern));
+          if (shouldRemove) {
+            sessionKeysToRemove.push(key);
+          }
+        }
+      }
+      
+      sessionKeysToRemove.forEach(key => {
+        console.log('AuthContext: Removing sessionStorage key:', key);
+        sessionStorage.removeItem(key);
+      });
+      
+    } catch (error) {
+      console.error('AuthContext: Error clearing storage:', error);
+    }
+  };
+
   useEffect(() => {
     console.log('AuthContext: Initializing authentication');
     
     // Configurar listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log('AuthContext: Auth state changed -', event, !!currentSession);
+        console.log('AuthContext: Auth state changed -', event, !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
+        
+        // Si estamos en proceso de logout, ignorar todos los eventos
+        if (isLoggingOutRef.current) {
+          console.log('AuthContext: Ignoring auth event during logout process');
+          return;
+        }
         
         if (event === 'SIGNED_OUT' || !currentSession) {
           console.log('AuthContext: User signed out, clearing state');
@@ -70,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        if (currentSession?.user) {
+        if (event === 'SIGNED_IN' && currentSession?.user) {
           console.log('AuthContext: Setting user from session');
           setSession(currentSession);
           setUser(createUserFromSession(currentSession.user));
@@ -82,14 +147,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Verificar sesión existente
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log('AuthContext: Initial session check -', !!currentSession);
+      console.log('AuthContext: Initial session check -', !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
       
-      if (currentSession?.user) {
-        setSession(currentSession);
-        setUser(createUserFromSession(currentSession.user));
-      } else {
-        setSession(null);
-        setUser(null);
+      // Solo establecer sesión si no estamos en proceso de logout
+      if (!isLoggingOutRef.current) {
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setUser(createUserFromSession(currentSession.user));
+        } else {
+          setSession(null);
+          setUser(null);
+        }
       }
       
       setIsLoading(false);
@@ -103,6 +171,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       console.log('AuthContext: Attempting login for:', email);
+      
+      // Asegurar que no estamos en proceso de logout
+      isLoggingOutRef.current = false;
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -130,53 +201,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: Starting logout process');
     
     try {
+      // Establecer flag de logout para evitar reautenticación
+      isLoggingOutRef.current = true;
+      
       // Limpiar estado local inmediatamente
       setUser(null);
       setSession(null);
       setIsLoading(false);
       
-      // Cerrar sesión en Supabase
-      const { error } = await supabase.auth.signOut();
+      console.log('AuthContext: Cleared local state');
+      
+      // Limpiar storage antes del logout
+      clearSupabaseStorage();
+      
+      // Cerrar sesión en Supabase con scope global para cerrar en todos los tabs
+      console.log('AuthContext: Calling Supabase signOut');
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
-        console.error('AuthContext: Logout error:', error);
+        console.error('AuthContext: Supabase logout error:', error);
       } else {
-        console.log('AuthContext: Logout successful');
+        console.log('AuthContext: Supabase logout successful');
       }
       
-      // Limpiar localStorage de manera más específica
-      try {
-        // Limpiar solo las claves relacionadas con Supabase auth
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('supabase.auth.') || key.includes('supabase-auth-token')) {
-            localStorage.removeItem(key);
-          }
-        });
-      } catch (storageError) {
-        console.error('AuthContext: Error clearing localStorage:', storageError);
-      }
+      // Limpiar storage nuevamente después del logout
+      setTimeout(() => {
+        clearSupabaseStorage();
+      }, 100);
       
-      // Forzar redirección a la página de login
-      window.location.href = '/login';
+      // Pequeño delay antes de redirección para asegurar limpieza completa
+      setTimeout(() => {
+        console.log('AuthContext: Redirecting to login');
+        // Usar replace para evitar que el usuario pueda volver atrás
+        window.location.replace('/login');
+      }, 200);
       
     } catch (error) {
       console.error('AuthContext: Logout exception:', error);
-      // Aún así, forzar limpieza y redirección
+      
+      // Aún así, forzar limpieza completa
+      isLoggingOutRef.current = true;
       setUser(null);
       setSession(null);
       setIsLoading(false);
-      window.location.href = '/login';
+      clearSupabaseStorage();
+      
+      // Redirección de emergencia
+      setTimeout(() => {
+        window.location.replace('/login');
+      }, 100);
     }
   };
 
-  const isAuthenticated = !!session && !!user;
+  const isAuthenticated = !!session && !!user && !isLoggingOutRef.current;
 
   console.log('AuthContext: Current state -', { 
     isLoading, 
     isAuthenticated, 
     hasUser: !!user, 
     hasSession: !!session,
-    userRole: user?.role 
+    userRole: user?.role,
+    isLoggingOut: isLoggingOutRef.current
   });
 
   return (

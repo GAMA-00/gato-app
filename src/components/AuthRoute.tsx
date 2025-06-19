@@ -18,7 +18,7 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-sm text-muted-foreground">Iniciando...</p>
+          <p className="text-sm text-muted-foreground">Verificando sesión...</p>
         </div>
       </div>
     );

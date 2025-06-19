@@ -21,16 +21,31 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
     
     console.log('UserInfo: Logout button clicked');
     
+    const button = e.target as HTMLButtonElement;
+    
     try {
       // Deshabilitar el botón temporalmente para evitar clics múltiples
-      (e.target as HTMLButtonElement).disabled = true;
+      button.disabled = true;
+      button.textContent = 'Cerrando...';
       
+      console.log('UserInfo: Calling logout function');
       await logout();
       
     } catch (error) {
       console.error('UserInfo: Error during logout:', error);
-      // En caso de error, forzar redirección directa
-      window.location.href = '/login';
+      
+      // En caso de error, forzar redirección directa después de un breve delay
+      setTimeout(() => {
+        window.location.replace('/login');
+      }, 500);
+    } finally {
+      // Reactivar el botón por si algo falla
+      setTimeout(() => {
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Cerrar Sesión';
+        }
+      }, 1000);
     }
   };
   
@@ -73,7 +88,7 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
       <Button 
         variant="outline" 
         size="sm"
-        className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5 h-auto hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+        className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5 h-auto hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={handleLogout}
         type="button"
       >
