@@ -69,26 +69,44 @@ const ClientCategoryDetails = () => {
 
   const categoryLabel = categoryData?.label || categoryId;
 
+  // Map of custom images for home category services
+  const homeServiceImages: Record<string, string> = {
+    'limpieza': '/lovable-uploads/567579a7-a7de-4761-acfd-31b8ca0809b1.png',
+    'planchado': '/lovable-uploads/cb20f484-db92-4a96-9734-e3c343529266.png',
+    'jardin': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
+    'jardinero': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
+  };
+
   // Get specific service icon based on service name
   const getServiceTypeIcon = (serviceName: string) => {
     const normalizedName = serviceName.toLowerCase();
     
+    // Check if this is a home category service with custom image
+    if (categoryId === 'home') {
+      for (const [key, imagePath] of Object.entries(homeServiceImages)) {
+        if (normalizedName.includes(key)) {
+          return { type: 'image', src: imagePath };
+        }
+      }
+    }
+    
+    // Fallback to Lucide icons for other services
     if (normalizedName.includes('limpieza')) {
-      return LucideIcons.Sparkles;
+      return { type: 'icon', component: LucideIcons.Sparkles };
     } else if (normalizedName.includes('planchado')) {
-      return LucideIcons.Shirt;
+      return { type: 'icon', component: LucideIcons.Shirt };
     } else if (normalizedName.includes('jardin')) {
-      return LucideIcons.Trees;
+      return { type: 'icon', component: LucideIcons.Trees };
     } else if (normalizedName.includes('mantenimiento')) {
-      return LucideIcons.Wrench;
+      return { type: 'icon', component: LucideIcons.Wrench };
     } else if (normalizedName.includes('chef') || normalizedName.includes('cocin')) {
-      return LucideIcons.ChefHat;
+      return { type: 'icon', component: LucideIcons.ChefHat };
     } else if (normalizedName.includes('lavacar') || normalizedName.includes('lava car')) {
-      return LucideIcons.Car;
+      return { type: 'icon', component: LucideIcons.Car };
     }
     
     // Default fallback icon
-    return LucideIcons.Briefcase;
+    return { type: 'icon', component: LucideIcons.Briefcase };
   };
 
   return (
@@ -114,7 +132,7 @@ const ClientCategoryDetails = () => {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {serviceTypes.map((serviceType) => {
-                const ServiceIcon = getServiceTypeIcon(serviceType.name);
+                const serviceIcon = getServiceTypeIcon(serviceType.name);
                 
                 return (
                   <Card 
@@ -124,7 +142,17 @@ const ClientCategoryDetails = () => {
                   >
                     <div className="flex flex-col items-center text-center space-y-3">
                       <div className="w-12 h-12 bg-luxury-navy rounded-full flex items-center justify-center">
-                        <ServiceIcon className="h-6 w-6 text-white" />
+                        {serviceIcon.type === 'image' ? (
+                          <img 
+                            src={serviceIcon.src} 
+                            alt={serviceType.name}
+                            className="w-8 h-8 object-contain"
+                          />
+                        ) : (
+                          React.createElement(serviceIcon.component, {
+                            className: "h-6 w-6 text-white"
+                          })
+                        )}
                       </div>
                       <div>
                         <h3 className="font-medium text-sm text-gray-900 mb-1">{serviceType.name}</h3>
