@@ -47,8 +47,8 @@ const ClientProvidersList = () => {
       const { data, error } = await query;
       if (error) throw error;
       
-      // Filter out items with invalid users data
-      return (data || []).filter(item => 
+      // Filter out items with invalid users data and ensure proper typing
+      return (data || []).filter((item): item is typeof item & { users: { id: string; name?: string; avatar_url?: string; average_rating?: number } } => 
         item.users && 
         item.users !== null &&
         typeof item.users === 'object' && 
@@ -95,8 +95,8 @@ const ClientProvidersList = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {providers.map((listing) => {
-              // Safe access to users data - already filtered in query
-              const userData = listing.users as { id: string; name?: string; avatar_url?: string; average_rating?: number };
+              // TypeScript now knows users is properly typed due to the filter above
+              const userData = listing.users;
               return (
                 <Card 
                   key={listing.id}

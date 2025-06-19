@@ -33,14 +33,14 @@ const Clients = () => {
         
       if (error) throw error;
       
-      // Remove duplicates and flatten, filtering out invalid entries
-      const uniqueClients = data.reduce((acc: any[], curr) => {
+      // Remove duplicates and flatten, filtering out invalid entries with proper typing
+      const uniqueClients = data.reduce((acc: Array<{ id: string; name?: string; email?: string; phone?: string; avatar_url?: string }>, curr) => {
         if (curr.users && 
             curr.users !== null &&
             typeof curr.users === 'object' && 
             'id' in curr.users && 
             !acc.find(client => client.id === (curr.users as any).id)) {
-          acc.push(curr.users);
+          acc.push(curr.users as { id: string; name?: string; email?: string; phone?: string; avatar_url?: string });
         }
         return acc;
       }, []);

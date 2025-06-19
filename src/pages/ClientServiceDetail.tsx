@@ -38,7 +38,7 @@ const ClientServiceDetail = () => {
         throw new Error('Invalid provider data');
       }
       
-      return data;
+      return data as typeof data & { users: { id: string; name?: string; avatar_url?: string; average_rating?: number; phone?: string } };
     },
     enabled: !!serviceId,
   });
@@ -80,8 +80,8 @@ const ClientServiceDetail = () => {
     );
   }
 
-  // Safe access to users data
-  const userData = service.users as { id: string; name?: string; avatar_url?: string; average_rating?: number; phone?: string };
+  // TypeScript now knows users is properly typed due to the query type assertion
+  const userData = service.users;
 
   return (
     <>
