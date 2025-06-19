@@ -43,6 +43,12 @@ const ClientBooking = () => {
   const isBookingValid = selectedDate && selectedTime && selectedVariants?.length > 0;
   const selectedVariant = selectedVariants?.[0];
 
+  const handleBackNavigation = () => {
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    navigate(-1);
+  };
+
   if (!serviceDetails || !providerId || !selectedVariants) {
     return (
       <>
@@ -52,7 +58,7 @@ const ClientBooking = () => {
             <p className="text-muted-foreground mb-4">
               No se pudo cargar la información del servicio
             </p>
-            <Button onClick={() => navigate(-1)}>
+            <Button onClick={handleBackNavigation}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Button>
@@ -152,7 +158,7 @@ const ClientBooking = () => {
           <div className="w-full">
             <Button 
               variant="ghost" 
-              onClick={() => navigate(-1)}
+              onClick={handleBackNavigation}
               className="mb-2 p-0 h-auto text-sm font-medium text-gray-700 hover:text-gray-900"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
