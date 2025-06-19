@@ -36,7 +36,7 @@ const ProviderCertifications = ({ certifications }: ProviderCertificationsProps)
               <div className="flex items-center">
                 <FileText className="h-5 w-5 text-blue-600 mr-3" />
                 <span className="font-medium text-sm">
-                  {file.name || `Certificado ${index + 1}`}
+                  Certificación
                 </span>
               </div>
               <Button

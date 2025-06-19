@@ -19,7 +19,7 @@ const ProviderAbout = ({ provider }: ProviderAboutProps) => {
           {provider.experienceYears > 0 && (
             <div className="bg-stone-50 p-3 rounded-lg border border-stone-200">
               <div className="text-sm font-medium text-stone-700 mb-1">Años de experiencia</div>
-              <div className="text-lg font-semibold text-stone-800">
+              <div className="text-base font-semibold text-stone-800">
                 {provider.experienceYears} año{provider.experienceYears !== 1 ? 's' : ''}
               </div>
             </div>
