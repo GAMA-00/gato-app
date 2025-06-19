@@ -38,22 +38,26 @@ const Login = () => {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
+    if (isSubmitting) return;
+    
     setLoginError(null);
     setIsSubmitting(true);
     
     try {
-      console.log('Attempting login for:', values.email);
+      console.log('Login: Starting login process for:', values.email);
       const result = await login(values.email, values.password);
       
       if (result.success) {
+        console.log('Login: Login successful, showing success message');
         toast.success('¡Inicio de sesión exitoso!');
-        console.log('Login successful - AuthRoute will handle navigation');
+        // Don't manually navigate - let AuthRoute handle the redirection
       } else {
+        console.log('Login: Login failed -', result.error);
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
       }
     } catch (error) {
-      console.error('Login submission error:', error);
+      console.error('Login: Submission error:', error);
       const errorMessage = 'Error inesperado al iniciar sesión';
       setLoginError(errorMessage);
       toast.error(errorMessage);
