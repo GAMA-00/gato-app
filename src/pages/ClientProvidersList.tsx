@@ -49,6 +49,7 @@ const ClientProvidersList = () => {
       
       // Filter out items with invalid users data and ensure proper typing
       return (data || []).filter((item): item is typeof item & { users: { id: string; name?: string; avatar_url?: string; average_rating?: number } } => 
+        item && 
         item.users !== null &&
         typeof item.users === 'object' && 
         'id' in item.users

@@ -34,7 +34,7 @@ const ClientServiceDetail = () => {
       if (error) throw error;
       
       // Ensure users data is valid with proper null checking
-      if (!data || !data.users || data.users === null || typeof data.users !== 'object' || !('id' in data.users)) {
+      if (!data || !data.users || typeof data.users !== 'object' || !('id' in data.users)) {
         throw new Error('Invalid provider data');
       }
       
