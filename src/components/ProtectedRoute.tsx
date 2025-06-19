@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     allowedRoles 
   });
 
-  // Mostrar loading mientras se verifica autenticación
+  // Show loading while verifying authentication
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -30,39 +30,26 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // Si no está autenticado, redirigir a login
+  // If not authenticated, redirect to login
   if (!isAuthenticated) {
     console.log('ProtectedRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  // Si está autenticado pero no tiene rol, mostrar error y botón para recargar
-  if (!user?.role) {
-    console.log('ProtectedRoute: User authenticated but no role');
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <p className="text-lg font-medium">Error de perfil</p>
-          <p className="text-sm text-muted-foreground">No se pudo cargar tu perfil de usuario</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-          >
-            Recargar página
-          </button>
-        </div>
-      </div>
-    );
+  // If authenticated but no user data yet, allow access (fallback)
+  if (!user) {
+    console.log('ProtectedRoute: Authenticated but no user data, allowing access');
+    return <>{children}</>;
   }
 
-  // Si el usuario no tiene el rol requerido, redirigir a su dashboard correspondiente
+  // If the user doesn't have the required role, redirect to their appropriate dashboard
   if (!allowedRoles.includes(user.role)) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('ProtectedRoute: User role not allowed, redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  // Si está autenticado y tiene el rol correcto, mostrar el contenido
+  // If authenticated and has the correct role, show the content
   console.log('ProtectedRoute: Showing protected content');
   return <>{children}</>;
 };

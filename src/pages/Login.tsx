@@ -48,10 +48,10 @@ const Login = () => {
       const result = await login(values.email, values.password);
       
       if (result.success) {
-        console.log('Login: Login successful, showing success message');
+        console.log('Login: Login successful');
         toast.success('¡Inicio de sesión exitoso!');
-        // NO navegar manualmente - dejar que AuthRoute maneje la redirección automáticamente
-        console.log('Login: Letting AuthRoute handle automatic redirection');
+        // Let AuthRoute handle the automatic redirection
+        console.log('Login: Login completed, AuthRoute will handle redirection');
       } else {
         console.log('Login: Login failed -', result.error);
         setLoginError(result.error || 'Error al iniciar sesión');
