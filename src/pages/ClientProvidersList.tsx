@@ -50,6 +50,7 @@ const ClientProvidersList = () => {
       // Filter out items with query errors and ensure users data exists
       return (data || []).filter(item => 
         item.users && 
+        item.users !== null &&
         typeof item.users === 'object' && 
         'id' in item.users
       );

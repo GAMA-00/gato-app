@@ -2,12 +2,31 @@
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
-import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
 
 const Calendar = () => {
-  const { data: appointments = [], isLoading } = useCalendarAppointments();
+  const { user } = useAuth();
+
+  const { data: appointments = [], isLoading } = useQuery({
+    queryKey: ['calendar-appointments', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .or(`provider_id.eq.${user.id},client_id.eq.${user.id}`)
+        .order('start_time', { ascending: true });
+        
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   if (isLoading) {
     return (

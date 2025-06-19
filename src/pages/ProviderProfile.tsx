@@ -32,6 +32,57 @@ const ProviderProfile = () => {
     enabled: !!providerId,
   });
 
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['provider-services', providerId],
+    queryFn: async () => {
+      if (!providerId) return [];
+      
+      const { data, error } = await supabase
+        .from('listings')
+        .select(`
+          *,
+          service_types (
+            name,
+            service_categories (
+              name
+            )
+          )
+        `)
+        .eq('provider_id', providerId)
+        .eq('is_active', true);
+        
+      if (error) throw error;
+      
+      // Group by category
+      const grouped = (data || []).reduce((acc: any, listing: any) => {
+        const categoryName = listing.service_types?.service_categories?.name || 'Otros';
+        if (!acc[categoryName]) {
+          acc[categoryName] = {
+            id: categoryName,
+            name: categoryName,
+            services: []
+          };
+        }
+        
+        acc[categoryName].services.push({
+          id: listing.id,
+          name: listing.title,
+          options: [{
+            id: listing.id,
+            size: listing.title,
+            price: listing.base_price,
+            duration: listing.duration
+          }]
+        });
+        
+        return acc;
+      }, {});
+      
+      return Object.values(grouped);
+    },
+    enabled: !!providerId,
+  });
+
   if (isLoading) {
     return (
       <>
@@ -98,7 +149,11 @@ const ProviderProfile = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
               <ProviderAbout provider={transformedProvider} />
-              <ProviderServices provider={transformedProvider} />
+              <ProviderServices 
+                categories={categories} 
+                isLoading={categoriesLoading}
+                onServiceSelect={() => {}}
+              />
               <ProviderReviews provider={transformedProvider} />
             </div>
             <div className="space-y-6">

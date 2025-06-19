@@ -7,7 +7,7 @@ import LevelCard from '@/components/achievements/LevelCard';
 import RatingHistory from '@/components/achievements/RatingHistory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
-import { getProviderLevelByJobs } from '@/lib/achievementTypes';
+import { getProviderLevelByJobs, ACHIEVEMENT_LEVELS } from '@/lib/achievementTypes';
 import Navbar from '@/components/layout/Navbar';
 
 const Achievements = () => {
@@ -48,6 +48,11 @@ const Achievements = () => {
   }
 
   const currentLevelInfo = getProviderLevelByJobs(achievements.totalCompletedJobs);
+  const currentLevelIndex = ACHIEVEMENT_LEVELS.findIndex(level => level.level === currentLevelInfo.level);
+  const nextLevel = currentLevelIndex < ACHIEVEMENT_LEVELS.length - 1 ? ACHIEVEMENT_LEVELS[currentLevelIndex + 1] : null;
+  const progressPercentage = nextLevel 
+    ? ((achievements.totalCompletedJobs - currentLevelInfo.minJobs) / (nextLevel.minJobs - currentLevelInfo.minJobs)) * 100
+    : 100;
 
   return (
     <>
@@ -58,18 +63,22 @@ const Achievements = () => {
         className="pt-0"
       >
         <div className="space-y-8">
-          <LevelCard 
-            level={currentLevelInfo}
-            progress={achievements.jobsToNextLevel}
-            totalAppointments={achievements.totalCompletedJobs}
-            averageRating={achievements.averageRating}
-            recurringClients={0}
-          />
-          
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              Sistema de logros en desarrollo
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {ACHIEVEMENT_LEVELS.map((level) => {
+              const isCurrentLevel = level.level === currentLevelInfo.level;
+              const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
+              const progress = isCurrentLevel ? progressPercentage : 0;
+              
+              return (
+                <LevelCard
+                  key={level.level}
+                  level={level}
+                  isCurrentLevel={isCurrentLevel}
+                  isAchieved={isAchieved}
+                  progress={progress}
+                />
+              );
+            })}
           </div>
           
           <RatingHistory ratingHistory={achievements.ratingHistory} />
