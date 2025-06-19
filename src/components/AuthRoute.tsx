@@ -12,7 +12,7 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
 
   console.log('AuthRoute: State check -', { isLoading, isAuthenticated, userRole: user?.role });
 
-  // Mostrar loading solo durante la verificación inicial
+  // Mostrar loading durante la verificación inicial
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -24,7 +24,7 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
     );
   }
 
-  // Si está autenticado, redirigir inmediatamente según el rol
+  // Si está autenticado, redirigir según el rol
   if (isAuthenticated && user) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('AuthRoute: User authenticated, redirecting to:', redirectTo);

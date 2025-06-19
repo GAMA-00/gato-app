@@ -29,6 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Función para crear usuario desde datos de Supabase
   const createUserFromSession = (authUser: SupabaseUser): User => {
@@ -62,6 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, currentSession) => {
         console.log('AuthContext: Auth state changed -', event, !!currentSession);
         
+        // Si estamos en proceso de logout, ignorar cambios de sesión
+        if (isLoggingOut) {
+          console.log('AuthContext: Ignoring auth change during logout');
+          return;
+        }
+        
         if (currentSession?.user) {
           console.log('AuthContext: Setting user from session');
           setSession(currentSession);
@@ -80,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       console.log('AuthContext: Initial session check -', !!currentSession);
       
-      if (currentSession?.user) {
+      if (currentSession?.user && !isLoggingOut) {
         setSession(currentSession);
         setUser(createUserFromSession(currentSession.user));
       } else {
@@ -94,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isLoggingOut]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -124,48 +131,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     console.log('AuthContext: Starting logout process');
+    setIsLoggingOut(true);
     
     try {
       // Limpiar estado local inmediatamente
       setUser(null);
       setSession(null);
       
-      // Intentar cerrar sesión en Supabase solo si hay una sesión activa
-      if (session) {
-        console.log('AuthContext: Attempting Supabase signOut');
-        await supabase.auth.signOut();
-        console.log('AuthContext: Supabase signOut completed');
-      } else {
-        console.log('AuthContext: No active session, skipping Supabase signOut');
+      // Limpiar localStorage antes del signOut
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('supabase.auth.')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (error) {
+        console.error('AuthContext: Error clearing localStorage:', error);
       }
+      
+      // Intentar cerrar sesión en Supabase
+      console.log('AuthContext: Attempting Supabase signOut');
+      await supabase.auth.signOut({ scope: 'global' });
+      console.log('AuthContext: Supabase signOut completed');
       
     } catch (error) {
       console.error('AuthContext: Logout error (continuing anyway):', error);
     }
     
-    // Limpiar cualquier token restante en localStorage
-    try {
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('supabase.auth.')) {
-          localStorage.removeItem(key);
-        }
-      });
-    } catch (error) {
-      console.error('AuthContext: Error clearing localStorage:', error);
-    }
+    // Esperar un momento para asegurar que la sesión se haya limpiado
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Forzar navegación al login
     console.log('AuthContext: Redirecting to login');
+    setIsLoggingOut(false);
     window.location.href = '/login';
   };
 
-  const isAuthenticated = !!session && !!user;
+  const isAuthenticated = !!session && !!user && !isLoggingOut;
 
   console.log('AuthContext: Current state -', { 
     isLoading, 
     isAuthenticated, 
     hasUser: !!user, 
     hasSession: !!session,
+    isLoggingOut,
     userRole: user?.role 
   });
 
