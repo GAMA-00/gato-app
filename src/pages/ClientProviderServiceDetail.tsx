@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -155,7 +154,7 @@ const ClientProviderServiceDetail = () => {
     <>
       <Navbar />
       <PageContainer title="" subtitle="">
-        <div className="max-w-4xl mx-auto space-y-8 px-2 sm:px-4 md:px-0">
+        <div className="max-w-4xl mx-auto space-y-8 px-4 sm:px-4 md:px-0">
           {/* Back button */}
           <Button 
             variant="ghost" 
@@ -175,7 +174,7 @@ const ClientProviderServiceDetail = () => {
               </AvatarFallback>
             </Avatar>
             
-            <div className="px-2">
+            <div className="px-4">
               <h1 className="text-2xl sm:text-3xl font-bold text-luxury-navy mb-3 break-words">
                 {transformedProvider.name}
               </h1>
@@ -187,9 +186,6 @@ const ClientProviderServiceDetail = () => {
                   <span className="font-medium text-lg">
                     {transformedProvider.rating.toFixed(1)}
                   </span>
-                  <span className="text-muted-foreground text-sm">
-                    ({transformedProvider.ratingCount} valoraciones)
-                  </span>
                 </div>
                 <LevelBadge level={providerLevel.level} size="md" />
               </div>
@@ -197,7 +193,7 @@ const ClientProviderServiceDetail = () => {
           </div>
 
           {/* 2. Descripción del servicio */}
-          <div className="space-y-4 px-2">
+          <div className="space-y-4 px-4">
             <h2 className="text-2xl font-semibold text-luxury-navy">
               {serviceDetails.title}
             </h2>
@@ -208,17 +204,17 @@ const ClientProviderServiceDetail = () => {
           </div>
 
           {/* 3. Galería de trabajos */}
-          <div className="px-2">
+          <div className="px-4">
             <ProviderGallery provider={transformedProvider} />
           </div>
 
           {/* 4. Sobre Mí */}
-          <div className="px-2">
+          <div className="px-4">
             <ProviderAbout provider={transformedProvider} />
           </div>
 
           {/* 5. Certificación Profesional */}
-          <div className="px-2">
+          <div className="px-4">
             <ProviderCertifications 
               certifications={transformedProvider.certificationFiles}
             />
@@ -226,7 +222,7 @@ const ClientProviderServiceDetail = () => {
 
           {/* 6. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-            <div className="space-y-6 px-2">
+            <div className="space-y-6 px-4">
               <h3 className="text-2xl font-semibold text-luxury-navy">
                 Servicios Disponibles
               </h3>
@@ -246,7 +242,7 @@ const ClientProviderServiceDetail = () => {
           )}
 
           {/* 7. Botón "Agendar Servicio" */}
-          <div className="flex justify-center pt-8 pb-12 px-2">
+          <div className="flex justify-center pt-8 pb-12 px-4">
             <Button 
               onClick={handleBookService}
               size="lg"
