@@ -95,37 +95,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
-    let loadingTimeout: NodeJS.Timeout;
 
     console.log('AuthContext: Starting initialization');
 
-    // Safety timeout to ensure loading never gets stuck
-    loadingTimeout = setTimeout(() => {
-      if (mounted) {
-        console.log('AuthContext: Loading timeout reached, forcing stop');
-        setIsLoading(false);
-      }
-    }, 5000);
-
     const initializeAuth = async () => {
       try {
-        // First, get the current session
+        // Get the current session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('AuthContext: Error getting session:', error);
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setIsLoading(false);
-          }
-          return;
         }
 
         if (currentSession?.user && mounted) {
           console.log('AuthContext: Found existing session');
           setSession(currentSession);
           
+          // Always try to load profile, but don't block on it
           try {
             const userData = await loadUserProfile(currentSession.user);
             if (mounted) {
@@ -144,15 +130,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(null);
           }
         }
-
-        if (mounted) {
-          setIsLoading(false);
-        }
       } catch (error) {
         console.error('AuthContext: Initialize error:', error);
         if (mounted) {
           setSession(null);
           setUser(null);
+        }
+      } finally {
+        // Always stop loading, regardless of what happened
+        if (mounted) {
           setIsLoading(false);
         }
       }
@@ -165,33 +151,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (!mounted) return;
 
-        try {
-          if (currentSession?.user) {
-            console.log('AuthContext: User authenticated, loading profile');
-            setSession(currentSession);
-            
-            try {
-              const userData = await loadUserProfile(currentSession.user);
-              if (mounted) {
-                setUser(userData);
-              }
-            } catch (profileError) {
-              console.error('AuthContext: Profile load failed in auth change:', profileError);
-              if (mounted) {
-                setUser(createUserFromAuth(currentSession.user));
-              }
+        if (currentSession?.user) {
+          console.log('AuthContext: User authenticated, loading profile');
+          setSession(currentSession);
+          
+          // Load profile but don't block the auth flow
+          try {
+            const userData = await loadUserProfile(currentSession.user);
+            if (mounted) {
+              setUser(userData);
             }
-          } else {
-            console.log('AuthContext: No session, clearing state');
-            setSession(null);
-            setUser(null);
+          } catch (profileError) {
+            console.error('AuthContext: Profile load failed in auth change:', profileError);
+            if (mounted) {
+              setUser(createUserFromAuth(currentSession.user));
+            }
           }
-        } catch (error) {
-          console.error('AuthContext: Error in auth state change:', error);
-          if (currentSession?.user && mounted) {
-            setSession(currentSession);
-            setUser(createUserFromAuth(currentSession.user));
-          }
+        } else {
+          console.log('AuthContext: No session, clearing state');
+          setSession(null);
+          setUser(null);
         }
       }
     );
@@ -201,7 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
-      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);
