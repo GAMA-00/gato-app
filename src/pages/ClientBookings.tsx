@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Navbar from '@/components/layout/Navbar';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -292,100 +293,105 @@ const ClientBookings = () => {
   };
 
   return (
-    <PageContainer
-      title={
-        <div className="flex items-center gap-2">
-          <span>Mis Reservas</span>
-          <div className="flex items-center text-red-500">
-            <Flame className="h-5 w-5" />
-            <span className="font-medium ml-0.5">{activeRecurringCount}</span>
-          </div>
-        </div>
-      }
-      subtitle="Ver y administrar tus citas"
-      action={
-        <Button onClick={() => navigate('/client')}>
-          Reservar Nuevo Servicio
-        </Button>
-      }
-    >
-      {error && (
-        <Alert className="mb-6">
-          <AlertDescription className="space-y-4">
-            <div>
-              <h4 className="font-medium text-red-800">Error al cargar las reservas</h4>
-              <p className="text-red-600 mt-1">
-                Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente.
-              </p>
+    <>
+      <Navbar />
+      <div className="md:ml-52">
+        <PageContainer
+          title={
+            <div className="flex items-center gap-2">
+              <span>Mis Reservas</span>
+              <div className="flex items-center text-red-500">
+                <Flame className="h-5 w-5" />
+                <span className="font-medium ml-0.5">{activeRecurringCount}</span>
+              </div>
             </div>
-            <Button 
-              onClick={handleRetry}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Reintentar
+          }
+          subtitle="Ver y administrar tus citas"
+          action={
+            <Button onClick={() => navigate('/client/categories')}>
+              Reservar Nuevo Servicio
             </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <div className="space-y-6 px-1">
-        <section>
-          <h2 className="text-lg font-medium mb-4">
-            Citas Próximas 
-            {upcomingBookings.length > 0 && (
-              <span className="text-sm text-muted-foreground ml-2">
-                ({upcomingBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
-              </span>
-            )}
-          </h2>
-          {isLoading ? (
-            <div>
-              <BookingSkeleton />
-              <BookingSkeleton />
-            </div>
-          ) : upcomingBookings.length > 0 ? (
-            <div>
-              {upcomingBookings.map(booking => (
-                <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No hay citas próximas
-            </p>
+          }
+        >
+          {error && (
+            <Alert className="mb-6">
+              <AlertDescription className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-red-800">Error al cargar las reservas</h4>
+                  <p className="text-red-600 mt-1">
+                    Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente.
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleRetry}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Reintentar
+                </Button>
+              </AlertDescription>
+            </Alert>
           )}
-        </section>
-        
-        <section>
-          <h2 className="text-lg font-medium mb-4">
-            Citas Pasadas
-            {pastBookings.length > 0 && (
-              <span className="text-sm text-muted-foreground ml-2">
-                ({pastBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
-              </span>
-            )}
-          </h2>
-          {isLoading ? (
-            <div>
-              <BookingSkeleton />
-            </div>
-          ) : pastBookings.length > 0 ? (
-            <div>
-              {pastBookings.map(booking => (
-                <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No hay citas pasadas
-            </p>
-          )}
-        </section>
+          
+          <div className="space-y-6 px-1">
+            <section>
+              <h2 className="text-lg font-medium mb-4">
+                Citas Próximas 
+                {upcomingBookings.length > 0 && (
+                  <span className="text-sm text-muted-foreground ml-2">
+                    ({upcomingBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
+                  </span>
+                )}
+              </h2>
+              {isLoading ? (
+                <div>
+                  <BookingSkeleton />
+                  <BookingSkeleton />
+                </div>
+              ) : upcomingBookings.length > 0 ? (
+                <div>
+                  {upcomingBookings.map(booking => (
+                    <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No hay citas próximas
+                </p>
+              )}
+            </section>
+            
+            <section>
+              <h2 className="text-lg font-medium mb-4">
+                Citas Pasadas
+                {pastBookings.length > 0 && (
+                  <span className="text-sm text-muted-foreground ml-2">
+                    ({pastBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
+                  </span>
+                )}
+              </h2>
+              {isLoading ? (
+                <div>
+                  <BookingSkeleton />
+                </div>
+              ) : pastBookings.length > 0 ? (
+                <div>
+                  {pastBookings.map(booking => (
+                    <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No hay citas pasadas
+                </p>
+              )}
+            </section>
+          </div>
+        </PageContainer>
       </div>
-    </PageContainer>
+    </>
   );
 };
 
