@@ -8,6 +8,14 @@ import ClientCard from '@/components/clients/ClientCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
 
+interface ClientData {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+}
+
 const Clients = () => {
   const { user } = useAuth();
 
@@ -34,13 +42,13 @@ const Clients = () => {
       if (error) throw error;
       
       // Remove duplicates and flatten, filtering out invalid entries with proper typing
-      const uniqueClients = data.reduce((acc: Array<{ id: string; name?: string; email?: string; phone?: string; avatar_url?: string }>, curr) => {
+      const uniqueClients = data.reduce((acc: ClientData[], curr) => {
         if (curr.users && 
             curr.users !== null &&
             typeof curr.users === 'object' && 
             'id' in curr.users && 
             !acc.find(client => client.id === (curr.users as any).id)) {
-          acc.push(curr.users as { id: string; name?: string; email?: string; phone?: string; avatar_url?: string });
+          acc.push(curr.users as ClientData);
         }
         return acc;
       }, []);
@@ -50,11 +58,11 @@ const Clients = () => {
     enabled: !!user?.id,
   });
 
-  const handleEditClient = (client: any) => {
+  const handleEditClient = (client: ClientData) => {
     console.log('Edit client:', client);
   };
 
-  const handleDeleteClient = (client: any) => {
+  const handleDeleteClient = (client: ClientData) => {
     console.log('Delete client:', client);
   };
 
