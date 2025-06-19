@@ -217,8 +217,8 @@ const ClientProviderServiceDetail = () => {
             <Button 
               onClick={handleBookService}
               size="lg"
-              className="w-full md:w-auto bg-luxury-navy hover:bg-luxury-navy/90 text-lg px-12 py-4"
-              disabled={selectedVariants.length === 0}
+              className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white text-lg px-12 py-4 shadow-lg"
+              disabled={!serviceDetails?.serviceVariants || serviceDetails.serviceVariants.length === 0 || selectedVariants.length === 0}
             >
               <Calendar className="mr-3 h-6 w-6" />
               Agendar Servicio
