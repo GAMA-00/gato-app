@@ -61,7 +61,7 @@ const ClientServiceDetail = () => {
     );
   }
 
-  if (!service) {
+  if (!service || !service.users) {
     return (
       <>
         <Navbar />

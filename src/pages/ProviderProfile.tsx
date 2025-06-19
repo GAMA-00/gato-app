@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
+import { ServiceCategoryGroup } from '@/lib/types';
 
 const ProviderProfile = () => {
   const { providerId } = useParams();
@@ -34,7 +35,7 @@ const ProviderProfile = () => {
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['provider-services', providerId],
-    queryFn: async () => {
+    queryFn: async (): Promise<ServiceCategoryGroup[]> => {
       if (!providerId) return [];
       
       const { data, error } = await supabase
@@ -54,7 +55,7 @@ const ProviderProfile = () => {
       if (error) throw error;
       
       // Group by category
-      const grouped = (data || []).reduce((acc: any, listing: any) => {
+      const grouped = (data || []).reduce((acc: { [key: string]: ServiceCategoryGroup }, listing: any) => {
         const categoryName = listing.service_types?.service_categories?.name || 'Otros';
         if (!acc[categoryName]) {
           acc[categoryName] = {

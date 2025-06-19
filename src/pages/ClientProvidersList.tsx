@@ -47,7 +47,7 @@ const ClientProvidersList = () => {
       const { data, error } = await query;
       if (error) throw error;
       
-      // Filter out items with query errors and ensure users data exists
+      // Filter out items with invalid users data
       return (data || []).filter(item => 
         item.users && 
         item.users !== null &&
