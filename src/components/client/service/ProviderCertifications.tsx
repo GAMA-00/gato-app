@@ -35,9 +35,6 @@ const ProviderCertifications = ({ certifications }: ProviderCertificationsProps)
             <div key={index} className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
               <div className="flex items-center">
                 <FileText className="h-5 w-5 text-blue-600 mr-3" />
-                <span className="font-medium text-sm">
-                  Certificación
-                </span>
               </div>
               <Button
                 size="sm"
