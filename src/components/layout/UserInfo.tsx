@@ -22,10 +22,14 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
     console.log('UserInfo: Logout button clicked');
     
     try {
+      // Deshabilitar el botón temporalmente para evitar clics múltiples
+      (e.target as HTMLButtonElement).disabled = true;
+      
       await logout();
+      
     } catch (error) {
-      console.error('UserInfo: Error during logout, forcing redirect:', error);
-      // Si hay cualquier error, forzar redirección
+      console.error('UserInfo: Error during logout:', error);
+      // En caso de error, forzar redirección directa
       window.location.href = '/login';
     }
   };
@@ -69,7 +73,7 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
       <Button 
         variant="outline" 
         size="sm"
-        className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5 h-auto"
+        className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5 h-auto hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
         onClick={handleLogout}
         type="button"
       >

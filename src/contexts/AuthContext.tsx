@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -129,33 +130,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: Starting logout process');
     
     try {
-      // Limpiar estado inmediatamente
+      // Limpiar estado local inmediatamente
       setUser(null);
       setSession(null);
-      
-      // Limpiar localStorage de Supabase
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('supabase.auth.')) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      setIsLoading(false);
       
       // Cerrar sesión en Supabase
-      await supabase.auth.signOut();
-      console.log('AuthContext: Logout completed successfully');
+      const { error } = await supabase.auth.signOut();
       
-      // Redirección inmediata
-      window.location.replace('/login');
+      if (error) {
+        console.error('AuthContext: Logout error:', error);
+      } else {
+        console.log('AuthContext: Logout successful');
+      }
+      
+      // Limpiar localStorage de manera más específica
+      try {
+        // Limpiar solo las claves relacionadas con Supabase auth
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('supabase.auth.') || key.includes('supabase-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (storageError) {
+        console.error('AuthContext: Error clearing localStorage:', storageError);
+      }
+      
+      // Forzar redirección a la página de login
+      window.location.href = '/login';
       
     } catch (error) {
-      console.error('AuthContext: Logout error:', error);
+      console.error('AuthContext: Logout exception:', error);
       // Aún así, forzar limpieza y redirección
       setUser(null);
       setSession(null);
-      window.location.replace('/login');
+      setIsLoading(false);
+      window.location.href = '/login';
     }
   };
 
