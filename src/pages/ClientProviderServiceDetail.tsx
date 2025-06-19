@@ -109,10 +109,7 @@ const ClientProviderServiceDetail = () => {
             <p className="text-muted-foreground mb-4">
               No se pudo cargar la información del servicio
             </p>
-            <Button onClick={() => navigate(-1)}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
+            <BackButton onClick={handleBack} />
           </div>
         </PageContainer>
       </>
@@ -164,7 +161,7 @@ const ClientProviderServiceDetail = () => {
     <>
       <Navbar />
       <PageContainer title="" subtitle="">
-        <div className="max-w-4xl mx-auto space-y-8 px-4 sm:px-4 md:px-0">
+        <div className="max-w-4xl mx-auto space-y-8 px-4 sm:px-6 md:px-0">
           {/* Back button */}
           <BackButton onClick={handleBack} className="mb-4" />
 
@@ -196,7 +193,7 @@ const ClientProviderServiceDetail = () => {
           </div>
 
           {/* 2. Descripción del servicio */}
-          <div className="space-y-4 px-4">
+          <div className="space-y-4 px-2 sm:px-4">
             <h2 className="text-2xl font-semibold text-luxury-navy">
               {serviceDetails.title}
             </h2>
@@ -207,17 +204,17 @@ const ClientProviderServiceDetail = () => {
           </div>
 
           {/* 3. Galería de trabajos */}
-          <div className="px-4">
+          <div className="px-2 sm:px-4">
             <ProviderGallery provider={transformedProvider} />
           </div>
 
           {/* 4. Sobre Mí */}
-          <div className="px-4">
+          <div className="px-2 sm:px-4">
             <ProviderAbout provider={transformedProvider} />
           </div>
 
           {/* 5. Certificación Profesional */}
-          <div className="px-4">
+          <div className="px-2 sm:px-4">
             <ProviderCertifications 
               certifications={transformedProvider.certificationFiles}
             />
@@ -225,7 +222,7 @@ const ClientProviderServiceDetail = () => {
 
           {/* 6. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-            <div className="space-y-6 px-4">
+            <div className="space-y-6 px-2 sm:px-4">
               <h3 className="text-2xl font-semibold text-luxury-navy">
                 Servicios Disponibles
               </h3>
@@ -245,7 +242,7 @@ const ClientProviderServiceDetail = () => {
           )}
 
           {/* 7. Botón "Agendar Servicio" */}
-          <div className="flex justify-center pt-8 pb-12 px-4">
+          <div className="flex justify-center pt-8 pb-12 px-2 sm:px-4">
             <Button 
               onClick={handleBookService}
               size="lg"
