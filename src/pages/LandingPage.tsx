@@ -7,6 +7,8 @@ import { User, Briefcase } from 'lucide-react';
 const LandingPage = () => {
   const navigate = useNavigate();
 
+  console.log('LandingPage: Rendering landing page');
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-8">
@@ -30,7 +32,10 @@ const LandingPage = () => {
         <div className="w-full space-y-4">
           {/* Client Button - Black */}
           <Button 
-            onClick={() => navigate('/login?type=client')}
+            onClick={() => {
+              console.log('LandingPage: Navigating to client login');
+              navigate('/login?type=client');
+            }}
             className="w-full h-14 bg-black text-white hover:bg-gray-800 rounded-xl text-base font-medium"
             size="lg"
           >
@@ -40,7 +45,10 @@ const LandingPage = () => {
           
           {/* Provider Button - White with border */}
           <Button 
-            onClick={() => navigate('/login?type=provider')}
+            onClick={() => {
+              console.log('LandingPage: Navigating to provider login');
+              navigate('/login?type=provider');
+            }}
             variant="outline"
             className="w-full h-14 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 rounded-xl text-base font-medium"
             size="lg"

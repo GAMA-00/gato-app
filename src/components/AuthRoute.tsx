@@ -12,7 +12,7 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
 
   console.log('AuthRoute: State check -', { isLoading, isAuthenticated, userRole: user?.role });
 
-  // Show loading while checking authentication
+  // Mostrar loading mientras se verifica autenticación (con timeout de seguridad en AuthContext)
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -24,14 +24,14 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
     );
   }
 
-  // If authenticated and has role, redirect to appropriate dashboard
+  // Si está autenticado, redirigir según el rol
   if (isAuthenticated && user?.role) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('AuthRoute: Redirecting authenticated user to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  // If not authenticated, show the content (landing page, login, register)
+  // Si no está autenticado, mostrar el contenido (landing page, login, register)
   console.log('AuthRoute: Showing auth content');
   return <>{children}</>;
 };

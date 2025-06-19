@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
     try {
-      console.log('Loading profile for user:', authUser.id);
+      console.log('AuthContext: Loading profile for user:', authUser.id);
       
       const { data: profile, error } = await supabase
         .from('users')
@@ -47,12 +47,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Profile loading error:', error);
+        console.error('AuthContext: Profile loading error:', error);
         return null;
       }
 
       if (!profile) {
-        console.error('No profile found');
+        console.error('AuthContext: No profile found');
         return null;
       }
 
@@ -72,76 +72,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         apartment: '',
       };
 
-      console.log('User profile loaded successfully:', userData);
+      console.log('AuthContext: User profile loaded successfully:', userData);
       return userData;
     } catch (error) {
-      console.error('Exception loading user profile:', error);
+      console.error('AuthContext: Exception loading user profile:', error);
       return null;
     }
   };
 
   useEffect(() => {
     let mounted = true;
+    let authTimeout: NodeJS.Timeout;
     
     console.log('AuthContext: Starting initialization');
 
-    const initializeAuth = async () => {
-      try {
-        // First, get the current session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        console.log('AuthContext: Initial session check -', !!session);
-
-        if (session?.user && mounted) {
-          console.log('AuthContext: Found existing session, loading profile');
-          setSession(session);
-          const userData = await loadUserProfile(session.user);
-          if (mounted) {
-            setUser(userData);
-            setIsLoading(false);
-          }
-        } else {
-          console.log('AuthContext: No existing session');
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setIsLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error('AuthContext: Initialization error:', error);
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          setIsLoading(false);
-        }
+    // Timeout de seguridad para evitar loops infinitos
+    authTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.warn('AuthContext: Auth initialization timeout, forcing completion');
+        setIsLoading(false);
       }
-    };
+    }, 5000); // 5 segundos timeout
 
-    // Set up auth state listener
+    // Solo usar onAuthStateChange para manejar todos los casos
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('AuthContext: Auth state changed -', event, !!session);
         
         if (!mounted) return;
 
-        if (event === 'SIGNED_IN' && session?.user) {
+        if (event === 'INITIAL_SESSION') {
+          if (session?.user) {
+            console.log('AuthContext: Initial session found, loading profile');
+            setSession(session);
+            const userData = await loadUserProfile(session.user);
+            if (mounted) {
+              setUser(userData);
+              setIsLoading(false);
+              clearTimeout(authTimeout);
+            }
+          } else {
+            console.log('AuthContext: No initial session');
+            if (mounted) {
+              setSession(null);
+              setUser(null);
+              setIsLoading(false);
+              clearTimeout(authTimeout);
+            }
+          }
+        } else if (event === 'SIGNED_IN' && session?.user) {
           console.log('AuthContext: User signed in, loading profile');
           setSession(session);
           const userData = await loadUserProfile(session.user);
           if (mounted) {
             setUser(userData);
             setIsLoading(false);
+            clearTimeout(authTimeout);
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('AuthContext: User signed out');
@@ -149,22 +135,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(null);
             setUser(null);
             setIsLoading(false);
+            clearTimeout(authTimeout);
           }
         } else if (event === 'TOKEN_REFRESHED' && session) {
           console.log('AuthContext: Token refreshed');
           if (mounted) {
             setSession(session);
-            // Don't reload user profile on token refresh, just update session
+            // No recargar perfil en refresh de token
           }
         }
       }
     );
 
-    // Initialize auth state
-    initializeAuth();
-
     return () => {
       mounted = false;
+      clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -185,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user && data.session) {
         console.log('AuthContext: Login successful, session established');
-        // The auth state change listener will handle updating the context
+        // El listener onAuthStateChange manejará la actualización del estado
         return { success: true };
       }
 
@@ -200,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('AuthContext: Logging out');
       await supabase.auth.signOut();
-      // The auth state change listener will handle clearing the context
+      // El listener onAuthStateChange manejará la limpieza del estado
     } catch (error) {
       console.error('AuthContext: Logout error:', error);
     }

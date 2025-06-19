@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     allowedRoles 
   });
 
-  // Show loading while checking authentication
+  // Mostrar loading mientras se verifica autenticación
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -30,13 +30,13 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // If not authenticated, redirect to login
+  // Si no está autenticado, redirigir a login
   if (!isAuthenticated) {
     console.log('ProtectedRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  // If authenticated but no role, show error state
+  // Si está autenticado pero no tiene rol, mostrar error y botón para recargar
   if (!user?.role) {
     console.log('ProtectedRoute: User authenticated but no role');
     return (
@@ -55,14 +55,14 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // If user doesn't have the required role, redirect appropriately
+  // Si el usuario no tiene el rol requerido, redirigir a su dashboard correspondiente
   if (!allowedRoles.includes(user.role)) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('ProtectedRoute: User role not allowed, redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  // If authenticated and has correct role, show the content
+  // Si está autenticado y tiene el rol correcto, mostrar el contenido
   console.log('ProtectedRoute: Showing protected content');
   return <>{children}</>;
 };
