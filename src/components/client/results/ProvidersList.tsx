@@ -22,7 +22,7 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   
   const { data: providers, isLoading, error } = useProvidersQuery(serviceId, categoryName);
   
-  // Fetch service info for booking data
+  // Fetch service info for navigation context
   const { data: serviceInfo } = useQuery({
     queryKey: ['service-info', serviceId],
     queryFn: async () => {
@@ -47,33 +47,22 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   const handleProviderSelection = (selectedProvider: any) => {
     console.log("Provider selected:", selectedProvider);
     
-    // Get the selected provider's first service for navigation
+    // Navigate to the provider's service detail page for booking
+    // Using the provider ID and their service ID
     const primaryService = selectedProvider.serviceId || selectedProvider.id;
-    const serviceName = selectedProvider.serviceName || serviceInfo?.name || 'Servicio';
-    const providerName = selectedProvider.name || 'Proveedor';
-    const price = selectedProvider.price || 0;
-    const duration = selectedProvider.duration || 60;
     
-    // Create comprehensive booking data to pass as state
-    const bookingData = {
-      serviceId: primaryService,
-      serviceName: serviceName,
+    console.log("Navigating to service detail:", {
       providerId: selectedProvider.id,
-      providerName: providerName,
-      price: price,
-      duration: duration,
-      startTime: null,
-      notes: '',
-      frequency: 'once',
-      requiresScheduling: true
-    };
+      serviceId: primaryService
+    });
     
-    console.log("Navigating to service detail with data:", bookingData);
-    
-    // Navigate to service detail page (provider profile) with booking data
+    // Navigate to the service detail page where users can book
     navigate(`/client/service/${selectedProvider.id}/${primaryService}`, {
-      state: { bookingData },
-      replace: false
+      state: { 
+        fromResults: true,
+        categoryName: categoryName,
+        serviceTypeId: serviceId
+      }
     });
   };
   
@@ -135,7 +124,7 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
         </p>
       </div>
       
-      {/* Single column layout for mobile with full width cards */}
+      {/* Single column layout with full width cards */}
       <div className="flex flex-col gap-4 w-full">
         {providers.map((provider) => (
           <div key={provider.id} className="w-full">
