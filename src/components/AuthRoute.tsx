@@ -23,8 +23,8 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
     );
   }
 
-  if (isAuthenticated) {
-    const redirectTo = user?.role === 'provider' ? '/dashboard' : '/client/categories';
+  if (isAuthenticated && user) {
+    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('AuthRoute: Redirecting authenticated user to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }

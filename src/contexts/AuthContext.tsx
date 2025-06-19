@@ -95,9 +95,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let loadingTimeout: NodeJS.Timeout;
 
     console.log('AuthContext: Starting initialization');
 
+    // Safety timeout to ensure loading never gets stuck
+    loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.log('AuthContext: Loading timeout reached, forcing stop');
+        setIsLoading(false);
+      }
+    }, 5000);
+
+    const initializeAuth = async () => {
+      try {
+        // First, get the current session
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('AuthContext: Error getting session:', error);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        if (currentSession?.user && mounted) {
+          console.log('AuthContext: Found existing session');
+          setSession(currentSession);
+          
+          try {
+            const userData = await loadUserProfile(currentSession.user);
+            if (mounted) {
+              setUser(userData);
+            }
+          } catch (profileError) {
+            console.error('AuthContext: Profile load failed:', profileError);
+            if (mounted) {
+              setUser(createUserFromAuth(currentSession.user));
+            }
+          }
+        } else {
+          console.log('AuthContext: No existing session');
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+          }
+        }
+
+        if (mounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('AuthContext: Initialize error:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('AuthContext: Auth state changed -', event, !!currentSession);
@@ -109,9 +170,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('AuthContext: User authenticated, loading profile');
             setSession(currentSession);
             
-            const userData = await loadUserProfile(currentSession.user);
-            if (mounted) {
-              setUser(userData);
+            try {
+              const userData = await loadUserProfile(currentSession.user);
+              if (mounted) {
+                setUser(userData);
+              }
+            } catch (profileError) {
+              console.error('AuthContext: Profile load failed in auth change:', profileError);
+              if (mounted) {
+                setUser(createUserFromAuth(currentSession.user));
+              }
             }
           } else {
             console.log('AuthContext: No session, clearing state');
@@ -124,16 +192,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(currentSession);
             setUser(createUserFromAuth(currentSession.user));
           }
-        } finally {
-          if (mounted) {
-            setIsLoading(false);
-          }
         }
       }
     );
 
+    // Initialize auth
+    initializeAuth();
+
     return () => {
       mounted = false;
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);
