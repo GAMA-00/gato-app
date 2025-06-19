@@ -47,15 +47,14 @@ const DateTimeSelector = ({
   // Log availability data for debugging
   React.useEffect(() => {
     if (selectedDate) {
-      console.log('DateTimeSelector - Available slots:', availableTimeSlots);
-      console.log('DateTimeSelector - Total available slots:', availableTimeSlots.length);
+      console.log('DateTimeSelector - Provider ID:', providerId);
       console.log('DateTimeSelector - Selected date:', format(selectedDate, 'yyyy-MM-dd'));
-      console.log('DateTimeSelector - Day of week:', selectedDate.getDay());
+      console.log('DateTimeSelector - Service duration:', serviceDuration);
+      console.log('DateTimeSelector - Frequency:', selectedFrequency);
+      console.log('DateTimeSelector - Available slots:', availableTimeSlots);
+      console.log('DateTimeSelector - Is loading:', isLoading);
     }
-  }, [availableTimeSlots, selectedDate]);
-
-  // Only show available slots - filter out unavailable ones completely
-  const availableSlots = availableTimeSlots.filter(slot => slot.available);
+  }, [availableTimeSlots, selectedDate, providerId, serviceDuration, selectedFrequency, isLoading]);
 
   // Format time in 12-hour format for display
   const formatTimeTo12Hour = (time24: string): string => {
@@ -78,6 +77,16 @@ const DateTimeSelector = ({
     if (!date) return '';
     return format(date, "HH:mm:ss");
   };
+
+  // Clear selected time when date changes or no slots available
+  React.useEffect(() => {
+    if (selectedTime && availableTimeSlots.length > 0) {
+      const isSelectedTimeAvailable = availableTimeSlots.some(slot => slot.time === selectedTime);
+      if (!isSelectedTimeAvailable) {
+        onTimeChange('');
+      }
+    }
+  }, [availableTimeSlots, selectedTime, onTimeChange]);
 
   return (
     <Card className="shadow-md">
@@ -141,7 +150,7 @@ const DateTimeSelector = ({
                   variant="outline"
                   size="sm"
                   onClick={refreshAvailability}
-                  disabled={isRefreshing}
+                  disabled={isRefreshing || !selectedDate}
                   className="h-8 px-3"
                 >
                   <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -154,16 +163,17 @@ const DateTimeSelector = ({
               <div className="space-y-4">
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <div className="text-gray-500">
+                    <div className="text-gray-500 flex items-center justify-center gap-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
                       Verificando disponibilidad...
                     </div>
                   </div>
-                ) : availableSlots.length > 0 ? (
+                ) : availableTimeSlots.length > 0 ? (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Clock className="h-4 w-4 text-green-600" />
                       <span className="text-sm font-medium text-green-700">
-                        Horarios disponibles ({availableSlots.length})
+                        Horarios disponibles ({availableTimeSlots.length})
                         {selectedFrequency !== 'once' && (
                           <span className="text-gray-600 ml-1">
                             (considerando recurrencia {getRecurrenceText(selectedFrequency)})
@@ -177,7 +187,7 @@ const DateTimeSelector = ({
                         <SelectValue placeholder="Selecciona una hora" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
-                        {availableSlots.map((slot) => (
+                        {availableTimeSlots.map((slot) => (
                           <SelectItem key={slot.time} value={slot.time}>
                             <div className="flex items-center gap-2">
                               <Clock className="h-3 w-3 text-green-600" />

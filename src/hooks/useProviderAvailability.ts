@@ -29,7 +29,10 @@ export const useProviderAvailability = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchAvailability = useCallback(async (isManualRefresh = false) => {
-    if (!providerId || !selectedDate) return;
+    if (!providerId || !selectedDate) {
+      console.log('Missing providerId or selectedDate');
+      return;
+    }
 
     if (isManualRefresh) {
       setIsRefreshing(true);
@@ -52,8 +55,10 @@ export const useProviderAvailability = ({
         }
       }
 
-      // Check availability for each slot using the validation utility
-      const availableSlots = [];
+      console.log(`Generated ${timeSlots.length} initial time slots`);
+
+      // Check availability for each slot
+      const checkedSlots = [];
       
       for (const slot of timeSlots) {
         const [slotHour, slotMinute] = slot.time.split(':').map(Number);
@@ -63,31 +68,28 @@ export const useProviderAvailability = ({
         const slotEnd = new Date(slotStart);
         slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
 
+        // Skip if slot would end after 7 PM
+        if (slotEnd.getHours() >= 19) {
+          continue;
+        }
+
         // Validate this specific slot
         const validation = await validateAppointmentSlot(providerId, slotStart, slotEnd);
         
         if (!validation.hasConflict) {
-          availableSlots.push({
+          checkedSlots.push({
             time: slot.time,
             available: true
           });
         } else {
-          // Still add to list but mark as unavailable for debugging
-          availableSlots.push({
-            time: slot.time,
-            available: false,
-            conflictReason: validation.conflictReason
-          });
+          console.log(`Slot ${slot.time} unavailable: ${validation.conflictReason}`);
         }
       }
 
-      // Filter only available slots for the final result
-      const finalAvailableSlots = availableSlots.filter(slot => slot.available);
+      console.log(`${checkedSlots.length} available slots found out of ${timeSlots.length} total slots`);
       
-      setAvailableTimeSlots(finalAvailableSlots);
+      setAvailableTimeSlots(checkedSlots);
       setLastUpdated(new Date());
-      
-      console.log(`Generated ${finalAvailableSlots.length} available slots out of ${timeSlots.length} total slots`);
       
     } catch (error) {
       console.error('Error checking availability:', error);
@@ -106,7 +108,10 @@ export const useProviderAvailability = ({
 
   // Auto fetch when dependencies change
   useEffect(() => {
-    fetchAvailability();
+    if (providerId && selectedDate) {
+      console.log('Dependencies changed, fetching availability');
+      fetchAvailability();
+    }
   }, [fetchAvailability]);
 
   // Set up real-time subscription for appointment changes

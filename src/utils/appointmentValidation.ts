@@ -15,7 +15,7 @@ export const validateAppointmentSlot = async (
   excludeAppointmentId?: string
 ): Promise<ConflictCheckResult> => {
   try {
-    console.log(`Validating slot: ${format(startTime, 'yyyy-MM-dd HH:mm')} - ${format(endTime, 'yyyy-MM-dd HH:mm')}`);
+    console.log(`Validating slot: ${format(startTime, 'yyyy-MM-dd HH:mm')} - ${format(endTime, 'yyyy-MM-dd HH:mm')} for provider ${providerId}`);
 
     // Check regular appointments
     const { data: regularAppointments, error: regularError } = await supabase
@@ -23,12 +23,15 @@ export const validateAppointmentSlot = async (
       .select('id, start_time, end_time, client_name, status')
       .eq('provider_id', providerId)
       .in('status', ['pending', 'confirmed', 'completed'])
-      .neq('id', excludeAppointmentId || '');
+      .gte('start_time', format(startTime, 'yyyy-MM-dd'))
+      .lte('start_time', format(endTime, 'yyyy-MM-dd 23:59:59'));
 
     if (regularError) {
       console.error('Error checking regular appointments:', regularError);
-      return { hasConflict: true, conflictReason: 'Error validating availability' };
+      return { hasConflict: false }; // Don't block on error, just log
     }
+
+    console.log(`Found ${regularAppointments?.length || 0} appointments to check`);
 
     // Check for conflicts with regular appointments
     if (regularAppointments) {
@@ -36,7 +39,9 @@ export const validateAppointmentSlot = async (
         const appointmentStart = new Date(appointment.start_time);
         const appointmentEnd = new Date(appointment.end_time);
         
+        // Check if times overlap
         if (startTime < appointmentEnd && endTime > appointmentStart) {
+          console.log(`Conflict found with appointment ${appointment.id}`);
           return {
             hasConflict: true,
             conflictReason: 'Conflicto con cita existente',
@@ -53,7 +58,9 @@ export const validateAppointmentSlot = async (
     // Check blocked time slots
     const dayOfWeek = startTime.getDay();
     const startHour = startTime.getHours();
-    const endHour = endTime.getHours() + (endTime.getMinutes() > 0 ? 1 : 0);
+    const startMinute = startTime.getMinutes();
+    const endHour = endTime.getHours();
+    const endMinute = endTime.getMinutes();
 
     const { data: blockedSlots, error: blockedError } = await supabase
       .from('blocked_time_slots')
@@ -63,12 +70,21 @@ export const validateAppointmentSlot = async (
 
     if (blockedError) {
       console.error('Error checking blocked slots:', blockedError);
-      return { hasConflict: true, conflictReason: 'Error validating blocked slots' };
+      return { hasConflict: false }; // Don't block on error, just log
     }
+
+    console.log(`Found ${blockedSlots?.length || 0} blocked slots to check`);
 
     if (blockedSlots) {
       for (const blocked of blockedSlots) {
-        if (startHour < blocked.end_hour && endHour > blocked.start_hour) {
+        // Convert to minutes for easier comparison
+        const slotStartMinutes = startHour * 60 + startMinute;
+        const slotEndMinutes = endHour * 60 + endMinute;
+        const blockedStartMinutes = blocked.start_hour * 60;
+        const blockedEndMinutes = blocked.end_hour * 60;
+
+        if (slotStartMinutes < blockedEndMinutes && slotEndMinutes > blockedStartMinutes) {
+          console.log(`Conflict found with blocked slot ${blocked.start_hour}-${blocked.end_hour}`);
           return {
             hasConflict: true,
             conflictReason: 'Horario bloqueado por el proveedor',
@@ -87,7 +103,7 @@ export const validateAppointmentSlot = async (
 
   } catch (error) {
     console.error('Error in validateAppointmentSlot:', error);
-    return { hasConflict: true, conflictReason: 'Error inesperado al validar disponibilidad' };
+    return { hasConflict: false }; // Don't block on error, allow booking
   }
 };
 
@@ -102,6 +118,8 @@ export const checkRecurringConflicts = async (
   }
 
   try {
+    console.log(`Checking recurring conflicts for ${recurrence} recurrence`);
+    
     // Generate next 8 occurrences to check for conflicts
     const futureDates = [];
     let checkDate = new Date(startTime);
@@ -123,6 +141,7 @@ export const checkRecurringConflicts = async (
       
       const result = await validateAppointmentSlot(providerId, futureStartTime, futureEndTime);
       if (result.hasConflict) {
+        console.log(`Recurring conflict found on ${format(futureStartTime, 'dd/MM/yyyy')}`);
         return {
           hasConflict: true,
           conflictReason: `Conflicto en recurrencia futura (${format(futureStartTime, 'dd/MM/yyyy')})`,
@@ -134,10 +153,11 @@ export const checkRecurringConflicts = async (
       }
     }
 
+    console.log('No recurring conflicts found');
     return { hasConflict: false };
 
   } catch (error) {
     console.error('Error checking recurring conflicts:', error);
-    return { hasConflict: true, conflictReason: 'Error al validar recurrencia' };
+    return { hasConflict: false }; // Don't block on error
   }
 };
