@@ -1,363 +1,85 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import ProviderHeader from '@/components/providers/ProviderHeader';
-import ProviderAbout from '@/components/providers/ProviderAbout';
-import ProviderGallery from '@/components/providers/ProviderGallery';
-import ProviderServices from '@/components/providers/ProviderServices';
 import ProviderInfo from '@/components/providers/ProviderInfo';
-import ProviderAchievements from '@/components/providers/ProviderAchievements';
+import ProviderServices from '@/components/providers/ProviderServices';
 import ProviderReviews from '@/components/providers/ProviderReviews';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import ProviderGallery from '@/components/providers/ProviderGallery';
+import ProviderAchievements from '@/components/providers/ProviderAchievements';
+import ProviderAbout from '@/components/providers/ProviderAbout';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
-import { ServiceCategoryGroup, ProviderProfile } from '@/lib/types';
+import Navbar from '@/components/layout/Navbar';
 
-interface ServiceOption {
-  id: string;
-  size: string;
-  price: number;
-  duration: number;
-}
+const ProviderProfile = () => {
+  const { providerId } = useParams();
 
-interface ProviderService {
-  id: string;
-  name: string;
-  options: ServiceOption[];
-}
-
-// Interface for service type data from supabase
-interface ServiceTypeData {
-  name?: string;
-  category?: {
-    name?: string;
-    label?: string;
-  };
-}
-
-const ProviderProfilePage = () => {
-  const { providerId } = useParams<{ providerId: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { bookingData } = location.state || {};
-  
-  // Fetch provider data from users table
   const { data: provider, isLoading } = useQuery({
-    queryKey: ['provider', providerId],
+    queryKey: ['provider-profile', providerId],
     queryFn: async () => {
-      if (!providerId) return null;
-      
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', providerId)
-        .eq('role', 'provider')
-        .maybeSingle();
+        .single();
         
       if (error) throw error;
-      
-      if (!data) {
-        toast.error('No se encontró el proveedor');
-        return null;
-      }
-      
-      // Parse certification files if available
-      let certificationFiles = [];
-      try {
-        if (data.certification_files) {
-          certificationFiles = JSON.parse(JSON.stringify(data.certification_files));
-        }
-      } catch (e) {
-        console.error("Error parsing certification files:", e);
-      }
-      
-      // Format provider data for the UI
-      return {
-        id: data.id || '',
-        name: data.name || 'Proveedor',
-        avatar: data.avatar_url,
-        rating: data.average_rating || 5.0, // Use actual rating from database
-        ratingCount: 0, 
-        aboutMe: data.about_me || 'No hay información disponible',
-        galleryImages: [], 
-        experienceYears: data.experience_years || 0,
-        hasCertifications: certificationFiles.length > 0, 
-        certificationFiles: certificationFiles,
-        handlesDangerousDogs: false, 
-        servicesCompleted: 0, 
-        isVerified: true, 
-        joinDate: new Date(data.created_at || new Date()),
-        detailedRatings: {
-          service: data.average_rating || 5.0,
-          valueForMoney: data.average_rating || 5.0,
-          friendliness: data.average_rating || 5.0,
-          materials: data.average_rating || 5.0,
-          professionalism: data.average_rating || 5.0,
-          punctuality: data.average_rating || 5.0
-        },
-        reviews: [] 
-      } as ProviderProfile;
+      return data;
     },
-    enabled: !!providerId
+    enabled: !!providerId,
   });
-  
-  // Fetch provider's services
-  const { data: serviceCategories = [], isLoading: loadingServices } = useQuery({
-    queryKey: ['provider-services', providerId],
-    queryFn: async () => {
-      if (!providerId) return [];
-      
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          service_type:service_type_id(
-            name,
-            category:category_id(name, label)
-          )
-        `)
-        .eq('provider_id', providerId);
-        
-      if (error) throw error;
-      
-      // Group services by category
-      const servicesByCategory: Record<string, ServiceCategoryGroup> = {};
-      
-      data.forEach(listing => {
-        const serviceType = listing.service_type as ServiceTypeData || {};
-        const category = serviceType?.category || {};
-        // Safe access with fallbacks
-        const categoryName = category?.name || 'other';
-        const categoryLabel = category?.label || 'Otros';
-        
-        if (!servicesByCategory[categoryName]) {
-          servicesByCategory[categoryName] = {
-            id: categoryName,
-            name: categoryLabel,
-            services: []
-          };
-        }
-        
-        // Create options for different pet sizes
-        const basePrice = listing.base_price || 0;
-        const baseDuration = listing.duration || 60;
-        
-        const options = [
-          {
-            id: `${listing.id}-small`,
-            size: 'Perro pequeño',
-            price: basePrice,
-            duration: baseDuration
-          },
-          {
-            id: `${listing.id}-medium`,
-            size: 'Perro mediano',
-            price: Math.round(basePrice * 1.15),
-            duration: Math.round(baseDuration * 1.2)
-          },
-          {
-            id: `${listing.id}-large`,
-            size: 'Perro grande',
-            price: Math.round(basePrice * 1.5),
-            duration: Math.round(baseDuration * 1.5)
-          },
-          {
-            id: `${listing.id}-giant`,
-            size: 'Perro gigante',
-            price: Math.round(basePrice * 2),
-            duration: Math.round(baseDuration * 1.8)
-          }
-        ];
-        
-        const service: ProviderService = {
-          id: listing.id,
-          name: listing.title,
-          options: options
-        };
-        
-        servicesByCategory[categoryName].services.push(service);
-      });
-      
-      return Object.values(servicesByCategory) as ServiceCategoryGroup[];
-    },
-    enabled: !!providerId
-  });
-  
-  // Fetch recurring clients count for this provider
-  const { data: recurringClientsCount = 0 } = useQuery({
-    queryKey: ['recurring-clients', providerId],
-    queryFn: async () => {
-      if (!providerId) return 0;
-      
-      const { data, error } = await supabase
-        .rpc('get_recurring_clients_count' as any, { provider_id: providerId });
-        
-      if (error) {
-        console.error('Error fetching recurring clients count:', error);
-        return 0;
-      }
-      
-      // Ensure we return a number
-      const count = Number(data);
-      return isNaN(count) ? 0 : count;
-    },
-    enabled: !!providerId
-  });
-  
-  // Calculate provider level based on account creation date
-  const getProviderLevel = (joinDate: Date) => {
-    const now = new Date();
-    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-    
-    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
-    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
-    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
-    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
-    return { level: 5, name: 'Maestro' };
-  };
-  
-  const handleServiceSelection = (serviceId: string, optionId: string) => {
-    if (!bookingData) {
-      toast.error("No se encontró información de reserva");
-      return;
-    }
-    
-    // Find the selected service and option
-    let selectedService = null;
-    let selectedOption = null;
-    
-    for (const category of serviceCategories) {
-      for (const service of category.services) {
-        if (service.id === serviceId) {
-          selectedService = service;
-          selectedOption = service.options.find(opt => opt.id === optionId);
-          break;
-        }
-      }
-      if (selectedService) break;
-    }
-    
-    if (!selectedService || !selectedOption) {
-      toast.error("Servicio no encontrado");
-      return;
-    }
-    
-    // Navigate to summary page with all data
-    navigate(`/client/booking-summary`, {
-      state: {
-        bookingData: {
-          ...bookingData,
-          serviceId,
-          serviceName: selectedService.name,
-          price: selectedOption.price,
-          duration: selectedOption.duration,
-          providerId,
-          providerName: provider?.name,
-          petSize: selectedOption.size
-        }
-      }
-    });
-  };
-  
-  const handleBack = () => {
-    navigate(-1);
-  };
-  
-  if (isLoading || !provider) {
+
+  if (isLoading) {
     return (
-      <PageContainer
-        title={<Skeleton className="h-10 w-40" />}
-        subtitle={
-          <Button 
-            variant="ghost" 
-            onClick={handleBack} 
-            className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft size={16} className="mr-1" />
-            <span>Volver</span>
-          </Button>
-        }
-      >
-        <div className="space-y-8 animate-pulse">
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <div className="grid grid-cols-2 gap-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
+      <>
+        <Navbar />
+        <PageContainer title="Perfil del Proveedor" subtitle="Cargando...">
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-64 w-full rounded-lg" />
           </div>
-        </div>
-      </PageContainer>
+        </PageContainer>
+      </>
+    );
+  }
+
+  if (!provider) {
+    return (
+      <>
+        <Navbar />
+        <PageContainer title="Proveedor no encontrado">
+          <p>El proveedor que buscas no existe.</p>
+        </PageContainer>
+      </>
     );
   }
 
   return (
-    <PageContainer
-      title={provider.name}
-      subtitle={
-        <Button 
-          variant="ghost" 
-          onClick={handleBack} 
-          className="p-0 h-auto flex items-center text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={16} className="mr-1" />
-          <span>Volver</span>
-        </Button>
-      }
-    >
-      <div className="space-y-8 max-w-4xl mx-auto">
-        {/* Cabecera del proveedor */}
-        <ProviderHeader 
-          provider={provider} 
-          bookingMode={!!bookingData}
-        />
-        
-        {/* Pestañas para la información del proveedor */}
-        <Tabs defaultValue="services" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-6">
-            <TabsTrigger value="services">Servicios</TabsTrigger>
-            <TabsTrigger value="about">Sobre mí</TabsTrigger>
-            <TabsTrigger value="gallery">Galería</TabsTrigger>
-            <TabsTrigger value="reviews">Valoraciones</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="services" className="space-y-6">
-            <ProviderServices 
-              categories={serviceCategories}
-              isLoading={loadingServices} 
-              onServiceSelect={handleServiceSelection}
-              bookingMode={!!bookingData}
-            />
-            <ProviderInfo provider={provider} />
-            <ProviderAchievements 
-              provider={provider} 
-              recurringClientsCount={recurringClientsCount}
-            />
-          </TabsContent>
-          
-          <TabsContent value="about" className="space-y-6">
-            <ProviderAbout provider={provider} />
-            <ProviderInfo provider={provider} />
-            <ProviderAchievements 
-              provider={provider} 
-              recurringClientsCount={recurringClientsCount}
-            />
-          </TabsContent>
-          
-          <TabsContent value="gallery" className="space-y-6">
-            <ProviderGallery provider={provider} />
-          </TabsContent>
-          
-          <TabsContent value="reviews" className="space-y-6">
-            <ProviderReviews provider={provider} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </PageContainer>
+    <>
+      <Navbar />
+      <PageContainer>
+        <div className="space-y-8">
+          <ProviderHeader provider={provider} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <ProviderAbout provider={provider} />
+              <ProviderServices providerId={providerId!} />
+              <ProviderReviews providerId={providerId!} />
+            </div>
+            <div className="space-y-6">
+              <ProviderInfo provider={provider} />
+              <ProviderAchievements providerId={providerId!} />
+              <ProviderGallery providerId={providerId!} />
+            </div>
+          </div>
+        </div>
+      </PageContainer>
+    </>
   );
 };
 
-export default ProviderProfilePage;
+export default ProviderProfile;

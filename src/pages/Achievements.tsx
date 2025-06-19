@@ -1,151 +1,90 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Trophy, TrendingUp, Star } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
-import LevelBadge from '@/components/achievements/LevelBadge';
-import RatingHistoryComponent from '@/components/achievements/RatingHistory';
+import { useAuth } from '@/contexts/AuthContext';
 import { useProviderAchievements } from '@/hooks/useProviderAchievements';
-import { ACHIEVEMENT_LEVELS } from '@/lib/achievementTypes';
+import LevelCard from '@/components/achievements/LevelCard';
+import AchievementCard from '@/components/achievements/AchievementCard';
+import RatingHistory from '@/components/achievements/RatingHistory';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
+import Navbar from '@/components/layout/Navbar';
 
-const Achievements: React.FC = () => {
-  const { data: achievements, isLoading, error } = useProviderAchievements();
+const Achievements = () => {
+  const { user } = useAuth();
+  const { data: achievements, isLoading } = useProviderAchievements();
 
-  if (error) {
+  if (isLoading) {
     return (
-      <PageContainer title="Logros">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Error al cargar los logros</p>
-        </div>
-      </PageContainer>
+      <>
+        <Navbar />
+        <PageContainer title="Logros" subtitle="Cargando tus logros...">
+          <div className="space-y-6">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-48 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </PageContainer>
+      </>
     );
   }
 
-  if (isLoading || !achievements) {
+  if (!achievements) {
     return (
-      <PageContainer title="Logros">
-        <div className="space-y-8 animate-pulse">
-          <div className="h-32 bg-gray-200 rounded-lg"></div>
-          <div className="h-96 bg-gray-200 rounded-lg"></div>
-        </div>
-      </PageContainer>
+      <>
+        <Navbar />
+        <PageContainer title="Logros" subtitle="Tus logros y reconocimientos">
+          <Card className="p-6 text-center">
+            <p className="text-muted-foreground">
+              No se pudieron cargar tus logros en este momento.
+            </p>
+          </Card>
+        </PageContainer>
+      </>
     );
   }
-
-  const currentLevelInfo = ACHIEVEMENT_LEVELS.find(l => l.level === achievements.currentLevel);
-  const nextLevelInfo = achievements.nextLevel ? ACHIEVEMENT_LEVELS.find(l => l.level === achievements.nextLevel) : null;
-  
-  const progressPercentage = nextLevelInfo
-    ? ((achievements.totalCompletedJobs - currentLevelInfo!.minJobs) / (nextLevelInfo.minJobs - currentLevelInfo!.minJobs)) * 100
-    : 100;
 
   return (
-    <PageContainer title="Logros">
-      <div className="space-y-8">
-        {/* Progreso Principal */}
-        <Card className="glassmorphism border-primary/20">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div 
-                  className="h-16 w-16 rounded-full flex items-center justify-center" 
-                  style={{ 
-                    background: `${currentLevelInfo?.color}20`, 
-                    color: currentLevelInfo?.color 
-                  }}
-                >
-                  <Trophy className="h-8 w-8" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold">Nivel {currentLevelInfo?.name}</h2>
-                    <LevelBadge level={achievements.currentLevel} size="lg" />
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {achievements.averageRating > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                        <span>{achievements.averageRating} promedio</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-secondary/50 px-4 py-3 rounded-lg w-full md:w-auto md:min-w-[300px]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{achievements.totalCompletedJobs} trabajos completados</span>
-                </div>
-                {nextLevelInfo ? (
-                  <>
-                    <Progress value={progressPercentage} className="h-3 mb-2" />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {achievements.jobsToNextLevel} trabajos para {nextLevelInfo.name}
-                    </p>
-                  </>
-                ) : (
-                  <div className="text-center py-2">
-                    <p className="text-sm font-medium text-primary">¡Nivel máximo alcanzado!</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Progresión de Niveles */}
-        <div className="mb-8">
-          <h3 className="text-lg font-medium mb-4">Progresión de Niveles</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            {ACHIEVEMENT_LEVELS.map((level) => {
-              const isCurrentLevel = level.level === achievements.currentLevel;
-              const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
-              
-              return (
-                <Card 
-                  key={level.level} 
-                  className={`transition-all duration-300 h-full ${
-                    isCurrentLevel ? 'border-primary shadow-md glassmorphism border-2' : 
-                    isAchieved ? 'glassmorphism' : 'opacity-60'
-                  }`}
-                >
-                  <CardContent className="p-4">
-                    <div className="text-center">
-                      <div 
-                        className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" 
-                        style={{ backgroundColor: `${level.color}20` }}
-                      >
-                        <Trophy className="h-6 w-6" style={{ color: level.color }} />
-                      </div>
-                      <h4 className="font-semibold text-sm mb-1">{level.name}</h4>
-                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                        +{level.minJobs === 0 ? '0' : level.minJobs} trabajos
-                      </p>
-                      
-                      {isCurrentLevel && (
-                        <div className="space-y-2">
-                          <div className="text-xs text-primary font-medium">Actual</div>
-                        </div>
-                      )}
-                      {isAchieved && !isCurrentLevel && (
-                        <div className="text-xs text-green-600 font-medium">Completado</div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+    <>
+      <Navbar />
+      <PageContainer 
+        title="Logros" 
+        subtitle="Tus logros y reconocimientos"
+        className="pt-0"
+      >
+        <div className="space-y-8">
+          <LevelCard 
+            level={achievements.currentLevel}
+            progress={achievements.progressToNextLevel}
+            totalAppointments={achievements.totalAppointments}
+            averageRating={achievements.averageRating}
+            recurringClients={achievements.recurringClients}
+          />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {achievements.unlockedAchievements.map((achievement) => (
+              <AchievementCard 
+                key={achievement.id} 
+                achievement={achievement} 
+                isUnlocked={true}
+              />
+            ))}
+            {achievements.availableAchievements.map((achievement) => (
+              <AchievementCard 
+                key={achievement.id} 
+                achievement={achievement} 
+                isUnlocked={false}
+              />
+            ))}
           </div>
+          
+          <RatingHistory />
         </div>
-
-        {/* Historial de Calificaciones */}
-        <RatingHistoryComponent 
-          ratingHistory={achievements.ratingHistory} 
-          isLoading={isLoading} 
-        />
-      </div>
-    </PageContainer>
+      </PageContainer>
+    </>
   );
 };
 

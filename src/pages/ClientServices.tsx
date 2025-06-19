@@ -1,272 +1,168 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { useCommissionRate } from '@/hooks/useCommissionRate';
+import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SERVICE_CATEGORIES } from '@/lib/data';
-import { useAuth } from '@/contexts/AuthContext';
+import { Book, LucideIcon } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import Navbar from '@/components/layout/Navbar';
+
+// Mapa de iconos específico para cada categoría
+const iconMap: Record<string, LucideIcon | 'custom-home' | 'custom-pets' | 'custom-classes' | 'custom-personal-care' | 'custom-sports' | 'custom-other'> = {
+  'classes': 'custom-classes',
+  'personal-care': 'custom-personal-care',
+  'sports': 'custom-sports',
+  'home': 'custom-home',
+  'pets': 'custom-pets',
+  'other': 'custom-other',
+};
+
+// Nombres de categorías en español
+const categoryLabels: Record<string, string> = {
+  'classes': 'Clases',
+  'personal-care': 'Cuidado Personal',
+  'sports': 'Deportes',
+  'home': 'Hogar',
+  'pets': 'Mascotas',
+  'other': 'Otros',
+};
+
+// Nuevo orden específico para las categorías
+const categoryOrder = ['home', 'pets', 'classes', 'personal-care', 'sports', 'other'];
+
+// URLs de imágenes para preload estratégico
+const categoryImageUrls: Record<string, string> = {
+  'home': '/lovable-uploads/11446302-74b0-4775-bc77-01fbf112f8f0.png',
+  'pets': '/lovable-uploads/7613f29b-5528-4db5-9357-1d3724a98d5d.png',
+  'classes': '/lovable-uploads/19672ce3-748b-4ea7-86dc-b281bb9b8d45.png',
+  'personal-care': '/lovable-uploads/f5cf3911-b44f-47e9-b52e-4e16ab8b8987.png',
+  'sports': '/lovable-uploads/44391171-f4e7-4ef6-8866-864fdade5d3c.png',
+  'other': '/lovable-uploads/65de903f-70f1-4130-87f0-8152a49381fe.png',
+};
+
+// Preload estratégico solo de las primeras 4 imágenes (las más visibles)
+const preloadCriticalIcons = () => {
+  const criticalCategories = ['home', 'pets', 'classes', 'personal-care'];
+  
+  criticalCategories.forEach(category => {
+    const img = new Image();
+    img.src = categoryImageUrls[category];
+    // Configurar cache headers
+    img.crossOrigin = 'anonymous';
+  });
+};
+
+// Componente para manejar imágenes con lazy loading y fallback
+const CategoryIcon: React.FC<{
+  categoryName: string;
+  isMobile: boolean;
+  isVisible: boolean;
+}> = ({ categoryName, isMobile, isVisible }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  const iconComponent = iconMap[categoryName] || Book;
+  const imageUrl = categoryImageUrls[categoryName];
+  
+  if (!imageUrl || imageError) {
+    // Fallback a icono Lucide si no hay imagen personalizada o hay error
+    return React.createElement(iconComponent as LucideIcon, {
+      size: isMobile ? 54 : 72,
+      strokeWidth: isMobile ? 2 : 1.8,
+      className: "text-[#1A1A1A]"
+    });
+  }
+  
+  return (
+    <div className="relative">
+      {!imageLoaded && (
+        <Skeleton className={cn(
+          "absolute inset-0 rounded",
+          isMobile ? "w-20 h-20" : "w-24 h-24"
+        )} />
+      )}
+      <img 
+        src={imageUrl}
+        alt={categoryLabels[categoryName] || categoryName}
+        className={cn(
+          "object-contain transition-opacity duration-200",
+          isMobile ? "w-20 h-20" : "w-24 h-24",
+          imageLoaded ? "opacity-100" : "opacity-0"
+        )}
+        loading={isVisible ? "eager" : "lazy"}
+        decoding="async"
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageError(true)}
+        style={{
+          imageRendering: 'crisp-edges',
+          // Hint al navegador para optimizar caching
+          willChange: imageLoaded ? 'auto' : 'opacity'
+        }}
+      />
+    </div>
+  );
+};
 
 const ClientServices = () => {
   const navigate = useNavigate();
-  const { commissionRate } = useCommissionRate();
-  const { user } = useAuth();
-  
-  const { data: listings = [], isLoading } = useQuery({
-    queryKey: ['client-services', user?.residenciaId],
-    queryFn: async () => {
-      if (!user?.residenciaId) {
-        console.log('No residenciaId found for user, returning empty array');
-        return [];
-      }
+  const isMobile = useIsMobile();
 
-      try {
-        // Query listings and related residencia associations
-        const { data: listingResidencias, error: lrError } = await supabase
-          .from('listing_residencias')
-          .select('listing_id')
-          .eq('residencia_id', user.residenciaId);
-          
-        if (lrError) {
-          console.error('Error fetching listing residencias:', lrError);
-          throw lrError;
-        }
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: ['service-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('*');
         
-        // If no listings for this residencia, return empty array
-        if (!listingResidencias || listingResidencias.length === 0) {
-          console.log('No listings found for residencia:', user.residenciaId);
-          return [];
-        }
-        
-        // Get the actual listings
-        const { data: listingsData, error: listingsError } = await supabase
-          .from('listings')
-          .select(`
-            *,
-            service_type:service_type_id(
-              name,
-              category:category_id(
-                name,
-                label
-              )
-            )
-          `)
-          .in('id', listingResidencias.map(lr => lr.listing_id))
-          .eq('is_active', true);
-          
-        if (listingsError) {
-          console.error('Error fetching listings:', listingsError);
-          throw listingsError;
-        }
-        
-        // Get unique provider IDs from listings
-        const providerIds = [...new Set(listingsData.map(listing => listing.provider_id))];
-        
-        if (providerIds.length === 0) {
-          return [];
-        }
-        
-        // Fetch provider data from users table
-        const { data: providers, error: providersError } = await supabase
-          .from('users')
-          .select('id, name')
-          .in('id', providerIds)
-          .eq('role', 'provider');
-          
-        if (providersError) {
-          console.error('Error fetching providers:', providersError);
-          throw providersError;
-        }
-        
-        // Create provider map for easy lookup
-        const providerMap = Object.fromEntries(
-          (providers || []).map(provider => [provider.id, provider])
-        );
-        
-        return listingsData.map(listing => {
-          const provider = providerMap[listing.provider_id];
-          
-          return {
-            id: listing.id,
-            title: listing.title,
-            description: listing.description,
-            categoryId: listing.service_type?.category?.name || '',
-            categoryName: listing.service_type?.category?.label || 'Otros',
-            serviceTypeName: listing.service_type?.name || '',
-            price: typeof listing.base_price === 'number' ? listing.base_price : 0,
-            duration: typeof listing.duration === 'number' ? listing.duration : 0,
-            providerId: listing.provider_id,
-            providerName: provider?.name || 'Proveedor',
-            residenciaIds: [user.residenciaId],
-            createdAt: new Date(listing.created_at)
-          };
-        });
-      } catch (error) {
-        console.error('Error in client services query:', error);
-        return [];
-      }
+      if (error) throw error;
+      return data;
     },
-    enabled: !!user?.residenciaId
   });
 
-  // Group listings by category
-  const listingsByCategory = React.useMemo(() => {
-    const grouped: Record<string, typeof listings> = {};
-    
-    listings.forEach(listing => {
-      const categoryId = listing.categoryId || 'other';
-      if (!grouped[categoryId]) {
-        grouped[categoryId] = [];
-      }
-      grouped[categoryId].push(listing);
-    });
-    
-    return grouped;
-  }, [listings]);
-
-  // Calculate final price with commission
-  const calculateFinalPrice = (basePrice: number) => {
-    return basePrice * (1 + (commissionRate / 100));
-  };
-
-  const handleBookService = (serviceId: string) => {
-    navigate(`/client/service/${serviceId}`);
-  };
-
-  const handleBack = () => {
-    navigate(-1);
+  const handleCategoryClick = (categoryName: string) => {
+    navigate(`/client/category/${categoryName}`);
   };
 
   if (isLoading) {
     return (
-      <PageContainer
-        title="Servicios Disponibles"
-        className="pt-1"
-      >
-        <div className="grid gap-8">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="space-y-4">
-              <Skeleton className="h-8 w-48" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map(j => (
-                  <Skeleton key={j} className="h-[200px] rounded-lg" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </PageContainer>
-    );
-  }
-
-  // Show message if user doesn't have a residencia assigned
-  if (!user?.residenciaId) {
-    return (
-      <PageContainer
-        title="Servicios Disponibles"
-        className="pt-1"
-      >
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">
-            Para ver los servicios disponibles, necesitas tener una residencia asignada.
-          </p>
-          <Button onClick={() => navigate('/profile')}>
-            Configurar Perfil
-          </Button>
-        </div>
-      </PageContainer>
+      <>
+        <Navbar />
+        <PageContainer title="Servicios" subtitle="Cargando categorías...">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-32 md:h-40 rounded-xl" />
+            ))}
+          </div>
+        </PageContainer>
+      </>
     );
   }
 
   return (
-    <PageContainer
-      title="Servicios Disponibles"
-      className="pt-1"
-    >
-      <div className="space-y-12">
-        {Object.entries(listingsByCategory).map(([categoryId, categoryListings]) => {
-          // Obtener la información de categoría o usar valores predeterminados
-          const categoryInfo = SERVICE_CATEGORIES[categoryId as keyof typeof SERVICE_CATEGORIES];
-          const categoryLabel = categoryInfo?.label || 'Otros servicios';
-          const categoryColor = categoryInfo?.color || '#1A1A1A';
-          
-          return (
-            <section key={categoryId} className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <h2 
-                  className="text-2xl font-semibold" 
-                  style={{ color: categoryColor }}
-                >
-                  {categoryLabel}
-                </h2>
-                <div className="h-[2px] flex-1" style={{ 
-                  background: categoryColor,
-                  opacity: 0.3 
-                }} />
+    <>
+      <Navbar />
+      <PageContainer title="Servicios" subtitle="Selecciona una categoría">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
+          {categories.map((category) => (
+            <Card 
+              key={category.id} 
+              onClick={() => handleCategoryClick(category.name)}
+              className="flex flex-col items-center justify-center p-6 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] h-32 md:h-40"
+            >
+              <div className="flex items-center justify-center mb-3">
+                <Book className="h-8 w-8 md:h-10 md:w-10 text-[#1A1A1A]" />
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {categoryListings.map(listing => (
-                  <Card 
-                    key={listing.id} 
-                    className="group hover:shadow-lg transition-all duration-300 border-t-4"
-                    style={{ 
-                      borderTopColor: categoryColor
-                    }}
-                  >
-                    <CardContent className="p-6">
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                          {listing.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {listing.description}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Duración</span>
-                          <span className="font-medium">{String(listing.duration)} minutos</span>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">
-                            Por: <span className="font-medium text-foreground">{listing.providerName}</span>
-                          </div>
-                          <div className="text-lg font-semibold">
-                            ${calculateFinalPrice(listing.price ? Number(listing.price) : 0).toFixed(2)}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 pt-2">
-                          <Button
-                            className="flex-1"
-                            onClick={() => handleBookService(listing.id)}
-                          >
-                            Ver Detalles
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-        
-        {listings.length === 0 && user?.residenciaId && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No hay servicios disponibles en tu residencia todavía.</p>
-          </div>
-        )}
-      </div>
-    </PageContainer>
+              <h3 className="text-center text-[#1A1A1A] text-sm md:text-base font-semibold">
+                {category.label}
+              </h3>
+            </Card>
+          ))}
+        </div>
+      </PageContainer>
+    </>
   );
 };
 

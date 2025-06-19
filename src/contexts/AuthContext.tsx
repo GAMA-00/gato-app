@@ -143,21 +143,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Set up auth state listener
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, !!session);
         
         if (!mounted) return;
 
-        // Only handle auth changes after initial load
-        if (!initialized) return;
-
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('User signed in, loading profile...');
           const userData = await loadUserProfile(session.user);
           if (mounted) {
             setUser(userData);
+            // Mark as initialized if this happens during initial load
+            if (!initialized) {
+              setIsLoading(false);
+              setInitialized(true);
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
@@ -168,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
+    // Then initialize
     initializeAuth();
 
     return () => {

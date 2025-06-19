@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { isAuthenticated, user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   console.log('ProtectedRoute - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'userRole:', user?.role);
 
@@ -31,8 +32,21 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
+  // If authenticated but no role, wait a moment
+  if (!user?.role) {
+    console.log('ProtectedRoute - User authenticated but no role yet');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
+          <p className="text-sm text-muted-foreground">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
   // If user doesn't have the required role, redirect appropriately
-  if (user && !allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(user.role)) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('ProtectedRoute - User role not allowed, redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
