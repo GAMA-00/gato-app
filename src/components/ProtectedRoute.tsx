@@ -18,29 +18,38 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     allowedRoles 
   });
 
+  // Mostrar loading solo mientras se verifica la sesión inicial
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-sm text-muted-foreground">Verificando acceso...</p>
+          <p className="text-sm text-muted-foreground">Verificando sesión...</p>
         </div>
       </div>
     );
   }
 
+  // Si no está autenticado, redirigir al login
   if (!isAuthenticated) {
     console.log('ProtectedRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  if (user && !allowedRoles.includes(user.role)) {
+  // Si no tiene usuario (caso edge), redirigir al login
+  if (!user) {
+    console.log('ProtectedRoute: No user data, redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+
+  // Verificar si el rol del usuario está permitido
+  if (!allowedRoles.includes(user.role)) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
     console.log('ProtectedRoute: User role not allowed, redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  console.log('ProtectedRoute: Showing protected content');
+  console.log('ProtectedRoute: Access granted, showing content');
   return <>{children}</>;
 };
 

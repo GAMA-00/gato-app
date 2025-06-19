@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -6,16 +7,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  phone: string;
   role: 'client' | 'provider';
-  avatarUrl?: string;
-  residenciaId: string;
-  buildingName: string;
-  hasPaymentMethod: boolean;
-  condominiumId: string;
-  condominiumName: string;
-  houseNumber: string;
-  apartment?: string;
 }
 
 interface AuthContextType {
@@ -24,8 +16,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isLoading: boolean;
-  updateUserPaymentMethod: (hasPaymentMethod: boolean) => void;
-  updateUserAvatar: (avatarUrl: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,154 +25,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const createUserFromAuth = (authUser: SupabaseUser): User => {
+  // Función simple para crear usuario desde datos de Supabase
+  const createUserFromSession = (authUser: SupabaseUser): User => {
+    const role = authUser.user_metadata?.role || 'client';
+    
     return {
       id: authUser.id,
-      name: authUser.email?.split('@')[0] || 'Usuario',
+      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
       email: authUser.email || '',
-      phone: '',
-      role: 'client',
-      avatarUrl: '',
-      residenciaId: '',
-      buildingName: '',
-      hasPaymentMethod: false,
-      condominiumId: '',
-      condominiumName: '',
-      houseNumber: '',
-      apartment: '',
+      role: role === 'provider' ? 'provider' : 'client'
     };
-  };
-
-  const loadUserProfile = async (authUser: SupabaseUser): Promise<User> => {
-    try {
-      console.log('AuthContext: Loading profile for user:', authUser.id);
-      
-      const { data: profile, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (error || !profile) {
-        console.log('AuthContext: No profile found, using basic auth data');
-        return createUserFromAuth(authUser);
-      }
-
-      const userData: User = {
-        id: authUser.id,
-        name: profile.name || authUser.email?.split('@')[0] || 'Usuario',
-        email: profile.email || authUser.email || '',
-        phone: profile.phone || '',
-        role: (profile.role === 'provider') ? 'provider' : 'client',
-        avatarUrl: profile.avatar_url || '',
-        residenciaId: profile.residencia_id || '',
-        buildingName: profile.condominium_name || profile.condominium_text || '',
-        hasPaymentMethod: profile.has_payment_method || false,
-        condominiumId: profile.condominium_id || '',
-        condominiumName: profile.condominium_name || profile.condominium_text || '',
-        houseNumber: profile.house_number || '',
-        apartment: '',
-      };
-
-      console.log('AuthContext: User profile loaded successfully:', userData);
-      return userData;
-    } catch (error) {
-      console.error('AuthContext: Exception loading user profile:', error);
-      return createUserFromAuth(authUser);
-    }
   };
 
   useEffect(() => {
-    let mounted = true;
-
-    console.log('AuthContext: Starting initialization');
-
-    const initializeAuth = async () => {
-      try {
-        // Get the current session
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('AuthContext: Error getting session:', error);
-        }
-
-        if (currentSession?.user && mounted) {
-          console.log('AuthContext: Found existing session');
-          setSession(currentSession);
-          
-          // Crear usuario básico inmediatamente para permitir la redirección
-          const basicUser = createUserFromAuth(currentSession.user);
-          setUser(basicUser);
-          
-          // Luego intentar cargar el perfil completo en segundo plano
-          try {
-            const userData = await loadUserProfile(currentSession.user);
-            if (mounted) {
-              setUser(userData);
-            }
-          } catch (profileError) {
-            console.error('AuthContext: Profile load failed:', profileError);
-            // Ya tenemos el usuario básico, así que no hay problema
-          }
-        } else {
-          console.log('AuthContext: No existing session');
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-          }
-        }
-      } catch (error) {
-        console.error('AuthContext: Initialize error:', error);
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-        }
-      } finally {
-        // Always stop loading, regardless of what happened
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Set up auth state listener
+    console.log('AuthContext: Initializing authentication');
+    
+    // Configurar listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('AuthContext: Auth state changed -', event, !!currentSession);
         
-        if (!mounted) return;
-
         if (currentSession?.user) {
-          console.log('AuthContext: User authenticated, loading profile');
+          console.log('AuthContext: Setting user from session');
           setSession(currentSession);
-          
-          // Crear usuario básico inmediatamente
-          const basicUser = createUserFromAuth(currentSession.user);
-          setUser(basicUser);
-          
-          // Load profile but don't block the auth flow
-          try {
-            const userData = await loadUserProfile(currentSession.user);
-            if (mounted) {
-              setUser(userData);
-            }
-          } catch (profileError) {
-            console.error('AuthContext: Profile load failed in auth change:', profileError);
-            // Ya tenemos el usuario básico
-          }
+          setUser(createUserFromSession(currentSession.user));
         } else {
-          console.log('AuthContext: No session, clearing state');
+          console.log('AuthContext: Clearing user session');
           setSession(null);
           setUser(null);
         }
+        
+        setIsLoading(false);
       }
     );
 
-    // Initialize auth
-    initializeAuth();
+    // Verificar sesión existente
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('AuthContext: Initial session check -', !!currentSession);
+      
+      if (currentSession?.user) {
+        setSession(currentSession);
+        setUser(createUserFromSession(currentSession.user));
+      } else {
+        setSession(null);
+        setUser(null);
+      }
+      
+      setIsLoading(false);
+    });
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -222,15 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserPaymentMethod = (hasPaymentMethod: boolean) => {
-    setUser(prev => prev ? { ...prev, hasPaymentMethod } : null);
-  };
-
-  const updateUserAvatar = (avatarUrl: string) => {
-    setUser(prev => prev ? { ...prev, avatarUrl } : null);
-  };
-
-  const isAuthenticated = !!session;
+  const isAuthenticated = !!session && !!user;
 
   console.log('AuthContext: Current state -', { 
     isLoading, 
@@ -246,9 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       login,
       logout,
-      isLoading,
-      updateUserPaymentMethod,
-      updateUserAvatar
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>
