@@ -54,13 +54,13 @@ const ClientServiceDetail = () => {
         
       if (error) throw error;
       
-      // Ensure users data is valid with proper null checking
-      if (!data || 
-          !data.users || 
-          typeof data.users !== 'object' || 
-          Array.isArray(data.users) ||
-          !('id' in data.users) ||
-          typeof data.users.id !== 'string') {
+      // Use more lenient type checking that matches Supabase query structure
+      if (!data || !data.users || typeof data.users !== 'object') {
+        throw new Error('Invalid provider data');
+      }
+      
+      const userObj = data.users as any;
+      if (!userObj.id || typeof userObj.id !== 'string') {
         throw new Error('Invalid provider data');
       }
       
@@ -71,11 +71,11 @@ const ClientServiceDetail = () => {
         base_price: data.base_price,
         duration: data.duration,
         users: {
-          id: data.users.id,
-          name: data.users.name || undefined,
-          avatar_url: data.users.avatar_url || undefined,
-          average_rating: data.users.average_rating || undefined,
-          phone: data.users.phone || undefined
+          id: userObj.id,
+          name: userObj.name || undefined,
+          avatar_url: userObj.avatar_url || undefined,
+          average_rating: userObj.average_rating || undefined,
+          phone: userObj.phone || undefined
         }
       };
     },

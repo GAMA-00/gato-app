@@ -70,25 +70,23 @@ const ClientProvidersList = () => {
       
       if (data) {
         for (const item of data) {
-          // Check if item and users exist and are valid
-          if (item && 
-              item.users && 
-              typeof item.users === 'object' && 
-              !Array.isArray(item.users) &&
-              'id' in item.users &&
-              typeof item.users.id === 'string') {
-            validListings.push({
-              id: item.id,
-              title: item.title,
-              description: item.description,
-              base_price: item.base_price,
-              users: {
-                id: item.users.id,
-                name: item.users.name || undefined,
-                avatar_url: item.users.avatar_url || undefined,
-                average_rating: item.users.average_rating || undefined
-              }
-            });
+          // Use more lenient type checking that matches Supabase query structure
+          if (item && item.users && typeof item.users === 'object') {
+            const userObj = item.users as any;
+            if (userObj.id && typeof userObj.id === 'string') {
+              validListings.push({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                base_price: item.base_price,
+                users: {
+                  id: userObj.id,
+                  name: userObj.name || undefined,
+                  avatar_url: userObj.avatar_url || undefined,
+                  average_rating: userObj.average_rating || undefined
+                }
+              });
+            }
           }
         }
       }

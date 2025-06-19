@@ -60,23 +60,21 @@ const Clients = () => {
       
       if (data) {
         for (const curr of data) {
-          // Check if curr and users exist and are valid
-          if (curr && 
-              curr.users && 
-              typeof curr.users === 'object' && 
-              !Array.isArray(curr.users) &&
-              'id' in curr.users &&
-              typeof curr.users.id === 'string') {
-            validData.push({
-              client_id: curr.client_id,
-              users: {
-                id: curr.users.id,
-                name: curr.users.name || undefined,
-                email: curr.users.email || undefined,
-                phone: curr.users.phone || undefined,
-                avatar_url: curr.users.avatar_url || undefined
-              }
-            });
+          // Use more lenient type checking that matches Supabase query structure
+          if (curr && curr.users && typeof curr.users === 'object') {
+            const userObj = curr.users as any;
+            if (userObj.id && typeof userObj.id === 'string') {
+              validData.push({
+                client_id: curr.client_id,
+                users: {
+                  id: userObj.id,
+                  name: userObj.name || undefined,
+                  email: userObj.email || undefined,
+                  phone: userObj.phone || undefined,
+                  avatar_url: userObj.avatar_url || undefined
+                }
+              });
+            }
           }
         }
       }
