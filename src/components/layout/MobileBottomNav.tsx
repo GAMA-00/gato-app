@@ -34,7 +34,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   ];
   
   const clientNavItems: NavItemType[] = [
-    { to: '/client', icon: Briefcase, label: 'Servicios' },
+    { to: '/client/categories', icon: Briefcase, label: 'Servicios' },
     { 
       to: '/client/bookings', 
       icon: CalendarClock, 
@@ -55,8 +55,8 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
 
   const isNavItemActive = (itemPath: string) => {
     if (isClientSection) {
-      if (itemPath === '/client') {
-        return location.pathname === '/client';
+      if (itemPath === '/client/categories') {
+        return location.pathname === '/client/categories' || location.pathname.startsWith('/client/category');
       }
       
       if (itemPath === '/client/bookings') {
@@ -69,7 +69,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
       
       if (location.pathname.includes('/client/services') || 
           location.pathname.includes('/client/book')) {
-        return itemPath === '/client';
+        return itemPath === '/client/categories';
       }
       
       return location.pathname === itemPath;
