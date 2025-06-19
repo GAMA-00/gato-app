@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -142,6 +141,22 @@ const ClientCategoryDetails = () => {
     'bike': '/lovable-uploads/28b5b123-ea57-472a-9cd2-6eba0e00243e.png',
   };
 
+  // Map of custom images for other category services
+  const otherServiceImages: Record<string, string> = {
+    'fotografo': '/lovable-uploads/918f1c80-5836-4209-97ae-1b16ec7534d9.png',
+    'fotógrafo': '/lovable-uploads/918f1c80-5836-4209-97ae-1b16ec7534d9.png',
+    'fotografia': '/lovable-uploads/918f1c80-5836-4209-97ae-1b16ec7534d9.png',
+    'fotografía': '/lovable-uploads/918f1c80-5836-4209-97ae-1b16ec7534d9.png',
+    'niñera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+    'ninera': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+    'babysitter': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+    'cuidado': '/lovable-uploads/5ff33cd8-4c58-45c5-af52-7a34cfa108e7.png',
+    'cuidado adulto mayor': '/lovable-uploads/4d2bfca5-c579-474d-bd6b-ea3eac70da87.png',
+    'adulto mayor': '/lovable-uploads/4d2bfca5-c579-474d-bd6b-ea3eac70da87.png',
+    'enfermeria': '/lovable-uploads/4d2bfca5-c579-474d-bd6b-ea3eac70da87.png',
+    'enfermería': '/lovable-uploads/4d2bfca5-c579-474d-bd6b-ea3eac70da87.png',
+  };
+
   // Get specific service icon based on service name
   const getServiceTypeIcon = (serviceName: string) => {
     const normalizedName = serviceName.toLowerCase();
@@ -185,6 +200,15 @@ const ClientCategoryDetails = () => {
     // Check if this is a sports category service with custom image
     if (categoryId === 'sports') {
       for (const [key, imagePath] of Object.entries(sportsServiceImages)) {
+        if (normalizedName.includes(key)) {
+          return { type: 'image', src: imagePath };
+        }
+      }
+    }
+    
+    // Check if this is an other category service with custom image
+    if (categoryId === 'other') {
+      for (const [key, imagePath] of Object.entries(otherServiceImages)) {
         if (normalizedName.includes(key)) {
           return { type: 'image', src: imagePath };
         }
