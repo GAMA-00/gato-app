@@ -125,16 +125,6 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
           <div className="flex justify-between items-start">
             <div className="flex items-center max-w-[70%]">
               <h3 className="font-medium text-base truncate">{booking.serviceName}</h3>
-              {isRecurring && (
-                <div className="flex items-center ml-2 text-red-500 flex-shrink-0">
-                  <Flame className="h-4 w-4" />
-                </div>
-              )}
-              {booking.isRecurringInstance && (
-                <div className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex-shrink-0">
-                  Instancia
-                </div>
-              )}
             </div>
             <div className={cn(
               "px-2 py-1 rounded-full text-xs font-medium flex-shrink-0",
