@@ -25,16 +25,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           duration,
           provider_id,
           gallery_images,
-          service_variants,
-          users!listings_provider_id_fkey (
-            id,
-            name,
-            avatar_url,
-            about_me,
-            experience_years,
-            average_rating,
-            created_at
-          )
+          service_variants
         `)
         .eq('service_type_id', serviceId)
         .eq('is_active', true);
@@ -51,8 +42,33 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
 
       console.log("Found listings:", listings);
 
-      // Get unique provider IDs for recurring clients count
+      // Get unique provider IDs
       const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
+
+      // Fetch provider information separately
+      const { data: providers, error: providersError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          name,
+          avatar_url,
+          about_me,
+          experience_years,
+          average_rating,
+          created_at
+        `)
+        .in('id', providerIds);
+
+      if (providersError) {
+        console.error("Error fetching providers:", providersError);
+        throw providersError;
+      }
+
+      // Create a map for quick provider lookup
+      const providersMap = providers?.reduce((acc, provider) => {
+        acc[provider.id] = provider;
+        return acc;
+      }, {} as Record<string, any>) || {};
 
       // Fetch recurring clients count for each provider
       const recurringClientsPromises = providerIds.map(async (providerId) => {
@@ -81,9 +97,9 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
 
       // Process the data into ProcessedProvider format
       const processedProviders: ProcessedProvider[] = listings
-        .filter(listing => listing.users) // Only include listings with valid user data
+        .filter(listing => providersMap[listing.provider_id]) // Only include listings with valid provider data
         .map(listing => {
-          const provider = listing.users;
+          const provider = providersMap[listing.provider_id];
           
           // Parse gallery images with proper type checking
           let galleryImages: string[] = [];
