@@ -39,7 +39,10 @@ const Calendar = () => {
             subtitle="Cargando citas..."
             className="pt-0"
           >
-            <Skeleton className="h-96 w-full rounded-lg" />
+            <div className="w-full space-y-6">
+              <Skeleton className="h-64 w-full rounded-lg" />
+              <Skeleton className="h-96 w-full rounded-lg" />
+            </div>
           </PageContainer>
         </div>
       </>
@@ -50,19 +53,32 @@ const Calendar = () => {
     <>
       <Navbar />
       <div className="md:ml-52">
-        <PageContainer 
-          title="Calendario" 
-          subtitle="Gestiona tus citas y horarios"
-          className="pt-0"
-        >
-          <div className="space-y-6">
-            {/* Show job requests for providers */}
-            {user?.role === 'provider' && <JobRequestsGrouped />}
+        <div className="w-full min-h-screen bg-white">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            {/* Header */}
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-app-text mb-2">
+                Calendario
+              </h1>
+              <p className="text-app-text/70">Gestiona tus citas y horarios</p>
+            </div>
             
-            {/* Calendar view */}
-            <CalendarView appointments={appointments} />
+            {/* Content */}
+            <div className="space-y-6">
+              {/* Show job requests for providers */}
+              {user?.role === 'provider' && (
+                <div className="w-full">
+                  <JobRequestsGrouped />
+                </div>
+              )}
+              
+              {/* Calendar view */}
+              <div className="w-full">
+                <CalendarView appointments={appointments} />
+              </div>
+            </div>
           </div>
-        </PageContainer>
+        </div>
       </div>
     </>
   );
