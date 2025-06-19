@@ -4,6 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { validateBookingSlot } from '@/utils/bookingValidation';
+import { buildLocationString } from '@/utils/locationUtils';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -119,12 +120,18 @@ const ClientBooking = () => {
 
   const formatPrice = (price: number | string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return numPrice.toLocaleString('es-CR', {
-      style: 'currency',
-      currency: 'CRC',
+    return `$${numPrice.toLocaleString('es-CR', {
       minimumFractionDigits: 0
-    });
+    })}`;
   };
+
+  // Build client location string
+  const clientLocation = buildLocationString({
+    residenciaName: user?.condominiumName,
+    condominiumName: user?.condominiumName,
+    houseNumber: user?.houseNumber,
+    apartment: user?.apartment
+  });
 
   return (
     <>
@@ -142,8 +149,8 @@ const ClientBooking = () => {
               Volver
             </Button>
             
-            {/* Title */}
-            <h1 className="text-2xl md:text-3xl font-bold text-luxury-navy mb-6">
+            {/* Centered Title */}
+            <h1 className="text-2xl md:text-3xl font-bold text-luxury-navy mb-6 text-center">
               Reservar Servicio
             </h1>
           </div>
@@ -161,10 +168,7 @@ const ClientBooking = () => {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {user?.condominiumName && user?.houseNumber 
-                      ? `${user.condominiumName}, Casa ${user.houseNumber}`
-                      : 'Ubicación no especificada'
-                    }
+                    {clientLocation}
                   </span>
                 </div>
                 {selectedVariant && (
@@ -265,10 +269,7 @@ const ClientBooking = () => {
                   <div>
                     <p className="font-medium text-sm mb-1">Ubicación:</p>
                     <p className="text-sm">
-                      {user?.condominiumName && user?.houseNumber 
-                        ? `${user.condominiumName}, Casa ${user.houseNumber}`
-                        : 'Ubicación no especificada'
-                      }
+                      {clientLocation}
                     </p>
                   </div>
 
