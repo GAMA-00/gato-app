@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -119,7 +120,7 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
   };
   
   return (
-    <Card className="mb-4 overflow-hidden animate-scale-in">
+    <Card className="overflow-hidden animate-scale-in">
       <CardContent className="p-4">
         <div className="flex flex-col space-y-3">
           <div className="flex justify-between items-start">
@@ -233,7 +234,7 @@ const BookingCard = ({ booking, onRated }: { booking: ClientBooking; onRated: ()
 };
 
 const BookingSkeleton = () => (
-  <Card className="mb-4">
+  <Card>
     <CardContent className="p-4">
       <div className="flex flex-col space-y-3">
         <div className="flex justify-between items-start">
@@ -321,12 +322,12 @@ const ClientBookings = () => {
           <div className="space-y-6 px-1">
             <section>
               {isLoading ? (
-                <div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <BookingSkeleton />
                   <BookingSkeleton />
                 </div>
               ) : upcomingBookings.length > 0 ? (
-                <div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {upcomingBookings.map(booking => (
                     <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
                   ))}
@@ -348,11 +349,11 @@ const ClientBookings = () => {
                 )}
               </h2>
               {isLoading ? (
-                <div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <BookingSkeleton />
                 </div>
               ) : pastBookings.length > 0 ? (
-                <div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {pastBookings.map(booking => (
                     <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
                   ))}
