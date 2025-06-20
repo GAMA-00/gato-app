@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -319,15 +318,15 @@ const ClientBookings = () => {
             </Alert>
           )}
           
-          <div className="space-y-6 px-1">
+          <div className="space-y-6 px-1 md:px-0">
             <section>
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
                   <BookingSkeleton />
                   <BookingSkeleton />
                 </div>
               ) : upcomingBookings.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
                   {upcomingBookings.map(booking => (
                     <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
                   ))}
@@ -349,11 +348,11 @@ const ClientBookings = () => {
                 )}
               </h2>
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
                   <BookingSkeleton />
                 </div>
               ) : pastBookings.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
                   {pastBookings.map(booking => (
                     <BookingCard key={booking.id} booking={booking} onRated={handleRated} />
                   ))}
