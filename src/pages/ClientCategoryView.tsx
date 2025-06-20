@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -12,12 +11,13 @@ import CategoryIcon from '@/components/client/CategoryIcon';
 import { useCategoryPreload } from '@/hooks/useCategoryPreload';
 import { useCategoryVisibility } from '@/hooks/useCategoryVisibility';
 import { categoryOrder, categoryLabels } from '@/constants/categoryConstants';
+import { smartPreloader } from '@/utils/smartPreloader';
 
 const ClientCategoryView = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // Usar hooks personalizados
+  // Use enhanced preloading
   useCategoryPreload();
   const { visibleItems } = useCategoryVisibility();
 
@@ -31,11 +31,11 @@ const ClientCategoryView = () => {
       if (error) throw error;
       return data;
     },
-    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
-    gcTime: 10 * 60 * 1000, // Mantener en cache por 10 minutos
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
-  // Organizar categorías en el orden deseado
+  // Organize categories in the desired order
   const categories = [...fetchedCategories].sort((a, b) => {
     const indexA = categoryOrder.indexOf(a.name);
     const indexB = categoryOrder.indexOf(b.name);
@@ -43,6 +43,8 @@ const ClientCategoryView = () => {
   });
 
   const handleCategoryClick = (categoryName: string) => {
+    // Preload services for this category
+    smartPreloader.preloadCategoryServices(categoryName);
     navigate(`/client/category/${categoryName}`);
   };
 
@@ -83,7 +85,6 @@ const ClientCategoryView = () => {
         isMobile ? "pt-0 pb-0" : "pl-56 pt-4",
         "min-h-screen w-full bg-white"
       )}>
-        {/* Container for all content with tighter spacing on mobile */}
         <div className={cn(
           "w-full h-full flex flex-col justify-start items-center",
           isMobile ? "px-6 pt-4 pb-20" : "p-6"
@@ -92,7 +93,6 @@ const ClientCategoryView = () => {
             "max-w-7xl w-full animate-fade-in",
             "flex flex-col items-center justify-start"
           )}>
-            {/* Title with reduced margin on mobile */}
             <div className={cn(
               "flex flex-col justify-center gap-1 w-full",
               isMobile ? "mb-6" : "mb-4"
@@ -107,7 +107,6 @@ const ClientCategoryView = () => {
               </div>
             </div>
             
-            {/* Content area with reduced top margin on mobile */}
             <div className={cn(
               "animate-slide-up flex justify-center w-full flex-1 items-start",
               isMobile ? "mt-0" : "mt-4"

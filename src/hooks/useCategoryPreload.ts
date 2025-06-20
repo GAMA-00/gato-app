@@ -1,21 +1,21 @@
 
 import { useEffect } from 'react';
-import { categoryImageUrls } from '@/constants/categoryConstants';
-
-// Preload estratégico solo de las primeras 4 imágenes (las más visibles)
-const preloadCriticalIcons = () => {
-  const criticalCategories = ['home', 'pets', 'classes', 'personal-care'];
-  
-  criticalCategories.forEach(category => {
-    const img = new Image();
-    img.src = categoryImageUrls[category];
-    // Configurar cache headers
-    img.crossOrigin = 'anonymous';
-  });
-};
+import { smartPreloader } from '@/utils/smartPreloader';
 
 export const useCategoryPreload = () => {
   useEffect(() => {
-    preloadCriticalIcons();
+    // Start with critical categories
+    smartPreloader.preloadCriticalCategories();
+    
+    // Preload remaining images when idle
+    const idleCallback = () => {
+      smartPreloader.preloadRemainingImages();
+    };
+
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(idleCallback, { timeout: 5000 });
+    } else {
+      setTimeout(idleCallback, 3000);
+    }
   }, []);
 };
