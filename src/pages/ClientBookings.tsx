@@ -78,7 +78,7 @@ const ClientBookings = () => {
             </Alert>
           )}
           
-          <div className="space-y-6 px-1 md:px-0">
+          <div className="space-y-6 px-1 md:px-2 lg:px-4 xl:px-6">
             <section>
               <BookingsList
                 bookings={upcomingBookings}

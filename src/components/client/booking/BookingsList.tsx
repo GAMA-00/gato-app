@@ -21,7 +21,7 @@ export const BookingsList = ({
 }: BookingsListProps) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-4 lg:gap-3 xl:gap-4">
         <BookingSkeleton />
         <BookingSkeleton />
       </div>
@@ -37,7 +37,7 @@ export const BookingsList = ({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-4 lg:gap-3 xl:gap-4">
       {bookings.map(booking => (
         <BookingCard key={booking.id} booking={booking} onRated={onRated} />
       ))}
