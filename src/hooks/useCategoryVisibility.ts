@@ -17,17 +17,21 @@ export const useCategoryVisibility = () => {
         });
       },
       { 
-        rootMargin: '50px',
+        rootMargin: '100px', // Aumentamos el margen para precargar antes
         threshold: 0.1
       }
     );
 
-    // Observar elementos después de que se rendericen
-    const timer = setTimeout(() => {
+    // Observar elementos inmediatamente sin delay
+    const observeElements = () => {
       document.querySelectorAll('[data-category]').forEach(el => {
         observer.observe(el);
       });
-    }, 100);
+    };
+
+    // Intentar inmediatamente y con pequeño delay como backup
+    observeElements();
+    const timer = setTimeout(observeElements, 10);
 
     return () => {
       observer.disconnect();

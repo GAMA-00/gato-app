@@ -14,14 +14,18 @@ interface CategoryIconProps {
 
 const CategoryIcon: React.FC<CategoryIconProps> = ({ categoryName, isMobile, isVisible }) => {
   const [imageError, setImageError] = useState(false);
+  const [directImageLoaded, setDirectImageLoaded] = useState(false);
   
   const iconComponent = iconMap[categoryName] || Book;
   const imageUrl = categoryImageUrls[categoryName];
   
-  // Use the new image cache hook
+  // Preload crítico inmediato para las primeras 4 categorías
+  const isCritical = ['home', 'pets', 'classes', 'personal-care'].includes(categoryName);
+  
   const { cachedUrl, isLoading, error } = useImageCache(imageUrl, {
-    priority: 'critical',
-    preloadOnMount: isVisible
+    priority: isCritical ? 'critical' : 'high',
+    preloadOnMount: true, // Siempre precargar, no esperar visibilidad
+    timeout: 500 // Timeout para fallback rápido
   });
   
   // Handle image errors
@@ -32,7 +36,7 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({ categoryName, isMobile, isV
   }, [error]);
   
   if (!imageUrl || imageError) {
-    // Fallback to Lucide icon
+    // Fallback a Lucide icon
     return React.createElement(iconComponent as LucideIcon, {
       size: isMobile ? 54 : 72,
       strokeWidth: isMobile ? 2 : 1.8,
@@ -42,26 +46,29 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({ categoryName, isMobile, isV
   
   return (
     <div className="relative">
-      {isLoading && (
+      {/* Mostrar skeleton solo si no hay imagen cacheada Y está cargando */}
+      {!cachedUrl && !directImageLoaded && isLoading && (
         <Skeleton className={cn(
           "absolute inset-0 rounded",
           isMobile ? "w-20 h-20" : "w-24 h-24"
         )} />
       )}
+      
+      {/* Imagen principal - siempre renderizada */}
       <img 
         src={cachedUrl || imageUrl}
         alt={categoryLabels[categoryName] || categoryName}
         className={cn(
           "object-contain transition-opacity duration-200",
           isMobile ? "w-20 h-20" : "w-24 h-24",
-          cachedUrl && !isLoading ? "opacity-100" : "opacity-0"
+          (cachedUrl || directImageLoaded) ? "opacity-100" : "opacity-0"
         )}
-        loading={isVisible ? "eager" : "lazy"}
+        loading={isCritical ? "eager" : "lazy"}
         decoding="async"
+        onLoad={() => setDirectImageLoaded(true)}
         onError={() => setImageError(true)}
         style={{
-          imageRendering: 'crisp-edges',
-          willChange: isLoading ? 'opacity' : 'auto'
+          imageRendering: 'crisp-edges'
         }}
       />
     </div>

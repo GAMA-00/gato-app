@@ -4,18 +4,22 @@ import { smartPreloader } from '@/utils/smartPreloader';
 
 export const useCategoryPreload = () => {
   useEffect(() => {
-    // Start with critical categories
+    // Inmediatamente precargar categorías críticas
     smartPreloader.preloadCriticalCategories();
     
-    // Preload remaining images when idle
-    const idleCallback = () => {
+    // Precargar imágenes restantes sin delay para mejor UX
+    const immediatePreload = () => {
       smartPreloader.preloadRemainingImages();
     };
 
+    // Ejecutar inmediatamente
+    immediatePreload();
+
+    // También programar para cuando el navegador esté idle
     if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(idleCallback, { timeout: 5000 });
-    } else {
-      setTimeout(idleCallback, 3000);
+      (window as any).requestIdleCallback(() => {
+        smartPreloader.preloadRemainingImages();
+      }, { timeout: 2000 });
     }
   }, []);
 };

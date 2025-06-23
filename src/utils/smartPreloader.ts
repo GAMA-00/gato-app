@@ -22,6 +22,7 @@ class SmartPreloader {
   private preloadQueue: PreloadTask[] = [];
   private isProcessing = false;
   private preloadedUrls = new Set<string>();
+  private concurrentLimit = 4; // Limite de descargas concurrentes
 
   async preloadByPriority(tasks: PreloadTask[]): Promise<void> {
     // Sort by priority and add to queue
@@ -40,16 +41,21 @@ class SmartPreloader {
   private async processQueue(): Promise<void> {
     this.isProcessing = true;
 
-    while (this.preloadQueue.length > 0) {
-      const task = this.preloadQueue.shift()!;
-      
-      if (this.preloadedUrls.has(task.url)) {
-        continue;
-      }
+    // Procesar tareas críticas inmediatamente sin delay
+    const criticalTasks = this.preloadQueue.filter(task => task.priority === 'critical');
+    const otherTasks = this.preloadQueue.filter(task => task.priority !== 'critical');
+    
+    // Procesar críticas concurrentemente
+    if (criticalTasks.length > 0) {
+      await this.processConcurrent(criticalTasks);
+    }
+    
+    // Procesar el resto con delays apropiados
+    for (const task of otherTasks) {
+      if (this.preloadedUrls.has(task.url)) continue;
 
       try {
-        // Add delay for non-critical tasks
-        if (task.delay && task.priority !== 'critical') {
+        if (task.delay && task.priority !== 'high') {
           await new Promise(resolve => setTimeout(resolve, task.delay));
         }
 
@@ -62,7 +68,31 @@ class SmartPreloader {
       }
     }
 
+    this.preloadQueue = [];
     this.isProcessing = false;
+  }
+
+  private async processConcurrent(tasks: PreloadTask[]): Promise<void> {
+    const chunks = [];
+    for (let i = 0; i < tasks.length; i += this.concurrentLimit) {
+      chunks.push(tasks.slice(i, i + this.concurrentLimit));
+    }
+
+    for (const chunk of chunks) {
+      const promises = chunk.map(async (task) => {
+        if (this.preloadedUrls.has(task.url)) return;
+        
+        try {
+          await this.preloadImage(task.url, task.priority);
+          this.preloadedUrls.add(task.url);
+          console.log(`✅ Critical preloaded: ${task.url}`);
+        } catch (error) {
+          console.warn(`❌ Failed critical preload: ${task.url}`, error);
+        }
+      });
+
+      await Promise.allSettled(promises);
+    }
   }
 
   private async preloadImage(url: string, priority: PreloadPriority): Promise<void> {
@@ -71,7 +101,10 @@ class SmartPreloader {
     if (cached) return;
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        mode: 'cors',
+        cache: 'force-cache' // Forzar uso de cache del navegador
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       const blob = await response.blob();
@@ -82,12 +115,11 @@ class SmartPreloader {
   }
 
   preloadCriticalCategories(): void {
-    const criticalTasks: PreloadTask[] = Object.entries(categoryImageUrls)
-      .slice(0, 4) // First 4 categories
-      .map(([, url]) => ({
-        url,
-        priority: 'critical' as const
-      }));
+    const criticalCategories = ['home', 'pets', 'classes', 'personal-care'];
+    const criticalTasks: PreloadTask[] = criticalCategories.map(categoryName => ({
+      url: categoryImageUrls[categoryName],
+      priority: 'critical' as const
+    }));
 
     this.preloadByPriority(criticalTasks);
   }
@@ -108,7 +140,7 @@ class SmartPreloader {
     const tasks: PreloadTask[] = Object.values(serviceImages).map(url => ({
       url,
       priority: 'high' as const,
-      delay: 1000 // 1s delay
+      delay: 500 // Reducido de 1000ms
     }));
 
     this.preloadByPriority(tasks);
@@ -117,14 +149,14 @@ class SmartPreloader {
   preloadRemainingImages(): void {
     // Preload remaining category images
     const remainingCategories = Object.entries(categoryImageUrls)
-      .slice(4)
+      .filter(([categoryName]) => !['home', 'pets', 'classes', 'personal-care'].includes(categoryName))
       .map(([, url]) => ({
         url,
-        priority: 'medium' as const,
-        delay: 2000
+        priority: 'high' as const,
+        delay: 1000
       }));
 
-    // Preload all service images at low priority
+    // Preload all service images at medium priority
     const allServiceImages = [
       ...Object.values(homeServiceImages),
       ...Object.values(petsServiceImages),
@@ -134,8 +166,8 @@ class SmartPreloader {
       ...Object.values(otherServiceImages),
     ].map(url => ({
       url,
-      priority: 'low' as const,
-      delay: 5000
+      priority: 'medium' as const,
+      delay: 2000
     }));
 
     this.preloadByPriority([...remainingCategories, ...allServiceImages]);

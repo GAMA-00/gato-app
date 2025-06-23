@@ -6,6 +6,7 @@ import { smartPreloader } from '@/utils/smartPreloader';
 interface UseImageCacheOptions {
   priority?: 'critical' | 'high' | 'medium' | 'low';
   preloadOnMount?: boolean;
+  timeout?: number;
 }
 
 export const useImageCache = (url: string, options: UseImageCacheOptions = {}) => {
@@ -31,25 +32,39 @@ export const useImageCache = (url: string, options: UseImageCacheOptions = {}) =
         return;
       }
 
-      // Fetch and cache
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
-      const blob = await response.blob();
-      await imageMemoryCache.set(url, blob, options.priority || 'medium');
-      
-      const blobUrl = URL.createObjectURL(blob);
-      setCachedUrl(blobUrl);
-      setIsLoading(false);
+      // Create timeout promise for fallback
+      const timeoutMs = options.timeout || 1000;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+      );
+
+      // Race between fetch and timeout
+      const fetchPromise = fetch(url).then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.blob();
+      });
+
+      try {
+        const blob = await Promise.race([fetchPromise, timeoutPromise]) as Blob;
+        await imageMemoryCache.set(url, blob, options.priority || 'medium');
+        
+        const blobUrl = URL.createObjectURL(blob);
+        setCachedUrl(blobUrl);
+        setIsLoading(false);
+      } catch (timeoutError) {
+        // En caso de timeout, permitir que la imagen se cargue directamente
+        console.warn(`Cache timeout for ${url}, falling back to direct load`);
+        setIsLoading(false);
+      }
     } catch (err) {
       console.error('Failed to load image:', err);
       setError(err instanceof Error ? err.message : 'Failed to load image');
       setIsLoading(false);
     }
-  }, [url, options.priority]);
+  }, [url, options.priority, options.timeout]);
 
   useEffect(() => {
-    if (options.preloadOnMount) {
+    if (options.preloadOnMount !== false) { // Default true
       loadImage();
     }
   }, [loadImage, options.preloadOnMount]);
