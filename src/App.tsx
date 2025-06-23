@@ -12,6 +12,7 @@ import ProviderRegister from '@/pages/ProviderRegister';
 import Dashboard from '@/pages/Dashboard';
 import Calendar from '@/pages/Calendar';
 import Services from '@/pages/Services';
+import ServiceCreate from '@/pages/ServiceCreate';
 import Clients from '@/pages/Clients';
 import Profile from '@/pages/Profile';
 import ProviderProfile from '@/pages/ProviderProfile';
@@ -77,6 +78,7 @@ function App() {
               <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['provider']}><Dashboard /></ProtectedRoute>} />
               <Route path="/calendar" element={<ProtectedRoute allowedRoles={['provider']}><Calendar /></ProtectedRoute>} />
               <Route path="/services" element={<ProtectedRoute allowedRoles={['provider']}><Services /></ProtectedRoute>} />
+              <Route path="/services/new" element={<ProtectedRoute allowedRoles={['provider']}><ServiceCreate /></ProtectedRoute>} />
               <Route path="/clients" element={<ProtectedRoute allowedRoles={['provider']}><Clients /></ProtectedRoute>} />
               <Route path="/achievements" element={<ProtectedRoute allowedRoles={['provider']}><Achievements /></ProtectedRoute>} />
               
