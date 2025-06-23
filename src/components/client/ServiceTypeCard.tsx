@@ -35,6 +35,9 @@ const ServiceTypeCard = ({ serviceType, categoryId, categoryLabel }: ServiceType
               src={serviceIcon.src} 
               alt={serviceType.name}
               className="w-20 h-20 object-contain"
+              loading="lazy"
+              decoding="async"
+              style={{ imageRendering: 'crisp-edges' }}
             />
           ) : (
             React.createElement(serviceIcon.component!, {
