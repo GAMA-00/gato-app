@@ -232,9 +232,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Pequeño delay antes de redirección para asegurar limpieza completa
       setTimeout(() => {
-        console.log('AuthContext: Redirecting to login');
+        console.log('AuthContext: Redirecting to landing page');
         // Usar replace para evitar que el usuario pueda volver atrás
-        window.location.replace('/login');
+        window.location.replace('/');
       }, 200);
       
     } catch (error) {
@@ -249,7 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Redirección de emergencia
       setTimeout(() => {
-        window.location.replace('/login');
+        window.location.replace('/');
       }, 100);
     }
   };

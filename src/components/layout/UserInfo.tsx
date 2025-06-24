@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +35,7 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
       
       // En caso de error, forzar redirección directa después de un breve delay
       setTimeout(() => {
-        window.location.replace('/login');
+        window.location.replace('/');
       }, 500);
     } finally {
       // Reactivar el botón por si algo falla
