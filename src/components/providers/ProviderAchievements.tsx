@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Star, Users, TrendingUp } from 'lucide-react';
 import { ProviderProfile } from '@/lib/types';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
+import { AchievementLevel } from '@/lib/achievementTypes';
 
 interface ProviderAchievementsProps {
   provider: ProviderProfile;
@@ -49,7 +49,7 @@ const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
         <CardTitle className="text-lg font-medium text-stone-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             Méritos
-            <LevelBadge level={providerLevel.level} size="md" />
+            <LevelBadge level={providerLevel.level as AchievementLevel} size="md" />
           </div>
         </CardTitle>
       </CardHeader>

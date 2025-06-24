@@ -8,6 +8,7 @@ import { ProviderData } from '@/components/client/service/types';
 import { ClientResidencia } from './types';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
+import { AchievementLevel } from '@/lib/achievementTypes';
 
 interface ProviderInfoCardProps {
   provider: ProviderData;
@@ -55,7 +56,7 @@ const ProviderInfoCard = ({
           <div className="ml-4 space-y-3">
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-semibold text-app-text">{provider?.name || 'Proveedor'}</h3>
-              <LevelBadge level={providerLevel.level} size="sm" />
+              <LevelBadge level={providerLevel.level as AchievementLevel} size="sm" />
             </div>
             
             {/* Metrics Row */}
