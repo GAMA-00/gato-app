@@ -85,7 +85,7 @@ const ProviderProfile = () => {
 
   if (isLoading) {
     return (
-      <>
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Perfil del Proveedor" subtitle="Cargando...">
@@ -96,20 +96,20 @@ const ProviderProfile = () => {
             </div>
           </PageContainer>
         </div>
-      </>
+      </div>
     );
   }
 
   if (!provider) {
     return (
-      <>
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Proveedor no encontrado" subtitle="">
             <p>El proveedor que buscas no existe.</p>
           </PageContainer>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -145,7 +145,7 @@ const ProviderProfile = () => {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="md:ml-52">
         <PageContainer title="Perfil del Proveedor" subtitle="">
@@ -170,7 +170,7 @@ const ProviderProfile = () => {
           </div>
         </PageContainer>
       </div>
-    </>
+    </div>
   );
 };
 
