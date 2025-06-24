@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form } from '@/components/ui/form';
-import { Service, ServiceVariant } from '@/lib/types';
+import { Service, ServiceVariant, WeeklyAvailability } from '@/lib/types';
 import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
 import { toast } from 'sonner';
@@ -37,13 +37,13 @@ const serviceFormSchema = z.object({
       duration: z.union([z.string(), z.number()])
     })
   ).optional(),
-  // Nueva sección de disponibilidad - fix the schema to match WeeklyAvailability
+  // Nueva sección de disponibilidad - allow optional fields in form
   availability: z.record(z.object({
-    enabled: z.boolean(),
+    enabled: z.boolean().optional(),
     timeSlots: z.array(z.object({
-      startTime: z.string(),
-      endTime: z.string()
-    }))
+      startTime: z.string().optional(),
+      endTime: z.string().optional()
+    })).optional()
   })).optional()
 });
 
@@ -99,6 +99,29 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     }
   });
   
+  // Transform availability data to match WeeklyAvailability interface
+  const transformAvailability = (formAvailability: ServiceFormValues['availability']): WeeklyAvailability => {
+    if (!formAvailability) return {};
+    
+    const transformed: WeeklyAvailability = {};
+    
+    Object.entries(formAvailability).forEach(([day, dayData]) => {
+      if (dayData && dayData.enabled !== undefined) {
+        transformed[day] = {
+          enabled: dayData.enabled,
+          timeSlots: (dayData.timeSlots || []).filter(slot => 
+            slot?.startTime && slot?.endTime
+          ).map(slot => ({
+            startTime: slot!.startTime!,
+            endTime: slot!.endTime!
+          }))
+        };
+      }
+    });
+    
+    return transformed;
+  };
+  
   const handleSubmit = (values: ServiceFormValues) => {
     console.log("=== FORMULARIO ENVIADO ===");
     console.log("Valores del formulario:", values);
@@ -140,13 +163,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       console.log("Precio base:", basePrice);
       console.log("Duración base:", baseDuration);
 
-      const serviceData = {
+      // Transform availability to match WeeklyAvailability interface
+      const transformedAvailability = transformAvailability(values.availability);
+      console.log("Disponibilidad transformada:", transformedAvailability);
+
+      const serviceData: Partial<Service> = {
         ...initialData,
         ...values,
         // Add these fields for compatibility with existing code
         price: basePrice,
         duration: baseDuration,
-        serviceVariants: formattedServiceVariants
+        serviceVariants: formattedServiceVariants,
+        availability: transformedAvailability
       };
       
       console.log("Datos finales a enviar:", serviceData);
