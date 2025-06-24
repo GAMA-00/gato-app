@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -88,13 +87,15 @@ const ProviderProfile = () => {
     return (
       <>
         <Navbar />
-        <PageContainer title="Perfil del Proveedor" subtitle="Cargando...">
-          <div className="space-y-6">
-            <Skeleton className="h-48 w-full rounded-lg" />
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <Skeleton className="h-64 w-full rounded-lg" />
-          </div>
-        </PageContainer>
+        <div className="md:ml-52">
+          <PageContainer title="Perfil del Proveedor" subtitle="Cargando...">
+            <div className="space-y-6">
+              <Skeleton className="h-48 w-full rounded-lg" />
+              <Skeleton className="h-32 w-full rounded-lg" />
+              <Skeleton className="h-64 w-full rounded-lg" />
+            </div>
+          </PageContainer>
+        </div>
       </>
     );
   }
@@ -103,9 +104,11 @@ const ProviderProfile = () => {
     return (
       <>
         <Navbar />
-        <PageContainer title="Proveedor no encontrado" subtitle="">
-          <p>El proveedor que buscas no existe.</p>
-        </PageContainer>
+        <div className="md:ml-52">
+          <PageContainer title="Proveedor no encontrado" subtitle="">
+            <p>El proveedor que buscas no existe.</p>
+          </PageContainer>
+        </div>
       </>
     );
   }
@@ -144,27 +147,29 @@ const ProviderProfile = () => {
   return (
     <>
       <Navbar />
-      <PageContainer title="Perfil del Proveedor" subtitle="">
-        <div className="space-y-8">
-          <ProviderHeader provider={transformedProvider} />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <ProviderAbout provider={transformedProvider} />
-              <ProviderServices 
-                categories={categories} 
-                isLoading={categoriesLoading}
-                onServiceSelect={() => {}}
-              />
-              <ProviderReviews provider={transformedProvider} />
-            </div>
-            <div className="space-y-6">
-              <ProviderInfo provider={transformedProvider} />
-              <ProviderAchievements provider={transformedProvider} />
-              <ProviderGallery provider={transformedProvider} />
+      <div className="md:ml-52">
+        <PageContainer title="Perfil del Proveedor" subtitle="">
+          <div className="space-y-8">
+            <ProviderHeader provider={transformedProvider} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-8">
+                <ProviderAbout provider={transformedProvider} />
+                <ProviderServices 
+                  categories={categories} 
+                  isLoading={categoriesLoading}
+                  onServiceSelect={() => {}}
+                />
+                <ProviderReviews provider={transformedProvider} />
+              </div>
+              <div className="space-y-6">
+                <ProviderInfo provider={transformedProvider} />
+                <ProviderAchievements provider={transformedProvider} />
+                <ProviderGallery provider={transformedProvider} />
+              </div>
             </div>
           </div>
-        </div>
-      </PageContainer>
+        </PageContainer>
+      </div>
     </>
   );
 };
