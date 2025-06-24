@@ -1,4 +1,3 @@
-
 export type ServiceCategory = 
   | 'home'
   | 'personal-care'
@@ -18,11 +17,22 @@ export interface ServiceVariant {
   duration: string | number;
 }
 
+// Nueva interfaz para disponibilidad
+export interface WeeklyAvailability {
+  [day: string]: {
+    enabled: boolean;
+    timeSlots: Array<{
+      startTime: string;
+      endTime: string;
+    }>;
+  };
+}
+
 export interface Service {
   id: string;
   name: string;
   subcategoryId: string;
-  category?: string; // Mantener category como opcional para compatibilidad
+  category?: string;
   duration: number;
   price: number;
   description: string;
@@ -30,15 +40,17 @@ export interface Service {
   residenciaIds: string[];
   providerId: string;
   providerName: string;
-  // Nuevos campos para el perfil del proveedor
+  // Campos para el perfil del proveedor
   aboutMe?: string;
   profileImage?: File;
-  galleryImages?: File[] | string[]; // Updated to allow both File[] and string[]
+  galleryImages?: File[] | string[];
   experienceYears?: number;
   hasCertifications?: boolean;
-  certificationFiles?: any[]; // Added certificationFiles field
+  certificationFiles?: any[];
   handlesDangerousDogs?: boolean;
-  serviceVariants?: ServiceVariant[]; // Reemplaza serviceSizes con serviceVariants
+  serviceVariants?: ServiceVariant[];
+  // Nueva disponibilidad semanal
+  availability?: WeeklyAvailability;
 }
 
 export interface Client {

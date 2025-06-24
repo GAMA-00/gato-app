@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,7 +36,15 @@ const serviceFormSchema = z.object({
       price: z.union([z.string(), z.number()]),
       duration: z.union([z.string(), z.number()])
     })
-  ).optional()
+  ).optional(),
+  // Nueva sección de disponibilidad
+  availability: z.record(z.object({
+    enabled: z.boolean(),
+    timeSlots: z.array(z.object({
+      startTime: z.string(),
+      endTime: z.string()
+    }))
+  })).optional()
 });
 
 type ServiceFormValues = z.infer<typeof serviceFormSchema>;
@@ -59,7 +66,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
 }) => {
   // Estado para controlar el paso actual del wizard
   const [currentStep, setCurrentStep] = useState(0);
-  const steps = ['basic', 'profile', 'service'];
+  const steps = ['basic', 'profile', 'service', 'availability']; // Agregar nuevo paso
   
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
@@ -74,7 +81,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       certificationFiles: initialData.certificationFiles || [],
       serviceVariants: initialData.serviceVariants || [
         { name: 'Servicio básico', price: initialData.price, duration: initialData.duration }
-      ]
+      ],
+      availability: initialData.availability || {}
     } : {
       name: '',
       subcategoryId: '',
@@ -86,7 +94,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       certificationFiles: [],
       serviceVariants: [
         { name: 'Servicio básico', price: 50, duration: 60 }
-      ]
+      ],
+      availability: {}
     }
   });
   
@@ -194,10 +203,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[95vh] h-[95vh] flex flex-col p-0 sm:p-6">
-        <DialogHeader className="px-4 pt-6 sm:px-0 sm:pt-0">
-          <DialogTitle>{initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[700px] max-h-[95vh] h-[95vh] flex flex-col p-0 sm:p-6">
+        <DialogHeader className="px-6 pt-6 sm:px-0 sm:pt-0 pb-4">
+          <DialogTitle className="text-xl">{initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}</DialogTitle>
+          <DialogDescription className="text-base">
             {initialData 
               ? 'Realiza los cambios necesarios en tu anuncio.' 
               : 'Completa la información para crear un nuevo anuncio.'}
@@ -212,15 +221,15 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
               const values = form.getValues();
               handleSubmit(values);
             }} className="flex flex-col h-full">
-              <div className="flex-grow px-4 sm:px-0 overflow-hidden mb-16 mt-2">
-                <ScrollArea className="h-[calc(80vh-160px)] pr-4">
-                  <div className="py-6 space-y-8">
+              <div className="flex-grow px-6 sm:px-0 overflow-hidden mb-20 mt-4">
+                <ScrollArea className="h-[calc(80vh-180px)] pr-4">
+                  <div className="py-4 space-y-12">
                     <ServiceFormFields currentStep={currentStep} />
                   </div>
                 </ScrollArea>
               </div>
               
-              <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-4 sm:px-6 border-t w-full shadow-sm">
+              <div className="fixed bottom-0 left-0 right-0 bg-background px-6 py-4 sm:px-6 border-t w-full shadow-lg">
                 <ServiceFormFooter 
                   isEditing={!!initialData}
                   onDelete={handleDelete}

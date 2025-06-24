@@ -3,6 +3,7 @@ import React from 'react';
 import BasicInfoStep from './steps/BasicInfoStep';
 import ProfileStep from './steps/ProfileStep';
 import ServiceDetailsStep from './steps/ServiceDetailsStep';
+import AvailabilityStep from './steps/AvailabilityStep';
 
 interface ServiceFormFieldsProps {
   currentStep: number;
@@ -17,6 +18,8 @@ const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({ currentStep }) =>
         return <ProfileStep />;
       case 2:
         return <ServiceDetailsStep />;
+      case 3:
+        return <AvailabilityStep />;
       default:
         return null;
     }

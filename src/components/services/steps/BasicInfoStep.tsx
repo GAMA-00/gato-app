@@ -1,137 +1,185 @@
 
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage
-} from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel
-} from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useCategories } from '@/hooks/useCategories';
+import { useResidencias } from '@/hooks/useResidencias';
 
-const BasicInfoStep: React.FC = () => {
+const BasicInfoStep = () => {
   const { control } = useFormContext();
-
-  // Fetch service categories and types
-  const { data: categoriesData, isLoading: loadingCategories } = useQuery({
-    queryKey: ['service-categories-and-types'],
-    queryFn: async () => {
-      const { data: categories, error: catError } = await supabase
-        .from('service_categories')
-        .select('*')
-        .order('label');
-      
-      if (catError) throw catError;
-      
-      const { data: serviceTypes, error: stError } = await supabase
-        .from('service_types')
-        .select('*')
-        .order('name');
-        
-      if (stError) throw stError;
-      
-      // Group service types by category
-      const serviceTypesByCategory = serviceTypes.reduce((acc, type) => {
-        if (!acc[type.category_id]) {
-          acc[type.category_id] = [];
-        }
-        acc[type.category_id].push(type);
-        return acc;
-      }, {} as Record<string, any[]>);
-      
-      return { 
-        categories,
-        serviceTypesByCategory
-      };
-    }
-  });
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: residencias, isLoading: residenciasLoading } = useResidencias();
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Paso 1: Información básica</h2>
-      
-      <FormField
-        control={control}
-        name="name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Título del anuncio</FormLabel>
-            <FormControl>
-              <Input placeholder="Ej. Limpieza profesional" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <h2 className="text-2xl font-semibold text-luxury-navy">
+          Información Básica
+        </h2>
+        <p className="text-muted-foreground text-base leading-relaxed">
+          Proporciona la información básica de tu servicio. Esta información será visible para los clientes al buscar servicios.
+        </p>
+      </div>
 
-      <FormField
-        control={control}
-        name="subcategoryId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>¿Qué servicio quieres anunciar?</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value || ''}
-              disabled={loadingCategories}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un tipo de servicio..." />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent className="max-h-[300px]">
-                {categoriesData?.categories?.map((category) => (
-                  <SelectGroup key={category.id}>
-                    <SelectLabel>{category.label}</SelectLabel>
-                    {categoriesData.serviceTypesByCategory[category.id]?.map((serviceType) => (
-                      <SelectItem key={serviceType.id} value={serviceType.id}>
-                        {serviceType.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <Card className="border-stone-200 shadow-sm">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-lg">Detalles del Servicio</CardTitle>
+          <CardDescription>
+            Completa la información principal de tu servicio.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <FormField
+            control={control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base font-medium">Nombre del Servicio</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ej: Limpieza de hogar completa" 
+                    {...field} 
+                    className="text-base py-3"
+                  />
+                </FormControl>
+                <FormDescription>
+                  Elige un nombre descriptivo y atractivo para tu servicio.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <FormField
-        control={control}
-        name="description"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Descripción</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Describe a detalle el servicio que ofreces..."
-                rows={3}
-                {...field}
-              />
-            </FormControl>
-            <FormDescription>
-              Explica los detalles más importantes de tu servicio.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+          <FormField
+            control={control}
+            name="subcategoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base font-medium">Categoría del Servicio</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="text-base py-3">
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categoriesLoading ? (
+                      <SelectItem value="loading" disabled>Cargando categorías...</SelectItem>
+                    ) : (
+                      categories?.flatMap(category => 
+                        category.subcategories?.map(subcategory => (
+                          <SelectItem key={subcategory.id} value={subcategory.id}>
+                            {category.name} - {subcategory.name}
+                          </SelectItem>
+                        )) || []
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Selecciona la categoría que mejor describe tu servicio.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base font-medium">Descripción</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Describe detalladamente tu servicio, qué incluye, materiales que utilizas, etc." 
+                    className="resize-none text-base min-h-[120px]" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormDescription>
+                  Una descripción detallada ayuda a los clientes a entender mejor tu servicio.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border-stone-200 shadow-sm">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-lg">Cobertura de Servicio</CardTitle>
+          <CardDescription>
+            Selecciona las residencias donde ofreces tu servicio.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormField
+            control={control}
+            name="residenciaIds"
+            render={() => (
+              <FormItem>
+                <FormLabel className="text-base font-medium">Residencias Disponibles</FormLabel>
+                <div className="grid grid-cols-1 gap-4 mt-4">
+                  {residenciasLoading ? (
+                    <p className="text-muted-foreground">Cargando residencias...</p>
+                  ) : (
+                    residencias?.map((residencia) => (
+                      <FormField
+                        key={residencia.id}
+                        control={control}
+                        name="residenciaIds"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={residencia.id}
+                              className="flex flex-row items-start space-x-3 space-y-0 border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(residencia.id)}
+                                  onCheckedChange={(checked) => {
+                                    const currentValue = field.value || [];
+                                    return checked
+                                      ? field.onChange([...currentValue, residencia.id])
+                                      : field.onChange(
+                                          currentValue?.filter(
+                                            (value) => value !== residencia.id
+                                          )
+                                        );
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel className="text-base font-medium cursor-pointer">
+                                  {residencia.name}
+                                </FormLabel>
+                                <p className="text-sm text-muted-foreground">
+                                  {residencia.address}
+                                </p>
+                              </div>
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    ))
+                  )}
+                </div>
+                <FormDescription className="mt-4">
+                  Selecciona todas las residencias donde puedes ofrecer tu servicio.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
