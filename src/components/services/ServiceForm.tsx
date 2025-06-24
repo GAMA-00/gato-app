@@ -231,10 +231,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[95vh] h-[95vh] flex flex-col p-0 sm:p-6">
-        <DialogHeader className="px-6 pt-6 sm:px-0 sm:pt-0 pb-4">
-          <DialogTitle className="text-xl">{initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}</DialogTitle>
-          <DialogDescription className="text-base">
+      <DialogContent className="w-full max-w-4xl max-h-[95vh] h-[95vh] flex flex-col p-0">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b border-gray-100 flex-shrink-0">
+          <DialogTitle className="text-lg sm:text-xl font-semibold">
+            {initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}
+          </DialogTitle>
+          <DialogDescription className="text-sm sm:text-base text-gray-600">
             {initialData 
               ? 'Realiza los cambios necesarios en tu anuncio.' 
               : 'Completa la información para crear un nuevo anuncio.'}
@@ -248,16 +250,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
               console.log("=== EVENTO onSubmit DEL FORM ===");
               const values = form.getValues();
               handleSubmit(values);
-            }} className="flex flex-col h-full">
-              <div className="flex-grow px-6 sm:px-0 overflow-hidden mb-20 mt-4">
-                <ScrollArea className="h-[calc(80vh-180px)] pr-4">
-                  <div className="py-4 space-y-12">
+            }} className="flex flex-col flex-1 min-h-0">
+              {/* Contenido principal con scroll mejorado */}
+              <div className="flex-1 overflow-hidden px-4 sm:px-6">
+                <ScrollArea className="h-full">
+                  <div className="py-6 pr-4">
                     <ServiceFormFields currentStep={currentStep} />
                   </div>
                 </ScrollArea>
               </div>
               
-              <div className="fixed bottom-0 left-0 right-0 bg-background px-6 py-4 sm:px-6 border-t w-full shadow-lg">
+              {/* Footer fijo */}
+              <div className="flex-shrink-0 border-t border-gray-100 bg-white px-4 sm:px-6 py-4">
                 <ServiceFormFooter 
                   isEditing={!!initialData}
                   onDelete={handleDelete}

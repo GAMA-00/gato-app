@@ -13,38 +13,38 @@ const BasicInfoStep = () => {
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <h2 className="text-2xl font-semibold text-luxury-navy">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-2 sm:space-y-3">
+        <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
           Información Básica
         </h2>
-        <p className="text-muted-foreground text-base leading-relaxed">
+        <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
           Proporciona la información básica de tu servicio. Esta información será visible para los clientes al buscar servicios.
         </p>
       </div>
 
       <Card className="border-stone-200 shadow-sm">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg">Detalles del Servicio</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Detalles del Servicio</CardTitle>
+          <CardDescription className="text-sm">
             Completa la información principal de tu servicio.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5 sm:space-y-6">
           <FormField
             control={control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-base font-medium">Nombre del Servicio</FormLabel>
+                <FormLabel className="text-sm sm:text-base font-medium">Nombre del Servicio</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="Ej: Limpieza de hogar completa" 
                     {...field} 
-                    className="text-base py-3"
+                    className="text-sm sm:text-base py-2.5 sm:py-3 h-auto"
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className="text-xs sm:text-sm">
                   Elige un nombre descriptivo y atractivo para tu servicio.
                 </FormDescription>
                 <FormMessage />
@@ -57,10 +57,10 @@ const BasicInfoStep = () => {
             name="subcategoryId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-base font-medium">Categoría del Servicio</FormLabel>
+                <FormLabel className="text-sm sm:text-base font-medium">Categoría del Servicio</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger className="text-base py-3">
+                    <SelectTrigger className="text-sm sm:text-base py-2.5 sm:py-3 h-auto">
                       <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                   </FormControl>
@@ -78,7 +78,7 @@ const BasicInfoStep = () => {
                     )}
                   </SelectContent>
                 </Select>
-                <FormDescription>
+                <FormDescription className="text-xs sm:text-sm">
                   Selecciona la categoría que mejor describe tu servicio.
                 </FormDescription>
                 <FormMessage />
@@ -91,15 +91,15 @@ const BasicInfoStep = () => {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-base font-medium">Descripción</FormLabel>
+                <FormLabel className="text-sm sm:text-base font-medium">Descripción</FormLabel>
                 <FormControl>
                   <Textarea 
                     placeholder="Describe detalladamente tu servicio, qué incluye, materiales que utilizas, etc." 
-                    className="resize-none text-base min-h-[120px]" 
+                    className="resize-none text-sm sm:text-base min-h-[100px] sm:min-h-[120px]" 
                     {...field} 
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className="text-xs sm:text-sm">
                   Una descripción detallada ayuda a los clientes a entender mejor tu servicio.
                 </FormDescription>
                 <FormMessage />
