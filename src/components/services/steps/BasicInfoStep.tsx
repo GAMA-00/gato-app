@@ -12,8 +12,8 @@ import { useResidencias } from '@/hooks/useResidencias';
 
 const BasicInfoStep = () => {
   const { control } = useFormContext();
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { data: residencias, isLoading: residenciasLoading } = useResidencias();
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const { residencias, isLoading: residenciasLoading } = useResidencias();
 
   return (
     <div className="space-y-8">
@@ -71,13 +71,13 @@ const BasicInfoStep = () => {
                     {categoriesLoading ? (
                       <SelectItem value="loading" disabled>Cargando categorías...</SelectItem>
                     ) : (
-                      categories?.flatMap(category => 
-                        category.subcategories?.map(subcategory => (
-                          <SelectItem key={subcategory.id} value={subcategory.id}>
-                            {category.name} - {subcategory.name}
+                      categoriesData?.categories?.map(category => 
+                        categoriesData.serviceTypesByCategory[category.id]?.map(serviceType => (
+                          <SelectItem key={serviceType.id} value={serviceType.id}>
+                            {category.name} - {serviceType.name}
                           </SelectItem>
                         )) || []
-                      )
+                      ).flat()
                     )}
                   </SelectContent>
                 </Select>

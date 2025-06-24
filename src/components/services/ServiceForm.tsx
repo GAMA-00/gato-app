@@ -37,7 +37,7 @@ const serviceFormSchema = z.object({
       duration: z.union([z.string(), z.number()])
     })
   ).optional(),
-  // Nueva sección de disponibilidad
+  // Nueva sección de disponibilidad - fix the schema to match WeeklyAvailability
   availability: z.record(z.object({
     enabled: z.boolean(),
     timeSlots: z.array(z.object({
