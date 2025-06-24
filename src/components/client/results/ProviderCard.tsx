@@ -7,6 +7,7 @@ import { ProcessedProvider } from './types';
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useProviderMerits } from '@/hooks/useProviderMerits';
 
 interface ProviderCardProps {
   provider: ProcessedProvider;
@@ -15,6 +16,7 @@ interface ProviderCardProps {
 
 const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   const isMobile = useIsMobile();
+  const { data: merits } = useProviderMerits(provider.id);
   
   // Extract first line of service description instead of provider aboutMe
   const shortDescription = provider.serviceDescription?.split('\n')[0] || '';
@@ -22,24 +24,15 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   // Get all images from gallery (no limit)
   const allImages = provider.galleryImages || [];
 
-  // Calculate provider level based on time on platform
-  const getProviderLevel = (joinDate?: Date) => {
-    if (!joinDate) return { level: 1, name: 'Nuevo' };
-    
-    const now = new Date();
-    const accountAgeInMonths = (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-    
-    if (accountAgeInMonths < 3) return { level: 1, name: 'Nuevo' };
-    if (accountAgeInMonths < 12) return { level: 2, name: 'Aprendiz' };
-    if (accountAgeInMonths < 24) return { level: 3, name: 'Avanzado' };
-    if (accountAgeInMonths < 36) return { level: 4, name: 'Experto' };
-    return { level: 5, name: 'Maestro' };
+  const {
+    averageRating,
+    recurringClientsCount,
+    providerLevel
+  } = merits || {
+    averageRating: 5.0,
+    recurringClientsCount: 0,
+    providerLevel: { level: 'nuevo', name: 'Nuevo', color: '#3B82F6' }
   };
-
-  const providerLevel = getProviderLevel(provider.joinDate);
-  
-  // Use actual rating or default to 5.0 for new providers
-  const displayRating = provider.rating && provider.rating > 0 ? provider.rating : 5.0;
 
   return (
     <Card 
@@ -70,14 +63,14 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
               <div className="flex items-center bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 flex-shrink-0">
                 <Star className="h-2.5 w-2.5 fill-amber-600 text-amber-600 mr-0.5" />
                 <span className="font-medium text-xs text-amber-700">
-                  {displayRating.toFixed(1)}
+                  {averageRating.toFixed(1)}
                 </span>
               </div>
               
               {/* Clientes Recurrentes */}
               <div className="flex items-center bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 flex-shrink-0">
                 <Users className="h-2.5 w-2.5 text-amber-600 mr-0.5" />
-                <span className="font-medium text-xs text-amber-700">{provider.recurringClients}</span>
+                <span className="font-medium text-xs text-amber-700">{recurringClientsCount}</span>
               </div>
               
               {/* Nivel del Proveedor */}

@@ -43,7 +43,7 @@ export function useProviderAchievements() {
       const ratingsData = appointments?.filter(app => app.provider_ratings && app.provider_ratings.rating) || [];
       const averageRating = ratingsData.length > 0
         ? ratingsData.reduce((sum, app) => sum + (app.provider_ratings?.rating || 0), 0) / ratingsData.length
-        : 0;
+        : 5.0; // Default to 5.0 for new providers
 
       // Build rating history
       const ratingHistory: RatingHistory[] = ratingsData.map(appointment => ({

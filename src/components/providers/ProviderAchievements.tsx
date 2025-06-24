@@ -3,49 +3,45 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Star, Users, TrendingUp } from 'lucide-react';
 import { ProviderProfile } from '@/lib/types';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { getProviderLevelByJobs } from '@/lib/achievementTypes';
 import LevelBadge from '@/components/achievements/LevelBadge';
+import { useProviderMerits } from '@/hooks/useProviderMerits';
 
 interface ProviderAchievementsProps {
   provider: ProviderProfile;
   recurringClientsCount?: number;
 }
 
-const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderAchievementsProps) => {
-  // Fetch completed jobs count for this provider
-  const { data: completedJobsCount = 0 } = useQuery({
-    queryKey: ['completed-jobs', provider.id],
-    queryFn: async () => {
-      if (!provider.id) return 0;
-      
-      console.log('Fetching completed jobs count for provider:', provider.id);
-      
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('provider_id', provider.id)
-        .in('status', ['confirmed', 'completed']);
-        
-      if (error) {
-        console.error('Error fetching completed jobs count:', error);
-        return 0;
-      }
-      
-      const count = data?.length || 0;
-      console.log('Completed jobs count:', count);
-      
-      return count;
-    },
-    enabled: !!provider.id
-  });
+const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
+  const { data: merits, isLoading } = useProviderMerits(provider.id);
 
-  // Get provider level based on completed jobs
-  const providerLevel = getProviderLevelByJobs(completedJobsCount);
-  
-  // Use actual rating or default to 5.0 for new providers
-  const displayRating = provider.rating && provider.rating > 0 ? provider.rating : 5.0;
+  if (isLoading) {
+    return (
+      <Card className="bg-white border border-stone-200 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-medium text-stone-800">
+            Méritos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between gap-6">
+            <div className="text-center">Cargando...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const {
+    averageRating,
+    recurringClientsCount,
+    completedJobsCount,
+    providerLevel
+  } = merits || {
+    averageRating: 5.0,
+    recurringClientsCount: 0,
+    completedJobsCount: 0,
+    providerLevel: { level: 'nuevo', name: 'Nuevo', color: '#3B82F6' }
+  };
 
   return (
     <Card className="bg-white border border-stone-200 shadow-sm">
@@ -68,7 +64,7 @@ const ProviderAchievements = ({ provider, recurringClientsCount = 0 }: ProviderA
               Calificación promedio
             </div>
             <div className="text-lg font-semibold text-stone-800">
-              {displayRating.toFixed(1)}
+              {averageRating.toFixed(1)}
             </div>
           </div>
 
