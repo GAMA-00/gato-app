@@ -37,34 +37,38 @@ const DayAvailabilityEditor: React.FC<DayAvailabilityEditorProps> = ({ dayKey, d
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 p-4 sm:p-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
         <div className="flex items-center space-x-3">
           <Switch
             checked={dayAvailability.enabled}
             onCheckedChange={handleToggleDay}
+            className="scale-110"
           />
-          <span className="font-medium text-base">{dayLabel}</span>
+          <span className="font-medium text-base sm:text-lg">{dayLabel}</span>
         </div>
       </div>
 
       {dayAvailability.enabled && (
-        <div className="ml-8 space-y-3">
+        <div className="pl-2 sm:ml-8 space-y-4">
           {fields.map((field, index) => (
-            <div key={field.id} className="flex items-center space-x-3">
-              <TimeSlotEditor
-                dayKey={dayKey}
-                slotIndex={index}
-              />
+            <div key={field.id} className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:space-x-3">
+              <div className="flex-1">
+                <TimeSlotEditor
+                  dayKey={dayKey}
+                  slotIndex={index}
+                />
+              </div>
               {fields.length > 1 && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => removeTimeSlot(index)}
-                  className="flex-shrink-0 p-2 h-9 w-9"
+                  className="w-full sm:w-auto sm:flex-shrink-0 p-3 sm:p-2 h-11 sm:h-9 sm:w-9 mt-2 sm:mt-0"
                 >
                   <Trash2 className="h-4 w-4 text-red-500" />
+                  <span className="ml-2 sm:hidden">Eliminar horario</span>
                 </Button>
               )}
             </div>
@@ -75,7 +79,7 @@ const DayAvailabilityEditor: React.FC<DayAvailabilityEditorProps> = ({ dayKey, d
             variant="outline"
             size="sm"
             onClick={addTimeSlot}
-            className="flex items-center space-x-2 mt-2"
+            className="w-full sm:w-auto flex items-center justify-center space-x-2 mt-3 p-3 sm:p-2"
           >
             <Plus className="h-4 w-4" />
             <span>Agregar horario</span>

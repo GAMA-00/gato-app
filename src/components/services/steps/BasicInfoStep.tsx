@@ -6,14 +6,11 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useCategories } from '@/hooks/useCategories';
-import { useResidencias } from '@/hooks/useResidencias';
 
 const BasicInfoStep = () => {
   const { control } = useFormContext();
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
-  const { residencias, isLoading: residenciasLoading } = useResidencias();
 
   return (
     <div className="space-y-8">
@@ -71,13 +68,13 @@ const BasicInfoStep = () => {
                     {categoriesLoading ? (
                       <SelectItem value="loading" disabled>Cargando categorías...</SelectItem>
                     ) : (
-                      categoriesData?.categories?.map(category => 
+                      categoriesData?.categories?.flatMap(category => 
                         categoriesData.serviceTypesByCategory[category.id]?.map(serviceType => (
                           <SelectItem key={serviceType.id} value={serviceType.id}>
                             {category.name} - {serviceType.name}
                           </SelectItem>
                         )) || []
-                      ).flat()
+                      )
                     )}
                   </SelectContent>
                 </Select>
@@ -104,75 +101,6 @@ const BasicInfoStep = () => {
                 </FormControl>
                 <FormDescription>
                   Una descripción detallada ayuda a los clientes a entender mejor tu servicio.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="border-stone-200 shadow-sm">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg">Cobertura de Servicio</CardTitle>
-          <CardDescription>
-            Selecciona las residencias donde ofreces tu servicio.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormField
-            control={control}
-            name="residenciaIds"
-            render={() => (
-              <FormItem>
-                <FormLabel className="text-base font-medium">Residencias Disponibles</FormLabel>
-                <div className="grid grid-cols-1 gap-4 mt-4">
-                  {residenciasLoading ? (
-                    <p className="text-muted-foreground">Cargando residencias...</p>
-                  ) : (
-                    residencias?.map((residencia) => (
-                      <FormField
-                        key={residencia.id}
-                        control={control}
-                        name="residenciaIds"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={residencia.id}
-                              className="flex flex-row items-start space-x-3 space-y-0 border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(residencia.id)}
-                                  onCheckedChange={(checked) => {
-                                    const currentValue = field.value || [];
-                                    return checked
-                                      ? field.onChange([...currentValue, residencia.id])
-                                      : field.onChange(
-                                          currentValue?.filter(
-                                            (value) => value !== residencia.id
-                                          )
-                                        );
-                                  }}
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="text-base font-medium cursor-pointer">
-                                  {residencia.name}
-                                </FormLabel>
-                                <p className="text-sm text-muted-foreground">
-                                  {residencia.address}
-                                </p>
-                              </div>
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    ))
-                  )}
-                </div>
-                <FormDescription className="mt-4">
-                  Selecciona todas las residencias donde puedes ofrecer tu servicio.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

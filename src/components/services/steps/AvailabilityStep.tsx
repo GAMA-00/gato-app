@@ -19,24 +19,24 @@ const AvailabilityStep = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 px-2 sm:px-0">
       <div className="space-y-3">
-        <h2 className="text-2xl font-semibold text-luxury-navy">
+        <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
           Disponibilidad Semanal
         </h2>
-        <p className="text-muted-foreground text-base leading-relaxed">
+        <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
           Define cuándo estás disponible para brindar tus servicios. Los clientes solo podrán agendar citas en los horarios que configures aquí.
         </p>
       </div>
 
       <Card className="border-stone-200 shadow-sm">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg">Horarios de Trabajo</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
+          <CardTitle className="text-base sm:text-lg">Horarios de Trabajo</CardTitle>
+          <CardDescription className="text-sm">
             Activa los días que trabajas y define tus horarios disponibles para cada día.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6 px-2 sm:px-6">
           {daysOfWeek.map((day, index) => (
             <div key={day.key}>
               <DayAvailabilityEditor 
@@ -44,19 +44,19 @@ const AvailabilityStep = () => {
                 dayLabel={day.label}
               />
               {index < daysOfWeek.length - 1 && (
-                <div className="border-b border-stone-100 mt-6" />
+                <div className="border-b border-stone-100 mt-4 sm:mt-6" />
               )}
             </div>
           ))}
         </CardContent>
       </Card>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mx-2 sm:mx-0">
         <div className="flex items-start space-x-3">
-          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white text-xs font-bold">i</span>
           </div>
-          <div className="text-sm text-blue-800">
+          <div className="text-xs sm:text-sm text-blue-800">
             <p className="font-medium mb-1">Consejos para configurar tu disponibilidad:</p>
             <ul className="space-y-1 list-disc list-inside text-blue-700">
               <li>Considera tiempo de traslado entre citas</li>

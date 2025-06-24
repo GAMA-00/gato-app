@@ -24,31 +24,65 @@ const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({ dayKey, slotIndex }) =>
   };
 
   return (
-    <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
-      <div className="flex items-center space-x-2">
-        <span className="text-sm text-gray-600 font-medium">De</span>
-        <Input
-          type="time"
-          {...register(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`)}
-          className="w-24 text-sm"
-        />
-        <span className="text-xs text-gray-500 hidden sm:block">
-          {formatTime(startTimeValue)}
-        </span>
+    <div className="bg-gray-50 p-4 rounded-lg space-y-4 sm:space-y-0">
+      {/* Mobile Layout - Vertical */}
+      <div className="flex flex-col space-y-4 sm:hidden">
+        <div className="space-y-2">
+          <label className="text-sm text-gray-600 font-medium">Hora de inicio</label>
+          <Input
+            type="time"
+            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`)}
+            className="w-full text-base h-12"
+          />
+          {startTimeValue && (
+            <span className="text-xs text-gray-500">
+              {formatTime(startTimeValue)}
+            </span>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm text-gray-600 font-medium">Hora de fin</label>
+          <Input
+            type="time"
+            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`)}
+            className="w-full text-base h-12"
+          />
+          {endTimeValue && (
+            <span className="text-xs text-gray-500">
+              {formatTime(endTimeValue)}
+            </span>
+          )}
+        </div>
       </div>
-      
-      <span className="text-gray-400">-</span>
-      
-      <div className="flex items-center space-x-2">
-        <span className="text-sm text-gray-600 font-medium">Hasta</span>
-        <Input
-          type="time"
-          {...register(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`)}
-          className="w-24 text-sm"
-        />
-        <span className="text-xs text-gray-500 hidden sm:block">
-          {formatTime(endTimeValue)}
-        </span>
+
+      {/* Desktop Layout - Horizontal */}
+      <div className="hidden sm:flex sm:items-center sm:space-x-4">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600 font-medium">De</span>
+          <Input
+            type="time"
+            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`)}
+            className="w-28 text-sm"
+          />
+          <span className="text-xs text-gray-500">
+            {formatTime(startTimeValue)}
+          </span>
+        </div>
+        
+        <span className="text-gray-400">-</span>
+        
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600 font-medium">Hasta</span>
+          <Input
+            type="time"
+            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`)}
+            className="w-28 text-sm"
+          />
+          <span className="text-xs text-gray-500">
+            {formatTime(endTimeValue)}
+          </span>
+        </div>
       </div>
     </div>
   );
