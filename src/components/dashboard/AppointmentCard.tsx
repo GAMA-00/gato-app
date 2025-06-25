@@ -5,6 +5,13 @@ import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import AppointmentActions from './AppointmentActions';
+import { 
+  getDisplayName, 
+  getServiceName, 
+  getLocationInfo, 
+  getContactInfo, 
+  getInitials 
+} from '@/utils/appointmentUtils';
 
 interface AppointmentCardProps {
   appointment: any;
@@ -21,126 +28,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   onAccept,
   onReject
 }) => {
-  // Enhanced function to get the correct name based on user role
-  const getDisplayName = (appointment: any) => {
-    // If the user is a provider, show client name
-    if (user?.role === 'provider') {
-      if (appointment.client_name) {
-        return appointment.client_name;
-      }
-      
-      // Fallback for external bookings
-      if (appointment.is_external || appointment.external_booking) {
-        return 'Cliente Externo';
-      }
-      
-      return 'Cliente sin nombre';
-    } 
-    // If the user is a client, show provider name
-    else {
-      if (appointment.provider_name) {
-        return appointment.provider_name;
-      }
-      
-      return 'Proveedor desconocido';
-    }
-  };
-
-  // Helper function to get service name with fallback
-  const getServiceName = (appointment: any) => {
-    return appointment.listings?.title || 'Servicio';
-  };
-
-  // Enhanced location info function with better fallback logic
-  const getLocationInfo = (appointment: any) => {
-    console.log('Getting location for appointment:', appointment.id, appointment);
-    
-    // First, check if we have pre-computed complete location
-    if (appointment.complete_location) {
-      console.log('Using pre-computed location:', appointment.complete_location);
-      return appointment.complete_location;
-    }
-    
-    // Fallback: build location manually from available data
-    const isExternal = appointment.external_booking || appointment.is_external;
-    
-    if (isExternal) {
-      const location = appointment.client_address || 'Ubicación externa';
-      console.log('External appointment location:', location);
-      return location;
-    }
-    
-    // Build location from available data
-    const locationData = {
-      residenciaName: appointment.residencias?.name,
-      condominiumName: appointment.users?.condominium_name || appointment.users?.condominium_text,
-      houseNumber: appointment.users?.house_number,
-      apartment: appointment.apartment,
-      clientAddress: appointment.client_address,
-      isExternal: false
-    };
-    
-    const parts: string[] = [];
-    
-    // Add residencia name
-    if (locationData.residenciaName && locationData.residenciaName.trim()) {
-      parts.push(locationData.residenciaName.trim());
-    }
-    
-    // Add condominium name
-    if (locationData.condominiumName && locationData.condominiumName.trim()) {
-      parts.push(locationData.condominiumName.trim());
-    }
-    
-    // Add house/apartment number - prioritize apartment, then house_number
-    const houseNumber = locationData.apartment || locationData.houseNumber;
-    if (houseNumber && houseNumber.toString().trim()) {
-      // Format house number consistently, removing any existing prefixes
-      const cleanNumber = houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
-      if (cleanNumber) {
-        parts.push(cleanNumber);
-      }
-    }
-    
-    // Return in the standardized format: Residencia – Condominio – Número
-    if (parts.length >= 3) {
-      return parts.join(' – ');
-    } else if (parts.length >= 2) {
-      return parts.join(' – ');
-    } else if (parts.length === 1) {
-      return parts[0];
-    }
-    
-    // Fallback if no data
-    return 'Ubicación no especificada';
-  };
-
-  // Enhanced contact info function
-  const getContactInfo = (appointment: any) => {
-    // For external bookings, prioritize stored contact info
-    if (appointment.is_external || appointment.external_booking) {
-      return appointment.client_phone || appointment.client_email || 'Sin contacto';
-    }
-    
-    // For internal bookings, we don't have direct access to user phone/email in this context
-    return null;
-  };
-  
-  // Helper function to get initials for avatar
-  const getInitials = (name: string) => {
-    if (!name || name === 'Cliente sin nombre' || name === 'Proveedor desconocido' || name === 'Cliente Externo') {
-      return 'U';
-    }
-    
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-  };
-
-  const displayName = getDisplayName(appointment);
+  const displayName = getDisplayName(appointment, user);
   const serviceName = getServiceName(appointment);
   const isExternal = appointment.is_external || appointment.external_booking;
   const contactInfo = getContactInfo(appointment);
