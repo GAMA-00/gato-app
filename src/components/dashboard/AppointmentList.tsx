@@ -180,7 +180,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   return (
     <Card className="glassmorphism mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-xl flex items-center flex-1 min-w-0 pr-4">
+        <CardTitle className="text-xl flex items-center flex-1 min-w-0 pr-8">
           {icon}
           <span className="truncate">{title}</span>
         </CardTitle>
