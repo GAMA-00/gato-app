@@ -180,17 +180,17 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   return (
     <Card className="glassmorphism mb-6">
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-xl flex items-center">
+        <CardTitle className="text-xl flex items-center flex-1 min-w-0 pr-4">
           {icon}
-          {title}
+          <span className="truncate">{title}</span>
         </CardTitle>
-        <div className="flex items-center gap-2">
-          <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full whitespace-nowrap">
             {filteredAppointments.length} citas
           </span>
           {/* Show external bookings count if any */}
           {filteredAppointments.some(app => app.is_external || app.external_booking) && (
-            <span className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
+            <span className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1 whitespace-nowrap">
               <ExternalLink className="h-3 w-3" />
               {filteredAppointments.filter(app => app.is_external || app.external_booking).length} externa{filteredAppointments.filter(app => app.is_external || app.external_booking).length > 1 ? 's' : ''}
             </span>
