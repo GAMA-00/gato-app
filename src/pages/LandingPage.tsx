@@ -34,7 +34,7 @@ const LandingPage = () => {
           <Button 
             onClick={() => {
               console.log('LandingPage: Navigating to client login');
-              navigate('/login?type=client');
+              navigate('/client/login');
             }}
             className="w-full h-14 bg-black text-white hover:bg-gray-800 rounded-xl text-base font-medium"
             size="lg"
@@ -47,7 +47,7 @@ const LandingPage = () => {
           <Button 
             onClick={() => {
               console.log('LandingPage: Navigating to provider login');
-              navigate('/login?type=provider');
+              navigate('/provider/login');
             }}
             variant="outline"
             className="w-full h-14 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 rounded-xl text-base font-medium"

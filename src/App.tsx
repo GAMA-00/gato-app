@@ -9,9 +9,12 @@ import Services from './pages/Services';
 import Calendar from './pages/Calendar';
 import Achievements from './pages/Achievements';
 import Login from './pages/Login';
+import ClientLogin from './pages/ClientLogin';
+import ProviderLogin from './pages/ProviderLogin';
 import Register from './pages/Register';
+import ProviderRegister from './pages/ProviderRegister';
 import LandingPage from './pages/LandingPage';
-import ProtectedRoute from './components/ProtectedRoute';
+import RoleGuard from './components/RoleGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import ClientBookings from './pages/ClientBookings';
 import ClientServices from './pages/ClientServices';
@@ -37,76 +40,86 @@ function App() {
           <ErrorBoundary>
             <RouteDebugger />
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
               <Route path="/test" element={<TestComponent />} />
               
+              {/* Separate login pages for each role */}
+              <Route path="/client/login" element={<ClientLogin />} />
+              <Route path="/provider/login" element={<ProviderLogin />} />
+              
+              {/* Registration routes */}
+              <Route path="/register" element={<Register />} />
+              <Route path="/register-provider" element={<ProviderRegister />} />
+
+              {/* Provider-only routes */}
               <Route
                 path="/dashboard"
                 element={
-                  <ProtectedRoute allowedRoles={['client', 'provider']}>
+                  <RoleGuard allowedRole="provider">
                     <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute allowedRoles={['client', 'provider']}>
-                    <Profile />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               />
               <Route
                 path="/services"
                 element={
-                  <ProtectedRoute allowedRoles={['provider']}>
+                  <RoleGuard allowedRole="provider">
                     <Services />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               />
               <Route
                 path="/calendar"
                 element={
-                  <ProtectedRoute allowedRoles={['provider']}>
+                  <RoleGuard allowedRole="provider">
                     <Calendar />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               />
               <Route
                 path="/achievements"
                 element={
-                  <ProtectedRoute allowedRoles={['provider']}>
+                  <RoleGuard allowedRole="provider">
                     <Achievements />
-                  </ProtectedRoute>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/team"
+                element={
+                  <RoleGuard allowedRole="provider">
+                    <Team />
+                  </RoleGuard>
                 }
               />
 
-              {/* Client routes */}
+              {/* Client-only routes */}
               <Route
                 path="/client/categories"
                 element={
-                  <ProtectedRoute allowedRoles={['client']}>
+                  <RoleGuard allowedRole="client">
                     <ClientServices />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               />
               <Route
                 path="/client/bookings"
                 element={
-                  <ProtectedRoute allowedRoles={['client']}>
+                  <RoleGuard allowedRole="client">
                     <ClientBookings />
-                  </ProtectedRoute>
+                  </RoleGuard>
                 }
               />
               
+              {/* Shared routes - but still role-protected */}
               <Route
-                path="/team"
+                path="/profile"
                 element={
-                  <ProtectedRoute allowedRoles={['provider']}>
-                    <Team />
-                  </ProtectedRoute>
+                  <RoleGuard allowedRole="client">
+                    <Profile />
+                  </RoleGuard>
                 }
               />
               
@@ -116,6 +129,6 @@ function App() {
       </AuthProvider>
     </Router>
   );
-}
+};
 
 export default App;
