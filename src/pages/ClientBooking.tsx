@@ -1,6 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { validateBookingSlot } from '@/utils/bookingValidation';
 import { buildLocationString } from '@/utils/locationUtils';
@@ -30,6 +33,36 @@ const ClientBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [notes, setNotes] = useState('');
+
+  // Query to get complete user data from database
+  const { data: completeUserData, isLoading: isLoadingUserData } = useQuery({
+    queryKey: ['complete-user-data', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          house_number,
+          condominium_text,
+          residencia_id,
+          residencias (
+            id,
+            name
+          )
+        `)
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching complete user data:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   // Scroll to top when component mounts - improved version
   useEffect(() => {
@@ -135,18 +168,18 @@ const ClientBooking = () => {
     });
   };
 
-  // Build client location string with debugging
+  // Build client location string using complete data from database
   const clientLocation = buildLocationString({
-    residenciaName: user?.condominiumName,
-    condominiumName: user?.condominiumName,
-    houseNumber: user?.houseNumber,
-    apartment: user?.apartment
+    residenciaName: completeUserData?.residencias?.name,
+    condominiumName: completeUserData?.condominium_text,
+    houseNumber: completeUserData?.house_number,
+    isExternal: false
   });
 
-  console.log('User data for location:', {
-    condominiumName: user?.condominiumName,
-    houseNumber: user?.houseNumber,
-    apartment: user?.apartment
+  console.log('Complete user data for location:', {
+    residenciaName: completeUserData?.residencias?.name,
+    condominiumName: completeUserData?.condominium_text,
+    houseNumber: completeUserData?.house_number
   });
 
   console.log('Final client location:', clientLocation);
@@ -186,7 +219,7 @@ const ClientBooking = () => {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {clientLocation}
+                    {isLoadingUserData ? 'Cargando ubicación...' : clientLocation}
                   </span>
                 </div>
                 {selectedVariant && (
@@ -287,7 +320,7 @@ const ClientBooking = () => {
                   <div>
                     <p className="font-medium text-sm mb-1">Ubicación:</p>
                     <p className="text-sm">
-                      {clientLocation}
+                      {isLoadingUserData ? 'Cargando ubicación...' : clientLocation}
                     </p>
                   </div>
 
