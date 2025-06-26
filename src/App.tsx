@@ -15,6 +15,7 @@ import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import ClientBookings from './pages/ClientBookings';
+import ClientServices from './pages/ClientServices';
 import Team from '@/pages/Team';
 
 const queryClient = new QueryClient();
@@ -79,6 +80,15 @@ function App() {
                 }
               />
 
+              {/* Client routes */}
+              <Route
+                path="/client/categories"
+                element={
+                  <ProtectedRoute allowedRoles={['client']}>
+                    <ClientServices />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/client/bookings"
                 element={

@@ -177,14 +177,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        if (event === 'SIGNED_IN' && currentSession?.user) {
-          console.log('AuthContext: Setting user from session');
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && currentSession?.user) {
+          console.log('AuthContext: Setting user from session, event:', event);
           setSession(currentSession);
-          setUser(createUserFromSession(currentSession.user));
+          const userData = createUserFromSession(currentSession.user);
+          setUser(userData);
           
           // Obtener perfil completo
           const userProfile = await fetchUserProfile(currentSession.user.id);
           setProfile(userProfile);
+          
+          console.log('AuthContext: User set successfully:', userData.role);
         }
         
         setIsLoading(false);
@@ -198,12 +201,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Solo establecer sesión si no estamos en proceso de logout
       if (!isLoggingOutRef.current) {
         if (currentSession?.user) {
+          console.log('AuthContext: Setting initial session');
           setSession(currentSession);
-          setUser(createUserFromSession(currentSession.user));
+          const userData = createUserFromSession(currentSession.user);
+          setUser(userData);
           
           // Obtener perfil completo
           const userProfile = await fetchUserProfile(currentSession.user.id);
           setProfile(userProfile);
+          
+          console.log('AuthContext: Initial user set:', userData.role);
         } else {
           setSession(null);
           setUser(null);
@@ -237,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user && data.session) {
-        console.log('AuthContext: Login successful');
+        console.log('AuthContext: Login successful for user:', data.user.user_metadata?.role);
         return { success: true };
       }
 

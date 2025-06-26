@@ -15,7 +15,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     isLoading, 
     isAuthenticated, 
     userRole: user?.role, 
-    allowedRoles 
+    allowedRoles,
+    currentPath: window.location.pathname
   });
 
   // Mostrar loading solo mientras se verifica la sesión inicial
@@ -44,8 +45,30 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   // Verificar si el rol del usuario está permitido
   if (!allowedRoles.includes(user.role)) {
-    const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
-    console.log('ProtectedRoute: User role not allowed, redirecting to:', redirectTo);
+    console.log('ProtectedRoute: User role not allowed, user role:', user.role, 'allowed:', allowedRoles);
+    
+    // Evitar bucles de redirección verificando la ruta actual
+    const currentPath = window.location.pathname;
+    let redirectTo = '/dashboard';
+    
+    if (user.role === 'client') {
+      redirectTo = '/client/categories';
+    }
+    
+    // Si ya estamos en la ruta de destino, no redirigir (evitar bucle)
+    if (currentPath === redirectTo) {
+      console.log('ProtectedRoute: Already in target route, showing 403 instead of redirect');
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-destructive mb-2">Acceso Denegado</h1>
+            <p className="text-muted-foreground">No tienes permisos para acceder a esta página.</p>
+          </div>
+        </div>
+      );
+    }
+    
+    console.log('ProtectedRoute: Redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 

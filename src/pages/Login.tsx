@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +21,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -37,6 +37,15 @@ const Login = () => {
     }
   });
 
+  // Redirect authenticated users
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('Login: User already authenticated, redirecting...');
+      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
   const onSubmit = async (values: LoginFormValues) => {
     if (isSubmitting) return;
     
@@ -48,9 +57,9 @@ const Login = () => {
       const result = await login(values.email, values.password);
       
       if (result.success) {
-        console.log('Login: Login successful, redirecting...');
+        console.log('Login: Login successful');
         toast.success('¡Inicio de sesión exitoso!');
-        // La redirección será manejada automáticamente por AuthRoute
+        // No need to redirect here, useEffect will handle it
       } else {
         console.log('Login: Login failed -', result.error);
         setLoginError(result.error || 'Error al iniciar sesión');
