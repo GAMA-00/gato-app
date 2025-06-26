@@ -45,7 +45,14 @@ const Navbar = () => {
     );
   }
 
-  return <DesktopNav isClientSection={isClientSection} onSwitchView={switchView} />;
+  // Desktop layout with proper spacing for fixed sidebar
+  return (
+    <>
+      <DesktopNav isClientSection={isClientSection} onSwitchView={switchView} />
+      {/* This div creates the proper spacing for desktop content */}
+      <div className="ml-52" />
+    </>
+  );
 };
 
 export default Navbar;
