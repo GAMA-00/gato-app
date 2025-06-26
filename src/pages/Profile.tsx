@@ -58,7 +58,11 @@ const Profile = () => {
     );
   }
 
-  const displayProfile = profile || user;
+  // Use profile data if available, otherwise fall back to user data
+  const displayData = profile || user;
+  const avatarUrl = profile?.avatar_url || (user as any).avatarUrl || '';
+  const condominiumInfo = profile?.condominium_text || profile?.condominium_name || (user as any).condominiumName || '';
+  const houseNumber = profile?.house_number || (user as any).houseNumber || '';
 
   return (
     <>
@@ -72,14 +76,14 @@ const Profile = () => {
           <Card className="p-6">
             <div className="flex items-center space-x-4 mb-6">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={displayProfile.avatar_url || displayProfile.avatarUrl} alt={displayProfile.name} />
+                <AvatarImage src={avatarUrl} alt={displayData.name} />
                 <AvatarFallback className="text-2xl">
-                  {displayProfile.name.substring(0, 2).toUpperCase()}
+                  {displayData.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="text-2xl font-bold">{displayProfile.name}</h2>
-                <p className="text-muted-foreground capitalize">{displayProfile.role}</p>
+                <h2 className="text-2xl font-bold">{displayData.name}</h2>
+                <p className="text-muted-foreground capitalize">{displayData.role}</p>
                 {profile?.experience_years && (
                   <p className="text-sm text-muted-foreground">
                     {profile.experience_years} años de experiencia
@@ -91,24 +95,22 @@ const Profile = () => {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
-                <span>{displayProfile.email}</span>
+                <span>{displayData.email}</span>
               </div>
               
-              {displayProfile.phone && (
+              {displayData.phone && (
                 <div className="flex items-center space-x-3">
                   <Phone className="h-5 w-5 text-muted-foreground" />
-                  <span>{displayProfile.phone}</span>
+                  <span>{displayData.phone}</span>
                 </div>
               )}
               
-              {(displayProfile.condominium_name || displayProfile.condominium_text || displayProfile.condominiumName) && (
+              {condominiumInfo && (
                 <div className="flex items-center space-x-3">
                   <Building className="h-5 w-5 text-muted-foreground" />
                   <span>
-                    {displayProfile.condominium_name || displayProfile.condominium_text || displayProfile.condominiumName}
-                    {(displayProfile.house_number || displayProfile.houseNumber) && 
-                      ` - Casa ${displayProfile.house_number || displayProfile.houseNumber}`
-                    }
+                    {condominiumInfo}
+                    {houseNumber && ` - Casa ${houseNumber}`}
                   </span>
                 </div>
               )}
