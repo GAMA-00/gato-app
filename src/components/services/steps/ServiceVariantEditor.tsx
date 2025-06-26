@@ -175,7 +175,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   />
                 </div>
                 
-                <div className={isPostPayment ? "col-span-4" : "col-span-2"} className="flex items-end justify-end space-x-1">
+                <div className="col-span-4 flex items-end justify-end space-x-1">
                   <Button 
                     type="button" 
                     variant="ghost" 

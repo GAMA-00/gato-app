@@ -14,13 +14,24 @@ import { Label } from '@/components/ui/label';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Appointment, PriceHistory } from '@/lib/types';
+import { Appointment } from '@/lib/types';
 
 interface SetFinalPriceModalProps {
   isOpen: boolean;
   onClose: () => void;
   appointment: Appointment;
   onSuccess?: () => void;
+}
+
+// Interface para mapear los datos de la base de datos
+interface PriceHistoryRow {
+  id: string;
+  provider_id: string;
+  client_id: string;
+  listing_id: string;
+  amount: number;
+  appointment_id: string;
+  created_at: string;
 }
 
 const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
@@ -33,7 +44,7 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
   const queryClient = useQueryClient();
 
   // Query para obtener historial de precios
-  const { data: priceHistory } = useQuery({
+  const { data: priceHistoryData } = useQuery({
     queryKey: ['price-history', appointment.providerId, appointment.clientId, appointment.serviceId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -46,7 +57,7 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
         .limit(1);
 
       if (error) throw error;
-      return data as PriceHistory[];
+      return data as PriceHistoryRow[];
     },
     enabled: isOpen && !!appointment.clientId
   });
@@ -105,7 +116,7 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
     setFinalPriceMutation.mutate(price);
   };
 
-  const lastPrice = priceHistory?.[0]?.amount;
+  const lastPrice = priceHistoryData?.[0]?.amount;
 
   useEffect(() => {
     if (isOpen) {
