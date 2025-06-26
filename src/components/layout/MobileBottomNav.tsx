@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, Award, Flame, User } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, Award, Flame, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
@@ -30,6 +30,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
+    { to: '/team', icon: Users, label: 'Equipo' },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
