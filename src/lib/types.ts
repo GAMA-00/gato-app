@@ -51,6 +51,8 @@ export interface Service {
   serviceVariants?: ServiceVariant[];
   // Nueva disponibilidad semanal
   availability?: WeeklyAvailability;
+  // Nuevo campo para servicios post-pago
+  isPostPayment?: boolean;
 }
 
 export interface Client {
@@ -114,6 +116,9 @@ export interface Appointment {
   adminNotes?: string;
   lastModifiedBy?: string;
   lastModifiedAt?: Date;
+  // Nuevos campos para pagos post-servicio
+  finalPrice?: number;
+  stripePaymentIntentId?: string;
 }
 
 export interface BlockedTimeSlot {
@@ -225,4 +230,15 @@ export interface ServiceCategoryGroup {
       duration: number;
     }[];
   }[];
+}
+
+// Nueva interfaz para historial de precios
+export interface PriceHistory {
+  id: string;
+  providerId: string;
+  clientId: string;
+  listingId: string;
+  amount: number;
+  appointmentId: string;
+  createdAt: Date;
 }

@@ -14,11 +14,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ServiceVariantEditor from './ServiceVariantEditor';
+import PostPaymentToggle from './PostPaymentToggle';
 import { v4 as uuidv4 } from 'uuid';
 
 const ServiceDetailsStep: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
   const selectedResidencias = watch('residenciaIds') || [];
+  const isPostPayment = watch('isPostPayment') || false;
   const serviceVariants = watch('serviceVariants') || [
     { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
@@ -56,9 +58,12 @@ const ServiceDetailsStep: React.FC = () => {
         </p>
       </div>
       
+      <PostPaymentToggle />
+      
       <ServiceVariantEditor
         serviceVariants={serviceVariants}
         onVariantsChange={(variants) => setValue('serviceVariants', variants)}
+        isPostPayment={isPostPayment}
       />
 
       <Card className="border-stone-200 shadow-sm">

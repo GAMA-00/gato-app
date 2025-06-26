@@ -22,6 +22,7 @@ export type Database = {
           created_at: string
           end_time: string
           external_booking: boolean | null
+          final_price: number | null
           id: string
           is_recurring_instance: boolean | null
           last_modified_at: string | null
@@ -37,6 +38,7 @@ export type Database = {
           residencia_id: string | null
           start_time: string
           status: string
+          stripe_payment_intent_id: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -50,6 +52,7 @@ export type Database = {
           created_at?: string
           end_time: string
           external_booking?: boolean | null
+          final_price?: number | null
           id?: string
           is_recurring_instance?: boolean | null
           last_modified_at?: string | null
@@ -65,6 +68,7 @@ export type Database = {
           residencia_id?: string | null
           start_time: string
           status: string
+          stripe_payment_intent_id?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -78,6 +82,7 @@ export type Database = {
           created_at?: string
           end_time?: string
           external_booking?: boolean | null
+          final_price?: number | null
           id?: string
           is_recurring_instance?: boolean | null
           last_modified_at?: string | null
@@ -93,6 +98,7 @@ export type Database = {
           residencia_id?: string | null
           start_time?: string
           status?: string
+          stripe_payment_intent_id?: string | null
         }
         Relationships: [
           {
@@ -261,6 +267,7 @@ export type Database = {
           gallery_images: Json | null
           id: string
           is_active: boolean | null
+          is_post_payment: boolean
           provider_id: string
           service_type_id: string
           service_variants: Json | null
@@ -275,6 +282,7 @@ export type Database = {
           gallery_images?: Json | null
           id?: string
           is_active?: boolean | null
+          is_post_payment?: boolean
           provider_id: string
           service_type_id: string
           service_variants?: Json | null
@@ -289,6 +297,7 @@ export type Database = {
           gallery_images?: Json | null
           id?: string
           is_active?: boolean | null
+          is_post_payment?: boolean
           provider_id?: string
           service_type_id?: string
           service_variants?: Json | null
@@ -371,6 +380,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      price_history: {
+        Row: {
+          amount: number
+          appointment_id: string
+          client_id: string
+          created_at: string
+          id: string
+          listing_id: string
+          provider_id: string
+        }
+        Insert: {
+          amount: number
+          appointment_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          provider_id: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          provider_id?: string
+        }
+        Relationships: []
       }
       provider_ratings: {
         Row: {

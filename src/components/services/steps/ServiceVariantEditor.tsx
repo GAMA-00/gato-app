@@ -24,11 +24,13 @@ interface ServiceVariant {
 interface ServiceVariantEditorProps {
   serviceVariants: ServiceVariant[];
   onVariantsChange: (variants: ServiceVariant[]) => void;
+  isPostPayment?: boolean;
 }
 
 const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
   serviceVariants,
-  onVariantsChange
+  onVariantsChange,
+  isPostPayment = false
 }) => {
   const { control } = useFormContext();
 
@@ -36,7 +38,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
     const newVariant = {
       id: uuidv4(),
       name: '',
-      price: '',
+      price: isPostPayment ? 0 : '',
       duration: 60
     };
     onVariantsChange([...serviceVariants, newVariant]);
@@ -89,7 +91,10 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
         </Button>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones
+        {isPostPayment 
+          ? "Define las variantes de servicios con sus duraciones estimadas. Los precios se definirán después del servicio."
+          : "Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones"
+        }
       </p>
       
       <div className="space-y-4">
@@ -117,39 +122,43 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   />
                 </div>
                 
-                <div className="col-span-5">
-                  <FormField
-                    control={control}
-                    name={`serviceVariants.${index}.price`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Precio</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                            <Input 
-                              type="number" 
-                              min="1" 
-                              placeholder="Precio" 
-                              value={variant.price}
-                              onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
-                              className="pl-7"
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {!isPostPayment && (
+                  <div className="col-span-5">
+                    <FormField
+                      control={control}
+                      name={`serviceVariants.${index}.price`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Precio</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                              <Input 
+                                type="number" 
+                                min="1" 
+                                placeholder="Precio" 
+                                value={variant.price}
+                                onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
+                                className="pl-7"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
                 
-                <div className="col-span-5">
+                <div className={isPostPayment ? "col-span-8" : "col-span-5"}>
                   <FormField
                     control={control}
                     name={`serviceVariants.${index}.duration`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Duración (min)</FormLabel>
+                        <FormLabel className="text-xs">
+                          Duración {isPostPayment ? "(estimada)" : ""} (min)
+                        </FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
@@ -166,7 +175,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   />
                 </div>
                 
-                <div className="col-span-2 flex items-end justify-end space-x-1">
+                <div className={isPostPayment ? "col-span-4" : "col-span-2"} className="flex items-end justify-end space-x-1">
                   <Button 
                     type="button" 
                     variant="ghost" 
@@ -189,6 +198,12 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   </Button>
                 </div>
               </div>
+
+              {isPostPayment && (
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                  <strong>Post-pago:</strong> El precio se definirá después de completar el servicio
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

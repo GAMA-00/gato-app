@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +17,7 @@ import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
 import { toast } from 'sonner';
 
-// Schema definitions for validation
+// Schema definitions for validation con soporte para post-pago
 const serviceFormSchema = z.object({
   name: z.string().min(2, { message: 'Service name must be at least 2 characters.' }),
   subcategoryId: z.string().min(1, { message: 'Debe seleccionar una subcategoría.' }),
@@ -25,10 +26,12 @@ const serviceFormSchema = z.object({
   // Campos para el perfil del proveedor
   aboutMe: z.string().optional(),
   profileImage: z.any().optional(),
-  galleryImages: z.array(z.any()).optional(), // Make sure this is optional
+  galleryImages: z.array(z.any()).optional(),
   experienceYears: z.coerce.number().min(0).optional(),
   hasCertifications: z.boolean().optional(),
   certificationFiles: z.array(z.any()).optional(),
+  // Nuevo campo para servicios post-pago
+  isPostPayment: z.boolean().optional(),
   serviceVariants: z.array(
     z.object({
       id: z.string().optional(),
@@ -37,7 +40,7 @@ const serviceFormSchema = z.object({
       duration: z.union([z.string(), z.number()])
     })
   ).optional(),
-  // Nueva sección de disponibilidad - allow optional fields in form
+  // Nueva sección de disponibilidad
   availability: z.record(z.object({
     enabled: z.boolean().optional(),
     timeSlots: z.array(z.object({
@@ -66,7 +69,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
 }) => {
   // Estado para controlar el paso actual del wizard
   const [currentStep, setCurrentStep] = useState(0);
-  const steps = ['basic', 'profile', 'service', 'availability']; // Agregar nuevo paso
+  const steps = ['basic', 'profile', 'service', 'availability'];
   
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
@@ -79,6 +82,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: initialData.experienceYears || 0,
       hasCertifications: initialData.hasCertifications || false,
       certificationFiles: initialData.certificationFiles || [],
+      isPostPayment: initialData.isPostPayment || false,
       serviceVariants: initialData.serviceVariants || [
         { name: 'Servicio básico', price: initialData.price, duration: initialData.duration }
       ],
@@ -92,6 +96,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: 0,
       hasCertifications: false,
       certificationFiles: [],
+      isPostPayment: false,
       serviceVariants: [
         { name: 'Servicio básico', price: 50, duration: 60 }
       ],
@@ -150,18 +155,19 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
         id: variant.id,
         name: variant.name,
-        price: variant.price,
+        price: values.isPostPayment ? 0 : variant.price, // Precio 0 para post-pago
         duration: variant.duration
       })) || [];
 
       // Extract price and duration from first service variant for base values
       const baseVariant = formattedServiceVariants[0] || { price: 0, duration: 0 };
-      const basePrice = Number(baseVariant.price);
+      const basePrice = values.isPostPayment ? 0 : Number(baseVariant.price);
       const baseDuration = Number(baseVariant.duration);
       
       console.log("Variantes formateadas:", formattedServiceVariants);
       console.log("Precio base:", basePrice);
       console.log("Duración base:", baseDuration);
+      console.log("Es post-pago:", values.isPostPayment);
 
       // Transform availability to match WeeklyAvailability interface
       const transformedAvailability = transformAvailability(values.availability);
@@ -174,7 +180,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         price: basePrice,
         duration: baseDuration,
         serviceVariants: formattedServiceVariants,
-        availability: transformedAvailability
+        availability: transformedAvailability,
+        isPostPayment: values.isPostPayment || false
       };
       
       console.log("Datos finales a enviar:", serviceData);
