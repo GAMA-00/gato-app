@@ -35,10 +35,17 @@ const clientProfileSchema = z.object({
   condominiumText: z.string().optional(),
 });
 
-const providerProfileSchema = clientProfileSchema.extend({
+const providerProfileSchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido'),
+  phone: z.string().optional(),
+  houseNumber: z.string().optional(),
+  condominiumText: z.string().optional(),
   aboutMe: z.string().optional(),
   experienceYears: z.number().min(0).max(50).optional(),
 });
+
+type ClientFormData = z.infer<typeof clientProfileSchema>;
+type ProviderFormData = z.infer<typeof providerProfileSchema>;
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -58,21 +65,30 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const isProvider = user?.role === 'provider';
-  const schema = isProvider ? providerProfileSchema : clientProfileSchema;
 
-  const form = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
+  const clientForm = useForm<ClientFormData>({
+    resolver: zodResolver(clientProfileSchema),
     defaultValues: {
       name: user?.name || '',
       phone: user?.phone || '',
       houseNumber: user?.houseNumber || '',
       condominiumText: user?.condominiumName || '',
-      ...(isProvider && {
-        aboutMe: '',
-        experienceYears: 0,
-      }),
     },
   });
+
+  const providerForm = useForm<ProviderFormData>({
+    resolver: zodResolver(providerProfileSchema),
+    defaultValues: {
+      name: user?.name || '',
+      phone: user?.phone || '',
+      houseNumber: user?.houseNumber || '',
+      condominiumText: user?.condominiumName || '',
+      aboutMe: '',
+      experienceYears: 0,
+    },
+  });
+
+  const form = isProvider ? providerForm : clientForm;
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -110,7 +126,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     setGalleryImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const onSubmit = async (values: z.infer<typeof schema>) => {
+  const onSubmit = async (values: ClientFormData | ProviderFormData) => {
     if (!user?.id) return;
 
     setIsLoading(true);
@@ -286,7 +302,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
             {isProvider && (
               <>
                 <FormField
-                  control={form.control}
+                  control={providerForm.control}
                   name="aboutMe"
                   render={({ field }) => (
                     <FormItem>
@@ -304,7 +320,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
                 />
 
                 <FormField
-                  control={form.control}
+                  control={providerForm.control}
                   name="experienceYears"
                   render={({ field }) => (
                     <FormItem>
