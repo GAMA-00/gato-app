@@ -7,7 +7,6 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Services from './pages/Services';
 import Calendar from './pages/Calendar';
-import Clients from './pages/Clients';
 import Achievements from './pages/Achievements';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -60,14 +59,6 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['provider']}>
                     <Calendar />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/clients"
-                element={
-                  <ProtectedRoute allowedRoles={['provider']}>
-                    <Clients />
                   </ProtectedRoute>
                 }
               />
