@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import Dashboard from './pages/Dashboard';
@@ -16,19 +16,31 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ClientBookings from './pages/ClientBookings';
 import ClientServices from './pages/ClientServices';
 import Team from '@/pages/Team';
+import TestComponent from './components/TestComponent';
 
 const queryClient = new QueryClient();
 
+// Debug component to log route changes
+const RouteDebugger = () => {
+  const location = useLocation();
+  console.log('App - Current route:', location.pathname);
+  return null;
+};
+
 function App() {
+  console.log('App - Component render');
+  
   return (
     <Router>
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
+            <RouteDebugger />
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/test" element={<TestComponent />} />
               
               <Route
                 path="/dashboard"
