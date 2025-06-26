@@ -16,6 +16,7 @@ interface UserProfile {
   about_me?: string;
   experience_years?: number;
   certification_files?: any[];
+  created_at?: string;
 }
 
 export const useUserProfile = () => {

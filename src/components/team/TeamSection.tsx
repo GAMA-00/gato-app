@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserProfile } from '@/hooks/useUserProfile';
 import {
   useTeamMembers,
   useCreateTeamMember,
@@ -16,8 +15,7 @@ import TeamMemberCard from './TeamMemberCard';
 import TeamMemberModal from './TeamMemberModal';
 
 const TeamSection: React.FC = () => {
-  const { user } = useAuth();
-  const { profile } = useUserProfile();
+  const { user, profile } = useAuth();
   const { data: teamMembers = [], isLoading } = useTeamMembers();
   const createMember = useCreateTeamMember();
   const updateMember = useUpdateTeamMember();

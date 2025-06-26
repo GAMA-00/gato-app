@@ -1,4 +1,8 @@
 
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import NavItem from './NavItem';
 import { Home, Calendar, Users, Star, Settings, Briefcase, UserPlus, Building2 } from 'lucide-react';
 
 export interface NavItem {
@@ -64,3 +68,37 @@ export const navItems: NavItem[] = [
     roles: ['client', 'provider']
   }
 ];
+
+interface NavItemsProps {
+  isClientSection: boolean;
+  onSwitchView: () => void;
+}
+
+export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchView }) => {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  if (!user) return null;
+
+  const filteredItems = navItems.filter(item => {
+    if (isClientSection) {
+      return item.roles.includes('client');
+    } else {
+      return item.roles.includes('provider');
+    }
+  });
+
+  return (
+    <nav className="space-y-1 px-3">
+      {filteredItems.map((item) => (
+        <NavItem
+          key={item.href}
+          title={item.title}
+          href={item.href}
+          icon={item.icon}
+          isActive={location.pathname === item.href}
+        />
+      ))}
+    </nav>
+  );
+};

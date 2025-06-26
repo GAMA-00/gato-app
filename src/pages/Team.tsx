@@ -7,13 +7,13 @@ import PageContainer from '@/components/layout/PageContainer';
 import TeamSection from '@/components/team/TeamSection';
 
 const Team: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (profile?.role !== 'provider') {
+  if (user.role !== 'provider') {
     return <Navigate to="/dashboard" replace />;
   }
 

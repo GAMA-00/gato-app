@@ -1,12 +1,11 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Services from './pages/Services';
-import NewService from './pages/NewService';
-import EditService from './pages/EditService';
-import Bookings from './pages/Bookings';
 import Calendar from './pages/Calendar';
 import Clients from './pages/Clients';
 import Achievements from './pages/Achievements';
@@ -14,19 +13,16 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
-import ClientCategories from './pages/ClientCategories';
-import ClientCategoryDetail from './pages/ClientCategoryDetail';
-import ClientServiceDetail from './pages/ClientServiceDetail';
-import ClientBooking from './pages/ClientBooking';
 import ClientBookings from './pages/ClientBookings';
-import { QueryClient } from '@tanstack/react-query';
 import Team from '@/pages/Team';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <QueryClient>
+        <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -35,7 +31,7 @@ function App() {
               <Route
                 path="/dashboard"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['client', 'provider']}>
                     <Dashboard />
                   </ProtectedRoute>
                 }
@@ -43,7 +39,7 @@ function App() {
               <Route
                 path="/profile"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['client', 'provider']}>
                     <Profile />
                   </ProtectedRoute>
                 }
@@ -51,39 +47,15 @@ function App() {
               <Route
                 path="/services"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['provider']}>
                     <Services />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/services/new"
-                element={
-                  <ProtectedRoute>
-                    <NewService />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/services/:serviceId/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditService />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/bookings"
-                element={
-                  <ProtectedRoute>
-                    <Bookings />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/calendar"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['provider']}>
                     <Calendar />
                   </ProtectedRoute>
                 }
@@ -91,7 +63,7 @@ function App() {
               <Route
                 path="/clients"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['provider']}>
                     <Clients />
                   </ProtectedRoute>
                 }
@@ -99,48 +71,16 @@ function App() {
               <Route
                 path="/achievements"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['provider']}>
                     <Achievements />
                   </ProtectedRoute>
                 }
               />
 
               <Route
-                path="/client/categories"
-                element={
-                  <ProtectedRoute>
-                    <ClientCategories />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/client/category/:categoryId"
-                element={
-                  <ProtectedRoute>
-                    <ClientCategoryDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/client/service/:serviceId"
-                element={
-                  <ProtectedRoute>
-                    <ClientServiceDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/client/booking/:serviceId"
-                element={
-                  <ProtectedRoute>
-                    <ClientBooking />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/client/bookings"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['client']}>
                     <ClientBookings />
                   </ProtectedRoute>
                 }
@@ -149,7 +89,7 @@ function App() {
               <Route
                 path="/team"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['provider']}>
                     <Team />
                   </ProtectedRoute>
                 }
@@ -157,7 +97,7 @@ function App() {
               
             </Routes>
           </ErrorBoundary>
-        </QueryClient>
+        </QueryClientProvider>
       </AuthProvider>
     </Router>
   );

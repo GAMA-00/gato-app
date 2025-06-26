@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -14,8 +15,25 @@ export interface User {
   apartment?: string;
 }
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: 'client' | 'provider';
+  avatar_url?: string;
+  condominium_name?: string;
+  condominium_text?: string;
+  house_number?: string;
+  about_me?: string;
+  experience_years?: number;
+  certification_files?: any[];
+  created_at?: string;
+}
+
 interface AuthContextType {
   user: User | null;
+  profile: UserProfile | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -27,6 +45,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -48,6 +67,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       houseNumber: authUser.user_metadata?.house_number || '',
       apartment: authUser.user_metadata?.apartment || ''
     };
+  };
+
+  // Función para obtener el perfil completo del usuario
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      return data as UserProfile;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
   };
 
   const updateUserPaymentMethod = (hasPayment: boolean) => {
@@ -119,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Configurar listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log('AuthContext: Auth state changed -', event, !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
         
         // Si estamos en proceso de logout, ignorar todos los eventos
@@ -132,6 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthContext: User signed out, clearing state');
           setSession(null);
           setUser(null);
+          setProfile(null);
           setIsLoading(false);
           return;
         }
@@ -140,6 +181,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthContext: Setting user from session');
           setSession(currentSession);
           setUser(createUserFromSession(currentSession.user));
+          
+          // Obtener perfil completo
+          const userProfile = await fetchUserProfile(currentSession.user.id);
+          setProfile(userProfile);
         }
         
         setIsLoading(false);
@@ -147,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Verificar sesión existente
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       console.log('AuthContext: Initial session check -', !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
       
       // Solo establecer sesión si no estamos en proceso de logout
@@ -155,9 +200,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentSession?.user) {
           setSession(currentSession);
           setUser(createUserFromSession(currentSession.user));
+          
+          // Obtener perfil completo
+          const userProfile = await fetchUserProfile(currentSession.user.id);
+          setProfile(userProfile);
         } else {
           setSession(null);
           setUser(null);
+          setProfile(null);
         }
       }
       
@@ -207,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Limpiar estado local inmediatamente
       setUser(null);
+      setProfile(null);
       setSession(null);
       setIsLoading(false);
       
@@ -243,6 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Aún así, forzar limpieza completa
       isLoggingOutRef.current = true;
       setUser(null);
+      setProfile(null);
       setSession(null);
       setIsLoading(false);
       clearSupabaseStorage();
@@ -261,6 +313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated, 
     hasUser: !!user, 
     hasSession: !!session,
+    hasProfile: !!profile,
     userRole: user?.role,
     isLoggingOut: isLoggingOutRef.current
   });
@@ -268,6 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
+      profile,
       isAuthenticated,
       login,
       logout,

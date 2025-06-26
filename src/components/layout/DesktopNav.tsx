@@ -1,5 +1,6 @@
+
 import React from 'react';
-import NavItems from './NavItems';
+import { NavItems } from './NavItems';
 import UserInfo from './UserInfo';
 
 interface DesktopNavProps {
