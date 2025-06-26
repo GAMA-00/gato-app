@@ -80,7 +80,6 @@ export function useGroupedPendingRequests() {
                   house_number,
                   residencia_id,
                   condominium_text,
-                  apartment,
                   residencias (
                     id,
                     name
@@ -100,7 +99,7 @@ export function useGroupedPendingRequests() {
                   residenciaName: clientData.residencias?.name,
                   condominiumName: clientData.condominium_text,
                   houseNumber: clientData.house_number,
-                  apartment: clientData.apartment || appointment.apartment,
+                  apartment: appointment.apartment,
                   isExternal: false
                 });
               }

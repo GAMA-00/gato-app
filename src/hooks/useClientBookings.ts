@@ -138,7 +138,6 @@ export const useClientBookings = () => {
           .select(`
             house_number,
             condominium_text,
-            apartment,
             residencias (
               id,
               name
@@ -165,7 +164,7 @@ export const useClientBookings = () => {
               residenciaName: userData.residencias?.name,
               condominiumName: userData.condominium_text,
               houseNumber: userData.house_number,
-              apartment: userData.apartment || appointment.apartment,
+              apartment: appointment.apartment,
               isExternal: false
             });
           }

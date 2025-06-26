@@ -70,7 +70,6 @@ export function usePendingRequests() {
                   house_number,
                   residencia_id,
                   condominium_text,
-                  apartment,
                   residencias (
                     id,
                     name
@@ -90,7 +89,7 @@ export function usePendingRequests() {
                   residenciaName: clientData.residencias?.name,
                   condominiumName: clientData.condominium_text,
                   houseNumber: clientData.house_number,
-                  apartment: clientData.apartment || appointment.apartment,
+                  apartment: appointment.apartment,
                   isExternal: false
                 });
               }
