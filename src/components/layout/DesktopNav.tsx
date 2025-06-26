@@ -1,4 +1,3 @@
-
 import React from 'react';
 import NavItems from './NavItems';
 import UserInfo from './UserInfo';
@@ -10,7 +9,7 @@ interface DesktopNavProps {
 
 const DesktopNav = ({ isClientSection, onSwitchView }: DesktopNavProps) => {
   return (
-    <div className="w-52 h-screen fixed left-0 top-0 border-r border-[#E0E0E0] bg-white py-4 flex flex-col shadow-md z-40">
+    <div className="hidden md:block w-52 h-screen fixed left-0 top-0 border-r border-[#E0E0E0] bg-white py-4 flex flex-col shadow-md z-40">
       <div className="px-3 flex flex-col gap-1">
         <img 
           src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png" 
