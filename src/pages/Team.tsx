@@ -10,13 +10,13 @@ import { Loader2 } from 'lucide-react';
 const Team: React.FC = () => {
   console.log("=== TEAM PAGE RENDER ===");
   
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   console.log("Team - User:", user?.id, user?.role);
-  console.log("Team - Loading:", loading);
+  console.log("Team - Loading:", isLoading);
 
   // Show loading state while auth is being determined
-  if (loading) {
+  if (isLoading) {
     console.log("Team - Showing loading state");
     return (
       <>
