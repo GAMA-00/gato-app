@@ -93,8 +93,8 @@ export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchVie
       {filteredItems.map((item) => (
         <NavItem
           key={item.href}
-          title={item.title}
-          href={item.href}
+          to={item.href}
+          label={item.title}
           icon={item.icon}
           isActive={location.pathname === item.href}
         />
