@@ -11,6 +11,7 @@ import Clients from './pages/Clients';
 import Achievements from './pages/Achievements';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import ClientBookings from './pages/ClientBookings';
@@ -25,6 +26,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
             <Routes>
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
