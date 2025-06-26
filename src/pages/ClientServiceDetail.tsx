@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
+import ClientTeamView from '@/components/team/ClientTeamView';
 
 interface ValidServiceUser {
   id: string;
@@ -164,6 +164,14 @@ const ClientServiceDetail = () => {
               </div>
             </div>
           </div>
+
+          {/* Sección del equipo */}
+          <ClientTeamView
+            providerId={userData.id}
+            providerName={userData.name}
+            providerPhone={userData.phone}
+            providerAvatarUrl={userData.avatar_url}
+          />
         </div>
       </PageContainer>
     </>

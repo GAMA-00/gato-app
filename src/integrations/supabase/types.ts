@@ -721,6 +721,70 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members: {
+        Row: {
+          cedula: string
+          created_at: string
+          criminal_record_file_url: string | null
+          id: string
+          name: string
+          phone: string
+          photo_url: string | null
+          position_order: number
+          provider_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          cedula: string
+          created_at?: string
+          criminal_record_file_url?: string | null
+          id?: string
+          name: string
+          phone: string
+          photo_url?: string | null
+          position_order?: number
+          provider_id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          cedula?: string
+          created_at?: string
+          criminal_record_file_url?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          photo_url?: string | null
+          position_order?: number
+          provider_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           about_me: string | null
