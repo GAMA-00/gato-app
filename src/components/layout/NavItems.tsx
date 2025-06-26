@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import NavItem from './NavItem';
-import { Home, Calendar, Users, Star, Settings, Briefcase, UserPlus, Building2 } from 'lucide-react';
+import { Home, Calendar, Users, Star, Settings, Briefcase } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -47,12 +46,6 @@ export const navItems: NavItem[] = [
     title: 'Equipo',
     href: '/team',
     icon: Users,
-    roles: ['provider']
-  },
-  {
-    title: 'Clientes',
-    href: '/clients',
-    icon: UserPlus,
     roles: ['provider']
   },
   {
