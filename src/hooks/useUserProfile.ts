@@ -28,23 +28,30 @@ export const useUserProfile = () => {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      console.log('=== Fetching user profile ===');
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      console.log('useUserProfile: Fetching user profile');
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        throw error;
+        if (error) {
+          console.log('useUserProfile: Error fetching profile (non-critical):', error.message);
+          // Return null instead of throwing to make it non-blocking
+          return null;
+        }
+
+        console.log('useUserProfile: Profile fetched successfully');
+        return data as UserProfile;
+      } catch (err) {
+        console.log('useUserProfile: Exception fetching profile (non-critical):', err);
+        return null;
       }
-
-      console.log('User profile fetched:', data);
-      return data as UserProfile;
     },
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: false, // Don't retry on failure to avoid blocking
   });
 
   const invalidateProfile = () => {

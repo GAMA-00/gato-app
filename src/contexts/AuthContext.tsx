@@ -49,8 +49,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Flag para controlar el proceso de logout y evitar reautenticación
+  // Flag para controlar el proceso de logout
   const isLoggingOutRef = useRef(false);
+  
+  // Timeout para evitar carga infinita
+  const initTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Función para crear usuario desde datos de Supabase
   const createUserFromSession = (authUser: SupabaseUser): User => {
@@ -69,9 +72,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  // Función para obtener el perfil completo del usuario
+  // Función para obtener el perfil completo del usuario (opcional)
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('AuthContext: Fetching user profile for:', userId);
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -79,21 +83,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.log('AuthContext: Profile fetch error (non-blocking):', error.message);
         return null;
       }
 
+      console.log('AuthContext: Profile fetched successfully');
       return data as UserProfile;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.log('AuthContext: Profile fetch exception (non-blocking):', error);
       return null;
     }
   };
 
   const updateUserPaymentMethod = (hasPayment: boolean) => {
     if (user) {
-      // Para simplificar, solo actualizamos el estado local
-      // En una implementación completa, esto actualizaría la base de datos
       console.log('Payment method updated:', hasPayment);
     }
   };
@@ -103,7 +106,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('AuthContext: Clearing Supabase storage');
       
-      // Lista de patrones de claves que usa Supabase
       const supabasePatterns = [
         'supabase.auth.',
         'sb-',
@@ -114,7 +116,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         'sb-session'
       ];
       
-      // Obtener todas las claves antes de eliminar
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -126,13 +127,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       
-      // Eliminar todas las claves identificadas
       keysToRemove.forEach(key => {
         console.log('AuthContext: Removing localStorage key:', key);
         localStorage.removeItem(key);
       });
       
-      // También limpiar sessionStorage por si acaso
       const sessionKeysToRemove: string[] = [];
       for (let i = 0; i < sessionStorage.length; i++) {
         const key = sessionStorage.key(i);
@@ -157,12 +156,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthContext: Initializing authentication');
     
+    // Timeout de seguridad para evitar carga infinita
+    initTimeoutRef.current = setTimeout(() => {
+      console.log('AuthContext: Initialization timeout - forcing completion');
+      setIsLoading(false);
+    }, 10000); // 10 segundos máximo
+    
     // Configurar listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('AuthContext: Auth state changed -', event, !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
         
-        // Si estamos en proceso de logout, ignorar todos los eventos
+        // Limpiar timeout si la auth se resuelve
+        if (initTimeoutRef.current) {
+          clearTimeout(initTimeoutRef.current);
+          initTimeoutRef.current = undefined;
+        }
+        
+        // Si estamos en proceso de logout, ignorar eventos
         if (isLoggingOutRef.current) {
           console.log('AuthContext: Ignoring auth event during logout process');
           return;
@@ -183,9 +194,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
           
-          // Obtener perfil completo
-          const userProfile = await fetchUserProfile(currentSession.user.id);
-          setProfile(userProfile);
+          // Cargar perfil en segundo plano (no bloqueante)
+          fetchUserProfile(currentSession.user.id).then(userProfile => {
+            if (userProfile) {
+              setProfile(userProfile);
+            }
+          });
           
           console.log('AuthContext: User set successfully:', userData.role);
         }
@@ -198,6 +212,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       console.log('AuthContext: Initial session check -', !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
       
+      // Limpiar timeout si la sesión se resuelve
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = undefined;
+      }
+      
       // Solo establecer sesión si no estamos en proceso de logout
       if (!isLoggingOutRef.current) {
         if (currentSession?.user) {
@@ -206,9 +226,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
           
-          // Obtener perfil completo
-          const userProfile = await fetchUserProfile(currentSession.user.id);
-          setProfile(userProfile);
+          // Cargar perfil en segundo plano (no bloqueante)
+          fetchUserProfile(currentSession.user.id).then(userProfile => {
+            if (userProfile) {
+              setProfile(userProfile);
+            }
+          });
           
           console.log('AuthContext: Initial user set:', userData.role);
         } else {
@@ -219,10 +242,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setIsLoading(false);
+    }).catch(error => {
+      console.error('AuthContext: Error getting initial session:', error);
+      setIsLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -273,7 +302,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Limpiar storage antes del logout
       clearSupabaseStorage();
       
-      // Cerrar sesión en Supabase con scope global para cerrar en todos los tabs
+      // Cerrar sesión en Supabase
       console.log('AuthContext: Calling Supabase signOut');
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       
@@ -288,17 +317,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearSupabaseStorage();
       }, 100);
       
-      // Pequeño delay antes de redirección para asegurar limpieza completa
+      // Redirección después de logout
       setTimeout(() => {
         console.log('AuthContext: Redirecting to landing page');
-        // Usar replace para evitar que el usuario pueda volver atrás
         window.location.replace('/');
       }, 200);
       
     } catch (error) {
       console.error('AuthContext: Logout exception:', error);
       
-      // Aún así, forzar limpieza completa
+      // Forzar limpieza completa
       isLoggingOutRef.current = true;
       setUser(null);
       setProfile(null);
@@ -306,7 +334,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
       clearSupabaseStorage();
       
-      // Redirección de emergencia
       setTimeout(() => {
         window.location.replace('/');
       }, 100);
