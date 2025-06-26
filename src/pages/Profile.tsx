@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
@@ -7,9 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Edit, User, Mail, Phone, Building } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 
 const Profile = () => {
   const { user } = useAuth();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (!user) {
     return (
@@ -72,7 +74,10 @@ const Profile = () => {
             </div>
             
             <div className="mt-6 pt-6 border-t">
-              <Button className="w-full">
+              <Button 
+                className="w-full"
+                onClick={() => setIsEditModalOpen(true)}
+              >
                 <Edit className="mr-2 h-4 w-4" />
                 Editar Perfil
               </Button>
@@ -80,6 +85,11 @@ const Profile = () => {
           </Card>
         </div>
       </PageContainer>
+
+      <EditProfileModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </>
   );
 };
