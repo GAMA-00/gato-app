@@ -1,157 +1,36 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'client' | 'provider';
-  avatarUrl?: string;
-  phone?: string;
-  condominiumName?: string;
-  houseNumber?: string;
-  apartment?: string;
-}
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: 'client' | 'provider';
-  avatar_url?: string;
-  condominium_name?: string;
-  condominium_text?: string;
-  house_number?: string;
-  about_me?: string;
-  experience_years?: number;
-  certification_files?: any[];
-  created_at?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  profile: UserProfile | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  isLoading: boolean;
-  updateUserPaymentMethod: (hasPayment: boolean) => void;
-}
+import { AuthContextType } from './auth/types';
+import { useAuthState } from './auth/useAuthState';
+import { useAuthActions } from './auth/useAuthActions';
+import { createUserFromSession, fetchUserProfile } from './auth/utils';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Flag para controlar el proceso de logout
-  const isLoggingOutRef = useRef(false);
-  
-  // Timeout para evitar carga infinita
-  const initTimeoutRef = useRef<NodeJS.Timeout>();
+  const {
+    user,
+    setUser,
+    profile,
+    setProfile,
+    session,
+    setSession,
+    isLoading,
+    setIsLoading,
+    isLoggingOutRef,
+    initTimeoutRef,
+    updateUserPaymentMethod,
+    isAuthenticated
+  } = useAuthState();
 
-  // Función para crear usuario desde datos de Supabase
-  const createUserFromSession = (authUser: SupabaseUser): User => {
-    const role = authUser.user_metadata?.role || 'client';
-    
-    return {
-      id: authUser.id,
-      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
-      email: authUser.email || '',
-      role: role === 'provider' ? 'provider' : 'client',
-      avatarUrl: authUser.user_metadata?.avatar_url || '',
-      phone: authUser.user_metadata?.phone || '',
-      condominiumName: authUser.user_metadata?.condominium_name || '',
-      houseNumber: authUser.user_metadata?.house_number || '',
-      apartment: authUser.user_metadata?.apartment || ''
-    };
-  };
-
-  // Función para obtener el perfil completo del usuario (opcional)
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      console.log('AuthContext: Fetching user profile for:', userId);
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.log('AuthContext: Profile fetch error (non-blocking):', error.message);
-        return null;
-      }
-
-      console.log('AuthContext: Profile fetched successfully');
-      return data as UserProfile;
-    } catch (error) {
-      console.log('AuthContext: Profile fetch exception (non-blocking):', error);
-      return null;
-    }
-  };
-
-  const updateUserPaymentMethod = (hasPayment: boolean) => {
-    if (user) {
-      console.log('Payment method updated:', hasPayment);
-    }
-  };
-
-  // Función para limpiar completamente el localStorage de Supabase
-  const clearSupabaseStorage = () => {
-    try {
-      console.log('AuthContext: Clearing Supabase storage');
-      
-      const supabasePatterns = [
-        'supabase.auth.',
-        'sb-',
-        'supabase-auth-token',
-        'supabase_auth_token',
-        'sb-auth-token',
-        'supabase.session',
-        'sb-session'
-      ];
-      
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          const shouldRemove = supabasePatterns.some(pattern => key.includes(pattern));
-          if (shouldRemove) {
-            keysToRemove.push(key);
-          }
-        }
-      }
-      
-      keysToRemove.forEach(key => {
-        console.log('AuthContext: Removing localStorage key:', key);
-        localStorage.removeItem(key);
-      });
-      
-      const sessionKeysToRemove: string[] = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key) {
-          const shouldRemove = supabasePatterns.some(pattern => key.includes(pattern));
-          if (shouldRemove) {
-            sessionKeysToRemove.push(key);
-          }
-        }
-      }
-      
-      sessionKeysToRemove.forEach(key => {
-        console.log('AuthContext: Removing sessionStorage key:', key);
-        sessionStorage.removeItem(key);
-      });
-      
-    } catch (error) {
-      console.error('AuthContext: Error clearing storage:', error);
-    }
-  };
+  const { login, logout } = useAuthActions(
+    setUser,
+    setProfile,
+    setSession,
+    setIsLoading,
+    isLoggingOutRef
+  );
 
   useEffect(() => {
     console.log('AuthContext: Initializing authentication');
@@ -160,20 +39,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initTimeoutRef.current = setTimeout(() => {
       console.log('AuthContext: Initialization timeout - forcing completion');
       setIsLoading(false);
-    }, 10000); // 10 segundos máximo
+    }, 5000); // Reducido a 5 segundos
     
-    // Configurar listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('AuthContext: Auth state changed -', event, !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
         
-        // Limpiar timeout si la auth se resuelve
         if (initTimeoutRef.current) {
           clearTimeout(initTimeoutRef.current);
           initTimeoutRef.current = undefined;
         }
         
-        // Si estamos en proceso de logout, ignorar eventos
         if (isLoggingOutRef.current) {
           console.log('AuthContext: Ignoring auth event during logout process');
           return;
@@ -194,12 +70,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
           
-          // Cargar perfil en segundo plano (no bloqueante)
-          fetchUserProfile(currentSession.user.id).then(userProfile => {
-            if (userProfile) {
-              setProfile(userProfile);
-            }
-          });
+          // Cargar perfil en segundo plano de manera no bloqueante
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id).then(userProfile => {
+              if (userProfile && !isLoggingOutRef.current) {
+                setProfile(userProfile);
+              }
+            }).catch(error => {
+              console.log('AuthContext: Non-blocking profile fetch failed:', error);
+            });
+          }, 0);
           
           console.log('AuthContext: User set successfully:', userData.role);
         }
@@ -212,13 +92,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       console.log('AuthContext: Initial session check -', !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
       
-      // Limpiar timeout si la sesión se resuelve
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
         initTimeoutRef.current = undefined;
       }
       
-      // Solo establecer sesión si no estamos en proceso de logout
       if (!isLoggingOutRef.current) {
         if (currentSession?.user) {
           console.log('AuthContext: Setting initial session');
@@ -226,12 +104,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
           
-          // Cargar perfil en segundo plano (no bloqueante)
-          fetchUserProfile(currentSession.user.id).then(userProfile => {
-            if (userProfile) {
-              setProfile(userProfile);
-            }
-          });
+          // Cargar perfil de manera no bloqueante
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id).then(userProfile => {
+              if (userProfile && !isLoggingOutRef.current) {
+                setProfile(userProfile);
+              }
+            }).catch(error => {
+              console.log('AuthContext: Non-blocking initial profile fetch failed:', error);
+            });
+          }, 0);
           
           console.log('AuthContext: Initial user set:', userData.role);
         } else {
@@ -254,93 +136,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
-
-  const login = async (email: string, password: string) => {
-    try {
-      console.log('AuthContext: Attempting login for:', email);
-      
-      // Asegurar que no estamos en proceso de logout
-      isLoggingOutRef.current = false;
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (error) {
-        console.error('AuthContext: Login error:', error);
-        return { success: false, error: error.message };
-      }
-
-      if (data.user && data.session) {
-        console.log('AuthContext: Login successful for user:', data.user.user_metadata?.role);
-        return { success: true };
-      }
-
-      return { success: false, error: 'Error de autenticación' };
-    } catch (error) {
-      console.error('AuthContext: Login exception:', error);
-      return { success: false, error: 'Error de conexión' };
-    }
-  };
-
-  const logout = async () => {
-    console.log('AuthContext: Starting logout process');
-    
-    try {
-      // Establecer flag de logout para evitar reautenticación
-      isLoggingOutRef.current = true;
-      
-      // Limpiar estado local inmediatamente
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-      setIsLoading(false);
-      
-      console.log('AuthContext: Cleared local state');
-      
-      // Limpiar storage antes del logout
-      clearSupabaseStorage();
-      
-      // Cerrar sesión en Supabase
-      console.log('AuthContext: Calling Supabase signOut');
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error) {
-        console.error('AuthContext: Supabase logout error:', error);
-      } else {
-        console.log('AuthContext: Supabase logout successful');
-      }
-      
-      // Limpiar storage nuevamente después del logout
-      setTimeout(() => {
-        clearSupabaseStorage();
-      }, 100);
-      
-      // Redirección después de logout
-      setTimeout(() => {
-        console.log('AuthContext: Redirecting to landing page');
-        window.location.replace('/');
-      }, 200);
-      
-    } catch (error) {
-      console.error('AuthContext: Logout exception:', error);
-      
-      // Forzar limpieza completa
-      isLoggingOutRef.current = true;
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-      setIsLoading(false);
-      clearSupabaseStorage();
-      
-      setTimeout(() => {
-        window.location.replace('/');
-      }, 100);
-    }
-  };
-
-  const isAuthenticated = !!session && !!user && !isLoggingOutRef.current;
 
   console.log('AuthContext: Current state -', { 
     isLoading, 
@@ -374,3 +169,6 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Re-export types for convenience
+export type { User, UserProfile } from './auth/types';
