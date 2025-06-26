@@ -9,51 +9,53 @@ import Achievements from '@/pages/Achievements';
 import Team from '@/pages/Team';
 
 const ProviderRoutes = () => {
-  return (
-    <>
-      {/* Provider-only routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <RoleGuard allowedRole="provider">
-            <Dashboard />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/services"
-        element={
-          <RoleGuard allowedRole="provider">
-            <Services />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/calendar"
-        element={
-          <RoleGuard allowedRole="provider">
-            <Calendar />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/achievements"
-        element={
-          <RoleGuard allowedRole="provider">
-            <Achievements />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/team"
-        element={
-          <RoleGuard allowedRole="provider">
-            <Team />
-          </RoleGuard>
-        }
-      />
-    </>
-  );
+  return [
+    <Route
+      key="dashboard"
+      path="/dashboard"
+      element={
+        <RoleGuard allowedRole="provider">
+          <Dashboard />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="services"
+      path="/services"
+      element={
+        <RoleGuard allowedRole="provider">
+          <Services />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="calendar"
+      path="/calendar"
+      element={
+        <RoleGuard allowedRole="provider">
+          <Calendar />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="achievements"
+      path="/achievements"
+      element={
+        <RoleGuard allowedRole="provider">
+          <Achievements />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="team"
+      path="/team"
+      element={
+        <RoleGuard allowedRole="provider">
+          <Team />
+        </RoleGuard>
+      }
+    />
+  ];
 };
 
 export default ProviderRoutes;

@@ -12,77 +12,80 @@ import BookingSummary from '@/pages/BookingSummary';
 import Profile from '@/pages/Profile';
 
 const ClientRoutes = () => {
-  return (
-    <>
-      {/* Client-only routes */}
-      <Route
-        path="/client/categories"
-        element={
-          <RoleGuard allowedRole="client">
-            <ClientServices />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/client/category/:categoryId"
-        element={
-          <RoleGuard allowedRole="client">
-            <ClientCategoryDetails />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/client/results"
-        element={
-          <RoleGuard allowedRole="client">
-            <ClientResultsView />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/client/service/:providerId/:serviceId"
-        element={
-          <RoleGuard allowedRole="client">
-            <ClientProviderServiceDetail />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/client/booking/:serviceId"
-        element={
-          <RoleGuard allowedRole="client">
-            <ClientBooking />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/client/booking-summary"
-        element={
-          <RoleGuard allowedRole="client">
-            <BookingSummary />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/client/bookings"
-        element={
-          <RoleGuard allowedRole="client">
-            <ClientBookings />
-          </RoleGuard>
-        }
-      />
-      
-      {/* Shared routes - but still role-protected */}
-      <Route
-        path="/profile"
-        element={
-          <RoleGuard allowedRole="client">
-            <Profile />
-          </RoleGuard>
-        }
-      />
-    </>
-  );
+  return [
+    <Route
+      key="client-categories"
+      path="/client/categories"
+      element={
+        <RoleGuard allowedRole="client">
+          <ClientServices />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="client-category-details"
+      path="/client/category/:categoryId"
+      element={
+        <RoleGuard allowedRole="client">
+          <ClientCategoryDetails />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="client-results"
+      path="/client/results"
+      element={
+        <RoleGuard allowedRole="client">
+          <ClientResultsView />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="client-service-detail"
+      path="/client/service/:providerId/:serviceId"
+      element={
+        <RoleGuard allowedRole="client">
+          <ClientProviderServiceDetail />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="client-booking"
+      path="/client/booking/:serviceId"
+      element={
+        <RoleGuard allowedRole="client">
+          <ClientBooking />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="client-booking-summary"
+      path="/client/booking-summary"
+      element={
+        <RoleGuard allowedRole="client">
+          <BookingSummary />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="client-bookings"
+      path="/client/bookings"
+      element={
+        <RoleGuard allowedRole="client">
+          <ClientBookings />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="profile"
+      path="/profile"
+      element={
+        <RoleGuard allowedRole="client">
+          <Profile />
+        </RoleGuard>
+      }
+    />
+  ];
 };
 
 export default ClientRoutes;

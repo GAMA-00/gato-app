@@ -27,9 +27,9 @@ function App() {
           <ErrorBoundary>
             <RouteDebugger />
             <Routes>
-              <PublicRoutes />
-              <ProviderRoutes />
-              <ClientRoutes />
+              {PublicRoutes()}
+              {ProviderRoutes()}
+              {ClientRoutes()}
             </Routes>
           </ErrorBoundary>
         </QueryClientProvider>

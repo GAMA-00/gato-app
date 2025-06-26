@@ -10,22 +10,15 @@ import ProviderRegister from '@/pages/ProviderRegister';
 import TestComponent from '@/components/TestComponent';
 
 const PublicRoutes = () => {
-  return (
-    <>
-      {/* Public routes */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/test" element={<TestComponent />} />
-      
-      {/* Separate login pages for each role */}
-      <Route path="/client/login" element={<ClientLogin />} />
-      <Route path="/provider/login" element={<ProviderLogin />} />
-      
-      {/* Registration routes */}
-      <Route path="/register" element={<Register />} />
-      <Route path="/register-provider" element={<ProviderRegister />} />
-    </>
-  );
+  return [
+    <Route key="landing" path="/" element={<LandingPage />} />,
+    <Route key="login" path="/login" element={<Login />} />,
+    <Route key="test" path="/test" element={<TestComponent />} />,
+    <Route key="client-login" path="/client/login" element={<ClientLogin />} />,
+    <Route key="provider-login" path="/provider/login" element={<ProviderLogin />} />,
+    <Route key="register" path="/register" element={<Register />} />,
+    <Route key="register-provider" path="/register-provider" element={<ProviderRegister />} />
+  ];
 };
 
 export default PublicRoutes;
