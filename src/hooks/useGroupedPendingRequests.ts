@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildLocationString } from "@/utils/locationUtils";
 
 interface GroupedRequest {
   id: string;
@@ -79,6 +80,7 @@ export function useGroupedPendingRequests() {
                   house_number,
                   residencia_id,
                   condominium_text,
+                  apartment,
                   residencias (
                     id,
                     name
@@ -93,24 +95,14 @@ export function useGroupedPendingRequests() {
               } else if (clientData) {
                 clientInfo = clientData;
                 
-                // Build location string
-                const locationParts = [];
-                
-                if (clientData.residencias?.name) {
-                  locationParts.push(clientData.residencias.name);
-                }
-                
-                if (clientData.condominium_text) {
-                  locationParts.push(clientData.condominium_text);
-                }
-                
-                if (clientData.house_number) {
-                  locationParts.push(clientData.house_number);
-                }
-                
-                clientLocation = locationParts.length > 0 
-                  ? locationParts.join(' – ') 
-                  : 'Ubicación no especificada';
+                // Build location string using buildLocationString utility
+                clientLocation = buildLocationString({
+                  residenciaName: clientData.residencias?.name,
+                  condominiumName: clientData.condominium_text,
+                  houseNumber: clientData.house_number,
+                  apartment: clientData.apartment || appointment.apartment,
+                  isExternal: false
+                });
               }
             }
 
@@ -129,7 +121,10 @@ export function useGroupedPendingRequests() {
                 ? appointment.client_email 
                 : clientInfo?.email,
               client_location: isExternal 
-                ? (appointment.client_address || 'Ubicación no especificada')
+                ? buildLocationString({
+                    clientAddress: appointment.client_address,
+                    isExternal: true
+                  })
                 : clientLocation,
               is_external: isExternal,
               service_name: appointment.listings?.title || 'Servicio',

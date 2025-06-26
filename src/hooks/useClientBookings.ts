@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildLocationString } from '@/utils/locationUtils';
 
 export interface ClientBooking {
   id: string;
@@ -131,17 +132,42 @@ export const useClientBookings = () => {
           // Continue without rating data
         }
 
+        // Get current user data for location building
+        const { data: userData } = await supabase
+          .from('users')
+          .select(`
+            house_number,
+            condominium_text,
+            apartment,
+            residencias (
+              id,
+              name
+            )
+          `)
+          .eq('id', user.id)
+          .single();
+
         // Process appointments
         const processedBookings = appointments.map(appointment => {
           const service = servicesMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
           
-          // Build location string
+          // Build location string using buildLocationString utility
           let location = 'Ubicación no especificada';
+          
           if (appointment.external_booking && appointment.client_address) {
-            location = appointment.client_address;
-          } else if (appointment.apartment) {
-            location = `Apartamento ${appointment.apartment}`;
+            location = buildLocationString({
+              clientAddress: appointment.client_address,
+              isExternal: true
+            });
+          } else if (userData) {
+            location = buildLocationString({
+              residenciaName: userData.residencias?.name,
+              condominiumName: userData.condominium_text,
+              houseNumber: userData.house_number,
+              apartment: userData.apartment || appointment.apartment,
+              isExternal: false
+            });
           }
 
           const result: ClientBooking = {

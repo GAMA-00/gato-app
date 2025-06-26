@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildLocationString } from "@/utils/locationUtils";
 
 export function usePendingRequests() {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ export function usePendingRequests() {
           .order('start_time', { ascending: true });
           
         if (error) {
-          console.error("Error fetching pending appointments:", error);
+          console.error("Error fetching pending apartments:", error);
           throw error;
         }
         
@@ -69,6 +70,7 @@ export function usePendingRequests() {
                   house_number,
                   residencia_id,
                   condominium_text,
+                  apartment,
                   residencias (
                     id,
                     name
@@ -83,24 +85,14 @@ export function usePendingRequests() {
                 clientInfo = clientData;
                 console.log("Client data found:", clientData);
                 
-                // Build location string
-                const locationParts = [];
-                
-                if (clientData.residencias?.name) {
-                  locationParts.push(clientData.residencias.name);
-                }
-                
-                if (clientData.condominium_text) {
-                  locationParts.push(clientData.condominium_text);
-                }
-                
-                if (clientData.house_number) {
-                  locationParts.push(`Casa ${clientData.house_number}`);
-                }
-                
-                clientLocation = locationParts.length > 0 
-                  ? locationParts.join(' – ') 
-                  : 'Ubicación no especificada';
+                // Build location string using buildLocationString utility
+                clientLocation = buildLocationString({
+                  residenciaName: clientData.residencias?.name,
+                  condominiumName: clientData.condominium_text,
+                  houseNumber: clientData.house_number,
+                  apartment: clientData.apartment || appointment.apartment,
+                  isExternal: false
+                });
               }
             }
 
@@ -119,7 +111,10 @@ export function usePendingRequests() {
                 ? appointment.client_email 
                 : clientInfo?.email,
               client_location: isExternal 
-                ? (appointment.client_address || 'Ubicación externa')
+                ? buildLocationString({
+                    clientAddress: appointment.client_address,
+                    isExternal: true
+                  })
                 : clientLocation,
               is_external: isExternal,
               service_name: appointment.listings?.title || 'Servicio'
