@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useTeamMembers,
@@ -15,8 +15,10 @@ import TeamMemberCard from './TeamMemberCard';
 import TeamMemberModal from './TeamMemberModal';
 
 const TeamSection: React.FC = () => {
+  console.log("=== TEAM SECTION RENDER ===");
+  
   const { user, profile } = useAuth();
-  const { data: teamMembers = [], isLoading } = useTeamMembers();
+  const { data: teamMembers = [], isLoading, error } = useTeamMembers();
   const createMember = useCreateTeamMember();
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
@@ -25,7 +27,13 @@ const TeamSection: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingMember, setEditingMember] = useState<TeamMember | undefined>();
 
-  // Crear líder del equipo basado en el perfil del usuario
+  console.log("TeamSection - User:", user?.id);
+  console.log("TeamSection - Profile:", profile?.name);
+  console.log("TeamSection - Team members:", teamMembers?.length || 0);
+  console.log("TeamSection - Loading:", isLoading);
+  console.log("TeamSection - Error:", error);
+
+  // Create team leader based on user profile
   const teamLeader: TeamMember = {
     id: user?.id || '',
     providerId: user?.id || '',
@@ -43,32 +51,64 @@ const TeamSection: React.FC = () => {
   const allMembers = [teamLeader, ...teamMembers];
 
   const handleCreateMember = () => {
+    console.log("TeamSection - Creating new member");
     setModalMode('create');
     setEditingMember(undefined);
     setModalOpen(true);
   };
 
   const handleEditMember = (member: TeamMember) => {
+    console.log("TeamSection - Editing member:", member.id);
     setModalMode('edit');
     setEditingMember(member);
     setModalOpen(true);
   };
 
   const handleDeleteMember = (memberId: string) => {
+    console.log("TeamSection - Deleting member:", memberId);
     if (confirm('¿Estás seguro de que quieres eliminar este miembro del equipo?')) {
       deleteMember.mutate(memberId);
     }
   };
 
   const handleSaveMember = (data: TeamMemberFormData) => {
+    console.log("TeamSection - Saving member:", data);
     if (modalMode === 'create') {
       createMember.mutate(data);
     } else if (modalMode === 'edit' && editingMember) {
       updateMember.mutate({ id: editingMember.id, ...data });
     }
+    setModalOpen(false);
   };
 
+  // Error state
+  if (error) {
+    console.error("TeamSection - Error loading team members:", error);
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            Error al cargar equipo
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">
+              No se pudo cargar la información del equipo.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Reintentar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Loading state
   if (isLoading) {
+    console.log("TeamSection - Showing loading state");
     return (
       <Card>
         <CardHeader>
@@ -78,11 +118,18 @@ const TeamSection: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Cargando equipo...</p>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground">Cargando equipo...</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
   }
+
+  console.log("TeamSection - Rendering main content with", allMembers.length, "members");
 
   return (
     <>
@@ -99,15 +146,15 @@ const TeamSection: React.FC = () => {
         </CardHeader>
         
         <CardContent>
-          {allMembers.length === 0 ? (
+          {allMembers.length === 1 ? (
             <div className="text-center py-8">
               <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">
-                No tienes miembros en tu equipo aún
+                Solo tienes el líder del equipo. Agrega miembros auxiliares.
               </p>
               <Button onClick={handleCreateMember}>
                 <Plus className="w-4 h-4 mr-2" />
-                Agregar primer miembro
+                Agregar primer auxiliar
               </Button>
             </div>
           ) : (

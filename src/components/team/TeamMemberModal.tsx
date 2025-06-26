@@ -1,19 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Phone, IdCard, FileCheck, Upload } from 'lucide-react';
 import { TeamMember, TeamMemberFormData } from '@/lib/teamTypes';
+import { useState, useEffect } from 'react';
+import { User, Phone, IdCard, FileCheck } from 'lucide-react';
 
 interface TeamMemberModalProps {
   isOpen: boolean;
@@ -56,14 +51,13 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         criminalRecordFileUrl: ''
       });
     }
-  }, [member, mode, isOpen]);
+  }, [member, mode]);
 
   const handleSave = () => {
-    if (!formData.name || !formData.cedula || !formData.phone) {
-      return;
+    if (onSave) {
+      onSave(formData);
+      onClose();
     }
-    onSave?.(formData);
-    onClose();
   };
 
   const getInitials = (name: string) => {
@@ -75,136 +69,101 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
       .toUpperCase();
   };
 
-  const getRoleDisplay = (member: TeamMember) => {
-    if (member?.role === 'lider') return 'Líder del equipo';
-    return `Auxiliar ${member?.positionOrder || 1}`;
-  };
-
-  const isViewMode = mode === 'view';
-  const isCreateMode = mode === 'create';
+  const isReadOnly = mode === 'view';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isCreateMode && 'Agregar nuevo miembro'}
-            {mode === 'edit' && 'Editar miembro del equipo'}
-            {isViewMode && 'Detalles del miembro'}
+          <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            {mode === 'create' && 'Agregar Miembro del Equipo'}
+            {mode === 'edit' && 'Editar Miembro del Equipo'}
+            {mode === 'view' && 'Detalles del Miembro'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Avatar y role badge */}
-          <div className="text-center">
-            <Avatar className="w-20 h-20 mx-auto mb-2">
-              <AvatarImage src={formData.photoUrl} alt={formData.name} />
-              <AvatarFallback className="bg-blue-100 text-blue-600">
-                {formData.name ? getInitials(formData.name) : <User className="w-8 h-8" />}
-              </AvatarFallback>
-            </Avatar>
-            {member && isViewMode && (
+          {mode === 'view' && member && (
+            <div className="text-center mb-4">
+              <Avatar className="w-20 h-20 mx-auto mb-2">
+                <AvatarImage src={member.photoUrl} alt={member.name} />
+                <AvatarFallback className="bg-blue-100 text-blue-600 text-lg">
+                  {getInitials(member.name)}
+                </AvatarFallback>
+              </Avatar>
               <Badge variant={member.role === 'lider' ? 'default' : 'secondary'}>
-                {getRoleDisplay(member)}
+                {member.role === 'lider' ? 'Líder del equipo' : `Auxiliar ${member.positionOrder}`}
               </Badge>
-            )}
-          </div>
-
-          {/* Foto */}
-          {!isViewMode && (
-            <div className="space-y-2">
-              <Label htmlFor="photoUrl">Foto (URL)</Label>
-              <Input
-                id="photoUrl"
-                placeholder="https://ejemplo.com/foto.jpg"
-                value={formData.photoUrl}
-                onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-              />
             </div>
           )}
 
-          {/* Nombre */}
-          <div className="space-y-2">
-            <Label htmlFor="name" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Nombre completo
-            </Label>
-            <Input
-              id="name"
-              placeholder="Nombre completo"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              disabled={isViewMode}
-              required
-            />
-          </div>
-
-          {/* Cédula */}
-          <div className="space-y-2">
-            <Label htmlFor="cedula" className="flex items-center gap-2">
-              <IdCard className="w-4 h-4" />
-              Número de cédula
-            </Label>
-            <Input
-              id="cedula"
-              placeholder="1-2345-6789"
-              value={formData.cedula}
-              onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-              disabled={isViewMode}
-              required
-            />
-          </div>
-
-          {/* Teléfono */}
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Teléfono celular
-            </Label>
-            <Input
-              id="phone"
-              placeholder="8888-8888"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              disabled={isViewMode}
-              required
-            />
-          </div>
-
-          {/* Hoja de delincuencia */}
-          <div className="space-y-2">
-            <Label htmlFor="criminalRecord" className="flex items-center gap-2">
-              <FileCheck className="w-4 h-4" />
-              Hoja de delincuencia
-            </Label>
-            {isViewMode ? (
-              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
-                <FileCheck className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-green-700">
-                  {member?.criminalRecordFileUrl ? 'Documento verificado' : 'Documento pendiente'}
-                </span>
-              </div>
-            ) : (
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="name">Nombre completo</Label>
               <Input
-                id="criminalRecord"
-                placeholder="URL del documento"
-                value={formData.criminalRecordFileUrl}
-                onChange={(e) => setFormData({ ...formData, criminalRecordFileUrl: e.target.value })}
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                readOnly={isReadOnly}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="cedula" className="flex items-center gap-1">
+                <IdCard className="w-4 h-4" />
+                Cédula
+              </Label>
+              <Input
+                id="cedula"
+                value={formData.cedula}
+                onChange={(e) => setFormData(prev => ({ ...prev, cedula: e.target.value }))}
+                readOnly={isReadOnly}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="phone" className="flex items-center gap-1">
+                <Phone className="w-4 h-4" />
+                Teléfono
+              </Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                readOnly={isReadOnly}
+              />
+            </div>
+
+            {member?.criminalRecordFileUrl && (
+              <div>
+                <Label className="flex items-center gap-1">
+                  <FileCheck className="w-4 h-4" />
+                  Hoja de delincuencia
+                </Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-1"
+                  onClick={() => window.open(member.criminalRecordFileUrl, '_blank')}
+                >
+                  Ver documento
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              {isReadOnly ? 'Cerrar' : 'Cancelar'}
+            </Button>
+            {!isReadOnly && (
+              <Button onClick={handleSave} className="flex-1">
+                {mode === 'create' ? 'Agregar' : 'Guardar cambios'}
+              </Button>
             )}
           </div>
         </div>
-
-        {!isViewMode && (
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>
-              {isCreateMode ? 'Agregar miembro' : 'Guardar cambios'}
-            </Button>
-          </DialogFooter>
-        )}
       </DialogContent>
     </Dialog>
   );
