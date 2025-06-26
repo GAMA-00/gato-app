@@ -33,7 +33,7 @@ export function useStats() {
         if (user.role === 'provider') {
           console.log("Fetching provider stats with optimized query...");
           
-          // Single optimized query for all stats
+          // Single optimized query for all stats with error handling
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -65,6 +65,12 @@ export function useStats() {
           appointments.forEach(app => {
             try {
               const appDate = new Date(app.start_time);
+              
+              // Validate date
+              if (isNaN(appDate.getTime())) {
+                console.warn(`Invalid date in stats: ${app.start_time}`);
+                return;
+              }
               
               // Count today's appointments
               if (appDate >= today) {
@@ -133,6 +139,12 @@ export function useStats() {
             try {
               const appDate = new Date(app.start_time);
               
+              // Validate date
+              if (isNaN(appDate.getTime())) {
+                console.warn(`Invalid date in client stats: ${app.start_time}`);
+                return;
+              }
+              
               if (appDate >= today) {
                 todayCount++;
               }
@@ -150,7 +162,7 @@ export function useStats() {
                 uniqueProviders.add(app.provider_id);
               }
             } catch (error) {
-              console.error("Error processing appointment for stats:", error);
+              console.error("Error processing client appointment for stats:", error);
             }
           });
 
@@ -165,7 +177,7 @@ export function useStats() {
         return defaultStats;
         
       } catch (error) {
-        console.error("Error in optimized stats query:", error);
+        console.error("Critical error in optimized stats query:", error);
         return {
           todayAppointments: 0,
           weekAppointments: 0,
@@ -177,7 +189,8 @@ export function useStats() {
     enabled: !!user,
     staleTime: 60000, // 1 minute
     refetchInterval: 300000, // 5 minutes
-    retry: 1,
+    retry: 2, // Reduced retries for faster fallback
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     refetchOnWindowFocus: false
   });
 }

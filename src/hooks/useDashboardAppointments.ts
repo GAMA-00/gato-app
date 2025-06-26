@@ -21,9 +21,11 @@ export const useDashboardAppointments = () => {
   console.log("Appointments loading:", isLoadingAppointments, "Count:", appointments?.length || 0);
   console.log("Stats loading:", isLoadingStats);
   
-  // Enhanced appointment filtering with deduplication
+  // Enhanced appointment filtering with deduplication and error handling
   const { todaysAppointments, tomorrowsAppointments, activeAppointmentsToday } = useMemo(() => {
-    if (!appointments?.length) {
+    // Safe defaults in case of empty or undefined appointments
+    if (!appointments || !Array.isArray(appointments) || appointments.length === 0) {
+      console.log("No appointments available for filtering");
       return {
         todaysAppointments: [],
         tomorrowsAppointments: [],
@@ -40,26 +42,37 @@ export const useDashboardAppointments = () => {
       // Create a Map to deduplicate appointments by time slot
       const appointmentsByTimeSlot = new Map();
       
-      // Process appointments and deduplicate
+      // Process appointments and deduplicate with error handling
       appointments.forEach(app => {
-        if (app.status === 'cancelled' || app.status === 'rejected') return;
-        
-        const appDate = new Date(app.start_time);
-        const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}`;
-        
-        // Check if we already have an appointment for this time slot
-        if (appointmentsByTimeSlot.has(timeSlotKey)) {
-          const existing = appointmentsByTimeSlot.get(timeSlotKey);
-          // Prefer regular appointments over recurring instances
-          if (!existing.is_recurring_instance && app.is_recurring_instance) {
-            console.log(`Skipping duplicate recurring instance: ${app.client_name} at ${appDate.toLocaleString()}`);
+        try {
+          if (!app || app.status === 'cancelled' || app.status === 'rejected') return;
+          
+          const appDate = new Date(app.start_time);
+          
+          // Validate date
+          if (isNaN(appDate.getTime())) {
+            console.warn(`Invalid start_time for appointment ${app.id}: ${app.start_time}`);
             return;
-          } else if (existing.is_recurring_instance && !app.is_recurring_instance) {
-            console.log(`Replacing recurring instance with regular appointment: ${app.client_name} at ${appDate.toLocaleString()}`);
           }
+          
+          const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}`;
+          
+          // Check if we already have an appointment for this time slot
+          if (appointmentsByTimeSlot.has(timeSlotKey)) {
+            const existing = appointmentsByTimeSlot.get(timeSlotKey);
+            // Prefer regular appointments over recurring instances
+            if (!existing.is_recurring_instance && app.is_recurring_instance) {
+              console.log(`Skipping duplicate recurring instance: ${app.client_name} at ${appDate.toLocaleString()}`);
+              return;
+            } else if (existing.is_recurring_instance && !app.is_recurring_instance) {
+              console.log(`Replacing recurring instance with regular appointment: ${app.client_name} at ${appDate.toLocaleString()}`);
+            }
+          }
+          
+          appointmentsByTimeSlot.set(timeSlotKey, app);
+        } catch (error) {
+          console.error(`Error processing appointment ${app?.id || 'unknown'}:`, error);
         }
-        
-        appointmentsByTimeSlot.set(timeSlotKey, app);
       });
       
       // Convert back to array and filter by date
@@ -68,23 +81,27 @@ export const useDashboardAppointments = () => {
       const tomorrowsAppts: any[] = [];
       
       uniqueAppointments.forEach(app => {
-        const appDate = new Date(app.start_time);
-        
-        console.log(`Processing appointment ${app.id}:`, {
-          date: appDate.toLocaleDateString(),
-          time: appDate.toLocaleTimeString(),
-          isToday: isSameDay(appDate, today),
-          isTomorrow: isSameDay(appDate, tomorrow),
-          status: app.status,
-          isRecurring: app.is_recurring_instance,
-          clientName: app.client_name,
-          serviceName: app.service_title || app.listings?.title
-        });
-        
-        if (isSameDay(appDate, today)) {
-          todaysAppts.push(app);
-        } else if (isSameDay(appDate, tomorrow)) {
-          tomorrowsAppts.push(app);
+        try {
+          const appDate = new Date(app.start_time);
+          
+          console.log(`Processing appointment ${app.id}:`, {
+            date: appDate.toLocaleDateString(),
+            time: appDate.toLocaleTimeString(),
+            isToday: isSameDay(appDate, today),
+            isTomorrow: isSameDay(appDate, tomorrow),
+            status: app.status,
+            isRecurring: app.is_recurring_instance,
+            clientName: app.client_name,
+            serviceName: app.listings?.title || app.service_title
+          });
+          
+          if (isSameDay(appDate, today)) {
+            todaysAppts.push(app);
+          } else if (isSameDay(appDate, tomorrow)) {
+            tomorrowsAppts.push(app);
+          }
+        } catch (error) {
+          console.error(`Error filtering appointment ${app?.id || 'unknown'}:`, error);
         }
       });
 
@@ -93,9 +110,14 @@ export const useDashboardAppointments = () => {
       tomorrowsAppts.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
       // Filter active appointments for today (not completed and not past end time)
-      const activeToday = todaysAppts.filter(app => 
-        app.status !== 'completed' && new Date(app.end_time) > now
-      );
+      const activeToday = todaysAppts.filter(app => {
+        try {
+          return app.status !== 'completed' && new Date(app.end_time) > now;
+        } catch (error) {
+          console.error(`Error filtering active appointment ${app?.id || 'unknown'}:`, error);
+          return false;
+        }
+      });
 
       console.log("=== APPOINTMENT FILTERING RESULTS ===");
       console.log(`Total unique appointments: ${uniqueAppointments.length}`);
@@ -117,7 +139,7 @@ export const useDashboardAppointments = () => {
         activeAppointmentsToday: activeToday
       };
     } catch (error) {
-      console.error("Error filtering appointments:", error);
+      console.error("Critical error filtering appointments:", error);
       return {
         todaysAppointments: [],
         tomorrowsAppointments: [],

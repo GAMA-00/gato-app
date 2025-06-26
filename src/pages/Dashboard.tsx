@@ -22,7 +22,7 @@ const Dashboard = () => {
   console.log("Dashboard - Appointments loading:", isLoadingAppointments);
   console.log("Dashboard - Stats loading:", isLoadingStats);
 
-  // Enhanced loading state with priority information
+  // Enhanced loading state with timeout protection
   if (isLoadingAppointments) {
     return <DashboardLoadingState />;
   }
