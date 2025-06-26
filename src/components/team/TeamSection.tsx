@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Users, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -106,23 +107,33 @@ const TeamSection: React.FC = () => {
     );
   }
 
-  // Loading state
+  // Loading state with improved skeleton
   if (isLoading) {
     console.log("TeamSection - Showing loading state");
     return (
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
             Equipo
+            <Skeleton className="h-4 w-16" />
           </CardTitle>
+          <Skeleton className="h-9 w-32" />
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-              <p className="text-muted-foreground">Cargando equipo...</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

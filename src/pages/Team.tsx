@@ -2,6 +2,9 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
+import Navbar from '@/components/layout/Navbar';
+import PageContainer from '@/components/layout/PageContainer';
+import TeamSection from '@/components/team/TeamSection';
 
 const Team: React.FC = () => {
   console.log("=== TEAM PAGE RENDER START ===");
@@ -18,22 +21,27 @@ const Team: React.FC = () => {
     if (isLoading) {
       console.log("Team - Showing loading state");
       return (
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-lg font-medium">Cargando información del equipo...</p>
+        <>
+          <Navbar />
+          <div className="md:ml-52">
+            <div className="min-h-screen bg-white flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-lg font-medium">Cargando información del equipo...</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       );
     }
 
-    // Redirect if no user
+    // Redirect if no user - check this first
     if (!user) {
       console.log("Team - No user, redirecting to login");
       return <Navigate to="/login" replace />;
     }
 
-    // Redirect if not provider
+    // Redirect if not provider - check role after confirming user exists
     if (user.role !== 'provider') {
       console.log("Team - User is not provider, redirecting to dashboard");
       return <Navigate to="/dashboard" replace />;
@@ -42,30 +50,43 @@ const Team: React.FC = () => {
     console.log("Team - Rendering main content");
 
     return (
-      <div className="min-h-screen bg-white p-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Equipo</h1>
-          <div className="bg-gray-100 p-4 rounded-lg">
-            <p className="text-lg">Página de equipo funcionando correctamente</p>
-            <p className="text-sm text-gray-600 mt-2">Usuario: {user.id}</p>
-            <p className="text-sm text-gray-600">Rol: {user.role}</p>
-          </div>
+      <>
+        <Navbar />
+        <div className="md:ml-52">
+          <PageContainer title="Equipo" subtitle="Gestiona los miembros de tu equipo">
+            <div className="space-y-6">
+              <TeamSection />
+            </div>
+          </PageContainer>
         </div>
-      </div>
+      </>
     );
 
   } catch (error) {
     console.error("Team - Error in component:", error);
     return (
-      <div className="min-h-screen bg-red-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-red-600">Error en página de equipo</h1>
-          <p className="text-red-500">Ver consola para detalles</p>
-          <pre className="text-xs text-left bg-red-100 p-2 rounded">
-            {error instanceof Error ? error.message : 'Error desconocido'}
-          </pre>
+      <>
+        <Navbar />
+        <div className="md:ml-52">
+          <div className="min-h-screen bg-red-50 flex items-center justify-center">
+            <div className="text-center space-y-4 max-w-md mx-auto p-6">
+              <h1 className="text-2xl font-bold text-red-600">Error en página de equipo</h1>
+              <p className="text-red-500">Ha ocurrido un error inesperado. Por favor, recarga la página.</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Recargar página
+              </button>
+              {error instanceof Error && (
+                <pre className="text-xs text-left bg-red-100 p-2 rounded mt-4 overflow-auto">
+                  {error.message}
+                </pre>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 };

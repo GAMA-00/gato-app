@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,6 +71,19 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
 
   const isReadOnly = mode === 'view';
 
+  const getModalDescription = () => {
+    switch (mode) {
+      case 'create':
+        return 'Ingresa la información del nuevo miembro del equipo que deseas agregar.';
+      case 'edit':
+        return 'Modifica la información del miembro del equipo seleccionado.';
+      case 'view':
+        return 'Información detallada del miembro del equipo seleccionado.';
+      default:
+        return '';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -81,6 +94,9 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             {mode === 'edit' && 'Editar Miembro del Equipo'}
             {mode === 'view' && 'Detalles del Miembro'}
           </DialogTitle>
+          <DialogDescription>
+            {getModalDescription()}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
