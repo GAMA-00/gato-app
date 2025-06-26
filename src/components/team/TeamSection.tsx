@@ -14,6 +14,7 @@ import {
 import { TeamMember, TeamMemberFormData } from '@/lib/teamTypes';
 import TeamMemberCard from './TeamMemberCard';
 import TeamMemberModal from './TeamMemberModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const TeamSection: React.FC = () => {
   console.log("=== TEAM SECTION RENDER ===");
@@ -23,6 +24,7 @@ const TeamSection: React.FC = () => {
   const createMember = useCreateTeamMember();
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
+  const isMobile = useIsMobile();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -86,16 +88,16 @@ const TeamSection: React.FC = () => {
   if (error) {
     console.error("TeamSection - Error loading team members:", error);
     return (
-      <Card>
-        <CardHeader>
+      <Card className={isMobile ? "mx-2" : ""}>
+        <CardHeader className={isMobile ? "px-4 py-4" : ""}>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-500" />
             Error al cargar equipo
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground mb-4">
+        <CardContent className={isMobile ? "px-4 pb-4" : ""}>
+          <div className={`text-center ${isMobile ? "py-6" : "py-8"}`}>
+            <p className={`text-muted-foreground ${isMobile ? "mb-3 text-sm" : "mb-4"}`}>
               No se pudo cargar la información del equipo.
             </p>
             <Button onClick={() => window.location.reload()}>
@@ -111,8 +113,8 @@ const TeamSection: React.FC = () => {
   if (isLoading) {
     console.log("TeamSection - Showing loading state");
     return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className={isMobile ? "mx-2" : ""}>
+        <CardHeader className={`flex flex-row items-center justify-between ${isMobile ? "px-4 py-4" : ""}`}>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
             Equipo
@@ -120,10 +122,10 @@ const TeamSection: React.FC = () => {
           </CardTitle>
           <Skeleton className="h-9 w-32" />
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardContent className={isMobile ? "px-4 pb-4" : ""}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${isMobile ? "gap-3" : "gap-4"}`}>
             {[1, 2, 3].map((i) => (
-              <div key={i} className="border rounded-lg p-4">
+              <div key={i} className={`border rounded-lg ${isMobile ? "p-3" : "p-4"}`}>
                 <div className="flex items-start gap-3">
                   <Skeleton className="h-12 w-12 rounded-full" />
                   <div className="flex-1 space-y-2">
@@ -144,32 +146,35 @@ const TeamSection: React.FC = () => {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+      <Card className={isMobile ? "mx-2" : ""}>
+        <CardHeader className={`flex flex-row items-center justify-between ${isMobile ? "px-4 py-4 gap-3" : ""}`}>
+          <CardTitle className={`flex items-center gap-2 ${isMobile ? "text-lg" : ""}`}>
             <Users className="w-5 h-5" />
-            Equipo ({allMembers.length} {allMembers.length === 1 ? 'miembro' : 'miembros'})
+            <span className={isMobile ? "leading-tight" : ""}>
+              Equipo ({allMembers.length} {allMembers.length === 1 ? 'miembro' : 'miembros'})
+            </span>
           </CardTitle>
-          <Button onClick={handleCreateMember} size="sm">
+          <Button onClick={handleCreateMember} size={isMobile ? "sm" : "sm"} className={isMobile ? "flex-shrink-0" : ""}>
             <Plus className="w-4 h-4 mr-2" />
-            Agregar miembro
+            <span className={isMobile ? "hidden xs:inline" : ""}>Agregar</span>
+            <span className={isMobile ? "xs:hidden" : "hidden"}>+</span>
           </Button>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className={isMobile ? "px-4 pb-4" : ""}>
           {allMembers.length === 1 ? (
-            <div className="text-center py-8">
-              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">
+            <div className={`text-center ${isMobile ? "py-6" : "py-8"}`}>
+              <Users className={`mx-auto text-muted-foreground ${isMobile ? "w-10 h-10 mb-3" : "w-12 h-12 mb-4"}`} />
+              <p className={`text-muted-foreground ${isMobile ? "mb-3 text-sm px-2" : "mb-4"}`}>
                 Solo tienes el líder del equipo. Agrega miembros auxiliares.
               </p>
-              <Button onClick={handleCreateMember}>
+              <Button onClick={handleCreateMember} className={isMobile ? "text-sm" : ""}>
                 <Plus className="w-4 h-4 mr-2" />
                 Agregar primer auxiliar
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${isMobile ? "gap-3" : "gap-4"}`}>
               {allMembers.map((member) => (
                 <TeamMemberCard
                   key={member.id}
