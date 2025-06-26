@@ -19,6 +19,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ClientBookings from './pages/ClientBookings';
 import ClientServices from './pages/ClientServices';
 import ClientCategoryDetails from './pages/ClientCategoryDetails';
+import ClientResultsView from './pages/ClientResultsView';
+import ClientProviderServiceDetail from './pages/ClientProviderServiceDetail';
+import ClientBooking from './pages/ClientBooking';
+import BookingSummary from './pages/BookingSummary';
 import Team from '@/pages/Team';
 import TestComponent from './components/TestComponent';
 
@@ -110,6 +114,38 @@ function App() {
                 element={
                   <RoleGuard allowedRole="client">
                     <ClientCategoryDetails />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/client/results"
+                element={
+                  <RoleGuard allowedRole="client">
+                    <ClientResultsView />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/client/service/:providerId/:serviceId"
+                element={
+                  <RoleGuard allowedRole="client">
+                    <ClientProviderServiceDetail />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/client/booking/:serviceId"
+                element={
+                  <RoleGuard allowedRole="client">
+                    <ClientBooking />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/client/booking-summary"
+                element={
+                  <RoleGuard allowedRole="client">
+                    <BookingSummary />
                   </RoleGuard>
                 }
               />
