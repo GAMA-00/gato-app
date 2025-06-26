@@ -32,8 +32,8 @@ export const useImageCache = (url: string, options: UseImageCacheOptions = {}) =
         return;
       }
 
-      // Create timeout promise for fallback
-      const timeoutMs = options.timeout || 1000;
+      // Create timeout promise for fallback - increased timeout for better loading
+      const timeoutMs = options.timeout || 3000; // Increased from 1000ms to 3000ms
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout')), timeoutMs)
       );

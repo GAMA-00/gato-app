@@ -15,6 +15,7 @@ interface CategoryIconProps {
 const CategoryIcon: React.FC<CategoryIconProps> = ({ categoryName, isMobile, isVisible }) => {
   const [imageError, setImageError] = useState(false);
   const [directImageLoaded, setDirectImageLoaded] = useState(false);
+  const [showDirectImage, setShowDirectImage] = useState(false);
   
   const iconComponent = iconMap[categoryName] || Book;
   const imageUrl = categoryImageUrls[categoryName];
@@ -24,19 +25,32 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({ categoryName, isMobile, isV
   
   const { cachedUrl, isLoading, error } = useImageCache(imageUrl, {
     priority: isCritical ? 'critical' : 'high',
-    preloadOnMount: true, // Siempre precargar, no esperar visibilidad
-    timeout: 500 // Timeout para fallback rápido
+    preloadOnMount: true,
+    timeout: 3000 // Increased timeout for better loading
   });
   
-  // Handle image errors
+  // Handle image errors and loading states
   useEffect(() => {
     if (error) {
-      setImageError(true);
+      console.warn(`Cache error for ${categoryName}:`, error);
+      // Don't immediately set imageError, let direct image try first
+      setShowDirectImage(true);
     }
-  }, [error]);
+  }, [error, categoryName]);
+
+  // Show direct image if cache fails or takes too long
+  useEffect(() => {
+    if (!cachedUrl && isLoading) {
+      const timer = setTimeout(() => {
+        setShowDirectImage(true);
+      }, 1500); // Show direct image after 1.5s if cache is still loading
+      
+      return () => clearTimeout(timer);
+    }
+  }, [cachedUrl, isLoading]);
   
-  if (!imageUrl || imageError) {
-    // Fallback a Lucide icon
+  if (!imageUrl) {
+    // Fallback a Lucide icon solo si no hay URL de imagen
     return React.createElement(iconComponent as LucideIcon, {
       size: isMobile ? 54 : 72,
       strokeWidth: isMobile ? 2 : 1.8,
@@ -46,31 +60,71 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({ categoryName, isMobile, isV
   
   return (
     <div className="relative">
-      {/* Mostrar skeleton solo si no hay imagen cacheada Y está cargando */}
-      {!cachedUrl && !directImageLoaded && isLoading && (
+      {/* Mostrar skeleton solo si no hay imagen cacheada, no se cargó directamente, y está cargando */}
+      {!cachedUrl && !directImageLoaded && isLoading && !showDirectImage && (
         <Skeleton className={cn(
           "absolute inset-0 rounded",
           isMobile ? "w-20 h-20" : "w-24 h-24"
         )} />
       )}
       
-      {/* Imagen principal - siempre renderizada */}
-      <img 
-        src={cachedUrl || imageUrl}
-        alt={categoryLabels[categoryName] || categoryName}
-        className={cn(
-          "object-contain transition-opacity duration-200",
-          isMobile ? "w-20 h-20" : "w-24 h-24",
-          (cachedUrl || directImageLoaded) ? "opacity-100" : "opacity-0"
-        )}
-        loading={isCritical ? "eager" : "lazy"}
-        decoding="async"
-        onLoad={() => setDirectImageLoaded(true)}
-        onError={() => setImageError(true)}
-        style={{
-          imageRendering: 'crisp-edges'
-        }}
-      />
+      {/* Imagen desde cache */}
+      {cachedUrl && !imageError && (
+        <img 
+          src={cachedUrl}
+          alt={categoryLabels[categoryName] || categoryName}
+          className={cn(
+            "object-contain transition-opacity duration-200",
+            isMobile ? "w-20 h-20" : "w-24 h-24",
+            "opacity-100"
+          )}
+          loading={isCritical ? "eager" : "lazy"}
+          decoding="async"
+          onError={() => {
+            console.warn(`Cached image failed for ${categoryName}`);
+            setImageError(true);
+            setShowDirectImage(true);
+          }}
+          style={{
+            imageRendering: 'crisp-edges'
+          }}
+        />
+      )}
+      
+      {/* Imagen directa como fallback o carga alternativa */}
+      {(showDirectImage || (!cachedUrl && !isLoading)) && !imageError && (
+        <img 
+          src={imageUrl}
+          alt={categoryLabels[categoryName] || categoryName}
+          className={cn(
+            "object-contain transition-opacity duration-200",
+            isMobile ? "w-20 h-20" : "w-24 h-24",
+            directImageLoaded ? "opacity-100" : "opacity-0"
+          )}
+          loading={isCritical ? "eager" : "lazy"}
+          decoding="async"
+          onLoad={() => {
+            setDirectImageLoaded(true);
+            setImageError(false);
+          }}
+          onError={() => {
+            console.error(`Direct image load failed for ${categoryName}:`, imageUrl);
+            setImageError(true);
+          }}
+          style={{
+            imageRendering: 'crisp-edges'
+          }}
+        />
+      )}
+      
+      {/* Fallback final a icono Lucide solo si ambas cargas fallan */}
+      {imageError && !cachedUrl && !directImageLoaded && (
+        React.createElement(iconComponent as LucideIcon, {
+          size: isMobile ? 54 : 72,
+          strokeWidth: isMobile ? 2 : 1.8,
+          className: "text-[#1A1A1A]"
+        })
+      )}
     </div>
   );
 };
