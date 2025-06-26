@@ -18,6 +18,7 @@ import RoleGuard from './components/RoleGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import ClientBookings from './pages/ClientBookings';
 import ClientServices from './pages/ClientServices';
+import ClientCategoryDetails from './pages/ClientCategoryDetails';
 import Team from '@/pages/Team';
 import TestComponent from './components/TestComponent';
 
@@ -101,6 +102,14 @@ function App() {
                 element={
                   <RoleGuard allowedRole="client">
                     <ClientServices />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/client/category/:categoryId"
+                element={
+                  <RoleGuard allowedRole="client">
+                    <ClientCategoryDetails />
                   </RoleGuard>
                 }
               />
