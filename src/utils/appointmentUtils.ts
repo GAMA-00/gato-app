@@ -76,7 +76,7 @@ export const getLocationInfo = (appointment: any) => {
     return externalLocation;
   }
   
-  // Build from available client data
+  // Build from available client data with COMPLETE information
   if (appointment.client_data) {
     console.log('🏠 Building from complete client_data');
     const builtLocation = buildCompleteLocation({
@@ -91,31 +91,39 @@ export const getLocationInfo = (appointment: any) => {
     return builtLocation;
   }
   
-  // Final fallback using direct appointment properties
+  // Final fallback: Build from appointment properties (for recurring instances)
   console.log('🔧 Final fallback using appointment properties');
   
-  // Try to get client data from appointment users relationship
-  const clientResidenciaName = appointment.residencias?.name || 
-                               appointment.users?.residencias?.name ||
-                               appointment.client_data?.residencias?.name;
+  // For recurring instances, try to extract from the original appointment data
+  let clientResidenciaName, clientCondominiumText, clientCondominiumName, clientHouseNumber;
+  
+  // Check if this is a recurring instance and we have the data in the appointment itself
+  if (appointment.is_recurring_instance) {
+    clientResidenciaName = appointment.residencias?.name;
+    clientCondominiumText = appointment.condominium_text;
+    clientCondominiumName = appointment.condominium_name;
+    clientHouseNumber = appointment.house_number;
+  } else {
+    // Try to get client data from appointment users relationship
+    clientResidenciaName = appointment.residencias?.name || 
+                           appointment.users?.residencias?.name;
                                
-  const clientCondominiumText = appointment.users?.condominium_text || 
-                               appointment.condominium_text ||
-                               appointment.client_data?.condominium_text;
+    clientCondominiumText = appointment.users?.condominium_text || 
+                           appointment.condominium_text;
                                
-  const clientCondominiumName = appointment.users?.condominium_name || 
-                               appointment.condominium_name ||
-                               appointment.client_data?.condominium_name;
+    clientCondominiumName = appointment.users?.condominium_name || 
+                           appointment.condominium_name;
                                
-  const clientHouseNumber = appointment.users?.house_number || 
-                           appointment.house_number ||
-                           appointment.client_data?.house_number;
+    clientHouseNumber = appointment.users?.house_number || 
+                       appointment.house_number;
+  }
   
   console.log('Building from appointment fallback data:', {
     residenciaName: clientResidenciaName,
     condominiumText: clientCondominiumText, 
     condominiumName: clientCondominiumName,
-    houseNumber: clientHouseNumber
+    houseNumber: clientHouseNumber,
+    is_recurring_instance: appointment.is_recurring_instance
   });
   
   const fallbackLocation = buildCompleteLocation({
@@ -133,19 +141,14 @@ export const getLocationInfo = (appointment: any) => {
   return fallbackLocation;
 };
 
-// Enhanced contact info function
+// Enhanced contact info function - ONLY return contact for external bookings
 export const getContactInfo = (appointment: any) => {
   // For external bookings, prioritize stored contact info
   if (appointment.is_external || appointment.external_booking) {
     return appointment.client_phone || appointment.client_email || 'Sin contacto';
   }
   
-  // Try to get contact from client_data
-  if (appointment.client_data) {
-    return appointment.client_data.phone || appointment.client_data.email || null;
-  }
-  
-  // For internal bookings, we don't have direct access to user phone/email in this context
+  // For internal bookings, we DON'T show contact info in dashboard
   return null;
 };
 

@@ -30,8 +30,15 @@ interface RecurringAppointment {
   external_booking: boolean;
   residencia_id?: string;
   recurrence_group_id?: string;
-  complete_location?: string; // Add this property
-  client_data?: any; // Add this property
+  complete_location?: string;
+  client_data?: any;
+  // Add properties needed for location building
+  condominium_text?: string;
+  condominium_name?: string;
+  house_number?: string;
+  residencias?: {
+    name: string;
+  };
   listings?: {
     title: string;
     duration: number;
@@ -128,8 +135,13 @@ export const useRecurringAppointments = ({
             external_booking: appointment.external_booking || false,
             residencia_id: appointment.residencia_id,
             recurrence_group_id: appointment.recurrence_group_id,
-            complete_location: completeLocation, // Add the complete location
-            client_data: appointment.client_data || null, // Add client data
+            complete_location: completeLocation,
+            client_data: appointment.client_data || null,
+            // Add location-related properties from client_data or appointment
+            condominium_text: appointment.client_data?.condominium_text || appointment.condominium_text,
+            condominium_name: appointment.client_data?.condominium_name || appointment.condominium_name,
+            house_number: appointment.client_data?.house_number || appointment.house_number,
+            residencias: appointment.client_data?.residencias || appointment.residencias,
             listings: appointment.listings
           };
           
