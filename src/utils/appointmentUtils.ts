@@ -36,58 +36,101 @@ export const getServiceName = (appointment: any) => {
   return appointment.listings?.title || appointment.service_title || 'Servicio';
 };
 
-// NUEVO: Función simplificada que SIEMPRE usa la ubicación pre-construida
+// MEJORADA: Función que GARANTIZA una ubicación válida siempre
 export const getLocationInfo = (appointment: any) => {
-  console.log('=== GET LOCATION INFO (SIMPLIFIED) ===');
-  console.log('Getting location for appointment:', appointment.id);
+  console.log(`🔍 === GET LOCATION INFO ENHANCED FOR ${appointment.id} ===`);
+  console.log('Appointment location data:', {
+    id: appointment.id,
+    complete_location: appointment.complete_location,
+    client_location: appointment.client_location,
+    external_booking: appointment.external_booking,
+    client_address: appointment.client_address,
+    has_client_data: !!appointment.client_data
+  });
   
-  // PRIORITY 1: Use pre-computed complete location from useAppointments
-  if (appointment.complete_location) {
-    console.log('✅ Using pre-computed complete_location:', appointment.complete_location);
+  // PRIORITY 1: Use pre-computed complete location (from useAppointments)
+  if (appointment.complete_location && appointment.complete_location !== 'Residencia por confirmar') {
+    console.log('✅ Using validated complete_location:', appointment.complete_location);
     return appointment.complete_location;
   }
   
   // PRIORITY 2: Use pre-built client_location from pending requests
-  if (appointment.client_location) {
-    console.log('✅ Using pre-built client_location:', appointment.client_location);
+  if (appointment.client_location && appointment.client_location !== 'Residencia por confirmar') {
+    console.log('✅ Using validated client_location:', appointment.client_location);
     return appointment.client_location;
   }
   
-  // FALLBACK: Build location on-demand (for compatibility with other sources)
-  console.log('⚠️ FALLBACK: Building location on-demand');
+  // PRIORITY 3: Force build location on-demand with all available data
+  console.log('⚠️ FORCE BUILDING LOCATION - No valid pre-computed location found');
   
   const isExternal = appointment.external_booking || appointment.is_external;
   
   if (isExternal) {
-    console.log('Building external location');
-    return buildCompleteLocation({
+    console.log('🌍 Building external location');
+    const externalLocation = buildCompleteLocation({
       clientAddress: appointment.client_address,
       isExternal: true
     }, appointment.id);
+    
+    console.log('✅ Built external location:', externalLocation);
+    return externalLocation;
   }
   
   // Build from available client data
   if (appointment.client_data) {
-    console.log('Building from client_data');
-    return buildCompleteLocation({
+    console.log('🏠 Building from complete client_data');
+    const builtLocation = buildCompleteLocation({
       residenciaName: appointment.client_data.residencias?.name,
       condominiumText: appointment.client_data.condominium_text,
       condominiumName: appointment.client_data.condominium_name,
       houseNumber: appointment.client_data.house_number,
       isExternal: false
     }, appointment.id);
+    
+    console.log('✅ Built location from client_data:', builtLocation);
+    return builtLocation;
   }
   
   // Final fallback using direct appointment properties
-  console.log('Final fallback using appointment properties');
-  return buildCompleteLocation({
-    residenciaName: appointment.residencias?.name || appointment.users?.residencias?.name,
-    condominiumText: appointment.users?.condominium_text || appointment.condominium_text,
-    condominiumName: appointment.users?.condominium_name || appointment.condominium_name,
-    houseNumber: appointment.users?.house_number || appointment.house_number,
+  console.log('🔧 Final fallback using appointment properties');
+  
+  // Try to get client data from appointment users relationship
+  const clientResidenciaName = appointment.residencias?.name || 
+                               appointment.users?.residencias?.name ||
+                               appointment.client_data?.residencias?.name;
+                               
+  const clientCondominiumText = appointment.users?.condominium_text || 
+                               appointment.condominium_text ||
+                               appointment.client_data?.condominium_text;
+                               
+  const clientCondominiumName = appointment.users?.condominium_name || 
+                               appointment.condominium_name ||
+                               appointment.client_data?.condominium_name;
+                               
+  const clientHouseNumber = appointment.users?.house_number || 
+                           appointment.house_number ||
+                           appointment.client_data?.house_number;
+  
+  console.log('Building from appointment fallback data:', {
+    residenciaName: clientResidenciaName,
+    condominiumText: clientCondominiumText, 
+    condominiumName: clientCondominiumName,
+    houseNumber: clientHouseNumber
+  });
+  
+  const fallbackLocation = buildCompleteLocation({
+    residenciaName: clientResidenciaName,
+    condominiumText: clientCondominiumText,
+    condominiumName: clientCondominiumName,
+    houseNumber: clientHouseNumber,
     clientAddress: appointment.client_address,
     isExternal: false
   }, appointment.id);
+  
+  console.log('✅ Final fallback location built:', fallbackLocation);
+  console.log(`🔍 === END GET LOCATION INFO FOR ${appointment.id} ===`);
+  
+  return fallbackLocation;
 };
 
 // Enhanced contact info function

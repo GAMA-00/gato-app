@@ -6,6 +6,7 @@ import { useStats } from '@/hooks/useStats';
 import { startOfToday, startOfTomorrow, isSameDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 
 export const useDashboardAppointments = () => {
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export const useDashboardAppointments = () => {
   console.log("Appointments loading:", isLoadingAppointments, "Count:", appointments?.length || 0);
   console.log("Stats loading:", isLoadingStats);
   
-  // Enhanced appointment filtering with deduplication and error handling
+  // Enhanced appointment filtering with deduplication and GUARANTEED LOCATION CONSTRUCTION
   const { todaysAppointments, tomorrowsAppointments, activeAppointmentsToday } = useMemo(() => {
     // Safe defaults in case of empty or undefined appointments
     if (!appointments || !Array.isArray(appointments) || appointments.length === 0) {
@@ -36,7 +37,7 @@ export const useDashboardAppointments = () => {
     try {
       const now = new Date();
       
-      console.log("=== FILTERING APPOINTMENTS ===");
+      console.log("=== FILTERING APPOINTMENTS WITH LOCATION VERIFICATION ===");
       console.log(`Processing ${appointments.length} total appointments`);
       
       // Create a Map to deduplicate appointments by time slot
@@ -53,6 +54,27 @@ export const useDashboardAppointments = () => {
           if (isNaN(appDate.getTime())) {
             console.warn(`Invalid start_time for appointment ${app.id}: ${app.start_time}`);
             return;
+          }
+          
+          // GARANTIZAR UBICACIÓN COMPLETA AQUÍ
+          console.log(`🔍 VERIFICANDO UBICACIÓN PARA APPOINTMENT ${app.id}:`);
+          console.log('Current complete_location:', app.complete_location);
+          console.log('Has client_data:', !!app.client_data);
+          console.log('External booking:', app.external_booking);
+          
+          // Si no tiene complete_location, construirla ahora
+          if (!app.complete_location || app.complete_location === 'Residencia por confirmar') {
+            console.log(`⚠️ CONSTRUYENDO UBICACIÓN FALTANTE PARA ${app.id}`);
+            
+            const guaranteedLocation = buildAppointmentLocation({
+              appointment: app,
+              clientData: app.client_data
+            });
+            
+            console.log(`✅ UBICACIÓN CONSTRUIDA PARA ${app.id}: "${guaranteedLocation}"`);
+            app.complete_location = guaranteedLocation;
+          } else {
+            console.log(`✅ UBICACIÓN YA EXISTE PARA ${app.id}: "${app.complete_location}"`);
           }
           
           const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}`;
@@ -84,7 +106,7 @@ export const useDashboardAppointments = () => {
         try {
           const appDate = new Date(app.start_time);
           
-          console.log(`Processing appointment ${app.id}:`, {
+          console.log(`📅 Processing appointment ${app.id} for date filtering:`, {
             date: appDate.toLocaleDateString(),
             time: appDate.toLocaleTimeString(),
             isToday: isSameDay(appDate, today),
@@ -92,13 +114,17 @@ export const useDashboardAppointments = () => {
             status: app.status,
             isRecurring: app.is_recurring_instance,
             clientName: app.client_name,
-            serviceName: app.listings?.title || app.service_title
+            serviceName: app.listings?.title || app.service_title,
+            complete_location: app.complete_location, // ¡VERIFICAR QUE ESTÉ AQUÍ!
+            has_client_data: !!app.client_data
           });
           
           if (isSameDay(appDate, today)) {
             todaysAppts.push(app);
+            console.log(`📍 TODAY: Added appointment ${app.id} with location: "${app.complete_location}"`);
           } else if (isSameDay(appDate, tomorrow)) {
             tomorrowsAppts.push(app);
+            console.log(`📍 TOMORROW: Added appointment ${app.id} with location: "${app.complete_location}"`);
           }
         } catch (error) {
           console.error(`Error filtering appointment ${app?.id || 'unknown'}:`, error);
@@ -119,17 +145,24 @@ export const useDashboardAppointments = () => {
         }
       });
 
-      console.log("=== APPOINTMENT FILTERING RESULTS ===");
+      console.log("=== APPOINTMENT FILTERING RESULTS WITH LOCATION VERIFICATION ===");
       console.log(`Total unique appointments: ${uniqueAppointments.length}`);
       console.log(`Today's appointments: ${todaysAppts.length}`);
       console.log(`Tomorrow's appointments: ${tomorrowsAppts.length}`);
       console.log(`Active today: ${activeToday.length}`);
       
-      // Log details of tomorrow's appointments for debugging
+      // Log details of all appointments with their locations
+      if (todaysAppts.length > 0) {
+        console.log("🏠 TODAY'S APPOINTMENTS WITH LOCATIONS:");
+        todaysAppts.forEach((app, index) => {
+          console.log(`${index + 1}. ${app.client_name} - ${new Date(app.start_time).toLocaleTimeString()} - Location: "${app.complete_location}" - ${app.is_recurring_instance ? 'Recurring' : 'Regular'}`);
+        });
+      }
+      
       if (tomorrowsAppts.length > 0) {
-        console.log("Tomorrow's appointments details:");
+        console.log("🏠 TOMORROW'S APPOINTMENTS WITH LOCATIONS:");
         tomorrowsAppts.forEach((app, index) => {
-          console.log(`${index + 1}. ${app.client_name} - ${new Date(app.start_time).toLocaleTimeString()} - ${app.is_recurring_instance ? 'Recurring' : 'Regular'}`);
+          console.log(`${index + 1}. ${app.client_name} - ${new Date(app.start_time).toLocaleTimeString()} - Location: "${app.complete_location}" - ${app.is_recurring_instance ? 'Recurring' : 'Regular'}`);
         });
       }
 
