@@ -1,10 +1,9 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecurringAppointments } from './useRecurringAppointments';
 import { startOfToday, endOfDay, addDays } from 'date-fns';
-import { buildCompleteLocation } from '@/utils/locationBuilder';
+import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 
 export const useAppointments = () => {
   const { user } = useAuth();
@@ -95,11 +94,11 @@ export const useAppointments = () => {
         // Step 3: Create a map for quick client data lookup
         const clientsMap = new Map(clientsData.map(client => [client.id, client]));
 
-        // Step 4: Enhance appointments with complete client data AND pre-built location
+        // Step 4: Enhance appointments with complete client data AND GUARANTEED LOCATION
         const enhancedAppointments = appointments.map(appointment => {
           const clientData = clientsMap.get(appointment.client_id);
           
-          console.log(`🔧 === BUILDING LOCATION FOR APPOINTMENT ${appointment.id} ===`);
+          console.log(`🔧 === GARANTIZANDO UBICACIÓN PARA APPOINTMENT ${appointment.id} ===`);
           console.log('Appointment data:', {
             id: appointment.id,
             client_id: appointment.client_id,
@@ -108,51 +107,28 @@ export const useAppointments = () => {
             has_client_data: !!clientData
           });
 
-          // BUILD COMPLETE LOCATION IMMEDIATELY
-          let completeLocation = 'Ubicación no especificada';
-          
-          if (appointment.external_booking) {
-            console.log('🌍 External booking - using client address');
-            completeLocation = buildCompleteLocation({
-              clientAddress: appointment.client_address,
-              isExternal: true
-            }, appointment.id);
-          } else if (clientData) {
-            console.log('🏠 Internal booking - building from client data');
-            console.log('Client data for location:', {
-              residencia: clientData.residencias?.name,
-              condominium_text: clientData.condominium_text,
-              condominium_name: clientData.condominium_name,
-              house_number: clientData.house_number
-            });
-            
-            const locationData = {
-              residenciaName: clientData.residencias?.name,
-              condominiumText: clientData.condominium_text,
-              condominiumName: clientData.condominium_name,
-              houseNumber: clientData.house_number,
-              isExternal: false
-            };
-            
-            completeLocation = buildCompleteLocation(locationData, appointment.id);
-          }
+          // CONSTRUIR UBICACIÓN COMPLETA OBLIGATORIAMENTE
+          const completeLocation = buildAppointmentLocation({
+            appointment,
+            clientData
+          });
 
-          console.log(`✅ FINAL LOCATION FOR APPOINTMENT ${appointment.id}: "${completeLocation}"`);
+          console.log(`✅ UBICACIÓN GARANTIZADA PARA APPOINTMENT ${appointment.id}: "${completeLocation}"`);
 
           return {
             ...appointment,
             client_data: clientData || null,
             client_name: appointment.client_name || clientData?.name || 'Cliente',
             service_title: appointment.listings?.title || 'Servicio',
-            complete_location: completeLocation  // STORE PRE-BUILT LOCATION
+            complete_location: completeLocation  // GARANTIZAR QUE SIEMPRE HAY UBICACIÓN
           };
         });
 
-        console.log(`Enhanced ${enhancedAppointments.length} appointments with complete location data`);
+        console.log(`Enhanced ${enhancedAppointments.length} appointments with GUARANTEED location data`);
         
         // Log sample data for debugging
         if (enhancedAppointments.length > 0) {
-          console.log('=== SAMPLE ENHANCED APPOINTMENT WITH LOCATION ===');
+          console.log('=== SAMPLE ENHANCED APPOINTMENT WITH GUARANTEED LOCATION ===');
           const sampleApp = enhancedAppointments[0];
           console.log('Sample appointment:', {
             id: sampleApp.id,

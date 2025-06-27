@@ -34,13 +34,14 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const contactInfo = getContactInfo(appointment);
   const locationInfo = getLocationInfo(appointment);
 
-  console.log(`Rendering appointment ${appointment.id}:`, {
+  console.log(`📍 DASHBOARD CARD: Rendering appointment ${appointment.id} with location:`, locationInfo);
+  console.log(`📋 DASHBOARD CARD: Appointment data:`, {
     displayName,
     serviceName,
     isExternal,
     status: appointment.status,
-    location: locationInfo,
-    rawAppointment: appointment
+    complete_location: appointment.complete_location,
+    client_location: appointment.client_location
   });
 
   return (
@@ -87,7 +88,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
           </div>
           <div className="flex items-start text-xs text-muted-foreground">
             <MapPin className="h-3 w-3 mr-2 flex-shrink-0 mt-0.5" />
-            <span className="break-words leading-relaxed">
+            <span className="break-words leading-relaxed font-medium text-gray-800">
               {locationInfo}
             </span>
           </div>

@@ -36,7 +36,7 @@ export const getServiceName = (appointment: any) => {
   return appointment.listings?.title || appointment.service_title || 'Servicio';
 };
 
-// SIMPLIFIED location info function - now uses pre-built location
+// NUEVO: Función simplificada que SIEMPRE usa la ubicación pre-construida
 export const getLocationInfo = (appointment: any) => {
   console.log('=== GET LOCATION INFO (SIMPLIFIED) ===');
   console.log('Getting location for appointment:', appointment.id);

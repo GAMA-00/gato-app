@@ -19,61 +19,49 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     return data.clientAddress;
   }
 
-  // Inicializar array de partes de la ubicación
-  const locationParts: string[] = [];
+  // Construir ubicación progresivamente basado en datos disponibles
+  let finalLocation = '';
   
-  // PASO 1: Agregar residencia si existe
+  // PASO 1: Verificar si tenemos residencia
   if (data.residenciaName?.trim()) {
-    locationParts.push(data.residenciaName.trim());
-    console.log('✅ PASO 1 - Agregada residencia:', data.residenciaName.trim());
-  } else {
-    console.log('❌ PASO 1 - No hay nombre de residencia');
-  }
-  
-  // PASO 2: Agregar condominio (priorizar condominiumText sobre condominiumName)
-  let condominiumToAdd = '';
-  if (data.condominiumText?.trim()) {
-    condominiumToAdd = data.condominiumText.trim();
-    console.log('✅ PASO 2A - Usando condominiumText:', condominiumToAdd);
-  } else if (data.condominiumName?.trim()) {
-    condominiumToAdd = data.condominiumName.trim();
-    console.log('✅ PASO 2B - Usando condominiumName:', condominiumToAdd);
-  } else {
-    console.log('⚠️ PASO 2 - No hay datos de condominio');
-  }
-  
-  if (condominiumToAdd) {
-    locationParts.push(condominiumToAdd);
-    console.log('✅ PASO 2 - Condominio agregado a partes:', condominiumToAdd);
-  }
-  
-  // PASO 3: Agregar número de casa
-  if (data.houseNumber?.toString().trim()) {
-    const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
-    if (cleanNumber) {
-      locationParts.push(cleanNumber);
-      console.log('✅ PASO 3 - Número de casa agregado:', cleanNumber);
+    console.log('✅ PASO 1 - Residencia encontrada:', data.residenciaName.trim());
+    finalLocation = `Residencia ${data.residenciaName.trim()}`;
+    
+    // PASO 2: Agregar condominio si está disponible
+    let condominiumToAdd = '';
+    if (data.condominiumText?.trim()) {
+      condominiumToAdd = data.condominiumText.trim();
+      console.log('✅ PASO 2A - Usando condominiumText:', condominiumToAdd);
+    } else if (data.condominiumName?.trim()) {
+      condominiumToAdd = data.condominiumName.trim();
+      console.log('✅ PASO 2B - Usando condominiumName:', condominiumToAdd);
+    }
+    
+    if (condominiumToAdd) {
+      finalLocation += ` – ${condominiumToAdd}`;
+      console.log('✅ PASO 2 - Condominio agregado:', condominiumToAdd);
+      
+      // PASO 3: Agregar número de casa si está disponible
+      if (data.houseNumber?.toString().trim()) {
+        const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
+        if (cleanNumber) {
+          finalLocation += ` – Casa ${cleanNumber}`;
+          console.log('✅ PASO 3 - Número de casa agregado:', cleanNumber);
+        }
+      } else {
+        console.log('⚠️ PASO 3 - No hay número de casa, pero tenemos residencia + condominio');
+      }
+    } else {
+      console.log('⚠️ PASO 2 - No hay condominio, pero tenemos residencia');
     }
   } else {
-    console.log('⚠️ PASO 3 - No hay número de casa');
-  }
-  
-  // CONSTRUCCIÓN FINAL
-  console.log('🔧 === CONSTRUCCIÓN FINAL PARA DASHBOARD ===');
-  console.log('📋 Partes recolectadas:', locationParts);
-  console.log('📊 Total de partes:', locationParts.length);
-  
-  // Construir resultado final
-  let finalLocation = '';
-  if (locationParts.length === 0) {
-    finalLocation = 'Ubicación no especificada';
-    console.log('❌ Sin partes - resultado por defecto:', finalLocation);
-  } else if (locationParts.length === 1) {
-    finalLocation = locationParts[0];
-    console.log('📍 Una sola parte - resultado:', finalLocation);
-  } else {
-    finalLocation = locationParts.join(' – ');
-    console.log('🔗 Múltiples partes unidas - resultado:', finalLocation);
+    console.log('❌ PASO 1 - No hay residencia disponible');
+    // Si no hay residencia, usar un mensaje más descriptivo
+    if (data.isExternal) {
+      finalLocation = 'Reserva Externa';
+    } else {
+      finalLocation = 'Residencia por confirmar';
+    }
   }
   
   console.log('🎯 UBICACIÓN FINAL PARA DASHBOARD', debugId + ':', finalLocation);
