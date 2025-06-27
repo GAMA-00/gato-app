@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
@@ -10,6 +9,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingsList } from '@/components/client/booking/BookingsList';
+import ClientPageLayout from '@/components/layout/ClientPageLayout';
 
 const ClientBookings = () => {
   const navigate = useNavigate();
@@ -42,73 +42,60 @@ const ClientBookings = () => {
   };
 
   return (
-    <>
-      <Navbar />
-      <div className="min-h-screen bg-[#FAFAFA]">
-        <div className="md:ml-52 p-4 md:p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-[#2D2D2D] mb-2">
-              Mis Reservas
-            </h1>
-            <p className="text-sm text-[#6B6B6B]">
-              {activeRecurringCount} instancias recurrentes activas
-            </p>
-          </div>
-          
-          <div className="max-w-6xl mx-auto">
-            {error && (
-              <Alert className="mb-6">
-                <AlertDescription className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-red-800">Error al cargar las reservas</h4>
-                    <p className="text-red-600 mt-1">
-                      Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente.
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={handleRetry}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Reintentar
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="space-y-6 px-1 md:px-2 lg:px-4 xl:px-6">
-              <section>
-                <BookingsList
-                  bookings={upcomingBookings}
-                  isLoading={isLoading}
-                  onRated={handleRated}
-                  emptyMessage="No hay citas próximas"
-                />
-              </section>
-              
-              <section>
-                <h2 className="text-lg font-medium mb-4">
-                  Citas Pasadas
-                  {pastBookings.length > 0 && (
-                    <span className="text-sm text-muted-foreground ml-2">
-                      ({pastBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
-                    </span>
-                  )}
-                </h2>
-                <BookingsList
-                  bookings={pastBookings}
-                  isLoading={isLoading}
-                  onRated={handleRated}
-                  emptyMessage="No hay citas pasadas"
-                />
-              </section>
+    <ClientPageLayout 
+      title="Mis Reservas"
+      subtitle={`${activeRecurringCount} instancias recurrentes activas`}
+    >
+      {error && (
+        <Alert className="mb-6">
+          <AlertDescription className="space-y-4">
+            <div>
+              <h4 className="font-medium text-red-800">Error al cargar las reservas</h4>
+              <p className="text-red-600 mt-1">
+                Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente.
+              </p>
             </div>
-          </div>
-        </div>
+            <Button 
+              onClick={handleRetry}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Reintentar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="space-y-6 px-1 md:px-2 lg:px-4 xl:px-6">
+        <section>
+          <BookingsList
+            bookings={upcomingBookings}
+            isLoading={isLoading}
+            onRated={handleRated}
+            emptyMessage="No hay citas próximas"
+          />
+        </section>
+        
+        <section>
+          <h2 className="text-lg font-medium mb-4">
+            Citas Pasadas
+            {pastBookings.length > 0 && (
+              <span className="text-sm text-muted-foreground ml-2">
+                ({pastBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
+              </span>
+            )}
+          </h2>
+          <BookingsList
+            bookings={pastBookings}
+            isLoading={isLoading}
+            onRated={handleRated}
+            emptyMessage="No hay citas pasadas"
+          />
+        </section>
       </div>
-    </>
+    </ClientPageLayout>
   );
 };
 
