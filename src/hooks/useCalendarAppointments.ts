@@ -188,21 +188,32 @@ export const useCalendarAppointments = (currentDate: Date) => {
           // Build complete location using the centralized location builder
           let completeLocation = 'Ubicación no especificada';
           
+          console.log(`=== CALENDAR APPOINTMENT ${appointment.id} LOCATION BUILDING ===`);
+          
           if (appointment.external_booking) {
+            console.log('External booking detected');
             completeLocation = buildCompleteLocation({
               clientAddress: appointment.client_address,
               isExternal: true
             }, appointment.id);
           } else if (clientUser) {
-            completeLocation = buildCompleteLocation({
+            console.log('Building location for internal client');
+            console.log('Client user data:', JSON.stringify(clientUser, null, 2));
+            
+            const locationData = {
               residenciaName: clientUser.residencias?.name,
               condominiumName: clientUser.condominium_name,
-              condominiumText: clientUser.condominium_text,
+              condominiumText: clientUser.condominium_text,  // CRITICAL: Use condominium_text first
               houseNumber: clientUser.house_number,
               apartment: appointment.apartment,
               isExternal: false
-            }, appointment.id);
+            };
+            
+            console.log('Location data being passed:', locationData);
+            completeLocation = buildCompleteLocation(locationData, appointment.id);
           }
+
+          console.log(`Final location for calendar appointment ${appointment.id}:`, completeLocation);
 
           return {
             ...appointment,

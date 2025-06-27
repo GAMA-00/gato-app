@@ -45,7 +45,7 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     parts.push(condominiumToUse);
     console.log('✓ Added condominium to parts:', condominiumToUse);
   } else {
-    console.log('⚠️ NO CONDOMINIUM DATA FOUND');
+    console.log('⚠️ NO CONDOMINIUM DATA FOUND - this is okay, will continue with house number');
     console.log('condominiumText:', data.condominiumText);
     console.log('condominiumName:', data.condominiumName);
   }
@@ -75,6 +75,29 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
   }
   
   console.log('Final parts array:', parts);
+  
+  // CRITICAL FIX: Never return just residencia if we should have more data
+  // If we only have residencia but the user should have condominium/house data, 
+  // we need to investigate why that data is missing
+  if (parts.length === 1 && data.residenciaName) {
+    console.log('🚨 WARNING: Only residencia found, but checking if we should have more data...');
+    
+    // Check if we have any indication that there should be more data
+    const hasCondominiumIndication = data.condominiumText !== undefined || data.condominiumName !== undefined;
+    const hasHouseIndication = data.houseNumber !== undefined || data.apartment !== undefined;
+    
+    if (hasCondominiumIndication || hasHouseIndication) {
+      console.log('🚨 CRITICAL: We should have more location data but it seems to be null/empty');
+      console.log('Available data indicators:', {
+        hasCondominiumIndication,
+        hasHouseIndication,
+        condominiumText: data.condominiumText,
+        condominiumName: data.condominiumName,
+        houseNumber: data.houseNumber,
+        apartment: data.apartment
+      });
+    }
+  }
   
   // Build the final location string
   const result = parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';

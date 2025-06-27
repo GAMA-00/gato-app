@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -151,12 +150,13 @@ export const useClientBookings = () => {
           console.error('Error fetching user data:', userError);
         }
 
-        console.log('=== COMPLETE USER LOCATION DATA ===');
+        console.log('=== COMPLETE USER LOCATION DATA DEBUG ===');
         console.log('Full user data object:', JSON.stringify(userData, null, 2));
         console.log('Residencia name:', userData?.residencias?.name);
-        console.log('Condominium text:', userData?.condominium_text);  
-        console.log('Condominium name:', userData?.condominium_name);
+        console.log('Condominium text (PRIMARY):', userData?.condominium_text);  
+        console.log('Condominium name (FALLBACK):', userData?.condominium_name);
         console.log('House number:', userData?.house_number);
+        console.log('=== END USER DATA DEBUG ===');
 
         // Process appointments with enhanced location building
         const processedBookings = appointments.map(appointment => {
@@ -176,30 +176,25 @@ export const useClientBookings = () => {
             }, appointment.id);
           } else if (userData) {
             console.log('Building internal location with COMPLETE user data');
-            console.log('Data being passed to buildCompleteLocation:', {
-              residenciaName: userData.residencias?.name,
-              condominiumText: userData.condominium_text,
-              condominiumName: userData.condominium_name,  
-              houseNumber: userData.house_number,
-              apartment: appointment.apartment,
-              isExternal: false
-            });
-            
-            location = buildCompleteLocation({
+            const locationData = {
               residenciaName: userData.residencias?.name,
               condominiumText: userData.condominium_text,  // CRITICAL: Use condominium_text first
               condominiumName: userData.condominium_name,  // Fallback
               houseNumber: userData.house_number,
               apartment: appointment.apartment,
               isExternal: false
-            }, appointment.id);
+            };
+            
+            console.log('Data being passed to buildCompleteLocation:', locationData);
+            
+            location = buildCompleteLocation(locationData, appointment.id);
           } else {
             console.log('⚠️ NO USER DATA AVAILABLE for location building');
           }
 
           console.log(`Final location for appointment ${appointment.id}:`, location);
 
-          const result: ClientBooking = {
+          return {
             id: appointment.id,
             serviceName: service?.title || 'Servicio',
             subcategory: service?.service_types?.name || 'Servicio',
@@ -217,8 +212,6 @@ export const useClientBookings = () => {
             isRecurringInstance: appointment.is_recurring_instance || false,
             originalAppointmentId: appointment.is_recurring_instance ? appointment.id.split('-recurring-')[0] : undefined
           };
-
-          return result;
         });
 
         console.log('=== FINAL PROCESSED BOOKINGS ===');

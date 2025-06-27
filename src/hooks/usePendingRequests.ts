@@ -86,20 +86,23 @@ export function usePendingRequests() {
                 console.log("=== COMPLETE CLIENT DATA FOUND ===");
                 console.log('Full client data:', JSON.stringify(clientData, null, 2));
                 console.log('Residencia name:', clientData.residencias?.name);
-                console.log('Condominium text:', clientData.condominium_text);
-                console.log('Condominium name:', clientData.condominium_name);
+                console.log('Condominium text (PRIMARY):', clientData.condominium_text);
+                console.log('Condominium name (FALLBACK):', clientData.condominium_name);
                 console.log('House number:', clientData.house_number);
                 console.log('Apartment from appointment:', appointment.apartment);
                 
                 // Build complete location string using buildCompleteLocation utility
-                clientLocation = buildCompleteLocation({
+                const locationData = {
                   residenciaName: clientData.residencias?.name,
                   condominiumText: clientData.condominium_text,  // CRITICAL: Use condominium_text first
                   condominiumName: clientData.condominium_name,  // Fallback
                   houseNumber: clientData.house_number,
                   apartment: appointment.apartment,
                   isExternal: false
-                }, appointment.id);
+                };
+                
+                console.log('Data being passed to buildCompleteLocation:', locationData);
+                clientLocation = buildCompleteLocation(locationData, appointment.id);
                 
                 console.log('Final client location built:', clientLocation);
               }
