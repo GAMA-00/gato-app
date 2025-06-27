@@ -54,11 +54,11 @@ export const useAppointments = () => {
 
         console.log(`Fetched ${appointments.length} basic appointments`);
 
-        // Step 2: Get unique client IDs for data fetching
+        // Step 2: Get unique client IDs for data fetching (only for non-external bookings)
         const clientIds = [...new Set(
           appointments
+            .filter(appointment => appointment.client_id && !appointment.external_booking)
             .map(appointment => appointment.client_id)
-            .filter(id => id && !appointment.external_booking)
         )];
 
         let clientsData = [];
