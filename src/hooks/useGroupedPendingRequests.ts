@@ -99,7 +99,6 @@ export function useGroupedPendingRequests() {
                   residenciaName: clientData.residencias?.name,
                   condominiumName: clientData.condominium_text,
                   houseNumber: clientData.house_number,
-                  apartment: appointment.apartment,
                   isExternal: false
                 });
               }

@@ -3,7 +3,6 @@ export interface LocationData {
   residenciaName?: string;
   condominiumName?: string;
   houseNumber?: string;
-  apartment?: string;
   clientAddress?: string;
   isExternal?: boolean;
 }
@@ -31,11 +30,10 @@ export const buildLocationString = (data: LocationData): string => {
     console.log('Added condominium:', data.condominiumName.trim());
   }
   
-  // Add house/apartment number - prioritize apartment, then house number
-  const houseNumber = data.apartment || data.houseNumber;
-  if (houseNumber && houseNumber.toString().trim()) {
+  // Add house number
+  if (data.houseNumber && data.houseNumber.toString().trim()) {
     // Format house number consistently, removing any existing prefixes
-    const cleanNumber = houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
+    const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
     if (cleanNumber) {
       parts.push(cleanNumber);
       console.log('Added house number:', cleanNumber);
@@ -56,7 +54,6 @@ export const logLocationDebug = (appointmentId: string, data: LocationData, fina
   console.log('Input data:', {
     residencia: data.residenciaName,
     condominium: data.condominiumName,
-    apartment: data.apartment,
     house_number: data.houseNumber,
     isExternal: data.isExternal,
     clientAddress: data.clientAddress

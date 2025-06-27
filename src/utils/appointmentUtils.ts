@@ -44,7 +44,6 @@ export const getLocationInfo = (appointment: any) => {
     id: appointment.id,
     external_booking: appointment.external_booking,
     client_address: appointment.client_address,
-    apartment: appointment.apartment,
     has_client_data: !!appointment.client_data
   });
   
@@ -87,7 +86,6 @@ export const getLocationInfo = (appointment: any) => {
       condominiumText: appointment.client_data.condominium_text,
       condominiumName: appointment.client_data.condominium_name,
       houseNumber: appointment.client_data.house_number,
-      apartment: appointment.apartment,
       isExternal: false
     };
     
@@ -109,7 +107,6 @@ export const getLocationInfo = (appointment: any) => {
     condominiumName: condominiumName,
     condominiumText: appointment.users?.condominium_text || appointment.condominium_text,
     houseNumber: appointment.users?.house_number || appointment.house_number,
-    apartment: appointment.apartment,
     clientAddress: appointment.client_address,
     isExternal: false
   }, appointment.id);

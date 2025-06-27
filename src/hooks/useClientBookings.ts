@@ -46,7 +46,6 @@ export const useClientBookings = () => {
             recurrence,
             provider_id,
             client_id,
-            apartment,
             external_booking,
             client_address,
             listing_id,
@@ -182,7 +181,6 @@ export const useClientBookings = () => {
               condominiumText: userData.condominium_text,
               condominiumName: userData.condominium_name,
               houseNumber: userData.house_number,
-              apartment: appointment.apartment,
               isExternal: false
             };
             

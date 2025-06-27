@@ -4,7 +4,6 @@ export interface CompleteLocationData {
   condominiumName?: string;
   condominiumText?: string;
   houseNumber?: string;
-  apartment?: string;
   clientAddress?: string;
   isExternal?: boolean;
 }
@@ -48,25 +47,15 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     console.log('✅ PASO 2 - Condominio agregado a partes:', condominiumToAdd);
   }
   
-  // PASO 3: Agregar número de casa/apartamento (priorizar apartment sobre houseNumber)
-  let numberToAdd = '';
-  if (data.apartment?.toString().trim()) {
-    numberToAdd = data.apartment.toString().trim();
-    console.log('✅ PASO 3A - Usando número de apartamento:', numberToAdd);
-  } else if (data.houseNumber?.toString().trim()) {
-    numberToAdd = data.houseNumber.toString().trim();
-    console.log('✅ PASO 3B - Usando número de casa:', numberToAdd);
-  } else {
-    console.log('⚠️ PASO 3 - No hay número de casa/apartamento');
-  }
-  
-  if (numberToAdd) {
-    // Limpiar prefijos como "Casa" o "#"
-    const cleanNumber = numberToAdd.replace(/^(casa\s*|#\s*)/i, '').trim();
+  // PASO 3: Agregar número de casa
+  if (data.houseNumber?.toString().trim()) {
+    const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
     if (cleanNumber) {
       locationParts.push(cleanNumber);
-      console.log('✅ PASO 3 - Número agregado a partes:', cleanNumber);
+      console.log('✅ PASO 3 - Número de casa agregado:', cleanNumber);
     }
+  } else {
+    console.log('⚠️ PASO 3 - No hay número de casa');
   }
   
   // CONSTRUCCIÓN FINAL
@@ -99,7 +88,6 @@ export const logLocationDebug = (appointmentId: string, data: CompleteLocationDa
     residencia: data.residenciaName,
     condominiumText: data.condominiumText,
     condominiumName: data.condominiumName,
-    apartment: data.apartment,
     houseNumber: data.houseNumber,
     isExternal: data.isExternal,
     clientAddress: data.clientAddress
