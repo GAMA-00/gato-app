@@ -140,8 +140,7 @@ const ClientBooking = () => {
         ? `${user.condominiumName}, Casa ${user.houseNumber}`
         : '',
       clientPhone: user.phone || '',
-      clientEmail: user.email || '',
-      apartment: user.apartment || ''
+      clientEmail: user.email || ''
     };
 
     const result = await createRecurringBooking(bookingData);

@@ -14,7 +14,6 @@ interface RecurringBookingData {
   clientAddress?: string;
   clientPhone?: string;
   clientEmail?: string;
-  apartment?: string;
 }
 
 export function useRecurringBooking() {
@@ -55,7 +54,6 @@ export function useRecurringBooking() {
         client_phone: data.clientPhone,
         client_email: data.clientEmail,
         client_name: user.name || 'Cliente',
-        apartment: data.apartment,
         recurrence: data.recurrenceType,
         external_booking: false,
         is_recurring_instance: data.recurrenceType !== 'once'
