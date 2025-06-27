@@ -1045,6 +1045,10 @@ export type Database = {
         Args: { provider_id: string }
         Returns: number
       }
+      recalculate_all_provider_ratings: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       submit_provider_rating: {
         Args: {
           p_provider_id: string

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Star, Users, TrendingUp } from 'lucide-react';
@@ -8,7 +9,6 @@ import { AchievementLevel } from '@/lib/achievementTypes';
 
 interface ProviderAchievementsProps {
   provider: ProviderProfile;
-  recurringClientsCount?: number;
 }
 
 const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
@@ -35,11 +35,13 @@ const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
     averageRating,
     recurringClientsCount,
     completedJobsCount,
+    ratingCount,
     providerLevel
   } = merits || {
     averageRating: 5.0,
     recurringClientsCount: 0,
     completedJobsCount: 0,
+    ratingCount: 0,
     providerLevel: { level: 'nuevo', name: 'Nuevo', color: '#3B82F6' }
   };
 
@@ -55,7 +57,7 @@ const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
       </CardHeader>
       <CardContent>
         <div className="flex justify-between gap-6">
-          {/* Calificación Promedio */}
+          {/* Calificación Promedio Real */}
           <div className="flex flex-col items-center text-center flex-1">
             <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-3">
               <Star className="h-5 w-5 text-amber-600 fill-amber-600" />
@@ -66,6 +68,11 @@ const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
             <div className="text-lg font-semibold text-stone-800">
               {averageRating.toFixed(1)}
             </div>
+            {ratingCount > 0 && (
+              <div className="text-xs text-stone-500">
+                ({ratingCount} {ratingCount === 1 ? 'reseña' : 'reseñas'})
+              </div>
+            )}
           </div>
 
           {/* Trabajos Completados */}

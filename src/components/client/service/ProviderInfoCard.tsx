@@ -12,7 +12,6 @@ import { AchievementLevel } from '@/lib/achievementTypes';
 
 interface ProviderInfoCardProps {
   provider: ProviderData;
-  recurringClients?: number;
   clientResidencia?: ClientResidencia | null;
 }
 
@@ -35,10 +34,12 @@ const ProviderInfoCard = ({
   const {
     averageRating,
     recurringClientsCount,
+    ratingCount,
     providerLevel
   } = merits || {
     averageRating: 5.0,
     recurringClientsCount: 0,
+    ratingCount: 0,
     providerLevel: { level: 'nuevo', name: 'Nuevo', color: '#3B82F6' }
   };
   
@@ -61,12 +62,15 @@ const ProviderInfoCard = ({
             
             {/* Metrics Row */}
             <div className="flex flex-wrap gap-2">
-              {/* Calificación Promedio */}
+              {/* Calificación Promedio Real */}
               <div className="flex items-center bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
                 <Star className="h-4 w-4 fill-amber-600 text-amber-600 mr-2" />
                 <span className="font-medium text-amber-700">
                   {averageRating.toFixed(1)}
                 </span>
+                {ratingCount > 0 && (
+                  <span className="text-amber-600 text-sm ml-1">({ratingCount})</span>
+                )}
               </div>
               
               {/* Clientes Recurrentes */}

@@ -43,7 +43,12 @@ export const RatingStars = ({
       
       toast.success('¡Gracias por calificar el servicio!');
       onRated();
+      
+      // Invalidate all queries related to this provider to update ratings immediately
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['provider-merits', providerId] });
+      queryClient.invalidateQueries({ queryKey: ['provider-achievements', providerId] });
+      
     } catch (error: any) {
       toast.error(`Error al calificar: ${error.message}`);
     } finally {

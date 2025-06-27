@@ -2,9 +2,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, ChevronRight, Clock, Users, Award, ImageIcon } from 'lucide-react';
+import { Star, ChevronRight, Clock, Users, Award } from 'lucide-react';
 import { ProcessedProvider } from './types';
-import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
@@ -27,10 +26,12 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   const {
     averageRating,
     recurringClientsCount,
+    ratingCount,
     providerLevel
   } = merits || {
     averageRating: 5.0,
     recurringClientsCount: 0,
+    ratingCount: 0,
     providerLevel: { level: 'nuevo', name: 'Nuevo', color: '#3B82F6' }
   };
 
@@ -59,12 +60,15 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
             
             {/* Metrics Row - Optimized for mobile */}
             <div className="flex flex-wrap items-center gap-1.5">
-              {/* Calificación */}
+              {/* Calificación Real */}
               <div className="flex items-center bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 flex-shrink-0">
                 <Star className="h-2.5 w-2.5 fill-amber-600 text-amber-600 mr-0.5" />
                 <span className="font-medium text-xs text-amber-700">
                   {averageRating.toFixed(1)}
                 </span>
+                {ratingCount > 0 && (
+                  <span className="text-xs text-amber-600 ml-0.5">({ratingCount})</span>
+                )}
               </div>
               
               {/* Clientes Recurrentes */}

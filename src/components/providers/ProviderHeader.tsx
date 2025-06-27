@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star } from 'lucide-react';
 import { ProviderProfile } from '@/lib/types';
+import { useProviderMerits } from '@/hooks/useProviderMerits';
 
 interface ProviderHeaderProps {
   provider: ProviderProfile;
@@ -11,12 +12,22 @@ interface ProviderHeaderProps {
 }
 
 const ProviderHeader = ({ provider, bookingMode = false }: ProviderHeaderProps) => {
+  const { data: merits } = useProviderMerits(provider.id);
+
   // Handle scroll to services section
   const handleScrollToServices = () => {
     const servicesSection = document.getElementById('provider-services');
     if (servicesSection) {
       servicesSection.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const {
+    averageRating,
+    ratingCount
+  } = merits || {
+    averageRating: 5.0,
+    ratingCount: 0
   };
 
   return (
@@ -29,14 +40,14 @@ const ProviderHeader = ({ provider, bookingMode = false }: ProviderHeaderProps) 
         </Avatar>
         
         <div className="flex-1 text-center md:text-left">
-          {/* Nombre y valoración */}
+          {/* Nombre y valoración real */}
           <h2 className="text-2xl font-semibold mb-2">{provider.name}</h2>
           
           <div className="flex items-center justify-center md:justify-start mb-4">
             <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-1" />
-            <span className="font-medium">{provider.rating.toFixed(1)}</span>
+            <span className="font-medium">{averageRating.toFixed(1)}</span>
             <span className="text-muted-foreground ml-1">
-              ({provider.ratingCount} valoraciones)
+              ({ratingCount} {ratingCount === 1 ? 'valoración' : 'valoraciones'})
             </span>
           </div>
           
