@@ -45,13 +45,9 @@ const Navbar = () => {
     );
   }
 
-  // Desktop layout with proper spacing for fixed sidebar
+  // Desktop layout - no need for spacing div since PageContainer handles it
   return (
-    <>
-      <DesktopNav isClientSection={isClientSection} onSwitchView={switchView} />
-      {/* This div creates the proper spacing for desktop content */}
-      <div className="ml-52" />
-    </>
+    <DesktopNav isClientSection={isClientSection} onSwitchView={switchView} />
   );
 };
 

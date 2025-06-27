@@ -1,7 +1,6 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import PageContainer from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,18 +8,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import Navbar from '@/components/layout/Navbar';
+import PageContainer from '@/components/layout/PageContainer';
 import CategoryIcon from '@/components/client/CategoryIcon';
-import { categoryLabels, categoryOrder } from '@/constants/categoryConstants';
 import { useCategoryPreload } from '@/hooks/useCategoryPreload';
+import { useCategoryVisibility } from '@/hooks/useCategoryVisibility';
+import { categoryOrder, categoryLabels } from '@/constants/categoryConstants';
+import { smartPreloader } from '@/utils/smartPreloader';
 
 const ClientServices = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // Preload critical category images
+  // Use enhanced preloading
   useCategoryPreload();
+  const { visibleItems } = useCategoryVisibility();
 
-  const { data: categories = [], isLoading } = useQuery({
+  const { data: fetchedCategories = [], isLoading } = useQuery({
     queryKey: ['service-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -30,27 +33,41 @@ const ClientServices = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  // Organize categories in the desired order
+  const categories = [...fetchedCategories].sort((a, b) => {
+    const indexA = categoryOrder.indexOf(a.name);
+    const indexB = categoryOrder.indexOf(b.name);
+    return indexA - indexB;
   });
 
   const handleCategoryClick = (categoryName: string) => {
+    // Preload services for this category
+    smartPreloader.preloadCategoryServices(categoryName);
     navigate(`/client/category/${categoryName}`);
   };
-
-  // Sort categories according to our custom order
-  const sortedCategories = categories.sort((a, b) => {
-    const aIndex = categoryOrder.indexOf(a.name);
-    const bIndex = categoryOrder.indexOf(b.name);
-    return aIndex - bIndex;
-  });
 
   if (isLoading) {
     return (
       <>
         <Navbar />
-        <PageContainer title="Servicios" subtitle="Cargando categorías...">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
+        <PageContainer
+          title="Explorando categorías..."
+          className={cn(
+            isMobile ? "" : "pl-52"
+          )}
+        >
+          <div className={cn(
+            "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto",
+            isMobile ? "px-6 w-full" : "px-2 md:px-6"
+          )}>
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-32 md:h-40 rounded-xl" />
+              <Skeleton key={i} className={cn(
+                isMobile ? "h-36 rounded-xl" : "h-32 md:h-40 rounded-xl"
+              )} />
             ))}
           </div>
         </PageContainer>
@@ -58,29 +75,58 @@ const ClientServices = () => {
     );
   }
 
+  const textSizeClass = isMobile ? 'text-base font-semibold' : 'text-lg';
+  
   return (
     <>
       <Navbar />
-      <PageContainer title="Servicios" subtitle="Selecciona una categoría">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
-          {sortedCategories.map((category, index) => (
-            <Card 
-              key={category.id} 
-              onClick={() => handleCategoryClick(category.name)}
-              className="flex flex-col items-center justify-center p-6 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] h-32 md:h-40"
-            >
-              <div className="flex items-center justify-center mb-3">
-                <CategoryIcon 
-                  categoryName={category.name}
-                  isMobile={isMobile}
-                  isVisible={index < 4} // First 4 categories are visible immediately
-                />
+      <PageContainer
+        title="Explora nuestras categorías de servicio"
+        className={cn(
+          isMobile ? "" : "pl-52"
+        )}
+      >
+        <div className={cn(
+          "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto",
+          isMobile ? "w-full" : "px-2 md:px-6"
+        )}>
+          {categoryOrder.map((categoryName) => {
+            const category = categories.find(c => c.name === categoryName);
+            if (!category) return null;
+            
+            const isVisible = visibleItems.has(categoryName);
+            
+            return (
+              <div 
+                key={category.id} 
+                onClick={() => handleCategoryClick(category.name)}
+                data-category={categoryName}
+              >
+                <Card className={cn(
+                  "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
+                  isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48"
+                )}>
+                  <div className={cn(
+                    "flex items-center justify-center",
+                    isMobile ? "mb-3" : "mb-4"
+                  )}>
+                    <CategoryIcon 
+                      categoryName={categoryName}
+                      isMobile={isMobile}
+                      isVisible={isVisible}
+                    />
+                  </div>
+                  <h3 className={cn(
+                    "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
+                    textSizeClass,
+                    isMobile ? "px-2" : "px-2"
+                  )}>
+                    {categoryLabels[category.name] || category.label}
+                  </h3>
+                </Card>
               </div>
-              <h3 className="text-center text-[#1A1A1A] text-sm md:text-base font-semibold">
-                {categoryLabels[category.name] || category.label}
-              </h3>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       </PageContainer>
     </>
