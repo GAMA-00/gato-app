@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,12 +63,28 @@ const ClientBooking = () => {
     enabled: !!user?.id,
   });
 
-  // Scroll to top when component mounts - improved version
+  // Enhanced scroll to top when component mounts
   useEffect(() => {
-    // Use setTimeout to ensure the page is fully rendered before scrolling
-    setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }, 0);
+    // Force immediate scroll to top
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Also use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+    
+    // Additional backup with a small delay
+    const timeoutId = setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Validation
@@ -78,7 +93,7 @@ const ClientBooking = () => {
 
   const handleBackNavigation = () => {
     // Scroll to top before navigation
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    window.scrollTo(0, 0);
     navigate(-1);
   };
 
