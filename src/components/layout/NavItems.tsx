@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +17,7 @@ export const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: Home,
-    roles: ['client', 'provider']
+    roles: ['provider'] // Solo para proveedores
   },
   {
     title: 'Servicios',
