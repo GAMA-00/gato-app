@@ -1,6 +1,5 @@
 
 import React from 'react';
-import PageContainer from '@/components/layout/PageContainer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProviderAchievements } from '@/hooks/useProviderAchievements';
 import LevelCard from '@/components/achievements/LevelCard';
@@ -9,25 +8,42 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import { ACHIEVEMENT_LEVELS } from '@/lib/achievementTypes';
 import Navbar from '@/components/layout/Navbar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Achievements = () => {
   const { user } = useAuth();
   const { data: achievements, isLoading } = useProviderAchievements();
+  const isMobile = useIsMobile();
 
   if (isLoading) {
     return (
       <>
         <Navbar />
-        <PageContainer title="Logros" subtitle="Cargando tus logros...">
-          <div className="space-y-6">
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-48 rounded-lg" />
-              ))}
+        <div className="min-h-screen bg-[#FAFAFA]">
+          <div className="md:ml-52 p-4 md:p-6">
+            <div className="max-w-4xl mx-auto">
+              <h1 className={`font-bold tracking-tight text-app-text ${
+                isMobile ? "text-xl mb-3" : "text-2xl md:text-3xl mb-6"
+              }`}>
+                Logros
+              </h1>
+              <p className={`text-muted-foreground ${
+                isMobile ? "text-sm mb-6" : "text-base mb-8"
+              }`}>
+                Cargando tus logros...
+              </p>
+              
+              <div className="space-y-6">
+                <Skeleton className="h-32 w-full rounded-lg" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} className="h-48 rounded-lg" />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </PageContainer>
+        </div>
       </>
     );
   }
@@ -36,13 +52,28 @@ const Achievements = () => {
     return (
       <>
         <Navbar />
-        <PageContainer title="Logros" subtitle="Tus logros y reconocimientos">
-          <Card className="p-6 text-center">
-            <p className="text-muted-foreground">
-              No se pudieron cargar tus logros en este momento.
-            </p>
-          </Card>
-        </PageContainer>
+        <div className="min-h-screen bg-[#FAFAFA]">
+          <div className="md:ml-52 p-4 md:p-6">
+            <div className="max-w-4xl mx-auto">
+              <h1 className={`font-bold tracking-tight text-app-text ${
+                isMobile ? "text-xl mb-3" : "text-2xl md:text-3xl mb-6"
+              }`}>
+                Logros
+              </h1>
+              <p className={`text-muted-foreground ${
+                isMobile ? "text-sm mb-6" : "text-base mb-8"
+              }`}>
+                Tus logros y reconocimientos
+              </p>
+              
+              <Card className="p-6 text-center">
+                <p className="text-muted-foreground">
+                  No se pudieron cargar tus logros en este momento.
+                </p>
+              </Card>
+            </div>
+          </div>
+        </div>
       </>
     );
   }
@@ -63,32 +94,44 @@ const Achievements = () => {
   return (
     <>
       <Navbar />
-      <PageContainer 
-        title="Logros" 
-        subtitle="Tus logros y reconocimientos"
-      >
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ACHIEVEMENT_LEVELS.map((level) => {
-              const isCurrentLevel = level.level === currentLevel.level;
-              const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
-              const progress = isCurrentLevel ? progressPercentage : 0;
+      <div className="min-h-screen bg-[#FAFAFA]">
+        <div className="md:ml-52 p-4 md:p-6">
+          <div className="max-w-4xl mx-auto">
+            <h1 className={`font-bold tracking-tight text-app-text ${
+              isMobile ? "text-xl mb-3" : "text-2xl md:text-3xl mb-6"
+            }`}>
+              Logros
+            </h1>
+            <p className={`text-muted-foreground ${
+              isMobile ? "text-sm mb-6" : "text-base mb-8"
+            }`}>
+              Tus logros y reconocimientos
+            </p>
+            
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {ACHIEVEMENT_LEVELS.map((level) => {
+                  const isCurrentLevel = level.level === currentLevel.level;
+                  const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
+                  const progress = isCurrentLevel ? progressPercentage : 0;
+                  
+                  return (
+                    <LevelCard
+                      key={level.level}
+                      level={level}
+                      isCurrentLevel={isCurrentLevel}
+                      isAchieved={isAchieved}
+                      progress={progress}
+                    />
+                  );
+                })}
+              </div>
               
-              return (
-                <LevelCard
-                  key={level.level}
-                  level={level}
-                  isCurrentLevel={isCurrentLevel}
-                  isAchieved={isAchieved}
-                  progress={progress}
-                />
-              );
-            })}
+              <RatingHistory ratingHistory={achievements.ratingHistory} />
+            </div>
           </div>
-          
-          <RatingHistory ratingHistory={achievements.ratingHistory} />
         </div>
-      </PageContainer>
+      </div>
     </>
   );
 };
