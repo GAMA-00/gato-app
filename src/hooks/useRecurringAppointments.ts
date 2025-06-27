@@ -1,6 +1,7 @@
 
 import { useMemo } from 'react';
 import { addWeeks, addDays, addMonths, format, startOfDay, isAfter, isBefore } from 'date-fns';
+import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 
 interface RecurringAppointment {
   id: string;
@@ -29,6 +30,8 @@ interface RecurringAppointment {
   external_booking: boolean;
   residencia_id?: string;
   recurrence_group_id?: string;
+  complete_location?: string; // Add this property
+  client_data?: any; // Add this property
   listings?: {
     title: string;
     duration: number;
@@ -92,6 +95,12 @@ export const useRecurringAppointments = ({
         if (!isBefore(currentDate, startDate) && !isAfter(currentDate, endDate)) {
           const instanceEnd = new Date(currentDate.getTime() + durationMs);
           
+          // Build complete location for this recurring instance
+          const completeLocation = buildAppointmentLocation({
+            appointment,
+            clientData: appointment.client_data
+          });
+          
           const newInstance: RecurringAppointment = {
             id: `${appointment.id}-recurring-${format(currentDate, 'yyyy-MM-dd-HH-mm')}`,
             provider_id: appointment.provider_id,
@@ -119,14 +128,16 @@ export const useRecurringAppointments = ({
             external_booking: appointment.external_booking || false,
             residencia_id: appointment.residencia_id,
             recurrence_group_id: appointment.recurrence_group_id,
+            complete_location: completeLocation, // Add the complete location
+            client_data: appointment.client_data || null, // Add client data
             listings: appointment.listings
           };
           
           instances.push(newInstance);
-          console.log(`Created instance: ${format(currentDate, 'yyyy-MM-dd HH:mm')}`);
+          console.log(`Created instance: ${format(currentDate, 'yyyy-MM-dd HH:mm')} with location: ${completeLocation}`);
         }
 
-        // Calcular la siguiente fecha según el tipo de recurrencia
+        // Avanzar a la siguiente fecha según el tipo de recurrencia
         switch (appointment.recurrence) {
           case 'weekly':
             currentDate = addWeeks(currentDate, 1);
@@ -158,7 +169,8 @@ export const useRecurringAppointments = ({
         id: inst.id.split('-recurring-')[0],
         client_name: inst.client_name,
         start_time: format(new Date(inst.start_time), 'yyyy-MM-dd HH:mm'),
-        recurrence: inst.recurrence
+        recurrence: inst.recurrence,
+        complete_location: inst.complete_location
       })));
     }
     console.log('======================================');
