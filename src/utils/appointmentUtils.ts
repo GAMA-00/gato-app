@@ -33,86 +33,61 @@ export const getDisplayName = (appointment: any, user: any) => {
 
 // Helper function to get service name with fallback
 export const getServiceName = (appointment: any) => {
-  return appointment.listings?.title || 'Servicio';
+  return appointment.listings?.title || appointment.service_title || 'Servicio';
 };
 
-// Enhanced location info function with complete client data
+// SIMPLIFIED location info function - now uses pre-built location
 export const getLocationInfo = (appointment: any) => {
-  console.log('=== GET LOCATION INFO WITH COMPLETE DATA ===');
+  console.log('=== GET LOCATION INFO (SIMPLIFIED) ===');
   console.log('Getting location for appointment:', appointment.id);
-  console.log('Appointment data:', {
-    id: appointment.id,
-    external_booking: appointment.external_booking,
-    client_address: appointment.client_address,
-    has_client_data: !!appointment.client_data
-  });
   
-  // First, check if we have pre-computed complete location
+  // PRIORITY 1: Use pre-computed complete location from useAppointments
   if (appointment.complete_location) {
-    console.log('Using pre-computed location:', appointment.complete_location);
+    console.log('✅ Using pre-computed complete_location:', appointment.complete_location);
     return appointment.complete_location;
   }
   
-  // Check if this is from pending requests or similar where client_location is already built
+  // PRIORITY 2: Use pre-built client_location from pending requests
   if (appointment.client_location) {
-    console.log('Using pre-built client_location:', appointment.client_location);
+    console.log('✅ Using pre-built client_location:', appointment.client_location);
     return appointment.client_location;
   }
   
-  // Check if this is an external booking
+  // FALLBACK: Build location on-demand (for compatibility with other sources)
+  console.log('⚠️ FALLBACK: Building location on-demand');
+  
   const isExternal = appointment.external_booking || appointment.is_external;
   
   if (isExternal) {
-    console.log('External booking detected, using client address:', appointment.client_address);
+    console.log('Building external location');
     return buildCompleteLocation({
       clientAddress: appointment.client_address,
       isExternal: true
     }, appointment.id);
   }
   
-  // Build complete location from client_data (NEW LOGIC)
+  // Build from available client data
   if (appointment.client_data) {
-    console.log('=== BUILDING LOCATION FROM COMPLETE CLIENT DATA ===');
-    console.log('Client data available:', {
-      name: appointment.client_data.name,
-      house_number: appointment.client_data.house_number,
-      condominium_text: appointment.client_data.condominium_text,
-      condominium_name: appointment.client_data.condominium_name,
-      residencia_name: appointment.client_data.residencias?.name
-    });
-    
-    const locationData = {
+    console.log('Building from client_data');
+    return buildCompleteLocation({
       residenciaName: appointment.client_data.residencias?.name,
       condominiumText: appointment.client_data.condominium_text,
       condominiumName: appointment.client_data.condominium_name,
       houseNumber: appointment.client_data.house_number,
       isExternal: false
-    };
-    
-    console.log('Location data to build:', locationData);
-    const location = buildCompleteLocation(locationData, appointment.id);
-    console.log('Built location result:', location);
-    return location;
+    }, appointment.id);
   }
   
-  // Fallback: build location manually from available data (OLD LOGIC - for compatibility)
-  console.log('=== FALLBACK TO OLD LOGIC ===');
-  const condominiumName = appointment.users?.condominium_name || 
-                          appointment.users?.condominium_text || 
-                          appointment.condominium_name ||
-                          appointment.condominium_text;
-  
-  const location = buildCompleteLocation({
+  // Final fallback using direct appointment properties
+  console.log('Final fallback using appointment properties');
+  return buildCompleteLocation({
     residenciaName: appointment.residencias?.name || appointment.users?.residencias?.name,
-    condominiumName: condominiumName,
     condominiumText: appointment.users?.condominium_text || appointment.condominium_text,
+    condominiumName: appointment.users?.condominium_name || appointment.condominium_name,
     houseNumber: appointment.users?.house_number || appointment.house_number,
     clientAddress: appointment.client_address,
     isExternal: false
   }, appointment.id);
-  
-  console.log('Fallback location result:', location);
-  return location;
 };
 
 // Enhanced contact info function

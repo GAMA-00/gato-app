@@ -1,9 +1,8 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
-import { buildCompleteLocation } from '@/utils/locationBuilder';
+import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 
 interface AppointmentData {
   id: string;
@@ -183,34 +182,13 @@ export const useCalendarAppointments = (currentDate: Date) => {
         const enhancedAppointments: EnhancedAppointment[] = appointmentsList.map(appointment => {
           const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
           
-          // Build complete location using the centralized location builder
-          let completeLocation = 'Ubicación no especificada';
-          
-          console.log(`=== CALENDAR APPOINTMENT ${appointment.id} LOCATION BUILDING ===`);
-          
-          if (appointment.external_booking) {
-            console.log('External booking detected');
-            completeLocation = buildCompleteLocation({
-              clientAddress: appointment.client_address,
-              isExternal: true
-            }, appointment.id);
-          } else if (clientUser) {
-            console.log('Building location for internal client');
-            console.log('Client user data:', JSON.stringify(clientUser, null, 2));
-            
-            const locationData = {
-              residenciaName: clientUser.residencias?.name,
-              condominiumName: clientUser.condominium_name,
-              condominiumText: clientUser.condominium_text,  // CRITICAL: Use condominium_text first
-              houseNumber: clientUser.house_number,
-              isExternal: false
-            };
-            
-            console.log('Location data being passed:', locationData);
-            completeLocation = buildCompleteLocation(locationData, appointment.id);
-          }
+          // Build complete location using the shared helper
+          const completeLocation = buildAppointmentLocation({
+            appointment,
+            clientData: clientUser
+          });
 
-          console.log(`Final location for calendar appointment ${appointment.id}:`, completeLocation);
+          console.log(`✅ CALENDAR: Final location for appointment ${appointment.id}: "${completeLocation}"`);
 
           return {
             ...appointment,

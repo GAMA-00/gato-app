@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildCompleteLocation } from "@/utils/locationBuilder";
+import { buildAppointmentLocation } from "@/utils/appointmentLocationHelper";
 
 export function usePendingRequests() {
   const { user } = useAuth();
@@ -54,7 +54,6 @@ export function usePendingRequests() {
             console.log(`🔄 === PROCESANDO SOLICITUD PENDIENTE ${appointment.id} ===`);
             
             let clientInfo = null;
-            let clientLocation = 'Ubicación no especificada';
 
             // Obtener información del cliente si no es una reserva externa
             if (appointment.client_id && !appointment.external_booking) {
@@ -85,38 +84,17 @@ export function usePendingRequests() {
                 clientInfo = clientData;
                 console.log("🏠 === DATOS COMPLETOS DEL CLIENTE PARA SOLICITUD PENDIENTE ===");
                 console.log('📋 Datos completos del cliente:', JSON.stringify(clientData, null, 2));
-                console.log('🏢 Nombre residencia:', clientData.residencias?.name);
-                console.log('🏘️ Texto condominio (PRINCIPAL):', clientData.condominium_text);
-                console.log('🏘️ Nombre condominio (RESPALDO):', clientData.condominium_name);
-                console.log('🏠 Número de casa:', clientData.house_number);
-                
-                // Construir cadena de ubicación completa usando utilidad buildCompleteLocation
-                const locationData = {
-                  residenciaName: clientData.residencias?.name,
-                  condominiumText: clientData.condominium_text,
-                  condominiumName: clientData.condominium_name,
-                  houseNumber: clientData.house_number,
-                  isExternal: false
-                };
-                
-                console.log('📤 === DATOS PARA SOLICITUD PENDIENTE ===');
-                console.log('📋 Datos enviados a buildCompleteLocation:', JSON.stringify(locationData, null, 2));
-                clientLocation = buildCompleteLocation(locationData, appointment.id);
-                
-                console.log('📍 Ubicación final del cliente para solicitud pendiente:', clientLocation);
               }
             }
 
+            // Construir ubicación usando el helper compartido
+            const clientLocation = buildAppointmentLocation({
+              appointment,
+              clientData: clientInfo
+            });
+
             // Manejar reservas externas
             const isExternal = appointment.external_booking || !appointment.client_id;
-
-            if (isExternal) {
-              console.log('🌍 Reserva externa detectada para solicitud pendiente, usando dirección almacenada:', appointment.client_address);
-              clientLocation = buildCompleteLocation({
-                clientAddress: appointment.client_address,
-                isExternal: true
-              }, appointment.id);
-            }
 
             const processed = {
               ...appointment,

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecurringAppointments } from './useRecurringAppointments';
 import { startOfToday, endOfDay, addDays } from 'date-fns';
+import { buildCompleteLocation } from '@/utils/locationBuilder';
 
 export const useAppointments = () => {
   const { user } = useAuth();
@@ -94,58 +95,72 @@ export const useAppointments = () => {
         // Step 3: Create a map for quick client data lookup
         const clientsMap = new Map(clientsData.map(client => [client.id, client]));
 
-        // Step 4: Enhance appointments with complete client data
+        // Step 4: Enhance appointments with complete client data AND pre-built location
         const enhancedAppointments = appointments.map(appointment => {
           const clientData = clientsMap.get(appointment.client_id);
           
-          console.log(`Processing appointment ${appointment.id}:`, {
+          console.log(`🔧 === BUILDING LOCATION FOR APPOINTMENT ${appointment.id} ===`);
+          console.log('Appointment data:', {
+            id: appointment.id,
             client_id: appointment.client_id,
             external_booking: appointment.external_booking,
-            has_client_data: !!clientData,
-            client_name: appointment.client_name
+            client_address: appointment.client_address,
+            has_client_data: !!clientData
           });
 
-          if (clientData) {
-            console.log(`Client data for appointment ${appointment.id}:`, {
-              name: clientData.name,
-              house_number: clientData.house_number,
+          // BUILD COMPLETE LOCATION IMMEDIATELY
+          let completeLocation = 'Ubicación no especificada';
+          
+          if (appointment.external_booking) {
+            console.log('🌍 External booking - using client address');
+            completeLocation = buildCompleteLocation({
+              clientAddress: appointment.client_address,
+              isExternal: true
+            }, appointment.id);
+          } else if (clientData) {
+            console.log('🏠 Internal booking - building from client data');
+            console.log('Client data for location:', {
+              residencia: clientData.residencias?.name,
               condominium_text: clientData.condominium_text,
               condominium_name: clientData.condominium_name,
-              residencia_name: clientData.residencias?.name
+              house_number: clientData.house_number
             });
+            
+            const locationData = {
+              residenciaName: clientData.residencias?.name,
+              condominiumText: clientData.condominium_text,
+              condominiumName: clientData.condominium_name,
+              houseNumber: clientData.house_number,
+              isExternal: false
+            };
+            
+            completeLocation = buildCompleteLocation(locationData, appointment.id);
           }
+
+          console.log(`✅ FINAL LOCATION FOR APPOINTMENT ${appointment.id}: "${completeLocation}"`);
 
           return {
             ...appointment,
             client_data: clientData || null,
             client_name: appointment.client_name || clientData?.name || 'Cliente',
-            service_title: appointment.listings?.title || 'Servicio'
+            service_title: appointment.listings?.title || 'Servicio',
+            complete_location: completeLocation  // STORE PRE-BUILT LOCATION
           };
         });
 
-        console.log(`Enhanced ${enhancedAppointments.length} appointments with complete client data`);
+        console.log(`Enhanced ${enhancedAppointments.length} appointments with complete location data`);
         
         // Log sample data for debugging
         if (enhancedAppointments.length > 0) {
-          console.log('=== SAMPLE ENHANCED APPOINTMENT DATA ===');
+          console.log('=== SAMPLE ENHANCED APPOINTMENT WITH LOCATION ===');
           const sampleApp = enhancedAppointments[0];
           console.log('Sample appointment:', {
             id: sampleApp.id,
             client_name: sampleApp.client_name,
             external_booking: sampleApp.external_booking,
-            client_address: sampleApp.client_address,
+            complete_location: sampleApp.complete_location,
             has_client_data: !!sampleApp.client_data
           });
-          
-          if (sampleApp.client_data) {
-            console.log('Complete client data:', {
-              name: sampleApp.client_data.name,
-              house_number: sampleApp.client_data.house_number,
-              condominium_text: sampleApp.client_data.condominium_text,
-              condominium_name: sampleApp.client_data.condominium_name,
-              residencia: sampleApp.client_data.residencias?.name
-            });
-          }
         }
         
         return enhancedAppointments;
