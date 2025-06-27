@@ -29,7 +29,7 @@ export const useAppointments = () => {
               title,
               duration
             ),
-            client_data:users!appointments_client_id_fkey(
+            client_data:users!client_id(
               id,
               name,
               phone,
