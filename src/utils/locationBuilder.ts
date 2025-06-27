@@ -13,7 +13,7 @@ export interface CompleteLocationData {
 
 export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?: string): string => {
   console.log(`=== BUILD COMPLETE LOCATION ${appointmentId || 'unknown'} ===`);
-  console.log('Input data:', data);
+  console.log('Raw input data:', JSON.stringify(data, null, 2));
 
   // For external bookings, use the stored address
   if (data.isExternal && data.clientAddress) {
@@ -23,41 +23,69 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
 
   const parts: string[] = [];
   
-  // Add residencia name
+  // Add residencia name if available
   if (data.residenciaName?.trim()) {
     parts.push(data.residenciaName.trim());
-    console.log('Added residencia:', data.residenciaName.trim());
+    console.log('✓ Added residencia:', data.residenciaName.trim());
   }
   
-  // Add condominium name - prioritize condominiumText over condominiumName
-  const condominiumName = data.condominiumText?.trim() || data.condominiumName?.trim();
-  if (condominiumName) {
-    parts.push(condominiumName);
-    console.log('Added condominium:', condominiumName);
+  // Add condominium name - CRITICAL: prioritize condominiumText over condominiumName
+  // condominiumText is the field that actually contains the user's input
+  let condominiumToUse = null;
+  
+  if (data.condominiumText?.trim()) {
+    condominiumToUse = data.condominiumText.trim();
+    console.log('✓ Using condominiumText:', condominiumToUse);
+  } else if (data.condominiumName?.trim()) {
+    condominiumToUse = data.condominiumName.trim();
+    console.log('✓ Using condominiumName as fallback:', condominiumToUse);
+  }
+  
+  if (condominiumToUse) {
+    parts.push(condominiumToUse);
+    console.log('✓ Added condominium to parts:', condominiumToUse);
+  } else {
+    console.log('⚠️ NO CONDOMINIUM DATA FOUND');
+    console.log('condominiumText:', data.condominiumText);
+    console.log('condominiumName:', data.condominiumName);
   }
   
   // Add house/apartment number - prioritize apartment, then house number
-  const houseNumber = data.apartment?.toString().trim() || data.houseNumber?.toString().trim();
-  if (houseNumber) {
-    // Clean any existing prefixes
-    const cleanNumber = houseNumber.replace(/^(casa\s*|#\s*)/i, '').trim();
+  let numberToUse = null;
+  
+  if (data.apartment?.toString().trim()) {
+    numberToUse = data.apartment.toString().trim();
+    console.log('✓ Using apartment number:', numberToUse);
+  } else if (data.houseNumber?.toString().trim()) {
+    numberToUse = data.houseNumber.toString().trim();
+    console.log('✓ Using house number:', numberToUse);
+  }
+  
+  if (numberToUse) {
+    // Clean any existing prefixes like "casa" or "#"
+    const cleanNumber = numberToUse.replace(/^(casa\s*|#\s*)/i, '').trim();
     if (cleanNumber) {
       parts.push(cleanNumber);
-      console.log('Added house number:', cleanNumber);
+      console.log('✓ Added number to parts:', cleanNumber);
     }
+  } else {
+    console.log('⚠️ NO HOUSE/APARTMENT NUMBER FOUND');
+    console.log('apartment:', data.apartment);
+    console.log('houseNumber:', data.houseNumber);
   }
   
   console.log('Final parts array:', parts);
   
-  // Return in the standardized format: Residencia – Condominio – Número
+  // Build the final location string
   const result = parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
-  console.log('Final location result:', result);
+  console.log('🎯 FINAL LOCATION RESULT:', result);
   
+  // Debug logging for troubleshooting
   if (appointmentId) {
     logLocationDebug(appointmentId, {
       residenciaName: data.residenciaName,
-      condominiumName: condominiumName,
-      houseNumber: houseNumber,
+      condominiumName: condominiumToUse,
+      houseNumber: numberToUse,
       apartment: data.apartment,
       clientAddress: data.clientAddress,
       isExternal: data.isExternal || false

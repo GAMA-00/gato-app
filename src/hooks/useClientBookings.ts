@@ -130,8 +130,8 @@ export const useClientBookings = () => {
           console.error('Error fetching ratings:', error);
         }
 
-        // Get current user data with complete location info
-        console.log('=== FETCHING USER LOCATION DATA ===');
+        // CRITICAL: Get current user data with ALL location fields
+        console.log('=== FETCHING COMPLETE USER LOCATION DATA ===');
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select(`
@@ -151,8 +151,12 @@ export const useClientBookings = () => {
           console.error('Error fetching user data:', userError);
         }
 
-        console.log('=== USER LOCATION DATA RECEIVED ===');
-        console.log('Raw user data:', userData);
+        console.log('=== COMPLETE USER LOCATION DATA ===');
+        console.log('Full user data object:', JSON.stringify(userData, null, 2));
+        console.log('Residencia name:', userData?.residencias?.name);
+        console.log('Condominium text:', userData?.condominium_text);  
+        console.log('Condominium name:', userData?.condominium_name);
+        console.log('House number:', userData?.house_number);
 
         // Process appointments with enhanced location building
         const processedBookings = appointments.map(appointment => {
@@ -171,16 +175,29 @@ export const useClientBookings = () => {
               isExternal: true
             }, appointment.id);
           } else if (userData) {
-            console.log('Building internal location with complete data');
+            console.log('Building internal location with COMPLETE user data');
+            console.log('Data being passed to buildCompleteLocation:', {
+              residenciaName: userData.residencias?.name,
+              condominiumText: userData.condominium_text,
+              condominiumName: userData.condominium_name,  
+              houseNumber: userData.house_number,
+              apartment: appointment.apartment,
+              isExternal: false
+            });
+            
             location = buildCompleteLocation({
               residenciaName: userData.residencias?.name,
-              condominiumName: userData.condominium_name,
-              condominiumText: userData.condominium_text,
+              condominiumText: userData.condominium_text,  // CRITICAL: Use condominium_text first
+              condominiumName: userData.condominium_name,  // Fallback
               houseNumber: userData.house_number,
               apartment: appointment.apartment,
               isExternal: false
             }, appointment.id);
+          } else {
+            console.log('⚠️ NO USER DATA AVAILABLE for location building');
           }
+
+          console.log(`Final location for appointment ${appointment.id}:`, location);
 
           const result: ClientBooking = {
             id: appointment.id,

@@ -58,7 +58,7 @@ export function usePendingRequests() {
 
             // Get client information if it's not an external booking
             if (appointment.client_id && !appointment.external_booking) {
-              console.log(`Fetching client data for client_id: ${appointment.client_id}`);
+              console.log(`Fetching COMPLETE client data for client_id: ${appointment.client_id}`);
               
               const { data: clientData, error: clientError } = await supabase
                 .from('users')
@@ -83,14 +83,19 @@ export function usePendingRequests() {
                 console.error("Error fetching client data for appointment:", appointment.id, clientError);
               } else if (clientData) {
                 clientInfo = clientData;
-                console.log("=== CLIENT DATA FOUND ===");
-                console.log('Client data:', clientData);
+                console.log("=== COMPLETE CLIENT DATA FOUND ===");
+                console.log('Full client data:', JSON.stringify(clientData, null, 2));
+                console.log('Residencia name:', clientData.residencias?.name);
+                console.log('Condominium text:', clientData.condominium_text);
+                console.log('Condominium name:', clientData.condominium_name);
+                console.log('House number:', clientData.house_number);
+                console.log('Apartment from appointment:', appointment.apartment);
                 
                 // Build complete location string using buildCompleteLocation utility
                 clientLocation = buildCompleteLocation({
                   residenciaName: clientData.residencias?.name,
-                  condominiumName: clientData.condominium_name,
-                  condominiumText: clientData.condominium_text,
+                  condominiumText: clientData.condominium_text,  // CRITICAL: Use condominium_text first
+                  condominiumName: clientData.condominium_name,  // Fallback
                   houseNumber: clientData.house_number,
                   apartment: appointment.apartment,
                   isExternal: false
