@@ -12,8 +12,7 @@ interface PageContainerProps {
 const PageContainer = ({ children, title, subtitle, className }: PageContainerProps) => {
   return (
     <div className={cn("min-h-screen bg-[#FAFAFA]", className)}>
-      {/* Desktop: Account for fixed sidebar width (208px = w-52) */}
-      <div className="md:ml-52 p-4 md:p-6">
+      <div className="p-4 md:p-6">
         {(title || subtitle) && (
           <div className="mb-6">
             {title && (

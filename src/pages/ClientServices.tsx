@@ -54,22 +54,26 @@ const ClientServices = () => {
     return (
       <>
         <Navbar />
-        <div className="md:ml-52">
-          <PageContainer
-            title="Explorando categorías..."
-            className=""
-          >
-            <div className={cn(
-              "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto",
-              isMobile ? "px-6 w-full" : "px-2 md:px-6"
-            )}>
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className={cn(
-                  isMobile ? "h-36 rounded-xl" : "h-32 md:h-40 rounded-xl"
-                )} />
-              ))}
+        <div className="min-h-screen bg-[#FAFAFA]">
+          <div className="md:ml-52 p-4 md:p-6">
+            <div className="mb-6">
+              <h1 className="text-2xl font-semibold text-[#2D2D2D] mb-2">
+                Explorando categorías...
+              </h1>
             </div>
-          </PageContainer>
+            <div className="max-w-6xl mx-auto">
+              <div className={cn(
+                "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8",
+                isMobile ? "px-6 w-full" : "px-2 md:px-6"
+              )}>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className={cn(
+                    isMobile ? "h-36 rounded-xl" : "h-32 md:h-40 rounded-xl"
+                  )} />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </>
     );
@@ -80,54 +84,58 @@ const ClientServices = () => {
   return (
     <>
       <Navbar />
-      <div className="md:ml-52">
-        <PageContainer
-          title="Explora nuestras categorías de servicio"
-          className=""
-        >
-          <div className={cn(
-            "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto",
-            isMobile ? "w-full" : "px-2 md:px-6"
-          )}>
-            {categoryOrder.map((categoryName) => {
-              const category = categories.find(c => c.name === categoryName);
-              if (!category) return null;
-              
-              const isVisible = visibleItems.has(categoryName);
-              
-              return (
-                <div 
-                  key={category.id} 
-                  onClick={() => handleCategoryClick(category.name)}
-                  data-category={categoryName}
-                >
-                  <Card className={cn(
-                    "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
-                    isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48"
-                  )}>
-                    <div className={cn(
-                      "flex items-center justify-center",
-                      isMobile ? "mb-3" : "mb-4"
-                    )}>
-                      <CategoryIcon 
-                        categoryName={categoryName}
-                        isMobile={isMobile}
-                        isVisible={isVisible}
-                      />
-                    </div>
-                    <h3 className={cn(
-                      "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
-                      textSizeClass,
-                      isMobile ? "px-2" : "px-2"
-                    )}>
-                      {categoryLabels[category.name] || category.label}
-                    </h3>
-                  </Card>
-                </div>
-              );
-            })}
+      <div className="min-h-screen bg-[#FAFAFA]">
+        <div className="md:ml-52 p-4 md:p-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold text-[#2D2D2D] mb-2">
+              Explora nuestras categorías de servicio
+            </h1>
           </div>
-        </PageContainer>
+          <div className="max-w-6xl mx-auto">
+            <div className={cn(
+              "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8",
+              isMobile ? "w-full" : "px-2 md:px-6"
+            )}>
+              {categoryOrder.map((categoryName) => {
+                const category = categories.find(c => c.name === categoryName);
+                if (!category) return null;
+                
+                const isVisible = visibleItems.has(categoryName);
+                
+                return (
+                  <div 
+                    key={category.id} 
+                    onClick={() => handleCategoryClick(category.name)}
+                    data-category={categoryName}
+                  >
+                    <Card className={cn(
+                      "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
+                      isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48"
+                    )}>
+                      <div className={cn(
+                        "flex items-center justify-center",
+                        isMobile ? "mb-3" : "mb-4"
+                      )}>
+                        <CategoryIcon 
+                          categoryName={categoryName}
+                          isMobile={isMobile}
+                          isVisible={isVisible}
+                        />
+                      </div>
+                      <h3 className={cn(
+                        "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
+                        textSizeClass,
+                        isMobile ? "px-2" : "px-2"
+                      )}>
+                        {categoryLabels[category.name] || category.label}
+                      </h3>
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
