@@ -31,6 +31,7 @@ export const useClientBookings = () => {
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
+      console.log('=== CLIENT BOOKINGS QUERY START ===');
       console.log('Fetching client bookings for user:', user.id);
 
       try {
@@ -129,13 +130,15 @@ export const useClientBookings = () => {
           console.error('Error fetching ratings:', error);
         }
 
-        // Get current user data with complete location info
-        const { data: userData } = await supabase
+        // Get current user data with complete location info - ENHANCED QUERY
+        console.log('=== FETCHING USER LOCATION DATA ===');
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select(`
             house_number,
             condominium_text,
             condominium_name,
+            residencia_id,
             residencias (
               id,
               name
@@ -144,9 +147,18 @@ export const useClientBookings = () => {
           .eq('id', user.id)
           .single();
 
-        console.log('User location data:', userData);
+        if (userError) {
+          console.error('Error fetching user data:', userError);
+        }
 
-        // Process appointments
+        console.log('=== USER LOCATION DATA RECEIVED ===');
+        console.log('Raw user data:', userData);
+        console.log('Residencia data:', userData?.residencias);
+        console.log('Condominium name:', userData?.condominium_name);
+        console.log('Condominium text:', userData?.condominium_text);
+        console.log('House number:', userData?.house_number);
+
+        // Process appointments with enhanced location building
         const processedBookings = appointments.map(appointment => {
           const service = servicesMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
@@ -154,14 +166,24 @@ export const useClientBookings = () => {
           // Build location string using buildLocationString utility with complete data
           let location = 'Ubicación no especificada';
           
+          console.log(`=== PROCESSING APPOINTMENT ${appointment.id} ===`);
+          
           if (appointment.external_booking && appointment.client_address) {
+            console.log('External booking detected, using client address');
             location = buildLocationString({
               clientAddress: appointment.client_address,
               isExternal: true
             });
           } else if (userData) {
-            // Use the best available condominium name
+            // Use ALL available condominium data - prioritize condominium_name over condominium_text
             const condominiumName = userData.condominium_name || userData.condominium_text;
+            
+            console.log('Building internal location with:', {
+              residenciaName: userData.residencias?.name,
+              condominiumName: condominiumName,
+              houseNumber: userData.house_number,
+              apartment: appointment.apartment
+            });
             
             location = buildLocationString({
               residenciaName: userData.residencias?.name,
@@ -171,13 +193,9 @@ export const useClientBookings = () => {
               isExternal: false
             });
             
-            console.log('Built location for appointment:', appointment.id, {
-              residencia: userData.residencias?.name,
-              condominium: condominiumName,
-              house: userData.house_number,
-              apartment: appointment.apartment,
-              result: location
-            });
+            console.log('Built location result:', location);
+          } else {
+            console.log('No user data available for location building');
           }
 
           const result: ClientBooking = {
@@ -202,8 +220,12 @@ export const useClientBookings = () => {
           return result;
         });
 
-        console.log(`Processed ${processedBookings.length} bookings with locations:`, 
-          processedBookings.map(b => ({ id: b.id, location: b.location })));
+        console.log('=== FINAL PROCESSED BOOKINGS ===');
+        console.log(`Processed ${processedBookings.length} bookings with locations:`);
+        processedBookings.forEach(booking => {
+          console.log(`Booking ${booking.id}: "${booking.location}"`);
+        });
+        
         return processedBookings;
 
       } catch (error) {

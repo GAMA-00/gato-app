@@ -33,12 +33,20 @@ export const getServiceName = (appointment: any) => {
 
 // Enhanced location info function with complete location building
 export const getLocationInfo = (appointment: any) => {
-  console.log('Getting location for appointment:', appointment.id, appointment);
+  console.log('=== GET LOCATION INFO ===');
+  console.log('Getting location for appointment:', appointment.id);
+  console.log('Appointment data:', appointment);
   
   // First, check if we have pre-computed complete location
   if (appointment.complete_location) {
     console.log('Using pre-computed location:', appointment.complete_location);
     return appointment.complete_location;
+  }
+  
+  // Check if this is from pending requests or similar where client_location is already built
+  if (appointment.client_location) {
+    console.log('Using pre-built client_location:', appointment.client_location);
+    return appointment.client_location;
   }
   
   // Fallback: build location manually from available data
@@ -54,17 +62,22 @@ export const getLocationInfo = (appointment: any) => {
   }
   
   // Build complete location from available data
+  // Try to get the best available condominium name
+  const condominiumName = appointment.users?.condominium_name || 
+                          appointment.users?.condominium_text || 
+                          appointment.condominium_name ||
+                          appointment.condominium_text;
+  
   const locationData: LocationData = {
     residenciaName: appointment.residencias?.name || appointment.users?.residencias?.name,
-    condominiumName: appointment.users?.condominium_name || 
-                    appointment.users?.condominium_text || 
-                    appointment.condominium_name ||
-                    appointment.condominium_text,
+    condominiumName: condominiumName,
     houseNumber: appointment.users?.house_number || appointment.house_number,
     apartment: appointment.apartment,
     clientAddress: appointment.client_address,
     isExternal: false
   };
+  
+  console.log('Building location with data:', locationData);
   
   const location = buildLocationString(locationData);
   

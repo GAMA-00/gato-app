@@ -23,9 +23,10 @@ export const buildLocationString = (data: LocationData): string => {
     parts.push(data.residenciaName.trim());
   }
   
-  // Add condominium name
-  if (data.condominiumName && data.condominiumName.trim()) {
-    parts.push(data.condominiumName.trim());
+  // Add condominium name - be more flexible with the field name
+  const condominiumName = data.condominiumName;
+  if (condominiumName && condominiumName.trim()) {
+    parts.push(condominiumName.trim());
   }
   
   // Add house/apartment number - prioritize apartment, then house_number
@@ -38,28 +39,37 @@ export const buildLocationString = (data: LocationData): string => {
     }
   }
   
-  console.log('Location parts:', parts);
+  console.log('Location parts built:', parts);
   
   // Return in the standardized format: Residencia – Condominio – Número
   if (parts.length >= 3) {
-    return parts.join(' – ');
+    const result = parts.join(' – ');
+    console.log('Final location (3 parts):', result);
+    return result;
   } else if (parts.length >= 2) {
-    return parts.join(' – ');
+    const result = parts.join(' – ');
+    console.log('Final location (2 parts):', result);
+    return result;
   } else if (parts.length === 1) {
+    console.log('Final location (1 part):', parts[0]);
     return parts[0];
   }
   
   // Fallback if no data
+  console.log('No location data available, using fallback');
   return 'Ubicación no especificada';
 };
 
 export const logLocationDebug = (appointmentId: string, data: LocationData, finalLocation: string): void => {
-  console.log(`Building location for appointment ${appointmentId}:`, {
+  console.log(`=== LOCATION DEBUG for appointment ${appointmentId} ===`);
+  console.log('Input data:', {
     residencia: data.residenciaName,
     condominium: data.condominiumName,
     apartment: data.apartment,
     house_number: data.houseNumber,
     isExternal: data.isExternal,
-    final_location: finalLocation
+    clientAddress: data.clientAddress
   });
+  console.log('Final location result:', finalLocation);
+  console.log('===============================');
 };
