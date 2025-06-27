@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -53,7 +52,6 @@ const ClientCategoryDetails = () => {
   return (
     <ClientPageLayout 
       title={categoryLabel}
-      subtitle="Selecciona el tipo de servicio que necesitas"
     >
       <div className="space-y-6">
         <Button 
