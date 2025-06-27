@@ -105,22 +105,23 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
     );
   };
 
-  // For providers, use PageContainer without title and subtitle and reduced padding
+  // For providers, use proper centering and desktop layout
   if (user?.role === 'provider') {
     return (
       <>
         <Navbar />
-        <PageContainer 
-          title=""
-          className={isMobile ? "pt-0" : "pt-0"}
-        >
-          {renderContent()}
-        </PageContainer>
+        <div className="min-h-screen bg-[#FAFAFA]">
+          <div className="md:ml-52 p-4 md:p-6">
+            <div className="max-w-4xl mx-auto">
+              {renderContent()}
+            </div>
+          </div>
+        </div>
       </>
     );
   }
 
-  // For clients and others, keep the original title and subtitle
+  // For clients and others, keep the original PageContainer approach
   return (
     <>
       <Navbar />
