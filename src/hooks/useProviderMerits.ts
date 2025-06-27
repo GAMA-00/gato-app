@@ -31,21 +31,18 @@ export function useProviderMerits(providerId?: string) {
 
       console.log('Fetching provider merits for:', providerId);
 
-      // Optimized parallel queries for better performance
-      const [userResponse, ratingsResponse, appointmentsResponse, recurringResponse] = await Promise.all([
-        // Get provider's average rating from users table (already calculated by database function)
-        supabase
-          .from('users')
-          .select('average_rating')
-          .eq('id', providerId)
-          .single(),
-        
-        // Get rating count only
-        supabase
-          .from('provider_ratings')
-          .select('id', { count: 'exact', head: true })
-          .eq('provider_id', providerId),
+      // Fetch all ratings for this provider to calculate accurate average
+      const { data: ratings, error: ratingsError } = await supabase
+        .from('provider_ratings')
+        .select('rating')
+        .eq('provider_id', providerId);
 
+      if (ratingsError) {
+        console.error('Error fetching ratings:', ratingsError);
+      }
+
+      // Optimized parallel queries for other data
+      const [appointmentsResponse, recurringResponse] = await Promise.all([
         // Get completed jobs count
         supabase
           .from('appointments')
@@ -58,14 +55,6 @@ export function useProviderMerits(providerId?: string) {
       ]);
 
       // Handle errors gracefully
-      if (userResponse.error && userResponse.error.code !== 'PGRST116') {
-        console.error('Error fetching user rating:', userResponse.error);
-      }
-
-      if (ratingsResponse.error) {
-        console.error('Error fetching ratings count:', ratingsResponse.error);
-      }
-
       if (appointmentsResponse.error) {
         console.error('Error fetching appointments count:', appointmentsResponse.error);
       }
@@ -74,17 +63,19 @@ export function useProviderMerits(providerId?: string) {
         console.error('Error fetching recurring clients:', recurringResponse.error);
       }
 
-      // Extract data with defaults
+      // Calculate data with defaults
       const completedJobsCount = appointmentsResponse.count || 0;
-      const ratingCount = ratingsResponse.count || 0;
       const recurringClientsCount = Number(recurringResponse.data) || 0;
+      const ratingCount = ratings?.length || 0;
 
-      // Simplified rating logic with 5-star base system:
-      // - If no ratings exist: show 5.0 (the base rating)
-      // - If ratings exist: use the average_rating from database (already calculated with 5-star base)
+      // Calculate average rating with 5-star base system
       let averageRating = 5.0;
-      if (ratingCount > 0 && userResponse.data?.average_rating != null) {
-        averageRating = Number(userResponse.data.average_rating);
+      
+      if (ratingCount > 0 && ratings) {
+        // Apply the 5-star base formula: (5 + sum of ratings) / (count + 1)
+        const sumOfRatings = ratings.reduce((sum, rating) => sum + rating.rating, 0);
+        averageRating = (5.0 + sumOfRatings) / (ratingCount + 1);
+        averageRating = Math.round(averageRating * 10) / 10; // Round to 1 decimal place
       }
 
       // Get provider level based on completed jobs
@@ -95,7 +86,8 @@ export function useProviderMerits(providerId?: string) {
         recurringClientsCount,
         completedJobsCount,
         ratingCount,
-        providerLevel: providerLevel.name
+        providerLevel: providerLevel.name,
+        ratingsData: ratings
       });
 
       return {
@@ -107,8 +99,10 @@ export function useProviderMerits(providerId?: string) {
       };
     },
     enabled: !!providerId,
-    staleTime: 60000, // Reduced to 1 minute for faster updates
-    refetchOnWindowFocus: true, // Enable refetch on focus for real-time feel
-    refetchInterval: 120000 // Refetch every 2 minutes to keep data fresh
+    staleTime: 10000, // Reduced to 10 seconds for faster updates
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    // Force refetch when ratings might have changed
+    refetchOnMount: true
   });
 }
