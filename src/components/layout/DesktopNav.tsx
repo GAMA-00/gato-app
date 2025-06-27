@@ -32,6 +32,8 @@ const DesktopNav = ({ isClientSection, onSwitchView }: DesktopNavProps) => {
           </div>
         </div>
       </div>
+      {/* Spacer div to prevent content overlap */}
+      <div className="w-52" />
     </div>
   );
 };
