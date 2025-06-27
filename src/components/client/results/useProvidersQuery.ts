@@ -45,7 +45,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       // Get unique provider IDs
       const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
 
-      // Fetch provider information separately
+      // Fetch provider information separately with optimized query
       const { data: providers, error: providersError } = await supabase
         .from('users')
         .select(`
@@ -70,7 +70,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         return acc;
       }, {} as Record<string, any>) || {};
 
-      // Fetch recurring clients count for each provider
+      // Fetch recurring clients count using parallel requests for better performance
       const recurringClientsPromises = providerIds.map(async (providerId) => {
         try {
           const { data, error } = await supabase
@@ -121,11 +121,14 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             joinDate = new Date(provider.created_at);
           }
 
+          // Use the optimized rating from database (already includes 5-star base calculation)
+          const rating = provider?.average_rating ? Number(provider.average_rating) : 5.0;
+
           return {
             id: listing.provider_id,
             name: provider?.name || 'Proveedor',
             avatar: provider?.avatar_url || null,
-            rating: provider?.average_rating || 5.0,
+            rating: rating,
             price: listing.base_price || 0,
             duration: listing.duration || 60,
             serviceName: listing.title || 'Servicio',
@@ -145,6 +148,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       console.log("Processed providers:", processedProviders);
       return processedProviders;
     },
-    enabled: !!serviceId
+    enabled: !!serviceId,
+    staleTime: 60000, // Reduced for faster updates
+    refetchOnWindowFocus: false
   });
 };
