@@ -49,6 +49,7 @@ const ClientBookings = () => {
         <PageContainer
           title="Mis Reservas"
           subtitle={`${activeRecurringCount} instancias recurrentes activas`}
+          className=""
         >
           {error && (
             <Alert className="mb-6">
@@ -72,7 +73,7 @@ const ClientBookings = () => {
             </Alert>
           )}
           
-          <div className="space-y-6 px-1 md:px-2 lg:px-4 xl:px-6">
+          <div className="space-y-6 max-w-6xl mx-auto px-1 md:px-2 lg:px-4 xl:px-6">
             <section>
               <BookingsList
                 bookings={upcomingBookings}
