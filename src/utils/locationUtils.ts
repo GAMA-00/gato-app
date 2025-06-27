@@ -14,50 +14,41 @@ export const buildLocationString = (data: LocationData): string => {
     return data.clientAddress || 'Ubicación externa';
   }
 
-  console.log('Building location with data:', data);
+  console.log('=== BUILDING LOCATION STRING ===');
+  console.log('Input data:', data);
 
   const parts: string[] = [];
   
   // Add residencia name
   if (data.residenciaName && data.residenciaName.trim()) {
     parts.push(data.residenciaName.trim());
+    console.log('Added residencia:', data.residenciaName.trim());
   }
   
-  // Add condominium name - be more flexible with the field name
-  const condominiumName = data.condominiumName;
-  if (condominiumName && condominiumName.trim()) {
-    parts.push(condominiumName.trim());
+  // Add condominium name
+  if (data.condominiumName && data.condominiumName.trim()) {
+    parts.push(data.condominiumName.trim());
+    console.log('Added condominium:', data.condominiumName.trim());
   }
   
-  // Add house/apartment number - prioritize apartment, then house_number
+  // Add house/apartment number - prioritize apartment, then house number
   const houseNumber = data.apartment || data.houseNumber;
   if (houseNumber && houseNumber.toString().trim()) {
     // Format house number consistently, removing any existing prefixes
     const cleanNumber = houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
     if (cleanNumber) {
       parts.push(cleanNumber);
+      console.log('Added house number:', cleanNumber);
     }
   }
   
-  console.log('Location parts built:', parts);
+  console.log('Final parts array:', parts);
   
   // Return in the standardized format: Residencia – Condominio – Número
-  if (parts.length >= 3) {
-    const result = parts.join(' – ');
-    console.log('Final location (3 parts):', result);
-    return result;
-  } else if (parts.length >= 2) {
-    const result = parts.join(' – ');
-    console.log('Final location (2 parts):', result);
-    return result;
-  } else if (parts.length === 1) {
-    console.log('Final location (1 part):', parts[0]);
-    return parts[0];
-  }
+  const result = parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+  console.log('Final location result:', result);
   
-  // Fallback if no data
-  console.log('No location data available, using fallback');
-  return 'Ubicación no especificada';
+  return result;
 };
 
 export const logLocationDebug = (appointmentId: string, data: LocationData, finalLocation: string): void => {

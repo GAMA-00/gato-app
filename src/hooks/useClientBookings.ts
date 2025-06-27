@@ -35,7 +35,7 @@ export const useClientBookings = () => {
       console.log('Fetching client bookings for user:', user.id);
 
       try {
-        // Get basic appointments data with enhanced location info
+        // Get basic appointments data
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -130,7 +130,7 @@ export const useClientBookings = () => {
           console.error('Error fetching ratings:', error);
         }
 
-        // Get current user data with complete location info - ENHANCED QUERY
+        // Get current user data with complete location info
         console.log('=== FETCHING USER LOCATION DATA ===');
         const { data: userData, error: userError } = await supabase
           .from('users')

@@ -137,7 +137,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
         // Get unique client IDs for user data
         const clientIds = [...new Set(appointmentsList.map(apt => apt.client_id).filter(Boolean))];
         
-        // Fetch users data separately
+        // Fetch users data separately with complete location info
         let usersMap: Record<string, any> = {};
         if (clientIds.length > 0) {
           try {
@@ -149,7 +149,12 @@ export const useCalendarAppointments = (currentDate: Date) => {
                 phone,
                 email,
                 condominium_name,
-                house_number
+                condominium_text,
+                house_number,
+                residencias (
+                  id,
+                  name
+                )
               `)
               .in('id', clientIds);
 
@@ -159,8 +164,9 @@ export const useCalendarAppointments = (currentDate: Date) => {
                   name: user.name || '',
                   phone: user.phone || '',
                   email: user.email || '',
-                  condominium_name: user.condominium_name,
-                  house_number: user.house_number
+                  condominium_name: user.condominium_name || user.condominium_text,
+                  house_number: user.house_number,
+                  residencias: user.residencias
                 };
                 return acc;
               }, {} as Record<string, any>);
@@ -177,7 +183,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
           ...appointment,
           listings: listingsMap[appointment.listing_id] || null,
           users: appointment.client_id ? usersMap[appointment.client_id] || null : null,
-          residencias: null
+          residencias: appointment.client_id && usersMap[appointment.client_id]?.residencias || null
         }));
 
         console.log(`Successfully processed ${enhancedAppointments.length} appointments for calendar`);
