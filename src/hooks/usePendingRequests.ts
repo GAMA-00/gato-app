@@ -51,7 +51,7 @@ export function usePendingRequests() {
         // Process appointments to add client information with complete location
         const processedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
-            console.log(`=== PROCESSING PENDING APPOINTMENT ${appointment.id} ===`);
+            console.log(`=== PROCESSING PENDING REQUEST APPOINTMENT ${appointment.id} ===`);
             
             let clientInfo = null;
             let clientLocation = 'Ubicación no especificada';
@@ -80,10 +80,10 @@ export function usePendingRequests() {
                 .single();
 
               if (clientError) {
-                console.error("Error fetching client data for appointment:", appointment.id, clientError);
+                console.error("Error fetching client data for pending request:", appointment.id, clientError);
               } else if (clientData) {
                 clientInfo = clientData;
-                console.log("=== COMPLETE CLIENT DATA FOUND ===");
+                console.log("=== COMPLETE CLIENT DATA FOR PENDING REQUEST ===");
                 console.log('Full client data:', JSON.stringify(clientData, null, 2));
                 console.log('Residencia name:', clientData.residencias?.name);
                 console.log('Condominium text (PRIMARY):', clientData.condominium_text);
@@ -101,10 +101,11 @@ export function usePendingRequests() {
                   isExternal: false
                 };
                 
-                console.log('Data being passed to buildCompleteLocation:', locationData);
+                console.log('=== LOCATION DATA FOR PENDING REQUEST ===');
+                console.log('Data being passed to buildCompleteLocation:', JSON.stringify(locationData, null, 2));
                 clientLocation = buildCompleteLocation(locationData, appointment.id);
                 
-                console.log('Final client location built:', clientLocation);
+                console.log('Final client location for pending request:', clientLocation);
               }
             }
 
@@ -112,7 +113,7 @@ export function usePendingRequests() {
             const isExternal = appointment.external_booking || !appointment.client_id;
 
             if (isExternal) {
-              console.log('External booking detected, using stored address:', appointment.client_address);
+              console.log('External booking detected for pending request, using stored address:', appointment.client_address);
               clientLocation = buildCompleteLocation({
                 clientAddress: appointment.client_address,
                 isExternal: true
@@ -135,7 +136,7 @@ export function usePendingRequests() {
               service_name: appointment.listings?.title || 'Servicio'
             };
 
-            console.log(`=== PROCESSED PENDING APPOINTMENT ${appointment.id} ===`);
+            console.log(`=== PROCESSED PENDING REQUEST ${appointment.id} ===`);
             console.log('Final location:', processed.client_location);
             console.log('Is external:', processed.is_external);
             
@@ -146,7 +147,7 @@ export function usePendingRequests() {
         console.log(`=== PENDING REQUESTS FINAL RESULTS ===`);
         console.log(`Returning ${processedAppointments.length} processed pending requests`);
         processedAppointments.forEach(app => {
-          console.log(`Appointment ${app.id}: "${app.client_location}"`);
+          console.log(`Pending request ${app.id}: "${app.client_location}"`);
         });
         
         return processedAppointments;

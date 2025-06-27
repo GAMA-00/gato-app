@@ -17,98 +17,109 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
 
   // For external bookings, use the stored address
   if (data.isExternal && data.clientAddress) {
-    console.log('Using external address:', data.clientAddress);
+    console.log('✓ External booking - using client address:', data.clientAddress);
     return data.clientAddress;
   }
 
-  const parts: string[] = [];
+  // Start with empty array and build step by step
+  const locationParts: string[] = [];
   
-  // Add residencia name if available
+  // STEP 1: Add residencia name if available
   if (data.residenciaName?.trim()) {
-    parts.push(data.residenciaName.trim());
-    console.log('✓ Added residencia:', data.residenciaName.trim());
+    locationParts.push(data.residenciaName.trim());
+    console.log('✓ STEP 1 - Added residencia:', data.residenciaName.trim());
+  } else {
+    console.log('⚠️ STEP 1 - No residencia name found');
   }
   
-  // Add condominium name - CRITICAL: prioritize condominiumText over condominiumName
-  // condominiumText is the field that actually contains the user's input
-  let condominiumToUse = null;
+  // STEP 2: Add condominium - CRITICAL: prioritize condominiumText over condominiumName
+  let condominiumToAdd = null;
   
   if (data.condominiumText?.trim()) {
-    condominiumToUse = data.condominiumText.trim();
-    console.log('✓ Using condominiumText:', condominiumToUse);
+    condominiumToAdd = data.condominiumText.trim();
+    console.log('✓ STEP 2 - Using condominiumText:', condominiumToAdd);
   } else if (data.condominiumName?.trim()) {
-    condominiumToUse = data.condominiumName.trim();
-    console.log('✓ Using condominiumName as fallback:', condominiumToUse);
-  }
-  
-  if (condominiumToUse) {
-    parts.push(condominiumToUse);
-    console.log('✓ Added condominium to parts:', condominiumToUse);
+    condominiumToAdd = data.condominiumName.trim();
+    console.log('✓ STEP 2 - Using condominiumName as fallback:', condominiumToAdd);
   } else {
-    console.log('⚠️ NO CONDOMINIUM DATA FOUND - this is okay, will continue with house number');
-    console.log('condominiumText:', data.condominiumText);
-    console.log('condominiumName:', data.condominiumName);
+    console.log('⚠️ STEP 2 - No condominium data found (this is OK for some users)');
   }
   
-  // Add house/apartment number - prioritize apartment, then house number
-  let numberToUse = null;
+  if (condominiumToAdd) {
+    locationParts.push(condominiumToAdd);
+    console.log('✓ STEP 2 - Added condominium to parts:', condominiumToAdd);
+  }
+  
+  // STEP 3: Add house/apartment number - prioritize apartment, then house number
+  let numberToAdd = null;
   
   if (data.apartment?.toString().trim()) {
-    numberToUse = data.apartment.toString().trim();
-    console.log('✓ Using apartment number:', numberToUse);
+    numberToAdd = data.apartment.toString().trim();
+    console.log('✓ STEP 3 - Using apartment number:', numberToAdd);
   } else if (data.houseNumber?.toString().trim()) {
-    numberToUse = data.houseNumber.toString().trim();
-    console.log('✓ Using house number:', numberToUse);
-  }
-  
-  if (numberToUse) {
-    // Clean any existing prefixes like "casa" or "#"
-    const cleanNumber = numberToUse.replace(/^(casa\s*|#\s*)/i, '').trim();
-    if (cleanNumber) {
-      parts.push(cleanNumber);
-      console.log('✓ Added number to parts:', cleanNumber);
-    }
+    numberToAdd = data.houseNumber.toString().trim();
+    console.log('✓ STEP 3 - Using house number:', numberToAdd);
   } else {
-    console.log('⚠️ NO HOUSE/APARTMENT NUMBER FOUND');
-    console.log('apartment:', data.apartment);
-    console.log('houseNumber:', data.houseNumber);
+    console.log('⚠️ STEP 3 - No house/apartment number found');
   }
   
-  console.log('Final parts array:', parts);
+  if (numberToAdd) {
+    // Clean any existing prefixes like "Casa" or "#"
+    const cleanNumber = numberToAdd.replace(/^(casa\s*|#\s*)/i, '').trim();
+    if (cleanNumber) {
+      locationParts.push(cleanNumber);
+      console.log('✓ STEP 3 - Added number to parts:', cleanNumber);
+    }
+  }
   
-  // CRITICAL FIX: Never return just residencia if we should have more data
-  // If we only have residencia but the user should have condominium/house data, 
-  // we need to investigate why that data is missing
-  if (parts.length === 1 && data.residenciaName) {
-    console.log('🚨 WARNING: Only residencia found, but checking if we should have more data...');
+  // STEP 4: Build final result with validation
+  console.log('=== FINAL CONSTRUCTION ===');
+  console.log('All location parts collected:', locationParts);
+  console.log('Total parts:', locationParts.length);
+  
+  // CRITICAL VALIDATION: Never return just residencia if we should have more data
+  if (locationParts.length === 1 && data.residenciaName) {
+    console.log('🚨 WARNING: Only residencia in parts, checking if we lost data...');
     
-    // Check if we have any indication that there should be more data
-    const hasCondominiumIndication = data.condominiumText !== undefined || data.condominiumName !== undefined;
-    const hasHouseIndication = data.houseNumber !== undefined || data.apartment !== undefined;
+    const hasMoreData = (data.condominiumText && data.condominiumText.trim()) || 
+                       (data.condominiumName && data.condominiumName.trim()) ||
+                       (data.houseNumber && data.houseNumber.toString().trim()) ||
+                       (data.apartment && data.apartment.toString().trim());
     
-    if (hasCondominiumIndication || hasHouseIndication) {
-      console.log('🚨 CRITICAL: We should have more location data but it seems to be null/empty');
-      console.log('Available data indicators:', {
-        hasCondominiumIndication,
-        hasHouseIndication,
+    if (hasMoreData) {
+      console.log('🚨 CRITICAL ERROR: We have additional data but only residencia in parts!');
+      console.log('Available data check:', {
         condominiumText: data.condominiumText,
         condominiumName: data.condominiumName,
         houseNumber: data.houseNumber,
         apartment: data.apartment
       });
+      
+      // Force rebuild to ensure we don't lose data
+      if (data.houseNumber?.toString().trim() && !condominiumToAdd) {
+        locationParts.push(data.houseNumber.toString().trim());
+        console.log('🔄 RECOVERY: Added missing house number:', data.houseNumber);
+      }
     }
   }
   
-  // Build the final location string
-  const result = parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+  // Build final string
+  let result: string;
+  if (locationParts.length > 0) {
+    result = locationParts.join(' – ');
+  } else {
+    result = 'Ubicación no especificada';
+  }
+  
   console.log('🎯 FINAL LOCATION RESULT:', result);
+  console.log('=== END BUILD COMPLETE LOCATION ===');
   
   // Debug logging for troubleshooting
   if (appointmentId) {
     logLocationDebug(appointmentId, {
       residenciaName: data.residenciaName,
-      condominiumName: condominiumToUse,
-      houseNumber: numberToUse,
+      condominiumName: condominiumToAdd,
+      houseNumber: numberToAdd,
       apartment: data.apartment,
       clientAddress: data.clientAddress,
       isExternal: data.isExternal || false

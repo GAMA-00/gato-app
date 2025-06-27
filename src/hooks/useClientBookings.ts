@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -130,7 +131,7 @@ export const useClientBookings = () => {
         }
 
         // CRITICAL: Get current user data with ALL location fields
-        console.log('=== FETCHING COMPLETE USER LOCATION DATA ===');
+        console.log('=== FETCHING COMPLETE USER LOCATION DATA FOR CLIENT BOOKINGS ===');
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select(`
@@ -147,16 +148,16 @@ export const useClientBookings = () => {
           .single();
 
         if (userError) {
-          console.error('Error fetching user data:', userError);
+          console.error('Error fetching user data for client bookings:', userError);
         }
 
-        console.log('=== COMPLETE USER LOCATION DATA DEBUG ===');
+        console.log('=== COMPLETE USER LOCATION DATA FOR CLIENT BOOKINGS ===');
         console.log('Full user data object:', JSON.stringify(userData, null, 2));
         console.log('Residencia name:', userData?.residencias?.name);
         console.log('Condominium text (PRIMARY):', userData?.condominium_text);  
         console.log('Condominium name (FALLBACK):', userData?.condominium_name);
         console.log('House number:', userData?.house_number);
-        console.log('=== END USER DATA DEBUG ===');
+        console.log('=== END USER DATA DEBUG FOR CLIENT BOOKINGS ===');
 
         // Process appointments with enhanced location building
         const processedBookings = appointments.map(appointment => {
@@ -166,7 +167,7 @@ export const useClientBookings = () => {
           // Build location string using buildCompleteLocation utility
           let location = 'Ubicación no especificada';
           
-          console.log(`=== PROCESSING APPOINTMENT ${appointment.id} ===`);
+          console.log(`=== PROCESSING CLIENT BOOKING APPOINTMENT ${appointment.id} ===`);
           
           if (appointment.external_booking && appointment.client_address) {
             console.log('External booking detected, using client address');
@@ -185,14 +186,15 @@ export const useClientBookings = () => {
               isExternal: false
             };
             
-            console.log('Data being passed to buildCompleteLocation:', locationData);
+            console.log('=== LOCATION DATA BEING PASSED TO buildCompleteLocation ===');
+            console.log('Data being passed:', JSON.stringify(locationData, null, 2));
             
             location = buildCompleteLocation(locationData, appointment.id);
           } else {
             console.log('⚠️ NO USER DATA AVAILABLE for location building');
           }
 
-          console.log(`Final location for appointment ${appointment.id}:`, location);
+          console.log(`Final location for client booking appointment ${appointment.id}:`, location);
 
           return {
             id: appointment.id,
@@ -214,7 +216,7 @@ export const useClientBookings = () => {
           };
         });
 
-        console.log('=== FINAL PROCESSED BOOKINGS ===');
+        console.log('=== FINAL PROCESSED CLIENT BOOKINGS ===');
         console.log(`Processed ${processedBookings.length} bookings with locations:`);
         processedBookings.forEach(booking => {
           console.log(`Booking ${booking.id}: "${booking.location}"`);
