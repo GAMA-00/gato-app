@@ -134,7 +134,6 @@ export const useAppointments = () => {
             client_name: sampleApp.client_name,
             external_booking: sampleApp.external_booking,
             client_address: sampleApp.client_address,
-            apartment: sampleApp.apartment,
             has_client_data: !!sampleApp.client_data
           });
           

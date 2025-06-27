@@ -89,7 +89,6 @@ export function usePendingRequests() {
                 console.log('🏘️ Texto condominio (PRINCIPAL):', clientData.condominium_text);
                 console.log('🏘️ Nombre condominio (RESPALDO):', clientData.condominium_name);
                 console.log('🏠 Número de casa:', clientData.house_number);
-                console.log('🏠 Apartamento de la cita:', appointment.apartment);
                 
                 // Construir cadena de ubicación completa usando utilidad buildCompleteLocation
                 const locationData = {
@@ -97,7 +96,6 @@ export function usePendingRequests() {
                   condominiumText: clientData.condominium_text,
                   condominiumName: clientData.condominium_name,
                   houseNumber: clientData.house_number,
-                  apartment: appointment.apartment,
                   isExternal: false
                 };
                 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -102,7 +103,6 @@ export const RescheduleAppointmentModal = ({
           client_address: originalAppointment.client_address,
           client_email: originalAppointment.client_email,
           client_phone: originalAppointment.client_phone,
-          apartment: originalAppointment.apartment,
           residencia_id: originalAppointment.residencia_id,
           external_booking: originalAppointment.external_booking
         })

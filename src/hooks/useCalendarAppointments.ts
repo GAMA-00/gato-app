@@ -14,7 +14,6 @@ interface AppointmentData {
   end_time: string;
   status: string;
   notes: string | null;
-  apartment: string | null;
   client_address: string | null;
   client_phone: string | null;
   client_email: string | null;
@@ -76,7 +75,6 @@ export const useCalendarAppointments = (currentDate: Date) => {
             end_time,
             status,
             notes,
-            apartment,
             client_address,
             client_phone,
             client_email,
@@ -205,7 +203,6 @@ export const useCalendarAppointments = (currentDate: Date) => {
               condominiumName: clientUser.condominium_name,
               condominiumText: clientUser.condominium_text,  // CRITICAL: Use condominium_text first
               houseNumber: clientUser.house_number,
-              apartment: appointment.apartment,
               isExternal: false
             };
             
