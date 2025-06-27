@@ -40,7 +40,7 @@ const ProviderHeader = ({ provider, bookingMode = false }: ProviderHeaderProps) 
         </Avatar>
         
         <div className="flex-1 text-center md:text-left">
-          {/* Nombre y valoración real */}
+          {/* Nombre y valoración con sistema de 5 estrellas base */}
           <h2 className="text-2xl font-semibold mb-2">{provider.name}</h2>
           
           <div className="flex items-center justify-center md:justify-start mb-4">

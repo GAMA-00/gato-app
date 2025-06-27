@@ -80,18 +80,20 @@ export function useProviderMerits(providerId?: string) {
       const recurringClientsCount = uniqueRecurringClients.size;
       const ratingCount = ratingsData?.length || 0;
       
-      // Logic for rating display:
-      // - If provider has no ratings, show 5.0 (new provider)
-      // - If provider has ratings, use the calculated average from database
+      // Nueva lógica de calificaciones con base de 5 estrellas:
+      // - Si el proveedor no tiene calificaciones reales, mostrar 5.0
+      // - Si tiene calificaciones, usar el promedio calculado por la base de datos
+      //   (que ya incluye la calificación base de 5 estrellas)
       let averageRating = 5.0;
       if (ratingCount > 0 && userData?.average_rating != null) {
+        // El promedio ya viene calculado desde la base de datos con la lógica de 5 estrellas base
         averageRating = Number(userData.average_rating);
       }
 
       // Get provider level based on completed jobs
       const providerLevel = getProviderLevelByJobs(completedJobsCount);
 
-      console.log('Provider merits calculated:', {
+      console.log('Provider merits calculated with 5-star base:', {
         averageRating,
         recurringClientsCount,
         completedJobsCount,

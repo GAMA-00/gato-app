@@ -57,7 +57,7 @@ const ProviderAchievements = ({ provider }: ProviderAchievementsProps) => {
       </CardHeader>
       <CardContent>
         <div className="flex justify-between gap-6">
-          {/* Calificación Promedio Real */}
+          {/* Calificación Promedio con sistema de 5 estrellas base */}
           <div className="flex flex-col items-center text-center flex-1">
             <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-3">
               <Star className="h-5 w-5 text-amber-600 fill-amber-600" />

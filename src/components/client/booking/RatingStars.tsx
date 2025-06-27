@@ -41,7 +41,7 @@ export const RatingStars = ({
         
       if (error) throw error;
       
-      toast.success('¡Gracias por calificar el servicio!');
+      toast.success('¡Gracias por calificar el servicio! Tu calificación ayuda a otros clientes.');
       onRated();
       
       // Invalidate all queries related to this provider to update ratings immediately
