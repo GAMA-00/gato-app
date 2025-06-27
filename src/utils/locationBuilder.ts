@@ -1,6 +1,4 @@
 
-import { buildLocationString, logLocationDebug } from './locationUtils';
-
 export interface CompleteLocationData {
   residenciaName?: string;
   condominiumName?: string;
@@ -12,119 +10,100 @@ export interface CompleteLocationData {
 }
 
 export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?: string): string => {
-  console.log(`=== BUILD COMPLETE LOCATION ${appointmentId || 'unknown'} ===`);
-  console.log('Raw input data:', JSON.stringify(data, null, 2));
+  const debugId = appointmentId || 'unknown';
+  console.log(`🔍 === BUILDING LOCATION FOR ${debugId} ===`);
+  console.log('📥 Raw input data:', JSON.stringify(data, null, 2));
 
-  // For external bookings, use the stored address
+  // Para reservas externas, usar la dirección del cliente
   if (data.isExternal && data.clientAddress) {
-    console.log('✓ External booking - using client address:', data.clientAddress);
+    console.log('🌍 External booking detected, using client address:', data.clientAddress);
     return data.clientAddress;
   }
 
-  // Start with empty array and build step by step
+  // Inicializar array de partes de la ubicación
   const locationParts: string[] = [];
   
-  // STEP 1: Add residencia name if available
+  // PASO 1: Agregar residencia si existe
   if (data.residenciaName?.trim()) {
     locationParts.push(data.residenciaName.trim());
-    console.log('✓ STEP 1 - Added residencia:', data.residenciaName.trim());
+    console.log('✅ PASO 1 - Agregada residencia:', data.residenciaName.trim());
   } else {
-    console.log('⚠️ STEP 1 - No residencia name found');
+    console.log('❌ PASO 1 - No hay nombre de residencia');
   }
   
-  // STEP 2: Add condominium - CRITICAL: prioritize condominiumText over condominiumName
-  let condominiumToAdd = null;
-  
+  // PASO 2: Agregar condominio (priorizar condominiumText)
+  let condominiumToAdd = '';
   if (data.condominiumText?.trim()) {
     condominiumToAdd = data.condominiumText.trim();
-    console.log('✓ STEP 2 - Using condominiumText:', condominiumToAdd);
+    console.log('✅ PASO 2A - Usando condominiumText:', condominiumToAdd);
   } else if (data.condominiumName?.trim()) {
     condominiumToAdd = data.condominiumName.trim();
-    console.log('✓ STEP 2 - Using condominiumName as fallback:', condominiumToAdd);
+    console.log('✅ PASO 2B - Usando condominiumName:', condominiumToAdd);
   } else {
-    console.log('⚠️ STEP 2 - No condominium data found (this is OK for some users)');
+    console.log('⚠️ PASO 2 - No hay datos de condominio');
   }
   
   if (condominiumToAdd) {
     locationParts.push(condominiumToAdd);
-    console.log('✓ STEP 2 - Added condominium to parts:', condominiumToAdd);
+    console.log('✅ PASO 2 - Condominio agregado a partes:', condominiumToAdd);
   }
   
-  // STEP 3: Add house/apartment number - prioritize apartment, then house number
-  let numberToAdd = null;
-  
+  // PASO 3: Agregar número de casa/apartamento
+  let numberToAdd = '';
   if (data.apartment?.toString().trim()) {
     numberToAdd = data.apartment.toString().trim();
-    console.log('✓ STEP 3 - Using apartment number:', numberToAdd);
+    console.log('✅ PASO 3A - Usando número de apartamento:', numberToAdd);
   } else if (data.houseNumber?.toString().trim()) {
     numberToAdd = data.houseNumber.toString().trim();
-    console.log('✓ STEP 3 - Using house number:', numberToAdd);
+    console.log('✅ PASO 3B - Usando número de casa:', numberToAdd);
   } else {
-    console.log('⚠️ STEP 3 - No house/apartment number found');
+    console.log('⚠️ PASO 3 - No hay número de casa/apartamento');
   }
   
   if (numberToAdd) {
-    // Clean any existing prefixes like "Casa" or "#"
+    // Limpiar prefijos como "Casa" o "#"
     const cleanNumber = numberToAdd.replace(/^(casa\s*|#\s*)/i, '').trim();
     if (cleanNumber) {
       locationParts.push(cleanNumber);
-      console.log('✓ STEP 3 - Added number to parts:', cleanNumber);
+      console.log('✅ PASO 3 - Número agregado a partes:', cleanNumber);
     }
   }
   
-  // STEP 4: Build final result with validation
-  console.log('=== FINAL CONSTRUCTION ===');
-  console.log('All location parts collected:', locationParts);
-  console.log('Total parts:', locationParts.length);
+  // CONSTRUCCIÓN FINAL
+  console.log('🔧 === CONSTRUCCIÓN FINAL ===');
+  console.log('📋 Partes recolectadas:', locationParts);
+  console.log('📊 Total de partes:', locationParts.length);
   
-  // CRITICAL VALIDATION: Never return just residencia if we should have more data
-  if (locationParts.length === 1 && data.residenciaName) {
-    console.log('🚨 WARNING: Only residencia in parts, checking if we lost data...');
-    
-    const hasMoreData = (data.condominiumText && data.condominiumText.trim()) || 
-                       (data.condominiumName && data.condominiumName.trim()) ||
-                       (data.houseNumber && data.houseNumber.toString().trim()) ||
-                       (data.apartment && data.apartment.toString().trim());
-    
-    if (hasMoreData) {
-      console.log('🚨 CRITICAL ERROR: We have additional data but only residencia in parts!');
-      console.log('Available data check:', {
-        condominiumText: data.condominiumText,
-        condominiumName: data.condominiumName,
-        houseNumber: data.houseNumber,
-        apartment: data.apartment
-      });
-      
-      // Force rebuild to ensure we don't lose data
-      if (data.houseNumber?.toString().trim() && !condominiumToAdd) {
-        locationParts.push(data.houseNumber.toString().trim());
-        console.log('🔄 RECOVERY: Added missing house number:', data.houseNumber);
-      }
-    }
-  }
-  
-  // Build final string
-  let result: string;
-  if (locationParts.length > 0) {
-    result = locationParts.join(' – ');
+  // Construir resultado final
+  let finalLocation = '';
+  if (locationParts.length === 0) {
+    finalLocation = 'Ubicación no especificada';
+    console.log('❌ Sin partes - resultado por defecto:', finalLocation);
+  } else if (locationParts.length === 1) {
+    finalLocation = locationParts[0];
+    console.log('📍 Una sola parte - resultado:', finalLocation);
   } else {
-    result = 'Ubicación no especificada';
+    finalLocation = locationParts.join(' – ');
+    console.log('🔗 Múltiples partes unidas - resultado:', finalLocation);
   }
   
-  console.log('🎯 FINAL LOCATION RESULT:', result);
-  console.log('=== END BUILD COMPLETE LOCATION ===');
+  console.log('🎯 UBICACIÓN FINAL PARA', debugId + ':', finalLocation);
+  console.log('🔍 === FIN CONSTRUCCIÓN UBICACIÓN ===\n');
   
-  // Debug logging for troubleshooting
-  if (appointmentId) {
-    logLocationDebug(appointmentId, {
-      residenciaName: data.residenciaName,
-      condominiumName: condominiumToAdd,
-      houseNumber: numberToAdd,
-      apartment: data.apartment,
-      clientAddress: data.clientAddress,
-      isExternal: data.isExternal || false
-    }, result);
-  }
-  
-  return result;
+  return finalLocation;
+};
+
+export const logLocationDebug = (appointmentId: string, data: CompleteLocationData, finalLocation: string): void => {
+  console.log(`🐛 === DEBUG UBICACIÓN ${appointmentId} ===`);
+  console.log('📝 Datos de entrada:', {
+    residencia: data.residenciaName,
+    condominiumText: data.condominiumText,
+    condominiumName: data.condominiumName,
+    apartment: data.apartment,
+    houseNumber: data.houseNumber,
+    isExternal: data.isExternal,
+    clientAddress: data.clientAddress
+  });
+  console.log('🎯 Resultado final:', finalLocation);
+  console.log('🐛 === FIN DEBUG ===\n');
 };

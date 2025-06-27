@@ -31,11 +31,11 @@ export const useClientBookings = () => {
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
-      console.log('=== CLIENT BOOKINGS QUERY START ===');
-      console.log('Fetching client bookings for user:', user.id);
+      console.log('🚀 === INICIO CONSULTA CLIENT BOOKINGS ===');
+      console.log('👤 Obteniendo reservas para usuario:', user.id);
 
       try {
-        // Get basic appointments data
+        // Obtener citas básicas
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -61,18 +61,18 @@ export const useClientBookings = () => {
           .order('start_time', { ascending: false });
 
         if (error) {
-          console.error('Error fetching appointments:', error);
+          console.error('❌ Error obteniendo citas:', error);
           throw error;
         }
 
         if (!appointments?.length) {
-          console.log('No appointments found for client');
+          console.log('📭 No se encontraron citas para el cliente');
           return [];
         }
 
-        console.log(`Found ${appointments.length} appointments`);
+        console.log(`📊 Encontradas ${appointments.length} citas`);
 
-        // Get service information
+        // Obtener información de servicios
         const listingIds = [...new Set(appointments.map(a => a.listing_id).filter(Boolean))];
         let servicesMap = new Map();
 
@@ -92,11 +92,11 @@ export const useClientBookings = () => {
               servicesMap = new Map(listings.map(l => [l.id, l]));
             }
           } catch (error) {
-            console.error('Error fetching services:', error);
+            console.error('❌ Error obteniendo servicios:', error);
           }
         }
 
-        // Get provider information
+        // Obtener información de proveedores
         const providerIds = [...new Set(appointments.map(a => a.provider_id).filter(Boolean))];
         let providersMap = new Map();
 
@@ -111,11 +111,11 @@ export const useClientBookings = () => {
               providersMap = new Map(providers.map(p => [p.id, p]));
             }
           } catch (error) {
-            console.error('Error fetching providers:', error);
+            console.error('❌ Error obteniendo proveedores:', error);
           }
         }
 
-        // Get rated appointments
+        // Obtener citas calificadas
         const appointmentIds = appointments.map(a => a.id);
         let ratedIds = new Set();
 
@@ -127,11 +127,11 @@ export const useClientBookings = () => {
             ratedIds = new Set(ratedAppointments.map((r: any) => r.appointment_id));
           }
         } catch (error) {
-          console.error('Error fetching ratings:', error);
+          console.error('❌ Error obteniendo calificaciones:', error);
         }
 
-        // CRITICAL: Get current user data with ALL location fields
-        console.log('=== FETCHING COMPLETE USER LOCATION DATA FOR CLIENT BOOKINGS ===');
+        // *** PUNTO CRÍTICO: Obtener datos COMPLETOS del usuario ***
+        console.log('🏠 === OBTENIENDO DATOS COMPLETOS DE UBICACIÓN DEL USUARIO ===');
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select(`
@@ -148,53 +148,53 @@ export const useClientBookings = () => {
           .single();
 
         if (userError) {
-          console.error('Error fetching user data for client bookings:', userError);
+          console.error('❌ Error obteniendo datos del usuario:', userError);
         }
 
-        console.log('=== COMPLETE USER LOCATION DATA FOR CLIENT BOOKINGS ===');
-        console.log('Full user data object:', JSON.stringify(userData, null, 2));
-        console.log('Residencia name:', userData?.residencias?.name);
-        console.log('Condominium text (PRIMARY):', userData?.condominium_text);  
-        console.log('Condominium name (FALLBACK):', userData?.condominium_name);
-        console.log('House number:', userData?.house_number);
-        console.log('=== END USER DATA DEBUG FOR CLIENT BOOKINGS ===');
+        console.log('🏠 === DATOS COMPLETOS DEL USUARIO ===');
+        console.log('📋 Objeto completo userData:', JSON.stringify(userData, null, 2));
+        console.log('🏢 Nombre residencia:', userData?.residencias?.name);
+        console.log('🏘️ Texto condominio (PRINCIPAL):', userData?.condominium_text);
+        console.log('🏘️ Nombre condominio (RESPALDO):', userData?.condominium_name);
+        console.log('🏠 Número de casa:', userData?.house_number);
+        console.log('🏠 === FIN DATOS USUARIO ===');
 
-        // Process appointments with enhanced location building
+        // Procesar citas con construcción mejorada de ubicación
         const processedBookings = appointments.map(appointment => {
           const service = servicesMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
           
-          // Build location string using buildCompleteLocation utility
+          console.log(`🔄 === PROCESANDO CITA ${appointment.id} ===`);
+          
           let location = 'Ubicación no especificada';
           
-          console.log(`=== PROCESSING CLIENT BOOKING APPOINTMENT ${appointment.id} ===`);
-          
           if (appointment.external_booking && appointment.client_address) {
-            console.log('External booking detected, using client address');
+            console.log('🌍 Reserva externa detectada');
             location = buildCompleteLocation({
               clientAddress: appointment.client_address,
               isExternal: true
             }, appointment.id);
           } else if (userData) {
-            console.log('Building internal location with COMPLETE user data');
+            console.log('🏠 Construyendo ubicación interna con datos COMPLETOS');
+            
             const locationData = {
               residenciaName: userData.residencias?.name,
-              condominiumText: userData.condominium_text,  // CRITICAL: Use condominium_text first
-              condominiumName: userData.condominium_name,  // Fallback
+              condominiumText: userData.condominium_text,
+              condominiumName: userData.condominium_name,
               houseNumber: userData.house_number,
               apartment: appointment.apartment,
               isExternal: false
             };
             
-            console.log('=== LOCATION DATA BEING PASSED TO buildCompleteLocation ===');
-            console.log('Data being passed:', JSON.stringify(locationData, null, 2));
+            console.log('📤 === DATOS ENVIADOS A buildCompleteLocation ===');
+            console.log('📋 Datos completos:', JSON.stringify(locationData, null, 2));
             
             location = buildCompleteLocation(locationData, appointment.id);
           } else {
-            console.log('⚠️ NO USER DATA AVAILABLE for location building');
+            console.log('❌ NO HAY DATOS DE USUARIO para construcción de ubicación');
           }
 
-          console.log(`Final location for client booking appointment ${appointment.id}:`, location);
+          console.log(`📍 Ubicación final para cita ${appointment.id}:`, location);
 
           return {
             id: appointment.id,
@@ -216,16 +216,16 @@ export const useClientBookings = () => {
           };
         });
 
-        console.log('=== FINAL PROCESSED CLIENT BOOKINGS ===');
-        console.log(`Processed ${processedBookings.length} bookings with locations:`);
+        console.log('🎯 === RESULTADOS FINALES CLIENT BOOKINGS ===');
+        console.log(`📊 Procesadas ${processedBookings.length} reservas con ubicaciones:`);
         processedBookings.forEach(booking => {
-          console.log(`Booking ${booking.id}: "${booking.location}"`);
+          console.log(`📍 Reserva ${booking.id}: "${booking.location}"`);
         });
         
         return processedBookings;
 
       } catch (error) {
-        console.error('Error in useClientBookings:', error);
+        console.error('❌ Error en useClientBookings:', error);
         throw error;
       }
     },

@@ -11,15 +11,15 @@ export function usePendingRequests() {
     queryKey: ['pending-requests', user?.id],
     queryFn: async () => {
       if (!user || user.role !== 'provider') {
-        console.log("User is not a provider, returning empty array");
+        console.log("👤 Usuario no es proveedor, retornando array vacío");
         return [];
       }
       
-      console.log("=== PENDING REQUESTS QUERY START ===");
-      console.log("Fetching pending requests for provider:", user.id);
+      console.log("🚀 === INICIO CONSULTA PENDING REQUESTS ===");
+      console.log("👤 Obteniendo solicitudes pendientes para proveedor:", user.id);
       
       try {
-        // Simple query first - get all pending appointments for this provider
+        // Consulta simple primero - obtener todas las citas pendientes para este proveedor
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -37,28 +37,28 @@ export function usePendingRequests() {
           .order('start_time', { ascending: true });
           
         if (error) {
-          console.error("Error fetching pending apartments:", error);
+          console.error("❌ Error obteniendo citas pendientes:", error);
           throw error;
         }
         
-        console.log("Raw pending appointments found:", appointments?.length || 0);
+        console.log("📊 Citas pendientes encontradas:", appointments?.length || 0);
         
         if (!appointments || appointments.length === 0) {
-          console.log("No pending appointments found for provider:", user.id);
+          console.log("📭 No se encontraron citas pendientes para proveedor:", user.id);
           return [];
         }
         
-        // Process appointments to add client information with complete location
+        // Procesar citas para agregar información del cliente con ubicación completa
         const processedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
-            console.log(`=== PROCESSING PENDING REQUEST APPOINTMENT ${appointment.id} ===`);
+            console.log(`🔄 === PROCESANDO SOLICITUD PENDIENTE ${appointment.id} ===`);
             
             let clientInfo = null;
             let clientLocation = 'Ubicación no especificada';
 
-            // Get client information if it's not an external booking
+            // Obtener información del cliente si no es una reserva externa
             if (appointment.client_id && !appointment.external_booking) {
-              console.log(`Fetching COMPLETE client data for client_id: ${appointment.client_id}`);
+              console.log(`👤 Obteniendo datos COMPLETOS del cliente para client_id: ${appointment.client_id}`);
               
               const { data: clientData, error: clientError } = await supabase
                 .from('users')
@@ -80,40 +80,40 @@ export function usePendingRequests() {
                 .single();
 
               if (clientError) {
-                console.error("Error fetching client data for pending request:", appointment.id, clientError);
+                console.error("❌ Error obteniendo datos del cliente para solicitud pendiente:", appointment.id, clientError);
               } else if (clientData) {
                 clientInfo = clientData;
-                console.log("=== COMPLETE CLIENT DATA FOR PENDING REQUEST ===");
-                console.log('Full client data:', JSON.stringify(clientData, null, 2));
-                console.log('Residencia name:', clientData.residencias?.name);
-                console.log('Condominium text (PRIMARY):', clientData.condominium_text);
-                console.log('Condominium name (FALLBACK):', clientData.condominium_name);
-                console.log('House number:', clientData.house_number);
-                console.log('Apartment from appointment:', appointment.apartment);
+                console.log("🏠 === DATOS COMPLETOS DEL CLIENTE PARA SOLICITUD PENDIENTE ===");
+                console.log('📋 Datos completos del cliente:', JSON.stringify(clientData, null, 2));
+                console.log('🏢 Nombre residencia:', clientData.residencias?.name);
+                console.log('🏘️ Texto condominio (PRINCIPAL):', clientData.condominium_text);
+                console.log('🏘️ Nombre condominio (RESPALDO):', clientData.condominium_name);
+                console.log('🏠 Número de casa:', clientData.house_number);
+                console.log('🏠 Apartamento de la cita:', appointment.apartment);
                 
-                // Build complete location string using buildCompleteLocation utility
+                // Construir cadena de ubicación completa usando utilidad buildCompleteLocation
                 const locationData = {
                   residenciaName: clientData.residencias?.name,
-                  condominiumText: clientData.condominium_text,  // CRITICAL: Use condominium_text first
-                  condominiumName: clientData.condominium_name,  // Fallback
+                  condominiumText: clientData.condominium_text,
+                  condominiumName: clientData.condominium_name,
                   houseNumber: clientData.house_number,
                   apartment: appointment.apartment,
                   isExternal: false
                 };
                 
-                console.log('=== LOCATION DATA FOR PENDING REQUEST ===');
-                console.log('Data being passed to buildCompleteLocation:', JSON.stringify(locationData, null, 2));
+                console.log('📤 === DATOS PARA SOLICITUD PENDIENTE ===');
+                console.log('📋 Datos enviados a buildCompleteLocation:', JSON.stringify(locationData, null, 2));
                 clientLocation = buildCompleteLocation(locationData, appointment.id);
                 
-                console.log('Final client location for pending request:', clientLocation);
+                console.log('📍 Ubicación final del cliente para solicitud pendiente:', clientLocation);
               }
             }
 
-            // Handle external bookings
+            // Manejar reservas externas
             const isExternal = appointment.external_booking || !appointment.client_id;
 
             if (isExternal) {
-              console.log('External booking detected for pending request, using stored address:', appointment.client_address);
+              console.log('🌍 Reserva externa detectada para solicitud pendiente, usando dirección almacenada:', appointment.client_address);
               clientLocation = buildCompleteLocation({
                 clientAddress: appointment.client_address,
                 isExternal: true
@@ -136,30 +136,30 @@ export function usePendingRequests() {
               service_name: appointment.listings?.title || 'Servicio'
             };
 
-            console.log(`=== PROCESSED PENDING REQUEST ${appointment.id} ===`);
-            console.log('Final location:', processed.client_location);
-            console.log('Is external:', processed.is_external);
+            console.log(`✅ === SOLICITUD PENDIENTE PROCESADA ${appointment.id} ===`);
+            console.log('📍 Ubicación final:', processed.client_location);
+            console.log('🌍 Es externa:', processed.is_external);
             
             return processed;
           })
         );
         
-        console.log(`=== PENDING REQUESTS FINAL RESULTS ===`);
-        console.log(`Returning ${processedAppointments.length} processed pending requests`);
+        console.log(`🎯 === RESULTADOS FINALES PENDING REQUESTS ===`);
+        console.log(`📊 Retornando ${processedAppointments.length} solicitudes pendientes procesadas`);
         processedAppointments.forEach(app => {
-          console.log(`Pending request ${app.id}: "${app.client_location}"`);
+          console.log(`📍 Solicitud pendiente ${app.id}: "${app.client_location}"`);
         });
         
         return processedAppointments;
         
       } catch (error) {
-        console.error("Error in pending requests query:", error);
+        console.error("❌ Error en consulta de solicitudes pendientes:", error);
         throw error;
       }
     },
     enabled: !!user && user.role === 'provider',
-    refetchInterval: 10000, // Check for new requests every 10 seconds
+    refetchInterval: 10000, // Verificar nuevas solicitudes cada 10 segundos
     retry: 3,
-    staleTime: 5000 // Consider data stale after 5 seconds
+    staleTime: 5000 // Considerar datos obsoletos después de 5 segundos
   });
 }
