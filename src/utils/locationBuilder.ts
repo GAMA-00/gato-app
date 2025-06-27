@@ -11,7 +11,7 @@ export interface CompleteLocationData {
 
 export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?: string): string => {
   const debugId = appointmentId || 'unknown';
-  console.log(`🔍 === BUILDING LOCATION FOR ${debugId} ===`);
+  console.log(`🔍 === BUILDING LOCATION FOR DASHBOARD ${debugId} ===`);
   console.log('📥 Raw input data:', JSON.stringify(data, null, 2));
 
   // Para reservas externas, usar la dirección del cliente
@@ -31,7 +31,7 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     console.log('❌ PASO 1 - No hay nombre de residencia');
   }
   
-  // PASO 2: Agregar condominio (priorizar condominiumText)
+  // PASO 2: Agregar condominio (priorizar condominiumText sobre condominiumName)
   let condominiumToAdd = '';
   if (data.condominiumText?.trim()) {
     condominiumToAdd = data.condominiumText.trim();
@@ -48,7 +48,7 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     console.log('✅ PASO 2 - Condominio agregado a partes:', condominiumToAdd);
   }
   
-  // PASO 3: Agregar número de casa/apartamento
+  // PASO 3: Agregar número de casa/apartamento (priorizar apartment sobre houseNumber)
   let numberToAdd = '';
   if (data.apartment?.toString().trim()) {
     numberToAdd = data.apartment.toString().trim();
@@ -70,7 +70,7 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
   }
   
   // CONSTRUCCIÓN FINAL
-  console.log('🔧 === CONSTRUCCIÓN FINAL ===');
+  console.log('🔧 === CONSTRUCCIÓN FINAL PARA DASHBOARD ===');
   console.log('📋 Partes recolectadas:', locationParts);
   console.log('📊 Total de partes:', locationParts.length);
   
@@ -87,14 +87,14 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     console.log('🔗 Múltiples partes unidas - resultado:', finalLocation);
   }
   
-  console.log('🎯 UBICACIÓN FINAL PARA', debugId + ':', finalLocation);
-  console.log('🔍 === FIN CONSTRUCCIÓN UBICACIÓN ===\n');
+  console.log('🎯 UBICACIÓN FINAL PARA DASHBOARD', debugId + ':', finalLocation);
+  console.log('🔍 === FIN CONSTRUCCIÓN UBICACIÓN DASHBOARD ===\n');
   
   return finalLocation;
 };
 
 export const logLocationDebug = (appointmentId: string, data: CompleteLocationData, finalLocation: string): void => {
-  console.log(`🐛 === DEBUG UBICACIÓN ${appointmentId} ===`);
+  console.log(`🐛 === DEBUG UBICACIÓN DASHBOARD ${appointmentId} ===`);
   console.log('📝 Datos de entrada:', {
     residencia: data.residenciaName,
     condominiumText: data.condominiumText,
@@ -105,5 +105,5 @@ export const logLocationDebug = (appointmentId: string, data: CompleteLocationDa
     clientAddress: data.clientAddress
   });
   console.log('🎯 Resultado final:', finalLocation);
-  console.log('🐛 === FIN DEBUG ===\n');
+  console.log('🐛 === FIN DEBUG DASHBOARD ===\n');
 };
