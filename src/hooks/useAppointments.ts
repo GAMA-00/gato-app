@@ -8,7 +8,7 @@ import { startOfToday, endOfDay, addDays } from 'date-fns';
 export const useAppointments = () => {
   const { user } = useAuth();
 
-  // Get regular appointments with complete client and residence data
+  // Get regular appointments
   const { data: regularAppointments = [], isLoading: isLoadingRegular, error } = useQuery({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
@@ -21,6 +21,7 @@ export const useAppointments = () => {
       console.log(`User ID: ${user.id}, Role: ${user.role}`);
 
       try {
+        // Step 1: Get basic appointments with listings data
         let query = supabase
           .from('appointments')
           .select(`
@@ -28,8 +29,45 @@ export const useAppointments = () => {
             listings(
               title,
               duration
-            ),
-            client_data:users!client_id(
+            )
+          `)
+          .order('start_time', { ascending: true });
+
+        // Filter by user role
+        if (user.role === 'provider') {
+          query = query.eq('provider_id', user.id);
+        } else if (user.role === 'client') {
+          query = query.eq('client_id', user.id);
+        }
+
+        const { data: appointments, error: appointmentsError } = await query;
+
+        if (appointmentsError) {
+          console.error('Error fetching appointments:', appointmentsError);
+          return [];
+        }
+
+        if (!appointments || appointments.length === 0) {
+          console.log('No appointments found');
+          return [];
+        }
+
+        console.log(`Fetched ${appointments.length} basic appointments`);
+
+        // Step 2: Get unique client IDs for data fetching
+        const clientIds = [...new Set(
+          appointments
+            .map(apt => apt.client_id)
+            .filter(id => id && !apt.external_booking)
+        )];
+
+        let clientsData = [];
+        if (clientIds.length > 0) {
+          console.log('Fetching client data for IDs:', clientIds);
+          
+          const { data: clients, error: clientsError } = await supabase
+            .from('users')
+            .select(`
               id,
               name,
               phone,
@@ -42,41 +80,66 @@ export const useAppointments = () => {
                 id,
                 name
               )
-            )
-          `)
-          .order('start_time', { ascending: true });
+            `)
+            .in('id', clientIds);
 
-        // Filter by user role
-        if (user.role === 'provider') {
-          query = query.eq('provider_id', user.id);
-        } else if (user.role === 'client') {
-          query = query.eq('client_id', user.id);
+          if (clientsError) {
+            console.error('Error fetching clients data:', clientsError);
+          } else {
+            clientsData = clients || [];
+            console.log(`Fetched data for ${clientsData.length} clients`);
+          }
         }
 
-        const { data, error } = await query;
+        // Step 3: Create a map for quick client data lookup
+        const clientsMap = new Map(clientsData.map(client => [client.id, client]));
 
-        if (error) {
-          console.error('Error fetching appointments with complete data:', error);
-          return [];
-        }
+        // Step 4: Enhance appointments with complete client data
+        const enhancedAppointments = appointments.map(appointment => {
+          const clientData = clientsMap.get(appointment.client_id);
+          
+          console.log(`Processing appointment ${appointment.id}:`, {
+            client_id: appointment.client_id,
+            external_booking: appointment.external_booking,
+            has_client_data: !!clientData,
+            client_name: appointment.client_name
+          });
 
-        console.log(`Fetched ${data?.length || 0} appointments with complete client data`);
+          if (clientData) {
+            console.log(`Client data for appointment ${appointment.id}:`, {
+              name: clientData.name,
+              house_number: clientData.house_number,
+              condominium_text: clientData.condominium_text,
+              condominium_name: clientData.condominium_name,
+              residencia_name: clientData.residencias?.name
+            });
+          }
+
+          return {
+            ...appointment,
+            client_data: clientData || null,
+            client_name: appointment.client_name || clientData?.name || 'Cliente',
+            service_title: appointment.listings?.title || 'Servicio'
+          };
+        });
+
+        console.log(`Enhanced ${enhancedAppointments.length} appointments with complete client data`);
         
         // Log sample data for debugging
-        if (data && data.length > 0) {
-          console.log('=== SAMPLE APPOINTMENT DATA WITH CLIENT INFO ===');
-          const sampleApp = data[0];
+        if (enhancedAppointments.length > 0) {
+          console.log('=== SAMPLE ENHANCED APPOINTMENT DATA ===');
+          const sampleApp = enhancedAppointments[0];
           console.log('Sample appointment:', {
             id: sampleApp.id,
             client_name: sampleApp.client_name,
             external_booking: sampleApp.external_booking,
             client_address: sampleApp.client_address,
             apartment: sampleApp.apartment,
-            client_data: sampleApp.client_data
+            has_client_data: !!sampleApp.client_data
           });
           
           if (sampleApp.client_data) {
-            console.log('Client data details:', {
+            console.log('Complete client data:', {
               name: sampleApp.client_data.name,
               house_number: sampleApp.client_data.house_number,
               condominium_text: sampleApp.client_data.condominium_text,
@@ -86,7 +149,7 @@ export const useAppointments = () => {
           }
         }
         
-        return data || [];
+        return enhancedAppointments;
       } catch (err) {
         console.error('Exception in appointments query:', err);
         return [];
@@ -127,9 +190,7 @@ export const useAppointments = () => {
   const allAppointments = [
     ...regularOnly.map(app => ({
       ...app,
-      is_recurring_instance: false,
-      client_name: app.client_name || app.client_data?.name || 'Cliente',
-      service_title: app.listings?.title || 'Servicio'
+      is_recurring_instance: false
     })),
     ...recurringInstances
   ];
