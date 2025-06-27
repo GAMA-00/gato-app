@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,16 +7,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { validateBookingSlot } from '@/utils/bookingValidation';
 import { buildLocationString } from '@/utils/locationUtils';
-import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, MapPin, Clock, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
-import RecurrenceSelector from '@/components/client/booking/RecurrenceSelector';
-import DateTimeSelector from '@/components/client/booking/DateTimeSelector';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import BookingHeader from '@/components/client/booking/BookingHeader';
+import ServiceSummaryCard from '@/components/client/booking/ServiceSummaryCard';
+import BookingForm from '@/components/client/booking/BookingForm';
+import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
 
 const ClientBooking = () => {
   const { serviceId } = useParams();
@@ -102,17 +99,14 @@ const ClientBooking = () => {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="md:ml-52">
-          <PageContainer title="Error" subtitle="">
+          <div className="container mx-auto px-4 py-6 max-w-6xl">
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">
                 No se pudo cargar la información del servicio
               </p>
-              <Button onClick={handleBackNavigation}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver
-              </Button>
+              <BookingHeader onBackClick={handleBackNavigation} />
             </div>
-          </PageContainer>
+          </div>
         </div>
       </div>
     );
@@ -204,157 +198,49 @@ const ClientBooking = () => {
       <div className="md:ml-52">
         <div className="container mx-auto px-4 py-6 max-w-6xl">
           {/* Back button positioned in top left corner above title */}
-          <div className="w-full mb-6">
-            <Button 
-              variant="ghost" 
-              onClick={handleBackNavigation}
-              className="mb-2 p-0 h-auto text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
-            
-            {/* Centered Title */}
-            <h1 className="text-2xl md:text-3xl font-bold text-luxury-navy mb-6 text-center">
-              Reservar Servicio
-            </h1>
-          </div>
+          <BookingHeader onBackClick={handleBackNavigation} />
 
           {/* Service summary */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <CalendarIcon className="h-6 w-6 text-primary" />
-                {serviceDetails.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row md:items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {isLoadingUserData ? 'Cargando ubicación...' : clientLocation}
-                  </span>
-                </div>
-                {selectedVariant && (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedVariant.duration} minutos</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">
-                        ${formatPrice(selectedVariant.price)}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <ServiceSummaryCard
+            serviceTitle={serviceDetails.title}
+            clientLocation={clientLocation}
+            isLoadingLocation={isLoadingUserData}
+            selectedVariant={selectedVariant}
+            formatPrice={formatPrice}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column - Booking Form */}
-            <div className="space-y-6">
-              {/* 1. Recurrence Selection */}
-              <RecurrenceSelector
-                selectedFrequency={selectedFrequency}
-                onFrequencyChange={setSelectedFrequency}
-              />
-
-              {/* 2. & 3. & 4. Date and Time Selection with Refresh */}
-              <DateTimeSelector
-                selectedDate={selectedDate}
-                selectedTime={selectedTime}
-                onDateChange={setSelectedDate}
-                onTimeChange={setSelectedTime}
-                providerId={providerId}
-                serviceDuration={selectedVariant?.duration || 60}
-                selectedFrequency={selectedFrequency}
-              />
-
-              {/* Notes */}
-              <Card>
-                <CardContent className="pt-6">
-                  <label className="text-base font-medium mb-3 block">
-                    Notas adicionales (opcional)
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Instrucciones especiales, preferencias, etc."
-                    className="w-full p-3 border rounded-lg min-h-[100px] resize-none"
-                  />
-                </CardContent>
-              </Card>
-            </div>
+            <BookingForm
+              selectedFrequency={selectedFrequency}
+              onFrequencyChange={setSelectedFrequency}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              onDateChange={setSelectedDate}
+              onTimeChange={setSelectedTime}
+              providerId={providerId}
+              selectedVariant={selectedVariant}
+              notes={notes}
+              onNotesChange={setNotes}
+            />
 
             {/* Right Column - Booking Summary */}
             <div className="space-y-6">
-              {/* 5. Booking Summary */}
-              <Card className="sticky top-6">
-                <CardHeader>
-                  <CardTitle>Resumen de Reserva</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="font-medium">{serviceDetails.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {serviceDetails.provider?.name}
-                    </p>
-                  </div>
-
-                  {selectedVariant && (
-                    <div>
-                      <p className="font-medium">{selectedVariant.name}</p>
-                      <div className="flex justify-between text-sm">
-                        <span>Duración:</span>
-                        <span>{selectedVariant.duration} min</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Precio:</span>
-                        <span className="font-medium">${formatPrice(selectedVariant.price)}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedDate && selectedTime && (
-                    <div>
-                      <p className="font-medium text-sm mb-1">Fecha y hora:</p>
-                      <p className="text-sm">
-                        {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-                      </p>
-                      <p className="text-sm">
-                        {selectedTime} ({getRecurrenceText(selectedFrequency)})
-                      </p>
-                    </div>
-                  )}
-
-                  <div>
-                    <p className="font-medium text-sm mb-1">Ubicación:</p>
-                    <p className="text-sm">
-                      {isLoadingUserData ? 'Cargando ubicación...' : clientLocation}
-                    </p>
-                  </div>
-
-                  {/* 6. Booking Button */}
-                  <Button
-                    onClick={handleBooking}
-                    disabled={!isBookingValid || isLoading}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                    size="lg"
-                  >
-                    {isLoading ? 'Creando reserva...' : 'Confirmar Reserva'}
-                  </Button>
-
-                  {!isBookingValid && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      Completa todos los campos para continuar
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              <BookingSummaryCard
+                serviceTitle={serviceDetails.title}
+                providerName={serviceDetails.provider?.name}
+                selectedVariant={selectedVariant}
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                clientLocation={clientLocation}
+                isLoadingLocation={isLoadingUserData}
+                isBookingValid={isBookingValid}
+                isLoading={isLoading}
+                onBooking={handleBooking}
+                formatPrice={formatPrice}
+                getRecurrenceText={getRecurrenceText}
+                selectedFrequency={selectedFrequency}
+              />
             </div>
           </div>
         </div>
