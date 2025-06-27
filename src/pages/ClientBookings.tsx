@@ -47,14 +47,8 @@ const ClientBookings = () => {
       <Navbar />
       <div className="md:ml-52">
         <PageContainer
-          title={
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-3xl md:text-4xl font-bold">Mis Reservas</span>
-              <span className="text-sm text-muted-foreground">
-                {activeRecurringCount} instancias recurrentes activas
-              </span>
-            </div>
-          }
+          title="Mis Reservas"
+          subtitle={`${activeRecurringCount} instancias recurrentes activas`}
         >
           {error && (
             <Alert className="mb-6">
