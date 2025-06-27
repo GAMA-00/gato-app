@@ -34,7 +34,7 @@ export const useClientBookings = () => {
       console.log('Fetching client bookings for user:', user.id);
 
       try {
-        // Get basic appointments data
+        // Get basic appointments data with enhanced location info
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -92,7 +92,6 @@ export const useClientBookings = () => {
             }
           } catch (error) {
             console.error('Error fetching services:', error);
-            // Continue without service data
           }
         }
 
@@ -112,7 +111,6 @@ export const useClientBookings = () => {
             }
           } catch (error) {
             console.error('Error fetching providers:', error);
-            // Continue without provider data
           }
         }
 
@@ -129,15 +127,15 @@ export const useClientBookings = () => {
           }
         } catch (error) {
           console.error('Error fetching ratings:', error);
-          // Continue without rating data
         }
 
-        // Get current user data for location building
+        // Get current user data with complete location info
         const { data: userData } = await supabase
           .from('users')
           .select(`
             house_number,
             condominium_text,
+            condominium_name,
             residencias (
               id,
               name
@@ -146,12 +144,14 @@ export const useClientBookings = () => {
           .eq('id', user.id)
           .single();
 
+        console.log('User location data:', userData);
+
         // Process appointments
         const processedBookings = appointments.map(appointment => {
           const service = servicesMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
           
-          // Build location string using buildLocationString utility
+          // Build location string using buildLocationString utility with complete data
           let location = 'Ubicación no especificada';
           
           if (appointment.external_booking && appointment.client_address) {
@@ -160,12 +160,23 @@ export const useClientBookings = () => {
               isExternal: true
             });
           } else if (userData) {
+            // Use the best available condominium name
+            const condominiumName = userData.condominium_name || userData.condominium_text;
+            
             location = buildLocationString({
               residenciaName: userData.residencias?.name,
-              condominiumName: userData.condominium_text,
+              condominiumName: condominiumName,
               houseNumber: userData.house_number,
               apartment: appointment.apartment,
               isExternal: false
+            });
+            
+            console.log('Built location for appointment:', appointment.id, {
+              residencia: userData.residencias?.name,
+              condominium: condominiumName,
+              house: userData.house_number,
+              apartment: appointment.apartment,
+              result: location
             });
           }
 
@@ -191,7 +202,8 @@ export const useClientBookings = () => {
           return result;
         });
 
-        console.log(`Processed ${processedBookings.length} bookings`);
+        console.log(`Processed ${processedBookings.length} bookings with locations:`, 
+          processedBookings.map(b => ({ id: b.id, location: b.location })));
         return processedBookings;
 
       } catch (error) {

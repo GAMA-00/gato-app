@@ -48,7 +48,7 @@ export function usePendingRequests() {
           return [];
         }
         
-        // Process appointments to add client information
+        // Process appointments to add client information with complete location
         const processedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
             console.log(`Processing pending appointment ${appointment.id}:`, appointment);
@@ -70,6 +70,7 @@ export function usePendingRequests() {
                   house_number,
                   residencia_id,
                   condominium_text,
+                  condominium_name,
                   residencias (
                     id,
                     name
@@ -84,13 +85,23 @@ export function usePendingRequests() {
                 clientInfo = clientData;
                 console.log("Client data found:", clientData);
                 
-                // Build location string using buildLocationString utility
+                // Build complete location string using buildLocationString utility
+                const condominiumName = clientData.condominium_name || clientData.condominium_text;
+                
                 clientLocation = buildLocationString({
                   residenciaName: clientData.residencias?.name,
-                  condominiumName: clientData.condominium_text,
+                  condominiumName: condominiumName,
                   houseNumber: clientData.house_number,
                   apartment: appointment.apartment,
                   isExternal: false
+                });
+                
+                console.log('Built complete location for client:', {
+                  residencia: clientData.residencias?.name,
+                  condominium: condominiumName,
+                  house: clientData.house_number,
+                  apartment: appointment.apartment,
+                  result: clientLocation
                 });
               }
             }
@@ -119,7 +130,7 @@ export function usePendingRequests() {
               service_name: appointment.listings?.title || 'Servicio'
             };
 
-            console.log(`Processed pending appointment ${appointment.id}:`, processed);
+            console.log(`Processed pending appointment ${appointment.id} with location:`, processed.client_location);
             return processed;
           })
         );

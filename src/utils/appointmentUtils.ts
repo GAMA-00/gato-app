@@ -1,5 +1,5 @@
 
-import { LocationData, buildLocationString } from './locationUtils';
+import { LocationData, buildLocationString, logLocationDebug } from './locationUtils';
 
 // Enhanced function to get the correct name based on user role
 export const getDisplayName = (appointment: any, user: any) => {
@@ -31,7 +31,7 @@ export const getServiceName = (appointment: any) => {
   return appointment.listings?.title || 'Servicio';
 };
 
-// Enhanced location info function with better fallback logic
+// Enhanced location info function with complete location building
 export const getLocationInfo = (appointment: any) => {
   console.log('Getting location for appointment:', appointment.id, appointment);
   
@@ -45,22 +45,33 @@ export const getLocationInfo = (appointment: any) => {
   const isExternal = appointment.external_booking || appointment.is_external;
   
   if (isExternal) {
-    const location = appointment.client_address || 'Ubicación externa';
+    const location = buildLocationString({
+      clientAddress: appointment.client_address,
+      isExternal: true
+    });
     console.log('External appointment location:', location);
     return location;
   }
   
-  // Build location from available data
+  // Build complete location from available data
   const locationData: LocationData = {
-    residenciaName: appointment.residencias?.name,
-    condominiumName: appointment.users?.condominium_name || appointment.users?.condominium_text,
-    houseNumber: appointment.users?.house_number,
+    residenciaName: appointment.residencias?.name || appointment.users?.residencias?.name,
+    condominiumName: appointment.users?.condominium_name || 
+                    appointment.users?.condominium_text || 
+                    appointment.condominium_name ||
+                    appointment.condominium_text,
+    houseNumber: appointment.users?.house_number || appointment.house_number,
     apartment: appointment.apartment,
     clientAddress: appointment.client_address,
     isExternal: false
   };
   
-  return buildLocationString(locationData);
+  const location = buildLocationString(locationData);
+  
+  // Log for debugging
+  logLocationDebug(appointment.id, locationData, location);
+  
+  return location;
 };
 
 // Enhanced contact info function
