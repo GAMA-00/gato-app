@@ -57,8 +57,8 @@ export const useAppointments = () => {
         // Step 2: Get unique client IDs for data fetching
         const clientIds = [...new Set(
           appointments
-            .map(apt => apt.client_id)
-            .filter(id => id && !apt.external_booking)
+            .map(appointment => appointment.client_id)
+            .filter(id => id && !appointment.external_booking)
         )];
 
         let clientsData = [];
@@ -163,12 +163,12 @@ export const useAppointments = () => {
   });
 
   // Separate regular and recurring appointments
-  const regularOnly = regularAppointments.filter(app => 
-    !app.recurrence || app.recurrence === 'none'
+  const regularOnly = regularAppointments.filter(appointment => 
+    !appointment.recurrence || appointment.recurrence === 'none'
   );
   
-  const recurringBase = regularAppointments.filter(app => 
-    app.recurrence && app.recurrence !== 'none'
+  const recurringBase = regularAppointments.filter(appointment => 
+    appointment.recurrence && appointment.recurrence !== 'none'
   );
 
   console.log(`Regular appointments: ${regularOnly.length}`);
@@ -188,8 +188,8 @@ export const useAppointments = () => {
 
   // Combine all appointments
   const allAppointments = [
-    ...regularOnly.map(app => ({
-      ...app,
+    ...regularOnly.map(appointment => ({
+      ...appointment,
       is_recurring_instance: false
     })),
     ...recurringInstances
