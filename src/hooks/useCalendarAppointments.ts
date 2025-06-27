@@ -1,8 +1,8 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { buildCompleteLocation } from '@/utils/locationBuilder';
 
 interface AppointmentData {
   id: string;
@@ -42,6 +42,7 @@ interface EnhancedAppointment extends AppointmentData {
     house_number: string | null;
   } | null;
   residencias: null;
+  complete_location: string;
 }
 
 export const useCalendarAppointments = (currentDate: Date) => {
@@ -164,7 +165,8 @@ export const useCalendarAppointments = (currentDate: Date) => {
                   name: user.name || '',
                   phone: user.phone || '',
                   email: user.email || '',
-                  condominium_name: user.condominium_name || user.condominium_text,
+                  condominium_name: user.condominium_name,
+                  condominium_text: user.condominium_text,
                   house_number: user.house_number,
                   residencias: user.residencias
                 };
@@ -178,13 +180,37 @@ export const useCalendarAppointments = (currentDate: Date) => {
           }
         }
 
-        // Transform appointments with enhanced data
-        const enhancedAppointments: EnhancedAppointment[] = appointmentsList.map(appointment => ({
-          ...appointment,
-          listings: listingsMap[appointment.listing_id] || null,
-          users: appointment.client_id ? usersMap[appointment.client_id] || null : null,
-          residencias: appointment.client_id && usersMap[appointment.client_id]?.residencias || null
-        }));
+        // Transform appointments with enhanced data and location building
+        const enhancedAppointments: EnhancedAppointment[] = appointmentsList.map(appointment => {
+          const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
+          
+          // Build complete location using the centralized location builder
+          let completeLocation = 'Ubicación no especificada';
+          
+          if (appointment.external_booking) {
+            completeLocation = buildCompleteLocation({
+              clientAddress: appointment.client_address,
+              isExternal: true
+            }, appointment.id);
+          } else if (clientUser) {
+            completeLocation = buildCompleteLocation({
+              residenciaName: clientUser.residencias?.name,
+              condominiumName: clientUser.condominium_name,
+              condominiumText: clientUser.condominium_text,
+              houseNumber: clientUser.house_number,
+              apartment: appointment.apartment,
+              isExternal: false
+            }, appointment.id);
+          }
+
+          return {
+            ...appointment,
+            listings: listingsMap[appointment.listing_id] || null,
+            users: clientUser,
+            residencias: clientUser?.residencias || null,
+            complete_location: completeLocation
+          };
+        });
 
         console.log(`Successfully processed ${enhancedAppointments.length} appointments for calendar`);
         return enhancedAppointments;

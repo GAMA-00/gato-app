@@ -1,8 +1,7 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { buildLocationString } from '@/utils/locationUtils';
+import { buildCompleteLocation } from '@/utils/locationBuilder';
 
 export interface ClientBooking {
   id: string;
@@ -153,49 +152,33 @@ export const useClientBookings = () => {
 
         console.log('=== USER LOCATION DATA RECEIVED ===');
         console.log('Raw user data:', userData);
-        console.log('Residencia data:', userData?.residencias);
-        console.log('Condominium name:', userData?.condominium_name);
-        console.log('Condominium text:', userData?.condominium_text);
-        console.log('House number:', userData?.house_number);
 
         // Process appointments with enhanced location building
         const processedBookings = appointments.map(appointment => {
           const service = servicesMap.get(appointment.listing_id);
           const provider = providersMap.get(appointment.provider_id);
           
-          // Build location string using buildLocationString utility with complete data
+          // Build location string using buildCompleteLocation utility
           let location = 'Ubicación no especificada';
           
           console.log(`=== PROCESSING APPOINTMENT ${appointment.id} ===`);
           
           if (appointment.external_booking && appointment.client_address) {
             console.log('External booking detected, using client address');
-            location = buildLocationString({
+            location = buildCompleteLocation({
               clientAddress: appointment.client_address,
               isExternal: true
-            });
+            }, appointment.id);
           } else if (userData) {
-            // Use ALL available condominium data - prioritize condominium_name over condominium_text
-            const condominiumName = userData.condominium_name || userData.condominium_text;
-            
-            console.log('Building internal location with:', {
+            console.log('Building internal location with complete data');
+            location = buildCompleteLocation({
               residenciaName: userData.residencias?.name,
-              condominiumName: condominiumName,
-              houseNumber: userData.house_number,
-              apartment: appointment.apartment
-            });
-            
-            location = buildLocationString({
-              residenciaName: userData.residencias?.name,
-              condominiumName: condominiumName,
+              condominiumName: userData.condominium_name,
+              condominiumText: userData.condominium_text,
               houseNumber: userData.house_number,
               apartment: appointment.apartment,
               isExternal: false
-            });
-            
-            console.log('Built location result:', location);
-          } else {
-            console.log('No user data available for location building');
+            }, appointment.id);
           }
 
           const result: ClientBooking = {

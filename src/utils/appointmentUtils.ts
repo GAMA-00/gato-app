@@ -1,5 +1,4 @@
-
-import { LocationData, buildLocationString, logLocationDebug } from './locationUtils';
+import { buildCompleteLocation } from './locationBuilder';
 
 // Enhanced function to get the correct name based on user role
 export const getDisplayName = (appointment: any, user: any) => {
@@ -35,7 +34,6 @@ export const getServiceName = (appointment: any) => {
 export const getLocationInfo = (appointment: any) => {
   console.log('=== GET LOCATION INFO ===');
   console.log('Getting location for appointment:', appointment.id);
-  console.log('Appointment data:', appointment);
   
   // First, check if we have pre-computed complete location
   if (appointment.complete_location) {
@@ -49,40 +47,31 @@ export const getLocationInfo = (appointment: any) => {
     return appointment.client_location;
   }
   
-  // Fallback: build location manually from available data
+  // Fallback: build location manually from available data using the centralized builder
   const isExternal = appointment.external_booking || appointment.is_external;
   
   if (isExternal) {
-    const location = buildLocationString({
+    return buildCompleteLocation({
       clientAddress: appointment.client_address,
       isExternal: true
-    });
-    console.log('External appointment location:', location);
-    return location;
+    }, appointment.id);
   }
   
   // Build complete location from available data
-  // Try to get the best available condominium name
   const condominiumName = appointment.users?.condominium_name || 
                           appointment.users?.condominium_text || 
                           appointment.condominium_name ||
                           appointment.condominium_text;
   
-  const locationData: LocationData = {
+  const location = buildCompleteLocation({
     residenciaName: appointment.residencias?.name || appointment.users?.residencias?.name,
     condominiumName: condominiumName,
+    condominiumText: appointment.users?.condominium_text || appointment.condominium_text,
     houseNumber: appointment.users?.house_number || appointment.house_number,
     apartment: appointment.apartment,
     clientAddress: appointment.client_address,
     isExternal: false
-  };
-  
-  console.log('Building location with data:', locationData);
-  
-  const location = buildLocationString(locationData);
-  
-  // Log for debugging
-  logLocationDebug(appointment.id, locationData, location);
+  }, appointment.id);
   
   return location;
 };

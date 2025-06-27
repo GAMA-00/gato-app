@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildLocationString } from "@/utils/locationUtils";
+import { buildCompleteLocation } from "@/utils/locationBuilder";
 
 export function usePendingRequests() {
   const { user } = useAuth();
@@ -52,7 +52,6 @@ export function usePendingRequests() {
         const processedAppointments = await Promise.all(
           appointments.map(async (appointment) => {
             console.log(`=== PROCESSING PENDING APPOINTMENT ${appointment.id} ===`);
-            console.log('Appointment data:', appointment);
             
             let clientInfo = null;
             let clientLocation = 'Ubicación no especificada';
@@ -86,30 +85,16 @@ export function usePendingRequests() {
                 clientInfo = clientData;
                 console.log("=== CLIENT DATA FOUND ===");
                 console.log('Client data:', clientData);
-                console.log('Residencia:', clientData.residencias);
-                console.log('Condominium name:', clientData.condominium_name);
-                console.log('Condominium text:', clientData.condominium_text);
-                console.log('House number:', clientData.house_number);
-                console.log('Apartment:', appointment.apartment);
                 
-                // Build complete location string using buildLocationString utility
-                // Prioritize condominium_name over condominium_text
-                const condominiumName = clientData.condominium_name || clientData.condominium_text;
-                
-                console.log('Building location with:', {
+                // Build complete location string using buildCompleteLocation utility
+                clientLocation = buildCompleteLocation({
                   residenciaName: clientData.residencias?.name,
-                  condominiumName: condominiumName,
-                  houseNumber: clientData.house_number,
-                  apartment: appointment.apartment
-                });
-                
-                clientLocation = buildLocationString({
-                  residenciaName: clientData.residencias?.name,
-                  condominiumName: condominiumName,
+                  condominiumName: clientData.condominium_name,
+                  condominiumText: clientData.condominium_text,
                   houseNumber: clientData.house_number,
                   apartment: appointment.apartment,
                   isExternal: false
-                });
+                }, appointment.id);
                 
                 console.log('Final client location built:', clientLocation);
               }
@@ -120,10 +105,10 @@ export function usePendingRequests() {
 
             if (isExternal) {
               console.log('External booking detected, using stored address:', appointment.client_address);
-              clientLocation = buildLocationString({
+              clientLocation = buildCompleteLocation({
                 clientAddress: appointment.client_address,
                 isExternal: true
-              });
+              }, appointment.id);
             }
 
             const processed = {
