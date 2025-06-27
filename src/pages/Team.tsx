@@ -23,14 +23,14 @@ const Team: React.FC = () => {
       return (
         <>
           <Navbar />
-          <div className="md:ml-52">
+          <PageContainer className="pt-0">
             <div className="min-h-screen bg-white flex items-center justify-center">
               <div className="text-center space-y-4">
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
                 <p className="text-lg font-medium">Cargando información del equipo...</p>
               </div>
             </div>
-          </div>
+          </PageContainer>
         </>
       );
     }
@@ -52,13 +52,11 @@ const Team: React.FC = () => {
     return (
       <>
         <Navbar />
-        <div className="md:ml-52">
-          <PageContainer title="Equipo" subtitle="Gestiona los miembros de tu equipo">
-            <div className="space-y-6">
-              <TeamSection />
-            </div>
-          </PageContainer>
-        </div>
+        <PageContainer title="Equipo" subtitle="Gestiona los miembros de tu equipo">
+          <div className="space-y-6">
+            <TeamSection />
+          </div>
+        </PageContainer>
       </>
     );
 
@@ -67,7 +65,7 @@ const Team: React.FC = () => {
     return (
       <>
         <Navbar />
-        <div className="md:ml-52">
+        <PageContainer className="pt-0">
           <div className="min-h-screen bg-red-50 flex items-center justify-center">
             <div className="text-center space-y-4 max-w-md mx-auto p-6">
               <h1 className="text-2xl font-bold text-red-600">Error en página de equipo</h1>
@@ -85,7 +83,7 @@ const Team: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </PageContainer>
       </>
     );
   }

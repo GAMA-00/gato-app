@@ -110,14 +110,12 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
     return (
       <>
         <Navbar />
-        <div className="md:ml-52">
-          <PageContainer 
-            title=""
-            className={isMobile ? "pt-0" : "pt-0"}
-          >
-            {renderContent()}
-          </PageContainer>
-        </div>
+        <PageContainer 
+          title=""
+          className={isMobile ? "pt-0" : "pt-0"}
+        >
+          {renderContent()}
+        </PageContainer>
       </>
     );
   }
@@ -126,15 +124,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   return (
     <>
       <Navbar />
-      <div className="md:ml-52">
-        <PageContainer 
-          title="Inicio" 
-          subtitle="Bienvenido de nuevo"
-          className="pt-0"
-        >
-          {renderContent()}
-        </PageContainer>
-      </div>
+      <PageContainer 
+        title="Inicio" 
+        subtitle="Bienvenido de nuevo"
+        className="pt-0"
+      >
+        {renderContent()}
+      </PageContainer>
     </>
   );
 };
