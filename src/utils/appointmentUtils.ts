@@ -1,3 +1,4 @@
+
 import { buildCompleteLocation } from './locationBuilder';
 
 // Enhanced function to get the correct name based on user role

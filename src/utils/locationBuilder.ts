@@ -29,8 +29,8 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     console.log('Added residencia:', data.residenciaName.trim());
   }
   
-  // Add condominium name - prioritize condominiumName over condominiumText
-  const condominiumName = data.condominiumName?.trim() || data.condominiumText?.trim();
+  // Add condominium name - prioritize condominiumText over condominiumName
+  const condominiumName = data.condominiumText?.trim() || data.condominiumName?.trim();
   if (condominiumName) {
     parts.push(condominiumName);
     console.log('Added condominium:', condominiumName);
