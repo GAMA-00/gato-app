@@ -21,19 +21,22 @@ export const RecurrenceIndicator = ({
 }: RecurrenceIndicatorProps) => {
   console.log('RecurrenceIndicator - recurrence value:', recurrence, 'type:', typeof recurrence);
   
-  // Return null only for explicitly non-recurring appointments
-  if (!recurrence || recurrence === 'none' || recurrence === 'null' || recurrence === '') {
-    console.log('RecurrenceIndicator - No recurrence, returning null');
-    return null;
-  }
-
   const getRecurrenceInfo = (freq: string) => {
     // Normalize the frequency value - handle more variations
     const normalizedFreq = freq?.toString()?.toLowerCase()?.trim();
     console.log('RecurrenceIndicator - normalized frequency:', normalizedFreq);
     
+    // Handle "once" or "none" as single appointments
+    if (normalizedFreq === 'once' || normalizedFreq === 'none' || normalizedFreq === '' || !normalizedFreq) {
+      return {
+        label: 'Una vez',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        icon: Calendar
+      };
+    }
+    
     // Handle specific recurrence types
-    if (normalizedFreq.includes('week') || normalizedFreq === 'semanal') {
+    if (normalizedFreq.includes('week') && !normalizedFreq.includes('biweek') && !normalizedFreq.includes('2week')) {
       return {
         label: 'Semanal',
         color: 'bg-green-100 text-green-800 border-green-200',
@@ -80,11 +83,10 @@ export const RecurrenceIndicator = ({
       default:
         console.log('RecurrenceIndicator - Unknown frequency, using generic:', normalizedFreq);
         // For any unknown recurring frequency, show a generic recurring indicator
-        // But try to be more specific based on the raw value
         return {
-          label: `Recurrente (${freq})`,
+          label: 'Una vez',
           color: 'bg-gray-100 text-gray-800 border-gray-200',
-          icon: RotateCcw
+          icon: Calendar
         };
     }
   };
