@@ -44,15 +44,13 @@ export const RecurrenceIndicator = ({
           icon: Clock
         };
       default:
-        return {
-          label: 'Recurrente',
-          color: 'bg-gray-100 text-gray-800 border-gray-200',
-          icon: RotateCcw
-        };
+        return null; // No mostrar nada para casos no reconocidos
     }
   };
 
   const info = getRecurrenceInfo(recurrence);
+  if (!info) return null;
+  
   const Icon = info.icon;
   
   const sizeClasses = {
