@@ -6,7 +6,7 @@ import Navbar from './Navbar';
 interface ClientPageLayoutProps {
   children: React.ReactNode;
   title?: string;
-  subtitle?: string;
+  subtitle?: string | React.ReactNode;
   className?: string;
 }
 
@@ -24,9 +24,9 @@ const ClientPageLayout = ({ children, title, subtitle, className }: ClientPageLa
                 </h1>
               )}
               {subtitle && (
-                <p className="text-sm text-[#6B6B6B]">
+                <div className="text-sm text-[#6B6B6B]">
                   {subtitle}
-                </p>
+                </div>
               )}
             </div>
           )}
