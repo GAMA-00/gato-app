@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -61,7 +62,7 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
       <div className="flex items-center gap-2 mb-2">
         <Avatar className="h-8 w-8">
           <AvatarImage 
-            src={user.avatarUrl} 
+            src={user.avatar_url} 
             alt={user.name}
           />
           <AvatarFallback className="bg-primary text-primary-foreground text-sm">

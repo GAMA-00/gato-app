@@ -1,4 +1,3 @@
-
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { User, UserProfile } from './types';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,11 +10,8 @@ export const createUserFromSession = (authUser: SupabaseUser): User => {
     name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
     email: authUser.email || '',
     role: role === 'provider' ? 'provider' : 'client',
-    avatarUrl: authUser.user_metadata?.avatar_url || '',
-    phone: authUser.user_metadata?.phone || '',
-    condominiumName: authUser.user_metadata?.condominium_name || '',
-    houseNumber: authUser.user_metadata?.house_number || '',
-    apartment: authUser.user_metadata?.apartment || ''
+    avatar_url: authUser.user_metadata?.avatar_url || '',
+    phone: authUser.user_metadata?.phone || ''
   };
 };
 

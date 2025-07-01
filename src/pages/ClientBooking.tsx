@@ -138,15 +138,15 @@ const ClientBooking = () => {
       return; // Error already shown by validation
     }
 
-    // Create the booking
+    // Create the booking - Use profile data for address instead of user properties
     const bookingData = {
       listingId: serviceId!,
       startTime: startDateTime.toISOString(),
       endTime: endDateTime.toISOString(),
       recurrenceType: selectedFrequency,
       notes,
-      clientAddress: user.condominiumName && user.houseNumber 
-        ? `${user.condominiumName}, Casa ${user.houseNumber}`
+      clientAddress: completeUserData?.condominium_text && completeUserData?.house_number 
+        ? `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`
         : '',
       clientPhone: user.phone || '',
       clientEmail: user.email || ''

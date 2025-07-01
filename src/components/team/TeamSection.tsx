@@ -47,7 +47,7 @@ const TeamSection: React.FC = () => {
     criminalRecordFileUrl: '',
     role: 'lider',
     positionOrder: 0,
-    createdAt: profile?.created_at || new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
