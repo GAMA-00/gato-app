@@ -36,21 +36,7 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
     );
   }
 
-  // Not authenticated - redirect to appropriate login (but not during logout)
-  if (!isAuthenticated && !isLoggingOut) {
-    const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
-    console.log('RoleGuard: User not authenticated, redirecting to:', loginPath);
-    return <Navigate to={loginPath} replace />;
-  }
-
-  // No user data - redirect to appropriate login (but not during logout)
-  if (!user && !isLoggingOut) {
-    const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
-    console.log('RoleGuard: No user data, redirecting to:', loginPath);
-    return <Navigate to={loginPath} replace />;
-  }
-
-  // During logout process, don't perform redirections
+  // During logout process, don't perform any redirects - just show loading
   if (isLoggingOut) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -60,6 +46,20 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
         </div>
       </div>
     );
+  }
+
+  // Not authenticated - redirect to appropriate login
+  if (!isAuthenticated) {
+    const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
+    console.log('RoleGuard: User not authenticated, redirecting to:', loginPath);
+    return <Navigate to={loginPath} replace />;
+  }
+
+  // No user data - redirect to appropriate login
+  if (!user) {
+    const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
+    console.log('RoleGuard: No user data, redirecting to:', loginPath);
+    return <Navigate to={loginPath} replace />;
   }
 
   // Wrong role - redirect to their correct home or specified redirect

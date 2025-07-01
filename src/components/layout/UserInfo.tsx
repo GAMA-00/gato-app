@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -12,40 +12,27 @@ interface UserInfoProps {
 }
 
 const UserInfo = ({ isClientSection }: UserInfoProps) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
   const navigate = useNavigate();
+  const [isLoggingOutLocal, setIsLoggingOutLocal] = useState(false);
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
+    if (isLoggingOut || isLoggingOutLocal) {
+      return; // Prevent multiple logout attempts
+    }
+    
     console.log('UserInfo: Logout button clicked');
     
-    const button = e.target as HTMLButtonElement;
-    
     try {
-      // Deshabilitar el botón temporalmente para evitar clics múltiples
-      button.disabled = true;
-      button.textContent = 'Cerrando...';
-      
+      setIsLoggingOutLocal(true);
       console.log('UserInfo: Calling logout function');
       await logout();
-      
     } catch (error) {
       console.error('UserInfo: Error during logout:', error);
-      
-      // En caso de error, forzar redirección directa después de un breve delay
-      setTimeout(() => {
-        window.location.replace('/');
-      }, 500);
-    } finally {
-      // Reactivar el botón por si algo falla
-      setTimeout(() => {
-        if (button) {
-          button.disabled = false;
-          button.textContent = 'Cerrar Sesión';
-        }
-      }, 1000);
+      setIsLoggingOutLocal(false);
     }
   };
   
@@ -56,6 +43,8 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
   if (!user) {
     return null;
   }
+
+  const isLoggingOutAny = isLoggingOut || isLoggingOutLocal;
 
   return (
     <div className="border-t p-3">
@@ -80,6 +69,7 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
         size="sm"
         className="w-full mb-2 justify-start text-xs py-1.5 bg-white h-auto"
         onClick={handleProfileNavigation}
+        disabled={isLoggingOutAny}
       >
         <UserCircle className="mr-1.5 h-3.5 w-3.5" />
         Mi Perfil
@@ -90,10 +80,11 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
         size="sm"
         className="w-full justify-start text-[#4D4D4D] bg-white text-xs py-1.5 h-auto hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={handleLogout}
+        disabled={isLoggingOutAny}
         type="button"
       >
         <LogOut className="mr-1.5 h-3.5 w-3.5" />
-        Cerrar Sesión
+        {isLoggingOutAny ? 'Cerrando...' : 'Cerrar Sesión'}
       </Button>
     </div>
   );

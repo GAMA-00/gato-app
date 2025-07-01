@@ -11,7 +11,22 @@ const Navbar = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoggingOut } = useAuth();
+  
+  // Don't render navbar during logout process
+  if (isLoggingOut) {
+    return null;
+  }
+  
+  // Don't render navbar on landing page for unauthenticated users
+  if (!user && location.pathname === '/') {
+    return null;
+  }
+  
+  // Don't render if no user (but not during logout)
+  if (!user) {
+    return null;
+  }
   
   // Determine if we're in client section based on user role and current path
   // If user is a client, always show client perspective unless explicitly on provider routes
@@ -28,11 +43,6 @@ const Navbar = () => {
       navigate('/client/categories');
     }
   };
-
-  // Don't render navbar on landing page for unauthenticated users
-  if (!user && location.pathname === '/') {
-    return null;
-  }
 
   if (isMobile) {
     return (

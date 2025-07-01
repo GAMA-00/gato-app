@@ -1,5 +1,6 @@
 
 import { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { clearSupabaseStorage } from './utils';
 
@@ -10,6 +11,8 @@ export const useAuthActions = (
   setIsLoading: (loading: boolean) => void,
   isLoggingOutRef: React.MutableRefObject<boolean>
 ) => {
+  const navigate = useNavigate();
+
   const login = async (email: string, password: string) => {
     try {
       console.log('AuthContext: Attempting login for:', email);
@@ -45,7 +48,22 @@ export const useAuthActions = (
       // Marcar que estamos cerrando sesión inmediatamente
       isLoggingOutRef.current = true;
       
-      // Limpiar el estado local inmediatamente
+      console.log('AuthContext: Calling Supabase signOut first');
+      
+      // Realizar signOut de Supabase PRIMERO
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      
+      if (error) {
+        console.error('AuthContext: Supabase logout error:', error);
+        // Continuar con la limpieza incluso si hay error
+      } else {
+        console.log('AuthContext: Supabase logout successful');
+      }
+      
+      // Limpiar el almacenamiento de Supabase
+      clearSupabaseStorage();
+      
+      // Limpiar el estado local DESPUÉS del signOut
       setUser(null);
       setProfile(null);
       setSession(null);
@@ -53,45 +71,27 @@ export const useAuthActions = (
       
       console.log('AuthContext: Cleared local state');
       
-      // Limpiar el almacenamiento de Supabase
-      clearSupabaseStorage();
-      
-      // Redirigir inmediatamente a la landing page
-      console.log('AuthContext: Redirecting to landing page');
-      window.location.href = '/';
-      
-      // Realizar el signOut de Supabase en segundo plano
-      setTimeout(async () => {
-        try {
-          console.log('AuthContext: Calling Supabase signOut');
-          const { error } = await supabase.auth.signOut({ scope: 'global' });
-          
-          if (error) {
-            console.error('AuthContext: Supabase logout error:', error);
-          } else {
-            console.log('AuthContext: Supabase logout successful');
-          }
-          
-          // Limpiar almacenamiento una vez más por seguridad
-          clearSupabaseStorage();
-        } catch (error) {
-          console.error('AuthContext: Background logout error:', error);
-        }
-      }, 100);
+      // Usar navegación programática en lugar de window.location.href
+      console.log('AuthContext: Navigating to landing page');
+      navigate('/', { replace: true });
       
     } catch (error) {
       console.error('AuthContext: Logout exception:', error);
       
-      // En caso de error, asegurar que se limpie todo y redirija
-      isLoggingOutRef.current = true;
+      // En caso de error, forzar limpieza y redirección
+      clearSupabaseStorage();
       setUser(null);
       setProfile(null);
       setSession(null);
       setIsLoading(false);
-      clearSupabaseStorage();
       
-      // Redirigir de todas formas
-      window.location.href = '/';
+      // Asegurar redirección incluso con error
+      navigate('/', { replace: true });
+    } finally {
+      // Resetear el flag de logout después de un breve delay
+      setTimeout(() => {
+        isLoggingOutRef.current = false;
+      }, 500);
     }
   };
 
