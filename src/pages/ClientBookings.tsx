@@ -9,16 +9,18 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingsList } from '@/components/client/booking/BookingsList';
+import { RecurringServicesSummaryCard } from '@/components/client/booking/RecurringServicesSummary';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
 
 const ClientBookings = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { count: recurringServicesCount } = useRecurringServices();
+  const { summary: recurringServicesSummary } = useRecurringServices();
   const { data: bookings, isLoading, error, refetch } = useClientBookings();
   
   console.log('=== CLIENT BOOKINGS PAGE ===');
   console.log(`Total bookings received: ${bookings?.length || 0}`);
+  console.log('Recurring services summary:', recurringServicesSummary);
   
   const upcomingBookings = bookings?.filter(booking => 
     booking.status === 'pending' || booking.status === 'confirmed'
@@ -28,23 +30,45 @@ const ClientBookings = () => {
     booking.status === 'completed' || booking.status === 'cancelled'
   ) || [];
   
-  const activeRecurringCount = bookings?.filter(booking => 
-    booking.isRecurringInstance && 
-    (booking.status === 'pending' || booking.status === 'confirmed')
-  ).length || 0;
+  // Separar citas recurrentes y únicas para mejor organización
+  const upcomingRecurring = upcomingBookings.filter(booking => 
+    booking.recurrence && booking.recurrence !== 'none'
+  );
+  
+  const upcomingSingle = upcomingBookings.filter(booking => 
+    !booking.recurrence || booking.recurrence === 'none'
+  );
   
   const handleRated = () => {
     queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+    queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
   };
 
   const handleRetry = () => {
     refetch();
   };
 
+  // Crear subtítulo dinámico basado en las estadísticas
+  const getSubtitle = () => {
+    if (recurringServicesSummary.totalRecurringServices === 0) {
+      return `${upcomingBookings.length} citas próximas`;
+    }
+    
+    const parts = [];
+    if (recurringServicesSummary.totalRecurringServices > 0) {
+      parts.push(`${recurringServicesSummary.totalRecurringServices} servicio${recurringServicesSummary.totalRecurringServices > 1 ? 's' : ''} recurrente${recurringServicesSummary.totalRecurringServices > 1 ? 's' : ''}`);
+    }
+    if (recurringServicesSummary.totalActiveInstances > 0) {
+      parts.push(`${recurringServicesSummary.totalActiveInstances} cita${recurringServicesSummary.totalActiveInstances > 1 ? 's' : ''} activa${recurringServicesSummary.totalActiveInstances > 1 ? 's' : ''}`);
+    }
+    
+    return parts.join(' • ');
+  };
+
   return (
     <ClientPageLayout 
       title="Mis Reservas"
-      subtitle={`${activeRecurringCount} instancias recurrentes activas`}
+      subtitle={getSubtitle()}
     >
       {error && (
         <Alert className="mb-6">
@@ -68,22 +92,56 @@ const ClientBookings = () => {
         </Alert>
       )}
       
-      <div className="space-y-6 px-1 md:px-2 lg:px-4 xl:px-6">
+      {/* Resumen de servicios recurrentes */}
+      <RecurringServicesSummaryCard 
+        summary={recurringServicesSummary} 
+        isLoading={isLoading}
+      />
+      
+      <div className="space-y-8 px-1 md:px-2 lg:px-4 xl:px-6">
+        {/* Citas Recurrentes Próximas */}
+        {upcomingRecurring.length > 0 && (
+          <section>
+            <h2 className="text-lg font-medium mb-4">
+              Servicios Recurrentes
+              <span className="text-sm text-muted-foreground ml-2">
+                ({upcomingRecurring.length} próxima{upcomingRecurring.length > 1 ? 's' : ''})
+              </span>
+            </h2>
+            <BookingsList
+              bookings={upcomingRecurring}
+              isLoading={isLoading}
+              onRated={handleRated}
+              emptyMessage="No hay servicios recurrentes próximos"
+            />
+          </section>
+        )}
+        
+        {/* Citas Únicas Próximas */}
         <section>
+          <h2 className="text-lg font-medium mb-4">
+            {upcomingRecurring.length > 0 ? 'Citas Únicas' : 'Próximas Citas'}
+            {upcomingSingle.length > 0 && (
+              <span className="text-sm text-muted-foreground ml-2">
+                ({upcomingSingle.length} próxima{upcomingSingle.length > 1 ? 's' : ''})
+              </span>
+            )}
+          </h2>
           <BookingsList
-            bookings={upcomingBookings}
+            bookings={upcomingSingle}
             isLoading={isLoading}
             onRated={handleRated}
-            emptyMessage="No hay citas próximas"
+            emptyMessage={upcomingRecurring.length > 0 ? "No hay citas únicas próximas" : "No hay citas próximas"}
           />
         </section>
         
+        {/* Citas Pasadas */}
         <section>
           <h2 className="text-lg font-medium mb-4">
-            Citas Pasadas
+            Historial
             {pastBookings.length > 0 && (
               <span className="text-sm text-muted-foreground ml-2">
-                ({pastBookings.filter(b => b.isRecurringInstance).length} instancias recurrentes)
+                ({pastBookings.filter(b => b.recurrence && b.recurrence !== 'none').length} recurrentes, {pastBookings.filter(b => !b.recurrence || b.recurrence === 'none').length} únicas)
               </span>
             )}
           </h2>
@@ -91,7 +149,7 @@ const ClientBookings = () => {
             bookings={pastBookings}
             isLoading={isLoading}
             onRated={handleRated}
-            emptyMessage="No hay citas pasadas"
+            emptyMessage="No hay citas en el historial"
           />
         </section>
       </div>
