@@ -28,10 +28,36 @@ export const RecurrenceIndicator = ({
   }
 
   const getRecurrenceInfo = (freq: string) => {
-    // Normalize the frequency value
-    const normalizedFreq = freq?.toLowerCase()?.trim();
+    // Normalize the frequency value - handle more variations
+    const normalizedFreq = freq?.toString()?.toLowerCase()?.trim();
     console.log('RecurrenceIndicator - normalized frequency:', normalizedFreq);
     
+    // Handle specific recurrence types
+    if (normalizedFreq.includes('week') || normalizedFreq === 'semanal') {
+      return {
+        label: 'Semanal',
+        color: 'bg-green-100 text-green-800 border-green-200',
+        icon: RotateCcw
+      };
+    }
+    
+    if (normalizedFreq.includes('biweek') || normalizedFreq === 'quincenal' || normalizedFreq.includes('2week')) {
+      return {
+        label: 'Quincenal',
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
+        icon: Calendar
+      };
+    }
+    
+    if (normalizedFreq.includes('month') || normalizedFreq === 'mensual') {
+      return {
+        label: 'Mensual',
+        color: 'bg-purple-100 text-purple-800 border-purple-200',
+        icon: Clock
+      };
+    }
+    
+    // For exact matches (fallback to exact string matching)
     switch (normalizedFreq) {
       case 'weekly':
         return {
@@ -52,10 +78,11 @@ export const RecurrenceIndicator = ({
           icon: Clock
         };
       default:
-        console.log('RecurrenceIndicator - Unknown frequency, returning default');
+        console.log('RecurrenceIndicator - Unknown frequency, using generic:', normalizedFreq);
         // For any unknown recurring frequency, show a generic recurring indicator
+        // But try to be more specific based on the raw value
         return {
-          label: 'Recurrente',
+          label: `Recurrente (${freq})`,
           color: 'bg-gray-100 text-gray-800 border-gray-200',
           icon: RotateCcw
         };
