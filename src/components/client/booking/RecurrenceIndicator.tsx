@@ -19,12 +19,20 @@ export const RecurrenceIndicator = ({
   showIcon = true,
   showText = true
 }: RecurrenceIndicatorProps) => {
-  if (!recurrence || recurrence === 'none') {
+  console.log('RecurrenceIndicator - recurrence value:', recurrence, 'type:', typeof recurrence);
+  
+  // Return null only for explicitly non-recurring appointments
+  if (!recurrence || recurrence === 'none' || recurrence === 'null' || recurrence === '') {
+    console.log('RecurrenceIndicator - No recurrence, returning null');
     return null;
   }
 
   const getRecurrenceInfo = (freq: string) => {
-    switch (freq) {
+    // Normalize the frequency value
+    const normalizedFreq = freq?.toLowerCase()?.trim();
+    console.log('RecurrenceIndicator - normalized frequency:', normalizedFreq);
+    
+    switch (normalizedFreq) {
       case 'weekly':
         return {
           label: 'Semanal',
@@ -44,13 +52,17 @@ export const RecurrenceIndicator = ({
           icon: Clock
         };
       default:
-        return null; // No mostrar nada para casos no reconocidos
+        console.log('RecurrenceIndicator - Unknown frequency, returning default');
+        // For any unknown recurring frequency, show a generic recurring indicator
+        return {
+          label: 'Recurrente',
+          color: 'bg-gray-100 text-gray-800 border-gray-200',
+          icon: RotateCcw
+        };
     }
   };
 
   const info = getRecurrenceInfo(recurrence);
-  if (!info) return null;
-  
   const Icon = info.icon;
   
   const sizeClasses = {
@@ -64,6 +76,8 @@ export const RecurrenceIndicator = ({
     md: 'h-3.5 w-3.5',
     lg: 'h-4 w-4'
   };
+
+  console.log('RecurrenceIndicator - Rendering with info:', info);
 
   return (
     <Badge 

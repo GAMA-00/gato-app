@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,6 +21,13 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const isRecurring = booking.recurrence && booking.recurrence !== 'none';
   const isCompleted = booking.status === 'completed';
+  
+  console.log('BookingCard - Booking data:', {
+    id: booking.id,
+    serviceName: booking.serviceName,
+    recurrence: booking.recurrence,
+    isRecurring: isRecurring
+  });
   
   const handleReschedule = () => {
     setShowRescheduleModal(true);
@@ -47,13 +53,12 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
               <h3 className="font-medium text-base truncate">{booking.serviceName}</h3>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {isRecurring && (
-                <RecurrenceIndicator 
-                  recurrence={booking.recurrence} 
-                  isRecurringInstance={booking.isRecurringInstance}
-                  size="sm"
-                />
-              )}
+              {/* Always show RecurrenceIndicator for debugging, let it decide whether to render or not */}
+              <RecurrenceIndicator 
+                recurrence={booking.recurrence} 
+                isRecurringInstance={booking.isRecurringInstance}
+                size="sm"
+              />
               <div className={cn(
                 "px-2 py-1 rounded-full text-xs font-medium",
                 booking.status === 'pending' ? "bg-yellow-100 text-yellow-800" : 
