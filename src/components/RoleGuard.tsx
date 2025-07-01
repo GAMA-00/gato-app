@@ -10,7 +10,7 @@ interface RoleGuardProps {
 }
 
 const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, isLoggingOut } = useAuth();
   const location = useLocation();
 
   console.log('RoleGuard: Checking access -', { 
@@ -18,37 +18,52 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
     isAuthenticated, 
     userRole: user?.role, 
     allowedRole,
-    currentPath: location.pathname
+    currentPath: location.pathname,
+    isLoggingOut
   });
 
-  // Show loading during authentication check
-  if (isLoading) {
+  // Show loading during authentication check or logout process
+  if (isLoading || isLoggingOut) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-sm text-muted-foreground">Verificando acceso...</p>
+          <p className="text-sm text-muted-foreground">
+            {isLoggingOut ? 'Cerrando sesión...' : 'Verificando acceso...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  // Not authenticated - redirect to appropriate login
-  if (!isAuthenticated) {
+  // Not authenticated - redirect to appropriate login (but not during logout)
+  if (!isAuthenticated && !isLoggingOut) {
     const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
     console.log('RoleGuard: User not authenticated, redirecting to:', loginPath);
     return <Navigate to={loginPath} replace />;
   }
 
-  // No user data - redirect to appropriate login
-  if (!user) {
+  // No user data - redirect to appropriate login (but not during logout)
+  if (!user && !isLoggingOut) {
     const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
     console.log('RoleGuard: No user data, redirecting to:', loginPath);
     return <Navigate to={loginPath} replace />;
   }
 
+  // During logout process, don't perform redirections
+  if (isLoggingOut) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
+          <p className="text-sm text-muted-foreground">Cerrando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Wrong role - redirect to their correct home or specified redirect
-  if (user.role !== allowedRole) {
+  if (user && user.role !== allowedRole) {
     console.log('RoleGuard: Wrong role access attempt -', user.role, 'tried to access', allowedRole, 'area');
     
     if (redirectTo) {

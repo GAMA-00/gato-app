@@ -155,7 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       logout,
       isLoading,
-      updateUserPaymentMethod
+      updateUserPaymentMethod,
+      isLoggingOut: isLoggingOutRef.current // Exponer el estado de logout
     }}>
       {children}
     </AuthContext.Provider>

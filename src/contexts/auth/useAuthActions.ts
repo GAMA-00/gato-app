@@ -42,8 +42,10 @@ export const useAuthActions = (
     console.log('AuthContext: Starting logout process');
     
     try {
+      // Marcar que estamos cerrando sesión inmediatamente
       isLoggingOutRef.current = true;
       
+      // Limpiar el estado local inmediatamente
       setUser(null);
       setProfile(null);
       setSession(null);
@@ -51,29 +53,36 @@ export const useAuthActions = (
       
       console.log('AuthContext: Cleared local state');
       
+      // Limpiar el almacenamiento de Supabase
       clearSupabaseStorage();
       
-      console.log('AuthContext: Calling Supabase signOut');
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      // Redirigir inmediatamente a la landing page
+      console.log('AuthContext: Redirecting to landing page');
+      window.location.href = '/';
       
-      if (error) {
-        console.error('AuthContext: Supabase logout error:', error);
-      } else {
-        console.log('AuthContext: Supabase logout successful');
-      }
-      
-      setTimeout(() => {
-        clearSupabaseStorage();
+      // Realizar el signOut de Supabase en segundo plano
+      setTimeout(async () => {
+        try {
+          console.log('AuthContext: Calling Supabase signOut');
+          const { error } = await supabase.auth.signOut({ scope: 'global' });
+          
+          if (error) {
+            console.error('AuthContext: Supabase logout error:', error);
+          } else {
+            console.log('AuthContext: Supabase logout successful');
+          }
+          
+          // Limpiar almacenamiento una vez más por seguridad
+          clearSupabaseStorage();
+        } catch (error) {
+          console.error('AuthContext: Background logout error:', error);
+        }
       }, 100);
-      
-      setTimeout(() => {
-        console.log('AuthContext: Redirecting to landing page');
-        window.location.replace('/');
-      }, 200);
       
     } catch (error) {
       console.error('AuthContext: Logout exception:', error);
       
+      // En caso de error, asegurar que se limpie todo y redirija
       isLoggingOutRef.current = true;
       setUser(null);
       setProfile(null);
@@ -81,9 +90,8 @@ export const useAuthActions = (
       setIsLoading(false);
       clearSupabaseStorage();
       
-      setTimeout(() => {
-        window.location.replace('/');
-      }, 100);
+      // Redirigir de todas formas
+      window.location.href = '/';
     }
   };
 

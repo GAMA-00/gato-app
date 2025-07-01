@@ -1,16 +1,11 @@
 
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-
 export interface User {
   id: string;
-  name: string;
   email: string;
+  name?: string;
   role: 'client' | 'provider';
-  avatarUrl?: string;
   phone?: string;
-  condominiumName?: string;
-  houseNumber?: string;
-  apartment?: string;
+  avatar_url?: string;
 }
 
 export interface UserProfile {
@@ -18,15 +13,13 @@ export interface UserProfile {
   name: string;
   email: string;
   phone?: string;
-  role: 'client' | 'provider';
   avatar_url?: string;
-  condominium_name?: string;
-  condominium_text?: string;
-  house_number?: string;
   about_me?: string;
   experience_years?: number;
-  certification_files?: any[];
-  created_at?: string;
+  role: 'client' | 'provider';
+  residencia_id?: string;
+  condominium_name?: string;
+  house_number?: string;
 }
 
 export interface AuthContextType {
@@ -37,4 +30,5 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   isLoading: boolean;
   updateUserPaymentMethod: (hasPayment: boolean) => void;
+  isLoggingOut: boolean; // Nuevo campo para exponer el estado de logout
 }
