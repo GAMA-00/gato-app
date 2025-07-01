@@ -75,7 +75,11 @@ const ClientBookings = () => {
   return (
     <ClientPageLayout 
       title="Mis Reservas"
-      subtitle={getSubtitle()}
+      subtitle={
+        <span className={activeBookings.length > 0 ? "text-blue-600 font-medium" : ""}>
+          {getSubtitle()}
+        </span>
+      }
     >
       {error && (
         <Alert className="mb-6">
@@ -103,12 +107,6 @@ const ClientBookings = () => {
         {/* Citas Recurrentes Activas */}
         {activeRecurring.length > 0 && (
           <section>
-            <h2 className="text-lg font-medium mb-4">
-              Servicios Recurrentes
-              <span className="text-sm text-muted-foreground ml-2">
-                ({activeRecurring.length} activo{activeRecurring.length > 1 ? 's' : ''})
-              </span>
-            </h2>
             <BookingsList
               bookings={activeRecurring}
               isLoading={isLoading}
