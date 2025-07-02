@@ -23,6 +23,7 @@ import { getProviderLevelByJobs } from '@/lib/achievementTypes';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ProviderReviews from '@/components/providers/ProviderReviews';
+import { useProviderMerits } from '@/hooks/useProviderMerits';
 
 const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
@@ -31,6 +32,9 @@ const ClientProviderServiceDetail = () => {
   const [selectedVariants, setSelectedVariants] = React.useState<any[]>([]);
 
   const { serviceDetails, isLoading, error } = useServiceDetail(providerId, serviceId, user?.id);
+
+  // Fetch provider merits for real-time rating updates
+  const { data: providerMerits } = useProviderMerits(providerId);
 
   // Fetch completed jobs count to determine real achievement level
   const { data: completedJobsCount = 0 } = useQuery({
@@ -191,12 +195,12 @@ const ClientProviderServiceDetail = () => {
                   
                   {/* Calificación y Nivel de Experiencia */}
                   <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                      <span className="font-medium text-lg">
-                        {transformedProvider.rating.toFixed(1)}
-                      </span>
-                    </div>
+                     <div className="flex items-center gap-2">
+                       <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                       <span className="font-medium text-lg">
+                         {(providerMerits?.averageRating || transformedProvider.rating).toFixed(1)}
+                       </span>
+                     </div>
                     <LevelBadge level={providerLevel.level} size="md" />
                   </div>
                 </div>
