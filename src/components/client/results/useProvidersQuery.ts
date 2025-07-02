@@ -133,6 +133,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             duration: listing.duration || 60,
             serviceName: listing.title || 'Servicio',
             serviceId: listing.id,
+            listingId: listing.id, // Added listing ID for per-service recurring clients count
             aboutMe: provider?.about_me || '',
             serviceDescription: listing.description || '',
             experience: provider?.experience_years || 0,

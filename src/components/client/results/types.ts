@@ -9,6 +9,7 @@ export interface ProcessedProvider {
   duration: number;
   serviceName: string;
   serviceId: string;
+  listingId: string; // Added for per-service recurring clients count
   aboutMe: string;
   serviceDescription?: string; // Added for showing service description in cards
   experience: number;

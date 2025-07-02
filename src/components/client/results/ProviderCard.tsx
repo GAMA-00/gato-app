@@ -6,7 +6,7 @@ import { Star, ChevronRight, Clock, Users, Award } from 'lucide-react';
 import { ProcessedProvider } from './types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { useProviderMerits } from '@/hooks/useProviderMerits';
+import { useProviderServiceMerits } from '@/hooks/useProviderServiceMerits';
 
 interface ProviderCardProps {
   provider: ProcessedProvider;
@@ -15,7 +15,7 @@ interface ProviderCardProps {
 
 const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
   const isMobile = useIsMobile();
-  const { data: merits } = useProviderMerits(provider.id);
+  const { data: merits } = useProviderServiceMerits(provider.id, provider.listingId);
   
   // Extract first line of service description instead of provider aboutMe
   const shortDescription = provider.serviceDescription?.split('\n')[0] || '';

@@ -1045,6 +1045,10 @@ export type Database = {
         Args: { provider_id: string }
         Returns: number
       }
+      get_recurring_clients_count_by_listing: {
+        Args: { provider_id: string; listing_id: string }
+        Returns: number
+      }
       recalculate_all_provider_ratings: {
         Args: Record<PropertyKey, never>
         Returns: number
