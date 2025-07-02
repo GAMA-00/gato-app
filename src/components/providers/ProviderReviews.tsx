@@ -22,15 +22,6 @@ const ProviderReviews = ({ provider }: ProviderReviewsProps) => {
   const { data: recentComments, isLoading: isLoadingRecent } = useProviderComments(provider.id, 3);
   const { data: allComments, refetch: fetchAllComments, isLoading: isLoadingAll } = useAllProviderComments(provider.id);
 
-  // Categorías de valoración
-  const ratingCategories = [
-    { name: 'Servicio', value: provider.detailedRatings.service },
-    { name: 'Calidad/Precio', value: provider.detailedRatings.valueForMoney },
-    { name: 'Amabilidad', value: provider.detailedRatings.friendliness },
-    { name: 'Materiales', value: provider.detailedRatings.materials },
-    { name: 'Profesionalidad', value: provider.detailedRatings.professionalism },
-    { name: 'Puntualidad', value: provider.detailedRatings.punctuality }
-  ];
 
   const handleToggleComments = async () => {
     if (!showAllComments && !allComments) {
@@ -46,41 +37,12 @@ const ProviderReviews = ({ provider }: ProviderReviewsProps) => {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle>Valoraciones</CardTitle>
+        <CardTitle>Comentarios de clientes</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Valoración general */}
-        <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 mr-1" />
-              <span className="text-3xl font-bold">{provider.rating.toFixed(1)}</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {provider.ratingCount} valoraciones
-            </p>
-          </div>
-          
-          <div className="flex-1 space-y-2">
-            {ratingCategories.map((category, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <p className="text-sm w-28">{category.name}</p>
-                <Progress value={category.value * 20} className="h-2" />
-                <span className="text-sm font-medium w-6">
-                  {category.value.toFixed(1)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <Separator />
-        
-        {/* Comentarios de clientes */}
+      <CardContent>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-semibold">Comentarios de clientes</h4>
-            {hasMoreComments && (
+          {hasMoreComments && (
+            <div className="flex justify-end">
               <Button
                 variant="ghost"
                 size="sm"
@@ -100,8 +62,8 @@ const ProviderReviews = ({ provider }: ProviderReviewsProps) => {
                   </>
                 )}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
           
           {isLoadingRecent ? (
             <div className="text-center py-6 text-muted-foreground">
