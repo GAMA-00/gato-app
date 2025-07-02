@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, addWeeks, startOfDay, endOfDay } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 import { generateRecurringInstances } from './useRecurringInstances';
+import { useProviderRecurringRules } from './useProviderRecurringRules';
 
 interface UseUnifiedCalendarAppointmentsProps {
   selectedDate: Date;
@@ -22,8 +23,11 @@ export const useUnifiedCalendarAppointments = ({
   console.log(`Provider ID: ${providerId}`);
   console.log(`Date range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
 
-  return useQuery({
-    queryKey: ['unified-calendar-appointments', format(selectedDate, 'yyyy-MM-dd'), providerId],
+  // Obtener reglas recurrentes del proveedor
+  const { data: recurringRules = [], isLoading: rulesLoading } = useProviderRecurringRules(providerId);
+
+  const queryResult = useQuery({
+    queryKey: ['unified-calendar-appointments', format(selectedDate, 'yyyy-MM-dd'), providerId, recurringRules.length],
     queryFn: async () => {
       console.log('=== FETCHING UNIFIED CALENDAR DATA ===');
       
@@ -53,21 +57,7 @@ export const useUnifiedCalendarAppointments = ({
 
       console.log(`Fetched ${regularAppointments?.length || 0} regular appointments`);
 
-      // 2. Obtener reglas recurrentes activas
-      const { data: recurringRules, error: rulesError } = await supabase
-        .from('recurring_rules')
-        .select('*')
-        .eq('provider_id', providerId)
-        .eq('is_active', true);
-
-      if (rulesError) {
-        console.error('Error fetching recurring rules:', rulesError);
-        throw rulesError;
-      }
-
-      console.log(`Fetched ${recurringRules?.length || 0} recurring rules`);
-
-      // 3. Generar instancias recurrentes usando la función
+      // 2. Generar instancias recurrentes usando las reglas
       const recurringInstances = generateRecurringInstances(
         recurringRules || [],
         startDate,
@@ -77,7 +67,7 @@ export const useUnifiedCalendarAppointments = ({
 
       console.log(`Generated ${recurringInstances.length} recurring instances`);
 
-      // 4. Combinar y filtrar por rango de fechas
+      // 3. Combinar y filtrar por rango de fechas
       const allAppointments = [
         ...(regularAppointments || []).map(appointment => ({
           ...appointment,
@@ -92,13 +82,13 @@ export const useUnifiedCalendarAppointments = ({
         ...recurringInstances
       ];
 
-      // 5. Filtrar por rango de fechas y remover duplicados
+      // 4. Filtrar por rango de fechas y remover duplicados
       const filteredAppointments = allAppointments.filter(appointment => {
         const appointmentDate = new Date(appointment.start_time);
         return appointmentDate >= startDate && appointmentDate <= endDate;
       });
 
-      // 6. Remover duplicados por fecha/hora exacta
+      // 5. Remover duplicados por fecha/hora exacta
       const uniqueAppointments = filteredAppointments.reduce((acc, appointment) => {
         const key = `${appointment.provider_id}-${appointment.start_time}-${appointment.end_time}`;
         
@@ -133,6 +123,12 @@ export const useUnifiedCalendarAppointments = ({
     },
     staleTime: 60000,
     refetchInterval: false,
-    enabled: !!providerId
+    enabled: !!providerId && !rulesLoading
   });
+
+  return {
+    data: queryResult.data || [],
+    isLoading: queryResult.isLoading || rulesLoading,
+    error: queryResult.error
+  };
 };

@@ -56,7 +56,7 @@ export function useRecurringBooking() {
         client_name: user.name || 'Cliente',
         recurrence: data.recurrenceType,
         external_booking: false,
-        is_recurring_instance: data.recurrenceType !== 'once'
+        is_recurring_instance: false // Base appointment, not an instance
       };
 
       const { data: appointment, error } = await supabase
@@ -77,6 +77,7 @@ export function useRecurringBooking() {
       }
 
       // Invalidar queries para actualizar la UI
+      queryClient.invalidateQueries({ queryKey: ['unified-calendar-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
 
