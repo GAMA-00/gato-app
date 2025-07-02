@@ -3,6 +3,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getRecurrenceInfo } from '@/utils/recurrenceUtils';
 
 interface RecurrenceIndicatorProps {
   recurrence: string;
@@ -19,80 +20,16 @@ export const RecurrenceIndicator = ({
   showIcon = true,
   showText = true
 }: RecurrenceIndicatorProps) => {
-  console.log('RecurrenceIndicator - recurrence value:', recurrence, 'type:', typeof recurrence);
-  
-  const getRecurrenceInfo = (freq: string) => {
-    // Normalize the frequency value - handle more variations
-    const normalizedFreq = freq?.toString()?.toLowerCase()?.trim();
-    console.log('RecurrenceIndicator - normalized frequency:', normalizedFreq);
-    
-    // Handle "once" or "none" as single appointments
-    if (normalizedFreq === 'once' || normalizedFreq === 'none' || normalizedFreq === '' || !normalizedFreq) {
-      return {
-        label: 'Una vez',
-        color: 'bg-gray-100 text-gray-800 border-gray-200',
-        icon: Calendar
-      };
-    }
-    
-    // Handle specific recurrence types
-    if (normalizedFreq.includes('week') && !normalizedFreq.includes('biweek') && !normalizedFreq.includes('2week')) {
-      return {
-        label: 'Semanal',
-        color: 'bg-green-100 text-green-800 border-green-200',
-        icon: RotateCcw
-      };
-    }
-    
-    if (normalizedFreq.includes('biweek') || normalizedFreq === 'quincenal' || normalizedFreq.includes('2week')) {
-      return {
-        label: 'Quincenal',
-        color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: Calendar
-      };
-    }
-    
-    if (normalizedFreq.includes('month') || normalizedFreq === 'mensual') {
-      return {
-        label: 'Mensual',
-        color: 'bg-purple-100 text-purple-800 border-purple-200',
-        icon: Clock
-      };
-    }
-    
-    // For exact matches (fallback to exact string matching)
-    switch (normalizedFreq) {
-      case 'weekly':
-        return {
-          label: 'Semanal',
-          color: 'bg-green-100 text-green-800 border-green-200',
-          icon: RotateCcw
-        };
-      case 'biweekly':
-        return {
-          label: 'Quincenal',
-          color: 'bg-blue-100 text-blue-800 border-blue-200',
-          icon: Calendar
-        };
-      case 'monthly':
-        return {
-          label: 'Mensual',
-          color: 'bg-purple-100 text-purple-800 border-purple-200',
-          icon: Clock
-        };
-      default:
-        console.log('RecurrenceIndicator - Unknown frequency, using generic:', normalizedFreq);
-        // For any unknown recurring frequency, show a generic recurring indicator
-        return {
-          label: 'Una vez',
-          color: 'bg-gray-100 text-gray-800 border-gray-200',
-          icon: Calendar
-        };
-    }
-  };
-
   const info = getRecurrenceInfo(recurrence);
-  const Icon = info.icon;
+  
+  // Map icon names to actual components
+  const iconMap = {
+    'RotateCcw': RotateCcw,
+    'Calendar': Calendar,
+    'Clock': Clock
+  };
+  
+  const Icon = iconMap[info.icon as keyof typeof iconMap] || Calendar;
   
   const sizeClasses = {
     sm: 'text-xs px-1.5 py-0.5',

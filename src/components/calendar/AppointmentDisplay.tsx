@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Repeat, ExternalLink, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { getRecurrenceInfo, isRecurring } from '@/utils/recurrenceUtils';
 
 // Status color mapping - Updated colors per requirements
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -53,8 +54,8 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
   const appointmentStatus = appointment.status || 'scheduled';
   const statusColor = STATUS_COLORS[appointmentStatus] || STATUS_COLORS['pending'];
   
-  // Determine appointment type flags
-  const isRecurring = appointment.is_recurring_instance || (appointment.recurrence && appointment.recurrence !== 'none');
+  // Determine appointment type flags using centralized utilities
+  const appointmentIsRecurring = appointment.is_recurring_instance || isRecurring(appointment.recurrence);
   const isExternal = appointment.external_booking || appointment.is_external;
   
   // Get person name based on user role
@@ -87,22 +88,16 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
     }
   };
 
-  const getRecurrenceLabel = () => {
-    if (appointment.recurrence === 'weekly') return 'Semanal';
-    if (appointment.recurrence === 'biweekly') return 'Quincenal';
-    if (appointment.recurrence === 'monthly') return 'Mensual';
-    if (isRecurring) return 'Recurrente';
-    return null;
-  };
-
-  const recurrenceLabel = getRecurrenceLabel();
+  // Get recurrence label using centralized utilities
+  const recurrenceInfo = getRecurrenceInfo(appointment.recurrence);
+  const recurrenceLabel = appointmentIsRecurring ? recurrenceInfo.label : null;
 
   return (
     <div
       className={cn(
         "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded text-xs z-10",
         expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[24px]" : "px-1 py-0.5",
-        isRecurring && "border-l-4",
+        appointmentIsRecurring && "border-l-4",
         isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
@@ -122,7 +117,7 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
       <div className="flex items-start gap-1 h-full">
         <div className="flex-shrink-0 flex items-center gap-1">
           {/* Purple recurring icon for recurring appointments */}
-          {isRecurring && <Repeat className="h-2 w-2 text-purple-600 flex-shrink-0" />}
+          {appointmentIsRecurring && <Repeat className="h-2 w-2 text-purple-600 flex-shrink-0" />}
           {isExternal && <ExternalLink className="h-2 w-2 text-blue-500 flex-shrink-0" />}
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
@@ -156,7 +151,7 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
             {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")} ({totalDurationMinutes} min)
           </div>
           <div className="flex gap-2 mt-1">
-            {isRecurring && (
+            {appointmentIsRecurring && (
               <div className="flex items-center gap-1">
                 <Repeat className="h-2 w-2 text-purple-600" />
                 <span className="text-purple-600 text-[9px]">{recurrenceLabel}</span>

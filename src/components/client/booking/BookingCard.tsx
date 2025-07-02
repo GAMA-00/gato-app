@@ -10,6 +10,7 @@ import { CancelAppointmentModal } from '@/components/client/booking/CancelAppoin
 import { RescheduleAppointmentModal } from '@/components/client/booking/RescheduleAppointmentModal';
 import { RatingStars } from '@/components/client/booking/RatingStars';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
+import { isRecurring } from '@/utils/recurrenceUtils';
 
 interface BookingCardProps {
   booking: ClientBooking;
@@ -19,14 +20,14 @@ interface BookingCardProps {
 export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const isRecurring = booking.recurrence && booking.recurrence !== 'none';
+  const bookingIsRecurring = isRecurring(booking.recurrence);
   const isCompleted = booking.status === 'completed';
   
   console.log('BookingCard - Booking data:', {
     id: booking.id,
     serviceName: booking.serviceName,
     recurrence: booking.recurrence,
-    isRecurring: isRecurring
+    isRecurring: bookingIsRecurring
   });
   
   const handleReschedule = () => {
@@ -81,7 +82,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md border border-blue-200">
               <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
               <span className="text-xs text-blue-700">
-                {isRecurring 
+                {bookingIsRecurring 
                   ? 'La próxima fecha ha sido reagendada. Tu plan recurrente se mantiene sin cambios.'
                   : 'Esta cita ha sido reagendada.'
                 }
@@ -92,7 +93,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           <div className="flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="truncate">
-              {isRecurring && !booking.isRecurringInstance ? (
+              {bookingIsRecurring && !booking.isRecurringInstance ? (
                 `Todos los ${format(booking.date, 'EEEE', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
               ) : (
                 `${format(booking.date, 'PPP', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
@@ -149,7 +150,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         appointmentId={booking.id}
-        isRecurring={isRecurring || false}
+        isRecurring={bookingIsRecurring}
         appointmentDate={booking.date}
       />
 
@@ -158,7 +159,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         onClose={() => setShowRescheduleModal(false)}
         appointmentId={booking.id}
         providerId={booking.providerId}
-        isRecurring={isRecurring || false}
+        isRecurring={bookingIsRecurring}
         currentDate={booking.date}
         serviceDuration={60}
         recurrence={booking.recurrence}
