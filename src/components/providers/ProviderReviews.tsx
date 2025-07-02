@@ -1,19 +1,27 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Star, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
+import { Star, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ProviderProfile } from '@/lib/types';
+import { useProviderComments, useAllProviderComments } from '@/hooks/useProviderComments';
 
 interface ProviderReviewsProps {
   provider: ProviderProfile;
 }
 
 const ProviderReviews = ({ provider }: ProviderReviewsProps) => {
+  const [showAllComments, setShowAllComments] = useState(false);
+  
+  // Fetch recent comments (3) and all comments when expanded
+  const { data: recentComments, isLoading: isLoadingRecent } = useProviderComments(provider.id, 3);
+  const { data: allComments, refetch: fetchAllComments, isLoading: isLoadingAll } = useAllProviderComments(provider.id);
+
   // Categorías de valoración
   const ratingCategories = [
     { name: 'Servicio', value: provider.detailedRatings.service },
@@ -23,31 +31,17 @@ const ProviderReviews = ({ provider }: ProviderReviewsProps) => {
     { name: 'Profesionalidad', value: provider.detailedRatings.professionalism },
     { name: 'Puntualidad', value: provider.detailedRatings.punctuality }
   ];
-  
-  // Obtener reviews, si no hay, crear algunas de muestra
-  const reviews = provider.reviews.length > 0 ? provider.reviews : [
-    {
-      id: '1',
-      clientName: 'María López',
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      rating: 4.8,
-      comment: 'Excelente servicio, muy puntual y profesional. Mi perro quedó perfecto.'
-    },
-    {
-      id: '2',
-      clientName: 'Juan Ramírez',
-      date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-      rating: 4.5,
-      comment: 'Muy buen trato con mi mascota, se notaba que tiene experiencia. Repetiré.'
-    },
-    {
-      id: '3',
-      clientName: 'Ana Martínez',
-      date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-      rating: 4.0,
-      comment: 'El servicio fue bueno aunque llegó un poco tarde. El resultado final muy bien.'
+
+  const handleToggleComments = async () => {
+    if (!showAllComments && !allComments) {
+      await fetchAllComments();
     }
-  ];
+    setShowAllComments(!showAllComments);
+  };
+
+  // Use appropriate comment set based on current view
+  const commentsToShow = showAllComments ? allComments : recentComments;
+  const hasMoreComments = recentComments && recentComments.length >= 3;
 
   return (
     <Card>
@@ -82,56 +76,84 @@ const ProviderReviews = ({ provider }: ProviderReviewsProps) => {
         
         <Separator />
         
-        {/* Comentarios recientes */}
-        <div className="space-y-6">
-          <h4 className="font-semibold">Comentarios recientes</h4>
+        {/* Comentarios de clientes */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold">Comentarios de clientes</h4>
+            {hasMoreComments && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleComments}
+                disabled={isLoadingAll}
+                className="text-sm"
+              >
+                {showAllComments ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Ver menos
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Ver todos
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
           
-          {reviews.length === 0 ? (
+          {isLoadingRecent ? (
             <div className="text-center py-6 text-muted-foreground">
-              <MessageSquare className="mx-auto h-12 w-12 opacity-20 mb-2" />
-              <p>Aún no hay valoraciones para este proveedor.</p>
+              <div className="animate-pulse">Cargando comentarios...</div>
+            </div>
+          ) : !commentsToShow || commentsToShow.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <MessageSquare className="mx-auto h-8 w-8 opacity-20 mb-2" />
+              <p className="text-sm">Aún no hay comentarios para este proveedor.</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {reviews.map((review, index) => (
-                <div key={review.id} className="space-y-2">
-                  <div className="flex items-start gap-4">
-                    <Avatar>
-                      <AvatarFallback>
-                        {review.clientName.substring(0, 2).toUpperCase()}
+            <div className="space-y-4">
+              {commentsToShow.map((comment, index) => (
+                <div key={comment.id} className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {comment.client_name?.substring(0, 2).toUpperCase() || 'C'}
                       </AvatarFallback>
                     </Avatar>
                     
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h5 className="font-medium">{review.clientName}</h5>
-                        <span className="text-sm text-muted-foreground">
-                          {format(review.date, 'dd MMMM, yyyy', { locale: es })}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h5 className="font-medium text-sm">{comment.client_name}</h5>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(comment.created_at), 'dd MMM, yyyy', { locale: es })}
                         </span>
                       </div>
                       
-                      <div className="flex items-center mt-1 mb-2">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                        <span className="font-medium">{review.rating.toFixed(1)}</span>
+                      <div className="flex items-center mb-2">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-3 w-3 ${
+                                i < comment.rating 
+                                  ? "fill-yellow-400 text-yellow-400" 
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-medium ml-1">{comment.rating}</span>
                       </div>
                       
-                      <p className="text-muted-foreground">{review.comment}</p>
-                      
-                      <div className="flex items-center gap-4 mt-3">
-                        <button className="flex items-center text-sm text-muted-foreground hover:text-foreground">
-                          <ThumbsUp className="h-4 w-4 mr-1" />
-                          <span>Útil</span>
-                        </button>
-                        
-                        <button className="flex items-center text-sm text-muted-foreground hover:text-foreground">
-                          <ThumbsDown className="h-4 w-4 mr-1" />
-                          <span>No útil</span>
-                        </button>
-                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {comment.comment}
+                      </p>
                     </div>
                   </div>
                   
-                  {index < reviews.length - 1 && <Separator className="mt-4" />}
+                  {index < commentsToShow.length - 1 && <Separator className="mt-3" />}
                 </div>
               ))}
             </div>

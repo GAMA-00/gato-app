@@ -1050,12 +1050,20 @@ export type Database = {
         Returns: number
       }
       submit_provider_rating: {
-        Args: {
-          p_provider_id: string
-          p_client_id: string
-          p_appointment_id: string
-          p_rating: number
-        }
+        Args:
+          | {
+              p_provider_id: string
+              p_client_id: string
+              p_appointment_id: string
+              p_rating: number
+            }
+          | {
+              p_provider_id: string
+              p_client_id: string
+              p_appointment_id: string
+              p_rating: number
+              p_comment?: string
+            }
         Returns: undefined
       }
     }

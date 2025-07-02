@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,7 @@ export const RatingStars = ({
 }: RatingStarsProps) => {
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -36,7 +38,8 @@ export const RatingStars = ({
           p_provider_id: providerId,
           p_client_id: user.id,
           p_appointment_id: appointmentId,
-          p_rating: rating
+          p_rating: rating,
+          p_comment: comment.trim() || null
         });
         
       if (error) throw error;
@@ -49,6 +52,7 @@ export const RatingStars = ({
         queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
         queryClient.invalidateQueries({ queryKey: ['provider-merits', providerId] }),
         queryClient.invalidateQueries({ queryKey: ['provider-achievements', providerId] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-comments', providerId] }),
         queryClient.invalidateQueries({ queryKey: ['providers'] })
       ]);
       
@@ -87,6 +91,23 @@ export const RatingStars = ({
           </button>
         ))}
       </div>
+      
+      <div className="mb-3">
+        <Textarea
+          placeholder="Comparte tu experiencia con este servicio (opcional)..."
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="min-h-[80px] resize-none"
+          maxLength={500}
+          disabled={isSubmitting}
+        />
+        {comment.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-1 text-right">
+            {comment.length}/500 caracteres
+          </p>
+        )}
+      </div>
+      
       <Button 
         onClick={handleRatingSubmit} 
         disabled={!rating || isSubmitting} 
