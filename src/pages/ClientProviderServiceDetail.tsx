@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { getProviderLevelByJobs } from '@/lib/achievementTypes';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import ProviderReviews from '@/components/providers/ProviderReviews';
 
 const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
@@ -243,7 +244,12 @@ const ClientProviderServiceDetail = () => {
                 </div>
               )}
 
-              {/* 7. Botón "Agendar Servicio" */}
+              {/* 7. Comentarios de clientes */}
+              <div className="w-full">
+                <ProviderReviews provider={transformedProvider} />
+              </div>
+
+              {/* 8. Botón "Agendar Servicio" */}
               <div className="flex justify-center pt-6 pb-8 sm:pt-8 sm:pb-12 w-full px-2">
                 <Button 
                   onClick={handleBookService}
