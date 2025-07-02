@@ -63,12 +63,13 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
     if (user?.role === 'client') {
       return appointment.provider_name || 'Proveedor';
     } else {
-      return appointment.client_name || appointment.users?.name || (isExternal ? 'Cliente Externo' : 'Cliente');
+      // For providers viewing client appointments, show the actual client name
+      return appointment.client_name || (isExternal ? 'Cliente Externo' : 'Cliente');
     }
   };
   
   const personName = getPersonName();
-  const serviceName = appointment.listings?.title || 'Servicio';
+  const serviceName = appointment.listings?.title || appointment.service_title || 'Servicio';
 
   // Don't render if outside visible hours
   if (startHour < CALENDAR_START_HOUR || startHour >= 20) {
@@ -145,6 +146,11 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
         </div>
       </div>
       
+      {/* Always show recurrence indicator */}
+      <div className="text-[8px] mt-0.5 leading-tight opacity-75 flex items-center gap-1" style={{ color: statusColor.text }}>
+        <span>{recurrenceLabel || 'Una vez'}</span>
+      </div>
+
       {expanded && (
         <div className="text-[10px] mt-1 text-gray-400 border-t pt-1">
           <div className="font-medium">
