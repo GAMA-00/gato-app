@@ -6,30 +6,49 @@ export const validateBookingSlot = async (
   providerId: string,
   startTime: Date,
   endTime: Date,
-  recurrence: string = 'once'
+  recurrence: string = 'once',
+  excludeAppointmentId?: string
 ): Promise<boolean> => {
   try {
-    // First check the immediate slot
-    const slotValidation = await validateAppointmentSlot(providerId, startTime, endTime);
+    console.log(`Validating unified booking slot for provider ${providerId}`);
+    
+    // First check the immediate slot against ALL provider appointments and blocks
+    const slotValidation = await validateAppointmentSlot(providerId, startTime, endTime, excludeAppointmentId);
     
     if (slotValidation.hasConflict) {
-      toast.error(slotValidation.conflictReason || 'Este horario no está disponible');
+      // Provide specific error message based on conflict type
+      const { conflictDetails } = slotValidation;
+      let errorMessage = slotValidation.conflictReason || 'Este horario no está disponible';
+      
+      if (conflictDetails?.type === 'external') {
+        errorMessage = 'Este horario tiene una cita externa confirmada';
+      } else if (conflictDetails?.type === 'internal') {
+        errorMessage = conflictDetails.isRecurring 
+          ? 'Este horario tiene una cita recurrente confirmada'
+          : 'Este horario ya tiene una cita confirmada';
+      } else if (conflictDetails?.type === 'blocked') {
+        errorMessage = `Horario bloqueado: ${conflictDetails.note || 'No disponible'}`;
+      }
+      
+      toast.error(errorMessage);
       return false;
     }
 
     // Then check recurring conflicts if applicable
-    if (recurrence !== 'once') {
+    if (recurrence !== 'once' && recurrence !== 'none') {
       const recurringValidation = await checkRecurringConflicts(providerId, startTime, endTime, recurrence);
       
       if (recurringValidation.hasConflict) {
-        toast.error(recurringValidation.conflictReason || 'Conflicto en fechas futuras de la recurrencia');
+        const errorMessage = recurringValidation.conflictReason || 'Conflicto en fechas futuras de la recurrencia';
+        toast.error(errorMessage);
         return false;
       }
     }
 
+    console.log(`Booking slot validated successfully for provider ${providerId}`);
     return true;
   } catch (error) {
-    console.error('Error validating booking slot:', error);
+    console.error('Error validating unified booking slot:', error);
     toast.error('Error al validar la disponibilidad. Intenta de nuevo.');
     return false;
   }

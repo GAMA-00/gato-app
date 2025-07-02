@@ -15,40 +15,51 @@ export const validateAppointmentSlot = async (
   excludeAppointmentId?: string
 ): Promise<ConflictCheckResult> => {
   try {
-    console.log(`Validating slot: ${format(startTime, 'yyyy-MM-dd HH:mm')} - ${format(endTime, 'yyyy-MM-dd HH:mm')} for provider ${providerId}`);
+    console.log(`Validating unified availability for provider ${providerId}: ${format(startTime, 'yyyy-MM-dd HH:mm')} - ${format(endTime, 'yyyy-MM-dd HH:mm')}`);
 
-    // Check regular appointments
-    const { data: regularAppointments, error: regularError } = await supabase
+    // UNIFIED QUERY: Check ALL appointments for this provider (across all services)
+    // This includes internal appointments, external bookings, and recurring instances
+    let query = supabase
       .from('appointments')
-      .select('id, start_time, end_time, client_name, status')
+      .select('id, start_time, end_time, client_name, status, external_booking, listing_id, recurrence')
       .eq('provider_id', providerId)
       .in('status', ['pending', 'confirmed', 'completed'])
-      .gte('start_time', format(startTime, 'yyyy-MM-dd'))
+      .gte('start_time', format(startTime, 'yyyy-MM-dd 00:00:00'))
       .lte('start_time', format(endTime, 'yyyy-MM-dd 23:59:59'));
 
-    if (regularError) {
-      console.error('Error checking regular appointments:', regularError);
+    // Exclude specific appointment if provided (for rescheduling)
+    if (excludeAppointmentId) {
+      query = query.neq('id', excludeAppointmentId);
+    }
+
+    const { data: allAppointments, error: appointmentsError } = await query;
+
+    if (appointmentsError) {
+      console.error('Error checking provider appointments:', appointmentsError);
       return { hasConflict: false }; // Don't block on error, just log
     }
 
-    console.log(`Found ${regularAppointments?.length || 0} appointments to check`);
+    console.log(`Found ${allAppointments?.length || 0} total appointments to check for provider ${providerId}`);
 
-    // Check for conflicts with regular appointments
-    if (regularAppointments) {
-      for (const appointment of regularAppointments) {
+    // Check for conflicts with ALL appointments (internal, external, recurring)
+    if (allAppointments) {
+      for (const appointment of allAppointments) {
         const appointmentStart = new Date(appointment.start_time);
         const appointmentEnd = new Date(appointment.end_time);
         
         // Check if times overlap
         if (startTime < appointmentEnd && endTime > appointmentStart) {
-          console.log(`Conflict found with appointment ${appointment.id}`);
+          console.log(`Conflict found with ${appointment.external_booking ? 'external' : 'internal'} appointment ${appointment.id}`);
           return {
             hasConflict: true,
-            conflictReason: 'Conflicto con cita existente',
+            conflictReason: appointment.external_booking 
+              ? 'Conflicto con cita externa' 
+              : 'Conflicto con cita existente',
             conflictDetails: {
-              type: 'regular',
+              type: appointment.external_booking ? 'external' : 'internal',
               appointment: appointment,
-              time: `${format(appointmentStart, 'HH:mm')} - ${format(appointmentEnd, 'HH:mm')}`
+              time: `${format(appointmentStart, 'HH:mm')} - ${format(appointmentEnd, 'HH:mm')}`,
+              isRecurring: appointment.recurrence && appointment.recurrence !== 'none'
             }
           };
         }

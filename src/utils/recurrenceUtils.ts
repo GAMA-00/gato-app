@@ -30,7 +30,7 @@ export const normalizeRecurrence = (recurrence: string | null | undefined): Recu
     return 'weekly';
   }
 
-  // Handle biweekly patterns
+  // Handle biweekly patterns (quincenal = every 2 weeks)
   if (normalized === 'biweekly' || normalized === 'quincenal' || 
       normalized.includes('biweek') || normalized.includes('2week') || normalized === '2 weeks') {
     return 'biweekly';

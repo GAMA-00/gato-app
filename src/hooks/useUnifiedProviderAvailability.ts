@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, addWeeks, addDays, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { validateAppointmentSlot } from '@/utils/appointmentValidation';
 
 interface TimeSlot {
@@ -10,38 +9,63 @@ interface TimeSlot {
   conflictReason?: string;
 }
 
-interface UseProviderAvailabilityProps {
+interface AvailabilityCache {
+  [key: string]: {
+    slots: TimeSlot[];
+    timestamp: number;
+    isLoading: boolean;
+  };
+}
+
+// Global cache for provider availability across all services
+const availabilityCache: AvailabilityCache = {};
+const CACHE_DURATION = 30000; // 30 seconds
+
+interface UseUnifiedProviderAvailabilityProps {
   providerId: string;
   selectedDate: Date;
   serviceDuration: number;
-  recurrence?: string;
 }
 
-export const useProviderAvailability = ({
+export const useUnifiedProviderAvailability = ({
   providerId,
   selectedDate,
-  serviceDuration,
-  recurrence = 'once'
-}: UseProviderAvailabilityProps) => {
+  serviceDuration
+}: UseUnifiedProviderAvailabilityProps) => {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchAvailability = useCallback(async (isManualRefresh = false) => {
+  const cacheKey = `${providerId}-${format(selectedDate, 'yyyy-MM-dd')}-${serviceDuration}`;
+
+  const fetchUnifiedAvailability = useCallback(async (forceRefresh = false) => {
     if (!providerId || !selectedDate) {
       console.log('Missing providerId or selectedDate');
       return;
     }
 
-    if (isManualRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
+    // Check cache first
+    const cached = availabilityCache[cacheKey];
+    const now = Date.now();
+    
+    if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION && !cached.isLoading) {
+      console.log(`Using cached availability for provider ${providerId}`);
+      setAvailableTimeSlots(cached.slots);
+      setLastUpdated(new Date(cached.timestamp));
+      return;
     }
+
+    // Set loading state in cache
+    availabilityCache[cacheKey] = {
+      slots: cached?.slots || [],
+      timestamp: cached?.timestamp || now,
+      isLoading: true
+    };
+
+    setIsLoading(true);
     
     try {
-      console.log(`Fetching availability for provider ${providerId} on ${format(selectedDate, 'yyyy-MM-dd')}`);
+      console.log(`Fetching unified availability for provider ${providerId} on ${format(selectedDate, 'yyyy-MM-dd')}`);
       
       // Generate time slots from 7 AM to 7 PM every 30 minutes
       const timeSlots: TimeSlot[] = [];
@@ -54,8 +78,6 @@ export const useProviderAvailability = ({
           });
         }
       }
-
-      console.log(`Generated ${timeSlots.length} initial time slots`);
 
       // Check availability for each slot using unified validation
       const checkedSlots: TimeSlot[] = [];
@@ -88,39 +110,54 @@ export const useProviderAvailability = ({
             available: false,
             conflictReason: validation.conflictReason
           });
-          console.log(`Slot ${slot.time} unavailable: ${validation.conflictReason} (${validation.conflictDetails?.type || 'unknown'})`);
         }
       }
 
       const availableCount = checkedSlots.filter(slot => slot.available).length;
       const unavailableCount = checkedSlots.filter(slot => !slot.available).length;
-      console.log(`Provider ${providerId} availability: ${availableCount} available, ${unavailableCount} unavailable out of ${timeSlots.length} total slots`);
+      console.log(`Provider ${providerId} unified availability: ${availableCount} available, ${unavailableCount} unavailable slots`);
       
+      // Update cache
+      const timestamp = Date.now();
+      availabilityCache[cacheKey] = {
+        slots: checkedSlots,
+        timestamp,
+        isLoading: false
+      };
+
       setAvailableTimeSlots(checkedSlots);
-      setLastUpdated(new Date());
+      setLastUpdated(new Date(timestamp));
       
     } catch (error) {
-      console.error('Error checking availability:', error);
+      console.error('Error checking unified availability:', error);
+      // Update cache with error state
+      availabilityCache[cacheKey] = {
+        slots: [],
+        timestamp: Date.now(),
+        isLoading: false
+      };
       setAvailableTimeSlots([]);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
-  }, [providerId, selectedDate, serviceDuration]);
+  }, [providerId, selectedDate, serviceDuration, cacheKey]);
 
-  // Manual refresh function
-  const refreshAvailability = useCallback(() => {
-    console.log('Manual refresh triggered');
-    fetchAvailability(true);
-  }, [fetchAvailability]);
+  // Invalidate cache for this provider across all dates/services
+  const invalidateProviderCache = useCallback(() => {
+    Object.keys(availabilityCache).forEach(key => {
+      if (key.startsWith(`${providerId}-`)) {
+        delete availabilityCache[key];
+      }
+    });
+    console.log(`Invalidated cache for provider ${providerId}`);
+  }, [providerId]);
 
   // Auto fetch when dependencies change
   useEffect(() => {
     if (providerId && selectedDate) {
-      console.log('Dependencies changed, fetching availability');
-      fetchAvailability();
+      fetchUnifiedAvailability();
     }
-  }, [fetchAvailability]);
+  }, [fetchUnifiedAvailability]);
 
   // Set up comprehensive real-time subscription for unified availability
   useEffect(() => {
@@ -129,7 +166,7 @@ export const useProviderAvailability = ({
     console.log('Setting up unified real-time subscription for provider availability');
     
     const channel = supabase
-      .channel(`provider-availability-${providerId}`)
+      .channel(`unified-provider-availability-${providerId}`)
       // Listen to appointment changes (all appointments for this provider)
       .on(
         'postgres_changes',
@@ -140,9 +177,9 @@ export const useProviderAvailability = ({
           filter: `provider_id=eq.${providerId}`
         },
         (payload) => {
-          console.log('Real-time appointment update detected for provider:', providerId, payload);
-          // Auto-refresh availability when ANY appointment changes
-          fetchAvailability();
+          console.log('Real-time appointment update detected, invalidating cache for provider:', providerId);
+          invalidateProviderCache();
+          fetchUnifiedAvailability(true);
         }
       )
       // Listen to blocked time slot changes
@@ -155,9 +192,9 @@ export const useProviderAvailability = ({
           filter: `provider_id=eq.${providerId}`
         },
         (payload) => {
-          console.log('Real-time blocked slot update detected for provider:', providerId, payload);
-          // Auto-refresh availability when blocked slots change
-          fetchAvailability();
+          console.log('Real-time blocked slot update detected, invalidating cache for provider:', providerId);
+          invalidateProviderCache();
+          fetchUnifiedAvailability(true);
         }
       )
       .subscribe();
@@ -166,13 +203,14 @@ export const useProviderAvailability = ({
       console.log('Cleaning up unified real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [providerId, fetchAvailability]);
+  }, [providerId, invalidateProviderCache, fetchUnifiedAvailability]);
 
   return {
-    availableTimeSlots,
+    availableTimeSlots: availableTimeSlots.filter(slot => slot.available), // Only return available slots
+    allTimeSlots: availableTimeSlots, // Include all slots for debugging
     isLoading,
-    isRefreshing,
     lastUpdated,
-    refreshAvailability
+    refreshAvailability: () => fetchUnifiedAvailability(true),
+    invalidateCache: invalidateProviderCache
   };
 };
