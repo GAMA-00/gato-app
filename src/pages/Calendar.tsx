@@ -4,7 +4,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCalendarAppointmentsWithRecurring } from '@/hooks/useCalendarAppointmentsWithRecurring';
+import { useUnifiedCalendarAppointments } from '@/hooks/useUnifiedCalendarAppointments';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/layout/Navbar';
 
@@ -12,7 +12,7 @@ const Calendar = () => {
   const { user } = useAuth();
   const currentDate = new Date();
 
-  const { data: appointments = [], isLoading } = useCalendarAppointmentsWithRecurring({
+  const { data: appointments = [], isLoading } = useUnifiedCalendarAppointments({
     selectedDate: currentDate,
     providerId: user?.id
   });
