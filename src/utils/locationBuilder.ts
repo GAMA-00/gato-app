@@ -25,7 +25,7 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
   // PASO 1: Verificar si tenemos residencia
   if (data.residenciaName?.trim()) {
     console.log('✅ PASO 1 - Residencia encontrada:', data.residenciaName.trim());
-    finalLocation = `Residencia ${data.residenciaName.trim()}`;
+    finalLocation = data.residenciaName.trim();
     
     // PASO 2: Agregar condominio si está disponible
     let condominiumToAdd = '';
