@@ -43,7 +43,7 @@ export const useDashboardAppointments = () => {
       // Create a Map to deduplicate appointments by time slot
       const appointmentsByTimeSlot = new Map();
       
-      // Process appointments and deduplicate with error handling
+      // Process appointments and maintain chronological order regardless of recurrence type
       appointments.forEach(app => {
         try {
           if (!app || app.status === 'cancelled' || app.status === 'rejected') return;
@@ -77,20 +77,12 @@ export const useDashboardAppointments = () => {
             console.log(`✅ UBICACIÓN YA EXISTE PARA ${app.id}: "${app.complete_location}"`);
           }
           
-          const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}`;
+          // Use a more specific key that includes the appointment ID to avoid conflicts
+          // This ensures each appointment is treated individually regardless of recurrence type
+          const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}-${app.id}`;
           
-          // Check if we already have an appointment for this time slot
-          if (appointmentsByTimeSlot.has(timeSlotKey)) {
-            const existing = appointmentsByTimeSlot.get(timeSlotKey);
-            // Prefer regular appointments over recurring instances
-            if (!existing.is_recurring_instance && app.is_recurring_instance) {
-              console.log(`Skipping duplicate recurring instance: ${app.client_name} at ${appDate.toLocaleString()}`);
-              return;
-            } else if (existing.is_recurring_instance && !app.is_recurring_instance) {
-              console.log(`Replacing recurring instance with regular appointment: ${app.client_name} at ${appDate.toLocaleString()}`);
-            }
-          }
-          
+          // No deduplication based on time slots - each appointment stands on its own
+          // This preserves chronological order regardless of recurrence type
           appointmentsByTimeSlot.set(timeSlotKey, app);
         } catch (error) {
           console.error(`Error processing appointment ${app?.id || 'unknown'}:`, error);
