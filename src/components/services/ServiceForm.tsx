@@ -158,6 +158,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         return;
       }
       
+      if (!values.serviceVariants || values.serviceVariants.length === 0) {
+        console.error("Error: Variantes de servicio requeridas");
+        toast.error("Debe configurar al menos una variante de servicio");
+        return;
+      }
+      
       // Ensure serviceVariants meets the ServiceVariant interface requirements
       const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
         id: variant.id,
@@ -197,8 +203,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
 
       onSubmit(serviceData);
       
-      toast.success('Formulario enviado correctamente');
-      onClose();
+      // No cerrar el formulario aquí, esperar al éxito de la mutación
+      console.log("Formulario enviado, esperando respuesta de la mutación...");
     } catch (error) {
       console.error('Error al enviar el formulario:', error);
       toast.error('Error al enviar el formulario');
@@ -226,21 +232,35 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   const submitForm = () => {
     console.log("=== INTENTANDO ENVIAR FORMULARIO ===");
-    console.log("Valores actuales:", form.getValues());
+    const currentValues = form.getValues();
+    console.log("Valores actuales:", currentValues);
+    console.log("Estado del formulario:", {
+      isValid: form.formState.isValid,
+      isSubmitting: form.formState.isSubmitting,
+      errors: form.formState.errors
+    });
     
     // Validar el formulario manualmente antes de enviarlo
     form.trigger().then(isValid => {
-      console.log("Resultado de validación:", isValid);
-      console.log("Errores de validación:", form.formState.errors);
+      console.log("Resultado de validación tras trigger:", isValid);
+      console.log("Errores de validación tras trigger:", form.formState.errors);
       
       if (isValid) {
         // Si es válido, enviar el formulario
         const values = form.getValues();
+        console.log("Formulario válido, enviando valores:", values);
         handleSubmit(values);
       } else {
         // Si no es válido, mostrar un mensaje de error
         console.error("Formulario inválido:", form.formState.errors);
-        toast.error("Por favor completa todos los campos obligatorios");
+        
+        // Mostrar errores específicos para ayudar al debug
+        const errorMessages = Object.entries(form.formState.errors).map(([field, error]) => 
+          `${field}: ${error?.message || 'Error de validación'}`
+        ).join(', ');
+        
+        console.error("Errores detallados:", errorMessages);
+        toast.error(`Formulario inválido. Errores: ${errorMessages}`);
       }
     });
   };

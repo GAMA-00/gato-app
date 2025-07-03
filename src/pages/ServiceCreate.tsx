@@ -6,6 +6,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import ServiceForm from '@/components/services/ServiceForm';
 import { useServiceMutations } from '@/hooks/useServiceMutations';
 import { Service } from '@/lib/types';
+import { toast } from 'sonner';
 
 const ServiceCreate = () => {
   const navigate = useNavigate();
@@ -13,10 +14,25 @@ const ServiceCreate = () => {
   const { createListingMutation } = useServiceMutations();
 
   const handleSubmit = (serviceData: Partial<Service>) => {
-    console.log('Creating new service:', serviceData);
+    console.log('=== SERVICECREATE: Creating new service ===');
+    console.log('Service data received:', serviceData);
+    
     createListingMutation.mutate(serviceData, {
-      onSuccess: () => {
-        navigate('/services');
+      onSuccess: (data) => {
+        console.log('=== SERVICECREATE: Mutation successful ===');
+        console.log('Created service data:', data);
+        setIsFormOpen(false); // Cerrar el formulario
+        toast.success('¡Anuncio creado exitosamente!');
+        
+        // Navegar después de un pequeño delay para que el usuario vea el mensaje
+        setTimeout(() => {
+          navigate('/services');
+        }, 1000);
+      },
+      onError: (error) => {
+        console.error('=== SERVICECREATE: Mutation failed ===');
+        console.error('Error details:', error);
+        toast.error('Error al crear el anuncio: ' + (error as Error).message);
       }
     });
   };
