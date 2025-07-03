@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { validateBookingSlot } from '@/utils/bookingValidation';
 import { buildCompleteLocation } from '@/utils/locationBuilder';
-import Navbar from '@/components/layout/Navbar';
+import PageLayout from '@/components/layout/PageLayout';
 import { toast } from 'sonner';
 import BookingHeader from '@/components/client/booking/BookingHeader';
 import ServiceSummaryCard from '@/components/client/booking/ServiceSummaryCard';
@@ -99,19 +99,14 @@ const ClientBooking = () => {
 
   if (!serviceDetails || !providerId || !selectedVariants) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="md:ml-52">
-          <div className="container mx-auto px-4 py-6 max-w-6xl">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                No se pudo cargar la información del servicio
-              </p>
-              <BookingHeader onBackClick={handleBackNavigation} />
-            </div>
-          </div>
+      <PageLayout>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">
+            No se pudo cargar la información del servicio
+          </p>
+          <BookingHeader onBackClick={handleBackNavigation} />
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
@@ -199,66 +194,61 @@ const ClientBooking = () => {
   console.log('Final client location:', clientLocation);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="md:ml-52">
-        <div className="container mx-auto px-4 py-6 max-w-6xl">
-          {/* Back button positioned in top left corner above title */}
-          <BookingHeader onBackClick={handleBackNavigation} />
+    <PageLayout>
+      {/* Back button positioned in top left corner above title */}
+      <BookingHeader onBackClick={handleBackNavigation} />
 
-          {/* Service summary */}
-          <ServiceSummaryCard
+      {/* Service summary */}
+      <ServiceSummaryCard
+        serviceTitle={serviceDetails.title}
+        clientLocation={clientLocation}
+        isLoadingLocation={isLoadingUserData}
+        selectedVariant={selectedVariant}
+        formatPrice={formatPrice}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Booking Form */}
+        <BookingForm
+          selectedFrequency={selectedFrequency}
+          onFrequencyChange={setSelectedFrequency}
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
+          onDateChange={setSelectedDate}
+          onTimeChange={setSelectedTime}
+          providerId={providerId}
+          selectedVariant={selectedVariant}
+          notes={notes}
+          onNotesChange={setNotes}
+          customVariableGroups={serviceDetails.custom_variable_groups}
+          customVariableSelections={customVariableSelections}
+          onCustomVariableSelectionsChange={(selections, totalPrice) => {
+            setCustomVariableSelections(selections);
+            setCustomVariablesTotalPrice(totalPrice);
+          }}
+        />
+
+        {/* Right Column - Booking Summary */}
+        <div className="space-y-6">
+          <BookingSummaryCard
             serviceTitle={serviceDetails.title}
+            providerName={serviceDetails.provider?.name}
+            selectedVariant={selectedVariant}
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
             clientLocation={clientLocation}
             isLoadingLocation={isLoadingUserData}
-            selectedVariant={selectedVariant}
+            isBookingValid={isBookingValid}
+            isLoading={isLoading}
+            onBooking={handleBooking}
             formatPrice={formatPrice}
+            getRecurrenceText={getRecurrenceText}
+            selectedFrequency={selectedFrequency}
+            customVariablesTotalPrice={customVariablesTotalPrice}
           />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column - Booking Form */}
-            <BookingForm
-              selectedFrequency={selectedFrequency}
-              onFrequencyChange={setSelectedFrequency}
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              onDateChange={setSelectedDate}
-              onTimeChange={setSelectedTime}
-              providerId={providerId}
-              selectedVariant={selectedVariant}
-              notes={notes}
-              onNotesChange={setNotes}
-              customVariableGroups={serviceDetails.custom_variable_groups}
-              customVariableSelections={customVariableSelections}
-              onCustomVariableSelectionsChange={(selections, totalPrice) => {
-                setCustomVariableSelections(selections);
-                setCustomVariablesTotalPrice(totalPrice);
-              }}
-            />
-
-            {/* Right Column - Booking Summary */}
-            <div className="space-y-6">
-              <BookingSummaryCard
-                serviceTitle={serviceDetails.title}
-                providerName={serviceDetails.provider?.name}
-                selectedVariant={selectedVariant}
-                selectedDate={selectedDate}
-                selectedTime={selectedTime}
-                clientLocation={clientLocation}
-                isLoadingLocation={isLoadingUserData}
-                isBookingValid={isBookingValid}
-                isLoading={isLoading}
-                onBooking={handleBooking}
-                formatPrice={formatPrice}
-                getRecurrenceText={getRecurrenceText}
-                selectedFrequency={selectedFrequency}
-                customVariablesTotalPrice={customVariablesTotalPrice}
-              />
-            </div>
-          </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 };
 
