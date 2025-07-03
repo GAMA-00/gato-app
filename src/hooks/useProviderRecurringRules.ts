@@ -13,7 +13,11 @@ export const useProviderRecurringRules = (providerId?: string) => {
 
       const { data, error } = await supabase
         .from('recurring_rules')
-        .select('*')
+        .select(`
+          *,
+          users!recurring_rules_client_id_fkey(name),
+          listings(title)
+        `)
         .eq('provider_id', providerId)
         .eq('is_active', true)
         .order('created_at', { ascending: false });

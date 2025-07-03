@@ -101,8 +101,12 @@ export const generateRecurringInstances = (
         if (!existingConflict && startDateTime >= startDate && startDateTime <= endDate) {
           const instanceId = `${rule.id}-instance-${format(startDateTime, 'yyyy-MM-dd-HH-mm')}`;
           
+          // Get real client and service names
+          const clientName = rule.users?.name || rule.client_name || 'Cliente';
+          const serviceTitle = rule.listings?.title || 'Servicio';
+          
           const clientData = {
-            name: rule.client_name,
+            name: clientName,
             condominium_name: null,
             house_number: null,
             residencias: null
@@ -125,8 +129,8 @@ export const generateRecurringInstances = (
             end_time: endDateTime.toISOString(),
             status: 'confirmed',
             recurrence: rule.recurrence_type,
-            client_name: rule.client_name || 'Cliente',
-            service_title: 'Servicio',
+            client_name: clientName,
+            service_title: serviceTitle,
             notes: rule.notes,
             is_recurring_instance: true,
             recurring_rule_id: rule.id,
