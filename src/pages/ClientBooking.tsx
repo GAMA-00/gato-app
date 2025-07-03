@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { validateBookingSlot } from '@/utils/bookingValidation';
-import { buildLocationString } from '@/utils/locationUtils';
+import { buildCompleteLocation } from '@/utils/locationBuilder';
 import Navbar from '@/components/layout/Navbar';
 import { toast } from 'sonner';
 import BookingHeader from '@/components/client/booking/BookingHeader';
@@ -43,6 +43,7 @@ const ClientBooking = () => {
         .select(`
           house_number,
           condominium_text,
+          condominium_name,
           residencia_id,
           residencias (
             id,
@@ -181,9 +182,10 @@ const ClientBooking = () => {
   };
 
   // Build client location string using complete data from database
-  const clientLocation = buildLocationString({
+  const clientLocation = buildCompleteLocation({
     residenciaName: completeUserData?.residencias?.name,
-    condominiumName: completeUserData?.condominium_text,
+    condominiumText: completeUserData?.condominium_text,
+    condominiumName: completeUserData?.condominium_name,
     houseNumber: completeUserData?.house_number,
     isExternal: false
   });
