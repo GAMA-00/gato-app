@@ -220,6 +220,18 @@ export const useClientBookings = () => {
           console.log(`📍 Reserva ${booking.id}: "${booking.location}"`);
         });
         
+        // ORDENAMIENTO CRONOLÓGICO CRÍTICO: Más próxima primero
+        processedBookings.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
+        });
+        
+        console.log('✅ Reservas ordenadas cronológicamente (más próxima primero)');
+        processedBookings.forEach((booking, index) => {
+          console.log(`${index + 1}. ${booking.serviceName} - ${booking.date.toLocaleString()}`);
+        });
+        
         return processedBookings;
 
       } catch (error) {
