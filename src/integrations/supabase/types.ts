@@ -275,6 +275,7 @@ export type Database = {
           provider_id: string
           service_type_id: string
           service_variants: Json | null
+          standard_duration: number
           title: string
           updated_at: string
           use_custom_variables: boolean | null
@@ -292,6 +293,7 @@ export type Database = {
           provider_id: string
           service_type_id: string
           service_variants?: Json | null
+          standard_duration: number
           title: string
           updated_at?: string
           use_custom_variables?: boolean | null
@@ -309,6 +311,7 @@ export type Database = {
           provider_id?: string
           service_type_id?: string
           service_variants?: Json | null
+          standard_duration?: number
           title?: string
           updated_at?: string
           use_custom_variables?: boolean | null
@@ -420,6 +423,61 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          provider_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          provider_id: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          provider_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_availability_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_availability_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_availability_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_ratings: {
         Row: {
           appointment_id: string
@@ -480,6 +538,77 @@ export type Database = {
             columns: ["residencia_id"]
             isOneToOne: false
             referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_time_slots: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          is_available: boolean
+          is_reserved: boolean
+          listing_id: string
+          provider_id: string
+          slot_date: string
+          slot_datetime_end: string
+          slot_datetime_start: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          is_available?: boolean
+          is_reserved?: boolean
+          listing_id: string
+          provider_id: string
+          slot_date: string
+          slot_datetime_end: string
+          slot_datetime_start: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          is_reserved?: boolean
+          listing_id?: string
+          provider_id?: string
+          slot_date?: string
+          slot_datetime_end?: string
+          slot_datetime_start?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_time_slots_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_time_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_time_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_time_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
