@@ -91,12 +91,6 @@ const ClientLogin = () => {
           <p className="text-muted-foreground">Inicia sesión para acceder a servicios</p>
         </CardHeader>
         <CardContent>
-          {loginError && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{loginError}</AlertDescription>
-            </Alert>
-          )}
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
