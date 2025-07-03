@@ -23,7 +23,7 @@ const Services = () => {
   };
 
   const handleCreateService = () => {
-    navigate('/services/new');
+    navigate('/services/create');
   };
 
   if (isLoading) {

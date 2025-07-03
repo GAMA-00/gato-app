@@ -39,7 +39,7 @@ const serviceFormSchema = z.object({
       price: z.union([z.string(), z.number()]),
       duration: z.union([z.string(), z.number()])
     })
-  ).optional(),
+  ).min(1, { message: 'Debe tener al menos una variante de servicio' }),
   // Campos para variables personalizadas
   useCustomVariables: z.boolean().optional(),
   customVariableGroups: z.array(z.any()).optional(),
@@ -87,7 +87,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       certificationFiles: initialData.certificationFiles || [],
       isPostPayment: initialData.isPostPayment || false,
       serviceVariants: initialData.serviceVariants || [
-        { name: 'Servicio básico', price: initialData.price, duration: initialData.duration }
+        { name: 'Servicio básico', price: initialData.price || 0, duration: initialData.duration || 60 }
       ],
       availability: initialData.availability || {},
       useCustomVariables: initialData.useCustomVariables || false,
@@ -103,7 +103,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       certificationFiles: [],
       isPostPayment: false,
       serviceVariants: [
-        { name: 'Servicio básico', price: 50, duration: 60 }
+        { name: 'Servicio básico', price: 0, duration: 60 }
       ],
       availability: {},
       useCustomVariables: false,

@@ -78,6 +78,7 @@ export const useServiceMutations = () => {
           description: serviceData.description || '',
           base_price: basePrice,
           duration: baseDuration,
+          standard_duration: baseDuration, // Required for new slot system
           provider_id: user.id,
           service_variants: serviceVariantsJson,
           gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
@@ -228,6 +229,7 @@ export const useServiceMutations = () => {
             description: serviceData.description,
             base_price: basePrice,
             duration: baseDuration,
+            standard_duration: baseDuration, // Required for new slot system
             service_variants: serviceVariantsJson,
             gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
             use_custom_variables: serviceData.useCustomVariables || false,

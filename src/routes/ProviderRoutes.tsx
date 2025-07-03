@@ -4,6 +4,7 @@ import { Route } from 'react-router-dom';
 import RoleGuard from '@/components/RoleGuard';
 import Dashboard from '@/pages/Dashboard';
 import Services from '@/pages/Services';
+import ServiceCreate from '@/pages/ServiceCreate';
 import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
 import Team from '@/pages/Team';
@@ -25,6 +26,15 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <Services />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="services-create"
+      path="/services/create"
+      element={
+        <RoleGuard allowedRole="provider">
+          <ServiceCreate />
         </RoleGuard>
       }
     />,
