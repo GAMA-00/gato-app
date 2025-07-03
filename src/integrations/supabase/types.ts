@@ -1168,6 +1168,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      generate_provider_time_slots: {
+        Args: {
+          p_provider_id: string
+          p_listing_id: string
+          p_start_date: string
+          p_end_date: string
+        }
+        Returns: number
+      }
       generate_recurring_appointment_instances: {
         Args: { p_rule_id: string; p_weeks_ahead?: number }
         Returns: number
