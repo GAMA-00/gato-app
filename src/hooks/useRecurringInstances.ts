@@ -19,6 +19,9 @@ interface RecurringRule {
   client_address: string | null;
   client_phone: string | null;
   client_email: string | null;
+  users?: { name: string } | null;
+  listings?: { title: string } | null;
+  [key: string]: any; // Para compatibilidad con Supabase
 }
 
 interface RecurringInstance {
@@ -48,7 +51,7 @@ interface UseRecurringInstancesProps {
 }
 
 export const generateRecurringInstances = (
-  recurringRules: RecurringRule[], 
+  recurringRules: any[], 
   startDate: Date, 
   endDate: Date,
   existingAppointments: any[] = []
