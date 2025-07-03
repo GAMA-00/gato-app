@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form } from '@/components/ui/form';
-import { Service, ServiceVariant, WeeklyAvailability } from '@/lib/types';
+import { Service, ServiceVariant, WeeklyAvailability, CustomVariableGroup } from '@/lib/types';
 import ServiceFormFields from './ServiceFormFields';
 import ServiceFormFooter from './ServiceFormFooter';
 import { toast } from 'sonner';
@@ -40,6 +40,9 @@ const serviceFormSchema = z.object({
       duration: z.union([z.string(), z.number()])
     })
   ).optional(),
+  // Campos para variables personalizadas
+  useCustomVariables: z.boolean().optional(),
+  customVariableGroups: z.array(z.any()).optional(),
   // Nueva sección de disponibilidad
   availability: z.record(z.object({
     enabled: z.boolean().optional(),
@@ -86,7 +89,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       serviceVariants: initialData.serviceVariants || [
         { name: 'Servicio básico', price: initialData.price, duration: initialData.duration }
       ],
-      availability: initialData.availability || {}
+      availability: initialData.availability || {},
+      useCustomVariables: initialData.useCustomVariables || false,
+      customVariableGroups: initialData.customVariableGroups || []
     } : {
       name: '',
       subcategoryId: '',
@@ -100,7 +105,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       serviceVariants: [
         { name: 'Servicio básico', price: 50, duration: 60 }
       ],
-      availability: {}
+      availability: {},
+      useCustomVariables: false,
+      customVariableGroups: []
     }
   });
   
@@ -181,7 +188,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         duration: baseDuration,
         serviceVariants: formattedServiceVariants,
         availability: transformedAvailability,
-        isPostPayment: values.isPostPayment || false
+        isPostPayment: values.isPostPayment || false,
+        useCustomVariables: values.useCustomVariables || false,
+        customVariableGroups: values.customVariableGroups || []
       };
       
       console.log("Datos finales a enviar:", serviceData);

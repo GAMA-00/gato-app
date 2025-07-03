@@ -17,6 +17,32 @@ export interface ServiceVariant {
   duration: string | number;
 }
 
+// Nuevas interfaces para variables personalizadas flexibles
+export interface CustomVariableOption {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+}
+
+export interface CustomVariable {
+  id: string;
+  name: string;
+  type: 'single' | 'multiple' | 'quantity';
+  isRequired: boolean;
+  options: CustomVariableOption[];
+  pricePerUnit?: number; // Para tipo 'quantity'
+  minQuantity?: number;
+  maxQuantity?: number;
+}
+
+export interface CustomVariableGroup {
+  id: string;
+  name: string;
+  description?: string;
+  variables: CustomVariable[];
+}
+
 // Nueva interfaz para disponibilidad
 export interface WeeklyAvailability {
   [day: string]: {
@@ -53,6 +79,9 @@ export interface Service {
   availability?: WeeklyAvailability;
   // Nuevo campo para servicios post-pago
   isPostPayment?: boolean;
+  // Nuevos campos para variables personalizadas flexibles
+  customVariableGroups?: CustomVariableGroup[];
+  useCustomVariables?: boolean;
 }
 
 export interface Client {
