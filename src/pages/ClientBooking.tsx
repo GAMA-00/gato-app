@@ -111,52 +111,121 @@ const ClientBooking = () => {
   }
 
   const handleBooking = async () => {
+    console.log('=== INICIANDO PROCESO DE RESERVA ===');
+    console.log('Estado de validación:', { isBookingValid, hasUser: !!user, hasUserData: !!completeUserData });
+    
+    // Fase 2: Validar datos básicos
     if (!isBookingValid || !user) {
+      console.error('Validación fallida - campos básicos:', { isBookingValid, hasUser: !!user });
       toast.error('Por favor completa todos los campos requeridos');
       return;
     }
 
-    // Create start and end times
-    const [hours, minutes] = selectedTime.split(':').map(Number);
-    const startDateTime = new Date(selectedDate);
-    startDateTime.setHours(hours, minutes, 0, 0);
-    
-    const endDateTime = new Date(startDateTime);
-    endDateTime.setMinutes(endDateTime.getMinutes() + selectedVariant.duration);
-
-    // Validate the booking slot
-    const isValid = await validateBookingSlot(
-      providerId,
-      startDateTime,
-      endDateTime,
-      selectedFrequency
-    );
-
-    if (!isValid) {
-      return; // Error already shown by validation
+    // Validar que los datos del usuario estén cargados
+    if (isLoadingUserData) {
+      console.log('Esperando datos del usuario...');
+      toast.error('Cargando información del usuario, intenta de nuevo en un momento');
+      return;
     }
 
-    // Create the booking - Use profile data for address instead of user properties
-    const bookingData = {
-      listingId: serviceId!,
-      startTime: startDateTime.toISOString(),
-      endTime: endDateTime.toISOString(),
-      recurrenceType: selectedFrequency,
-      notes,
-      clientAddress: completeUserData?.condominium_text && completeUserData?.house_number 
-        ? `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`
-        : '',
-      clientPhone: user.phone || '',
-      clientEmail: user.email || '',
-      customVariableSelections: Object.keys(customVariableSelections).length > 0 ? customVariableSelections : undefined,
-      customVariablesTotalPrice: customVariablesTotalPrice
-    };
+    if (!completeUserData) {
+      console.error('No se pudieron cargar los datos del usuario');
+      toast.error('Error al cargar los datos del usuario. Verifica tu perfil.');
+      return;
+    }
 
-    const result = await createRecurringBooking(bookingData);
-    
-    if (result) {
-      toast.success('¡Reserva creada exitosamente!');
-      navigate('/client/bookings');
+    console.log('Datos del usuario cargados:', completeUserData);
+    toast.info('Validando horario disponible...');
+
+    try {
+      // Create start and end times
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const startDateTime = new Date(selectedDate);
+      startDateTime.setHours(hours, minutes, 0, 0);
+      
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setMinutes(endDateTime.getMinutes() + selectedVariant.duration);
+
+      console.log('Horario seleccionado:', {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime.toISOString(),
+        frequency: selectedFrequency
+      });
+
+      // Fase 4: Validar slot con timeout
+      const validationPromise = validateBookingSlot(
+        providerId,
+        startDateTime,
+        endDateTime,
+        selectedFrequency
+      );
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout de validación')), 10000)
+      );
+
+      const isValid = await Promise.race([validationPromise, timeoutPromise]);
+
+      if (!isValid) {
+        console.error('Validación de slot fallida');
+        return; // Error already shown by validation
+      }
+
+      console.log('Slot validado correctamente');
+      toast.info('Creando reserva...');
+
+      // Preparar dirección del cliente
+      const clientAddress = completeUserData?.condominium_text && completeUserData?.house_number 
+        ? `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`
+        : '';
+
+      if (!clientAddress) {
+        console.warn('Dirección del cliente incompleta:', {
+          condominium: completeUserData?.condominium_text,
+          house: completeUserData?.house_number
+        });
+        toast.error('Tu dirección está incompleta. Por favor actualiza tu perfil.');
+        return;
+      }
+
+      // Create the booking data
+      const bookingData = {
+        listingId: serviceId!,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        recurrenceType: selectedFrequency,
+        notes,
+        clientAddress,
+        clientPhone: user.phone || '',
+        clientEmail: user.email || '',
+        customVariableSelections: Object.keys(customVariableSelections).length > 0 ? customVariableSelections : undefined,
+        customVariablesTotalPrice: customVariablesTotalPrice
+      };
+
+      console.log('Datos de reserva preparados:', bookingData);
+
+      const result = await createRecurringBooking(bookingData);
+      
+      if (result) {
+        console.log('Reserva creada exitosamente:', result);
+        toast.success('¡Reserva creada exitosamente!');
+        
+        // Fase 5: Navegación con confirmación
+        setTimeout(() => {
+          console.log('Navegando a bookings...');
+          navigate('/client/bookings');
+        }, 1500);
+      } else {
+        console.error('createRecurringBooking retornó null');
+        toast.error('Error inesperado al crear la reserva');
+      }
+    } catch (error) {
+      console.error('Error en handleBooking:', error);
+      if (error.message === 'Timeout de validación') {
+        toast.error('La validación está tomando mucho tiempo. Intenta de nuevo.');
+      } else {
+        toast.error('Error inesperado: ' + (error.message || 'Error desconocido'));
+      }
     }
   };
 

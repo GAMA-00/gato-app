@@ -98,16 +98,28 @@ const BookingSummaryCard = ({
         {/* 6. Booking Button */}
         <Button
           onClick={onBooking}
-          disabled={!isBookingValid || isLoading}
-          className="w-full bg-green-600 hover:bg-green-700 text-white"
+          disabled={!isBookingValid || isLoading || isLoadingLocation}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white"
           size="lg"
         >
-          {isLoading ? 'Creando reserva...' : 'Confirmar Reserva'}
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Creando reserva...
+            </div>
+          ) : isLoadingLocation ? (
+            'Cargando ubicación...'
+          ) : (
+            'Confirmar Reserva'
+          )}
         </Button>
 
-        {!isBookingValid && (
+        {!isBookingValid && !isLoading && (
           <p className="text-sm text-muted-foreground text-center">
-            Completa todos los campos para continuar
+            {isLoadingLocation ? 
+              'Cargando información del usuario...' : 
+              'Completa todos los campos para continuar'
+            }
           </p>
         )}
       </CardContent>

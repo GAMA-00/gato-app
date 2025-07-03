@@ -10,12 +10,18 @@ export const validateBookingSlot = async (
   excludeAppointmentId?: string
 ): Promise<boolean> => {
   try {
-    console.log(`Validating unified booking slot for provider ${providerId}`);
+    console.log(`=== INICIANDO VALIDACIÓN DE SLOT ===`);
+    console.log(`Provider: ${providerId}`);
+    console.log(`Horario: ${startTime.toISOString()} - ${endTime.toISOString()}`);
+    console.log(`Recurrencia: ${recurrence}`);
     
     // First check the immediate slot against ALL provider appointments and blocks
+    console.log('Validando slot inmediato...');
     const slotValidation = await validateAppointmentSlot(providerId, startTime, endTime, excludeAppointmentId);
     
     if (slotValidation.hasConflict) {
+      console.error('Conflicto detectado en slot inmediato:', slotValidation);
+      
       // Provide specific error message based on conflict type
       const { conflictDetails } = slotValidation;
       let errorMessage = slotValidation.conflictReason || 'Este horario no está disponible';
@@ -30,25 +36,33 @@ export const validateBookingSlot = async (
         errorMessage = `Horario bloqueado: ${conflictDetails.note || 'No disponible'}`;
       }
       
+      console.error('Mensaje de error:', errorMessage);
       toast.error(errorMessage);
       return false;
     }
 
+    console.log('Slot inmediato validado correctamente');
+
     // Then check recurring conflicts if applicable
     if (recurrence !== 'once' && recurrence !== 'none') {
+      console.log('Validando conflictos de recurrencia...');
       const recurringValidation = await checkRecurringConflicts(providerId, startTime, endTime, recurrence);
       
       if (recurringValidation.hasConflict) {
+        console.error('Conflicto detectado en recurrencia:', recurringValidation);
         const errorMessage = recurringValidation.conflictReason || 'Conflicto en fechas futuras de la recurrencia';
         toast.error(errorMessage);
         return false;
       }
+      
+      console.log('Recurrencia validada correctamente');
     }
 
-    console.log(`Booking slot validated successfully for provider ${providerId}`);
+    console.log(`=== VALIDACIÓN COMPLETADA EXITOSAMENTE ===`);
     return true;
   } catch (error) {
-    console.error('Error validating unified booking slot:', error);
+    console.error('=== ERROR EN VALIDACIÓN DE SLOT ===');
+    console.error('Error details:', error);
     toast.error('Error al validar la disponibilidad. Intenta de nuevo.');
     return false;
   }
