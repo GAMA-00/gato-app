@@ -305,6 +305,18 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         }];
       }
       
+      // Parse custom variable groups from JSON if available
+      let customVariableGroups = [];
+      if (listing.custom_variable_groups) {
+        try {
+          customVariableGroups = typeof listing.custom_variable_groups === 'string' 
+            ? JSON.parse(listing.custom_variable_groups) 
+            : listing.custom_variable_groups;
+        } catch (error) {
+          console.error("Error parsing custom variable groups:", error);
+        }
+      }
+      
       // Mock data for recurring clients and services completed
       const recurringClients = Math.floor(Math.random() * 10);
       const servicesCompleted = Math.floor(Math.random() * 50) + 10;
@@ -321,7 +333,9 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         recurringClients,
         serviceVariants,
         galleryImages,
-        servicesCompleted
+        servicesCompleted,
+        custom_variable_groups: customVariableGroups,
+        use_custom_variables: listing.use_custom_variables || false
       } as ServiceDetailData;
       
       console.log("=== FINAL SERVICE DETAIL RESULT ===");

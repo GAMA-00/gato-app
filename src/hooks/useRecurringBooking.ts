@@ -14,6 +14,8 @@ interface RecurringBookingData {
   clientAddress?: string;
   clientPhone?: string;
   clientEmail?: string;
+  customVariableSelections?: any;
+  customVariablesTotalPrice?: number;
 }
 
 export function useRecurringBooking() {
@@ -56,7 +58,9 @@ export function useRecurringBooking() {
         client_name: user.name || 'Cliente',
         recurrence: data.recurrenceType,
         external_booking: false,
-        is_recurring_instance: false // Base appointment, not an instance
+        is_recurring_instance: false, // Base appointment, not an instance
+        custom_variable_selections: data.customVariableSelections ? JSON.stringify(data.customVariableSelections) : null,
+        custom_variables_total_price: data.customVariablesTotalPrice || 0
       };
 
       const { data: appointment, error } = await supabase

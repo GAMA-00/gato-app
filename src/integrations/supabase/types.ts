@@ -19,6 +19,8 @@ export type Database = {
           client_name: string | null
           client_phone: string | null
           created_at: string
+          custom_variable_selections: Json | null
+          custom_variables_total_price: number | null
           end_time: string
           external_booking: boolean | null
           final_price: number | null
@@ -48,6 +50,8 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          custom_variable_selections?: Json | null
+          custom_variables_total_price?: number | null
           end_time: string
           external_booking?: boolean | null
           final_price?: number | null
@@ -77,6 +81,8 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          custom_variable_selections?: Json | null
+          custom_variables_total_price?: number | null
           end_time?: string
           external_booking?: boolean | null
           final_price?: number | null
