@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { buildCompleteLocation } from '@/utils/locationBuilder';
+import { processClientBooking } from '@/utils/clientBookingProcessor';
 
 export interface ClientBooking {
   id: string;
@@ -116,7 +116,7 @@ export const useClientBookings = () => {
 
         // Obtener citas calificadas
         const appointmentIds = appointments.map(a => a.id);
-        let ratedIds = new Set();
+        let ratedIds: Set<string> = new Set();
 
         try {
           const { data: ratedAppointments } = await supabase
@@ -158,135 +158,19 @@ export const useClientBookings = () => {
         console.log('🏠 Número de casa:', userData?.house_number);
         console.log('🏠 === FIN DATOS USUARIO ===');
 
-        // Procesar citas con cálculo de próxima ocurrencia real
+        // Procesar citas con cálculo optimizado de próxima ocurrencia
         const processedBookings = appointments.map(appointment => {
-          const service = servicesMap.get(appointment.listing_id);
-          const provider = providersMap.get(appointment.provider_id);
-          
-          console.log(`🔄 === PROCESANDO CITA ${appointment.id} ===`);
-          
-          let location = 'Ubicación no especificada';
-          
-          if (appointment.external_booking && appointment.client_address) {
-            console.log('🌍 Reserva externa detectada');
-            location = buildCompleteLocation({
-              clientAddress: appointment.client_address,
-              isExternal: true
-            }, appointment.id);
-          } else if (userData) {
-            console.log('🏠 Construyendo ubicación interna con datos COMPLETOS');
-            
-            const locationData = {
-              residenciaName: userData.residencias?.name,
-              condominiumText: userData.condominium_text,
-              condominiumName: userData.condominium_name,
-              houseNumber: userData.house_number,
-              isExternal: false
-            };
-            
-            console.log('📤 === DATOS ENVIADOS A buildCompleteLocation ===');
-            console.log('📋 Datos completos:', JSON.stringify(locationData, null, 2));
-            
-            location = buildCompleteLocation(locationData, appointment.id);
-          } else {
-            console.log('❌ NO HAY DATOS DE USUARIO para construcción de ubicación');
-          }
-
-          console.log(`📍 Ubicación final para cita ${appointment.id}:`, location);
-
-          // CALCULAR PRÓXIMA FECHA DE OCURRENCIA REAL
-          let nextOccurrenceDate = new Date(appointment.start_time);
-          const now = new Date();
-          
-          if (appointment.recurrence && appointment.recurrence !== 'none' && appointment.recurrence !== '') {
-            console.log(`📅 Calculando próxima ocurrencia para cita recurrente: ${appointment.recurrence}`);
-            
-            // Para citas recurrentes, calcular la próxima fecha de ocurrencia
-            const appointmentTime = new Date(appointment.start_time);
-            const currentTime = appointmentTime.getHours() * 60 + appointmentTime.getMinutes();
-            
-            if (appointment.recurrence === 'weekly') {
-              const dayOfWeek = appointmentTime.getDay(); // 0 = domingo, 1 = lunes, etc.
-              let nextDate = new Date(now);
-              nextDate.setHours(appointmentTime.getHours(), appointmentTime.getMinutes(), 0, 0);
-              
-              // Encontrar el próximo día de la semana
-              const daysUntilNext = (dayOfWeek - nextDate.getDay() + 7) % 7;
-              if (daysUntilNext === 0 && nextDate <= now) {
-                // Si es hoy pero ya pasó la hora, programar para la próxima semana
-                nextDate.setDate(nextDate.getDate() + 7);
-              } else {
-                nextDate.setDate(nextDate.getDate() + daysUntilNext);
-              }
-              
-              nextOccurrenceDate = nextDate;
-              console.log(`⏰ Próxima ocurrencia semanal: ${nextOccurrenceDate.toLocaleString()}`);
-              
-            } else if (appointment.recurrence === 'biweekly') {
-              // Lógica similar para quincenal
-              const dayOfWeek = appointmentTime.getDay();
-              let nextDate = new Date(now);
-              nextDate.setHours(appointmentTime.getHours(), appointmentTime.getMinutes(), 0, 0);
-              
-              // Encontrar la próxima fecha que coincida con el patrón quincenal
-              const daysUntilNext = (dayOfWeek - nextDate.getDay() + 7) % 7;
-              nextDate.setDate(nextDate.getDate() + daysUntilNext);
-              
-              // Verificar si cae en la semana correcta del patrón quincenal
-              const diffWeeks = Math.floor((nextDate.getTime() - appointmentTime.getTime()) / (7 * 24 * 60 * 60 * 1000));
-              if (diffWeeks % 2 !== 0) {
-                nextDate.setDate(nextDate.getDate() + 7);
-              }
-              
-              if (nextDate <= now) {
-                nextDate.setDate(nextDate.getDate() + 14);
-              }
-              
-              nextOccurrenceDate = nextDate;
-              console.log(`⏰ Próxima ocurrencia quincenal: ${nextOccurrenceDate.toLocaleString()}`);
-              
-            } else if (appointment.recurrence === 'monthly') {
-              const dayOfMonth = appointmentTime.getDate();
-              let nextDate = new Date(now.getFullYear(), now.getMonth(), dayOfMonth);
-              nextDate.setHours(appointmentTime.getHours(), appointmentTime.getMinutes(), 0, 0);
-              
-              if (nextDate <= now) {
-                nextDate.setMonth(nextDate.getMonth() + 1);
-              }
-              
-              nextOccurrenceDate = nextDate;
-              console.log(`⏰ Próxima ocurrencia mensual: ${nextOccurrenceDate.toLocaleString()}`);
-            }
-          } else {
-            // Para citas únicas, usar la fecha original
-            console.log(`📅 Cita única, usando fecha original: ${nextOccurrenceDate.toLocaleString()}`);
-          }
-
-          return {
-            id: appointment.id,
-            serviceName: service?.title || 'Servicio',
-            subcategory: service?.service_types?.name || 'Servicio',
-            date: nextOccurrenceDate, // USAR LA PRÓXIMA FECHA DE OCURRENCIA CALCULADA
-            status: appointment.status as ClientBooking['status'],
-            recurrence: appointment.recurrence || 'none',
-            providerId: appointment.provider_id,
-            providerName: provider?.name || appointment.provider_name || 'Proveedor',
-            isRated: ratedIds.has(appointment.id),
-            location,
-            isRescheduled: appointment.notes?.includes('Reagendado'),
-            originalRecurrenceGroupId: appointment.recurrence_group_id,
-            listingId: appointment.listing_id,
-            recurrenceGroupId: appointment.recurrence_group_id,
-            isRecurringInstance: appointment.is_recurring_instance || false,
-            originalAppointmentId: appointment.is_recurring_instance ? appointment.id.split('-recurring-')[0] : undefined
-          };
+          return processClientBooking({
+            appointment,
+            servicesMap,
+            providersMap,
+            ratedIds,
+            userData
+          });
         });
 
         console.log('🎯 === RESULTADOS FINALES CLIENT BOOKINGS ===');
-        console.log(`📊 Procesadas ${processedBookings.length} reservas con ubicaciones:`);
-        processedBookings.forEach(booking => {
-          console.log(`📍 Reserva ${booking.id}: "${booking.location}"`);
-        });
+        console.log(`📊 Procesadas ${processedBookings.length} reservas`);
         
         // ORDENAMIENTO CRONOLÓGICO CRÍTICO: Más próxima primero
         processedBookings.sort((a, b) => {
