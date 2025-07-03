@@ -20,6 +20,7 @@ interface BookingSummaryCardProps {
   formatPrice: (price: number | string) => string;
   getRecurrenceText: (frequency: string) => string;
   selectedFrequency: string;
+  customVariablesTotalPrice?: number;
 }
 
 const BookingSummaryCard = ({
@@ -35,7 +36,8 @@ const BookingSummaryCard = ({
   onBooking,
   formatPrice,
   getRecurrenceText,
-  selectedFrequency
+  selectedFrequency,
+  customVariablesTotalPrice = 0
 }: BookingSummaryCardProps) => {
   return (
     <Card className="sticky top-6">
@@ -58,8 +60,18 @@ const BookingSummaryCard = ({
               <span>{selectedVariant.duration} min</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Precio:</span>
+              <span>Precio base:</span>
               <span className="font-medium">${formatPrice(selectedVariant.price)}</span>
+            </div>
+            {customVariablesTotalPrice > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Variables adicionales:</span>
+                <span className="font-medium">+${formatPrice(customVariablesTotalPrice)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm font-semibold border-t pt-2 mt-2">
+              <span>Total:</span>
+              <span>${formatPrice((typeof selectedVariant.price === 'string' ? parseFloat(selectedVariant.price) : selectedVariant.price) + customVariablesTotalPrice)}</span>
             </div>
           </div>
         )}

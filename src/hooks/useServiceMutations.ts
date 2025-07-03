@@ -80,7 +80,9 @@ export const useServiceMutations = () => {
           duration: baseDuration,
           provider_id: user.id,
           service_variants: serviceVariantsJson,
-          gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null
+          gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
+          use_custom_variables: serviceData.useCustomVariables || false,
+          custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null
         };
         
         console.log('Datos a insertar en listings:', insertData);
@@ -227,7 +229,9 @@ export const useServiceMutations = () => {
             base_price: basePrice,
             duration: baseDuration,
             service_variants: serviceVariantsJson,
-            gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null
+            gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
+            use_custom_variables: serviceData.useCustomVariables || false,
+            custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null
           })
           .eq('id', serviceData.id);
           

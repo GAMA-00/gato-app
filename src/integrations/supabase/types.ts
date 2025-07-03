@@ -259,6 +259,7 @@ export type Database = {
         Row: {
           base_price: number
           created_at: string
+          custom_variable_groups: Json | null
           description: string
           duration: number
           gallery_images: Json | null
@@ -270,10 +271,12 @@ export type Database = {
           service_variants: Json | null
           title: string
           updated_at: string
+          use_custom_variables: boolean | null
         }
         Insert: {
           base_price: number
           created_at?: string
+          custom_variable_groups?: Json | null
           description: string
           duration: number
           gallery_images?: Json | null
@@ -285,10 +288,12 @@ export type Database = {
           service_variants?: Json | null
           title: string
           updated_at?: string
+          use_custom_variables?: boolean | null
         }
         Update: {
           base_price?: number
           created_at?: string
+          custom_variable_groups?: Json | null
           description?: string
           duration?: number
           gallery_images?: Json | null
@@ -300,6 +305,7 @@ export type Database = {
           service_variants?: Json | null
           title?: string
           updated_at?: string
+          use_custom_variables?: boolean | null
         }
         Relationships: [
           {

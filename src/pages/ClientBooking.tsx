@@ -29,6 +29,8 @@ const ClientBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [notes, setNotes] = useState('');
+  const [customVariableSelections, setCustomVariableSelections] = useState<any>({});
+  const [customVariablesTotalPrice, setCustomVariablesTotalPrice] = useState<number>(0);
 
   // Query to get complete user data from database
   const { data: completeUserData, isLoading: isLoadingUserData } = useQuery({
@@ -149,7 +151,9 @@ const ClientBooking = () => {
         ? `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`
         : '',
       clientPhone: user.phone || '',
-      clientEmail: user.email || ''
+      clientEmail: user.email || '',
+      customVariableSelections: Object.keys(customVariableSelections).length > 0 ? customVariableSelections : undefined,
+      customVariablesTotalPrice: customVariablesTotalPrice
     };
 
     const result = await createRecurringBooking(bookingData);
@@ -222,6 +226,12 @@ const ClientBooking = () => {
               selectedVariant={selectedVariant}
               notes={notes}
               onNotesChange={setNotes}
+              customVariableGroups={serviceDetails.custom_variable_groups}
+              customVariableSelections={customVariableSelections}
+              onCustomVariableSelectionsChange={(selections, totalPrice) => {
+                setCustomVariableSelections(selections);
+                setCustomVariablesTotalPrice(totalPrice);
+              }}
             />
 
             {/* Right Column - Booking Summary */}
@@ -240,6 +250,7 @@ const ClientBooking = () => {
                 formatPrice={formatPrice}
                 getRecurrenceText={getRecurrenceText}
                 selectedFrequency={selectedFrequency}
+                customVariablesTotalPrice={customVariablesTotalPrice}
               />
             </div>
           </div>

@@ -3,7 +3,9 @@ import React from 'react';
 import RecurrenceSelector from './RecurrenceSelector';
 import DateTimeSelector from './DateTimeSelector';
 import NotesSection from './NotesSection';
+import CustomVariableSelector from './CustomVariableSelector';
 import { ServiceVariant } from '@/components/client/service/types';
+import { CustomVariableGroup } from '@/lib/types';
 
 interface BookingFormProps {
   selectedFrequency: string;
@@ -16,6 +18,10 @@ interface BookingFormProps {
   selectedVariant: ServiceVariant | undefined;
   notes: string;
   onNotesChange: (notes: string) => void;
+  // Nuevas props para variables personalizadas
+  customVariableGroups?: CustomVariableGroup[];
+  customVariableSelections?: any;
+  onCustomVariableSelectionsChange?: (selections: any, totalPrice: number) => void;
 }
 
 const BookingForm = ({
@@ -28,7 +34,10 @@ const BookingForm = ({
   providerId,
   selectedVariant,
   notes,
-  onNotesChange
+  onNotesChange,
+  customVariableGroups,
+  customVariableSelections,
+  onCustomVariableSelectionsChange
 }: BookingFormProps) => {
   return (
     <div className="space-y-6">
@@ -48,6 +57,15 @@ const BookingForm = ({
         serviceDuration={selectedVariant?.duration || 60}
         selectedFrequency={selectedFrequency}
       />
+
+      {/* Variables personalizadas */}
+      {customVariableGroups && customVariableGroups.length > 0 && onCustomVariableSelectionsChange && (
+        <CustomVariableSelector
+          customVariableGroups={customVariableGroups}
+          onSelectionChange={onCustomVariableSelectionsChange}
+          initialSelection={customVariableSelections}
+        />
+      )}
 
       {/* Notes */}
       <NotesSection
