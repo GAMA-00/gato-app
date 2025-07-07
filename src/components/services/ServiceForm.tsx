@@ -141,7 +141,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     console.log("=== FORMULARIO ENVIADO ===");
     console.log("Valores del formulario:", values);
     
-    if (isSubmitting) {
+    if (isSubmitting || externalIsSubmitting) {
       console.log("Ya se está enviando el formulario, ignorando");
       return;
     }

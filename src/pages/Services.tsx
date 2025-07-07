@@ -3,23 +3,37 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ServiceCard from '@/components/services/ServiceCard';
 import { useListings } from '@/hooks/useListings';
+import { useServiceMutations } from '@/hooks/useServiceMutations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Service } from '@/lib/types';
+import { toast } from 'sonner';
 
 const Services = () => {
   const { listings, isLoading } = useListings();
+  const { deleteListingMutation } = useServiceMutations();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  const handleEditService = (service: any) => {
+  const handleEditService = (service: Service) => {
     console.log('Edit service:', service);
   };
 
-  const handleDeleteService = (service: any) => {
-    console.log('Delete service:', service);
+  const handleDeleteService = (service: Service) => {
+    if (window.confirm(`¿Estás seguro de que quieres eliminar "${service.name}"?`)) {
+      deleteListingMutation.mutate(service, {
+        onSuccess: () => {
+          toast.success('Anuncio eliminado exitosamente');
+        },
+        onError: (error) => {
+          toast.error('Error al eliminar el anuncio');
+          console.error('Delete error:', error);
+        }
+      });
+    }
   };
 
   const handleCreateService = () => {

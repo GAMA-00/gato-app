@@ -138,16 +138,18 @@ export const useServiceMutations = () => {
       console.log('=== MUTACIÓN EXITOSA ===');
       console.log('Datos del servicio creado:', data);
       
-      // Usar setQueryData para actualizar cache directamente
+      // Usar setQueryData para actualizar cache directamente sin duplicados
       queryClient.setQueryData(['listings', user?.id], (oldData: any) => {
         if (Array.isArray(oldData)) {
-          return [...oldData, data];
+          // Verificar que no existe ya para evitar duplicados
+          const exists = oldData.some(item => item.id === data.id);
+          if (!exists) {
+            return [...oldData, data];
+          }
+          return oldData;
         }
-        return oldData;
+        return [data];
       });
-      
-      // Solo invalidar las queries necesarias
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
       
       console.log('Cache actualizado directamente');
       toast.success('¡Anuncio creado exitosamente!');
