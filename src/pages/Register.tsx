@@ -22,11 +22,8 @@ const Register = () => {
   }, [user, navigate]);
 
   const handleRegisterSuccess = (data: { user: any }) => {
-    toast.info('¡Registro exitoso! Configurando tu cuenta...');
-    
-    navigate('/payment-setup', { 
-      state: { fromClientView: true } 
-    });
+    toast.success('¡Registro exitoso! Explora nuestros servicios.');
+    navigate('/client');
   };
 
   return (

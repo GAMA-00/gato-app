@@ -22,11 +22,8 @@ const ProviderRegister = () => {
   }, [user, navigate]);
 
   const handleRegisterSuccess = (data: { user: any }) => {
-    toast.info('¡Registro exitoso! Configurando tu cuenta...');
-    
-    navigate('/payment-setup', { 
-      state: { fromClientView: false } 
-    });
+    toast.success('¡Registro exitoso! Bienvenido a tu dashboard.');
+    navigate('/dashboard');
   };
 
   return (
