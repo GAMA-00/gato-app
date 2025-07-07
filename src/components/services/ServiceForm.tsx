@@ -72,7 +72,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
 }) => {
   // Estado para controlar el paso actual del wizard
   const [currentStep, setCurrentStep] = useState(0);
-  const steps = ['basic', 'profile', 'service', 'availability'];
+  const steps = ['basic', 'profile', 'service', 'availability', 'slots'];
   
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
