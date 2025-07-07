@@ -136,7 +136,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         providerResidenciaIds: userRole === 'provider' ? values.providerResidenciaIds : []
       };
       
-      const result = await signUp(values.email, values.password);
+      const result = await signUp(values.email, values.password, userData);
       
       if (result.error) {
         console.error('Error durante el registro:', result.error);
