@@ -152,13 +152,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           setRegistrationError(result.error.message || "Error desconocido");
         }
       } else if (result.data?.user) {
-        console.log('Registro exitoso!');
+        console.log('RegisterForm: Registro exitoso! User ID:', result.data.user.id);
+        console.log('RegisterForm: User metadata sent:', userData);
+        
         if (onRegisterSuccess) {
           onRegisterSuccess({ 
             user: result.data.user
           });
         }
-      } 
+      }
     } catch (error: any) {
       console.error('Error capturado en onSubmit:', error);
       setRegistrationError(error.message || "Error desconocido durante el registro");

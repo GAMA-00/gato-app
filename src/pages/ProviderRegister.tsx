@@ -10,20 +10,24 @@ import { Button } from '@/components/ui/button';
 
 const ProviderRegister = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { residencias, isLoading: loadingResidencias } = useResidencias();
   
   useEffect(() => {
-    if (user) {
+    console.log('ProviderRegister: Auth state changed', { user: !!user, isAuthenticated, isLoading, userRole: user?.role });
+    
+    if (isAuthenticated && user && !isLoading) {
+      console.log('ProviderRegister: User is authenticated, redirecting based on role:', user.role);
       // Redirect based on user role
       const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
-      navigate(redirectTo);
+      navigate(redirectTo, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, isAuthenticated, isLoading, navigate]);
 
   const handleRegisterSuccess = (data: { user: any }) => {
-    toast.success('¡Registro exitoso! Bienvenido a tu dashboard.');
-    navigate('/dashboard');
+    console.log('ProviderRegister: Registration success callback triggered', data);
+    toast.success('¡Registro exitoso! Creando tu perfil...');
+    // Don't navigate here - let the useEffect handle it when auth state updates
   };
 
   return (
