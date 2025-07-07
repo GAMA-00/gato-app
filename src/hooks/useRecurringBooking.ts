@@ -122,6 +122,32 @@ export function useRecurringBooking() {
 
       console.log('Cita creada exitosamente:', appointment);
 
+      // Block future slots for recurring appointments
+      if (data.recurrenceType !== 'once' && appointment.id) {
+        console.log('Blocking recurring slots for appointment:', appointment.id);
+        try {
+          const { error: blockError } = await supabase.rpc('block_recurring_slots', {
+            p_provider_id: listing.provider_id,
+            p_start_time: data.startTime,
+            p_end_time: data.endTime,
+            p_recurrence_type: data.recurrenceType,
+            p_weeks_ahead: 12
+          });
+
+          if (blockError) {
+            console.error('Warning: Could not block recurring slots:', blockError);
+            // Don't fail the booking, just log the warning
+          } else {
+            console.log('Successfully blocked recurring slots');
+          }
+        } catch (slotError) {
+          console.error('Warning: Error blocking recurring slots:', slotError);
+          // Don't fail the booking, just log the warning
+        }
+      }
+
+      console.log('Cita creada exitosamente:', appointment);
+
       // Mostrar mensaje de éxito apropiado
       if (data.recurrenceType === 'once') {
         toast.success('¡Cita creada exitosamente!');

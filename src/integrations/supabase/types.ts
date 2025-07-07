@@ -553,12 +553,15 @@ export type Database = {
           end_time: string
           id: string
           is_available: boolean
+          is_manually_disabled: boolean | null
           is_reserved: boolean
           listing_id: string
           provider_id: string
+          recurring_blocked: boolean | null
           slot_date: string
           slot_datetime_end: string
           slot_datetime_start: string
+          slot_type: string | null
           start_time: string
         }
         Insert: {
@@ -566,12 +569,15 @@ export type Database = {
           end_time: string
           id?: string
           is_available?: boolean
+          is_manually_disabled?: boolean | null
           is_reserved?: boolean
           listing_id: string
           provider_id: string
+          recurring_blocked?: boolean | null
           slot_date: string
           slot_datetime_end: string
           slot_datetime_start: string
+          slot_type?: string | null
           start_time: string
         }
         Update: {
@@ -579,12 +585,15 @@ export type Database = {
           end_time?: string
           id?: string
           is_available?: boolean
+          is_manually_disabled?: boolean | null
           is_reserved?: boolean
           listing_id?: string
           provider_id?: string
+          recurring_blocked?: boolean | null
           slot_date?: string
           slot_datetime_end?: string
           slot_datetime_start?: string
+          slot_type?: string | null
           start_time?: string
         }
         Relationships: [
@@ -1145,6 +1154,16 @@ export type Database = {
       }
     }
     Functions: {
+      block_recurring_slots: {
+        Args: {
+          p_provider_id: string
+          p_start_time: string
+          p_end_time: string
+          p_recurrence_type: string
+          p_weeks_ahead?: number
+        }
+        Returns: number
+      }
       calculate_refund_percentage: {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number

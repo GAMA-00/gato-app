@@ -11,7 +11,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import { toast } from 'sonner';
 import BookingHeader from '@/components/client/booking/BookingHeader';
 import ServiceSummaryCard from '@/components/client/booking/ServiceSummaryCard';
-import BookingForm from '@/components/client/booking/BookingForm';
+import NewBookingForm from '@/components/client/booking/NewBookingForm';
 import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
 
 const ClientBooking = () => {
@@ -277,8 +277,8 @@ const ClientBooking = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Booking Form */}
-        <BookingForm
+        {/* Left Column - New Booking Form with Slot Grid */}
+        <NewBookingForm
           selectedFrequency={selectedFrequency}
           onFrequencyChange={setSelectedFrequency}
           selectedDate={selectedDate}
