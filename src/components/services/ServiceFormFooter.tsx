@@ -14,6 +14,7 @@ interface ServiceFormFooterProps {
   onNext: () => void;
   onPrev: () => void;
   onSubmit: () => void;
+  isSubmitting?: boolean;
 }
 
 const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
@@ -25,7 +26,8 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   totalSteps,
   onNext,
   onPrev,
-  onSubmit
+  onSubmit,
+  isSubmitting = false
 }) => {
   const handleDelete = () => {
     if (initialData && onDelete) {
@@ -101,11 +103,14 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           <Button 
             type="button"
             onClick={handleSubmitClick}
-            className="flex-1 bg-green-600 hover:bg-green-700 h-10 sm:h-11"
+            disabled={isSubmitting}
+            className="flex-1 bg-green-600 hover:bg-green-700 h-10 sm:h-11 disabled:opacity-50"
             size="sm"
           >
             <Check className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="text-xs sm:text-sm">{isEditing ? 'Guardar' : 'Crear'}</span>
+            <span className="text-xs sm:text-sm">
+              {isSubmitting ? 'Enviando...' : (isEditing ? 'Guardar' : 'Crear')}
+            </span>
           </Button>
         )}
       </div>

@@ -137,18 +137,19 @@ export const useServiceMutations = () => {
     onSuccess: (data) => {
       console.log('=== MUTACIÓN EXITOSA ===');
       console.log('Datos del servicio creado:', data);
-      console.log('Invalidando queries...');
       
-      // Invalidar todas las queries relacionadas
+      // Usar setQueryData para actualizar cache directamente
+      queryClient.setQueryData(['listings', user?.id], (oldData: any) => {
+        if (Array.isArray(oldData)) {
+          return [...oldData, data];
+        }
+        return oldData;
+      });
+      
+      // Solo invalidar las queries necesarias
       queryClient.invalidateQueries({ queryKey: ['listings'] });
-      queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
       
-      // Refetch inmediato para asegurar que los datos se actualicen
-      queryClient.refetchQueries({ queryKey: ['listings', user?.id] });
-      queryClient.refetchQueries({ queryKey: ['listing_residencias'] });
-      
-      console.log('Queries invalidadas y refetched');
+      console.log('Cache actualizado directamente');
       toast.success('¡Anuncio creado exitosamente!');
     },
     onError: (error) => {

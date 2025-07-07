@@ -61,6 +61,7 @@ interface ServiceFormProps {
   onSubmit: (service: Partial<Service>) => void;
   initialData?: Service;
   onDelete?: (service: Service) => void;
+  isSubmitting?: boolean;
 }
 
 const ServiceForm: React.FC<ServiceFormProps> = ({
@@ -68,10 +69,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   onClose,
   onSubmit,
   initialData,
-  onDelete
+  onDelete,
+  isSubmitting: externalIsSubmitting = false
 }) => {
   // Estado para controlar el paso actual del wizard
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const steps = ['basic', 'profile', 'service', 'availability', 'slots'];
   
   const form = useForm<ServiceFormValues>({
@@ -138,6 +141,13 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     console.log("=== FORMULARIO ENVIADO ===");
     console.log("Valores del formulario:", values);
     
+    if (isSubmitting) {
+      console.log("Ya se está enviando el formulario, ignorando");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
     try {
       // Validar datos requeridos
       if (!values.name) {
@@ -203,11 +213,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
 
       onSubmit(serviceData);
       
-      // No cerrar el formulario aquí, esperar al éxito de la mutación
+      // El estado isSubmitting se resetea en el onSuccess/onError del componente padre
       console.log("Formulario enviado, esperando respuesta de la mutación...");
     } catch (error) {
       console.error('Error al enviar el formulario:', error);
       toast.error('Error al enviar el formulario');
+      setIsSubmitting(false);
     }
   };
   
@@ -267,8 +278,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-4xl max-h-[95vh] h-[95vh] flex flex-col p-0">
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b border-gray-100 flex-shrink-0">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[95vh] h-[95vh] flex flex-col p-0">
+        <DialogHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-3 border-b border-gray-100 flex-shrink-0">
           <DialogTitle className="text-lg sm:text-xl font-semibold">
             {initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}
           </DialogTitle>
@@ -283,21 +294,19 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           <Form {...form}>
             <form onSubmit={(e) => {
               e.preventDefault();
-              console.log("=== EVENTO onSubmit DEL FORM ===");
-              const values = form.getValues();
-              handleSubmit(values);
+              // No hacer nada aquí, el submit se maneja desde el footer
             }} className="flex flex-col flex-1 min-h-0">
               {/* Contenido principal con scroll mejorado */}
-              <div className="flex-1 overflow-hidden px-4 sm:px-6">
+              <div className="flex-1 overflow-hidden px-3 sm:px-6">
                 <ScrollArea className="h-full">
-                  <div className="py-6 pr-4">
+                  <div className="py-4 sm:py-6 pr-2 sm:pr-4">
                     <ServiceFormFields currentStep={currentStep} />
                   </div>
                 </ScrollArea>
               </div>
               
               {/* Footer fijo */}
-              <div className="flex-shrink-0 border-t border-gray-100 bg-white px-4 sm:px-6 py-4">
+              <div className="flex-shrink-0 border-t border-gray-100 bg-white px-3 sm:px-6 py-3 sm:py-4">
                 <ServiceFormFooter 
                   isEditing={!!initialData}
                   onDelete={handleDelete}
@@ -308,6 +317,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                   onNext={nextStep}
                   onPrev={prevStep}
                   onSubmit={submitForm}
+                  isSubmitting={isSubmitting || externalIsSubmitting}
                 />
               </div>
             </form>

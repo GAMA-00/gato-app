@@ -11,28 +11,26 @@ import { toast } from 'sonner';
 const ServiceCreate = () => {
   const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { createListingMutation } = useServiceMutations();
 
   const handleSubmit = (serviceData: Partial<Service>) => {
     console.log('=== SERVICECREATE: Creating new service ===');
     console.log('Service data received:', serviceData);
     
+    setIsSubmitting(true);
+    
     createListingMutation.mutate(serviceData, {
       onSuccess: (data) => {
         console.log('=== SERVICECREATE: Mutation successful ===');
         console.log('Created service data:', data);
-        setIsFormOpen(false); // Cerrar el formulario
-        toast.success('¡Anuncio creado exitosamente!');
-        
-        // Navegar después de un pequeño delay para que el usuario vea el mensaje
-        setTimeout(() => {
-          navigate('/services');
-        }, 1000);
+        setIsFormOpen(false);
+        navigate('/services');
       },
       onError: (error) => {
         console.error('=== SERVICECREATE: Mutation failed ===');
         console.error('Error details:', error);
-        toast.error('Error al crear el anuncio: ' + (error as Error).message);
+        setIsSubmitting(false);
       }
     });
   };
@@ -49,6 +47,7 @@ const ServiceCreate = () => {
           isOpen={isFormOpen}
           onClose={handleClose}
           onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
         />
       </PageContainer>
     </>
