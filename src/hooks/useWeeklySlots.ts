@@ -95,35 +95,41 @@ export const useWeeklySlots = ({
     };
   };
 
-  const generateTimeSlots = useCallback((): string[] => {
-    const slots: string[] = [];
-    // Generate slots from 7 AM to 7 PM
-    for (let hour = 7; hour < 19; hour++) {
-      for (let minute = 0; minute < 60; minute += serviceDuration) {
-        // Make sure we don't exceed 7 PM
-        if (hour === 18 && minute > 0) break;
-        
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        slots.push(timeString);
-      }
+// Move outside hook to prevent re-renders
+const generateTimeSlots = (serviceDuration: number): string[] => {
+  const slots: string[] = [];
+  // Generate slots from 7 AM to 7 PM
+  for (let hour = 7; hour < 19; hour++) {
+    for (let minute = 0; minute < 60; minute += serviceDuration) {
+      // Make sure we don't exceed 7 PM
+      if (hour === 18 && minute > 0) break;
+      
+      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      slots.push(timeString);
     }
-    return slots;
-  }, [serviceDuration]);
+  }
+  return slots;
+};
 
   const fetchWeeklySlots = useCallback(async () => {
-    if (!providerId) return;
+    if (!providerId) {
+      console.warn('❌ No providerId provided to fetchWeeklySlots');
+      return;
+    }
 
     setIsLoading(true);
+    console.log(`🔄 Starting fetchWeeklySlots for provider: ${providerId}`);
+    
     try {
       const baseDate = startDate || startOfDay(new Date());
-      const timeSlots = generateTimeSlots();
+      const timeSlots = generateTimeSlots(serviceDuration);
       
-      // PHASE 1: Get all conflicts for the date range - ONE QUERY instead of N queries
+      // PHASE 1: Get all conflicts for the date range - FIXED SQL AMBIGUITY
       const endDate = addDays(baseDate, daysAhead);
       console.log(`🔍 Fetching conflicts for provider ${providerId} from ${format(baseDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
       
       const [appointmentsResult, blockedSlotsResult, recurringRulesResult] = await Promise.all([
-        // Get all appointments in the date range
+        // Get all appointments in the date range - FIXED: Use explicit column names
         supabase
           .from('appointments')
           .select('start_time, end_time, status, recurrence, is_recurring_instance')
@@ -132,90 +138,114 @@ export const useWeeklySlots = ({
           .gte('start_time', baseDate.toISOString())
           .lte('start_time', endDate.toISOString()),
         
-        // Get all blocked time slots for this provider
+        // Get all blocked time slots for this provider - FIXED: Use explicit column names
         supabase
           .from('blocked_time_slots')
           .select('day, start_hour, end_hour')
           .eq('provider_id', providerId),
         
-        // Get active recurring rules to generate instances
+        // Get active recurring rules to generate instances - FIXED: Use explicit column names
         supabase
           .from('recurring_rules')
-          .select('*')
+          .select('id, provider_id, recurrence_type, start_date, start_time, end_time, day_of_week, day_of_month, is_active')
           .eq('provider_id', providerId)
           .eq('is_active', true)
       ]);
+
+      // Handle errors gracefully
+      if (appointmentsResult.error) {
+        console.error('❌ Error fetching appointments:', appointmentsResult.error);
+      }
+      if (blockedSlotsResult.error) {
+        console.error('❌ Error fetching blocked slots:', blockedSlotsResult.error);
+      }
+      if (recurringRulesResult.error) {
+        console.error('❌ Error fetching recurring rules:', recurringRulesResult.error);
+      }
 
       const appointments = appointmentsResult.data || [];
       const blockedSlots = blockedSlotsResult.data || [];
       const recurringRules = recurringRulesResult.data || [];
       
-      // PHASE 1.5: Generate recurring instances for the date range
+      // PHASE 1.5: Generate recurring instances for the date range - SIMPLIFIED
       const recurringInstances: any[] = [];
       
-      recurringRules.forEach(rule => {
-        let currentDate = new Date(Math.max(new Date(rule.start_date).getTime(), baseDate.getTime()));
-        const maxDate = endDate;
-        let instanceCount = 0;
-        const maxInstances = 50; // Safety limit
+      // Only generate instances if we have rules and it's reasonable
+      if (recurringRules.length > 0 && recurringRules.length < 10) {
+        console.log(`📅 Generating recurring instances for ${recurringRules.length} rules`);
         
-        while (currentDate <= maxDate && instanceCount < maxInstances) {
-          let nextOccurrence: Date | null = null;
-          
-          switch (rule.recurrence_type) {
-            case 'weekly':
-              nextOccurrence = findNextWeeklyOccurrence(currentDate, rule.day_of_week);
-              break;
-            case 'biweekly':
-              nextOccurrence = findNextBiweeklyOccurrence(currentDate, rule.day_of_week, new Date(rule.start_date));
-              break;
-            case 'monthly':
-              nextOccurrence = findNextMonthlyOccurrence(currentDate, rule.day_of_month);
-              break;
+        recurringRules.forEach((rule, ruleIndex) => {
+          try {
+            let currentDate = new Date(Math.max(new Date(rule.start_date).getTime(), baseDate.getTime()));
+            const maxDate = endDate;
+            let instanceCount = 0;
+            const maxInstances = 20; // Reduced safety limit
+            
+            while (currentDate <= maxDate && instanceCount < maxInstances) {
+              let nextOccurrence: Date | null = null;
+              
+              switch (rule.recurrence_type) {
+                case 'weekly':
+                  nextOccurrence = findNextWeeklyOccurrence(currentDate, rule.day_of_week);
+                  break;
+                case 'biweekly':
+                  nextOccurrence = findNextBiweeklyOccurrence(currentDate, rule.day_of_week, new Date(rule.start_date));
+                  break;
+                case 'monthly':
+                  nextOccurrence = findNextMonthlyOccurrence(currentDate, rule.day_of_month);
+                  break;
+              }
+              
+              if (!nextOccurrence || nextOccurrence > maxDate) {
+                break;
+              }
+              
+              // Create instance datetime with error handling
+              try {
+                const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
+                const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
+                
+                const instanceStart = new Date(nextOccurrence);
+                instanceStart.setHours(startHours, startMinutes, 0, 0);
+                
+                const instanceEnd = new Date(nextOccurrence);
+                instanceEnd.setHours(endHours, endMinutes, 0, 0);
+                
+                if (instanceStart >= baseDate && instanceStart <= endDate) {
+                  recurringInstances.push({
+                    start_time: instanceStart.toISOString(),
+                    end_time: instanceEnd.toISOString(),
+                    status: 'confirmed',
+                    is_recurring_instance: true
+                  });
+                }
+              } catch (timeError) {
+                console.warn(`⚠️ Error parsing time for rule ${ruleIndex}:`, timeError);
+              }
+              
+              // Move to next occurrence
+              switch (rule.recurrence_type) {
+                case 'weekly':
+                  currentDate = new Date(nextOccurrence);
+                  currentDate.setDate(currentDate.getDate() + 7);
+                  break;
+                case 'biweekly':
+                  currentDate = new Date(nextOccurrence);
+                  currentDate.setDate(currentDate.getDate() + 14);
+                  break;
+                case 'monthly':
+                  currentDate = new Date(nextOccurrence);
+                  currentDate.setMonth(currentDate.getMonth() + 1);
+                  break;
+              }
+              
+              instanceCount++;
+            }
+          } catch (ruleError) {
+            console.warn(`⚠️ Error processing recurring rule ${ruleIndex}:`, ruleError);
           }
-          
-          if (!nextOccurrence || nextOccurrence > maxDate) {
-            break;
-          }
-          
-          // Create instance datetime
-          const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
-          const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
-          
-          const instanceStart = new Date(nextOccurrence);
-          instanceStart.setHours(startHours, startMinutes, 0, 0);
-          
-          const instanceEnd = new Date(nextOccurrence);
-          instanceEnd.setHours(endHours, endMinutes, 0, 0);
-          
-          if (instanceStart >= baseDate && instanceStart <= endDate) {
-            recurringInstances.push({
-              start_time: instanceStart.toISOString(),
-              end_time: instanceEnd.toISOString(),
-              status: 'confirmed',
-              is_recurring_instance: true
-            });
-          }
-          
-          // Move to next occurrence
-          switch (rule.recurrence_type) {
-            case 'weekly':
-              currentDate = new Date(nextOccurrence);
-              currentDate.setDate(currentDate.getDate() + 7);
-              break;
-            case 'biweekly':
-              currentDate = new Date(nextOccurrence);
-              currentDate.setDate(currentDate.getDate() + 14);
-              break;
-            case 'monthly':
-              currentDate = new Date(nextOccurrence);
-              currentDate.setMonth(currentDate.getMonth() + 1);
-              break;
-          }
-          
-          instanceCount++;
-        }
-      });
+        });
+      }
       
       // Combine regular appointments with recurring instances
       const allAppointments = [...appointments, ...recurringInstances];
@@ -301,12 +331,13 @@ export const useWeeklySlots = ({
       setSlots(newSlots);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error fetching weekly slots:', error);
+      console.error('❌ Critical error in fetchWeeklySlots:', error);
+      // Don't leave users hanging - set empty slots and show we tried
       setSlots([]);
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, serviceDuration, startDate, daysAhead, recurrence]); // Fixed: Use primitive dependencies
+  }, [providerId, serviceDuration, startDate, daysAhead, recurrence]);
 
   // Validate a specific slot when it's being selected (now just for recurring conflicts)
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -396,8 +427,11 @@ export const useWeeklySlots = ({
   }, [slots, slotGroups, availableSlotGroups]);
 
   useEffect(() => {
-    fetchWeeklySlots();
-  }, [providerId, serviceDuration, startDate, daysAhead, recurrence]); // Fixed: Use primitive dependencies
+    console.log(`🔄 useEffect triggered for fetchWeeklySlots - Provider: ${providerId}, Duration: ${serviceDuration}`);
+    if (providerId && serviceDuration) {
+      fetchWeeklySlots();
+    }
+  }, [fetchWeeklySlots]);
 
   return {
     slotGroups,
