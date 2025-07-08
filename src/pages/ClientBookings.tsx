@@ -32,9 +32,10 @@ const ClientBookings = () => {
     return (booking.status === 'pending' || booking.status === 'confirmed') && booking.date > now;
   }) || [];
   
-  const pastBookings = bookings?.filter(booking => 
-    booking.status === 'completed' || booking.status === 'cancelled'
-  ) || [];
+  // Mostrar solo las últimas 3 citas completadas para calificar (no mostrar canceladas)
+  const completedBookings = bookings?.filter(booking => 
+    booking.status === 'completed'
+  ).slice(0, 3) || [];
   
   // Separar citas recurrentes y únicas para mejor organización
   const activeRecurring = activeBookings.filter(booking => 
@@ -144,20 +145,20 @@ const ClientBookings = () => {
           </div>
         )}
         
-        {/* Citas Pasadas */}
-        {pastBookings.length > 0 && (
+        {/* Últimas 3 Citas Completadas para Calificar */}
+        {completedBookings.length > 0 && (
           <section>
             <h2 className="text-lg font-medium mb-4">
-              Historial
+              Calificar Servicios
               <span className="text-sm text-muted-foreground ml-2">
-                ({pastBookings.filter(b => b.recurrence && b.recurrence !== 'none').length} recurrentes, {pastBookings.filter(b => !b.recurrence || b.recurrence === 'none').length} únicas)
+                (Últimas {completedBookings.length} cita{completedBookings.length > 1 ? 's' : ''} para calificar)
               </span>
             </h2>
             <BookingsList
-              bookings={pastBookings}
+              bookings={completedBookings}
               isLoading={isLoading}
               onRated={handleRated}
-              emptyMessage="No hay citas en el historial"
+              emptyMessage="No hay citas completadas para calificar"
             />
           </section>
         )}

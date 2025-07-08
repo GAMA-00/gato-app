@@ -47,6 +47,21 @@ export const CancelAppointmentModal = ({
 
       if (error) throw error;
 
+      // Auto-limpiar la cita cancelada del historial después de 3 segundos
+      setTimeout(async () => {
+        try {
+          await supabase
+            .from('appointments')
+            .delete()
+            .eq('id', appointmentId)
+            .eq('status', 'cancelled');
+          
+          queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+        } catch (deleteError) {
+          console.warn('Could not auto-clean cancelled appointment:', deleteError);
+        }
+      }, 3000);
+
       toast.success('Cita cancelada exitosamente');
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
       onClose();
@@ -102,6 +117,23 @@ export const CancelAppointmentModal = ({
         if (cancelFutureError) {
           console.error('Error canceling future appointments:', cancelFutureError);
         }
+        
+        // Auto-limpiar todas las citas canceladas de la serie
+        setTimeout(async () => {
+          try {
+            await supabase
+              .from('appointments')
+              .delete()
+              .eq('provider_id', appointment.provider_id)
+              .eq('client_id', appointment.client_id)
+              .eq('listing_id', appointment.listing_id)
+              .eq('status', 'cancelled');
+            
+            queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+          } catch (deleteError) {
+            console.warn('Could not auto-clean cancelled recurring appointments:', deleteError);
+          }
+        }, 3000);
       }
 
       toast.success('Serie de citas recurrentes cancelada exitosamente');

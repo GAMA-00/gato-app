@@ -253,15 +253,14 @@ export const RescheduleAppointmentModal = ({
             <label className="text-sm font-medium mb-2 block">Hora disponible</label>
             {slotsLoading ? (
               <p className="text-sm text-muted-foreground">Cargando horarios disponibles...</p>
-            ) : availableTimeSlots.length > 0 ? (
+            ) : availableTimeSlots.filter(slot => slot.available).length > 0 ? (
               <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                {availableTimeSlots.map((slot) => (
+                {availableTimeSlots.filter(slot => slot.available).map((slot) => (
                   <Button
                     key={slot.time}
                     variant={selectedTime === slot.time ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedTime(slot.time)}
-                    disabled={!slot.available}
                     className="text-xs"
                   >
                     {slot.time}
@@ -270,7 +269,7 @@ export const RescheduleAppointmentModal = ({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No hay horarios disponibles para esta fecha.
+                No hay horarios disponibles para esta fecha. Intenta con otra fecha.
               </p>
             )}
           </div>
