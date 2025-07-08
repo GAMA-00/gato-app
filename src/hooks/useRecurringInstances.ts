@@ -113,7 +113,7 @@ export const generateRecurringInstances = (
           const instanceId = `${rule.id}-instance-${format(startDateTime, 'yyyy-MM-dd-HH-mm')}`;
           
           // Get real client and service names with better fallback
-          const clientName = rule.users?.name || rule.client_name || 'Cliente';
+          const clientName = rule.client_name || 'Cliente';
           const serviceTitle = rule.listings?.title || 'Servicio';
           
           console.log(`Creating instance for rule ${rule.id}: client=${clientName}, service=${serviceTitle}`);

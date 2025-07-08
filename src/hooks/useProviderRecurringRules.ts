@@ -15,20 +15,34 @@ export const useProviderRecurringRules = (providerId?: string) => {
         .from('recurring_rules')
         .select(`
           *,
-          users!recurring_rules_client_id_fkey(name),
           listings(title)
         `)
         .eq('provider_id', providerId)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      // Populate client_name if missing
-      if (data) {
-        data.forEach(rule => {
-          if (!rule.client_name && rule.users?.name) {
-            rule.client_name = rule.users.name;
+      // Populate client_name if missing by fetching user data separately
+      if (data && data.length > 0) {
+        const clientIds = data.map(rule => rule.client_id).filter(Boolean);
+        if (clientIds.length > 0) {
+          const { data: users } = await supabase
+            .from('users')
+            .select('id, name')
+            .in('id', clientIds);
+          
+          if (users) {
+            const userMap = users.reduce((acc, user) => {
+              acc[user.id] = user.name;
+              return acc;
+            }, {} as Record<string, string>);
+            
+            data.forEach(rule => {
+              if (!rule.client_name && rule.client_id && userMap[rule.client_id]) {
+                rule.client_name = userMap[rule.client_id];
+              }
+            });
           }
-        });
+        }
       }
 
       if (error) {

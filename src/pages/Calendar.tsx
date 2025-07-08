@@ -6,6 +6,7 @@ import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnifiedCalendarAppointments } from '@/hooks/useUnifiedCalendarAppointments';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -15,6 +16,17 @@ const Calendar = () => {
     selectedDate: currentDate,
     providerId: user?.id
   });
+
+  console.log('=== CALENDAR PAGE DEBUG ===');
+  console.log(`Current date: ${format(currentDate, 'yyyy-MM-dd')}`);
+  console.log(`User ID: ${user?.id}`);
+  console.log(`User role: ${user?.role}`);
+  console.log(`Appointments loaded: ${appointments.length}`);
+  console.log(`Loading state: ${isLoading}`);
+  if (appointments.length > 0) {
+    console.log('First few appointments:', appointments.slice(0, 3));
+  }
+  console.log('===============================');
 
   if (isLoading) {
     return (
