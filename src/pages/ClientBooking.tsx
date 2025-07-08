@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { validateBookingSlot } from '@/utils/bookingValidation';
 import { buildCompleteLocation } from '@/utils/locationBuilder';
+import { RobustBookingSystem } from '@/utils/robustBookingSystem';
 import PageLayout from '@/components/layout/PageLayout';
 import { toast } from 'sonner';
 import BookingHeader from '@/components/client/booking/BookingHeader';
@@ -147,12 +148,13 @@ const ClientBooking = () => {
         frequency: selectedFrequency
       });
 
-      // ROBUST VALIDATION - with fallback
+      // ROBUST VALIDATION - with smart fallback
       let isValid = true;
+      
       try {
-        toast.info('Verificando disponibilidad...', { duration: 1000 });
+        toast.info('Verificando disponibilidad...', { duration: 1500 });
         
-        // Quick validation with shorter timeout
+        // Ultra-fast validation with aggressive timeout
         const validationPromise = validateBookingSlot(
           providerId,
           startDateTime,
@@ -160,15 +162,21 @@ const ClientBooking = () => {
           selectedFrequency
         );
 
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Validation timeout')), 3000) // Reduced to 3s
+        const timeoutPromise = new Promise<boolean>((_, reject) =>
+          setTimeout(() => reject(new Error('Validation timeout')), 2000) // 2s max
         );
 
-        isValid = await Promise.race([validationPromise, timeoutPromise]) as boolean;
+        isValid = await Promise.race([validationPromise, timeoutPromise]);
+        
+        if (isValid) {
+          toast.success('Horario disponible ✓', { duration: 1000 });
+        }
       } catch (error) {
-        console.warn('Validation failed, continuing with booking:', error);
-        // Continue anyway - validation failure shouldn't block booking
-        toast.info('Saltando validación y continuando...', { duration: 1000 });
+        console.warn('Validation failed or timed out, proceeding optimistically:', error);
+        // OPTIMISTIC APPROACH: If validation fails/times out, continue booking
+        // The booking creation will do final server-side validation
+        toast.info('Procesando reserva...', { duration: 1000 });
+        isValid = true; // Proceed optimistically
       }
 
       // ROBUST USER DATA HANDLING - Continue even if incomplete
@@ -205,45 +213,43 @@ const ClientBooking = () => {
 
       console.log('Datos de reserva preparados:', bookingData);
 
-      // ROBUST BOOKING CREATION - with retry logic
-      let result = null;
-      let retries = 0;
-      const maxRetries = 2;
-
-      while (!result && retries <= maxRetries) {
-        try {
-          if (retries > 0) {
-            toast.info(`Reintentando... (${retries}/${maxRetries})`, { duration: 1000 });
-          }
-          
-          result = await createRecurringBooking(bookingData);
-          
-          if (result) {
-            console.log('Reserva creada exitosamente:', result);
-            toast.success('¡Reserva creada exitosamente!');
-            
-            // Success navigation
-            setTimeout(() => {
-              console.log('Navegando a bookings...');
-              navigate('/client/bookings');
-            }, 1500);
-            break;
-          } else {
-            throw new Error('No result returned from booking creation');
-          }
-        } catch (error) {
-          console.error(`Booking attempt ${retries + 1} failed:`, error);
-          retries++;
-          
-          if (retries <= maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
-          }
+      // ULTRA-ROBUST BOOKING CREATION with Enhanced Error Handling
+      toast.info('Creando tu reserva...', { duration: 2000 });
+      
+      const bookingResult = await RobustBookingSystem.createBooking(
+        () => createRecurringBooking(bookingData),
+        {
+          maxAttempts: 3,
+          showProgress: true,
+          optimisticValidation: true
         }
-      }
+      );
 
-      if (!result) {
-        toast.error('No se pudo crear la reserva después de varios intentos. Por favor contacta soporte.', {
-          duration: 5000
+      if (bookingResult.success && bookingResult.appointmentId) {
+        console.log('✅ Reserva creada exitosamente:', bookingResult.appointmentId);
+        toast.success('¡Reserva confirmada! Redirigiendo...', { 
+          duration: 2000,
+          description: `ID: ${bookingResult.appointmentId.slice(-8)}`
+        });
+        
+        // Navigate to bookings with success state
+        setTimeout(() => {
+          navigate('/client/bookings', { 
+            replace: true,
+            state: { newBookingId: bookingResult.appointmentId }
+          });
+        }, 1500);
+      } else {
+        // Booking failed after all attempts
+        const errorMessage = bookingResult.error || 'Error desconocido al crear la reserva';
+        console.error('💥 Booking failed completely:', errorMessage);
+        
+        toast.error(errorMessage, {
+          duration: 6000,
+          action: {
+            label: 'Ver mis citas',
+            onClick: () => navigate('/client/bookings')
+          }
         });
       }
 

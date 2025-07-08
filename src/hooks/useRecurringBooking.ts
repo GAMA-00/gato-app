@@ -171,15 +171,28 @@ export function useRecurringBooking() {
       console.error('=== ERROR EN CREACIÓN DE RESERVA ===');
       console.error('Error details:', error);
       
-      // Mostrar mensajes de error más específicos
-      let errorMessage = 'Error al crear la cita';
-      if (error.message) {
-        errorMessage += ': ' + error.message;
-      } else {
-        errorMessage += ': Error desconocido';
+      // Mensajes de error más específicos y user-friendly
+      let errorMessage = 'No se pudo crear la cita';
+      
+      if (error?.code === '23505') {
+        errorMessage = 'Ya existe una cita para este horario. Por favor selecciona otro.';
+      } else if (error?.code === '23503') {
+        errorMessage = 'Error en los datos de la cita. Por favor intenta de nuevo.';
+      } else if (error?.message?.includes('timeout')) {
+        errorMessage = 'El proceso está tardando. Tu cita podría haberse creado. Revisa tu lista de citas.';
+      } else if (error?.message?.includes('network')) {
+        errorMessage = 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.';
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`;
       }
       
-      toast.error(errorMessage);
+      toast.error(errorMessage, {
+        duration: 5000,
+        action: {
+          label: 'Ver mis citas',
+          onClick: () => window.location.href = '/client/bookings'
+        }
+      });
       return null;
     } finally {
       console.log('Finalizando proceso de creación...');

@@ -95,20 +95,23 @@ const BookingSummaryCard = ({
           </p>
         </div>
 
-        {/* ROBUST Booking Button - Always functional */}
+        {/* ULTRA-ROBUST Booking Button with Enhanced Feedback */}
         <Button
           onClick={onBooking}
           disabled={isLoading || !selectedDate || !selectedTime || !selectedVariant}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white transition-all duration-200"
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white transition-all duration-300 shadow-lg hover:shadow-xl"
           size="lg"
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Procesando reserva...
+              <span className="animate-pulse">Creando reserva...</span>
             </div>
           ) : (
-            'Confirmar Reserva'
+            <div className="flex items-center gap-2">
+              <span>Confirmar Reserva</span>
+              <span className="text-xs opacity-80">✓</span>
+            </div>
           )}
         </Button>
 

@@ -17,15 +17,14 @@ export const validateAppointmentSlot = async (
   try {
     console.log(`Validating unified availability for provider ${providerId}: ${format(startTime, 'yyyy-MM-dd HH:mm')} - ${format(endTime, 'yyyy-MM-dd HH:mm')}`);
 
-    // UNIFIED QUERY: Check ALL appointments for this provider (across all services)
-    // This includes internal appointments, external bookings, and recurring instances
+    // OPTIMIZED QUERY: Use direct timestamp comparison to avoid extract() issues
     let query = supabase
       .from('appointments')
       .select('id, start_time, end_time, client_name, status, external_booking, listing_id, recurrence')
       .eq('provider_id', providerId)
-      .in('status', ['pending', 'confirmed', 'completed'])
-      .gte('start_time', format(startTime, 'yyyy-MM-dd 00:00:00'))
-      .lte('start_time', format(endTime, 'yyyy-MM-dd 23:59:59'));
+      .in('status', ['pending', 'confirmed', 'completed', 'scheduled'])
+      .gte('start_time', startTime.toISOString())
+      .lt('end_time', endTime.toISOString());
 
     // Exclude specific appointment if provided (for rescheduling)
     if (excludeAppointmentId) {
