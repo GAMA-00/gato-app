@@ -39,7 +39,7 @@ export const validateBookingSlot = async (
       console.error('Mensaje de error:', errorMessage);
       // Optimized: Show more user-friendly error message
       toast.error(errorMessage, {
-        duration: 3000,
+        duration: 2000,
         style: {
           background: '#fee2e2',
           border: '1px solid #fecaca',

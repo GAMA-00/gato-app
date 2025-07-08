@@ -95,10 +95,10 @@ const BookingSummaryCard = ({
           </p>
         </div>
 
-        {/* 6. Booking Button */}
+        {/* 6. Booking Button - Enhanced with better feedback */}
         <Button
           onClick={onBooking}
-          disabled={!isBookingValid || isLoading || isLoadingLocation}
+          disabled={!isBookingValid || isLoading}
           className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white"
           size="lg"
         >
@@ -107,20 +107,28 @@ const BookingSummaryCard = ({
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               Creando reserva...
             </div>
-          ) : isLoadingLocation ? (
-            'Cargando ubicación...'
           ) : (
             'Confirmar Reserva'
           )}
         </Button>
 
+        {/* Enhanced validation feedback */}
         {!isBookingValid && !isLoading && (
-          <p className="text-sm text-muted-foreground text-center">
-            {isLoadingLocation ? 
-              'Cargando información del usuario...' : 
-              'Completa todos los campos para continuar'
-            }
-          </p>
+          <div className="text-sm text-muted-foreground text-center space-y-1">
+            {isLoadingLocation ? (
+              <p>Cargando información del usuario...</p>
+            ) : (
+              <div>
+                <p>Para continuar, completa:</p>
+                <ul className="text-xs mt-1 space-y-0.5">
+                  {!selectedDate && <li>• Selecciona una fecha</li>}
+                  {!selectedTime && <li>• Selecciona una hora</li>}
+                  {!selectedVariant && <li>• Selecciona un servicio</li>}
+                  {isLoadingLocation && <li>• Cargando ubicación...</li>}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

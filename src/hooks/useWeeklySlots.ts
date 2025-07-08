@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { addDays, format, startOfDay } from 'date-fns';
 import { validateBookingSlot } from '@/utils/bookingValidation';
 
@@ -50,7 +50,7 @@ export const useWeeklySlots = ({
     };
   };
 
-  const generateTimeSlots = (): string[] => {
+  const generateTimeSlots = useCallback((): string[] => {
     const slots: string[] = [];
     // Generate slots from 7 AM to 7 PM
     for (let hour = 7; hour < 19; hour++) {
@@ -63,9 +63,9 @@ export const useWeeklySlots = ({
       }
     }
     return slots;
-  };
+  }, [serviceDuration]);
 
-  const fetchWeeklySlots = async () => {
+  const fetchWeeklySlots = useCallback(async () => {
     if (!providerId) return;
 
     setIsLoading(true);
@@ -113,7 +113,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [providerId, serviceDuration, startDate, daysAhead, generateTimeSlots]);
 
   // Validate a specific slot when it's being selected
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -201,7 +201,7 @@ export const useWeeklySlots = ({
 
   useEffect(() => {
     fetchWeeklySlots();
-  }, [providerId, serviceDuration, recurrence, startDate?.getTime(), daysAhead]);
+  }, [fetchWeeklySlots]);
 
   return {
     slotGroups,

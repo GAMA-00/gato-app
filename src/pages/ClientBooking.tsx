@@ -112,30 +112,61 @@ const ClientBooking = () => {
 
   const handleBooking = async () => {
     console.log('=== INICIANDO PROCESO DE RESERVA ===');
-    console.log('Estado de validación:', { isBookingValid, hasUser: !!user, hasUserData: !!completeUserData });
+    console.log('Estados actuales:', { 
+      isBookingValid, 
+      hasUser: !!user, 
+      hasUserData: !!completeUserData,
+      isLoadingUserData,
+      selectedDate: !!selectedDate,
+      selectedTime: !!selectedTime,
+      selectedVariants: !!selectedVariants?.length
+    });
     
-    // Fase 2: Validar datos básicos
-    if (!isBookingValid || !user) {
-      console.error('Validación fallida - campos básicos:', { isBookingValid, hasUser: !!user });
-      toast.error('Por favor completa todos los campos requeridos');
+    // Enhanced validation with specific feedback
+    if (!user) {
+      console.error('Usuario no autenticado');
+      toast.error('Debes iniciar sesión para realizar una reserva');
       return;
     }
 
-    // Validar que los datos del usuario estén cargados
+    if (!selectedDate || !selectedTime) {
+      console.error('Fecha u hora no seleccionada:', { selectedDate, selectedTime });
+      toast.error('Por favor selecciona una fecha y hora para tu cita');
+      return;
+    }
+
+    if (!selectedVariants?.length) {
+      console.error('Variante de servicio no seleccionada');
+      toast.error('Selección de servicio incompleta');
+      return;
+    }
+
+    // Show immediate feedback
+    toast.info('Preparando tu reserva...', { duration: 1000 });
+
+    // Handle loading user data with timeout
     if (isLoadingUserData) {
       console.log('Esperando datos del usuario...');
-      toast.error('Cargando información del usuario, intenta de nuevo en un momento');
-      return;
+      // Wait up to 3 seconds for user data to load
+      let retries = 0;
+      while (isLoadingUserData && retries < 6) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retries++;
+      }
+      
+      if (isLoadingUserData) {
+        toast.error('Error cargando datos del usuario. Intenta de nuevo.');
+        return;
+      }
     }
 
     if (!completeUserData) {
-      console.error('No se pudieron cargar los datos del usuario');
-      toast.error('Error al cargar los datos del usuario. Verifica tu perfil.');
+      console.error('Datos del usuario no disponibles');
+      toast.error('No se pudieron cargar tus datos. Verifica tu perfil.');
       return;
     }
 
     console.log('Datos del usuario cargados:', completeUserData);
-    toast.info('Validando horario disponible...');
 
     try {
       // Create start and end times
@@ -152,7 +183,9 @@ const ClientBooking = () => {
         frequency: selectedFrequency
       });
 
-      // Fase 4: Validar slot con timeout
+      // Optimized validation with reduced timeout
+      toast.info('Validando disponibilidad...', { duration: 1000 });
+      
       const validationPromise = validateBookingSlot(
         providerId,
         startDateTime,
@@ -160,8 +193,9 @@ const ClientBooking = () => {
         selectedFrequency
       );
 
+      // Reduced timeout from 10s to 5s
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout de validación')), 10000)
+        setTimeout(() => reject(new Error('Timeout de validación')), 5000)
       );
 
       const isValid = await Promise.race([validationPromise, timeoutPromise]);
@@ -172,7 +206,7 @@ const ClientBooking = () => {
       }
 
       console.log('Slot validado correctamente');
-      toast.info('Creando reserva...');
+      toast.info('Creando reserva...', { duration: 1000 });
 
       // Preparar dirección del cliente
       const clientAddress = completeUserData?.condominium_text && completeUserData?.house_number 
@@ -210,11 +244,11 @@ const ClientBooking = () => {
         console.log('Reserva creada exitosamente:', result);
         toast.success('¡Reserva creada exitosamente!');
         
-        // Fase 5: Navegación con confirmación
+        // Optimized navigation
         setTimeout(() => {
           console.log('Navegando a bookings...');
           navigate('/client/bookings');
-        }, 1500);
+        }, 1000);
       } else {
         console.error('createRecurringBooking retornó null');
         toast.error('Error inesperado al crear la reserva');
@@ -222,7 +256,13 @@ const ClientBooking = () => {
     } catch (error) {
       console.error('Error en handleBooking:', error);
       if (error.message === 'Timeout de validación') {
-        toast.error('La validación está tomando mucho tiempo. Intenta de nuevo.');
+        toast.error('La validación está tomando mucho tiempo. Intenta de nuevo.', {
+          duration: 4000,
+          action: {
+            label: 'Reintentar',
+            onClick: handleBooking
+          }
+        });
       } else {
         toast.error('Error inesperado: ' + (error.message || 'Error desconocido'));
       }
