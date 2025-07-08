@@ -52,7 +52,8 @@ function generateRecurringAppointments(
   rules: RecurringRule[],
   startDate: Date,
   endDate: Date,
-  existingAppointments: any[] = []
+  existingAppointments: any[] = [],
+  serviceMap: Record<string, string> = {}
 ): CalendarAppointment[] {
   console.log('🔄 === GENERATING RECURRING APPOINTMENTS ===');
   console.log(`Rules: ${rules.length}, Range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
@@ -116,9 +117,7 @@ function generateRecurringAppointments(
           status: 'confirmed',
           recurrence: rule.recurrence_type,
           client_name: rule.client_name || 'Cliente',
-          service_title: Array.isArray(rule.listings) 
-            ? rule.listings[0]?.title || 'Servicio'
-            : rule.listings?.title || 'Servicio',
+          service_title: serviceMap[rule.listing_id] || 'Servicio',
           notes: rule.notes,
           is_recurring_instance: true,
           recurring_rule_id: rule.id,
@@ -259,13 +258,10 @@ export const useCalendarRecurringSystem = ({
         })));
       }
 
-      // 2. Fetch active recurring rules
+      // 2. Fetch active recurring rules (without listings join since no FK exists)
       const { data: recurringRules, error: rulesError } = await supabase
         .from('recurring_rules')
-        .select(`
-          *,
-          listings(title)
-        `)
+        .select('*')
         .eq('provider_id', providerId)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -277,8 +273,25 @@ export const useCalendarRecurringSystem = ({
 
       console.log(`📋 Fetched ${recurringRules?.length || 0} active recurring rules`);
 
-      // 3. Enrich client names for recurring rules
+      // 3. Get service titles for recurring rules
+      let serviceMap: Record<string, string> = {};
       if (recurringRules && recurringRules.length > 0) {
+        const listingIds = [...new Set(recurringRules.map(rule => rule.listing_id))];
+        if (listingIds.length > 0) {
+          const { data: listings } = await supabase
+            .from('listings')
+            .select('id, title')
+            .in('id', listingIds);
+          
+          if (listings) {
+            serviceMap = listings.reduce((acc, listing) => {
+              acc[listing.id] = listing.title;
+              return acc;
+            }, {} as Record<string, string>);
+          }
+        }
+
+        // 4. Enrich client names for recurring rules
         const clientIds = recurringRules.map(rule => rule.client_id).filter(Boolean);
         if (clientIds.length > 0) {
           const { data: users } = await supabase
@@ -301,13 +314,14 @@ export const useCalendarRecurringSystem = ({
         }
       }
 
-      // 4. Generate recurring instances
+      // 5. Generate recurring instances
       console.log(`🔄 Starting recurring generation with ${recurringRules?.length || 0} rules`);
       const recurringInstances = generateRecurringAppointments(
         recurringRules || [],
         startDate,
         endDate,
-        regularAppointments || []
+        regularAppointments || [],
+        serviceMap
       );
       console.log(`🔄 Generated ${recurringInstances.length} recurring instances`);
 
