@@ -122,28 +122,31 @@ export function useRecurringBooking() {
 
       console.log('Cita creada exitosamente:', appointment);
 
-      // Block future slots for recurring appointments
+      // Generate future recurring instances asynchronously (don't block main booking)
       if (data.recurrenceType !== 'once' && appointment.id) {
-        console.log('Blocking recurring slots for appointment:', appointment.id);
-        try {
-          const { error: blockError } = await supabase.rpc('block_recurring_slots', {
-            p_provider_id: listing.provider_id,
-            p_start_time: data.startTime,
-            p_end_time: data.endTime,
-            p_recurrence_type: data.recurrenceType,
-            p_weeks_ahead: 12
-          });
+        console.log('Scheduling future recurring instances for appointment:', appointment.id);
+        
+        // Use a promise that doesn't block the main flow
+        Promise.resolve().then(async () => {
+          try {
+            // Try to block recurring slots in the background
+            const { error: blockError } = await supabase.rpc('block_recurring_slots', {
+              p_provider_id: listing.provider_id,
+              p_start_time: data.startTime,
+              p_end_time: data.endTime,
+              p_recurrence_type: data.recurrenceType,
+              p_weeks_ahead: 12
+            });
 
-          if (blockError) {
-            console.error('Warning: Could not block recurring slots:', blockError);
-            // Don't fail the booking, just log the warning
-          } else {
-            console.log('Successfully blocked recurring slots');
+            if (blockError) {
+              console.warn('Could not block future slots (non-critical):', blockError);
+            } else {
+              console.log('Successfully blocked future recurring slots');
+            }
+          } catch (error) {
+            console.warn('Background slot blocking failed (non-critical):', error);
           }
-        } catch (slotError) {
-          console.error('Warning: Error blocking recurring slots:', slotError);
-          // Don't fail the booking, just log the warning
-        }
+        });
       }
 
       console.log('Cita creada exitosamente:', appointment);
