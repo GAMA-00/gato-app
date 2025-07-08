@@ -141,14 +141,27 @@ function generateRecurringAppointments(
 
 // Find the first valid occurrence for a recurring rule
 function findFirstValidOccurrence(startDate: Date, rule: RecurringRule, ruleStartDate: Date): Date {
-  let candidate = new Date(startDate);
+  let candidate = new Date(Math.max(startDate.getTime(), ruleStartDate.getTime()));
+  
+  console.log(`🔍 Finding first occurrence for rule ${rule.id}`);
+  console.log(`  Rule start date: ${format(ruleStartDate, 'yyyy-MM-dd')} (day ${getDay(ruleStartDate)})`);
+  console.log(`  Search start date: ${format(startDate, 'yyyy-MM-dd')} (day ${getDay(startDate)})`);
+  console.log(`  Target day of week: ${rule.day_of_week}`);
+  console.log(`  Candidate start: ${format(candidate, 'yyyy-MM-dd')} (day ${getDay(candidate)})`);
   
   switch (rule.recurrence_type) {
     case 'weekly':
+      // If we're starting from the rule's start date and it matches, use it
+      if (candidate.getTime() === ruleStartDate.getTime() && getDay(candidate) === rule.day_of_week) {
+        console.log(`  ✅ Using rule start date directly: ${format(candidate, 'yyyy-MM-dd')}`);
+        return candidate;
+      }
+      
       // Find next occurrence of the target day of week
       while (getDay(candidate) !== rule.day_of_week) {
         candidate = addDays(candidate, 1);
       }
+      console.log(`  ✅ Found weekly occurrence: ${format(candidate, 'yyyy-MM-dd')}`);
       break;
       
     case 'biweekly':
@@ -165,6 +178,7 @@ function findFirstValidOccurrence(startDate: Date, rule: RecurringRule, ruleStar
         }
         candidate = addDays(candidate, 7);
       }
+      console.log(`  ✅ Found biweekly occurrence: ${format(candidate, 'yyyy-MM-dd')}`);
       break;
       
     case 'monthly':
@@ -174,6 +188,7 @@ function findFirstValidOccurrence(startDate: Date, rule: RecurringRule, ruleStar
         candidate = addMonths(candidate, 1);
         candidate.setDate(rule.day_of_month || 1);
       }
+      console.log(`  ✅ Found monthly occurrence: ${format(candidate, 'yyyy-MM-dd')}`);
       break;
   }
   
@@ -214,6 +229,7 @@ export const useCalendarRecurringSystem = ({
       }
 
       console.log('📊 === FETCHING CALENDAR DATA ===');
+      console.log(`🔍 DEBUG: About to query appointments for provider ${providerId}`);
 
       // 1. Fetch all regular appointments in range
       const { data: regularAppointments, error: appointmentsError } = await supabase
@@ -234,6 +250,14 @@ export const useCalendarRecurringSystem = ({
       }
 
       console.log(`📋 Fetched ${regularAppointments?.length || 0} regular appointments`);
+      if (regularAppointments && regularAppointments.length > 0) {
+        console.log('📋 Regular appointments sample:', regularAppointments.slice(0, 3).map(apt => ({
+          id: apt.id,
+          client_name: apt.client_name,
+          start_time: apt.start_time,
+          status: apt.status
+        })));
+      }
 
       // 2. Fetch active recurring rules
       const { data: recurringRules, error: rulesError } = await supabase
@@ -278,12 +302,14 @@ export const useCalendarRecurringSystem = ({
       }
 
       // 4. Generate recurring instances
+      console.log(`🔄 Starting recurring generation with ${recurringRules?.length || 0} rules`);
       const recurringInstances = generateRecurringAppointments(
         recurringRules || [],
         startDate,
         endDate,
         regularAppointments || []
       );
+      console.log(`🔄 Generated ${recurringInstances.length} recurring instances`);
 
       // 5. Process and combine all appointments
       const processedRegular = (regularAppointments || []).map(appointment => ({

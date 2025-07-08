@@ -20,23 +20,13 @@ const Calendar = () => {
 
   const { blockedSlots, isLoading: slotsLoading } = useBlockedTimeSlots();
 
-  console.log('🗓️ === UNIFIED CALENDAR DEBUG ===');
-  console.log(`Current date: ${format(currentDate, 'yyyy-MM-dd')}`);
-  console.log(`User ID: ${user?.id}`);
-  console.log(`User role: ${user?.role}`);
-  console.log(`Appointments loaded: ${appointments.length}`);
-  console.log(`Loading state: ${isLoading}`);
-  console.log(`Blocked slots: ${blockedSlots.length}`);
-  
-  if (appointments.length > 0) {
-    console.log('📋 Sample appointments:');
-    appointments.slice(0, 5).forEach((apt: any, i) => {
-      console.log(`  ${i+1}. ${apt.client_name} - ${format(new Date(apt.start_time), 'yyyy-MM-dd HH:mm')} (${apt.status}) ${apt.is_recurring_instance ? '[RECURRING]' : '[REGULAR]'}`);
-    });
-  } else {
-    console.log('❌ NO APPOINTMENTS TO DISPLAY');
-  }
-  console.log('====================================');
+  // Debug information for calendar system
+  console.log('🗓️ Calendar System Active:', {
+    appointmentsCount: appointments.length,
+    loading: isLoading,
+    provider: user?.id,
+    blockedSlots: blockedSlots.length
+  });
 
   if (isLoading || slotsLoading) {
     return (
