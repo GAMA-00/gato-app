@@ -73,12 +73,20 @@ export const generateRecurringInstances = (
       // Ajustar currentDate al próximo día de la semana correcto para weekly/biweekly
       if (rule.recurrence_type === 'weekly' || rule.recurrence_type === 'biweekly') {
         const targetDayOfWeek = rule.day_of_week!;
-        const currentDayOfWeek = getDay(currentDate);
         
-        if (currentDayOfWeek !== targetDayOfWeek) {
-          const daysToAdd = (targetDayOfWeek - currentDayOfWeek + 7) % 7;
-          currentDate = addWeeks(currentDate, 0);
-          currentDate.setDate(currentDate.getDate() + daysToAdd);
+        // Buscar la primera ocurrencia válida desde la fecha de inicio
+        while (getDay(currentDate) !== targetDayOfWeek && currentDate <= endDate) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Para biweekly, asegurar que esté en la semana correcta
+        if (rule.recurrence_type === 'biweekly') {
+          const daysDiff = Math.floor((currentDate.getTime() - ruleStartDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysDiff >= 0 && daysDiff % 14 !== 0) {
+            // Ajustar a la próxima ocurrencia biweekly válida
+            const daysToNext = 14 - (daysDiff % 14);
+            currentDate.setDate(currentDate.getDate() + daysToNext);
+          }
         }
       }
 
@@ -104,9 +112,11 @@ export const generateRecurringInstances = (
         if (!existingConflict && startDateTime >= startDate && startDateTime <= endDate) {
           const instanceId = `${rule.id}-instance-${format(startDateTime, 'yyyy-MM-dd-HH-mm')}`;
           
-          // Get real client and service names
+          // Get real client and service names with better fallback
           const clientName = rule.users?.name || rule.client_name || 'Cliente';
           const serviceTitle = rule.listings?.title || 'Servicio';
+          
+          console.log(`Creating instance for rule ${rule.id}: client=${clientName}, service=${serviceTitle}`);
           
           const clientData = {
             name: clientName,

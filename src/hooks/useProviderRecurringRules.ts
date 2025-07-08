@@ -22,6 +22,15 @@ export const useProviderRecurringRules = (providerId?: string) => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
+      // Populate client_name if missing
+      if (data) {
+        data.forEach(rule => {
+          if (!rule.client_name && rule.users?.name) {
+            rule.client_name = rule.users.name;
+          }
+        });
+      }
+
       if (error) {
         console.error('Error fetching recurring rules:', error);
         throw error;

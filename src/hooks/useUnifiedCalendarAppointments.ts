@@ -15,8 +15,8 @@ export const useUnifiedCalendarAppointments = ({
   selectedDate, 
   providerId 
 }: UseUnifiedCalendarAppointmentsProps) => {
-  // Extender rango a 8 semanas para mejor cobertura
-  const startDate = startOfDay(selectedDate);
+  // Extender rango: 4 semanas atrás, 8 semanas adelante para mejor cobertura
+  const startDate = startOfDay(addWeeks(selectedDate, -4));
   const endDate = endOfDay(addWeeks(selectedDate, 8));
 
   console.log('=== UNIFIED CALENDAR APPOINTMENTS START ===');
@@ -47,7 +47,9 @@ export const useUnifiedCalendarAppointments = ({
           )
         `)
         .eq('provider_id', providerId)
-        .not('status', 'in', '(cancelled,rejected,completed)')
+        .in('status', ['pending', 'confirmed', 'completed'])
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: true });
 
       if (appointmentsError) {
