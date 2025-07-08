@@ -11,6 +11,7 @@ interface SlotCardProps {
   variant?: 'provider' | 'client';
   isSelected?: boolean;
   isAvailable?: boolean;
+  className?: string;
 }
 
 const SlotCard = ({ 
@@ -21,7 +22,8 @@ const SlotCard = ({
   size = 'md',
   variant = 'provider',
   isSelected = false,
-  isAvailable = true
+  isAvailable = true,
+  className
 }: SlotCardProps) => {
   
   const sizeClasses = {
@@ -57,7 +59,8 @@ const SlotCard = ({
         'flex flex-col items-center justify-center gap-0.5 transition-all duration-200',
         sizeClasses[size],
         getButtonStyles(),
-        'hover:scale-105 active:scale-95'
+        'hover:scale-105 active:scale-95',
+        className
       )}
     >
       <span className="font-bold leading-none">{time}</span>

@@ -248,8 +248,8 @@ const WeeklySlotGrid = ({
                 </div>
               </div>
 
-              {/* Day Slots */}
-              <div className={`${isMobile ? 'grid grid-cols-2 gap-3' : 'space-y-2 max-h-64 overflow-y-auto'}`}>
+              {/* Day Slots - Horizontal scroll for mobile */}
+              <div className={`${isMobile ? 'flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300' : 'space-y-2 max-h-64 overflow-y-auto'}`}>
                 {group.slots
                   .filter(slot => slot.isAvailable)
                   .map(slot => (
@@ -261,8 +261,9 @@ const WeeklySlotGrid = ({
                       isSelected={selectedSlotId === slot.id}
                       isAvailable={slot.isAvailable}
                       onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
-                      size={isMobile ? "md" : "sm"}
+                      size={isMobile ? "sm" : "sm"}
                       variant="client"
+                      className={isMobile ? 'flex-shrink-0 min-w-[80px]' : ''}
                     />
                   ))}
               </div>
