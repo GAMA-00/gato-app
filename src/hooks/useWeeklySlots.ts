@@ -1,6 +1,51 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { addDays, format, startOfDay } from 'date-fns';
+import { addDays, format, startOfDay, addWeeks, addMonths } from 'date-fns';
 import { validateBookingSlot } from '@/utils/bookingValidation';
+import { supabase } from '@/integrations/supabase/client';
+
+// Helper functions for recurring instances
+function findNextWeeklyOccurrence(currentDate: Date, dayOfWeek: number): Date {
+  const result = new Date(currentDate);
+  const currentDay = result.getDay();
+  const daysUntilTarget = (dayOfWeek - currentDay + 7) % 7;
+  
+  if (daysUntilTarget === 0 && result.getTime() === currentDate.getTime()) {
+    return result;
+  }
+  
+  result.setDate(result.getDate() + daysUntilTarget);
+  return result;
+}
+
+function findNextBiweeklyOccurrence(currentDate: Date, dayOfWeek: number, startDate: Date): Date {
+  let candidate = findNextWeeklyOccurrence(currentDate, dayOfWeek);
+  
+  while (candidate <= currentDate) {
+    candidate = addWeeks(candidate, 1);
+  }
+  
+  while (true) {
+    const daysDiff = Math.floor((candidate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff >= 0 && daysDiff % 14 === 0) {
+      break;
+    }
+    candidate = addWeeks(candidate, 1);
+  }
+  
+  return candidate;
+}
+
+function findNextMonthlyOccurrence(currentDate: Date, dayOfMonth: number): Date {
+  const result = new Date(currentDate);
+  result.setDate(dayOfMonth);
+  
+  if (result <= currentDate) {
+    result.setMonth(result.getMonth() + 1);
+    result.setDate(dayOfMonth);
+  }
+  
+  return result;
+}
 
 export interface WeeklySlot {
   id: string;
@@ -72,10 +117,124 @@ export const useWeeklySlots = ({
     try {
       const baseDate = startDate || startOfDay(new Date());
       const timeSlots = generateTimeSlots();
+      
+      // PHASE 1: Get all conflicts for the date range - ONE QUERY instead of N queries
+      const endDate = addDays(baseDate, daysAhead);
+      console.log(`🔍 Fetching conflicts for provider ${providerId} from ${format(baseDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+      
+      const [appointmentsResult, blockedSlotsResult, recurringRulesResult] = await Promise.all([
+        // Get all appointments in the date range
+        supabase
+          .from('appointments')
+          .select('start_time, end_time, status, recurrence, is_recurring_instance')
+          .eq('provider_id', providerId)
+          .in('status', ['pending', 'confirmed', 'completed', 'scheduled'])
+          .gte('start_time', baseDate.toISOString())
+          .lte('start_time', endDate.toISOString()),
+        
+        // Get all blocked time slots for this provider
+        supabase
+          .from('blocked_time_slots')
+          .select('day, start_hour, end_hour')
+          .eq('provider_id', providerId),
+        
+        // Get active recurring rules to generate instances
+        supabase
+          .from('recurring_rules')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('is_active', true)
+      ]);
+
+      const appointments = appointmentsResult.data || [];
+      const blockedSlots = blockedSlotsResult.data || [];
+      const recurringRules = recurringRulesResult.data || [];
+      
+      // PHASE 1.5: Generate recurring instances for the date range
+      const recurringInstances: any[] = [];
+      
+      recurringRules.forEach(rule => {
+        let currentDate = new Date(Math.max(new Date(rule.start_date).getTime(), baseDate.getTime()));
+        const maxDate = endDate;
+        let instanceCount = 0;
+        const maxInstances = 50; // Safety limit
+        
+        while (currentDate <= maxDate && instanceCount < maxInstances) {
+          let nextOccurrence: Date | null = null;
+          
+          switch (rule.recurrence_type) {
+            case 'weekly':
+              nextOccurrence = findNextWeeklyOccurrence(currentDate, rule.day_of_week);
+              break;
+            case 'biweekly':
+              nextOccurrence = findNextBiweeklyOccurrence(currentDate, rule.day_of_week, new Date(rule.start_date));
+              break;
+            case 'monthly':
+              nextOccurrence = findNextMonthlyOccurrence(currentDate, rule.day_of_month);
+              break;
+          }
+          
+          if (!nextOccurrence || nextOccurrence > maxDate) {
+            break;
+          }
+          
+          // Create instance datetime
+          const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
+          const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
+          
+          const instanceStart = new Date(nextOccurrence);
+          instanceStart.setHours(startHours, startMinutes, 0, 0);
+          
+          const instanceEnd = new Date(nextOccurrence);
+          instanceEnd.setHours(endHours, endMinutes, 0, 0);
+          
+          if (instanceStart >= baseDate && instanceStart <= endDate) {
+            recurringInstances.push({
+              start_time: instanceStart.toISOString(),
+              end_time: instanceEnd.toISOString(),
+              status: 'confirmed',
+              is_recurring_instance: true
+            });
+          }
+          
+          // Move to next occurrence
+          switch (rule.recurrence_type) {
+            case 'weekly':
+              currentDate = new Date(nextOccurrence);
+              currentDate.setDate(currentDate.getDate() + 7);
+              break;
+            case 'biweekly':
+              currentDate = new Date(nextOccurrence);
+              currentDate.setDate(currentDate.getDate() + 14);
+              break;
+            case 'monthly':
+              currentDate = new Date(nextOccurrence);
+              currentDate.setMonth(currentDate.getMonth() + 1);
+              break;
+          }
+          
+          instanceCount++;
+        }
+      });
+      
+      // Combine regular appointments with recurring instances
+      const allAppointments = [...appointments, ...recurringInstances];
+      
+      console.log(`📊 Found ${appointments.length} appointments, ${blockedSlots.length} blocked slots, ${recurringInstances.length} recurring instances`);
+
+      // PHASE 2: Generate and filter slots with batch validation
       const newSlots: WeeklySlot[] = [];
+      let totalGenerated = 0;
+      let totalFiltered = 0;
 
       for (let dayOffset = 0; dayOffset < daysAhead; dayOffset++) {
         const currentDate = addDays(baseDate, dayOffset);
+        const dayOfWeek = currentDate.getDay();
+        
+        // Get blocked slots for this day
+        const dayBlockedSlots = blockedSlots.filter(slot => 
+          slot.day === dayOfWeek || slot.day === -1
+        );
         
         for (const timeSlot of timeSlots) {
           const [hours, minutes] = timeSlot.split(':').map(Number);
@@ -90,21 +249,55 @@ export const useWeeklySlots = ({
             continue;
           }
 
+          totalGenerated++;
+          
+          // CHECK 1: Is this slot blocked by provider?
+          const isBlocked = dayBlockedSlots.some(blocked => {
+            const slotStartMinutes = hours * 60 + minutes;
+            const slotEndMinutes = slotEnd.getHours() * 60 + slotEnd.getMinutes();
+            const blockedStartMinutes = blocked.start_hour * 60;
+            const blockedEndMinutes = blocked.end_hour * 60;
+            
+            return slotStartMinutes < blockedEndMinutes && slotEndMinutes > blockedStartMinutes;
+          });
+
+          if (isBlocked) {
+            console.log(`🚫 Slot ${timeSlot} on ${format(currentDate, 'yyyy-MM-dd')} is blocked by provider`);
+            totalFiltered++;
+            continue; // Don't add blocked slots to the list
+          }
+
+          // CHECK 2: Does this slot overlap with existing appointments (including recurring)?
+          const hasAppointmentConflict = allAppointments.some(appointment => {
+            const appointmentStart = new Date(appointment.start_time);
+            const appointmentEnd = new Date(appointment.end_time);
+            
+            // Check if times overlap: startTime < appointmentEnd && endTime > appointmentStart
+            return slotStart < appointmentEnd && slotEnd > appointmentStart;
+          });
+
+          if (hasAppointmentConflict) {
+            console.log(`⏰ Slot ${timeSlot} on ${format(currentDate, 'yyyy-MM-dd')} conflicts with existing appointment`);
+            totalFiltered++;
+            continue; // Don't add conflicted slots to the list
+          }
+
+          // If we get here, the slot is truly available
           const { time: displayTime, period } = formatTimeTo12Hour(timeSlot);
           const slotId = `${format(currentDate, 'yyyy-MM-dd')}-${timeSlot}`;
 
-          // For now, set all slots as available - we'll validate them individually when needed
           newSlots.push({
             id: slotId,
             date: currentDate,
             time: timeSlot,
             displayTime,
             period,
-            isAvailable: true
+            isAvailable: true // Only available slots make it to this point
           });
         }
       }
 
+      console.log(`✅ Slot generation complete: ${totalGenerated} generated, ${totalFiltered} filtered, ${newSlots.length} available`);
       setSlots(newSlots);
       setLastUpdated(new Date());
     } catch (error) {
@@ -115,7 +308,7 @@ export const useWeeklySlots = ({
     }
   }, [providerId, serviceDuration, startDate, daysAhead, generateTimeSlots]);
 
-  // Validate a specific slot when it's being selected
+  // Validate a specific slot when it's being selected (now just for recurring conflicts)
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
     if (!providerId) return false;
 
@@ -128,7 +321,8 @@ export const useWeeklySlots = ({
       const slotEnd = new Date(slotStart);
       slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
 
-      const isValid = await validateBookingSlot(
+      // Since we pre-filter basic availability, only check recurring conflicts
+      const isValid = recurrence === 'once' ? true : await validateBookingSlot(
         providerId,
         slotStart,
         slotEnd,
@@ -136,11 +330,13 @@ export const useWeeklySlots = ({
       );
 
       // Update slot availability based on validation
-      setSlots(prev => prev.map(s => 
-        s.id === slot.id 
-          ? { ...s, isAvailable: isValid }
-          : s
-      ));
+      if (!isValid) {
+        setSlots(prev => prev.map(s => 
+          s.id === slot.id 
+            ? { ...s, isAvailable: false }
+            : s
+        ));
+      }
 
       return isValid;
     } catch (error) {

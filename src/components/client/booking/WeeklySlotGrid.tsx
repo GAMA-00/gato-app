@@ -62,24 +62,26 @@ const WeeklySlotGrid = ({
     
     if (!slot || !slot.isAvailable) return;
 
-    // OPTIMISTIC UPDATE: Show selection immediately for better UX
-    setSelectedSlotId(slotId);
-    onSlotSelect(slotId, date, time);
+      // Since slots are now pre-filtered, we can select immediately
+      setSelectedSlotId(slotId);
+      onSlotSelect(slotId, date, time);
 
-    // Validate in background without blocking UI
-    try {
-      const isValid = await validateSlot(slot);
-      
-      if (!isValid) {
-        // Revert selection if validation fails
-        setSelectedSlotId(undefined);
-        // Note: Toast error is already shown by validateSlot function
+      // Only validate for recurring conflicts if needed
+      if (recurrence !== 'once') {
+        try {
+          const isValid = await validateSlot(slot);
+          
+          if (!isValid) {
+            // Revert selection if validation fails
+            setSelectedSlotId(undefined);
+            // Note: Toast error is already shown by validateSlot function
+          }
+        } catch (error) {
+          // Revert selection on any error
+          setSelectedSlotId(undefined);
+          console.error('Error validating slot:', error);
+        }
       }
-    } catch (error) {
-      // Revert selection on any error
-      setSelectedSlotId(undefined);
-      console.error('Error validating slot:', error);
-    }
   };
 
   const goToPreviousWeek = () => {
