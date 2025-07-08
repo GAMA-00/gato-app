@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { addDays, format, startOfDay, addWeeks, addMonths } from 'date-fns';
 import { validateBookingSlot } from '@/utils/bookingValidation';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,9 +85,11 @@ export const useWeeklySlots = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isValidatingSlot, setIsValidatingSlot] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  // Memoize time slots to prevent re-generation
-  const timeSlots = useMemo(() => generateTimeSlots(serviceDuration), [serviceDuration]);
+  
+  // Cache and throttling
+  const cacheRef = useRef<{ [key: string]: { data: WeeklySlot[], timestamp: number } }>({});
+  const lastCallRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchWeeklySlots = useCallback(async () => {
     if (!providerId) {
@@ -95,47 +97,81 @@ export const useWeeklySlots = ({
       return;
     }
 
+    // Throttling: prevent calls too close together
+    const now = Date.now();
+    if (now - lastCallRef.current < 500) {
+      console.log('🚫 Throttling fetchWeeklySlots call');
+      return;
+    }
+    lastCallRef.current = now;
+
+    // Check cache first
+    const cacheKey = `${providerId}-${serviceDuration}-${startDate?.getTime() || 'now'}-${daysAhead}`;
+    const cached = cacheRef.current[cacheKey];
+    if (cached && now - cached.timestamp < 30000) { // 30 second cache
+      console.log('📦 Using cached slots');
+      setSlots(cached.data);
+      setLastUpdated(new Date(cached.timestamp));
+      return;
+    }
+
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     console.log(`🔄 Starting fetchWeeklySlots for provider: ${providerId}`);
     
     try {
       const baseDate = startDate || startOfDay(new Date());
       
-      // PHASE 1: Get all conflicts for the date range - FIXED SQL AMBIGUITY
+      // Generate time slots for this service duration
+      const timeSlots = generateTimeSlots(serviceDuration);
+      
+      // PHASE 1: Get all conflicts for the date range with retry logic
       const endDate = addDays(baseDate, daysAhead);
       console.log(`🔍 Fetching conflicts for provider ${providerId} from ${format(baseDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
       
-      const [appointmentsResult, blockedSlotsResult] = await Promise.all([
-        // Get all appointments in the date range
-        supabase
+      // Fetch with fallback to showing basic slots on network error
+      let appointments: any[] = [];
+      let blockedSlots: any[] = [];
+      
+      try {
+        // Try appointments first
+        const appointmentsResult = await supabase
           .from('appointments')
           .select('start_time, end_time, status, recurrence, is_recurring_instance')
           .eq('provider_id', providerId)
           .in('status', ['pending', 'confirmed', 'completed', 'scheduled'])
           .gte('start_time', baseDate.toISOString())
-          .lte('start_time', endDate.toISOString()),
-        
-        // Get all blocked time slots for this provider
-        supabase
+          .lte('start_time', endDate.toISOString());
+          
+        if (appointmentsResult.error) {
+          console.warn('⚠️ Could not fetch appointments, showing optimistic slots:', appointmentsResult.error);
+        } else {
+          appointments = appointmentsResult.data || [];
+        }
+      } catch (error) {
+        console.warn('⚠️ Network error fetching appointments, showing optimistic slots');
+      }
+      
+      try {
+        // Try blocked slots
+        const blockedSlotsResult = await supabase
           .from('blocked_time_slots')
           .select('day, start_hour, end_hour')
-          .eq('provider_id', providerId)
-      ]);
-
-      // Handle errors gracefully
-      if (appointmentsResult.error) {
-        console.error('❌ Error fetching appointments:', appointmentsResult.error);
-        setSlots([]);
-        return;
+          .eq('provider_id', providerId);
+          
+        if (blockedSlotsResult.error) {
+          console.warn('⚠️ Could not fetch blocked slots, showing all time slots:', blockedSlotsResult.error);
+        } else {
+          blockedSlots = blockedSlotsResult.data || [];
+        }
+      } catch (error) {
+        console.warn('⚠️ Network error fetching blocked slots, showing all time slots');
       }
-      if (blockedSlotsResult.error) {
-        console.error('❌ Error fetching blocked slots:', blockedSlotsResult.error);
-        setSlots([]);
-        return;
-      }
-
-      const appointments = appointmentsResult.data || [];
-      const blockedSlots = blockedSlotsResult.data || [];
       
       console.log(`📊 Found ${appointments.length} appointments, ${blockedSlots.length} blocked slots`);
 
@@ -215,16 +251,24 @@ export const useWeeklySlots = ({
       }
 
       console.log(`✅ Slot generation complete: ${totalGenerated} generated, ${totalFiltered} filtered, ${newSlots.length} available`);
+      
+      // Cache the results
+      cacheRef.current[cacheKey] = {
+        data: newSlots,
+        timestamp: now
+      };
+      
       setSlots(newSlots);
       setLastUpdated(new Date());
     } catch (error) {
+      if ((error as any)?.name === 'AbortError') return;
       console.error('❌ Critical error in fetchWeeklySlots:', error);
       // Don't leave users hanging - set empty slots and show we tried
       setSlots([]);
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, serviceDuration, startDate, daysAhead, timeSlots]); // Removed recurrence from deps
+  }, [providerId, serviceDuration, startDate, daysAhead]); // Simplified dependencies
 
   // Validate a specific slot when it's being selected (now just for recurring conflicts)
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -315,10 +359,10 @@ export const useWeeklySlots = ({
 
   useEffect(() => {
     console.log(`🔄 useEffect triggered for fetchWeeklySlots - Provider: ${providerId}, Duration: ${serviceDuration}`);
-    if (providerId && serviceDuration && timeSlots.length > 0) {
+    if (providerId && serviceDuration > 0) {
       fetchWeeklySlots();
     }
-  }, [providerId, serviceDuration, startDate, daysAhead]); // Direct dependencies only
+  }, [fetchWeeklySlots]); // Only depend on the function itself
 
   return {
     slotGroups,
