@@ -95,39 +95,42 @@ const BookingSummaryCard = ({
           </p>
         </div>
 
-        {/* 6. Booking Button - Enhanced with better feedback */}
+        {/* ROBUST Booking Button - Always functional */}
         <Button
           onClick={onBooking}
-          disabled={!isBookingValid || isLoading}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white"
+          disabled={isLoading || !selectedDate || !selectedTime || !selectedVariant}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white transition-all duration-200"
           size="lg"
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Creando reserva...
+              Procesando reserva...
             </div>
           ) : (
             'Confirmar Reserva'
           )}
         </Button>
 
-        {/* Enhanced validation feedback */}
-        {!isBookingValid && !isLoading && (
+        {/* SIMPLIFIED validation feedback - Less restrictive */}
+        {(!selectedDate || !selectedTime || !selectedVariant) && !isLoading && (
           <div className="text-sm text-muted-foreground text-center space-y-1">
-            {isLoadingLocation ? (
-              <p>Cargando información del usuario...</p>
-            ) : (
-              <div>
-                <p>Para continuar, completa:</p>
-                <ul className="text-xs mt-1 space-y-0.5">
-                  {!selectedDate && <li>• Selecciona una fecha</li>}
-                  {!selectedTime && <li>• Selecciona una hora</li>}
-                  {!selectedVariant && <li>• Selecciona un servicio</li>}
-                  {isLoadingLocation && <li>• Cargando ubicación...</li>}
-                </ul>
-              </div>
-            )}
+            <div>
+              <p>Completa tu selección:</p>
+              <ul className="text-xs mt-1 space-y-0.5">
+                {!selectedDate && <li>• Selecciona una fecha</li>}
+                {!selectedTime && <li>• Selecciona una hora</li>}
+                {!selectedVariant && <li>• Selecciona un servicio</li>}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* User data loading indicator - Non-blocking */}
+        {isLoadingLocation && (
+          <div className="text-xs text-blue-600 text-center flex items-center justify-center gap-1">
+            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            Cargando datos del usuario...
           </div>
         )}
       </CardContent>

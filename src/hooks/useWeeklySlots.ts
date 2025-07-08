@@ -201,7 +201,7 @@ export const useWeeklySlots = ({
 
   useEffect(() => {
     fetchWeeklySlots();
-  }, [fetchWeeklySlots]);
+  }, [providerId, serviceDuration, startDate, daysAhead]); // Fix: Use stable dependencies instead of fetchWeeklySlots
 
   return {
     slotGroups,
