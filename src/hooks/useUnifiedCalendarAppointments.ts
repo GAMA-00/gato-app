@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addWeeks, startOfDay, endOfDay } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
-import { generateRecurringInstances } from './useRecurringInstances';
+import { generateRecurringInstances } from '@/utils/recurringInstanceGenerator';
 import { useProviderRecurringRules } from './useProviderRecurringRules';
 
 interface UseUnifiedCalendarAppointmentsProps {
@@ -15,9 +15,9 @@ export const useUnifiedCalendarAppointments = ({
   selectedDate, 
   providerId 
 }: UseUnifiedCalendarAppointmentsProps) => {
-  // Extender rango: 4 semanas atrás, 8 semanas adelante para mejor cobertura
-  const startDate = startOfDay(addWeeks(selectedDate, -4));
-  const endDate = endOfDay(addWeeks(selectedDate, 8));
+  // Ampliar significativamente el rango: 12 semanas atrás, 16 semanas adelante
+  const startDate = startOfDay(addWeeks(selectedDate, -12));
+  const endDate = endOfDay(addWeeks(selectedDate, 16));
 
   console.log('=== UNIFIED CALENDAR APPOINTMENTS START ===');
   console.log(`Provider ID: ${providerId}`);
@@ -36,7 +36,7 @@ export const useUnifiedCalendarAppointments = ({
         return [];
       }
 
-      // 1. Obtener todas las citas regulares (no recurring instances)
+      // 1. Obtener todas las citas relevantes (incluye scheduled para recurrentes)
       const { data: regularAppointments, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
@@ -47,7 +47,7 @@ export const useUnifiedCalendarAppointments = ({
           )
         `)
         .eq('provider_id', providerId)
-        .in('status', ['pending', 'confirmed', 'completed'])
+        .in('status', ['pending', 'confirmed', 'completed', 'scheduled'])
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: true });
@@ -119,6 +119,18 @@ export const useUnifiedCalendarAppointments = ({
       console.log(`Recurring instances: ${recurringInstances.length}`);
       console.log(`Combined total: ${allAppointments.length}`);
       console.log(`After filtering and deduplication: ${finalAppointments.length}`);
+      
+      // Debug individual appointments
+      if (finalAppointments.length > 0) {
+        console.log('Sample appointments:');
+        finalAppointments.slice(0, 3).forEach(apt => {
+          console.log(`- ${apt.client_name}: ${format(new Date(apt.start_time), 'yyyy-MM-dd HH:mm')} (${apt.status})`);
+        });
+      } else {
+        console.log('⚠️ NO APPOINTMENTS FOUND');
+        console.log(`Query range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+        console.log(`Provider ID: ${providerId}`);
+      }
       console.log('===============================');
 
       return finalAppointments;

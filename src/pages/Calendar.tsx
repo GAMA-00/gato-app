@@ -17,14 +17,20 @@ const Calendar = () => {
     providerId: user?.id
   });
 
-  console.log('=== CALENDAR PAGE DEBUG ===');
+  console.log('🗓️ === CALENDAR PAGE DEBUG ===');
   console.log(`Current date: ${format(currentDate, 'yyyy-MM-dd')}`);
   console.log(`User ID: ${user?.id}`);
   console.log(`User role: ${user?.role}`);
   console.log(`Appointments loaded: ${appointments.length}`);
   console.log(`Loading state: ${isLoading}`);
+  
   if (appointments.length > 0) {
-    console.log('First few appointments:', appointments.slice(0, 3));
+    console.log('📋 Sample appointments:');
+    appointments.slice(0, 5).forEach((apt, i) => {
+      console.log(`  ${i+1}. ${apt.client_name} - ${format(new Date(apt.start_time), 'yyyy-MM-dd HH:mm')} (${apt.status}) ${apt.is_recurring_instance ? '[RECURRING]' : '[REGULAR]'}`);
+    });
+  } else {
+    console.log('❌ NO APPOINTMENTS TO DISPLAY');
   }
   console.log('===============================');
 
