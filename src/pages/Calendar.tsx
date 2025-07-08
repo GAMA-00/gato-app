@@ -4,7 +4,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOptimizedCalendarAppointments } from '@/hooks/useOptimizedCalendarAppointments';
+import { useCalendarRecurringSystem } from '@/hooks/useCalendarRecurringSystem';
 import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -13,14 +13,14 @@ const Calendar = () => {
   const { user } = useAuth();
   const currentDate = new Date();
 
-  const { data: appointments = [], isLoading } = useOptimizedCalendarAppointments({
+  const { data: appointments = [], isLoading } = useCalendarRecurringSystem({
     selectedDate: currentDate,
     providerId: user?.id
   });
 
   const { blockedSlots, isLoading: slotsLoading } = useBlockedTimeSlots();
 
-  console.log('🗓️ === OPTIMIZED CALENDAR DEBUG ===');
+  console.log('🗓️ === UNIFIED CALENDAR DEBUG ===');
   console.log(`Current date: ${format(currentDate, 'yyyy-MM-dd')}`);
   console.log(`User ID: ${user?.id}`);
   console.log(`User role: ${user?.role}`);

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRecurringAppointments } from './useRecurringAppointments';
+// Removed dependency - now using unified calendar system
 import { startOfToday, endOfDay, addDays } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 
@@ -168,13 +168,10 @@ export const useAppointments = () => {
   const today = startOfToday();
   const endDate = endOfDay(addDays(today, 30));
   
-  const recurringInstances = useRecurringAppointments({
-    recurringAppointments: recurringBase,
-    startDate: today,
-    endDate: endDate
-  });
+  // Note: Recurring instances are now handled by the unified calendar system
+  const recurringInstances: any[] = [];
 
-  console.log(`Generated recurring instances: ${recurringInstances.length}`);
+  console.log(`Recurring instances now handled by unified system: ${recurringInstances.length}`);
 
   // Combine all appointments
   const allAppointments = [
