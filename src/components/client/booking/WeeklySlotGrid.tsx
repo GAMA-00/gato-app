@@ -62,11 +62,23 @@ const WeeklySlotGrid = ({
     
     if (!slot || !slot.isAvailable) return;
 
-    // Validate slot before selection
-    const isValid = await validateSlot(slot);
-    if (isValid) {
-      setSelectedSlotId(slotId);
-      onSlotSelect(slotId, date, time);
+    // OPTIMISTIC UPDATE: Show selection immediately for better UX
+    setSelectedSlotId(slotId);
+    onSlotSelect(slotId, date, time);
+
+    // Validate in background without blocking UI
+    try {
+      const isValid = await validateSlot(slot);
+      
+      if (!isValid) {
+        // Revert selection if validation fails
+        setSelectedSlotId(undefined);
+        // Note: Toast error is already shown by validateSlot function
+      }
+    } catch (error) {
+      // Revert selection on any error
+      setSelectedSlotId(undefined);
+      console.error('Error validating slot:', error);
     }
   };
 

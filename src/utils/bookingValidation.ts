@@ -37,7 +37,15 @@ export const validateBookingSlot = async (
       }
       
       console.error('Mensaje de error:', errorMessage);
-      toast.error(errorMessage);
+      // Optimized: Show more user-friendly error message
+      toast.error(errorMessage, {
+        duration: 3000,
+        style: {
+          background: '#fee2e2',
+          border: '1px solid #fecaca',
+          color: '#dc2626'
+        }
+      });
       return false;
     }
 
@@ -51,7 +59,14 @@ export const validateBookingSlot = async (
       if (recurringValidation.hasConflict) {
         console.error('Conflicto detectado en recurrencia:', recurringValidation);
         const errorMessage = recurringValidation.conflictReason || 'Conflicto en fechas futuras de la recurrencia';
-        toast.error(errorMessage);
+        toast.error(errorMessage, {
+          duration: 3000,
+          style: {
+            background: '#fee2e2',
+            border: '1px solid #fecaca',
+            color: '#dc2626'
+          }
+        });
         return false;
       }
       
@@ -63,7 +78,14 @@ export const validateBookingSlot = async (
   } catch (error) {
     console.error('=== ERROR EN VALIDACIÓN DE SLOT ===');
     console.error('Error details:', error);
-    toast.error('Error al validar la disponibilidad. Intenta de nuevo.');
+    toast.error('Error al validar la disponibilidad. Intenta de nuevo.', {
+      duration: 3000,
+      style: {
+        background: '#fee2e2',
+        border: '1px solid #fecaca',
+        color: '#dc2626'
+      }
+    });
     return false;
   }
 };
