@@ -4,7 +4,8 @@ import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUnifiedCalendarAppointments } from '@/hooks/useUnifiedCalendarAppointments';
+import { useOptimizedCalendarAppointments } from '@/hooks/useOptimizedCalendarAppointments';
+import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 
@@ -12,29 +13,32 @@ const Calendar = () => {
   const { user } = useAuth();
   const currentDate = new Date();
 
-  const { data: appointments = [], isLoading } = useUnifiedCalendarAppointments({
+  const { data: appointments = [], isLoading } = useOptimizedCalendarAppointments({
     selectedDate: currentDate,
     providerId: user?.id
   });
 
-  console.log('🗓️ === CALENDAR PAGE DEBUG ===');
+  const { blockedSlots, isLoading: slotsLoading } = useBlockedTimeSlots();
+
+  console.log('🗓️ === OPTIMIZED CALENDAR DEBUG ===');
   console.log(`Current date: ${format(currentDate, 'yyyy-MM-dd')}`);
   console.log(`User ID: ${user?.id}`);
   console.log(`User role: ${user?.role}`);
   console.log(`Appointments loaded: ${appointments.length}`);
   console.log(`Loading state: ${isLoading}`);
+  console.log(`Blocked slots: ${blockedSlots.length}`);
   
   if (appointments.length > 0) {
     console.log('📋 Sample appointments:');
-    appointments.slice(0, 5).forEach((apt, i) => {
+    appointments.slice(0, 5).forEach((apt: any, i) => {
       console.log(`  ${i+1}. ${apt.client_name} - ${format(new Date(apt.start_time), 'yyyy-MM-dd HH:mm')} (${apt.status}) ${apt.is_recurring_instance ? '[RECURRING]' : '[REGULAR]'}`);
     });
   } else {
     console.log('❌ NO APPOINTMENTS TO DISPLAY');
   }
-  console.log('===============================');
+  console.log('====================================');
 
-  if (isLoading) {
+  if (isLoading || slotsLoading) {
     return (
       <PageLayout title="Calendario" subtitle="Cargando citas..." contentClassName="max-w-7xl">
         <div className="w-full space-y-6">
@@ -55,9 +59,9 @@ const Calendar = () => {
           </div>
         )}
         
-        {/* Calendar view with all appointments including recurring instances */}
+        {/* Optimized Calendar view with recurring instances and blocked slots */}
         <div className="w-full">
-          <CalendarView appointments={appointments} />
+          <CalendarView appointments={appointments} blockedSlots={blockedSlots} />
         </div>
       </div>
     </PageLayout>
