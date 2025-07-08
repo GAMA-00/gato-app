@@ -306,7 +306,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, serviceDuration, startDate, daysAhead, generateTimeSlots]);
+  }, [providerId, serviceDuration, startDate, daysAhead, recurrence]); // Fixed: Use primitive dependencies
 
   // Validate a specific slot when it's being selected (now just for recurring conflicts)
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -397,7 +397,7 @@ export const useWeeklySlots = ({
 
   useEffect(() => {
     fetchWeeklySlots();
-  }, [fetchWeeklySlots]); // Fixed: Use fetchWeeklySlots as dependency
+  }, [providerId, serviceDuration, startDate, daysAhead, recurrence]); // Fixed: Use primitive dependencies
 
   return {
     slotGroups,
