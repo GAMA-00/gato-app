@@ -40,7 +40,7 @@ const BookingSummaryCard = ({
   customVariablesTotalPrice = 0
 }: BookingSummaryCardProps) => {
   return (
-    <Card className="sticky top-6">
+    <Card className="w-full">{/* Removed sticky positioning */}
       <CardHeader>
         <CardTitle>Resumen de Reserva</CardTitle>
       </CardHeader>

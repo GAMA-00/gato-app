@@ -316,8 +316,9 @@ const ClientBooking = () => {
         formatPrice={formatPrice}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - New Booking Form with Slot Grid */}
+      {/* Single Column Layout - Same for Desktop and Mobile */}
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Booking Form */}
         <NewBookingForm
           selectedFrequency={selectedFrequency}
           onFrequencyChange={setSelectedFrequency}
@@ -337,25 +338,23 @@ const ClientBooking = () => {
           }}
         />
 
-        {/* Right Column - Booking Summary */}
-        <div className="space-y-6">
-          <BookingSummaryCard
-            serviceTitle={serviceDetails.title}
-            providerName={serviceDetails.provider?.name}
-            selectedVariant={selectedVariant}
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            clientLocation={clientLocation}
-            isLoadingLocation={isLoadingUserData}
-            isBookingValid={isBookingValid}
-            isLoading={isLoading}
-            onBooking={handleBooking}
-            formatPrice={formatPrice}
-            getRecurrenceText={getRecurrenceText}
-            selectedFrequency={selectedFrequency}
-            customVariablesTotalPrice={customVariablesTotalPrice}
-          />
-        </div>
+        {/* Booking Summary */}
+        <BookingSummaryCard
+          serviceTitle={serviceDetails.title}
+          providerName={serviceDetails.provider?.name}
+          selectedVariant={selectedVariant}
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
+          clientLocation={clientLocation}
+          isLoadingLocation={isLoadingUserData}
+          isBookingValid={isBookingValid}
+          isLoading={isLoading}
+          onBooking={handleBooking}
+          formatPrice={formatPrice}
+          getRecurrenceText={getRecurrenceText}
+          selectedFrequency={selectedFrequency}
+          customVariablesTotalPrice={customVariablesTotalPrice}
+        />
       </div>
     </PageLayout>
   );
