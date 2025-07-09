@@ -15,8 +15,8 @@ export const validateBookingSlot = async (
     console.log(`Horario: ${startTime.toISOString()} - ${endTime.toISOString()}`);
     console.log(`Recurrencia: ${recurrence}`);
     
-    // First check the immediate slot against ALL provider appointments and blocks
-    console.log('Validando slot inmediato...');
+    // Enhanced validation - check only ACTIVE appointments, ignore cancelled ones
+    console.log('Validando slot inmediato contra citas activas...');
     const slotValidation = await validateAppointmentSlot(providerId, startTime, endTime, excludeAppointmentId);
     
     if (slotValidation.hasConflict) {
@@ -37,7 +37,6 @@ export const validateBookingSlot = async (
       }
       
       console.error('Mensaje de error:', errorMessage);
-      // Optimized: Show more user-friendly error message
       toast.error(errorMessage, {
         duration: 2000,
         style: {
@@ -49,7 +48,7 @@ export const validateBookingSlot = async (
       return false;
     }
 
-    console.log('Slot inmediato validado correctamente');
+    console.log('✅ Slot inmediato validado correctamente - sin conflictos activos');
 
     // Then check recurring conflicts if applicable
     if (recurrence !== 'once' && recurrence !== 'none') {
@@ -70,7 +69,7 @@ export const validateBookingSlot = async (
         return false;
       }
       
-      console.log('Recurrencia validada correctamente');
+      console.log('✅ Recurrencia validada correctamente');
     }
 
     console.log(`=== VALIDACIÓN COMPLETADA EXITOSAMENTE ===`);

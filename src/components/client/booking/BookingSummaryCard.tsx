@@ -95,17 +95,17 @@ const BookingSummaryCard = ({
           </p>
         </div>
 
-        {/* ULTRA-ROBUST Booking Button with Enhanced Feedback */}
+        {/* OPTIMIZED Booking Button with Enhanced Feedback */}
         <Button
           onClick={onBooking}
           disabled={isLoading || !selectedDate || !selectedTime || !selectedVariant}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white transition-all duration-300 shadow-lg hover:shadow-xl"
+          className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
           size="lg"
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span className="animate-pulse">Creando reserva...</span>
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+              <span className="animate-pulse">Procesando reserva...</span>
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -115,17 +115,25 @@ const BookingSummaryCard = ({
           )}
         </Button>
 
-        {/* SIMPLIFIED validation feedback - Less restrictive */}
+        {/* ENHANCED validation feedback with better UX */}
         {(!selectedDate || !selectedTime || !selectedVariant) && !isLoading && (
           <div className="text-sm text-muted-foreground text-center space-y-1">
-            <div>
-              <p>Completa tu selección:</p>
+            <div className="bg-muted/50 p-2 rounded-md">
+              <p className="font-medium">Para continuar:</p>
               <ul className="text-xs mt-1 space-y-0.5">
                 {!selectedDate && <li>• Selecciona una fecha</li>}
                 {!selectedTime && <li>• Selecciona una hora</li>}
                 {!selectedVariant && <li>• Selecciona un servicio</li>}
               </ul>
             </div>
+          </div>
+        )}
+        
+        {/* SUCCESS feedback when all requirements are met */}
+        {selectedDate && selectedTime && selectedVariant && !isLoading && (
+          <div className="text-sm text-green-600 text-center flex items-center justify-center gap-1">
+            <span className="text-green-600">✓</span>
+            <span>Listo para confirmar tu reserva</span>
           </div>
         )}
 

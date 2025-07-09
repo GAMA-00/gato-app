@@ -105,11 +105,17 @@ export function useRecurringBooking() {
       if (error) {
         console.error('Error creating appointment:', error);
         
-        // Mensajes de error más específicos
+        // Enhanced error handling with more specific messages
         if (error.code === '23505') {
+          // This should be very rare now due to our database constraint changes
+          if (error.message?.includes('unique_active_appointment_slot')) {
+            throw new Error('Ya existe una cita activa para este horario. Selecciona otro horario.');
+          }
           throw new Error('Ya existe una cita para este horario');
         } else if (error.code === '23503') {
           throw new Error('Error de referencia en los datos');
+        } else if (error.code === '23514') {
+          throw new Error('Los datos no cumplen con los requisitos');
         } else {
           throw new Error(`Error de base de datos: ${error.message}`);
         }
@@ -153,17 +159,25 @@ export function useRecurringBooking() {
       console.error('=== ERROR EN CREACIÓN DE RESERVA ===');
       console.error('Error details:', error);
       
-      // Mensajes de error más específicos y user-friendly
+      // Enhanced error messages based on new database constraint logic
       let errorMessage = 'No se pudo crear la cita';
       
       if (error?.code === '23505') {
-        errorMessage = 'Ya existe una cita para este horario. Por favor selecciona otro.';
+        if (error.message?.includes('unique_active_appointment_slot')) {
+          errorMessage = 'Ya existe una cita activa para este horario. Por favor selecciona otro.';
+        } else {
+          errorMessage = 'Ya existe una cita para este horario. Por favor selecciona otro.';
+        }
       } else if (error?.code === '23503') {
         errorMessage = 'Error en los datos de la cita. Por favor intenta de nuevo.';
+      } else if (error?.code === '23514') {
+        errorMessage = 'Los datos no cumplen con los requisitos del sistema.';
       } else if (error?.message?.includes('timeout')) {
         errorMessage = 'El proceso está tardando. Tu cita podría haberse creado. Revisa tu lista de citas.';
       } else if (error?.message?.includes('network')) {
         errorMessage = 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.';
+      } else if (error?.message?.includes('unique_active_appointment_slot')) {
+        errorMessage = 'Este horario ya está reservado. Las citas canceladas han sido liberadas automáticamente.';
       } else if (error?.message) {
         errorMessage = `Error: ${error.message}`;
       }

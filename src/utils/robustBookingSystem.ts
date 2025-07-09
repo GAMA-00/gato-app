@@ -93,27 +93,56 @@ export class RobustBookingSystem {
   }
 
   private shouldRetryError(error: any): boolean {
-    // Don't retry on these specific errors
+    // Enhanced retry logic based on new database constraint behavior
     const nonRetryableErrors = [
-      '23505', // Unique constraint violation (duplicate booking)
+      '23505', // Unique constraint violation (should be rare now)
+      '23503', // Foreign key constraint violation
+      '23514', // Check constraint violation
       'conflict',
       'already exists',
-      'ya existe'
+      'ya existe',
+      'unique_active_appointment_slot' // Our new constraint
     ];
 
     const errorStr = (error?.code || error?.message || '').toLowerCase();
     
-    return !nonRetryableErrors.some(nonRetryable => 
+    // Don't retry if it's a definitive conflict
+    const shouldNotRetry = nonRetryableErrors.some(nonRetryable => 
       errorStr.includes(nonRetryable.toLowerCase())
     );
+
+    if (shouldNotRetry) {
+      console.log('🚫 Non-retryable error detected:', errorStr);
+      return false;
+    }
+
+    // Retry on network, timeout, and temporary errors
+    const retryableErrors = ['timeout', 'network', 'connection', 'temporary'];
+    const shouldRetry = retryableErrors.some(retryable => 
+      errorStr.includes(retryable.toLowerCase())
+    );
+
+    console.log('🔄 Retry decision:', { shouldRetry, errorStr });
+    return shouldRetry;
   }
 
   private getErrorMessage(error: any): string {
     if (!error) return 'Error desconocido';
 
-    // Specific error messages
-    if (error.code === '23505' || error.message?.includes('ya existe')) {
+    // Enhanced error messages for new database constraint logic
+    if (error.code === '23505') {
+      if (error.message?.includes('unique_active_appointment_slot')) {
+        return 'Ya existe una cita activa para este horario. Las citas canceladas se liberan automáticamente.';
+      }
       return 'Este horario ya fue reservado. Por favor selecciona otro.';
+    }
+    
+    if (error.code === '23503') {
+      return 'Error en los datos de la reserva. Por favor intenta de nuevo.';
+    }
+    
+    if (error.code === '23514') {
+      return 'Los datos no cumplen con los requisitos del sistema.';
     }
     
     if (error.message?.includes('timeout')) {
@@ -122,6 +151,10 @@ export class RobustBookingSystem {
     
     if (error.message?.includes('network')) {
       return 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+    }
+
+    if (error.message?.includes('unique_active_appointment_slot')) {
+      return 'Este horario ya está reservado por otra cita activa.';
     }
 
     return error.message || 'Error al procesar la reserva';
