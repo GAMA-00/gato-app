@@ -53,6 +53,8 @@ export const useProviderAvailability = () => {
 
     setIsLoading(true);
     try {
+      console.log('Cargando disponibilidad para proveedor:', user.id);
+      
       const { data, error } = await supabase
         .from('provider_availability')
         .select('*')
@@ -61,16 +63,20 @@ export const useProviderAvailability = () => {
 
       if (error) {
         console.error('Error fetching availability:', error);
+        toast.error('Error al cargar la disponibilidad configurada');
         return;
       }
 
       const newAvailability: WeeklyAvailability = { ...availability };
       
+      // Reset all days first
       Object.keys(newAvailability).forEach(day => {
         newAvailability[day] = { enabled: false, timeSlots: [] };
       });
 
-      if (data) {
+      if (data && data.length > 0) {
+        console.log('Disponibilidad cargada:', data.length, 'slots encontrados');
+        
         data.forEach((slot: AvailabilitySlot) => {
           const dayName = Object.keys(dayMapping).find(
             key => dayMapping[key as keyof typeof dayMapping] === slot.day_of_week
@@ -88,11 +94,16 @@ export const useProviderAvailability = () => {
             });
           }
         });
+        
+        console.log('Disponibilidad procesada:', newAvailability);
+      } else {
+        console.log('No se encontró disponibilidad previa, iniciando con configuración vacía');
       }
 
       setAvailability(newAvailability);
     } catch (error) {
       console.error('Error fetching availability:', error);
+      toast.error('Error inesperado al cargar la disponibilidad');
     } finally {
       setIsLoading(false);
     }
@@ -103,6 +114,9 @@ export const useProviderAvailability = () => {
 
     setIsSaving(true);
     try {
+      console.log('Guardando disponibilidad para proveedor:', user.id);
+      
+      // Delete existing availability
       const { error: deleteError } = await supabase
         .from('provider_availability')
         .delete()
@@ -110,6 +124,7 @@ export const useProviderAvailability = () => {
 
       if (deleteError) {
         console.error('Error deleting existing availability:', deleteError);
+        toast.error('Error al eliminar la disponibilidad anterior');
         return;
       }
 
@@ -137,6 +152,8 @@ export const useProviderAvailability = () => {
         }
       });
 
+      console.log('Slots a insertar:', slotsToInsert.length);
+
       if (slotsToInsert.length > 0) {
         const { error: insertError } = await supabase
           .from('provider_availability')
@@ -144,13 +161,19 @@ export const useProviderAvailability = () => {
 
         if (insertError) {
           console.error('Error inserting availability:', insertError);
+          toast.error('Error al guardar la nueva disponibilidad');
           return;
         }
       }
 
-      toast.success('Disponibilidad guardada exitosamente');
+      console.log('Disponibilidad guardada exitosamente');
+      toast.success('Disponibilidad actualizada correctamente');
+      
+      // Refresh the data to confirm it was saved
+      await fetchAvailability();
     } catch (error) {
       console.error('Error saving availability:', error);
+      toast.error('Error inesperado al guardar la disponibilidad');
     } finally {
       setIsSaving(false);
     }

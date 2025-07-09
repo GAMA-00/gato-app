@@ -34,10 +34,19 @@ export const AvailabilityManager: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Cargando disponibilidad...</span>
-      </div>
+      <Card className="max-w-md mx-auto">
+        <CardContent className="flex items-center justify-center p-8">
+          <div className="text-center space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <div>
+              <p className="font-medium">Cargando disponibilidad...</p>
+              <p className="text-sm text-muted-foreground">
+                Recuperando tu configuración guardada
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
