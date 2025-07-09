@@ -8,19 +8,14 @@ export const useRequestActions = () => {
   const queryClient = useQueryClient();
 
   const handleAccept = async (request: any, onAcceptRequest?: (request: any) => void) => {
-    console.log("🚀 HANDLE ACCEPT STARTED");
-    console.log("Request data:", request);
-    
     try {
       // Validate appointment IDs
       if (!request.appointment_ids || !Array.isArray(request.appointment_ids) || request.appointment_ids.length === 0) {
-        console.error("❌ Invalid appointment_ids:", request.appointment_ids);
+        console.error("Invalid appointment_ids:", request.appointment_ids);
         toast.error("Error: No hay citas válidas para procesar");
         return;
       }
 
-      console.log("✅ Updating appointments with IDs:", request.appointment_ids);
-      
       // Update appointments status to confirmed
       const { data, error } = await supabase
         .from('appointments')
@@ -33,13 +28,11 @@ export const useRequestActions = () => {
         .select('id, status');
         
       if (error) {
-        console.error("❌ Database update error:", error);
+        console.error("Update error:", error);
         toast.error(`Error al aceptar la solicitud: ${error.message}`);
         return;
       }
 
-      console.log("✅ Successfully updated appointments:", data);
-      
       const isGroup = request.appointment_count > 1;
       toast.success(isGroup 
         ? `Serie de reservas ${request.recurrence_label?.toLowerCase()} aceptada (${request.appointment_count} citas)`
@@ -57,7 +50,7 @@ export const useRequestActions = () => {
       }
       
     } catch (error: any) {
-      console.error("❌ Unexpected error:", error);
+      console.error("Unexpected error:", error);
       toast.error(`Error inesperado: ${error.message}`);
     }
   };
