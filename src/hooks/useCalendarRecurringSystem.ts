@@ -250,9 +250,9 @@ export const useCalendarRecurringSystem = ({
   selectedDate, 
   providerId 
 }: UseCalendarRecurringSystemProps) => {
-  // Extended date range: 4 weeks back, 12 weeks forward for better recurring coverage
-  const startDate = startOfDay(addWeeks(selectedDate, -4));
-  const endDate = endOfDay(addWeeks(selectedDate, 12));
+  // Extended date range: 2 weeks back, 16 weeks forward for better recurring coverage
+  const startDate = startOfDay(addWeeks(selectedDate, -2));
+  const endDate = endOfDay(addWeeks(selectedDate, 16));
 
   console.log('🚀 === UNIFIED RECURRING CALENDAR SYSTEM ===');
   console.log(`Provider: ${providerId}, Range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
