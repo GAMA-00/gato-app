@@ -23,7 +23,15 @@ const RequestActions: React.FC<RequestActionsProps> = ({ request, onAccept, onDe
         <X className="w-4 h-4 mr-1" /> Rechazar{isGroup ? ' Serie' : ''}
       </Button>
       <Button 
-        onClick={() => onAccept(request)}
+        onClick={() => {
+          console.log("=== BUTTON CLICK DEBUG ===");
+          console.log("Raw request object:", request);
+          console.log("Request keys:", Object.keys(request));
+          console.log("appointment_ids:", request.appointment_ids);
+          console.log("appointment_count:", request.appointment_count);
+          console.log("About to call onAccept with request");
+          onAccept(request);
+        }}
         size="sm"
         className="flex items-center bg-green-600 hover:bg-green-700"
       >

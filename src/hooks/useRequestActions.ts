@@ -8,6 +8,12 @@ export const useRequestActions = () => {
   const queryClient = useQueryClient();
 
   const handleAccept = async (request: any, onAcceptRequest?: (request: any) => void) => {
+    console.log("=== HANDLE ACCEPT CALLED ===");
+    console.log("Function called with request:", request);
+    console.log("Request type:", typeof request);
+    console.log("Request null check:", request === null);
+    console.log("Request undefined check:", request === undefined);
+    
     try {
       console.log("=== ACCEPT BUTTON CLICKED ===");
       console.log("Request object:", request);
