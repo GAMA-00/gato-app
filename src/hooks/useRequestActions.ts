@@ -8,7 +8,19 @@ export const useRequestActions = () => {
 
   const handleAccept = async (request: any, onAcceptRequest?: (request: any) => void) => {
     try {
-      console.log("Accepting request group:", request.id, "with appointments:", request.appointment_ids);
+      console.log("=== ACCEPT BUTTON CLICKED ===");
+      console.log("Full request object:", request);
+      console.log("Request ID:", request.id);
+      console.log("Appointment IDs:", request.appointment_ids);
+      console.log("Appointment count:", request.appointment_count);
+      
+      // Check if appointment_ids exists and is valid
+      if (!request.appointment_ids || !Array.isArray(request.appointment_ids) || request.appointment_ids.length === 0) {
+        console.error("Invalid appointment_ids:", request.appointment_ids);
+        throw new Error("No hay IDs de citas válidos para procesar");
+      }
+
+      console.log("Updating appointments with IDs:", request.appointment_ids);
       
       // Update all appointments in the group
       const { error } = await supabase
