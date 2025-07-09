@@ -17,10 +17,17 @@ const Calendar = () => {
   const currentDate = new Date();
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
 
-  const { data: appointments = [], isLoading } = useCalendarRecurringSystem({
+  const { data: appointments = [], isLoading, refetch } = useCalendarRecurringSystem({
     selectedDate: currentDate,
     providerId: user?.id
   });
+
+  // Force refresh to see the updated data after migration
+  React.useEffect(() => {
+    if (user?.id) {
+      refetch();
+    }
+  }, [user?.id, refetch]);
 
   
 

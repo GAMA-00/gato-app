@@ -99,17 +99,15 @@ function generateRecurringAppointments(
       const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
       const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
       
-      // Create instances in LOCAL timezone first
-      const instanceStartLocal = new Date(currentDate);
-      instanceStartLocal.setHours(startHours, startMinutes, 0, 0);
+      // Create instances in LOCAL timezone (rule times are already in local time)
+      const instanceStart = new Date(currentDate);
+      instanceStart.setHours(startHours, startMinutes, 0, 0);
       
-      const instanceEndLocal = new Date(currentDate);
-      instanceEndLocal.setHours(endHours, endMinutes, 0, 0);
+      const instanceEnd = new Date(currentDate);
+      instanceEnd.setHours(endHours, endMinutes, 0, 0);
 
-      // Convert to UTC for storage (appointments are stored in UTC)
-      // Costa Rica is UTC-6, so we add 6 hours to convert local to UTC
-      const instanceStart = new Date(instanceStartLocal.getTime() + (6 * 60 * 60 * 1000));
-      const instanceEnd = new Date(instanceEndLocal.getTime() + (6 * 60 * 60 * 1000));
+      // IMPORTANT: Rule times are already in local time, instanceStart/End are in local time
+      // The calendar expects local times, so we don't need timezone conversion here
 
       // Check for conflicts with existing appointments
       const slotKey = `${rule.provider_id}-${instanceStart.toISOString()}-${instanceEnd.toISOString()}`;
@@ -163,7 +161,7 @@ function generateRecurringAppointments(
           external_booking: false
         });
 
-        console.log(`✅ Generated: ${rule.client_name} - LOCAL: ${format(instanceStartLocal, 'yyyy-MM-dd HH:mm')} → UTC: ${format(instanceStart, 'yyyy-MM-dd HH:mm')}`);
+        console.log(`✅ Generated: ${rule.client_name} - ${format(instanceStart, 'yyyy-MM-dd HH:mm')} (${rule.recurrence_type})`);
       }
 
       // Move to next occurrence
@@ -409,8 +407,9 @@ export const useCalendarRecurringSystem = ({
 
       return finalAppointments;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
+    staleTime: 30 * 1000, // 30 seconds cache (shorter for testing)
     refetchInterval: false,
-    enabled: !!providerId
+    enabled: !!providerId,
+    refetchOnWindowFocus: true
   });
 };
