@@ -365,4 +365,5 @@ export const RescheduleAppointmentModal = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
 };
