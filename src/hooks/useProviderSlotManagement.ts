@@ -1,0 +1,296 @@
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { addDays, format, getDay, startOfDay } from 'date-fns';
+import { toast } from 'sonner';
+
+export interface ProviderSlot {
+  id: string;
+  date: Date;
+  time: string;
+  displayTime: string;
+  period: 'AM' | 'PM';
+  isAvailable: boolean;
+  isReserved: boolean;
+  listingId?: string;
+}
+
+export interface ProviderSlotConfig {
+  availability: Record<string, {
+    enabled: boolean;
+    timeSlots: Array<{
+      startTime: string;
+      endTime: string;
+    }>;
+  }>;
+  serviceDuration: number;
+  daysAhead?: number;
+  listingId?: string;
+}
+
+const dayMap: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
+  const { user } = useAuth();
+  const [slots, setSlots] = useState<ProviderSlot[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const formatTimeTo12Hour = (time24: string): { time: string; period: 'AM' | 'PM' } => {
+    const [hours, minutes] = time24.split(':').map(Number);
+    const period: 'AM' | 'PM' = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return {
+      time: `${hours12}:${minutes.toString().padStart(2, '0')}`,
+      period
+    };
+  };
+
+  const generateTimeSlots = (startTime: string, endTime: string, duration: number): string[] => {
+    const slots: string[] = [];
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    
+    for (let currentMinutes = startMinutes; currentMinutes + duration <= endMinutes; currentMinutes += duration) {
+      const hour = Math.floor(currentMinutes / 60);
+      const minute = currentMinutes % 60;
+      slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+    }
+    
+    return slots;
+  };
+
+  const loadProviderSlots = async () => {
+    if (!user?.id) return;
+
+    setIsLoading(true);
+    try {
+      const endDate = addDays(new Date(), config?.daysAhead || 14);
+      
+      const { data, error } = await supabase
+        .from('provider_time_slots')
+        .select('*')
+        .eq('provider_id', user.id)
+        .gte('slot_date', format(new Date(), 'yyyy-MM-dd'))
+        .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+        .order('slot_datetime_start');
+
+      if (error) throw error;
+
+      const providerSlots: ProviderSlot[] = (data || []).map(slot => {
+        const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
+        return {
+          id: slot.id,
+          date: new Date(slot.slot_date),
+          time: slot.start_time,
+          displayTime,
+          period,
+          isAvailable: slot.is_available,
+          isReserved: slot.is_reserved,
+          listingId: slot.listing_id
+        };
+      });
+
+      setSlots(providerSlots);
+    } catch (error) {
+      console.error('Error loading provider slots:', error);
+      toast.error('Error al cargar los horarios');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateSlotsFromAvailability = async () => {
+    if (!user?.id || !config?.availability) return;
+
+    setIsLoading(true);
+    try {
+      const today = startOfDay(new Date());
+      const daysToGenerate = config.daysAhead || 14;
+      const newSlots = [];
+
+      for (let i = 0; i < daysToGenerate; i++) {
+        const currentDate = addDays(today, i);
+        const dayOfWeek = getDay(currentDate);
+        const dayKey = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
+        
+        if (!dayKey || !config.availability[dayKey]?.enabled) {
+          continue;
+        }
+
+        const dayAvailability = config.availability[dayKey];
+        
+        for (const timeSlot of dayAvailability.timeSlots) {
+          const timeSlots = generateTimeSlots(
+            timeSlot.startTime,
+            timeSlot.endTime,
+            config.serviceDuration
+          );
+
+          for (const time of timeSlots) {
+            const startDateTime = new Date(currentDate);
+            const [hours, minutes] = time.split(':').map(Number);
+            startDateTime.setHours(hours, minutes);
+
+            const endDateTime = new Date(startDateTime);
+            endDateTime.setMinutes(endDateTime.getMinutes() + config.serviceDuration);
+
+            newSlots.push({
+              provider_id: user.id,
+              listing_id: config.listingId || null,
+              slot_date: format(currentDate, 'yyyy-MM-dd'),
+              start_time: time,
+              end_time: format(endDateTime, 'HH:mm'),
+              slot_datetime_start: startDateTime.toISOString(),
+              slot_datetime_end: endDateTime.toISOString(),
+              is_available: true,
+              is_reserved: false
+            });
+          }
+        }
+      }
+
+      if (newSlots.length > 0) {
+        const { error } = await supabase
+          .from('provider_time_slots')
+          .upsert(newSlots, {
+            onConflict: 'provider_id,slot_datetime_start',
+            ignoreDuplicates: false
+          });
+
+        if (error) throw error;
+        toast.success(`${newSlots.length} horarios generados`);
+        await loadProviderSlots();
+      }
+    } catch (error) {
+      console.error('Error generating slots:', error);
+      toast.error('Error al generar horarios');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleSlot = async (slotId: string) => {
+    const slot = slots.find(s => s.id === slotId);
+    if (!slot || slot.isReserved) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('provider_time_slots')
+        .update({ is_available: !slot.isAvailable })
+        .eq('id', slotId);
+
+      if (error) throw error;
+
+      setSlots(prev => prev.map(s => 
+        s.id === slotId ? { ...s, isAvailable: !s.isAvailable } : s
+      ));
+
+      toast.success(slot.isAvailable ? 'Horario desactivado' : 'Horario activado');
+    } catch (error) {
+      console.error('Error updating slot:', error);
+      toast.error('Error al actualizar horario');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateAllSlots = async (isAvailable: boolean) => {
+    const availableSlots = slots.filter(s => !s.isReserved);
+    if (availableSlots.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      const slotIds = availableSlots.map(s => s.id);
+      const { error } = await supabase
+        .from('provider_time_slots')
+        .update({ is_available: isAvailable })
+        .in('id', slotIds);
+
+      if (error) throw error;
+
+      setSlots(prev => prev.map(s => 
+        !s.isReserved ? { ...s, isAvailable } : s
+      ));
+
+      toast.success(isAvailable ? 'Todos los horarios activados' : 'Todos los horarios desactivados');
+    } catch (error) {
+      console.error('Error updating slots:', error);
+      toast.error('Error al actualizar horarios');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Group slots by date
+  const slotsByDate = useMemo(() => {
+    const grouped: Record<string, ProviderSlot[]> = {};
+    
+    slots.forEach(slot => {
+      const dateKey = format(slot.date, 'yyyy-MM-dd');
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(slot);
+    });
+
+    return grouped;
+  }, [slots]);
+
+  // Get available dates
+  const availableDates = useMemo(() => {
+    const dates = slots.map(slot => slot.date);
+    const uniqueDates = Array.from(new Set(dates.map(date => date.getTime())))
+      .map(time => new Date(time))
+      .sort((a, b) => a.getTime() - b.getTime());
+    
+    return uniqueDates;
+  }, [slots]);
+
+  const stats = useMemo(() => {
+    const totalSlots = slots.length;
+    const availableSlots = slots.filter(slot => slot.isAvailable && !slot.isReserved).length;
+    const reservedSlots = slots.filter(slot => slot.isReserved).length;
+    const disabledSlots = slots.filter(slot => !slot.isAvailable && !slot.isReserved).length;
+
+    return {
+      totalSlots,
+      availableSlots,
+      reservedSlots,
+      disabledSlots,
+      availablePercentage: totalSlots > 0 ? Math.round((availableSlots / totalSlots) * 100) : 0
+    };
+  }, [slots]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadProviderSlots();
+    }
+  }, [user?.id]);
+
+  return {
+    slots,
+    slotsByDate,
+    availableDates,
+    stats,
+    isLoading,
+    isSaving,
+    loadProviderSlots,
+    generateSlotsFromAvailability,
+    toggleSlot,
+    enableAllSlots: () => updateAllSlots(true),
+    disableAllSlots: () => updateAllSlots(false)
+  };
+};

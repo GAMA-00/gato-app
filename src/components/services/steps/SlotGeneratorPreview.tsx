@@ -118,10 +118,10 @@ const SlotGeneratorPreview = () => {
 
         {/* Slots Grid */}
         <div className="overflow-x-auto">
-          <div className="grid grid-cols-7 gap-3 min-w-[700px]">
-            {/* Headers */}
+          <div className="grid grid-cols-7 gap-2 min-w-[700px]">
+            {/* Headers - Fixed height for alignment */}
             {availableDates.map(date => (
-              <div key={date.toISOString()} className="text-center mb-3">
+              <div key={date.toISOString()} className="text-center h-12 flex flex-col justify-center mb-2 bg-slate-50 rounded-md border">
                 <div className="text-sm font-medium text-gray-900">
                   {format(date, 'EEEE', { locale: es })}
                 </div>
@@ -131,29 +131,40 @@ const SlotGeneratorPreview = () => {
               </div>
             ))}
             
-            {/* Slots */}
+            {/* Slots - Symmetric grid with equal column heights */}
             {availableDates.map(date => {
               const dateKey = format(date, 'yyyy-MM-dd');
               const daySlots = slotsByDate[dateKey] || [];
+              const maxSlotsPerDay = Math.max(...availableDates.map(d => {
+                const key = format(d, 'yyyy-MM-dd');
+                return slotsByDate[key]?.length || 0;
+              }));
               
               return (
-                <div key={dateKey} className="space-y-2">
+                <div key={dateKey} className="flex flex-col space-y-1 min-h-0">
                   {daySlots.length === 0 ? (
-                    <div className="text-center text-gray-400 text-xs py-4">
+                    <div className="text-center text-gray-400 text-xs py-4 flex-1 flex items-center justify-center bg-gray-50 rounded border border-dashed">
                       Sin horarios
                     </div>
                   ) : (
-                    daySlots.map(slot => (
-                      <SlotCard
-                        key={slot.id}
-                        time={slot.displayTime}
-                        period={slot.period}
-                        isEnabled={slot.isEnabled}
-                        onClick={() => toggleSlot(slot.id)}
-                        size="sm"
-                        variant="provider"
-                      />
-                    ))
+                    <>
+                      {daySlots.map(slot => (
+                        <SlotCard
+                          key={slot.id}
+                          time={slot.displayTime}
+                          period={slot.period}
+                          isEnabled={slot.isEnabled}
+                          onClick={() => toggleSlot(slot.id)}
+                          size="sm"
+                          variant="provider"
+                          className="w-full flex-shrink-0"
+                        />
+                      ))}
+                      {/* Add empty spacers to maintain grid alignment */}
+                      {Array.from({ length: maxSlotsPerDay - daySlots.length }).map((_, i) => (
+                        <div key={`spacer-${i}`} className="h-12 opacity-0" />
+                      ))}
+                    </>
                   )}
                 </div>
               );
