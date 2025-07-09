@@ -78,13 +78,21 @@ function generateRecurringAppointments(
     const maxInstances = 100; // Increased for better coverage
 
     while (currentDate <= endDate && instanceCount < maxInstances) {
-      const instanceStart = new Date(currentDate);
+      // Parse rule times (these are now LOCAL times thanks to migration)
       const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
-      instanceStart.setHours(startHours, startMinutes, 0, 0);
-
-      const instanceEnd = new Date(currentDate);
       const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
-      instanceEnd.setHours(endHours, endMinutes, 0, 0);
+      
+      // Create instances in LOCAL timezone first
+      const instanceStartLocal = new Date(currentDate);
+      instanceStartLocal.setHours(startHours, startMinutes, 0, 0);
+      
+      const instanceEndLocal = new Date(currentDate);
+      instanceEndLocal.setHours(endHours, endMinutes, 0, 0);
+
+      // Convert to UTC for storage (appointments are stored in UTC)
+      // Costa Rica is UTC-6, so we add 6 hours to convert local to UTC
+      const instanceStart = new Date(instanceStartLocal.getTime() + (6 * 60 * 60 * 1000));
+      const instanceEnd = new Date(instanceEndLocal.getTime() + (6 * 60 * 60 * 1000));
 
       // Check for conflicts with existing appointments
       const slotKey = `${rule.provider_id}-${instanceStart.toISOString()}-${instanceEnd.toISOString()}`;
@@ -125,7 +133,7 @@ function generateRecurringAppointments(
           external_booking: false
         });
 
-        console.log(`✅ Generated: ${rule.client_name} - ${format(instanceStart, 'yyyy-MM-dd HH:mm')}`);
+        console.log(`✅ Generated: ${rule.client_name} - LOCAL: ${format(instanceStartLocal, 'yyyy-MM-dd HH:mm')} → UTC: ${format(instanceStart, 'yyyy-MM-dd HH:mm')}`);
       }
 
       // Move to next occurrence
