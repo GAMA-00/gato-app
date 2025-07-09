@@ -83,9 +83,9 @@ export const useDashboardAppointments = () => {
             console.log(`✅ UBICACIÓN YA EXISTE PARA ${app.id}: "${app.complete_location}"`);
           }
           
-          // Use time slot key for proper deduplication (provider + time)
-          // This ensures regular appointments take priority over recurring instances
-          const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}`;
+          // Use time slot key for proper deduplication (provider + time + client + listing)
+          // This ensures we only show one appointment per unique combination
+          const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}-${app.client_id}-${app.listing_id}`;
           
           // Check if we already have an appointment for this time slot
           const existingApp = appointmentsByTimeSlot.get(timeSlotKey);
@@ -93,8 +93,13 @@ export const useDashboardAppointments = () => {
           if (!existingApp) {
             // No existing appointment, add this one
             appointmentsByTimeSlot.set(timeSlotKey, app);
+            console.log(`✅ Added appointment: ${app.client_name} - ${appDate.toLocaleString()} (recurring: ${app.is_recurring_instance})`);
           } else {
             // There's already an appointment for this time slot
+            console.log(`🔍 Duplicate found: ${app.client_name} - ${appDate.toLocaleString()}`);
+            console.log(`  Existing: ${existingApp.client_name} (recurring: ${existingApp.is_recurring_instance})`);
+            console.log(`  New: ${app.client_name} (recurring: ${app.is_recurring_instance})`);
+            
             // Prefer regular appointments over recurring instances
             if (existingApp.is_recurring_instance && !app.is_recurring_instance) {
               // Replace recurring instance with regular appointment
