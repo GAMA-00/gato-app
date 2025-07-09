@@ -83,13 +83,31 @@ export const useDashboardAppointments = () => {
             console.log(`✅ UBICACIÓN YA EXISTE PARA ${app.id}: "${app.complete_location}"`);
           }
           
-          // Use a more specific key that includes the appointment ID to avoid conflicts
-          // This ensures each appointment is treated individually regardless of recurrence type
-          const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}-${app.id}`;
+          // Use time slot key for proper deduplication (provider + time)
+          // This ensures regular appointments take priority over recurring instances
+          const timeSlotKey = `${appDate.toISOString()}-${app.provider_id}`;
           
-          // No deduplication based on time slots - each appointment stands on its own
-          // This preserves chronological order regardless of recurrence type
-          appointmentsByTimeSlot.set(timeSlotKey, app);
+          // Check if we already have an appointment for this time slot
+          const existingApp = appointmentsByTimeSlot.get(timeSlotKey);
+          
+          if (!existingApp) {
+            // No existing appointment, add this one
+            appointmentsByTimeSlot.set(timeSlotKey, app);
+          } else {
+            // There's already an appointment for this time slot
+            // Prefer regular appointments over recurring instances
+            if (existingApp.is_recurring_instance && !app.is_recurring_instance) {
+              // Replace recurring instance with regular appointment
+              appointmentsByTimeSlot.set(timeSlotKey, app);
+              console.log(`🔄 Replaced recurring instance with regular appointment for ${appDate.toLocaleString()}`);
+            } else if (!existingApp.is_recurring_instance && app.is_recurring_instance) {
+              // Keep the regular appointment, skip the recurring instance
+              console.log(`⚠️ Skipped duplicate recurring instance for ${appDate.toLocaleString()}`);
+            } else {
+              // Both are the same type, keep the first one
+              console.log(`⚠️ Duplicate appointment found for ${appDate.toLocaleString()}, keeping first one`);
+            }
+          }
         } catch (error) {
           console.error(`Error processing appointment ${app?.id || 'unknown'}:`, error);
         }
