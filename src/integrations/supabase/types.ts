@@ -1131,10 +1131,6 @@ export type Database = {
         Args: { p_rule_id: string; p_weeks_ahead?: number }
         Returns: number
       }
-      generate_recurring_instances: {
-        Args: { rule_id: string; start_range: string; end_range: string }
-        Returns: number
-      }
       get_rated_appointments: {
         Args: { appointment_ids: string[] }
         Returns: {
