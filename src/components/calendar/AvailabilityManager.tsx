@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Trash2, Plus, Clock, Save, Loader2 } from 'lucide-react';
-import { useProviderAvailability } from '@/hooks/useProviderAvailability';
+import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
