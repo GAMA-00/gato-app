@@ -60,22 +60,25 @@ function generateRecurringAppointments(
 
   const instances: CalendarAppointment[] = [];
   
-  // Create comprehensive conflict detection
+  // Create conflict detection ONLY for regular appointments (not recurring instances)
   const existingSlots = new Set(
     existingAppointments.map(apt => `${apt.provider_id}-${apt.start_time}-${apt.end_time}`)
   );
   
-  // Additional conflict detection by date and provider/client/listing combination
-  const existingAppointmentsByDate = new Map<string, any[]>();
+  // Track regular appointments by date for conflict detection
+  const regularAppointmentsByDate = new Map<string, any[]>();
   existingAppointments.forEach(apt => {
-    const dateKey = format(new Date(apt.start_time), 'yyyy-MM-dd');
-    if (!existingAppointmentsByDate.has(dateKey)) {
-      existingAppointmentsByDate.set(dateKey, []);
+    // Only track regular appointments (not recurring instances) for conflict detection
+    if (!apt.is_recurring_instance) {
+      const dateKey = format(new Date(apt.start_time), 'yyyy-MM-dd');
+      if (!regularAppointmentsByDate.has(dateKey)) {
+        regularAppointmentsByDate.set(dateKey, []);
+      }
+      regularAppointmentsByDate.get(dateKey)!.push(apt);
     }
-    existingAppointmentsByDate.get(dateKey)!.push(apt);
   });
   
-  console.log(`📋 Existing appointments by date:`, Object.fromEntries(existingAppointmentsByDate));
+  console.log(`📋 Regular appointments by date (for conflict detection):`, Object.fromEntries(regularAppointmentsByDate));
 
   rules.forEach(rule => {
     if (!rule.is_active) return;
@@ -113,7 +116,7 @@ function generateRecurringAppointments(
       const currentDateKey = format(currentDate, 'yyyy-MM-dd');
       
       // Check if there's already a regular appointment for this specific combination
-      const existingAppointmentsForDate = existingAppointmentsByDate.get(currentDateKey) || [];
+      const existingAppointmentsForDate = regularAppointmentsByDate.get(currentDateKey) || [];
       const hasConflictingAppointment = existingAppointmentsForDate.some(apt => 
         apt.provider_id === rule.provider_id && 
         apt.client_id === rule.client_id && 
