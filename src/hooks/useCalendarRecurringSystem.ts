@@ -75,7 +75,7 @@ function generateRecurringAppointments(
     currentDate = findFirstValidOccurrence(currentDate, rule, ruleStartDate);
     
     let instanceCount = 0;
-    const maxInstances = 50; // Safety limit
+    const maxInstances = 100; // Increased for better coverage
 
     while (currentDate <= endDate && instanceCount < maxInstances) {
       const instanceStart = new Date(currentDate);
@@ -114,7 +114,7 @@ function generateRecurringAppointments(
           listing_id: rule.listing_id,
           start_time: instanceStart.toISOString(),
           end_time: instanceEnd.toISOString(),
-          status: 'confirmed',
+          status: 'scheduled',
           recurrence: rule.recurrence_type,
           client_name: rule.client_name || 'Cliente',
           service_title: serviceMap[rule.listing_id] || 'Servicio',
@@ -212,9 +212,9 @@ export const useCalendarRecurringSystem = ({
   selectedDate, 
   providerId 
 }: UseCalendarRecurringSystemProps) => {
-  // Optimized date range: 4 weeks back, 8 weeks forward
+  // Extended date range: 4 weeks back, 12 weeks forward for better recurring coverage
   const startDate = startOfDay(addWeeks(selectedDate, -4));
-  const endDate = endOfDay(addWeeks(selectedDate, 8));
+  const endDate = endOfDay(addWeeks(selectedDate, 12));
 
   console.log('🚀 === UNIFIED RECURRING CALENDAR SYSTEM ===');
   console.log(`Provider: ${providerId}, Range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);

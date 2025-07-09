@@ -1,14 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-// Removed dependency - now using unified calendar system
-import { startOfToday, endOfDay, addDays } from 'date-fns';
+import { startOfToday, endOfDay, addDays, addWeeks } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
+import { useCalendarRecurringSystem } from '@/hooks/useCalendarRecurringSystem';
 
 export const useAppointments = () => {
   const { user } = useAuth();
 
-  // Get regular appointments
+  // For providers, use the calendar system to get both regular and recurring appointments
+  const { data: calendarAppointments = [], isLoading: isLoadingCalendar } = useCalendarRecurringSystem({
+    selectedDate: startOfToday(),
+    providerId: user?.role === 'provider' ? user?.id : undefined
+  });
+
+  // Get regular appointments (for clients or as fallback)
   const { data: regularAppointments = [], isLoading: isLoadingRegular, error } = useQuery({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
@@ -53,10 +59,15 @@ export const useAppointments = () => {
         }
 
         console.log(`Fetched ${appointments.length} basic appointments`);
+        
+        // Filter out cancelled and rejected appointments
+        const validAppointments = appointments.filter(app => 
+          app.status !== 'cancelled' && app.status !== 'rejected'
+        );
 
         // Step 2: Get unique client IDs for data fetching (only for non-external bookings)
         const clientIds = [...new Set(
-          appointments
+          validAppointments
             .filter(appointment => appointment.client_id && !appointment.external_booking)
             .map(appointment => appointment.client_id)
         )];
@@ -95,7 +106,7 @@ export const useAppointments = () => {
         const clientsMap = new Map(clientsData.map(client => [client.id, client]));
 
         // Step 4: Enhance appointments with complete client data AND GUARANTEED LOCATION
-        const enhancedAppointments = appointments.map(appointment => {
+        const enhancedAppointments = validAppointments.map(appointment => {
           const clientData = clientsMap.get(appointment.client_id);
           
           console.log(`🔧 === GARANTIZANDO UBICACIÓN PARA APPOINTMENT ${appointment.id} ===`);
@@ -185,11 +196,22 @@ export const useAppointments = () => {
   console.log(`Total combined appointments: ${allAppointments.length}`);
   console.log('=== APPOINTMENTS FETCH COMPLETE ===');
 
-  return {
-    data: allAppointments,
-    isLoading: isLoadingRegular,
-    error,
-    regularAppointments: regularOnly,
-    recurringInstances
-  };
+  // Return appropriate data based on user role
+  if (user?.role === 'provider') {
+    return {
+      data: calendarAppointments,
+      isLoading: isLoadingCalendar,
+      error: null,
+      regularAppointments: calendarAppointments.filter(app => !app.is_recurring_instance),
+      recurringInstances: calendarAppointments.filter(app => app.is_recurring_instance)
+    };
+  } else {
+    return {
+      data: allAppointments,
+      isLoading: isLoadingRegular,
+      error,
+      regularAppointments: regularOnly,
+      recurringInstances
+    };
+  }
 };

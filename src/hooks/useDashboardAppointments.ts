@@ -48,6 +48,12 @@ export const useDashboardAppointments = () => {
         try {
           if (!app || app.status === 'cancelled' || app.status === 'rejected') return;
           
+          // Include 'scheduled' status for recurring instances
+          if (!['pending', 'confirmed', 'completed', 'scheduled'].includes(app.status)) {
+            console.log(`Skipping appointment ${app.id} with status: ${app.status}`);
+            return;
+          }
+          
           const appDate = new Date(app.start_time);
           
           // Validate date
@@ -107,8 +113,9 @@ export const useDashboardAppointments = () => {
             isRecurring: app.is_recurring_instance,
             clientName: app.client_name,
             serviceName: app.listings?.title || app.service_title,
-            complete_location: app.complete_location, // ¡VERIFICAR QUE ESTÉ AQUÍ!
-            has_client_data: !!app.client_data
+            complete_location: app.complete_location,
+            has_client_data: !!app.client_data,
+            recurring_rule_id: app.recurring_rule_id
           });
           
           if (isSameDay(appDate, today)) {
@@ -181,7 +188,7 @@ export const useDashboardAppointments = () => {
       try {
         const now = new Date();
         const toUpdate = appointments.filter(
-          app => app.status === 'confirmed' && 
+          app => (app.status === 'confirmed' || app.status === 'scheduled') && 
                  new Date(app.end_time) < now &&
                  !app.is_recurring_instance // Only update regular appointments, not recurring instances
         );
