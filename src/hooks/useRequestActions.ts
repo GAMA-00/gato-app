@@ -41,7 +41,7 @@ export const useRequestActions = () => {
       
       // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-recurring-system'] });
       queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] });
       
       // Call callback if provided
@@ -93,7 +93,7 @@ export const useRequestActions = () => {
       
       // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-recurring-system'] });
       queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] });
       
       if (onDeclineRequest) {
