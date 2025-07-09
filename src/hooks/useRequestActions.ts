@@ -22,13 +22,34 @@ export const useRequestActions = () => {
 
       console.log("Updating appointments with IDs:", request.appointment_ids);
       
-      // Update all appointments in the group
-      const { error } = await supabase
+      // First, let's verify the appointments exist and we can access them
+      const { data: existingAppointments, error: selectError } = await supabase
         .from('appointments')
-        .update({ status: 'confirmed' })
+        .select('id, status, provider_id')
         .in('id', request.appointment_ids);
         
-      if (error) throw error;
+      console.log("Existing appointments check:", existingAppointments);
+      if (selectError) {
+        console.error("Error checking existing appointments:", selectError);
+        throw new Error(`Error verificando citas: ${selectError.message}`);
+      }
+      
+      if (!existingAppointments || existingAppointments.length === 0) {
+        throw new Error("No se encontraron las citas para actualizar");
+      }
+      
+      // Update all appointments in the group
+      const { data: updatedData, error } = await supabase
+        .from('appointments')
+        .update({ status: 'confirmed' })
+        .in('id', request.appointment_ids)
+        .select();
+        
+      console.log("Update result:", updatedData);
+      if (error) {
+        console.error("Update error details:", error);
+        throw error;
+      }
       
       const isGroup = request.appointment_count > 1;
       toast.success(isGroup 
