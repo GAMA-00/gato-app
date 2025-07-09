@@ -5,9 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { BlockedTimeSlot } from '@/lib/types';
 import { AppointmentDisplay } from './AppointmentDisplay';
-import { BlockedSlotDisplay } from './BlockedSlotDisplay';
 
 // Optimized constants
 const CALENDAR_START_HOUR = 6;
@@ -21,25 +19,19 @@ const OptimizedCalendarDay = React.memo<{
   isCurrentMonth: boolean;
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
-  blockedSlots: BlockedTimeSlot[];
-}>(({ date, appointments, isCurrentMonth, expandedId, setExpandedId, blockedSlots }) => {
+}>(({ date, appointments, isCurrentMonth, expandedId, setExpandedId }) => {
   const dateString = format(date, 'yyyy-MM-dd');
   
   // Optimized filtering with useMemo
-  const { dayAppointments, dayBlockedSlots } = useMemo(() => {
+  const { dayAppointments } = useMemo(() => {
     const dayAppointments = appointments.filter(appointment => {
       const appointmentDate = new Date(appointment.start_time);
       const appointmentDateString = format(appointmentDate, 'yyyy-MM-dd');
       return appointmentDateString === dateString;
     });
 
-    const dayOfWeek = date.getDay();
-    const dayBlockedSlots = blockedSlots.filter(slot => 
-      slot.day === dayOfWeek || slot.day === -1
-    );
-
-    return { dayAppointments, dayBlockedSlots };
-  }, [appointments, blockedSlots, dateString, date]);
+    return { dayAppointments };
+  }, [appointments, dateString, date]);
 
   const hours = useMemo(() => 
     Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, i) => i + CALENDAR_START_HOUR),
@@ -78,15 +70,6 @@ const OptimizedCalendarDay = React.memo<{
         
         {/* Optimized appointments and blocked slots overlay */}
         <div className="absolute inset-0 top-0">
-          {/* Render blocked time slots */}
-          {dayBlockedSlots.map(blockedSlot => (
-            <BlockedSlotDisplay
-              key={`blocked-${blockedSlot.id}`}
-              blockedSlot={blockedSlot}
-              expanded={expandedId === `blocked-${blockedSlot.id}`}
-              onClick={() => setExpandedId(expandedId === `blocked-${blockedSlot.id}` ? null : `blocked-${blockedSlot.id}`)}
-            />
-          ))}
           
           {/* Render appointments with collision detection */}
           {dayAppointments.map((appointment, index) => (
@@ -109,14 +92,14 @@ interface OptimizedCalendarViewProps {
   appointments: any[];
   currentDate?: Date;
   onDateChange?: (date: Date) => void;
-  blockedSlots?: BlockedTimeSlot[];
+  
 }
 
 const OptimizedCalendarView: React.FC<OptimizedCalendarViewProps> = ({ 
   appointments, 
   currentDate: propCurrentDate,
   onDateChange,
-  blockedSlots = []
+  
 }) => {
   const [internalCurrentDate, setInternalCurrentDate] = useState(new Date());
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -190,7 +173,7 @@ const OptimizedCalendarView: React.FC<OptimizedCalendarViewProps> = ({
               isCurrentMonth={day.getMonth() === currentMonth}
               expandedId={expandedId}
               setExpandedId={setExpandedId}
-              blockedSlots={blockedSlots}
+              
             />
           ))}
         </div>

@@ -1,178 +1,220 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, addWeeks, addDays, isSameDay } from 'date-fns';
-import { validateAppointmentSlot } from '@/utils/appointmentValidation';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface TimeSlot {
-  time: string;
-  available: boolean;
-  conflictReason?: string;
+interface AvailabilitySlot {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
 }
 
-interface UseProviderAvailabilityProps {
-  providerId: string;
-  selectedDate: Date;
-  serviceDuration: number;
-  recurrence?: string;
+interface DayAvailability {
+  enabled: boolean;
+  timeSlots: Array<{
+    startTime: string;
+    endTime: string;
+    id?: string;
+  }>;
 }
 
-export const useProviderAvailability = ({
-  providerId,
-  selectedDate,
-  serviceDuration,
-  recurrence = 'once'
-}: UseProviderAvailabilityProps) => {
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+interface WeeklyAvailability {
+  [key: string]: DayAvailability;
+}
+
+export const useProviderAvailability = () => {
+  const { user } = useAuth();
+  const [availability, setAvailability] = useState<WeeklyAvailability>({
+    monday: { enabled: false, timeSlots: [] },
+    tuesday: { enabled: false, timeSlots: [] },
+    wednesday: { enabled: false, timeSlots: [] },
+    thursday: { enabled: false, timeSlots: [] },
+    friday: { enabled: false, timeSlots: [] },
+    saturday: { enabled: false, timeSlots: [] },
+    sunday: { enabled: false, timeSlots: [] }
+  });
   const [isLoading, setIsLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const fetchAvailability = useCallback(async (isManualRefresh = false) => {
-    if (!providerId || !selectedDate) {
-      console.log('Missing providerId or selectedDate');
-      return;
-    }
+  const dayMapping = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  };
 
-    if (isManualRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    
+  const fetchAvailability = async () => {
+    if (!user?.id) return;
+
+    setIsLoading(true);
     try {
-      console.log(`Fetching availability for provider ${providerId} on ${format(selectedDate, 'yyyy-MM-dd')}`);
-      
-      // Generate time slots from 7 AM to 7 PM every 30 minutes
-      const timeSlots: TimeSlot[] = [];
-      for (let hour = 7; hour < 19; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-          const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-          timeSlots.push({
-            time: timeString,
-            available: true
-          });
-        }
+      const { data, error } = await supabase
+        .from('provider_availability')
+        .select('*')
+        .eq('provider_id', user.id)
+        .order('day_of_week', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching availability:', error);
+        return;
       }
 
-      console.log(`Generated ${timeSlots.length} initial time slots`);
-
-      // Check availability for each slot using unified validation
-      const checkedSlots: TimeSlot[] = [];
+      const newAvailability: WeeklyAvailability = { ...availability };
       
-      for (const slot of timeSlots) {
-        const [slotHour, slotMinute] = slot.time.split(':').map(Number);
-        const slotStart = new Date(selectedDate);
-        slotStart.setHours(slotHour, slotMinute, 0, 0);
-        
-        const slotEnd = new Date(slotStart);
-        slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
+      Object.keys(newAvailability).forEach(day => {
+        newAvailability[day] = { enabled: false, timeSlots: [] };
+      });
 
-        // Skip if slot would end after 7 PM
-        if (slotEnd.getHours() >= 19) {
-          continue;
-        }
-
-        // Validate slot against ALL provider appointments and blocks
-        const validation = await validateAppointmentSlot(providerId, slotStart, slotEnd);
-        
-        if (!validation.hasConflict) {
-          checkedSlots.push({
-            time: slot.time,
-            available: true
-          });
-        } else {
-          // Include unavailable slots with reason for better UX
-          checkedSlots.push({
-            time: slot.time,
-            available: false,
-            conflictReason: validation.conflictReason
-          });
-          console.log(`Slot ${slot.time} unavailable: ${validation.conflictReason} (${validation.conflictDetails?.type || 'unknown'})`);
-        }
+      if (data) {
+        data.forEach((slot: AvailabilitySlot) => {
+          const dayName = Object.keys(dayMapping).find(
+            key => dayMapping[key as keyof typeof dayMapping] === slot.day_of_week
+          );
+          
+          if (dayName) {
+            if (!newAvailability[dayName].enabled) {
+              newAvailability[dayName] = { enabled: true, timeSlots: [] };
+            }
+            
+            newAvailability[dayName].timeSlots.push({
+              id: slot.id,
+              startTime: slot.start_time,
+              endTime: slot.end_time
+            });
+          }
+        });
       }
 
-      const availableCount = checkedSlots.filter(slot => slot.available).length;
-      const unavailableCount = checkedSlots.filter(slot => !slot.available).length;
-      console.log(`Provider ${providerId} availability: ${availableCount} available, ${unavailableCount} unavailable out of ${timeSlots.length} total slots`);
-      
-      setAvailableTimeSlots(checkedSlots);
-      setLastUpdated(new Date());
-      
+      setAvailability(newAvailability);
     } catch (error) {
-      console.error('Error checking availability:', error);
-      setAvailableTimeSlots([]);
+      console.error('Error fetching availability:', error);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
-  }, [providerId, selectedDate, serviceDuration]);
+  };
 
-  // Manual refresh function
-  const refreshAvailability = useCallback(() => {
-    console.log('Manual refresh triggered');
-    fetchAvailability(true);
-  }, [fetchAvailability]);
+  const saveAvailability = async () => {
+    if (!user?.id) return;
 
-  // Auto fetch when dependencies change
-  useEffect(() => {
-    if (providerId && selectedDate) {
-      console.log('Dependencies changed, fetching availability');
-      fetchAvailability();
+    setIsSaving(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('provider_availability')
+        .delete()
+        .eq('provider_id', user.id);
+
+      if (deleteError) {
+        console.error('Error deleting existing availability:', deleteError);
+        return;
+      }
+
+      const slotsToInsert: Array<{
+        provider_id: string;
+        day_of_week: number;
+        start_time: string;
+        end_time: string;
+        is_active: boolean;
+      }> = [];
+
+      Object.entries(availability).forEach(([dayName, dayData]) => {
+        if (dayData.enabled && dayData.timeSlots.length > 0) {
+          const dayOfWeek = dayMapping[dayName as keyof typeof dayMapping];
+          
+          dayData.timeSlots.forEach(slot => {
+            slotsToInsert.push({
+              provider_id: user.id,
+              day_of_week: dayOfWeek,
+              start_time: slot.startTime,
+              end_time: slot.endTime,
+              is_active: true
+            });
+          });
+        }
+      });
+
+      if (slotsToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from('provider_availability')
+          .insert(slotsToInsert);
+
+        if (insertError) {
+          console.error('Error inserting availability:', insertError);
+          return;
+        }
+      }
+
+      toast.success('Disponibilidad guardada exitosamente');
+    } catch (error) {
+      console.error('Error saving availability:', error);
+    } finally {
+      setIsSaving(false);
     }
-  }, [fetchAvailability]);
+  };
 
-  // Set up comprehensive real-time subscription for unified availability
+  const updateDayAvailability = (day: string, enabled: boolean) => {
+    setAvailability(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        enabled,
+        timeSlots: enabled ? prev[day].timeSlots : []
+      }
+    }));
+  };
+
+  const addTimeSlot = (day: string) => {
+    setAvailability(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        timeSlots: [
+          ...prev[day].timeSlots,
+          { startTime: '09:00', endTime: '17:00' }
+        ]
+      }
+    }));
+  };
+
+  const removeTimeSlot = (day: string, index: number) => {
+    setAvailability(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        timeSlots: prev[day].timeSlots.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  const updateTimeSlot = (day: string, index: number, field: 'startTime' | 'endTime', value: string) => {
+    setAvailability(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        timeSlots: prev[day].timeSlots.map((slot, i) => 
+          i === index ? { ...slot, [field]: value } : slot
+        )
+      }
+    }));
+  };
+
   useEffect(() => {
-    if (!providerId) return;
-
-    console.log('Setting up unified real-time subscription for provider availability');
-    
-    const channel = supabase
-      .channel(`provider-availability-${providerId}`)
-      // Listen to appointment changes (all appointments for this provider)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'appointments',
-          filter: `provider_id=eq.${providerId}`
-        },
-        (payload) => {
-          console.log('Real-time appointment update detected for provider:', providerId, payload);
-          // Auto-refresh availability when ANY appointment changes
-          fetchAvailability();
-        }
-      )
-      // Listen to blocked time slot changes
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'blocked_time_slots',
-          filter: `provider_id=eq.${providerId}`
-        },
-        (payload) => {
-          console.log('Real-time blocked slot update detected for provider:', providerId, payload);
-          // Auto-refresh availability when blocked slots change
-          fetchAvailability();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up unified real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [providerId, fetchAvailability]);
+    fetchAvailability();
+  }, [user?.id]);
 
   return {
-    availableTimeSlots,
+    availability,
     isLoading,
-    isRefreshing,
-    lastUpdated,
-    refreshAvailability
+    isSaving,
+    updateDayAvailability,
+    addTimeSlot,
+    removeTimeSlot,
+    updateTimeSlot,
+    saveAvailability,
+    refreshAvailability: fetchAvailability
   };
 };

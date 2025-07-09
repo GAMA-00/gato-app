@@ -63,48 +63,6 @@ export const validateAppointmentSlot = async (
       }
     }
 
-    // Check blocked time slots
-    const dayOfWeek = startTime.getDay();
-    const startHour = startTime.getHours();
-    const startMinute = startTime.getMinutes();
-    const endHour = endTime.getHours();
-    const endMinute = endTime.getMinutes();
-
-    const { data: blockedSlots, error: blockedError } = await supabase
-      .from('blocked_time_slots')
-      .select('start_hour, end_hour, note')
-      .eq('provider_id', providerId)
-      .or(`day.eq.${dayOfWeek},day.eq.-1`);
-
-    if (blockedError) {
-      console.error('Error checking blocked slots:', blockedError);
-      return { hasConflict: false }; // Don't block on error, just log
-    }
-
-    console.log(`Found ${blockedSlots?.length || 0} blocked slots to check`);
-
-    if (blockedSlots) {
-      for (const blocked of blockedSlots) {
-        // Convert to minutes for easier comparison
-        const slotStartMinutes = startHour * 60 + startMinute;
-        const slotEndMinutes = endHour * 60 + endMinute;
-        const blockedStartMinutes = blocked.start_hour * 60;
-        const blockedEndMinutes = blocked.end_hour * 60;
-
-        if (slotStartMinutes < blockedEndMinutes && slotEndMinutes > blockedStartMinutes) {
-          console.log(`Conflict found with blocked slot ${blocked.start_hour}-${blocked.end_hour}`);
-          return {
-            hasConflict: true,
-            conflictReason: 'Horario bloqueado por el proveedor',
-            conflictDetails: {
-              type: 'blocked',
-              note: blocked.note,
-              time: `${blocked.start_hour}:00 - ${blocked.end_hour}:00`
-            }
-          };
-        }
-      }
-    }
 
     console.log('No conflicts found - slot is available');
     return { hasConflict: false };

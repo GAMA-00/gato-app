@@ -1,34 +1,37 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
+import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCalendarRecurringSystem } from '@/hooks/useCalendarRecurringSystem';
-import { useBlockedTimeSlots } from '@/hooks/useBlockedTimeSlots';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Settings } from 'lucide-react';
 import { format } from 'date-fns';
 
 const Calendar = () => {
   const { user } = useAuth();
   const currentDate = new Date();
+  const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
 
   const { data: appointments = [], isLoading } = useCalendarRecurringSystem({
     selectedDate: currentDate,
     providerId: user?.id
   });
 
-  const { blockedSlots, isLoading: slotsLoading } = useBlockedTimeSlots();
+  
 
   // Debug information for calendar system
   console.log('🗓️ Calendar System Active:', {
     appointmentsCount: appointments.length,
     loading: isLoading,
-    provider: user?.id,
-    blockedSlots: blockedSlots.length
+    provider: user?.id
   });
 
-  if (isLoading || slotsLoading) {
+  if (isLoading) {
     return (
       <PageLayout title="Calendario" subtitle="Cargando citas..." contentClassName="max-w-7xl">
         <div className="w-full space-y-6">
@@ -49,10 +52,30 @@ const Calendar = () => {
           </div>
         )}
         
-        {/* Optimized Calendar view with recurring instances and blocked slots */}
+        {/* Optimized Calendar view with recurring instances */}
         <div className="w-full">
-          <CalendarView appointments={appointments} blockedSlots={blockedSlots} />
+          <CalendarView appointments={appointments} />
         </div>
+        
+        {/* Manage Availability Button for providers */}
+        {user?.role === 'provider' && (
+          <div className="w-full flex justify-center mt-6">
+            <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Administrar Disponibilidad
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Administrar Disponibilidad</DialogTitle>
+                </DialogHeader>
+                <AvailabilityManager />
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
     </PageLayout>
   );

@@ -125,64 +125,6 @@ export type Database = {
           },
         ]
       }
-      blocked_time_slots: {
-        Row: {
-          created_at: string | null
-          day: number
-          end_hour: number
-          id: string
-          is_recurring: boolean | null
-          note: string | null
-          provider_id: string
-          recurrence_type: string | null
-          start_hour: number
-        }
-        Insert: {
-          created_at?: string | null
-          day: number
-          end_hour: number
-          id?: string
-          is_recurring?: boolean | null
-          note?: string | null
-          provider_id: string
-          recurrence_type?: string | null
-          start_hour: number
-        }
-        Update: {
-          created_at?: string | null
-          day?: number
-          end_hour?: number
-          id?: string
-          is_recurring?: boolean | null
-          note?: string | null
-          provider_id?: string
-          recurrence_type?: string | null
-          start_hour?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "blocked_time_slots_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "clients_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "blocked_time_slots_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "providers_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "blocked_time_slots_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cancellation_policies: {
         Row: {
           created_at: string
@@ -553,11 +495,9 @@ export type Database = {
           end_time: string
           id: string
           is_available: boolean
-          is_manually_disabled: boolean | null
           is_reserved: boolean
           listing_id: string
           provider_id: string
-          recurring_blocked: boolean | null
           slot_date: string
           slot_datetime_end: string
           slot_datetime_start: string
@@ -569,11 +509,9 @@ export type Database = {
           end_time: string
           id?: string
           is_available?: boolean
-          is_manually_disabled?: boolean | null
           is_reserved?: boolean
           listing_id: string
           provider_id: string
-          recurring_blocked?: boolean | null
           slot_date: string
           slot_datetime_end: string
           slot_datetime_start: string
@@ -585,11 +523,9 @@ export type Database = {
           end_time?: string
           id?: string
           is_available?: boolean
-          is_manually_disabled?: boolean | null
           is_reserved?: boolean
           listing_id?: string
           provider_id?: string
-          recurring_blocked?: boolean | null
           slot_date?: string
           slot_datetime_end?: string
           slot_datetime_start?: string
@@ -1154,16 +1090,6 @@ export type Database = {
       }
     }
     Functions: {
-      block_recurring_slots: {
-        Args: {
-          p_provider_id: string
-          p_start_time: string
-          p_end_time: string
-          p_recurrence_type: string
-          p_weeks_ahead?: number
-        }
-        Returns: number
-      }
       calculate_refund_percentage: {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number

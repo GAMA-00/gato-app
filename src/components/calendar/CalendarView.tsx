@@ -5,9 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { BlockedTimeSlot } from '@/lib/types';
 import { AppointmentDisplay } from './AppointmentDisplay';
-import { BlockedSlotDisplay } from './BlockedSlotDisplay';
 
 // Constants for time calculations
 const CALENDAR_START_HOUR = 6; // 6 AM
@@ -20,7 +18,7 @@ interface CalendarDayProps {
   isCurrentMonth: boolean;
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
-  blockedSlots: BlockedTimeSlot[];
+  
 }
 
 const CalendarDay: React.FC<CalendarDayProps> = ({
@@ -29,7 +27,6 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   isCurrentMonth,
   expandedId,
   setExpandedId,
-  blockedSlots
 }) => {
   const dateString = format(date, 'yyyy-MM-dd');
   
@@ -40,11 +37,6 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
     return appointmentDateString === dateString;
   });
 
-  // Get blocked time slots for this day
-  const dayOfWeek = date.getDay();
-  const dayBlockedSlots = blockedSlots.filter(slot => {
-    return slot.day === dayOfWeek || slot.day === -1; // -1 means all days
-  });
   
   // Show hours from 6 AM to 8 PM
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, i) => i + CALENDAR_START_HOUR);
@@ -80,15 +72,6 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
         
         {/* Appointments and blocked slots overlay */}
         <div className="absolute inset-0 top-0">
-          {/* Render blocked time slots */}
-          {dayBlockedSlots.map(blockedSlot => (
-            <BlockedSlotDisplay
-              key={`blocked-${blockedSlot.id}`}
-              blockedSlot={blockedSlot}
-              expanded={expandedId === `blocked-${blockedSlot.id}`}
-              onClick={() => setExpandedId(expandedId === `blocked-${blockedSlot.id}` ? null : `blocked-${blockedSlot.id}`)}
-            />
-          ))}
           
           {/* Render pending appointments for this day */}
           {dayAppointments.map((appointment, index) => (
@@ -109,14 +92,14 @@ interface CalendarViewProps {
   appointments: any[];
   currentDate?: Date;
   onDateChange?: (date: Date) => void;
-  blockedSlots?: BlockedTimeSlot[];
+  
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ 
   appointments, 
   currentDate: propCurrentDate,
   onDateChange,
-  blockedSlots = []
+  
 }) => {
   const [internalCurrentDate, setInternalCurrentDate] = useState(new Date());
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -187,7 +170,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               isCurrentMonth={day.getMonth() === currentMonth}
               expandedId={expandedId}
               setExpandedId={setExpandedId}
-              blockedSlots={blockedSlots}
+              
             />
           ))}
         </div>

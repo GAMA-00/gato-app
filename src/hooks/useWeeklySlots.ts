@@ -157,21 +157,6 @@ export const useWeeklySlots = ({
         console.warn('⚠️ Network error fetching appointments, showing optimistic slots');
       }
       
-      try {
-        // Try blocked slots
-        const blockedSlotsResult = await supabase
-          .from('blocked_time_slots')
-          .select('day, start_hour, end_hour')
-          .eq('provider_id', providerId);
-          
-        if (blockedSlotsResult.error) {
-          console.warn('⚠️ Could not fetch blocked slots, showing all time slots:', blockedSlotsResult.error);
-        } else {
-          blockedSlots = blockedSlotsResult.data || [];
-        }
-      } catch (error) {
-        console.warn('⚠️ Network error fetching blocked slots, showing all time slots');
-      }
       
       console.log(`📊 Found ${appointments.length} appointments, ${blockedSlots.length} blocked slots`);
 
@@ -184,10 +169,6 @@ export const useWeeklySlots = ({
         const currentDate = addDays(baseDate, dayOffset);
         const dayOfWeek = currentDate.getDay();
         
-        // Get blocked slots for this day
-        const dayBlockedSlots = blockedSlots.filter(slot => 
-          slot.day === dayOfWeek || slot.day === -1
-        );
         
         for (const timeSlot of timeSlots) {
           const [hours, minutes] = timeSlot.split(':').map(Number);
@@ -204,21 +185,6 @@ export const useWeeklySlots = ({
 
           totalGenerated++;
           
-          // CHECK 1: Is this slot blocked by provider?
-          const isBlocked = dayBlockedSlots.some(blocked => {
-            const slotStartMinutes = hours * 60 + minutes;
-            const slotEndMinutes = slotEnd.getHours() * 60 + slotEnd.getMinutes();
-            const blockedStartMinutes = blocked.start_hour * 60;
-            const blockedEndMinutes = blocked.end_hour * 60;
-            
-            return slotStartMinutes < blockedEndMinutes && slotEndMinutes > blockedStartMinutes;
-          });
-
-          if (isBlocked) {
-            console.log(`🚫 Slot ${timeSlot} on ${format(currentDate, 'yyyy-MM-dd')} is blocked by provider`);
-            totalFiltered++;
-            continue; // Don't add blocked slots to the list
-          }
 
           // CHECK 2: Does this slot overlap with existing appointments?
           const hasAppointmentConflict = appointments.some(appointment => {

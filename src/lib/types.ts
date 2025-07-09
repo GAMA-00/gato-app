@@ -150,16 +150,6 @@ export interface Appointment {
   stripePaymentIntentId?: string;
 }
 
-export interface BlockedTimeSlot {
-  id: string;
-  day: number;
-  startHour: number;
-  endHour: number;
-  note?: string;
-  isRecurring: boolean;
-  recurrenceType?: 'weekly' | 'daily';
-  createdAt: Date;
-}
 
 export interface DashboardStats {
   todayAppointments: number;

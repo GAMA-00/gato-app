@@ -126,27 +126,6 @@ export function useRecurringBooking() {
       if (data.recurrenceType !== 'once' && appointment.id) {
         console.log('Scheduling future recurring instances for appointment:', appointment.id);
         
-        // Use a promise that doesn't block the main flow
-        Promise.resolve().then(async () => {
-          try {
-            // Try to block recurring slots in the background
-            const { error: blockError } = await supabase.rpc('block_recurring_slots', {
-              p_provider_id: listing.provider_id,
-              p_start_time: data.startTime,
-              p_end_time: data.endTime,
-              p_recurrence_type: data.recurrenceType,
-              p_weeks_ahead: 12
-            });
-
-            if (blockError) {
-              console.warn('Could not block future slots (non-critical):', blockError);
-            } else {
-              console.log('Successfully blocked future recurring slots');
-            }
-          } catch (error) {
-            console.warn('Background slot blocking failed (non-critical):', error);
-          }
-        });
       }
 
       console.log('Cita creada exitosamente:', appointment);
