@@ -33,9 +33,9 @@ export const useRecurringSlotSystem = ({
   providerId,
   clientId 
 }: UseRecurringSlotSystemProps) => {
-  // Rango extendido: 2 semanas atrás, 16 semanas adelante
-  const startDate = startOfDay(addWeeks(selectedDate, -2));
-  const endDate = endOfDay(addWeeks(selectedDate, 16));
+  // Rango extendido: 1 mes atrás, 12 meses adelante para mostrar todo el año de citas recurrentes
+  const startDate = startOfDay(addWeeks(selectedDate, -4));
+  const endDate = endOfDay(addWeeks(selectedDate, 52));
 
   return useQuery({
     queryKey: ['recurring-slot-system', format(selectedDate, 'yyyy-MM-dd'), providerId, clientId],

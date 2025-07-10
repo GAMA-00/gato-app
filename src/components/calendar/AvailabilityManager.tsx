@@ -5,10 +5,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Clock, Save, Loader2, Calendar, Settings } from 'lucide-react';
+import { Trash2, Plus, Clock, Save, Loader2, Settings } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
-import { SlotManagementGrid } from './SlotManagementGrid';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -78,14 +77,10 @@ export const AvailabilityManager: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="availability" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Configurar Disponibilidad
-          </TabsTrigger>
-          <TabsTrigger value="slots" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Gestionar Horarios
           </TabsTrigger>
         </TabsList>
 
@@ -168,11 +163,6 @@ export const AvailabilityManager: React.FC = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="slots" className="mt-6">
-          {user?.id && (
-            <SlotManagementGrid providerId={user.id} />
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );

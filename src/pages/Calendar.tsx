@@ -4,7 +4,6 @@ import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
-import { SlotManagementGrid } from '@/components/calendar/SlotManagementGrid';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecurringSlotSystem } from '@/hooks/useRecurringSlotSystem';
@@ -62,12 +61,6 @@ const Calendar = () => {
           </div>
         )}
 
-        {/* Slot Management Grid for providers */}
-        {user?.role === 'provider' && (
-          <div className="w-full">
-            <SlotManagementGrid providerId={user.id} />
-          </div>
-        )}
         
         {/* Optimized Calendar view with recurring instances */}
         <div className="w-full">
