@@ -53,7 +53,8 @@ function generateRecurringAppointments(
   startDate: Date,
   endDate: Date,
   existingAppointments: any[] = [],
-  serviceMap: Record<string, string> = {}
+  serviceMap: Record<string, string> = {},
+  clientsDataMap: Record<string, any> = {}
 ): CalendarAppointment[] {
   const instances: CalendarAppointment[] = [];
   
@@ -125,12 +126,15 @@ function generateRecurringAppointments(
       } else if (!existingSlots.has(slotKey) && instanceStart >= startDate && instanceStart <= endDate) {
         const instanceId = `recurring-${rule.id}-${format(instanceStart, 'yyyy-MM-dd-HH-mm')}`;
         
-        const clientData = {
-          name: rule.client_name || 'Cliente',
-          condominium_name: null,
-          house_number: null,
-          residencias: null
-        };
+        // Get complete client data for proper location building
+        const clientData = clientsDataMap[rule.client_id] || null;
+        
+        console.log(`🏠 Building location for virtual recurring instance:`, {
+          rule_id: rule.id,
+          client_id: rule.client_id,
+          has_client_data: !!clientData,
+          client_name: rule.client_name
+        });
 
         const completeLocation = buildAppointmentLocation({
           appointment: {
@@ -342,89 +346,134 @@ export const useCalendarRecurringSystem = ({
         }
       }
 
-      // 5. Process database recurring instances
-      const processedDatabaseInstances = (recurringInstances || []).map(instance => ({
-        id: instance.id,
-        provider_id: instance.recurring_rules?.provider_id || providerId,
-        client_id: instance.recurring_rules?.client_id || '',
-        listing_id: instance.recurring_rules?.listing_id || '',
-        start_time: instance.start_time,
-        end_time: instance.end_time,
-        status: instance.status,
-        recurrence: 'instance', // Mark as database instance
-        client_name: instance.recurring_rules?.client_name || 'Cliente',
-        service_title: serviceMap[instance.recurring_rules?.listing_id || ''] || 'Servicio',
-        notes: instance.notes || instance.recurring_rules?.notes,
-        is_recurring_instance: true,
-        recurring_rule_id: instance.recurring_rule_id,
-        complete_location: buildAppointmentLocation({
-          appointment: {
-            client_address: instance.recurring_rules?.client_address,
-            external_booking: false
-          },
-          clientData: null
-        }),
-        external_booking: false
-      }));
+      // 5. Get complete client data for all appointments to build proper locations
+      const allClientIds = new Set([
+        ...(regularAppointments || []).map(apt => apt.client_id).filter(Boolean),
+        ...(recurringRules || []).map(rule => rule.client_id).filter(Boolean),
+        ...(recurringInstances || []).map(inst => inst.recurring_rules?.client_id).filter(Boolean)
+      ]);
 
-      console.log(`📅 Found ${processedDatabaseInstances.length} database recurring instances`);
+      let clientsDataMap: Record<string, any> = {};
+      if (allClientIds.size > 0) {
+        console.log('🏠 Fetching complete client data for location building:', Array.from(allClientIds));
+        
+        const { data: clientsData, error: clientsError } = await supabase
+          .from('users')
+          .select(`
+            id,
+            name,
+            house_number,
+            condominium_text,
+            condominium_name,
+            residencia_id,
+            residencias(
+              id,
+              name
+            )
+          `)
+          .in('id', Array.from(allClientIds));
 
-      // 6. Generate virtual instances only if no database instances exist
+        if (clientsError) {
+          console.error('❌ Error fetching clients data:', clientsError);
+        } else {
+          clientsDataMap = (clientsData || []).reduce((acc, client) => {
+            acc[client.id] = client;
+            return acc;
+          }, {} as Record<string, any>);
+          console.log(`✅ Fetched complete data for ${Object.keys(clientsDataMap).length} clients`);
+        }
+      }
+
+      // 6. Process database recurring instances with complete client data first
+      const processedDatabaseInstances = (recurringInstances || []).map(instance => {
+        const clientData = clientsDataMap[instance.recurring_rules?.client_id || ''] || null;
+        
+        console.log(`🏠 Building location for database recurring instance ${instance.id}:`, {
+          has_client_data: !!clientData,
+          client_id: instance.recurring_rules?.client_id,
+          external_booking: false
+        });
+
+        return {
+          id: instance.id,
+          provider_id: instance.recurring_rules?.provider_id || providerId,
+          client_id: instance.recurring_rules?.client_id || '',
+          listing_id: instance.recurring_rules?.listing_id || '',
+          start_time: instance.start_time,
+          end_time: instance.end_time,
+          status: instance.status,
+          recurrence: 'instance', // Mark as database instance
+          client_name: instance.recurring_rules?.client_name || 'Cliente',
+          service_title: serviceMap[instance.recurring_rules?.listing_id || ''] || 'Servicio',
+          notes: instance.notes || instance.recurring_rules?.notes,
+          is_recurring_instance: true,
+          recurring_rule_id: instance.recurring_rule_id,
+          complete_location: buildAppointmentLocation({
+            appointment: {
+              client_address: instance.recurring_rules?.client_address,
+              external_booking: false
+            },
+            clientData
+          }),
+          external_booking: false,
+          listings: { title: serviceMap[instance.recurring_rules?.listing_id || ''] || 'Servicio', duration: 60 }
+        };
+      });
+
+      console.log(`📅 Processed ${processedDatabaseInstances.length} database recurring instances with complete location data`);
+
+      // 7. Generate virtual instances only if no database instances exist
       let virtualInstances: CalendarAppointment[] = [];
       if (processedDatabaseInstances.length === 0 && (recurringRules || []).length > 0) {
         console.log('⚡ Generating virtual instances as fallback...');
         
         // Enrich client names for recurring rules
-        const clientIds = (recurringRules || []).map(rule => rule.client_id).filter(Boolean);
-        if (clientIds.length > 0) {
-          const { data: users } = await supabase
-            .from('users')
-            .select('id, name')
-            .in('id', clientIds);
-          
-          if (users) {
-            const userMap = users.reduce((acc, user) => {
-              acc[user.id] = user.name;
-              return acc;
-            }, {} as Record<string, string>);
-            
-            (recurringRules || []).forEach(rule => {
-              if (!rule.client_name && rule.client_id && userMap[rule.client_id]) {
-                rule.client_name = userMap[rule.client_id];
-              }
-            });
+        (recurringRules || []).forEach(rule => {
+          if (!rule.client_name && rule.client_id && clientsDataMap[rule.client_id]) {
+            rule.client_name = clientsDataMap[rule.client_id].name;
           }
-        }
+        });
 
         virtualInstances = generateRecurringAppointments(
           recurringRules || [],
           startDate,
           endDate,
           regularAppointments || [],
-          serviceMap
+          serviceMap,
+          clientsDataMap
         );
       }
 
-      // 7. Process regular appointments
-      const processedRegular = (regularAppointments || []).map(appointment => ({
-        ...appointment,
-        is_recurring_instance: appointment.is_recurring_instance || false,
-        client_name: appointment.client_name || 'Cliente',
-        service_title: appointment.listings?.title || 'Servicio',
-        complete_location: buildAppointmentLocation({
-          appointment,
-          clientData: null
-        })
-      }));
+      // 8. Process regular appointments with complete client data
+      const processedRegular = (regularAppointments || []).map(appointment => {
+        const clientData = clientsDataMap[appointment.client_id] || null;
+        
+        console.log(`🏠 Building location for regular appointment ${appointment.id}:`, {
+          has_client_data: !!clientData,
+          client_id: appointment.client_id,
+          external_booking: appointment.external_booking
+        });
 
-      // 8. Combine all appointments (prefer database instances over virtual ones)
+        return {
+          ...appointment,
+          is_recurring_instance: appointment.is_recurring_instance || false,
+          client_name: appointment.client_name || 'Cliente',
+          service_title: appointment.listings?.title || 'Servicio',
+          complete_location: buildAppointmentLocation({
+            appointment,
+            clientData
+          })
+        };
+      });
+
+      // 9. Combine all appointments (prefer database instances over virtual ones)
       const allAppointments = [
         ...processedRegular,
         ...processedDatabaseInstances,
         ...virtualInstances
       ];
       
-      // 9. Remove duplicates with priority: regular > database instances > virtual instances
+      // 10. Remove duplicates with priority: regular > database instances > virtual instances
       const uniqueAppointments = allAppointments.reduce((acc, appointment) => {
         const key = `${appointment.provider_id}-${appointment.start_time}-${appointment.end_time}`;
         
