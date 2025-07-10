@@ -55,9 +55,6 @@ function generateRecurringAppointments(
   existingAppointments: any[] = [],
   serviceMap: Record<string, string> = {}
 ): CalendarAppointment[] {
-  console.log('🔄 === GENERATING RECURRING APPOINTMENTS ===');
-  console.log(`Rules: ${rules.length}, Range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
-
   const instances: CalendarAppointment[] = [];
   
   // Create conflict detection ONLY for regular appointments (not recurring instances)
@@ -78,12 +75,12 @@ function generateRecurringAppointments(
     }
   });
   
-  console.log(`📋 Regular appointments by date (for conflict detection):`, Object.fromEntries(regularAppointmentsByDate));
+  
 
   rules.forEach(rule => {
     if (!rule.is_active) return;
 
-    console.log(`📋 Processing rule: ${rule.id} (${rule.recurrence_type}) for ${rule.client_name}`);
+    
     
     const ruleStartDate = new Date(rule.start_date);
     let currentDate = new Date(Math.max(ruleStartDate.getTime(), startDate.getTime()));
@@ -161,7 +158,7 @@ function generateRecurringAppointments(
           external_booking: false
         });
 
-        console.log(`✅ Generated: ${rule.client_name} - ${format(instanceStart, 'yyyy-MM-dd HH:mm')} (${rule.recurrence_type})`);
+        
       }
 
       // Move to next occurrence
@@ -170,7 +167,7 @@ function generateRecurringAppointments(
     }
   });
 
-  console.log(`📊 Total recurring instances generated: ${instances.length}`);
+  
   return instances;
 }
 
@@ -252,8 +249,6 @@ export const useCalendarRecurringSystem = ({
   const startDate = startOfDay(addWeeks(selectedDate, -2));
   const endDate = endOfDay(addWeeks(selectedDate, 16));
 
-  console.log('🚀 === UNIFIED RECURRING CALENDAR SYSTEM ===');
-  console.log(`Provider: ${providerId}, Range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
 
   return useQuery({
     queryKey: ['calendar-recurring-system', format(selectedDate, 'yyyy-MM-dd'), providerId],
@@ -263,8 +258,6 @@ export const useCalendarRecurringSystem = ({
         return [];
       }
 
-      console.log('📊 === FETCHING CALENDAR DATA ===');
-      console.log(`🔍 DEBUG: About to query appointments for provider ${providerId}`);
 
       // 1. Fetch all regular appointments in range
       const { data: regularAppointments, error: appointmentsError } = await supabase
@@ -284,15 +277,6 @@ export const useCalendarRecurringSystem = ({
         throw appointmentsError;
       }
 
-      console.log(`📋 Fetched ${regularAppointments?.length || 0} regular appointments`);
-      if (regularAppointments && regularAppointments.length > 0) {
-        console.log('📋 Regular appointments sample:', regularAppointments.slice(0, 3).map(apt => ({
-          id: apt.id,
-          client_name: apt.client_name,
-          start_time: apt.start_time,
-          status: apt.status
-        })));
-      }
 
       // 2. Fetch active recurring rules (without listings join since no FK exists)
       const { data: recurringRules, error: rulesError } = await supabase
@@ -307,7 +291,7 @@ export const useCalendarRecurringSystem = ({
         throw rulesError;
       }
 
-      console.log(`📋 Fetched ${recurringRules?.length || 0} active recurring rules`);
+      
 
       // 3. Get service titles for recurring rules
       let serviceMap: Record<string, string> = {};
@@ -351,7 +335,6 @@ export const useCalendarRecurringSystem = ({
       }
 
       // 5. Generate recurring instances
-      console.log(`🔄 Starting recurring generation with ${recurringRules?.length || 0} rules`);
       const recurringInstances = generateRecurringAppointments(
         recurringRules || [],
         startDate,
@@ -359,7 +342,6 @@ export const useCalendarRecurringSystem = ({
         regularAppointments || [],
         serviceMap
       );
-      console.log(`🔄 Generated ${recurringInstances.length} recurring instances`);
 
       // 5. Process and combine all appointments
       const processedRegular = (regularAppointments || []).map(appointment => ({
@@ -398,12 +380,6 @@ export const useCalendarRecurringSystem = ({
 
       const finalAppointments = Array.from(uniqueAppointments.values());
 
-      console.log('📈 === FINAL CALENDAR RESULT ===');
-      console.log(`  Regular: ${processedRegular.length}`);
-      console.log(`  Recurring: ${recurringInstances.length}`);
-      console.log(`  Total: ${allAppointments.length}`);
-      console.log(`  Final: ${finalAppointments.length}`);
-      console.log('=====================================');
 
       return finalAppointments;
     },

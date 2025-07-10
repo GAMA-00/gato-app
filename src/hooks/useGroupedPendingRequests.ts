@@ -30,8 +30,6 @@ export function useGroupedPendingRequests() {
     queryFn: async () => {
       if (!user || user.role !== 'provider') return [];
       
-      console.log("Fetching grouped pending requests for provider:", user.id);
-      
       try {
         // Get all pending appointments for this provider
         const { data: appointments, error } = await supabase
@@ -60,7 +58,7 @@ export function useGroupedPendingRequests() {
           return [];
         }
         
-        console.log("Raw pending appointments:", appointments);
+        
         
         // Process appointments to add client information
         const processedAppointments = await Promise.all(
@@ -135,8 +133,6 @@ export function useGroupedPendingRequests() {
           })
         );
         
-        console.log("Processed pending appointments:", processedAppointments);
-        
         // Group appointments by recurrence_group_id or treat as individual
         const groupedMap = new Map<string, GroupedRequest>();
         
@@ -179,9 +175,6 @@ export function useGroupedPendingRequests() {
         
         const groupedRequests = Array.from(groupedMap.values());
         
-        console.log(`Returning ${groupedRequests.length} grouped requests`);
-        console.log(`  - Recurring groups: ${groupedRequests.filter(req => req.appointment_count > 1).length}`);
-        console.log(`  - Individual appointments: ${groupedRequests.filter(req => req.appointment_count === 1).length}`);
         
         return groupedRequests;
         
@@ -191,7 +184,7 @@ export function useGroupedPendingRequests() {
       }
     },
     enabled: !!user && user.role === 'provider',
-    refetchInterval: 10000, // Reduce interval for faster updates
+    refetchInterval: 30000, // 30 seconds - reduce excessive polling
     retry: 3
   });
 }

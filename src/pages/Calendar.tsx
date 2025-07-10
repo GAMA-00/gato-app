@@ -31,12 +31,12 @@ const Calendar = () => {
 
   
 
-  // Debug information for calendar system
-  console.log('🗓️ Calendar System Active:', {
-    appointmentsCount: appointments.length,
-    loading: isLoading,
-    provider: user?.id
-  });
+  // Only log on significant changes
+  React.useEffect(() => {
+    if (appointments.length > 0) {
+      console.log('Calendar loaded with', appointments.length, 'appointments');
+    }
+  }, [appointments.length]);
 
   if (isLoading) {
     return (
