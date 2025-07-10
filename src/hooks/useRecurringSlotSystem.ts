@@ -97,6 +97,7 @@ export const useRecurringSlotSystem = ({
           listings(title)
         `)
         .eq('recurring_blocked', true)
+        .eq('is_available', false)
         .gte('slot_datetime_start', startDate.toISOString())
         .lte('slot_datetime_start', endDate.toISOString())
         .order('slot_datetime_start', { ascending: true });
