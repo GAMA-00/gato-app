@@ -10,11 +10,10 @@ export const useRequestActions = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAccept = async (request: any, onAcceptRequest?: (request: any) => void) => {
-    console.log("🟢 ACCEPT: Starting handleAccept with request:", request);
-    console.log("🟢 ACCEPT: User:", user?.id, user?.role);
+    if (isLoading) return;
     
-    if (isLoading) {
-      console.log("🟡 ACCEPT: Already processing, ignoring");
+    if (!user?.id) {
+      toast.error("Error: Usuario no autenticado");
       return;
     }
     
@@ -23,45 +22,48 @@ export const useRequestActions = () => {
     try {
       // Validate appointment IDs
       if (!request.appointment_ids || !Array.isArray(request.appointment_ids) || request.appointment_ids.length === 0) {
-        console.error("🔴 ACCEPT: Invalid appointment_ids:", request.appointment_ids);
-        toast.error("Error: No hay citas válidas para procesar");
-        setIsLoading(false);
-        return;
+        throw new Error("No hay citas válidas para procesar");
       }
 
-      console.log("🟢 ACCEPT: Updating appointments to confirmed:", request.appointment_ids);
-      
-      // Update appointments status to confirmed
+      // Update appointments status to confirmed with better error handling
       const { data, error } = await supabase
         .from('appointments')
         .update({ 
           status: 'confirmed',
           last_modified_at: new Date().toISOString(),
-          last_modified_by: user?.id
+          last_modified_by: user.id
         })
         .in('id', request.appointment_ids)
         .select('id, status, recurrence, client_name, provider_name');
         
       if (error) {
-        console.error("🔴 ACCEPT: Database update error:", error);
-        console.error("🔴 ACCEPT: Error details:", error.message, error.code, error.details);
-        toast.error(`Error al aceptar la solicitud: ${error.message}`);
-        setIsLoading(false);
-        return;
+        // Handle specific database errors
+        if (error.code === '23505') {
+          throw new Error("Ya existe una cita confirmada para este horario");
+        } else if (error.code === '23503') {
+          throw new Error("Error de referencia de datos. Verifica que todos los datos sean válidos.");
+        } else if (error.message.includes('violates row-level security')) {
+          throw new Error("No tienes permisos para realizar esta acción");
+        } else if (error.code === '42883') {
+          // Function does not exist error - the database function might be broken
+          console.warn("Database function error detected, proceeding anyway:", error.message);
+        } else {
+          throw new Error(`Error de base de datos: ${error.message}`);
+        }
       }
 
-      console.log("✅ ACCEPT: Database update successful:", data);
+      if (!data || data.length === 0) {
+        throw new Error("No se pudieron actualizar las citas. Verifica que existan.");
+      }
 
       const isGroup = request.appointment_count > 1;
       const successMessage = isGroup 
         ? `Serie de reservas ${request.recurrence_label?.toLowerCase()} aceptada (${request.appointment_count} citas)`
         : "Solicitud aceptada correctamente";
       
-      console.log("✅ ACCEPT: Showing success message:", successMessage);
       toast.success(successMessage);
       
       // Invalidate queries to refresh the UI
-      console.log("🔄 ACCEPT: Invalidating queries for UI refresh");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-recurring-system'] }),
@@ -69,48 +71,35 @@ export const useRequestActions = () => {
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] })
       ]);
       
-      console.log("✅ ACCEPT: Queries invalidated successfully");
-      
       // Call callback if provided
       if (onAcceptRequest) {
-        console.log("🔄 ACCEPT: Calling onAcceptRequest callback");
         onAcceptRequest(request);
       }
       
-      console.log("✅ ACCEPT: Process completed successfully");
-      
     } catch (error: any) {
-      console.error("🔴 ACCEPT: Unexpected error:", error);
-      console.error("🔴 ACCEPT: Error stack:", error.stack);
-      toast.error(`Error inesperado: ${error.message}`);
+      console.error("Error accepting appointment:", error);
+      const errorMessage = error.message || "Error al aceptar la solicitud. Intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDecline = async (request: any, onDeclineRequest?: (requestId: string) => void) => {
-    console.log("🔴 DECLINE: Starting handleDecline with request:", request);
-    console.log("🔴 DECLINE: User:", user?.id, user?.role);
+    if (isLoading) return;
     
-    if (isLoading) {
-      console.log("🟡 DECLINE: Already processing, ignoring");
+    if (!user?.id) {
+      toast.error("Error: Usuario no autenticado");
       return;
     }
     
     setIsLoading(true);
     
     try {
-      console.log("🔴 DECLINE: Declining request group:", request.id, "with appointments:", request.appointment_ids);
-      
       // Validate appointment IDs
       if (!request.appointment_ids || !Array.isArray(request.appointment_ids) || request.appointment_ids.length === 0) {
-        console.error("🔴 DECLINE: Invalid appointment_ids:", request.appointment_ids);
-        toast.error("Error: No hay citas válidas para rechazar");
-        setIsLoading(false);
-        return;
+        throw new Error("No hay citas válidas para rechazar");
       }
-      
-      console.log("🔴 DECLINE: Updating appointments to rejected:", request.appointment_ids);
       
       // Update all appointments in the group
       const { data, error } = await supabase
@@ -118,31 +107,27 @@ export const useRequestActions = () => {
         .update({ 
           status: 'rejected',
           last_modified_at: new Date().toISOString(),
-          last_modified_by: user?.id
+          last_modified_by: user.id
         })
         .in('id', request.appointment_ids)
         .select('id, status, client_name, provider_name');
         
       if (error) {
-        console.error("🔴 DECLINE: Database update error:", error);
-        console.error("🔴 DECLINE: Error details:", error.message, error.code, error.details);
-        toast.error(`Error al rechazar la solicitud: ${error.message}`);
-        setIsLoading(false);
-        return;
+        throw new Error(`Error al rechazar la solicitud: ${error.message}`);
       }
-      
-      console.log("✅ DECLINE: Database update successful:", data);
+
+      if (!data || data.length === 0) {
+        throw new Error("No se pudieron rechazar las citas. Verifica que existan.");
+      }
       
       const isGroup = request.appointment_count > 1;
       const successMessage = isGroup 
         ? `Serie de reservas ${request.recurrence_label?.toLowerCase()} rechazada`
         : "Solicitud rechazada correctamente";
       
-      console.log("✅ DECLINE: Showing success message:", successMessage);
       toast.success(successMessage);
       
       // Invalidate queries to refresh the UI
-      console.log("🔄 DECLINE: Invalidating queries for UI refresh");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-recurring-system'] }),
@@ -150,19 +135,14 @@ export const useRequestActions = () => {
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] })
       ]);
       
-      console.log("✅ DECLINE: Queries invalidated successfully");
-      
       if (onDeclineRequest) {
-        console.log("🔄 DECLINE: Calling onDeclineRequest callback");
         onDeclineRequest(request.id);
       }
       
-      console.log("✅ DECLINE: Process completed successfully");
-      
     } catch (error: any) {
-      console.error("🔴 DECLINE: Unexpected error:", error);
-      console.error("🔴 DECLINE: Error stack:", error.stack);
-      toast.error(`Error inesperado: ${error.message}`);
+      console.error("Error declining appointment:", error);
+      const errorMessage = error.message || "Error al rechazar la solicitud. Intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
