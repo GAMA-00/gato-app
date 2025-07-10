@@ -11,9 +11,10 @@ interface RequestCardProps {
   request: any;
   onAccept: (request: any) => void;
   onDecline: (request: any) => void;
+  isLoading?: boolean;
 }
 
-const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline }) => {
+const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline, isLoading = false }) => {
   const isGroup = request.appointment_count > 1;
   const isExternal = request.is_external;
 
@@ -129,6 +130,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline 
         request={request}
         onAccept={onAccept}
         onDecline={onDecline}
+        isLoading={isLoading}
       />
     </div>
   );

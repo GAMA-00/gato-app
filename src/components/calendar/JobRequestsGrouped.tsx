@@ -19,15 +19,24 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
 }) => {
   const { data: groupedRequests = [], isLoading, isError } = useGroupedPendingRequests();
   const { user } = useAuth();
-  const { handleAccept, handleDecline } = useRequestActions();
+  const { handleAccept, handleDecline, isLoading: isProcessing } = useRequestActions();
   
   // Only show component for providers
   if (user?.role !== 'provider') return null;
   
-  console.log("Grouped requests in JobRequestsGrouped component:", groupedRequests);
+  console.log("📋 JobRequestsGrouped: Grouped requests:", groupedRequests);
+  console.log("📋 JobRequestsGrouped: User:", user?.id, user?.role);
+  console.log("📋 JobRequestsGrouped: Processing state:", isProcessing);
 
-  const onAccept = (request: any) => handleAccept(request, onAcceptRequest);
-  const onDecline = (request: any) => handleDecline(request, onDeclineRequest);
+  const onAccept = (request: any) => {
+    console.log("📋 JobRequestsGrouped: onAccept called with request:", request.id);
+    handleAccept(request, onAcceptRequest);
+  };
+  
+  const onDecline = (request: any) => {
+    console.log("📋 JobRequestsGrouped: onDecline called with request:", request.id);
+    handleDecline(request, onDeclineRequest);
+  };
 
   return (
     <Card className="mb-6">
@@ -53,6 +62,7 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
                   request={request}
                   onAccept={onAccept}
                   onDecline={onDecline}
+                  isLoading={isProcessing}
                 />
               );
             })}
