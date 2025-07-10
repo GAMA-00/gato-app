@@ -16,18 +16,20 @@ export function useProviderAchievements() {
 
       console.log('Fetching provider achievements for:', user.id);
 
-      // Fetch completed appointments with ratings and client info
+      // Fetch ALL completed appointments throughout history (no date restriction)
+      // This ensures the achievement system counts all work done historically, not just current month
       const { data: appointments, error } = await supabase
         .from('appointments')
         .select(`
           id,
           start_time,
+          status,
           client_name,
           listings!inner(base_price, title),
           provider_ratings(rating)
         `)
         .eq('provider_id', user.id)
-        .in('status', ['confirmed', 'completed'])
+        .in('status', ['completed'])  // Only count actually completed jobs for achievements
         .order('start_time', { ascending: false });
 
       if (error) {

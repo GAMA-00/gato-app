@@ -33,7 +33,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
     level: 'nuevo',
     name: 'Nuevo',
-    description: 'Proveedor recién registrado comenzando su trayectoria',
+    description: 'Proveedor recién registrado comenzando su trayectoria profesional',
     minJobs: 0,
     maxJobs: 29,
     color: '#3B82F6',
@@ -42,7 +42,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
     level: 'bronce',
     name: 'Bronce',
-    description: 'Proveedor principiante con experiencia inicial',
+    description: 'Has completado tus primeros trabajos y construyes tu reputación',
     minJobs: 30,
     maxJobs: 99,
     color: '#CD7F32',
@@ -51,7 +51,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
     level: 'plata',
     name: 'Plata',
-    description: 'Proveedor experimentado con historial sólido',
+    description: 'Proveedor experimentado con historial sólido de trabajos completados',
     minJobs: 100,
     maxJobs: 499,
     color: '#C0C0C0',
@@ -60,7 +60,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
     level: 'oro',
     name: 'Oro',
-    description: 'Proveedor altamente calificado y confiable',
+    description: 'Proveedor altamente calificado con cientos de trabajos completados',
     minJobs: 500,
     maxJobs: 999,
     color: '#FFD700',
@@ -69,7 +69,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
     level: 'platino',
     name: 'Platino',
-    description: 'Proveedor elite con excelencia demostrada',
+    description: 'Proveedor elite con más de mil trabajos completados exitosamente',
     minJobs: 1000,
     maxJobs: 2499,
     color: '#E5E4E2',
@@ -78,7 +78,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
     level: 'diamante',
     name: 'Diamante',
-    description: 'Proveedor maestro con trayectoria excepcional',
+    description: 'Proveedor maestro con trayectoria excepcional de miles de trabajos',
     minJobs: 2500,
     maxJobs: Infinity,
     color: '#B9F2FF',

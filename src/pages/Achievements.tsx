@@ -105,10 +105,29 @@ const Achievements = () => {
             <p className={`text-muted-foreground ${
               isMobile ? "text-sm mb-6" : "text-base mb-8"
             }`}>
-              Tus logros y reconocimientos
+              Tu progreso profesional basado en el historial completo de trabajos completados
             </p>
             
+            
             <div className="space-y-8">
+              {/* Summary Card */}
+              <Card className="glassmorphism p-6">
+                <div className="text-center">
+                  <h2 className="text-3xl md:text-4xl font-bold text-primary mb-2">
+                    {achievements.totalCompletedJobs}
+                  </h2>
+                  <p className="text-lg text-muted-foreground mb-1">
+                    Trabajos Completados en Total
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Nivel Actual: <span className="font-semibold text-primary">{currentLevel.name}</span>
+                    {nextLevel && (
+                      <span> • Próximo: {nextLevel.name} ({nextLevel.minJobs} trabajos)</span>
+                    )}
+                  </p>
+                </div>
+              </Card>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {ACHIEVEMENT_LEVELS.map((level) => {
                   const isCurrentLevel = level.level === currentLevel.level;
