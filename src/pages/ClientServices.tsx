@@ -9,7 +9,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
 import CategoryIcon from '@/components/client/CategoryIcon';
-import { useCategoryPreload } from '@/hooks/useCategoryPreload';
 import { useCategoryVisibility } from '@/hooks/useCategoryVisibility';
 import { categoryOrder, categoryLabels } from '@/constants/categoryConstants';
 import { smartPreloader } from '@/utils/smartPreloader';
@@ -18,8 +17,7 @@ const ClientServices = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // Use enhanced preloading
-  useCategoryPreload();
+  // Use visibility tracking for intersection observer
   const { visibleItems } = useCategoryVisibility();
 
   const { data: fetchedCategories = [], isLoading } = useQuery({

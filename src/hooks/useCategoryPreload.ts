@@ -1,25 +1,35 @@
 
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { smartPreloader } from '@/utils/smartPreloader';
 
 export const useCategoryPreload = () => {
+  const location = useLocation();
+  
   useEffect(() => {
-    // Inmediatamente precargar categorías críticas
-    smartPreloader.preloadCriticalCategories();
-    
-    // Precargar imágenes restantes sin delay para mejor UX
-    const immediatePreload = () => {
-      smartPreloader.preloadRemainingImages();
-    };
+    // Only preload on client routes (not landing page)
+    if (!location.pathname.includes('/client') || location.pathname.includes('/login')) {
+      return;
+    }
 
-    // Ejecutar inmediatamente
-    immediatePreload();
-
-    // También programar para cuando el navegador esté idle
+    // Use requestIdleCallback for better performance
     if ('requestIdleCallback' in window) {
       (window as any).requestIdleCallback(() => {
-        smartPreloader.preloadRemainingImages();
-      }, { timeout: 2000 });
+        smartPreloader.preloadCriticalCategories();
+        
+        // Preload remaining images after a short delay
+        setTimeout(() => {
+          smartPreloader.preloadRemainingImages();
+        }, 500);
+      }, { timeout: 3000 });
+    } else {
+      // Fallback for browsers without requestIdleCallback
+      setTimeout(() => {
+        smartPreloader.preloadCriticalCategories();
+        setTimeout(() => {
+          smartPreloader.preloadRemainingImages();
+        }, 500);
+      }, 100);
     }
-  }, []);
+  }, [location.pathname]);
 };

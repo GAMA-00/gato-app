@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PublicRoutes from './routes/PublicRoutes';
 import ProviderRoutes from './routes/ProviderRoutes';
 import ClientRoutes from './routes/ClientRoutes';
+import ClientPreloader from './components/client/ClientPreloader';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
             <RouteDebugger />
+            <ClientPreloader />
             <Routes>
               {PublicRoutes()}
               {ProviderRoutes()}

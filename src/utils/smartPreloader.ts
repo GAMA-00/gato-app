@@ -24,6 +24,13 @@ class SmartPreloader {
   private preloadedUrls = new Set<string>();
   private concurrentLimit = 4; // Limite de descargas concurrentes
 
+  // Check if we're on a route that needs category images
+  private shouldPreloadCategories(): boolean {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    return path.includes('/client') && !path.includes('/login');
+  }
+
   async preloadByPriority(tasks: PreloadTask[]): Promise<void> {
     // Sort by priority and add to queue
     const sortedTasks = tasks.sort((a, b) => {
@@ -115,12 +122,19 @@ class SmartPreloader {
   }
 
   preloadCriticalCategories(): void {
+    // Only preload if we're on a route that needs categories
+    if (!this.shouldPreloadCategories()) {
+      console.log('Skipping category preload - not on client route');
+      return;
+    }
+
     const criticalCategories = ['home', 'pets', 'classes', 'personal-care'];
     const criticalTasks: PreloadTask[] = criticalCategories.map(categoryName => ({
       url: categoryImageUrls[categoryName],
       priority: 'critical' as const
     }));
 
+    console.log('Starting critical category preload');
     this.preloadByPriority(criticalTasks);
   }
 
@@ -147,6 +161,12 @@ class SmartPreloader {
   }
 
   preloadRemainingImages(): void {
+    // Only preload if we're on a route that needs categories
+    if (!this.shouldPreloadCategories()) {
+      console.log('Skipping remaining images preload - not on client route');
+      return;
+    }
+
     // Preload remaining category images
     const remainingCategories = Object.entries(categoryImageUrls)
       .filter(([categoryName]) => !['home', 'pets', 'classes', 'personal-care'].includes(categoryName))
@@ -156,7 +176,7 @@ class SmartPreloader {
         delay: 1000
       }));
 
-    // Preload all service images at medium priority
+    // Preload all service images at medium priority with longer delays
     const allServiceImages = [
       ...Object.values(homeServiceImages),
       ...Object.values(petsServiceImages),
@@ -164,12 +184,13 @@ class SmartPreloader {
       ...Object.values(personalCareServiceImages),
       ...Object.values(sportsServiceImages),
       ...Object.values(otherServiceImages),
-    ].map(url => ({
+    ].map((url, index) => ({
       url,
       priority: 'medium' as const,
-      delay: 2000
+      delay: 3000 + (index * 50) // Stagger the loads
     }));
 
+    console.log('Starting remaining images preload');
     this.preloadByPriority([...remainingCategories, ...allServiceImages]);
   }
 
