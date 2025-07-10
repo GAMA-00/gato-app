@@ -278,7 +278,34 @@ export const useCalendarRecurringSystem = ({
       }
 
 
-      // 2. Fetch active recurring rules (without listings join since no FK exists)
+      // 2. Fetch recurring appointment instances from database
+      const { data: recurringInstances, error: instancesError } = await supabase
+        .from('recurring_appointment_instances')
+        .select(`
+          *,
+          recurring_rules(
+            client_id,
+            provider_id,
+            listing_id,
+            client_name,
+            client_address,
+            client_phone,
+            client_email,
+            notes
+          )
+        `)
+        .eq('recurring_rules.provider_id', providerId)
+        .in('status', ['scheduled', 'confirmed'])
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
+        .order('start_time', { ascending: true });
+
+      if (instancesError) {
+        console.error('❌ Error fetching recurring instances:', instancesError);
+        throw instancesError;
+      }
+
+      // 3. Fetch active recurring rules (for backup virtual generation)
       const { data: recurringRules, error: rulesError } = await supabase
         .from('recurring_rules')
         .select('*')
@@ -293,26 +320,62 @@ export const useCalendarRecurringSystem = ({
 
       
 
-      // 3. Get service titles for recurring rules
+      // 4. Get service titles for all instances (regular + recurring)
+      const allListingIds = new Set([
+        ...(regularAppointments || []).map(apt => apt.listing_id),
+        ...(recurringRules || []).map(rule => rule.listing_id),
+        ...(recurringInstances || []).map(inst => inst.recurring_rules?.listing_id).filter(Boolean)
+      ]);
+      
       let serviceMap: Record<string, string> = {};
-      if (recurringRules && recurringRules.length > 0) {
-        const listingIds = [...new Set(recurringRules.map(rule => rule.listing_id))];
-        if (listingIds.length > 0) {
-          const { data: listings } = await supabase
-            .from('listings')
-            .select('id, title')
-            .in('id', listingIds);
-          
-          if (listings) {
-            serviceMap = listings.reduce((acc, listing) => {
-              acc[listing.id] = listing.title;
-              return acc;
-            }, {} as Record<string, string>);
-          }
+      if (allListingIds.size > 0) {
+        const { data: listings } = await supabase
+          .from('listings')
+          .select('id, title')
+          .in('id', Array.from(allListingIds));
+        
+        if (listings) {
+          serviceMap = listings.reduce((acc, listing) => {
+            acc[listing.id] = listing.title;
+            return acc;
+          }, {} as Record<string, string>);
         }
+      }
 
-        // 4. Enrich client names for recurring rules
-        const clientIds = recurringRules.map(rule => rule.client_id).filter(Boolean);
+      // 5. Process database recurring instances
+      const processedDatabaseInstances = (recurringInstances || []).map(instance => ({
+        id: instance.id,
+        provider_id: instance.recurring_rules?.provider_id || providerId,
+        client_id: instance.recurring_rules?.client_id || '',
+        listing_id: instance.recurring_rules?.listing_id || '',
+        start_time: instance.start_time,
+        end_time: instance.end_time,
+        status: instance.status,
+        recurrence: 'instance', // Mark as database instance
+        client_name: instance.recurring_rules?.client_name || 'Cliente',
+        service_title: serviceMap[instance.recurring_rules?.listing_id || ''] || 'Servicio',
+        notes: instance.notes || instance.recurring_rules?.notes,
+        is_recurring_instance: true,
+        recurring_rule_id: instance.recurring_rule_id,
+        complete_location: buildAppointmentLocation({
+          appointment: {
+            client_address: instance.recurring_rules?.client_address,
+            external_booking: false
+          },
+          clientData: null
+        }),
+        external_booking: false
+      }));
+
+      console.log(`📅 Found ${processedDatabaseInstances.length} database recurring instances`);
+
+      // 6. Generate virtual instances only if no database instances exist
+      let virtualInstances: CalendarAppointment[] = [];
+      if (processedDatabaseInstances.length === 0 && (recurringRules || []).length > 0) {
+        console.log('⚡ Generating virtual instances as fallback...');
+        
+        // Enrich client names for recurring rules
+        const clientIds = (recurringRules || []).map(rule => rule.client_id).filter(Boolean);
         if (clientIds.length > 0) {
           const { data: users } = await supabase
             .from('users')
@@ -325,25 +388,24 @@ export const useCalendarRecurringSystem = ({
               return acc;
             }, {} as Record<string, string>);
             
-            recurringRules.forEach(rule => {
+            (recurringRules || []).forEach(rule => {
               if (!rule.client_name && rule.client_id && userMap[rule.client_id]) {
                 rule.client_name = userMap[rule.client_id];
               }
             });
           }
         }
+
+        virtualInstances = generateRecurringAppointments(
+          recurringRules || [],
+          startDate,
+          endDate,
+          regularAppointments || [],
+          serviceMap
+        );
       }
 
-      // 5. Generate recurring instances
-      const recurringInstances = generateRecurringAppointments(
-        recurringRules || [],
-        startDate,
-        endDate,
-        regularAppointments || [],
-        serviceMap
-      );
-
-      // 5. Process and combine all appointments
+      // 7. Process regular appointments
       const processedRegular = (regularAppointments || []).map(appointment => ({
         ...appointment,
         is_recurring_instance: appointment.is_recurring_instance || false,
@@ -355,10 +417,14 @@ export const useCalendarRecurringSystem = ({
         })
       }));
 
-      // 6. Combine and deduplicate
-      const allAppointments = [...processedRegular, ...recurringInstances];
+      // 8. Combine all appointments (prefer database instances over virtual ones)
+      const allAppointments = [
+        ...processedRegular,
+        ...processedDatabaseInstances,
+        ...virtualInstances
+      ];
       
-      // Remove duplicates with preference for regular appointments
+      // 9. Remove duplicates with priority: regular > database instances > virtual instances
       const uniqueAppointments = allAppointments.reduce((acc, appointment) => {
         const key = `${appointment.provider_id}-${appointment.start_time}-${appointment.end_time}`;
         
@@ -366,12 +432,22 @@ export const useCalendarRecurringSystem = ({
           acc.set(key, appointment);
         } else {
           const existing = acc.get(key);
-          // Prefer regular appointments over recurring instances
+          
+          // Priority: regular > database instance > virtual instance
           if (!existing.is_recurring_instance && appointment.is_recurring_instance) {
+            // Keep regular appointment
             console.log(`⚠️  Skipping duplicate recurring instance for ${appointment.start_time}`);
           } else if (existing.is_recurring_instance && !appointment.is_recurring_instance) {
+            // Replace with regular appointment
             acc.set(key, appointment);
             console.log(`🔄 Replaced recurring instance with regular appointment for ${appointment.start_time}`);
+          } else if (existing.recurrence === 'instance' && appointment.recurrence !== 'instance') {
+            // Keep database instance over virtual
+            console.log(`⚠️  Skipping virtual instance - database instance exists for ${appointment.start_time}`);
+          } else if (existing.recurrence !== 'instance' && appointment.recurrence === 'instance') {
+            // Replace virtual with database instance
+            acc.set(key, appointment);
+            console.log(`🔄 Replaced virtual instance with database instance for ${appointment.start_time}`);
           }
         }
         

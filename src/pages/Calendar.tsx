@@ -4,6 +4,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
+import { RecurringInstancesManager } from '@/components/calendar/RecurringInstancesManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCalendarRecurringSystem } from '@/hooks/useCalendarRecurringSystem';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,6 +53,13 @@ const Calendar = () => {
   return (
     <PageLayout title="Calendario" contentClassName="max-w-7xl" className="bg-white">
       <div className="space-y-6">
+        {/* Recurring instances manager for providers */}
+        {user?.role === 'provider' && (
+          <div className="w-full">
+            <RecurringInstancesManager />
+          </div>
+        )}
+
         {/* Show job requests for providers */}
         {user?.role === 'provider' && (
           <div className="w-full">
