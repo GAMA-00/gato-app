@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 
 const Calendar = () => {
   const { user } = useAuth();
-  const currentDate = new Date();
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
 
   const { data: appointments = [], isLoading, refetch } = useRecurringSlotSystem({
@@ -64,7 +64,11 @@ const Calendar = () => {
         
         {/* Optimized Calendar view with recurring instances */}
         <div className="w-full">
-          <CalendarView appointments={appointments} />
+          <CalendarView 
+            appointments={appointments} 
+            currentDate={currentDate}
+            onDateChange={setCurrentDate}
+          />
         </div>
         
         {/* Manage Availability Button for providers */}
