@@ -4,9 +4,10 @@ import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
+import { SlotManagementGrid } from '@/components/calendar/SlotManagementGrid';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useCalendarRecurringSystem } from '@/hooks/useCalendarRecurringSystem';
+import { useRecurringSlotSystem } from '@/hooks/useRecurringSlotSystem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -18,7 +19,7 @@ const Calendar = () => {
   const currentDate = new Date();
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
 
-  const { data: appointments = [], isLoading, refetch } = useCalendarRecurringSystem({
+  const { data: appointments = [], isLoading, refetch } = useRecurringSlotSystem({
     selectedDate: currentDate,
     providerId: user?.id
   });
@@ -58,6 +59,13 @@ const Calendar = () => {
         {user?.role === 'provider' && (
           <div className="w-full">
             <JobRequestsGrouped />
+          </div>
+        )}
+
+        {/* Slot Management Grid for providers */}
+        {user?.role === 'provider' && (
+          <div className="w-full">
+            <SlotManagementGrid providerId={user.id} />
           </div>
         )}
         

@@ -491,6 +491,7 @@ export type Database = {
       }
       provider_time_slots: {
         Row: {
+          blocked_until: string | null
           created_at: string
           end_time: string
           id: string
@@ -498,6 +499,8 @@ export type Database = {
           is_reserved: boolean
           listing_id: string
           provider_id: string
+          recurring_blocked: boolean | null
+          recurring_rule_id: string | null
           slot_date: string
           slot_datetime_end: string
           slot_datetime_start: string
@@ -505,6 +508,7 @@ export type Database = {
           start_time: string
         }
         Insert: {
+          blocked_until?: string | null
           created_at?: string
           end_time: string
           id?: string
@@ -512,6 +516,8 @@ export type Database = {
           is_reserved?: boolean
           listing_id: string
           provider_id: string
+          recurring_blocked?: boolean | null
+          recurring_rule_id?: string | null
           slot_date: string
           slot_datetime_end: string
           slot_datetime_start: string
@@ -519,6 +525,7 @@ export type Database = {
           start_time: string
         }
         Update: {
+          blocked_until?: string | null
           created_at?: string
           end_time?: string
           id?: string
@@ -526,6 +533,8 @@ export type Database = {
           is_reserved?: boolean
           listing_id?: string
           provider_id?: string
+          recurring_blocked?: boolean | null
+          recurring_rule_id?: string | null
           slot_date?: string
           slot_datetime_end?: string
           slot_datetime_start?: string
@@ -559,6 +568,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_time_slots_recurring_rule_id_fkey"
+            columns: ["recurring_rule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_rules"
             referencedColumns: ["id"]
           },
         ]
@@ -1090,6 +1106,10 @@ export type Database = {
       }
     }
     Functions: {
+      block_recurring_slots: {
+        Args: { p_recurring_rule_id: string; p_months_ahead?: number }
+        Returns: number
+      }
       calculate_refund_percentage: {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number
@@ -1169,6 +1189,10 @@ export type Database = {
               p_comment?: string
             }
         Returns: undefined
+      }
+      unblock_recurring_slots: {
+        Args: { p_recurring_rule_id: string }
+        Returns: number
       }
     }
     Enums: {
