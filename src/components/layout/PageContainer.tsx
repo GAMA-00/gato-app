@@ -11,8 +11,8 @@ interface PageContainerProps {
 
 const PageContainer = ({ children, title, subtitle, className }: PageContainerProps) => {
   return (
-    <div className={cn("min-h-screen bg-[#FAFAFA]", className)}>
-      <div className="p-4 md:p-6">
+    <div className={cn("min-h-screen bg-[#FAFAFA] pt-16 pb-20 md:pt-0 md:pb-0", className)}>
+      <div className="md:ml-52 p-4 md:p-6">
         {(title || subtitle) && (
           <div className="mb-6">
             {title && (
