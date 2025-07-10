@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trash2, Plus, Clock, Save, Loader2, Calendar, Settings } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
-import SlotManagementGrid from './SlotManagementGrid';
+import { useAuth } from '@/contexts/AuthContext';
+import { SlotManagementGrid } from './SlotManagementGrid';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -21,6 +22,7 @@ const DAYS = [
 
 export const AvailabilityManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState('availability');
+  const { user } = useAuth();
   const {
     availability,
     isLoading,
@@ -167,13 +169,9 @@ export const AvailabilityManager: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="slots" className="mt-6">
-          <SlotManagementGrid 
-            config={{
-              availability,
-              serviceDuration: 60, // Default duration
-              daysAhead: 14
-            }}
-          />
+          {user?.id && (
+            <SlotManagementGrid providerId={user.id} />
+          )}
         </TabsContent>
       </Tabs>
     </div>
