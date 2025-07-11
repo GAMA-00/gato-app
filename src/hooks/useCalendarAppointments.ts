@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
+import { shouldHideOriginalDate, getAppointmentStyleClass } from '@/utils/simplifiedRecurrenceUtils';
 
 interface AppointmentData {
   id: string;
@@ -42,6 +43,8 @@ interface EnhancedAppointment extends AppointmentData {
   } | null;
   residencias: null;
   complete_location: string;
+  rescheduled_style?: string; // Nuevo campo para el estilo
+  is_rescheduled_appointment?: boolean; // Para identificar citas reagendadas
 }
 
 export const useCalendarAppointments = (currentDate: Date) => {
@@ -98,6 +101,52 @@ export const useCalendarAppointments = (currentDate: Date) => {
 
         const appointmentsList = appointments || [];
         console.log(`Found ${appointmentsList.length} appointments for calendar`);
+
+        // Fetch recurring exceptions to filter out rescheduled originals and add rescheduled appointments
+        const recurringAppointmentIds = appointmentsList
+          .filter(apt => apt.recurrence && apt.recurrence !== 'none')
+          .map(apt => apt.id);
+
+        let exceptions: any[] = [];
+        let rescheduledAppointments: EnhancedAppointment[] = [];
+        
+        if (recurringAppointmentIds.length > 0) {
+          const { data: exceptionsData } = await supabase
+            .from('recurring_exceptions')
+            .select('id, appointment_id, exception_date, original_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
+            .in('appointment_id', recurringAppointmentIds);
+          
+          exceptions = exceptionsData || [];
+          
+          // Create virtual appointments for rescheduled instances that fall within our date range
+          const rescheduledExceptions = exceptions.filter(ex => 
+            ex.action_type === 'rescheduled' && ex.new_start_time && ex.new_end_time
+          );
+          
+          for (const exception of rescheduledExceptions) {
+            const newStartTime = new Date(exception.new_start_time);
+            const newEndTime = new Date(exception.new_end_time);
+            
+            // Check if the new date falls within our calendar range
+            if (newStartTime >= startDate && newStartTime <= endDate) {
+              const originalAppointment = appointmentsList.find(apt => apt.id === exception.appointment_id);
+              if (originalAppointment) {
+                // Create a virtual appointment for the rescheduled instance
+                const rescheduledAppointment: AppointmentData = {
+                  ...originalAppointment,
+                  id: `${originalAppointment.id}_rescheduled_${exception.id}`, // Unique ID
+                  start_time: newStartTime.toISOString(),
+                  end_time: newEndTime.toISOString(),
+                  notes: exception.notes || originalAppointment.notes,
+                  is_recurring_instance: true
+                };
+                
+                // Will be processed later with other appointments
+                appointmentsList.push(rescheduledAppointment);
+              }
+            }
+          }
+        }
 
         // Get unique listing IDs for a separate query
         const listingIds = [...new Set(appointmentsList.map(apt => apt.listing_id).filter(Boolean))];
@@ -179,25 +228,77 @@ export const useCalendarAppointments = (currentDate: Date) => {
         }
 
         // Transform appointments with enhanced data and location building
-        const enhancedAppointments: EnhancedAppointment[] = appointmentsList.map(appointment => {
-          const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
-          
-          // Build complete location using the shared helper
-          const completeLocation = buildAppointmentLocation({
-            appointment,
-            clientData: clientUser
+        const enhancedAppointments: EnhancedAppointment[] = appointmentsList
+          .filter(appointment => {
+            // Filter out original dates that have been rescheduled
+            if (appointment.recurrence && appointment.recurrence !== 'none') {
+              const appointmentDate = new Date(appointment.start_time);
+              const shouldHide = shouldHideOriginalDate(
+                {
+                  id: appointment.id,
+                  provider_id: appointment.provider_id,
+                  client_id: appointment.client_id || '',
+                  start_time: appointment.start_time,
+                  end_time: appointment.end_time,
+                  recurrence: appointment.recurrence,
+                  status: appointment.status,
+                  listing_id: appointment.listing_id
+                },
+                appointmentDate,
+                exceptions
+              );
+              
+              // Don't filter if it's a rescheduled appointment (has special ID)
+              if (shouldHide && !appointment.id.includes('_rescheduled_')) {
+                console.log(`Hiding original appointment ${appointment.id} on ${format(appointmentDate, 'yyyy-MM-dd')} due to rescheduling`);
+                return false;
+              }
+            }
+            return true;
+          })
+          .map(appointment => {
+            const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
+            
+            // Build complete location using the shared helper
+            const completeLocation = buildAppointmentLocation({
+              appointment,
+              clientData: clientUser
+            });
+
+            // Check if this is a rescheduled appointment and add styling
+            const isRescheduledAppointment = appointment.id.includes('_rescheduled_');
+            let rescheduledStyle = '';
+            
+            if (!isRescheduledAppointment && appointment.recurrence && appointment.recurrence !== 'none') {
+              const appointmentDate = new Date(appointment.start_time);
+              rescheduledStyle = getAppointmentStyleClass(
+                {
+                  id: appointment.id,
+                  provider_id: appointment.provider_id,
+                  client_id: appointment.client_id || '',
+                  start_time: appointment.start_time,
+                  end_time: appointment.end_time,
+                  recurrence: appointment.recurrence,
+                  status: appointment.status,
+                  listing_id: appointment.listing_id
+                },
+                appointmentDate,
+                exceptions
+              );
+            }
+
+            console.log(`✅ CALENDAR: Final location for appointment ${appointment.id}: "${completeLocation}"`);
+
+            return {
+              ...appointment,
+              listings: listingsMap[appointment.listing_id] || null,
+              users: clientUser,
+              residencias: clientUser?.residencias || null,
+              complete_location: completeLocation,
+              rescheduled_style: rescheduledStyle,
+              is_rescheduled_appointment: isRescheduledAppointment
+            };
           });
-
-          console.log(`✅ CALENDAR: Final location for appointment ${appointment.id}: "${completeLocation}"`);
-
-          return {
-            ...appointment,
-            listings: listingsMap[appointment.listing_id] || null,
-            users: clientUser,
-            residencias: clientUser?.residencias || null,
-            complete_location: completeLocation
-          };
-        });
 
         console.log(`Successfully processed ${enhancedAppointments.length} appointments for calendar`);
         return enhancedAppointments;

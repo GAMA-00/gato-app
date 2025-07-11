@@ -9,6 +9,7 @@ export interface RecurringException {
   id: string;
   appointment_id: string;
   exception_date: string;
+  original_date?: string; // Nueva propiedad para rastrear la fecha original
   action_type: 'cancelled' | 'rescheduled';
   new_start_time?: string;
   new_end_time?: string;
@@ -221,4 +222,51 @@ export function getAllRecurringInstances(
   }
 
   return allInstances;
+}
+
+/**
+ * Check if an original appointment date should be hidden due to rescheduling
+ */
+export function shouldHideOriginalDate(
+  appointment: RecurringAppointment,
+  appointmentDate: Date,
+  exceptions: RecurringException[]
+): boolean {
+  const dateStr = format(appointmentDate, 'yyyy-MM-dd');
+  
+  // Check if there's a rescheduling exception for this exact date
+  const exception = exceptions.find(ex => 
+    ex.appointment_id === appointment.id && 
+    ex.original_date === dateStr &&
+    ex.action_type === 'rescheduled'
+  );
+  
+  return !!exception;
+}
+
+/**
+ * Get style class for appointment based on its status
+ */
+export function getAppointmentStyleClass(
+  appointment: RecurringAppointment,
+  appointmentDate: Date,
+  exceptions: RecurringException[]
+): string {
+  const dateStr = format(appointmentDate, 'yyyy-MM-dd');
+  
+  // Check for exceptions on this date
+  const exception = exceptions.find(ex => 
+    ex.appointment_id === appointment.id && 
+    ex.original_date === dateStr
+  );
+  
+  if (exception) {
+    if (exception.action_type === 'cancelled') {
+      return 'bg-red-100 border-red-300 text-red-700'; // Rojo para canceladas
+    } else if (exception.action_type === 'rescheduled') {
+      return 'bg-orange-100 border-orange-300 text-orange-700'; // Naranja para reagendadas
+    }
+  }
+  
+  return ''; // Estilo normal
 }

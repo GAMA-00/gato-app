@@ -128,7 +128,8 @@ export const RescheduleAppointmentModal = ({
       // Use the new simplified system to reschedule this instance
       rescheduleInstance({
         appointmentId,
-        exceptionDate: currentDate,
+        exceptionDate: newStartTime, // La nueva fecha/hora
+        originalDate: currentDate, // La fecha original que se está cambiando
         newStartTime,
         newEndTime,
         notes: `Reagendado a ${format(newStartTime, 'PPPp', { locale: es })}`

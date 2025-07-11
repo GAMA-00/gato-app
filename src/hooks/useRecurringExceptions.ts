@@ -7,6 +7,7 @@ export interface RecurringException {
   id: string;
   appointment_id: string;
   exception_date: string;
+  original_date?: string; // Nueva propiedad para rastrear la fecha original
   action_type: 'cancelled' | 'rescheduled';
   new_start_time?: string;
   new_end_time?: string;
@@ -48,10 +49,12 @@ export const useCancelRecurringInstance = () => {
     mutationFn: async ({
       appointmentId,
       exceptionDate,
+      originalDate,
       notes
     }: {
       appointmentId: string;
       exceptionDate: Date;
+      originalDate?: Date; // Fecha original que se está cancelando
       notes?: string;
     }) => {
       const { data, error } = await supabase
@@ -59,6 +62,7 @@ export const useCancelRecurringInstance = () => {
         .insert({
           appointment_id: appointmentId,
           exception_date: format(exceptionDate, 'yyyy-MM-dd'),
+          original_date: originalDate ? format(originalDate, 'yyyy-MM-dd') : format(exceptionDate, 'yyyy-MM-dd'),
           action_type: 'cancelled',
           notes
         })
@@ -94,12 +98,14 @@ export const useRescheduleRecurringInstance = () => {
     mutationFn: async ({
       appointmentId,
       exceptionDate,
+      originalDate,
       newStartTime,
       newEndTime,
       notes
     }: {
       appointmentId: string;
       exceptionDate: Date;
+      originalDate?: Date; // Fecha original que se está reagendando
       newStartTime: Date;
       newEndTime: Date;
       notes?: string;
@@ -109,6 +115,7 @@ export const useRescheduleRecurringInstance = () => {
         .insert({
           appointment_id: appointmentId,
           exception_date: format(exceptionDate, 'yyyy-MM-dd'),
+          original_date: originalDate ? format(originalDate, 'yyyy-MM-dd') : format(exceptionDate, 'yyyy-MM-dd'),
           action_type: 'rescheduled',
           new_start_time: newStartTime.toISOString(),
           new_end_time: newEndTime.toISOString(),
