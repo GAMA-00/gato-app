@@ -89,7 +89,8 @@ const ClientProviderServiceDetail = () => {
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Cargando..." subtitle="">
-            <div className="space-y-6 w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto px-6 lg:px-8 xl:px-12">
+            <div className="flex justify-center w-full px-4 lg:px-8">
+              <div className="w-full max-w-2xl lg:max-w-3xl space-y-6">
               <Skeleton className="h-48 w-full rounded-lg" />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
@@ -99,6 +100,7 @@ const ClientProviderServiceDetail = () => {
                 <div className="space-y-6">
                   <Skeleton className="h-48 w-full rounded-lg" />
                   <Skeleton className="h-32 w-full rounded-lg" />
+                </div>
                 </div>
               </div>
             </div>
@@ -114,11 +116,13 @@ const ClientProviderServiceDetail = () => {
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Error" subtitle="">
-            <div className="text-center py-12 w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto px-6 lg:px-8 xl:px-12">
+            <div className="flex justify-center w-full px-4 lg:px-8">
+              <div className="text-center py-12 w-full max-w-2xl lg:max-w-3xl">
               <p className="text-muted-foreground mb-4">
                 No se pudo cargar la información del servicio
               </p>
-              <BackButton onClick={handleBack} />
+                <BackButton onClick={handleBack} />
+              </div>
             </div>
           </PageContainer>
         </div>
@@ -172,7 +176,8 @@ const ClientProviderServiceDetail = () => {
       <Navbar />
       <div className="md:ml-52">
         <PageContainer title="" subtitle="">
-          <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto px-6 lg:px-8 xl:px-12">
+          <div className="flex justify-center w-full px-4 lg:px-8">
+            <div className="w-full max-w-2xl lg:max-w-3xl">
             <div className="space-y-6 sm:space-y-8">
               {/* Back button */}
               <div className="w-full">
@@ -265,6 +270,7 @@ const ClientProviderServiceDetail = () => {
                   Agendar Servicio
                 </Button>
               </div>
+            </div>
             </div>
           </div>
         </PageContainer>
