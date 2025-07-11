@@ -34,18 +34,8 @@ export function useProviderServiceMerits(providerId?: string, listingId?: string
 
       console.log('Fetching provider service merits for:', { providerId, listingId });
 
-      // Fetch all ratings for this provider to calculate accurate average
-      const { data: ratings, error: ratingsError } = await supabase
-        .from('provider_ratings')
-        .select('rating')
-        .eq('provider_id', providerId);
-
-      if (ratingsError) {
-        console.error('Error fetching ratings:', ratingsError);
-      }
-
-      // Optimized parallel queries for other data
-      const [appointmentsResponse, recurringResponse] = await Promise.all([
+      // Optimized parallel queries for provider data
+      const [appointmentsResponse, recurringResponse, userResponse, ratingCountResponse] = await Promise.all([
         // Get completed jobs count for this specific listing
         supabase
           .from('appointments')
@@ -57,7 +47,21 @@ export function useProviderServiceMerits(providerId?: string, listingId?: string
         // Get recurring clients count for the entire provider (all listings)
         supabase.rpc('get_recurring_clients_count', { 
           provider_id: providerId
-        })
+        }),
+
+        // Get provider's average rating from users table (already calculated correctly)
+        supabase
+          .from('users')
+          .select('average_rating')
+          .eq('id', providerId)
+          .single(),
+
+        // Get rating count from completed appointments only by joining tables
+        supabase
+          .from('provider_ratings')
+          .select('id, appointments!inner(status)', { count: 'exact', head: true })
+          .eq('provider_id', providerId)
+          .eq('appointments.status', 'completed')
       ]);
 
       // Handle errors gracefully
@@ -69,20 +73,21 @@ export function useProviderServiceMerits(providerId?: string, listingId?: string
         console.error('Error fetching recurring clients for provider:', recurringResponse.error);
       }
 
+      if (userResponse.error) {
+        console.error('Error fetching user rating:', userResponse.error);
+      }
+
+      if (ratingCountResponse.error) {
+        console.error('Error fetching rating count:', ratingCountResponse.error);
+      }
+
       // Calculate data with defaults
       const completedJobsCount = appointmentsResponse.count || 0;
       const recurringClientsCount = Number(recurringResponse.data) || 0;
-      const ratingCount = ratings?.length || 0;
+      const ratingCount = ratingCountResponse.count || 0;
 
-      // Calculate average rating with 5-star base system
-      let averageRating = 5.0;
-      
-      if (ratingCount > 0 && ratings) {
-        // Apply the 5-star base formula: (5 + sum of ratings) / (count + 1)
-        const sumOfRatings = ratings.reduce((sum, rating) => sum + rating.rating, 0);
-        averageRating = (5.0 + sumOfRatings) / (ratingCount + 1);
-        averageRating = Math.round(averageRating * 10) / 10; // Round to 1 decimal place
-      }
+      // Use the average rating from users table (already calculated correctly with completed appointments only)
+      const averageRating = userResponse.data?.average_rating || 5.0;
 
       // Get provider level based on completed jobs (overall, not just this service)
       const { count: totalCompletedJobs } = await supabase
@@ -100,7 +105,7 @@ export function useProviderServiceMerits(providerId?: string, listingId?: string
         completedJobsCount,
         ratingCount,
         providerLevel: providerLevel.name,
-        ratingsData: ratings
+        userAverageRating: userResponse.data?.average_rating
       });
 
       return {
