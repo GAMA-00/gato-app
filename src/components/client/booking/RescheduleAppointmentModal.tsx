@@ -91,9 +91,14 @@ export const RescheduleAppointmentModal = ({
     excludeAppointmentId: appointmentId // Excluir la cita actual del cálculo
   });
 
-  const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
-    setSelectedTime('');
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = e.target.value; // yyyy-MM-dd format
+    if (dateValue) {
+      const [year, month, day] = dateValue.split('-').map(Number);
+      const newDate = new Date(year, month - 1, day); // month is 0-indexed
+      setSelectedDate(newDate);
+      setSelectedTime('');
+    }
   };
 
   const { mutate: rescheduleInstance, isPending: rescheduleLoading } = useRescheduleRecurringInstance();
@@ -275,7 +280,7 @@ export const RescheduleAppointmentModal = ({
             <input
               type="date"
               value={format(selectedDate, 'yyyy-MM-dd')}
-              onChange={(e) => handleDateChange(new Date(e.target.value))}
+              onChange={handleDateChange}
               min={format(new Date(), 'yyyy-MM-dd')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
