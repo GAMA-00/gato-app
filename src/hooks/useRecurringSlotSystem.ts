@@ -48,7 +48,28 @@ export const useRecurringSlotSystem = ({
     queryFn: async () => {
       const appointments: RecurringSlotAppointment[] = [];
 
-      // 1. Get regular appointments (including recurring ones)
+      // 1. First get ALL exceptions for the provider in the date range
+      let allExceptions: RecurringException[] = [];
+      if (providerId) {
+        const { data: exceptionsData, error: exceptionsError } = await supabase
+          .from('recurring_exceptions')
+          .select(`
+            *,
+            appointments!inner(provider_id)
+          `)
+          .eq('appointments.provider_id', providerId)
+          .gte('exception_date', format(startDate, 'yyyy-MM-dd'))
+          .lte('exception_date', format(endDate, 'yyyy-MM-dd'));
+
+        if (exceptionsError) {
+          console.error('❌ Error fetching all exceptions:', exceptionsError);
+        } else {
+          allExceptions = (exceptionsData || []) as RecurringException[];
+          console.log(`📋 Found ${allExceptions.length} exceptions for provider`);
+        }
+      }
+
+      // 2. Get regular appointments (including recurring ones)
       if (providerId) {
         const { data: regularAppointments, error: appointmentsError } = await supabase
           .from('appointments')
@@ -67,21 +88,66 @@ export const useRecurringSlotSystem = ({
           throw appointmentsError;
         }
 
-        // Process regular appointments
+        // Filter out original appointments that have "rescheduled" exceptions
+        const rescheduledAppointmentIds = allExceptions
+          .filter(ex => ex.action_type === 'rescheduled')
+          .map(ex => ex.appointment_id);
+
+        console.log(`🔄 Found ${rescheduledAppointmentIds.length} rescheduled appointments to filter out`);
+
+        // Process regular appointments, excluding rescheduled originals
         (regularAppointments || []).forEach(appointment => {
-          appointments.push({
-            ...appointment,
-            is_recurring_instance: appointment.is_recurring_instance || false,
-            client_name: appointment.client_name || 'Cliente',
-            service_title: appointment.listings?.title || 'Servicio',
-            complete_location: buildAppointmentLocation({
-              appointment,
-              clientData: null
-            }),
-            recurrence: appointment.recurrence || 'none',
-            recurring_blocked: false
-          });
+          const isRescheduledOriginal = rescheduledAppointmentIds.includes(appointment.id);
+          
+          if (!isRescheduledOriginal) {
+            appointments.push({
+              ...appointment,
+              is_recurring_instance: appointment.is_recurring_instance || false,
+              client_name: appointment.client_name || 'Cliente',
+              service_title: appointment.listings?.title || 'Servicio',
+              complete_location: buildAppointmentLocation({
+                appointment,
+                clientData: null
+              }),
+              recurrence: appointment.recurrence || 'none',
+              recurring_blocked: false
+            });
+          } else {
+            console.log(`⚠️ Filtered out rescheduled original appointment: ${appointment.id} at ${appointment.start_time}`);
+          }
         });
+
+        // Add virtual appointments for rescheduled dates
+        const rescheduledExceptions = allExceptions.filter(ex => 
+          ex.action_type === 'rescheduled' && ex.new_start_time && ex.new_end_time
+        );
+
+        for (const exception of rescheduledExceptions) {
+          const originalAppointment = regularAppointments?.find(app => app.id === exception.appointment_id);
+          if (originalAppointment) {
+            appointments.push({
+              id: `rescheduled-${exception.id}`,
+              provider_id: originalAppointment.provider_id,
+              client_id: originalAppointment.client_id || '',
+              listing_id: originalAppointment.listing_id,
+              start_time: exception.new_start_time,
+              end_time: exception.new_end_time,
+              status: 'confirmed',
+              recurrence: 'none',
+              client_name: originalAppointment.client_name || 'Cliente',
+              service_title: originalAppointment.listings?.title || 'Servicio',
+              notes: exception.notes || originalAppointment.notes,
+              is_recurring_instance: false,
+              complete_location: buildAppointmentLocation({
+                appointment: originalAppointment,
+                clientData: null
+              }),
+              external_booking: false,
+              recurring_blocked: false
+            });
+            console.log(`✅ Added rescheduled virtual appointment: ${exception.new_start_time}`);
+          }
+        }
       }
 
       // 2. Get recurring appointments (those with recurrence != 'none')
