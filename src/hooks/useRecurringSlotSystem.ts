@@ -2,6 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfDay, endOfDay, addWeeks } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
+import { 
+  getAllRecurringInstances, 
+  type RecurringAppointment, 
+  type RecurringException,
+  type CalculatedRecurringInstance 
+} from '@/utils/simplifiedRecurrenceUtils';
 
 interface UseRecurringSlotSystemProps {
   selectedDate: Date;
@@ -33,7 +39,7 @@ export const useRecurringSlotSystem = ({
   providerId,
   clientId 
 }: UseRecurringSlotSystemProps) => {
-  // Rango extendido: 1 mes atrás, 12 meses adelante para mostrar todo el año de citas recurrentes
+  // Extended range: 1 month back, 12 months ahead to show the full year of recurring appointments
   const startDate = startOfDay(addWeeks(selectedDate, -4));
   const endDate = endOfDay(addWeeks(selectedDate, 52));
 
@@ -42,7 +48,7 @@ export const useRecurringSlotSystem = ({
     queryFn: async () => {
       const appointments: RecurringSlotAppointment[] = [];
 
-      // 1. Obtener citas regulares
+      // 1. Get regular appointments (including recurring ones)
       if (providerId) {
         const { data: regularAppointments, error: appointmentsError } = await supabase
           .from('appointments')
@@ -61,7 +67,7 @@ export const useRecurringSlotSystem = ({
           throw appointmentsError;
         }
 
-        // Procesar citas regulares
+        // Process regular appointments
         (regularAppointments || []).forEach(appointment => {
           appointments.push({
             ...appointment,
@@ -78,76 +84,102 @@ export const useRecurringSlotSystem = ({
         });
       }
 
-      // 2. Obtener slots bloqueados por recurrencia (estos representan las citas recurrentes)
-      let blockedSlotsQuery = supabase
-        .from('provider_time_slots')
+      // 2. Get recurring appointments (those with recurrence != 'none')
+      let recurringQuery = supabase
+        .from('appointments')
         .select(`
           *,
-          recurring_rules(
-            client_id,
-            provider_id,
-            listing_id,
-            client_name,
-            client_address,
-            client_phone,
-            client_email,
-            notes,
-            recurrence_type
-          ),
-          listings(title)
+          listings(title, duration)
         `)
-        .eq('recurring_blocked', true)
-        .eq('is_available', false)
-        .gte('slot_datetime_start', startDate.toISOString())
-        .lte('slot_datetime_start', endDate.toISOString())
-        .order('slot_datetime_start', { ascending: true });
+        .neq('recurrence', 'none')
+        .not('recurrence', 'is', null)
+        .in('status', ['confirmed', 'pending'])
+        .order('created_at', { ascending: true });
 
       if (providerId) {
-        blockedSlotsQuery = blockedSlotsQuery.eq('provider_id', providerId);
+        recurringQuery = recurringQuery.eq('provider_id', providerId);
       }
-
       if (clientId) {
-        blockedSlotsQuery = blockedSlotsQuery.eq('recurring_rules.client_id', clientId);
+        recurringQuery = recurringQuery.eq('client_id', clientId);
       }
 
-      const { data: blockedSlots, error: slotsError } = await blockedSlotsQuery;
+      const { data: recurringAppointments, error: recurringError } = await recurringQuery;
 
-      if (slotsError) {
-        console.error('❌ Error fetching blocked slots:', slotsError);
-        throw slotsError;
+      if (recurringError) {
+        console.error('❌ Error fetching recurring appointments:', recurringError);
+        throw recurringError;
       }
 
-      // Procesar slots bloqueados como citas recurrentes
-      (blockedSlots || []).forEach(slot => {
-        if (slot.recurring_rules) {
+      // 3. Get recurring exceptions
+      const appointmentIds = (recurringAppointments || []).map(app => app.id);
+      let exceptions: RecurringException[] = [];
+
+      if (appointmentIds.length > 0) {
+        const { data: exceptionsData, error: exceptionsError } = await supabase
+          .from('recurring_exceptions')
+          .select('*')
+          .in('appointment_id', appointmentIds)
+          .gte('exception_date', format(startDate, 'yyyy-MM-dd'))
+          .lte('exception_date', format(endDate, 'yyyy-MM-dd'));
+
+        if (exceptionsError) {
+          console.error('❌ Error fetching recurring exceptions:', exceptionsError);
+          throw exceptionsError;
+        }
+
+        exceptions = (exceptionsData || []) as RecurringException[];
+      }
+
+      // 4. Calculate recurring instances
+      if (recurringAppointments && recurringAppointments.length > 0) {
+        const recurringInstances = getAllRecurringInstances(
+          recurringAppointments as RecurringAppointment[],
+          exceptions,
+          startDate,
+          endDate,
+          providerId
+        );
+
+        // Convert to RecurringSlotAppointment format
+        recurringInstances.forEach(instance => {
+          // Skip cancelled instances
+          if (instance.status === 'cancelled') {
+            return;
+          }
+
+          const originalAppointment = instance.original_appointment;
+          const displayStart = instance.status === 'rescheduled' && instance.new_start_time 
+            ? instance.new_start_time 
+            : instance.start_time;
+          const displayEnd = instance.status === 'rescheduled' && instance.new_end_time 
+            ? instance.new_end_time 
+            : instance.end_time;
+
           appointments.push({
-            id: `recurring-slot-${slot.id}`,
-            provider_id: slot.provider_id,
-            client_id: slot.recurring_rules.client_id,
-            listing_id: slot.listing_id,
-            start_time: slot.slot_datetime_start,
-            end_time: slot.slot_datetime_end,
-            status: 'confirmed',
-            recurrence: slot.recurring_rules.recurrence_type,
-            client_name: slot.recurring_rules.client_name || 'Cliente',
-            service_title: slot.listings?.title || 'Servicio',
-            notes: slot.recurring_rules.notes,
+            id: `recurring-${originalAppointment.id}-${format(instance.date, 'yyyy-MM-dd')}`,
+            provider_id: originalAppointment.provider_id,
+            client_id: originalAppointment.client_id,
+            listing_id: originalAppointment.listing_id,
+            start_time: displayStart.toISOString(),
+            end_time: displayEnd.toISOString(),
+            status: instance.status === 'rescheduled' ? 'confirmed' : 'confirmed',
+            recurrence: originalAppointment.recurrence,
+            client_name: originalAppointment.client_name || 'Cliente',
+            service_title: 'Servicio Recurrente', // We'll need to get this from listings
+            notes: instance.exception?.notes || originalAppointment.notes,
             is_recurring_instance: true,
-            recurring_rule_id: slot.recurring_rule_id,
+            recurring_rule_id: originalAppointment.id,
             complete_location: buildAppointmentLocation({
-              appointment: {
-                client_address: slot.recurring_rules.client_address,
-                external_booking: false
-              },
+              appointment: originalAppointment,
               clientData: null
             }),
             external_booking: false,
-            recurring_blocked: true
+            recurring_blocked: false
           });
-        }
-      });
+        });
+      }
 
-      // 3. Eliminar duplicados dando prioridad a citas regulares sobre slots bloqueados
+      // 5. Remove duplicates, prioritizing regular appointments over recurring instances
       const uniqueAppointments = appointments.reduce((acc, appointment) => {
         const key = `${appointment.provider_id}-${appointment.start_time}-${appointment.end_time}`;
         
@@ -156,12 +188,10 @@ export const useRecurringSlotSystem = ({
         } else {
           const existing = acc.get(key);
           
-          // Prioridad: cita regular > slot bloqueado
-          if (existing.recurring_blocked && !appointment.recurring_blocked) {
+          // Priority: regular appointment > recurring instance
+          if (existing.is_recurring_instance && !appointment.is_recurring_instance) {
             acc.set(key, appointment);
-            console.log(`🔄 Replaced blocked slot with regular appointment for ${appointment.start_time}`);
-          } else if (!existing.recurring_blocked && appointment.recurring_blocked) {
-            console.log(`⚠️ Keeping regular appointment over blocked slot for ${appointment.start_time}`);
+            console.log(`🔄 Replaced recurring instance with regular appointment for ${appointment.start_time}`);
           }
         }
         
@@ -174,23 +204,24 @@ export const useRecurringSlotSystem = ({
       
       return finalAppointments;
     },
-    staleTime: 30 * 1000, // 30 segundos
+    staleTime: 30 * 1000, // 30 seconds
     refetchInterval: false,
     enabled: !!(providerId || clientId),
     refetchOnWindowFocus: true
   });
 };
 
-// Hook específico para obtener la próxima cita de un cliente
+// Hook for getting the next client appointment
 export const useNextClientAppointment = (clientId?: string) => {
   return useQuery({
     queryKey: ['next-client-appointment', clientId],
     queryFn: async () => {
       if (!clientId) return null;
 
-      const now = new Date().toISOString();
+      const now = new Date();
+      const futureDate = addWeeks(now, 4);
 
-      // Buscar la próxima cita regular
+      // Get regular appointments
       const { data: regularAppointment } = await supabase
         .from('appointments')
         .select(`
@@ -199,91 +230,102 @@ export const useNextClientAppointment = (clientId?: string) => {
         `)
         .eq('client_id', clientId)
         .in('status', ['pending', 'confirmed', 'scheduled'])
-        .gte('start_time', now)
+        .gte('start_time', now.toISOString())
         .order('start_time', { ascending: true })
         .limit(1);
 
-      // Buscar el próximo slot bloqueado
-      const { data: blockedSlot } = await supabase
-        .from('provider_time_slots')
+      // Get recurring appointments
+      const { data: recurringAppointments } = await supabase
+        .from('appointments')
         .select(`
           *,
-          recurring_rules(
-            client_id,
-            provider_id,
-            listing_id,
-            client_name,
-            client_address,
-            client_phone,
-            client_email,
-            notes,
-            recurrence_type
-          ),
-          listings(title)
+          listings(title, duration)
         `)
-        .eq('recurring_blocked', true)
-        .eq('recurring_rules.client_id', clientId)
-        .gte('slot_datetime_start', now)
-        .order('slot_datetime_start', { ascending: true })
-        .limit(1);
+        .eq('client_id', clientId)
+        .neq('recurrence', 'none')
+        .not('recurrence', 'is', null)
+        .in('status', ['confirmed', 'pending']);
 
-      // Determinar cuál es más próximo
-      let nextAppointment = null;
+      // Get exceptions
+      const appointmentIds = (recurringAppointments || []).map(app => app.id);
+      let exceptions: RecurringException[] = [];
 
-      if (regularAppointment?.[0] && blockedSlot?.[0]) {
-        const regularTime = new Date(regularAppointment[0].start_time).getTime();
-        const blockedTime = new Date(blockedSlot[0].slot_datetime_start).getTime();
-        
-        if (regularTime <= blockedTime) {
-          nextAppointment = {
-            ...regularAppointment[0],
-            service_title: regularAppointment[0].listings?.title || 'Servicio',
-            is_recurring_blocked: false
-          };
-        } else {
-          nextAppointment = {
-            id: `recurring-slot-${blockedSlot[0].id}`,
-            provider_id: blockedSlot[0].provider_id,
-            client_id: blockedSlot[0].recurring_rules?.client_id,
-            listing_id: blockedSlot[0].listing_id,
-            start_time: blockedSlot[0].slot_datetime_start,
-            end_time: blockedSlot[0].slot_datetime_end,
+      if (appointmentIds.length > 0) {
+        const { data: exceptionsData } = await supabase
+          .from('recurring_exceptions')
+          .select('*')
+          .in('appointment_id', appointmentIds)
+          .gte('exception_date', format(now, 'yyyy-MM-dd'));
+
+        exceptions = (exceptionsData || []) as RecurringException[];
+      }
+
+      // Calculate next recurring instance
+      let nextRecurringInstance = null;
+      if (recurringAppointments && recurringAppointments.length > 0) {
+        const recurringInstances = getAllRecurringInstances(
+          recurringAppointments as RecurringAppointment[],
+          exceptions,
+          now,
+          futureDate
+        );
+
+        const nextInstance = recurringInstances
+          .filter(instance => instance.status !== 'cancelled')
+          .sort((a, b) => {
+            const timeA = a.status === 'rescheduled' && a.new_start_time 
+              ? a.new_start_time.getTime() 
+              : a.start_time.getTime();
+            const timeB = b.status === 'rescheduled' && b.new_start_time 
+              ? b.new_start_time.getTime() 
+              : b.start_time.getTime();
+            return timeA - timeB;
+          })[0];
+
+        if (nextInstance) {
+          const displayStart = nextInstance.status === 'rescheduled' && nextInstance.new_start_time 
+            ? nextInstance.new_start_time 
+            : nextInstance.start_time;
+          const displayEnd = nextInstance.status === 'rescheduled' && nextInstance.new_end_time 
+            ? nextInstance.new_end_time 
+            : nextInstance.end_time;
+
+          nextRecurringInstance = {
+            id: `recurring-${nextInstance.appointment_id}-${format(nextInstance.date, 'yyyy-MM-dd')}`,
+            provider_id: nextInstance.original_appointment.provider_id,
+            client_id: nextInstance.original_appointment.client_id,
+            listing_id: nextInstance.original_appointment.listing_id,
+            start_time: displayStart.toISOString(),
+            end_time: displayEnd.toISOString(),
             status: 'confirmed',
-            recurrence: blockedSlot[0].recurring_rules?.recurrence_type,
-            client_name: blockedSlot[0].recurring_rules?.client_name || 'Cliente',
-            service_title: blockedSlot[0].listings?.title || 'Servicio',
-            notes: blockedSlot[0].recurring_rules?.notes,
-            is_recurring_instance: true,
-            recurring_rule_id: blockedSlot[0].recurring_rule_id,
+            recurrence: nextInstance.original_appointment.recurrence,
+            service_title: 'Servicio Recurrente',
             is_recurring_blocked: true
           };
         }
-      } else if (regularAppointment?.[0]) {
-        nextAppointment = {
+      }
+
+      // Determine which is closer
+      if (regularAppointment?.[0] && nextRecurringInstance) {
+        const regularTime = new Date(regularAppointment[0].start_time).getTime();
+        const recurringTime = new Date(nextRecurringInstance.start_time).getTime();
+        
+        return regularTime <= recurringTime ? {
+          ...regularAppointment[0],
+          service_title: regularAppointment[0].listings?.title || 'Servicio',
+          is_recurring_blocked: false
+        } : nextRecurringInstance;
+      }
+
+      if (regularAppointment?.[0]) {
+        return {
           ...regularAppointment[0],
           service_title: regularAppointment[0].listings?.title || 'Servicio',
           is_recurring_blocked: false
         };
-      } else if (blockedSlot?.[0] && blockedSlot[0].recurring_rules) {
-        nextAppointment = {
-          id: `recurring-slot-${blockedSlot[0].id}`,
-          provider_id: blockedSlot[0].provider_id,
-          client_id: blockedSlot[0].recurring_rules.client_id,
-          listing_id: blockedSlot[0].listing_id,
-          start_time: blockedSlot[0].slot_datetime_start,
-          end_time: blockedSlot[0].slot_datetime_end,
-          status: 'confirmed',
-          recurrence: blockedSlot[0].recurring_rules.recurrence_type,
-          client_name: blockedSlot[0].recurring_rules.client_name || 'Cliente',
-          service_title: blockedSlot[0].listings?.title || 'Servicio',
-          notes: blockedSlot[0].recurring_rules.notes,
-          is_recurring_instance: true,
-          recurring_rule_id: blockedSlot[0].recurring_rule_id,
-          is_recurring_blocked: true
-        };
       }
 
-      return nextAppointment;
+      return nextRecurringInstance;
     },
     staleTime: 30 * 1000,
     enabled: !!clientId

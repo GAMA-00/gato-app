@@ -623,6 +623,50 @@ export type Database = {
           },
         ]
       }
+      recurring_exceptions: {
+        Row: {
+          action_type: string
+          appointment_id: string
+          created_at: string
+          exception_date: string
+          id: string
+          new_end_time: string | null
+          new_start_time: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          appointment_id: string
+          created_at?: string
+          exception_date: string
+          id?: string
+          new_end_time?: string | null
+          new_start_time?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          appointment_id?: string
+          created_at?: string
+          exception_date?: string
+          id?: string
+          new_end_time?: string | null
+          new_start_time?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_exceptions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_instances: {
         Row: {
           created_at: string

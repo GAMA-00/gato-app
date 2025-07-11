@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { isSameDay, format, addWeeks, addDays, addMonths } from 'date-fns';
+import { checkRecurringConflicts as checkRecurringConflictsUtil, type RecurringAppointment, type RecurringException } from '@/utils/simplifiedRecurrenceUtils';
 
 interface ConflictCheckResult {
   hasConflict: boolean;
@@ -15,16 +15,15 @@ export const validateAppointmentSlot = async (
   excludeAppointmentId?: string
 ): Promise<ConflictCheckResult> => {
   try {
-    console.log(`Validating unified availability for provider ${providerId}: ${format(startTime, 'yyyy-MM-dd HH:mm')} - ${format(endTime, 'yyyy-MM-dd HH:mm')}`);
+    console.log(`Validating availability for provider ${providerId}: ${format(startTime, 'yyyy-MM-dd HH:mm')} - ${format(endTime, 'yyyy-MM-dd HH:mm')}`);
 
-    // CORRECTED QUERY: Get ALL appointments for this provider to check for overlaps
+    // 1. Check regular appointments
     let query = supabase
       .from('appointments')
       .select('id, start_time, end_time, client_name, status, external_booking, listing_id, recurrence')
       .eq('provider_id', providerId)
       .in('status', ['pending', 'confirmed', 'completed', 'scheduled']);
 
-    // Exclude specific appointment if provided (for rescheduling)
     if (excludeAppointmentId) {
       query = query.neq('id', excludeAppointmentId);
     }
@@ -33,12 +32,12 @@ export const validateAppointmentSlot = async (
 
     if (appointmentsError) {
       console.error('Error checking provider appointments:', appointmentsError);
-      return { hasConflict: false }; // Don't block on error, just log
+      return { hasConflict: false };
     }
 
-    console.log(`Found ${allAppointments?.length || 0} total appointments to check for provider ${providerId}`);
+    console.log(`Found ${allAppointments?.length || 0} appointments to check for provider ${providerId}`);
 
-    // Check for conflicts with ALL appointments (internal, external, recurring)
+    // Check for conflicts with regular appointments
     if (allAppointments) {
       for (const appointment of allAppointments) {
         const appointmentStart = new Date(appointment.start_time);
@@ -46,7 +45,7 @@ export const validateAppointmentSlot = async (
         
         // Check if times overlap
         if (startTime < appointmentEnd && endTime > appointmentStart) {
-          console.log(`Conflict found with ${appointment.external_booking ? 'external' : 'internal'} appointment ${appointment.id}`);
+          console.log(`Conflict found with appointment ${appointment.id}`);
           return {
             hasConflict: true,
             conflictReason: appointment.external_booking 
@@ -63,23 +62,71 @@ export const validateAppointmentSlot = async (
       }
     }
 
+    // 2. Check recurring appointments conflicts
+    const { data: recurringAppointments, error: recurringError } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('provider_id', providerId)
+      .neq('recurrence', 'none')
+      .not('recurrence', 'is', null)
+      .in('status', ['confirmed', 'pending']);
+
+    if (recurringError) {
+      console.error('Error checking recurring appointments:', recurringError);
+      return { hasConflict: false };
+    }
+
+    // Get recurring exceptions
+    const appointmentIds = (recurringAppointments || []).map(app => app.id);
+    let exceptions: RecurringException[] = [];
+
+    if (appointmentIds.length > 0) {
+      const { data: exceptionsData, error: exceptionsError } = await supabase
+        .from('recurring_exceptions')
+        .select('*')
+        .in('appointment_id', appointmentIds);
+
+      if (!exceptionsError) {
+        exceptions = (exceptionsData || []) as RecurringException[];
+      }
+    }
+
+    // Check for recurring conflicts using the new utility
+    const hasRecurringConflict = checkRecurringConflictsUtil(
+      recurringAppointments as RecurringAppointment[] || [],
+      exceptions,
+      startTime,
+      endTime
+    );
+
+    if (hasRecurringConflict) {
+      return {
+        hasConflict: true,
+        conflictReason: 'Conflicto con cita recurrente',
+        conflictDetails: {
+          type: 'recurring',
+          time: `${format(startTime, 'HH:mm')} - ${format(endTime, 'HH:mm')}`
+        }
+      };
+    }
 
     console.log('No conflicts found - slot is available');
     return { hasConflict: false };
 
   } catch (error) {
     console.error('Error in validateAppointmentSlot:', error);
-    return { hasConflict: false }; // Don't block on error, allow booking
+    return { hasConflict: false };
   }
 };
 
+// Legacy function - kept for compatibility but simplified
 export const checkRecurringConflicts = async (
   providerId: string,
   startTime: Date,
   endTime: Date,
   recurrence: string
 ): Promise<ConflictCheckResult> => {
-  if (recurrence === 'once') {
+  if (recurrence === 'once' || recurrence === 'none') {
     return { hasConflict: false };
   }
 
@@ -124,6 +171,6 @@ export const checkRecurringConflicts = async (
 
   } catch (error) {
     console.error('Error checking recurring conflicts:', error);
-    return { hasConflict: false }; // Don't block on error
+    return { hasConflict: false };
   }
 };
