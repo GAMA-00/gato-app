@@ -191,9 +191,9 @@ const ClientProviderServiceDetail = () => {
               <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
                  <div className="flex items-center gap-2">
                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                   <span className="font-medium text-lg">
-                     {(providerMerits?.averageRating || transformedProvider.rating).toFixed(1)}
-                   </span>
+                    <span className="font-medium text-lg">
+                      {providerMerits?.averageRating?.toFixed(1) || transformedProvider.rating.toFixed(1)}
+                    </span>
                  </div>
                 <LevelBadge level={providerLevel.level} size="md" />
               </div>
