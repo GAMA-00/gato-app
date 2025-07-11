@@ -89,7 +89,7 @@ const ClientProviderServiceDetail = () => {
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Cargando..." subtitle="">
-            <div className="space-y-6 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+            <div className="space-y-6 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
               <Skeleton className="h-48 w-full rounded-lg" />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
@@ -114,7 +114,7 @@ const ClientProviderServiceDetail = () => {
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Error" subtitle="">
-            <div className="text-center py-12 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+            <div className="text-center py-12 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
               <p className="text-muted-foreground mb-4">
                 No se pudo cargar la información del servicio
               </p>
@@ -172,7 +172,7 @@ const ClientProviderServiceDetail = () => {
       <Navbar />
       <div className="md:ml-52">
         <PageContainer title="" subtitle="">
-          <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+          <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="space-y-6 sm:space-y-8">
               {/* Back button */}
               <div className="w-full">
@@ -208,10 +208,10 @@ const ClientProviderServiceDetail = () => {
 
               {/* 2. Descripción del servicio */}
               <div className="space-y-4 w-full">
-                <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy px-2">
+                <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
                   {serviceDetails.title}
                 </h2>
-                <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6 mx-2 sm:mx-0">
+                <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
                   <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
                   <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
                     {serviceDetails.description}
@@ -239,7 +239,7 @@ const ClientProviderServiceDetail = () => {
               {/* 6. Servicios Disponibles */}
               {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
                 <div className="space-y-6 w-full">
-                  <div className="px-2 sm:px-0">
+                  <div>
                     <ServiceVariantsSelector
                       variants={serviceDetails.serviceVariants}
                       onSelectVariant={setSelectedVariants}
@@ -254,7 +254,7 @@ const ClientProviderServiceDetail = () => {
               </div>
 
               {/* 8. Botón "Agendar Servicio" */}
-              <div className="flex justify-center pt-6 pb-8 sm:pt-8 sm:pb-12 w-full px-2">
+              <div className="flex justify-center pt-6 pb-8 sm:pt-8 sm:pb-12 w-full">
                 <Button 
                   onClick={handleBookService}
                   size="lg"
