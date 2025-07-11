@@ -66,8 +66,8 @@ export const useCalendarAppointments = (currentDate: Date) => {
         console.log('Fetching calendar appointments for provider:', user.id);
         console.log('Date range:', format(startDate, 'yyyy-MM-dd'), 'to', format(endDate, 'yyyy-MM-dd'));
 
-        // Fetch appointments with basic data only
-        const { data: appointments, error: appointmentsError } = await supabase
+        // First, fetch appointments to get their IDs  
+        const { data: allAppointments, error: appointmentsError } = await supabase
           .from('appointments')
           .select(`
             id,
@@ -100,12 +100,11 @@ export const useCalendarAppointments = (currentDate: Date) => {
           throw new Error(`Error fetching appointments: ${appointmentsError.message}`);
         }
 
-        const appointmentsList = appointments || [];
-        console.log(`Found ${appointmentsList.length} appointments for calendar`);
+        const appointmentsList = allAppointments || [];
+        console.log(`Found ${appointmentsList.length} total appointments for calendar`);
 
-        // Fetch recurring exceptions for ALL appointments that might have exceptions
+        // Then fetch ALL recurring exceptions for these appointments
         const allAppointmentIds = appointmentsList.map(apt => apt.id);
-
         let exceptions: any[] = [];
         
         if (allAppointmentIds.length > 0) {
@@ -114,37 +113,57 @@ export const useCalendarAppointments = (currentDate: Date) => {
             .from('recurring_exceptions')
             .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
             .in('appointment_id', allAppointmentIds);
-          
-          exceptions = exceptionsData || [];
-          console.log(`📊 Found ${exceptions.length} exceptions:`, exceptions);
-          
-          // Create virtual appointments for rescheduled instances that fall within our date range
-          const rescheduledExceptions = exceptions.filter(ex => 
-            ex.action_type === 'rescheduled' && ex.new_start_time && ex.new_end_time
-          );
-          
-          for (const exception of rescheduledExceptions) {
-            const newStartTime = new Date(exception.new_start_time);
-            const newEndTime = new Date(exception.new_end_time);
             
-            // Check if the new date falls within our calendar range
-            if (newStartTime >= startDate && newStartTime <= endDate) {
-              const originalAppointment = appointmentsList.find(apt => apt.id === exception.appointment_id);
-              if (originalAppointment) {
-                console.log(`📅 Creating virtual rescheduled appointment for ${exception.appointment_id} on ${format(newStartTime, 'yyyy-MM-dd')}`);
-                // Create a virtual appointment for the rescheduled instance
-                const rescheduledAppointment: AppointmentData = {
-                  ...originalAppointment,
-                  id: `${originalAppointment.id}_rescheduled_${exception.id}`, // Unique ID
-                  start_time: newStartTime.toISOString(),
-                  end_time: newEndTime.toISOString(),
-                  notes: exception.notes || originalAppointment.notes,
-                  is_recurring_instance: true
-                };
-                
-                // Will be processed later with other appointments
-                appointmentsList.push(rescheduledAppointment);
-              }
+          exceptions = exceptionsData || [];
+        }
+          
+        console.log(`📊 Found ${exceptions.length} total exceptions for appointments`);
+
+        // Get appointments that have rescheduled exceptions (to filter them out later)
+        const rescheduledAppointmentIds = new Set(
+          exceptions
+            .filter(ex => ex.action_type === 'rescheduled')
+            .map(ex => ex.appointment_id)
+        );
+        
+        console.log(`🚫 Found ${rescheduledAppointmentIds.size} appointments with reschedule exceptions that should be filtered out`);
+
+        // Filter out original appointments that have been rescheduled (Option B)
+        const filteredAppointments = appointmentsList.filter(apt => {
+          const isRescheduled = rescheduledAppointmentIds.has(apt.id);
+          if (isRescheduled) {
+            console.log(`🚫 Filtering out original rescheduled appointment ${apt.id} on ${format(new Date(apt.start_time), 'yyyy-MM-dd')}`);
+          }
+          return !isRescheduled;
+        });
+
+        console.log(`After filtering: ${filteredAppointments.length} appointments remain`);
+
+        // Create virtual appointments for rescheduled instances that fall within our date range
+        const rescheduledExceptions = exceptions.filter(ex => 
+          ex.action_type === 'rescheduled' && ex.new_start_time && ex.new_end_time
+        );
+        
+        for (const exception of rescheduledExceptions) {
+          const newStartTime = new Date(exception.new_start_time);
+          const newEndTime = new Date(exception.new_end_time);
+          
+          // Check if the new date falls within our calendar range
+          if (newStartTime >= startDate && newStartTime <= endDate) {
+            const originalAppointment = allAppointments.find(apt => apt.id === exception.appointment_id);
+            if (originalAppointment) {
+              console.log(`📅 Creating virtual rescheduled appointment for ${exception.appointment_id} on ${format(newStartTime, 'yyyy-MM-dd')}`);
+              // Create a virtual appointment for the rescheduled instance
+              const rescheduledAppointment: AppointmentData = {
+                ...originalAppointment,
+                id: `${originalAppointment.id}_rescheduled_${exception.id}`, // Unique ID
+                start_time: newStartTime.toISOString(),
+                end_time: newEndTime.toISOString(),
+                notes: exception.notes || originalAppointment.notes,
+                is_recurring_instance: true
+              };
+              
+              filteredAppointments.push(rescheduledAppointment);
             }
           }
         }
@@ -229,7 +248,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
         }
 
         // Transform appointments with enhanced data and location building
-        const enhancedAppointments: EnhancedAppointment[] = appointmentsList
+        const enhancedAppointments: EnhancedAppointment[] = filteredAppointments
           .map(appointment => {
             const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
             
