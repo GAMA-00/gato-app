@@ -16,7 +16,7 @@ interface ProviderServiceMerits {
 
 /**
  * Hook to get provider merits for a specific service/listing
- * This counts recurring clients specifically for the given listing
+ * This counts ALL recurring clients for the provider (across all listings)
  */
 export function useProviderServiceMerits(providerId?: string, listingId?: string) {
   return useQuery({
@@ -54,10 +54,9 @@ export function useProviderServiceMerits(providerId?: string, listingId?: string
           .eq('listing_id', listingId)
           .in('status', ['confirmed', 'completed']),
 
-        // Get recurring clients count for this specific listing
-        supabase.rpc('get_recurring_clients_count_by_listing', { 
-          provider_id: providerId,
-          listing_id: listingId 
+        // Get recurring clients count for the entire provider (all listings)
+        supabase.rpc('get_recurring_clients_count', { 
+          provider_id: providerId
         })
       ]);
 
@@ -67,7 +66,7 @@ export function useProviderServiceMerits(providerId?: string, listingId?: string
       }
 
       if (recurringResponse.error) {
-        console.error('Error fetching recurring clients for listing:', recurringResponse.error);
+        console.error('Error fetching recurring clients for provider:', recurringResponse.error);
       }
 
       // Calculate data with defaults
