@@ -8,7 +8,7 @@ BEGIN
   RETURN (
     SELECT COUNT(DISTINCT client_id)
     FROM appointments
-    WHERE provider_id = $1 
+    WHERE appointments.provider_id = $1 
       AND client_id IS NOT NULL
       AND recurrence IS NOT NULL 
       AND recurrence IN ('weekly', 'biweekly', 'monthly')
