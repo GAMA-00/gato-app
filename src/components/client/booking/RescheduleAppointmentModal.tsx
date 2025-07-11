@@ -17,6 +17,8 @@ import { useProviderAvailability } from '@/hooks/useProviderAvailability';
 import { format, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRescheduleRecurringInstance } from '@/hooks/useRecurringExceptions';
+import { validateBookingSlot } from '@/utils/bookingValidation';
 
 interface RescheduleAppointmentModalProps {
   isOpen: boolean;
@@ -94,6 +96,8 @@ export const RescheduleAppointmentModal = ({
     setSelectedTime('');
   };
 
+  const { mutate: rescheduleInstance, isPending: rescheduleLoading } = useRescheduleRecurringInstance();
+
   const handleRescheduleSingle = async () => {
     if (!selectedTime || !user) {
       toast.error('Por favor selecciona una hora');
@@ -102,66 +106,50 @@ export const RescheduleAppointmentModal = ({
 
     setIsLoading(true);
     try {
-      console.log('Rescheduling single instance of recurring appointment:', appointmentId);
-      
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const newStartTime = new Date(selectedDate);
       newStartTime.setHours(hours, minutes, 0, 0);
       const newEndTime = addMinutes(newStartTime, actualServiceDuration);
 
-      // Get original appointment details
-      const { data: originalAppointment, error: fetchError } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('id', appointmentId)
-        .single();
+      // Validate the new time slot
+      const isValidSlot = await validateBookingSlot(
+        providerId,
+        newStartTime,
+        newEndTime,
+        'none',
+        appointmentId
+      );
 
-      if (fetchError) throw fetchError;
+      if (!isValidSlot) {
+        setIsLoading(false);
+        return;
+      }
 
-      // Create a new appointment record for the rescheduled instance
-      const { data: newAppointment, error: insertError } = await supabase
-        .from('appointments')
-        .insert({
-          provider_id: originalAppointment.provider_id,
-          client_id: originalAppointment.client_id,
-          listing_id: originalAppointment.listing_id,
-          start_time: newStartTime.toISOString(),
-          end_time: newEndTime.toISOString(),
-          status: 'pending',
-          recurrence: 'none',
-          is_recurring_instance: false,
-          recurrence_group_id: originalAppointment.recurrence_group_id || originalAppointment.id,
-          notes: `Reagendado desde cita recurrente original del ${format(currentDate, 'PPP', { locale: es })}`,
-          client_address: originalAppointment.client_address,
-          client_email: originalAppointment.client_email,
-          client_phone: originalAppointment.client_phone,
-          residencia_id: originalAppointment.residencia_id,
-          external_booking: originalAppointment.external_booking
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      // Mark the original appointment as "rescheduled" but keep it for reference
-      const { error: updateError } = await supabase
-        .from('appointments')
-        .update({
-          status: 'rescheduled',
-          notes: `Reagendado a ${format(newStartTime, 'PPPp', { locale: es })}`
-        })
-        .eq('id', appointmentId);
-
-      if (updateError) throw updateError;
-
-      toast.success('Cita reagendada exitosamente. Pendiente de aprobación del proveedor.');
-      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
-      onClose();
+      // Use the new simplified system to reschedule this instance
+      rescheduleInstance({
+        appointmentId,
+        exceptionDate: currentDate,
+        newStartTime,
+        newEndTime,
+        notes: `Reagendado a ${format(newStartTime, 'PPPp', { locale: es })}`
+      }, {
+        onSuccess: () => {
+          toast.success('Cita reagendada exitosamente.');
+          queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+          queryClient.invalidateQueries({ queryKey: ['recurring-exceptions'] });
+          onClose();
+        },
+        onError: (error) => {
+          console.error('Error rescheduling single appointment:', error);
+          toast.error('Error al reagendar la cita');
+        },
+        onSettled: () => {
+          setIsLoading(false);
+        }
+      });
     } catch (error: any) {
       console.error('Error rescheduling single appointment:', error);
       toast.error(`Error al reagendar: ${error.message}`);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -174,14 +162,26 @@ export const RescheduleAppointmentModal = ({
 
     setIsLoading(true);
     try {
-      console.log('Rescheduling recurring appointment series:', appointmentId);
-      
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const newStartTime = new Date(selectedDate);
       newStartTime.setHours(hours, minutes, 0, 0);
       const newEndTime = addMinutes(newStartTime, actualServiceDuration);
 
-      // Update the base appointment
+      // Validate the new time slot for recurring appointments
+      const isValidSlot = await validateBookingSlot(
+        providerId,
+        newStartTime,
+        newEndTime,
+        recurrence,
+        appointmentId
+      );
+
+      if (!isValidSlot) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Update the base appointment with new times
       const { error: updateError } = await supabase
         .from('appointments')
         .update({
@@ -192,34 +192,9 @@ export const RescheduleAppointmentModal = ({
 
       if (updateError) throw updateError;
 
-      // También actualizar la regla recurrente si existe
-      if (recurrence && recurrence !== 'none') {
-        const dayOfWeek = selectedDate.getDay();
-        const dayOfMonth = selectedDate.getDate();
-        
-        const { error: ruleUpdateError } = await supabase
-          .from('recurring_rules')
-          .update({
-            start_time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-            end_time: format(newEndTime, 'HH:mm'),
-            day_of_week: recurrence === 'monthly' ? undefined : dayOfWeek,
-            day_of_month: recurrence === 'monthly' ? dayOfMonth : undefined,
-            start_date: format(selectedDate, 'yyyy-MM-dd')
-          })
-          .eq('client_id', user?.id)
-          .eq('provider_id', providerId)
-          .eq('listing_id', listingId)
-          .eq('is_active', true);
-
-        if (ruleUpdateError) {
-          console.error('Error updating recurring rule:', ruleUpdateError);
-        }
-      }
-
       toast.success('Serie de citas recurrentes reagendada exitosamente');
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-recurring-rules'] });
       onClose();
     } catch (error: any) {
       console.error('Error rescheduling recurring appointment:', error);
@@ -358,9 +333,9 @@ export const RescheduleAppointmentModal = ({
           </Button>
           <Button
             onClick={rescheduleMode === 'recurring' ? handleRescheduleRecurring : handleRescheduleSingle}
-            disabled={isLoading || !selectedTime}
+            disabled={isLoading || rescheduleLoading || !selectedTime}
           >
-            {isLoading ? 'Reagendando...' : 'Confirmar'}
+            {(isLoading || rescheduleLoading) ? 'Reagendando...' : 'Confirmar'}
           </Button>
         </DialogFooter>
       </DialogContent>

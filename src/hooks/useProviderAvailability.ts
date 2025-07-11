@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { checkRecurringConflicts } from '@/utils/simplifiedRecurrenceUtils';
 
 interface TimeSlot {
   time: string;
@@ -96,27 +97,49 @@ export const useProviderAvailability = ({
         console.error('Error fetching existing appointments:', appointmentsError);
       }
 
-      // 4. Verificar conflictos con citas recurrentes si aplica
-      let recurringConflicts: any[] = [];
+      // 4. Verificar conflictos con citas recurrentes usando el nuevo sistema
+      let recurringConflictTimes = new Set<string>();
       if (recurrence && recurrence !== 'none' && recurrence !== 'once') {
-        const { data: recurringRules, error: recurringError } = await supabase
-          .from('recurring_rules')
-          .select('*')
+        // Get all recurring appointments for this provider
+        const { data: recurringAppointments, error: recurringError } = await supabase
+          .from('appointments')
+          .select('id, start_time, end_time, recurrence, client_id, provider_id, listing_id, status')
           .eq('provider_id', providerId)
-          .eq('is_active', true)
-          .eq('recurrence_type', recurrence);
+          .in('recurrence', ['weekly', 'biweekly', 'monthly'])
+          .in('status', ['pending', 'confirmed']);
 
         if (recurringError) {
-          console.error('Error checking recurring conflicts:', recurringError);
-        } else if (recurringRules) {
-          // Filtrar reglas que aplican para este día según el tipo de recurrencia
-          recurringConflicts = recurringRules.filter(rule => {
-            if (recurrence === 'weekly' || recurrence === 'biweekly') {
-              return rule.day_of_week === dayOfWeek;
-            } else if (recurrence === 'monthly') {
-              return rule.day_of_month === selectedDate.getDate();
+          console.error('Error fetching recurring appointments:', recurringError);
+        } else if (recurringAppointments) {
+          // Get exceptions for these appointments
+          const appointmentIds = recurringAppointments.map(apt => apt.id);
+          const { data: exceptions } = await supabase
+            .from('recurring_exceptions')
+            .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
+            .in('appointment_id', appointmentIds);
+
+          // Check for conflicts on this specific date
+          recurringAppointments.forEach(appointment => {
+            const startTime = new Date(appointment.start_time);
+            const endTime = new Date(appointment.end_time);
+            
+            // Check if this recurring appointment would occur on the selected date
+            const hasConflict = checkRecurringConflicts(
+              [appointment],
+              (exceptions || []).map(ex => ({
+                ...ex,
+                action_type: ex.action_type as 'cancelled' | 'rescheduled'
+              })),
+              startTime,
+              endTime
+            );
+
+            if (hasConflict) {
+              const startHour = startTime.getHours();
+              const startMinute = startTime.getMinutes();
+              const timeKey = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+              recurringConflictTimes.add(timeKey);
             }
-            return false;
           });
         }
       }
@@ -143,20 +166,8 @@ export const useProviderAvailability = ({
       });
 
       // Marcar horarios bloqueados por conflictos recurrentes
-      recurringConflicts.forEach(rule => {
-        const startTime = rule.start_time;
-        const endTime = rule.end_time;
-        
-        if (startTime && endTime) {
-          const [startHour, startMinute] = startTime.split(':').map(Number);
-          const [endHour, endMinute] = endTime.split(':').map(Number);
-          
-          for (let hour = startHour; hour <= endHour; hour++) {
-            const timeKey = `${hour.toString().padStart(2, '0')}:${hour === startHour ? startMinute.toString().padStart(2, '0') : '00'}`;
-            if (hour === endHour && endMinute === 0) break;
-            blockedTimes.add(timeKey);
-          }
-        }
+      recurringConflictTimes.forEach(timeKey => {
+        blockedTimes.add(timeKey);
       });
 
       // Generar slots basados en disponibilidad configurada o slots existentes

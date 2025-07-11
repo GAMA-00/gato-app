@@ -1,5 +1,7 @@
 
-import { validateAppointmentSlot, checkRecurringConflicts } from './appointmentValidation';
+import { validateAppointmentSlot } from './appointmentValidation';
+import { checkRecurringConflicts } from './simplifiedRecurrenceUtils';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const validateBookingSlot = async (
@@ -53,20 +55,49 @@ export const validateBookingSlot = async (
     // Then check recurring conflicts if applicable
     if (recurrence !== 'once' && recurrence !== 'none') {
       console.log('Validando conflictos de recurrencia...');
-      const recurringValidation = await checkRecurringConflicts(providerId, startTime, endTime, recurrence);
       
-      if (recurringValidation.hasConflict) {
-        console.error('Conflicto detectado en recurrencia:', recurringValidation);
-        const errorMessage = recurringValidation.conflictReason || 'Conflicto en fechas futuras de la recurrencia';
-        toast.error(errorMessage, {
-          duration: 3000,
-          style: {
-            background: '#fee2e2',
-            border: '1px solid #fecaca',
-            color: '#dc2626'
-          }
-        });
-        return false;
+      // Get all recurring appointments for this provider
+      const { data: recurringAppointments, error: recurringError } = await supabase
+        .from('appointments')
+        .select('id, start_time, end_time, recurrence, client_id, provider_id, listing_id, status')
+        .eq('provider_id', providerId)
+        .in('recurrence', ['weekly', 'biweekly', 'monthly'])
+        .in('status', ['pending', 'confirmed']);
+
+      if (recurringError) {
+        console.error('Error fetching recurring appointments:', recurringError);
+      } else if (recurringAppointments && recurringAppointments.length > 0) {
+        // Get exceptions for these appointments
+        const appointmentIds = recurringAppointments.map(apt => apt.id);
+        const { data: exceptions } = await supabase
+          .from('recurring_exceptions')
+          .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
+          .in('appointment_id', appointmentIds);
+
+        // Check for conflicts using the simplified system
+        const hasConflict = checkRecurringConflicts(
+          recurringAppointments,
+          (exceptions || []).map(ex => ({
+            ...ex,
+            action_type: ex.action_type as 'cancelled' | 'rescheduled'
+          })),
+          startTime,
+          endTime,
+          excludeAppointmentId
+        );
+
+        if (hasConflict) {
+          console.error('Conflicto detectado en recurrencia');
+          toast.error('Conflicto con citas recurrentes existentes', {
+            duration: 3000,
+            style: {
+              background: '#fee2e2',
+              border: '1px solid #fecaca',
+              color: '#dc2626'
+            }
+          });
+          return false;
+        }
       }
       
       console.log('✅ Recurrencia validada correctamente');
