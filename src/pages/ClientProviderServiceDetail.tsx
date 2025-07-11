@@ -87,25 +87,21 @@ const ClientProviderServiceDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="md:ml-52">
-          <PageContainer title="Cargando..." subtitle="">
-            <div className="flex justify-center w-full px-4 lg:px-8">
-              <div className="w-full max-w-2xl lg:max-w-3xl space-y-6">
-              <Skeleton className="h-48 w-full rounded-lg" />
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                  <Skeleton className="h-32 w-full rounded-lg" />
-                  <Skeleton className="h-64 w-full rounded-lg" />
-                </div>
-                <div className="space-y-6">
-                  <Skeleton className="h-48 w-full rounded-lg" />
-                  <Skeleton className="h-32 w-full rounded-lg" />
-                </div>
-                </div>
+        <PageContainer title="Cargando..." subtitle="">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <Skeleton className="h-48 w-full rounded-lg" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-8">
+                <Skeleton className="h-32 w-full rounded-lg" />
+                <Skeleton className="h-64 w-full rounded-lg" />
+              </div>
+              <div className="space-y-6">
+                <Skeleton className="h-48 w-full rounded-lg" />
+                <Skeleton className="h-32 w-full rounded-lg" />
               </div>
             </div>
-          </PageContainer>
-        </div>
+          </div>
+        </PageContainer>
       </div>
     );
   }
@@ -113,19 +109,15 @@ const ClientProviderServiceDetail = () => {
   if (error || !serviceDetails) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="md:ml-52">
-          <PageContainer title="Error" subtitle="">
-            <div className="flex justify-center w-full px-4 lg:px-8">
-              <div className="text-center py-12 w-full max-w-2xl lg:max-w-3xl">
-              <p className="text-muted-foreground mb-4">
-                No se pudo cargar la información del servicio
-              </p>
-                <BackButton onClick={handleBack} />
-              </div>
-            </div>
-          </PageContainer>
+      <Navbar />
+      <PageContainer title="Error" subtitle="">
+        <div className="max-w-4xl mx-auto text-center py-12">
+          <p className="text-muted-foreground mb-4">
+            No se pudo cargar la información del servicio
+          </p>
+          <BackButton onClick={handleBack} />
         </div>
+      </PageContainer>
       </div>
     );
   }
@@ -174,107 +166,101 @@ const ClientProviderServiceDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="md:ml-52">
-        <PageContainer title="" subtitle="">
-          <div className="flex justify-center w-full px-4 lg:px-8">
-            <div className="w-full max-w-2xl lg:max-w-3xl">
-            <div className="space-y-6 sm:space-y-8">
-              {/* Back button */}
-              <div className="w-full">
-                <BackButton onClick={handleBack} className="mb-4" />
-              </div>
+      <PageContainer title="" subtitle="">
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+          {/* Back button */}
+          <div className="w-full">
+            <BackButton onClick={handleBack} className="mb-4" />
+          </div>
 
-              {/* 1. Foto de Perfil, Nombre, Calificación y Nivel */}
-              <div className="text-center space-y-4 w-full">
-                <Avatar className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg">
-                  <AvatarImage src={transformedProvider.avatar} alt={transformedProvider.name} />
-                  <AvatarFallback className="text-2xl bg-luxury-navy text-white">
-                    {transformedProvider.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="w-full px-2">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-luxury-navy mb-3 break-words leading-tight">
-                    {transformedProvider.name}
-                  </h1>
-                  
-                  {/* Calificación y Nivel de Experiencia */}
-                  <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
-                     <div className="flex items-center gap-2">
-                       <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                       <span className="font-medium text-lg">
-                         {(providerMerits?.averageRating || transformedProvider.rating).toFixed(1)}
-                       </span>
-                     </div>
-                    <LevelBadge level={providerLevel.level} size="md" />
-                  </div>
-                </div>
+          {/* 1. Foto de Perfil, Nombre, Calificación y Nivel */}
+          <div className="text-center space-y-4 w-full">
+            <Avatar className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg">
+              <AvatarImage src={transformedProvider.avatar} alt={transformedProvider.name} />
+              <AvatarFallback className="text-2xl bg-luxury-navy text-white">
+                {transformedProvider.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="w-full px-2">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-luxury-navy mb-3 break-words leading-tight">
+                {transformedProvider.name}
+              </h1>
+              
+              {/* Calificación y Nivel de Experiencia */}
+              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+                 <div className="flex items-center gap-2">
+                   <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                   <span className="font-medium text-lg">
+                     {(providerMerits?.averageRating || transformedProvider.rating).toFixed(1)}
+                   </span>
+                 </div>
+                <LevelBadge level={providerLevel.level} size="md" />
               </div>
-
-              {/* 2. Descripción del servicio */}
-              <div className="space-y-4 w-full">
-                <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
-                  {serviceDetails.title}
-                </h2>
-                <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
-                  <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
-                  <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
-                    {serviceDetails.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* 3. Galería de trabajos */}
-              <div className="w-full">
-                <ProviderGallery provider={transformedProvider} />
-              </div>
-
-              {/* 4. Sobre Mí */}
-              <div className="w-full">
-                <ProviderAbout provider={transformedProvider} />
-              </div>
-
-              {/* 5. Certificación Profesional */}
-              <div className="w-full">
-                <ProviderCertifications 
-                  certifications={transformedProvider.certificationFiles}
-                />
-              </div>
-
-              {/* 6. Servicios Disponibles */}
-              {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-                <div className="space-y-6 w-full">
-                  <div>
-                    <ServiceVariantsSelector
-                      variants={serviceDetails.serviceVariants}
-                      onSelectVariant={setSelectedVariants}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* 7. Comentarios de clientes */}
-              <div className="w-full">
-                <ProviderReviews provider={transformedProvider} />
-              </div>
-
-              {/* 8. Botón "Agendar Servicio" */}
-              <div className="flex justify-center pt-6 pb-8 sm:pt-8 sm:pb-12 w-full">
-                <Button 
-                  onClick={handleBookService}
-                  size="lg"
-                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
-                  disabled={!serviceDetails?.serviceVariants || serviceDetails.serviceVariants.length === 0 || selectedVariants.length === 0}
-                >
-                  <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
-                  Agendar Servicio
-                </Button>
-              </div>
-            </div>
             </div>
           </div>
-        </PageContainer>
-      </div>
+
+          {/* 2. Descripción del servicio */}
+          <div className="space-y-4 w-full">
+            <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
+              {serviceDetails.title}
+            </h2>
+            <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
+              <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
+                {serviceDetails.description}
+              </p>
+            </div>
+          </div>
+
+          {/* 3. Galería de trabajos */}
+          <div className="w-full">
+            <ProviderGallery provider={transformedProvider} />
+          </div>
+
+          {/* 4. Sobre Mí */}
+          <div className="w-full">
+            <ProviderAbout provider={transformedProvider} />
+          </div>
+
+          {/* 5. Certificación Profesional */}
+          <div className="w-full">
+            <ProviderCertifications 
+              certifications={transformedProvider.certificationFiles}
+            />
+          </div>
+
+          {/* 6. Servicios Disponibles */}
+          {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
+            <div className="space-y-6 w-full">
+              <div>
+                <ServiceVariantsSelector
+                  variants={serviceDetails.serviceVariants}
+                  onSelectVariant={setSelectedVariants}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 7. Comentarios de clientes */}
+          <div className="w-full">
+            <ProviderReviews provider={transformedProvider} />
+          </div>
+
+          {/* 8. Botón "Agendar Servicio" */}
+          <div className="flex justify-center pt-6 pb-8 sm:pt-8 sm:pb-12 w-full">
+            <Button 
+              onClick={handleBookService}
+              size="lg"
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
+              disabled={!serviceDetails?.serviceVariants || serviceDetails.serviceVariants.length === 0 || selectedVariants.length === 0}
+            >
+              <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
+              Agendar Servicio
+            </Button>
+          </div>
+        </div>
+      </PageContainer>
     </div>
   );
 };
