@@ -44,6 +44,7 @@ interface EnhancedAppointment extends AppointmentData {
   residencias: null;
   complete_location: string;
   rescheduled_style?: string; // Nuevo campo para el estilo
+  reschedule_notes?: string; // Notas de reagendamiento
   is_rescheduled_appointment?: boolean; // Para identificar citas reagendadas
 }
 
@@ -102,21 +103,20 @@ export const useCalendarAppointments = (currentDate: Date) => {
         const appointmentsList = appointments || [];
         console.log(`Found ${appointmentsList.length} appointments for calendar`);
 
-        // Fetch recurring exceptions to filter out rescheduled originals and add rescheduled appointments
-        const recurringAppointmentIds = appointmentsList
-          .filter(apt => apt.recurrence && apt.recurrence !== 'none')
-          .map(apt => apt.id);
+        // Fetch recurring exceptions for ALL appointments that might have exceptions
+        const allAppointmentIds = appointmentsList.map(apt => apt.id);
 
         let exceptions: any[] = [];
-        let rescheduledAppointments: EnhancedAppointment[] = [];
         
-        if (recurringAppointmentIds.length > 0) {
+        if (allAppointmentIds.length > 0) {
+          console.log(`🔍 Fetching exceptions for ${allAppointmentIds.length} appointments`);
           const { data: exceptionsData } = await supabase
             .from('recurring_exceptions')
             .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
-            .in('appointment_id', recurringAppointmentIds);
+            .in('appointment_id', allAppointmentIds);
           
           exceptions = exceptionsData || [];
+          console.log(`📊 Found ${exceptions.length} exceptions:`, exceptions);
           
           // Create virtual appointments for rescheduled instances that fall within our date range
           const rescheduledExceptions = exceptions.filter(ex => 
@@ -131,6 +131,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
             if (newStartTime >= startDate && newStartTime <= endDate) {
               const originalAppointment = appointmentsList.find(apt => apt.id === exception.appointment_id);
               if (originalAppointment) {
+                console.log(`📅 Creating virtual rescheduled appointment for ${exception.appointment_id} on ${format(newStartTime, 'yyyy-MM-dd')}`);
                 // Create a virtual appointment for the rescheduled instance
                 const rescheduledAppointment: AppointmentData = {
                   ...originalAppointment,
@@ -241,8 +242,15 @@ export const useCalendarAppointments = (currentDate: Date) => {
             // Check if this is a rescheduled appointment and add styling
             const isRescheduledAppointment = appointment.id.includes('_rescheduled_');
             let rescheduledStyle = '';
+            let rescheduleNotes = '';
             
-            if (!isRescheduledAppointment && appointment.recurrence && appointment.recurrence !== 'none') {
+            console.log(`🔍 Checking appointment ${appointment.id} on ${format(new Date(appointment.start_time), 'yyyy-MM-dd')}:`);
+            console.log(`  - Recurrence: ${appointment.recurrence}`);
+            console.log(`  - Is rescheduled appointment: ${isRescheduledAppointment}`);
+            console.log(`  - Exceptions count: ${exceptions.length}`);
+            
+            // Check for rescheduling for ALL appointments (not just recurring ones)
+            if (!isRescheduledAppointment) {
               const appointmentDate = new Date(appointment.start_time);
               const rescheduleInfo = getAppointmentRescheduleInfo(
                 {
@@ -251,7 +259,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
                   client_id: appointment.client_id || '',
                   start_time: appointment.start_time,
                   end_time: appointment.end_time,
-                  recurrence: appointment.recurrence,
+                  recurrence: appointment.recurrence || 'none',
                   status: appointment.status,
                   listing_id: appointment.listing_id
                 },
@@ -259,6 +267,9 @@ export const useCalendarAppointments = (currentDate: Date) => {
                 exceptions
               );
               rescheduledStyle = rescheduleInfo.styleClass;
+              rescheduleNotes = rescheduleInfo.notes || '';
+              
+              console.log(`  - Reschedule info:`, rescheduleInfo);
             }
 
             console.log(`✅ CALENDAR: Final location for appointment ${appointment.id}: "${completeLocation}"`);
@@ -270,6 +281,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
               residencias: clientUser?.residencias || null,
               complete_location: completeLocation,
               rescheduled_style: rescheduledStyle,
+              reschedule_notes: rescheduleNotes,
               is_rescheduled_appointment: isRescheduledAppointment
             };
           });

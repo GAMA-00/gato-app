@@ -110,6 +110,14 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
     }
   };
 
+  // Get reschedule notes to show in tooltip
+  const getRescheduleNote = () => {
+    if (appointment.reschedule_notes) {
+      return ` - ${appointment.reschedule_notes}`;
+    }
+    return '';
+  };
+
   // Get recurrence label using centralized utilities
   const recurrenceInfo = getRecurrenceInfo(appointment.recurrence);
   const recurrenceLabel = appointmentIsRecurring ? recurrenceInfo.label : null;
@@ -131,7 +139,7 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
         fontWeight: 500,
         minHeight: expanded ? '24px' : '20px'
       }}
-      title={`${serviceName} - ${format(startTime, "HH:mm")} a ${format(endTime, "HH:mm")}${recurrenceLabel ? ` (${recurrenceLabel})` : ''}${isExternal ? ' (Externa)' : ''}`}
+      title={`${serviceName} - ${format(startTime, "HH:mm")} a ${format(endTime, "HH:mm")}${recurrenceLabel ? ` (${recurrenceLabel})` : ''}${isExternal ? ' (Externa)' : ''}${getRescheduleNote()}`}
       onClick={onClick}
       tabIndex={0}
       role="button"
@@ -201,6 +209,11 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
             )}>
               {getStatusLabel()}
             </span>
+            {appointment.reschedule_notes && (
+              <div className="mt-1 text-[8px] text-gray-600 bg-gray-50 p-1 rounded">
+                {appointment.reschedule_notes}
+              </div>
+            )}
           </div>
         </div>
       )}
