@@ -52,7 +52,19 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
 
   // Use scheduled status for recurring instances if no specific status
   const appointmentStatus = appointment.status || 'scheduled';
-  const statusColor = STATUS_COLORS[appointmentStatus] || STATUS_COLORS['pending'];
+  
+  // Check if this appointment has rescheduled styling
+  let statusColor = STATUS_COLORS[appointmentStatus] || STATUS_COLORS['pending'];
+  
+  // Apply rescheduled styling if present
+  if (appointment.rescheduled_style) {
+    // Extract colors from rescheduled_style classes
+    if (appointment.rescheduled_style.includes('bg-red-100')) {
+      statusColor = { bg: "#FEE2E2", border: "#EF4444", text: "#991B1B" }; // Red for cancelled
+    } else if (appointment.rescheduled_style.includes('bg-orange-100')) {
+      statusColor = { bg: "#FED7AA", border: "#EA580C", text: "#9A3412" }; // Orange for rescheduled
+    }
+  }
   
   // Determine appointment type flags using centralized utilities
   const appointmentIsRecurring = appointment.is_recurring_instance || isRecurring(appointment.recurrence);
@@ -78,6 +90,15 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
 
   // Get status label
   const getStatusLabel = () => {
+    // Check for rescheduled status first
+    if (appointment.rescheduled_style) {
+      if (appointment.rescheduled_style.includes('bg-red-100')) {
+        return 'Cancelada';
+      } else if (appointment.rescheduled_style.includes('bg-orange-100')) {
+        return 'Reagendada';
+      }
+    }
+    
     switch (appointmentStatus) {
       case 'confirmed': return 'Confirmada';
       case 'pending': return 'Pendiente';

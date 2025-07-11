@@ -6,10 +6,9 @@ import { toast } from 'sonner';
 export interface RecurringException {
   id: string;
   appointment_id: string;
-  exception_date: string;
-  original_date?: string; // Nueva propiedad para rastrear la fecha original
+  exception_date: string; // Esta es la fecha ORIGINAL que se cambió
   action_type: 'cancelled' | 'rescheduled';
-  new_start_time?: string;
+  new_start_time?: string; // Nueva fecha/hora cuando se reagenda
   new_end_time?: string;
   notes?: string;
   created_at: string;
@@ -49,20 +48,17 @@ export const useCancelRecurringInstance = () => {
     mutationFn: async ({
       appointmentId,
       exceptionDate,
-      originalDate,
       notes
     }: {
       appointmentId: string;
-      exceptionDate: Date;
-      originalDate?: Date; // Fecha original que se está cancelando
+      exceptionDate: Date; // Fecha original que se está cancelando
       notes?: string;
     }) => {
       const { data, error } = await supabase
         .from('recurring_exceptions')
         .insert({
           appointment_id: appointmentId,
-          exception_date: format(exceptionDate, 'yyyy-MM-dd'),
-          original_date: originalDate ? format(originalDate, 'yyyy-MM-dd') : format(exceptionDate, 'yyyy-MM-dd'),
+          exception_date: format(exceptionDate, 'yyyy-MM-dd'), // Fecha original
           action_type: 'cancelled',
           notes
         })
@@ -98,15 +94,13 @@ export const useRescheduleRecurringInstance = () => {
     mutationFn: async ({
       appointmentId,
       exceptionDate,
-      originalDate,
       newStartTime,
       newEndTime,
       notes
     }: {
       appointmentId: string;
-      exceptionDate: Date;
-      originalDate?: Date; // Fecha original que se está reagendando
-      newStartTime: Date;
+      exceptionDate: Date; // Fecha original que se está reagendando  
+      newStartTime: Date; // Nueva fecha/hora
       newEndTime: Date;
       notes?: string;
     }) => {
@@ -114,10 +108,9 @@ export const useRescheduleRecurringInstance = () => {
         .from('recurring_exceptions')
         .insert({
           appointment_id: appointmentId,
-          exception_date: format(exceptionDate, 'yyyy-MM-dd'),
-          original_date: originalDate ? format(originalDate, 'yyyy-MM-dd') : format(exceptionDate, 'yyyy-MM-dd'),
+          exception_date: format(exceptionDate, 'yyyy-MM-dd'), // Fecha original
           action_type: 'rescheduled',
-          new_start_time: newStartTime.toISOString(),
+          new_start_time: newStartTime.toISOString(), // Nueva fecha/hora
           new_end_time: newEndTime.toISOString(),
           notes
         })

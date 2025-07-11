@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
-import { shouldHideOriginalDate, getAppointmentStyleClass } from '@/utils/simplifiedRecurrenceUtils';
+import { getAppointmentRescheduleInfo } from '@/utils/simplifiedRecurrenceUtils';
 
 interface AppointmentData {
   id: string;
@@ -113,7 +113,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
         if (recurringAppointmentIds.length > 0) {
           const { data: exceptionsData } = await supabase
             .from('recurring_exceptions')
-            .select('id, appointment_id, exception_date, original_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
+            .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
             .in('appointment_id', recurringAppointmentIds);
           
           exceptions = exceptionsData || [];
@@ -229,33 +229,6 @@ export const useCalendarAppointments = (currentDate: Date) => {
 
         // Transform appointments with enhanced data and location building
         const enhancedAppointments: EnhancedAppointment[] = appointmentsList
-          .filter(appointment => {
-            // Filter out original dates that have been rescheduled
-            if (appointment.recurrence && appointment.recurrence !== 'none') {
-              const appointmentDate = new Date(appointment.start_time);
-              const shouldHide = shouldHideOriginalDate(
-                {
-                  id: appointment.id,
-                  provider_id: appointment.provider_id,
-                  client_id: appointment.client_id || '',
-                  start_time: appointment.start_time,
-                  end_time: appointment.end_time,
-                  recurrence: appointment.recurrence,
-                  status: appointment.status,
-                  listing_id: appointment.listing_id
-                },
-                appointmentDate,
-                exceptions
-              );
-              
-              // Don't filter if it's a rescheduled appointment (has special ID)
-              if (shouldHide && !appointment.id.includes('_rescheduled_')) {
-                console.log(`Hiding original appointment ${appointment.id} on ${format(appointmentDate, 'yyyy-MM-dd')} due to rescheduling`);
-                return false;
-              }
-            }
-            return true;
-          })
           .map(appointment => {
             const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
             
@@ -271,7 +244,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
             
             if (!isRescheduledAppointment && appointment.recurrence && appointment.recurrence !== 'none') {
               const appointmentDate = new Date(appointment.start_time);
-              rescheduledStyle = getAppointmentStyleClass(
+              const rescheduleInfo = getAppointmentRescheduleInfo(
                 {
                   id: appointment.id,
                   provider_id: appointment.provider_id,
@@ -285,6 +258,7 @@ export const useCalendarAppointments = (currentDate: Date) => {
                 appointmentDate,
                 exceptions
               );
+              rescheduledStyle = rescheduleInfo.styleClass;
             }
 
             console.log(`✅ CALENDAR: Final location for appointment ${appointment.id}: "${completeLocation}"`);

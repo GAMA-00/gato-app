@@ -633,7 +633,6 @@ export type Database = {
           new_end_time: string | null
           new_start_time: string | null
           notes: string | null
-          original_date: string | null
           updated_at: string
         }
         Insert: {
@@ -645,7 +644,6 @@ export type Database = {
           new_end_time?: string | null
           new_start_time?: string | null
           notes?: string | null
-          original_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -657,7 +655,6 @@ export type Database = {
           new_end_time?: string | null
           new_start_time?: string | null
           notes?: string | null
-          original_date?: string | null
           updated_at?: string
         }
         Relationships: [

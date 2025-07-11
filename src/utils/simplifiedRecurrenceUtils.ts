@@ -8,10 +8,9 @@ import { addDays, addWeeks, addMonths, format, startOfDay, isSameDay } from 'dat
 export interface RecurringException {
   id: string;
   appointment_id: string;
-  exception_date: string;
-  original_date?: string; // Nueva propiedad para rastrear la fecha original
+  exception_date: string; // Esta es la fecha ORIGINAL que se cambió
   action_type: 'cancelled' | 'rescheduled';
-  new_start_time?: string;
+  new_start_time?: string; // Nueva fecha/hora cuando se reagenda
   new_end_time?: string;
   notes?: string;
 }
@@ -225,48 +224,36 @@ export function getAllRecurringInstances(
 }
 
 /**
- * Check if an original appointment date should be hidden due to rescheduling
+ * Check if an appointment should show rescheduled styling
  */
-export function shouldHideOriginalDate(
+export function getAppointmentRescheduleInfo(
   appointment: RecurringAppointment,
   appointmentDate: Date,
   exceptions: RecurringException[]
-): boolean {
+): { isRescheduled: boolean; styleClass: string; notes?: string } {
   const dateStr = format(appointmentDate, 'yyyy-MM-dd');
   
-  // Check if there's a rescheduling exception for this exact date
+  // Check if there's an exception for this exact date (original date)
   const exception = exceptions.find(ex => 
     ex.appointment_id === appointment.id && 
-    ex.original_date === dateStr &&
-    ex.action_type === 'rescheduled'
-  );
-  
-  return !!exception;
-}
-
-/**
- * Get style class for appointment based on its status
- */
-export function getAppointmentStyleClass(
-  appointment: RecurringAppointment,
-  appointmentDate: Date,
-  exceptions: RecurringException[]
-): string {
-  const dateStr = format(appointmentDate, 'yyyy-MM-dd');
-  
-  // Check for exceptions on this date
-  const exception = exceptions.find(ex => 
-    ex.appointment_id === appointment.id && 
-    ex.original_date === dateStr
+    ex.exception_date === dateStr
   );
   
   if (exception) {
     if (exception.action_type === 'cancelled') {
-      return 'bg-red-100 border-red-300 text-red-700'; // Rojo para canceladas
+      return {
+        isRescheduled: true,
+        styleClass: 'bg-red-100 border-red-300 text-red-700', // Rojo para canceladas
+        notes: exception.notes
+      };
     } else if (exception.action_type === 'rescheduled') {
-      return 'bg-orange-100 border-orange-300 text-orange-700'; // Naranja para reagendadas
+      return {
+        isRescheduled: true,
+        styleClass: 'bg-orange-100 border-orange-300 text-orange-700', // Naranja para reagendadas
+        notes: exception.notes
+      };
     }
   }
   
-  return ''; // Estilo normal
+  return { isRescheduled: false, styleClass: '' };
 }
