@@ -89,7 +89,7 @@ const ClientProviderServiceDetail = () => {
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Cargando..." subtitle="">
-            <div className="space-y-6 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="space-y-6 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
               <Skeleton className="h-48 w-full rounded-lg" />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
@@ -114,7 +114,7 @@ const ClientProviderServiceDetail = () => {
         <Navbar />
         <div className="md:ml-52">
           <PageContainer title="Error" subtitle="">
-            <div className="text-center py-12 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center py-12 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
               <p className="text-muted-foreground mb-4">
                 No se pudo cargar la información del servicio
               </p>
@@ -172,7 +172,7 @@ const ClientProviderServiceDetail = () => {
       <Navbar />
       <div className="md:ml-52">
         <PageContainer title="" subtitle="">
-          <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
             <div className="space-y-6 sm:space-y-8">
               {/* Back button */}
               <div className="w-full">
