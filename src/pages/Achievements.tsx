@@ -123,7 +123,7 @@ const Achievements = () => {
                           </p>
                         </div>
                         <div>
-                          <h2 className="text-xl font-bold text-blue-600 mb-1">
+                          <h2 className="text-lg font-bold text-blue-600 mb-1">
                             {currentLevel.name}
                           </h2>
                           <p className="text-xs text-muted-foreground">
