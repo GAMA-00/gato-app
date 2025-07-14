@@ -84,14 +84,6 @@ const Services = () => {
           <p className="text-muted-foreground mb-4">
             Aún no tienes servicios creados
           </p>
-          <Button 
-            onClick={handleCreateService}
-            variant="outline"
-            className="flex items-center gap-2 mx-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Crear tu primer servicio
-          </Button>
         </div>
       )}
     </PageLayout>
