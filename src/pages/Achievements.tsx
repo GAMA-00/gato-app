@@ -92,12 +92,12 @@ const Achievements = () => {
     : 100;
 
   return (
-    <>
-      <Navbar />
-      <div className="min-h-screen bg-[#FAFAFA]">
-        <div className="md:ml-52 p-4 md:p-6">
-              <div className="max-w-4xl mx-auto">
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-app-text mb-4 md:mb-6">
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-[#FAFAFA]">
+          <div className="md:ml-52 p-4 md:p-6 pt-6 md:pt-6">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-app-text mb-4 md:mb-6 mt-2 md:mt-0">
                   Logros
                 </h1>
                 
