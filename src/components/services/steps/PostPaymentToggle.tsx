@@ -88,9 +88,9 @@ const PostPaymentToggle: React.FC = () => {
             </h4>
             <ul className="text-sm text-orange-700 space-y-1">
               <li>• Los clientes verán una etiqueta "Post-pago" en tu servicio</li>
-              <li>• Deberás definir el precio final al completar cada cita</li>
+              <li>• Deberás realizar un desgloce de los gastos realizados, incluyendo fotos de facturas</li>
               <li>• El cobro se procesará automáticamente después del servicio</li>
-              <li>• Mantén la duración estimada para reservar correctamente la agenda</li>
+              <li>• Deberás establecer una duración promedio para ordenar mejor tu agenda</li>
             </ul>
           </div>
         )}

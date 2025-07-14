@@ -90,12 +90,11 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
           <Plus className="h-4 w-4 mr-1" /> Agregar servicio
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground mb-4">
-        {isPostPayment 
-          ? "Define las variantes de servicios con sus duraciones estimadas. Los precios se definirán después del servicio."
-          : "Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones"
-        }
-      </p>
+      {!isPostPayment && (
+        <p className="text-sm text-muted-foreground mb-4">
+          Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones
+        </p>
+      )}
       
       <div className="space-y-4">
         {serviceVariants.map((variant, index) => (
@@ -201,7 +200,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
 
               {isPostPayment && (
                 <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
-                  <strong>Post-pago:</strong> El precio se definirá después de completar el servicio
+                  <strong>Post pago</strong>
                 </div>
               )}
             </CardContent>
