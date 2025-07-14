@@ -121,7 +121,7 @@ const ProfileStep: React.FC = () => {
                 </FormControl>
               </div>
                <FormDescription>
-                 La primer impresión es muy importante, foto tipo pasaporte recomendada
+                 La primera impresión es importante. Recomendado: Foto tipo pasaporte
                </FormDescription>
               <FormMessage />
             </FormItem>
@@ -252,7 +252,7 @@ const ProfileStep: React.FC = () => {
               </div>
             </FormControl>
             <FormDescription>
-              Sube fotos de trabajos realizados para mostrar en tu galería (opcional)
+              Subí fotos de trabajos pasados
             </FormDescription>
             <FormMessage />
           </FormItem>

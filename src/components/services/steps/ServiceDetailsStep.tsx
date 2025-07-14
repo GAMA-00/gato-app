@@ -54,7 +54,7 @@ const ServiceDetailsStep: React.FC = () => {
     <div className="space-y-8">
       <div className="space-y-3">
         <h2 className="text-2xl font-semibold text-luxury-navy">
-          Detalles del Servicio
+          3. Detalles del Servicio
         </h2>
       </div>
       
