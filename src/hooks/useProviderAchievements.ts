@@ -16,26 +16,41 @@ export function useProviderAchievements() {
 
       console.log('Fetching provider achievements for:', user.id);
 
-      // Fetch ALL completed appointments throughout history (no date restriction)
-      // This ensures the achievement system counts all work done historically, not just current month
-      const { data: appointments, error } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          start_time,
-          status,
-          client_name,
-          listings!inner(base_price, title),
-          provider_ratings(rating)
-        `)
-        .eq('provider_id', user.id)
-        .in('status', ['completed'])  // Only count actually completed jobs for achievements
-        .order('start_time', { ascending: false });
+      // Fetch appointments and recurring clients count in parallel
+      const [appointmentsResponse, recurringClientsResponse] = await Promise.all([
+        // Fetch ALL completed appointments throughout history (no date restriction)
+        // This ensures the achievement system counts all work done historically, not just current month
+        supabase
+          .from('appointments')
+          .select(`
+            id,
+            start_time,
+            status,
+            client_name,
+            listings!inner(base_price, title),
+            provider_ratings(rating)
+          `)
+          .eq('provider_id', user.id)
+          .in('status', ['completed'])  // Only count actually completed jobs for achievements
+          .order('start_time', { ascending: false }),
+
+        // Get recurring clients count
+        supabase.rpc('get_recurring_clients_count', { provider_id: user.id })
+      ]);
+
+      const { data: appointments, error } = appointmentsResponse;
 
       if (error) {
         console.error('Error fetching provider achievements:', error);
         throw error;
       }
+
+      const { error: recurringError } = recurringClientsResponse;
+      if (recurringError) {
+        console.error('Error fetching recurring clients count:', recurringError);
+      }
+
+      const recurringClientsCount = recurringClientsResponse.data || 0;
 
       const completedJobs = appointments?.length || 0;
       const currentLevelInfo = getProviderLevelByJobs(completedJobs);
@@ -65,7 +80,8 @@ export function useProviderAchievements() {
         nextLevel: nextLevelInfo?.level || null,
         jobsToNextLevel: Math.max(0, jobsToNextLevel),
         averageRating: parseFloat(averageRating.toFixed(1)),
-        ratingHistory
+        ratingHistory,
+        recurringClientsCount
       };
     },
     enabled: !!user && user.role === 'provider',

@@ -27,6 +27,7 @@ export interface ProviderAchievements {
   jobsToNextLevel: number;
   averageRating: number;
   ratingHistory: RatingHistory[];
+  recurringClientsCount: number;
 }
 
 export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [

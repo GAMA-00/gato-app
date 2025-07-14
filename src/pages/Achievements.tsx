@@ -102,29 +102,44 @@ const Achievements = () => {
             }`}>
               Logros
             </h1>
-            <p className={`text-muted-foreground ${
-              isMobile ? "text-sm mb-6" : "text-base mb-8"
-            }`}>
-              Tu progreso profesional basado en el historial completo de trabajos completados
-            </p>
             
             
             <div className="space-y-8">
-              {/* Summary Card */}
-              <Card className="glassmorphism p-6">
-                <div className="text-center">
-                  <h2 className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {achievements.totalCompletedJobs}
-                  </h2>
-                  <p className="text-lg text-muted-foreground mb-1">
-                    Trabajos Completados en Total
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Nivel Actual: <span className="font-semibold text-primary">{currentLevel.name}</span>
+              {/* Summary Card - Compact and elegant */}
+              <Card className="glassmorphism p-4 md:p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <h2 className="text-2xl md:text-3xl font-bold text-primary mb-1">
+                        {achievements.totalCompletedJobs}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Trabajos Completados
+                      </p>
+                    </div>
+                    <div className="h-8 w-px bg-border" />
+                    <div className="text-center">
+                      <h2 className="text-2xl md:text-3xl font-bold text-secondary mb-1">
+                        {achievements.recurringClientsCount}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Clientes Recurrentes
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Nivel Actual
+                    </p>
+                    <p className="font-semibold text-primary text-base">
+                      {currentLevel.name}
+                    </p>
                     {nextLevel && (
-                      <span> • Próximo: {nextLevel.name} ({nextLevel.minJobs} trabajos)</span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Próximo: {nextLevel.name} ({nextLevel.minJobs} trabajos)
+                      </p>
                     )}
-                  </p>
+                  </div>
                 </div>
               </Card>
 
