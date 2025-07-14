@@ -77,13 +77,9 @@ const ProfileStep: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Paso 2: Perfil profesional</h2>
+      <h2 className="text-lg font-semibold">2. Perfil Profesional</h2>
       
       <div className="bg-muted/40 rounded-lg border p-4">
-        <h3 className="font-medium mb-2">Tu perfil profesional</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Esta información se mostrará en tu perfil de proveedor y será visible para los clientes.
-        </p>
       
         <FormField
           control={control}
@@ -124,9 +120,9 @@ const ProfileStep: React.FC = () => {
                   </div>
                 </FormControl>
               </div>
-              <FormDescription>
-                Sube una foto profesional para tu perfil (formato cuadrado recomendado)
-              </FormDescription>
+               <FormDescription>
+                 La primer impresión es muy importante, foto tipo pasaporte recomendada
+               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -148,16 +144,12 @@ const ProfileStep: React.FC = () => {
                   }}
                 />
               </FormControl>
-              <FormDescription>
-                Esta información se mostrará en la sección "Sobre mí" de tu perfil ({(field.value || '').length}/500 caracteres)
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="space-y-4 pt-2">
-          <h4 className="text-sm font-medium mb-2">Información profesional</h4>
+         <div className="space-y-4 pt-2">
           <FormField
             control={control}
             name="experienceYears"
@@ -211,7 +203,7 @@ const ProfileStep: React.FC = () => {
         name="galleryImages"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Imágenes para tu galería (opcional)</FormLabel>
+            <FormLabel>Imágenes para tu galería</FormLabel>
             <FormControl>
               <div>
                 <label className="flex items-center gap-2 cursor-pointer mb-2 p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">

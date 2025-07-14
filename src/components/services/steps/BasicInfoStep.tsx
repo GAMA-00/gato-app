@@ -16,7 +16,7 @@ const BasicInfoStep = () => {
     <div className="space-y-6 sm:space-y-8">
       <div className="space-y-2 sm:space-y-3">
         <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
-          Información Básica
+          1. Información Básica
         </h2>
       </div>
 
