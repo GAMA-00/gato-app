@@ -96,52 +96,73 @@ const Achievements = () => {
       <Navbar />
       <div className="min-h-screen bg-[#FAFAFA]">
         <div className="md:ml-52 p-4 md:p-6">
-          <div className="max-w-4xl mx-auto">
-            <h1 className={`font-bold tracking-tight text-app-text ${
-              isMobile ? "text-xl mb-3" : "text-2xl md:text-3xl mb-6"
-            }`}>
-              Logros
-            </h1>
-            
-            
-            <div className="space-y-8">
-              {/* Summary Card - Compact and elegant */}
-              <Card className="glassmorphism p-4 md:p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <h2 className="text-2xl md:text-3xl font-bold text-primary mb-1">
-                        {achievements.totalCompletedJobs}
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        Trabajos Completados
-                      </p>
-                    </div>
-                    <div className="h-8 w-px bg-border" />
-                    <div className="text-center">
-                      <h2 className="text-2xl md:text-3xl font-bold text-secondary mb-1">
-                        {achievements.recurringClientsCount}
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        Clientes Recurrentes
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Nivel Actual
-                    </p>
-                    <p className="font-semibold text-primary text-base">
-                      {currentLevel.name}
-                    </p>
-                    {nextLevel && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Próximo: {nextLevel.name} ({nextLevel.minJobs} trabajos)
-                      </p>
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-app-text mb-4 md:mb-6">
+                  Logros
+                </h1>
+                
+                <div className="space-y-6 md:space-y-8">
+                  {/* Summary Card - Mobile optimized */}
+                  <Card className="glassmorphism p-4 md:p-5">
+                    {isMobile ? (
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <h2 className="text-xl font-bold text-primary mb-1">
+                            {achievements.totalCompletedJobs}
+                          </h2>
+                          <p className="text-xs text-muted-foreground">
+                            Trabajos Completados
+                          </p>
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-secondary mb-1">
+                            {achievements.recurringClientsCount}
+                          </h2>
+                          <p className="text-xs text-muted-foreground">
+                            Clientes Recurrentes
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Nivel Actual
+                          </p>
+                          <p className="font-semibold text-primary text-sm">
+                            {currentLevel.name}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <h2 className="text-2xl md:text-3xl font-bold text-primary mb-1">
+                              {achievements.totalCompletedJobs}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                              Trabajos Completados
+                            </p>
+                          </div>
+                          <div className="h-8 w-px bg-border" />
+                          <div className="text-center">
+                            <h2 className="text-2xl md:text-3xl font-bold text-secondary mb-1">
+                              {achievements.recurringClientsCount}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                              Clientes Recurrentes
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Nivel Actual
+                          </p>
+                          <p className="font-semibold text-primary text-base">
+                            {currentLevel.name}
+                          </p>
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </div>
-              </Card>
+                  </Card>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {ACHIEVEMENT_LEVELS.map((level) => {
