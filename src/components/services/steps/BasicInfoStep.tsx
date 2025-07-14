@@ -18,17 +18,11 @@ const BasicInfoStep = () => {
         <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
           Información Básica
         </h2>
-        <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-          Proporciona la información básica de tu servicio. Esta información será visible para los clientes al buscar servicios.
-        </p>
       </div>
 
       <Card className="border-stone-200 shadow-sm">
         <CardHeader className="pb-4 sm:pb-6">
           <CardTitle className="text-base sm:text-lg">Detalles del Servicio</CardTitle>
-          <CardDescription className="text-sm">
-            Completa la información principal de tu servicio.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 sm:space-y-6">
           <FormField
@@ -39,7 +33,7 @@ const BasicInfoStep = () => {
                 <FormLabel className="text-sm sm:text-base font-medium">Nombre del Servicio</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Ej: Limpieza de hogar completa" 
+                    placeholder="Ej: Paws Pet Grooming" 
                     {...field} 
                     className="text-sm sm:text-base py-2.5 sm:py-3 h-auto"
                   />
@@ -78,9 +72,6 @@ const BasicInfoStep = () => {
                     )}
                   </SelectContent>
                 </Select>
-                <FormDescription className="text-xs sm:text-sm">
-                  Selecciona la categoría que mejor describe tu servicio.
-                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -94,7 +85,7 @@ const BasicInfoStep = () => {
                 <FormLabel className="text-sm sm:text-base font-medium">Descripción</FormLabel>
                 <FormControl>
                   <Textarea 
-                    placeholder="Describe detalladamente tu servicio, qué incluye, materiales que utilizas, etc." 
+                    placeholder="Describe en pocas palabras tu servicio o empresa." 
                     className="resize-none text-sm sm:text-base min-h-[100px] sm:min-h-[120px]" 
                     {...field} 
                   />

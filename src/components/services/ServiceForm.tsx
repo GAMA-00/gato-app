@@ -286,7 +286,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           <DialogDescription className="text-sm sm:text-base text-gray-600">
             {initialData 
               ? 'Realiza los cambios necesarios en tu anuncio.' 
-              : 'Completa la información para crear un nuevo anuncio.'}
+              : ''}
           </DialogDescription>
         </DialogHeader>
         

@@ -56,9 +56,6 @@ const ServiceDetailsStep: React.FC = () => {
         <h2 className="text-2xl font-semibold text-luxury-navy">
           Detalles del Servicio
         </h2>
-        <p className="text-muted-foreground text-base leading-relaxed">
-          Define las variantes de tu servicio y selecciona las residencias donde lo ofrecerás.
-        </p>
       </div>
       
       <PostPaymentToggle />
