@@ -138,7 +138,7 @@ const CustomVariablesEditor: React.FC<CustomVariablesEditorProps> = ({
         <div>
           <h3 className="font-medium">Variables Personalizadas</h3>
           <p className="text-sm text-muted-foreground">
-            Define grupos de variables que los clientes podrán seleccionar al reservar
+            Define variables que los clientes podrán seleccionar al reservar
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -153,50 +153,18 @@ const CustomVariablesEditor: React.FC<CustomVariablesEditorProps> = ({
       <div className="space-y-4">
         {customVariableGroups.map((group, groupIndex) => (
           <Card key={group.id} className="border">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Grupo de Variables {groupIndex + 1}</CardTitle>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveGroup(groupIndex)}
-                  className="text-destructive hover:text-destructive/90"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FormLabel className="text-xs">Nombre del grupo</FormLabel>
-                  <Input
-                    placeholder="Ej. Tipo de comida"
-                    value={group.name}
-                    onChange={(e) => handleGroupChange(groupIndex, 'name', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <FormLabel className="text-xs">Descripción (opcional)</FormLabel>
-                  <Input
-                    placeholder="Descripción del grupo"
-                    value={group.description || ''}
-                    onChange={(e) => handleGroupChange(groupIndex, 'description', e.target.value)}
-                  />
-                </div>
-              </div>
-
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">Variables</h4>
+                  <h4 className="font-medium text-sm">Variable {groupIndex + 1}</h4>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => handleAddVariable(groupIndex)}
+                    onClick={() => handleRemoveGroup(groupIndex)}
+                    className="text-destructive hover:text-destructive/90"
                   >
-                    <Plus className="h-4 w-4 mr-1" /> Agregar Variable
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -365,7 +333,7 @@ const CustomVariablesEditor: React.FC<CustomVariablesEditorProps> = ({
           className="w-full"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Agregar Grupo de Variables
+          Agregar Variable
         </Button>
       </div>
     </div>

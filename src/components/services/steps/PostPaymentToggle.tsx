@@ -24,33 +24,59 @@ const PostPaymentToggle: React.FC = () => {
           <AlertCircle className="h-5 w-5 text-orange-600" />
           Tipo de Precio
         </CardTitle>
-        <CardDescription>
-          Define si el precio se establece antes o después del servicio
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <FormField
           control={control}
           name="isPostPayment"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">
-                  El precio se definirá después del servicio
-                </FormLabel>
-                <FormDescription>
-                  {isPostPayment 
-                    ? "Los clientes reservarán sin ver el precio. Tú definirás el monto final después de completar el servicio."
-                    : "El precio será visible para los clientes al momento de reservar."
-                  }
-                </FormDescription>
+            <FormItem className="space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                <label className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value="prepago"
+                    checked={field.value === false}
+                    onChange={() => field.onChange(false)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <div>
+                    <div className="font-medium">Pre-pago</div>
+                    <div className="text-sm text-muted-foreground">Tarifas pre definidas</div>
+                  </div>
+                </label>
+                
+                <label className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value="postpago"
+                    checked={field.value === true}
+                    onChange={() => field.onChange(true)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <div>
+                    <div className="font-medium">Post pago</div>
+                    <div className="text-sm text-muted-foreground">Tarifa se define después del servicio</div>
+                  </div>
+                </label>
+                
+                <label className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value="ambas"
+                    checked={field.value === "ambas"}
+                    onChange={() => field.onChange("ambas")}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <div>
+                    <div className="font-medium">Ambas</div>
+                    <div className="text-sm text-muted-foreground">Ofrezco ambas modalidades</div>
+                  </div>
+                </label>
               </div>
-              <FormControl>
-                <Switch
-                  checked={field.value || false}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
             </FormItem>
           )}
         />
