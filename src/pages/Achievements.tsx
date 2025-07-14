@@ -95,11 +95,11 @@ const Achievements = () => {
       <>
         <Navbar />
         <div className="min-h-screen bg-[#FAFAFA]">
-          <div className="md:ml-52 p-4 md:p-6 pt-6 md:pt-6">
+          <div className="md:ml-52 p-4 md:p-6">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-app-text mb-4 md:mb-6 mt-2 md:mt-0">
-                  Logros
-                </h1>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-app-text mb-4 md:mb-6 relative z-10">
+                Logros
+              </h1>
                 
                 <div className="space-y-6 md:space-y-8">
                   {/* Summary Card - Mobile optimized */}
@@ -115,7 +115,7 @@ const Achievements = () => {
                           </p>
                         </div>
                         <div>
-                          <h2 className="text-xl font-bold text-secondary mb-1">
+                          <h2 className="text-xl font-bold text-green-600 mb-1">
                             {achievements.recurringClientsCount}
                           </h2>
                           <p className="text-xs text-muted-foreground">
@@ -144,7 +144,7 @@ const Achievements = () => {
                           </div>
                           <div className="h-8 w-px bg-border" />
                           <div className="text-center">
-                            <h2 className="text-2xl md:text-3xl font-bold text-secondary mb-1">
+                            <h2 className="text-2xl md:text-3xl font-bold text-green-600 mb-1">
                               {achievements.recurringClientsCount}
                             </h2>
                             <p className="text-sm text-muted-foreground">
