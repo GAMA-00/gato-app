@@ -111,7 +111,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       <>
         <Navbar />
         <div className="min-h-screen bg-[#FAFAFA]">
-          <div className="md:ml-52 p-4 md:p-6">
+          <div className={`${isMobile ? 'p-4' : 'md:ml-52 p-4 md:p-6'}`}>
             <div className="max-w-4xl mx-auto">
               {renderContent()}
             </div>
