@@ -338,12 +338,15 @@ export const useWeeklySlots = ({
       const slotEnd = new Date(slotStart);
       slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
 
+      // Use current recurrence from ref
+      const { recurrence: currentRecurrence } = paramsRef.current;
+      
       // Since we pre-filter basic availability, only check recurring conflicts
-      const isValid = recurrence === 'once' ? true : await validateBookingSlot(
+      const isValid = currentRecurrence === 'once' ? true : await validateBookingSlot(
         providerId,
         slotStart,
         slotEnd,
-        recurrence
+        currentRecurrence
       );
 
       // Update slot availability based on validation
@@ -418,7 +421,20 @@ export const useWeeklySlots = ({
     if (providerId && listingId && serviceDuration > 0) {
       fetchWeeklySlots();
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerId, listingId, serviceDuration]);
+
+  // Separate effect for when recurrence/date parameters change
+  useEffect(() => {
+    console.log(`🔄 Recurrence params changed - Recurrence: ${recurrence}`);
+    if (providerId && listingId && serviceDuration > 0) {
+      // Small delay to avoid rapid-fire calls
+      const timer = setTimeout(() => {
+        fetchWeeklySlots();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [recurrence, startDate, daysAhead, fetchWeeklySlots]);
 
   // Cleanup on unmount
   useEffect(() => {
