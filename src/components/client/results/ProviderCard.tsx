@@ -14,6 +14,7 @@ interface ProviderCardProps {
 }
 
 const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
+  console.log('ProviderCard - Provider avatar:', provider.name, provider.avatar);
   const isMobile = useIsMobile();
   const { data: merits } = useProviderServiceMerits(provider.id, provider.listingId);
   
