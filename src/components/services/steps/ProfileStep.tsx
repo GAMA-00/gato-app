@@ -121,7 +121,7 @@ const ProfileStep: React.FC = () => {
                 </FormControl>
               </div>
                <FormDescription>
-                 Recuerde que la primera impresión es clave. Reconendación: Foto tipo pasaporte
+                 Recordá que la primera impresión es clave
                </FormDescription>
               <FormMessage />
             </FormItem>
@@ -136,7 +136,7 @@ const ProfileStep: React.FC = () => {
               <FormLabel>Sobre mí</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Cuéntale a tus clientes sobre tu experiencia, formación y filosofía de trabajo..."
+                  placeholder="Contále a tus clientes sobre tu experiencia, formación y filosofía de trabajo..."
                   rows={4}
                   value={field.value || ''}
                   onChange={(e) => {

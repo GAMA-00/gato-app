@@ -195,6 +195,8 @@ const CustomVariablesEditor: React.FC<CustomVariablesEditorProps> = ({
                                   <SelectItem value="single">Selección única</SelectItem>
                                   <SelectItem value="multiple">Selección múltiple</SelectItem>
                                   <SelectItem value="quantity">Cantidad</SelectItem>
+                                  <SelectItem value="price">Precio</SelectItem>
+                                  <SelectItem value="min_max">Mínimo/Máximo</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -257,7 +259,82 @@ const CustomVariablesEditor: React.FC<CustomVariablesEditorProps> = ({
                           </div>
                         )}
 
-                        {variable.type !== 'quantity' && (
+                        {variable.type === 'price' && (
+                          <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded">
+                            <div>
+                              <FormLabel className="text-xs">Precio base</FormLabel>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={variable.basePrice || ''}
+                                  onChange={(e) => handleVariableChange(groupIndex, variableIndex, 'basePrice', parseFloat(e.target.value) || 0)}
+                                  className="pl-7"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <FormLabel className="text-xs">Incremento por unidad</FormLabel>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={variable.priceIncrement || ''}
+                                  onChange={(e) => handleVariableChange(groupIndex, variableIndex, 'priceIncrement', parseFloat(e.target.value) || 0)}
+                                  className="pl-7"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {variable.type === 'min_max' && (
+                          <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded">
+                            <div>
+                              <FormLabel className="text-xs">Valor mínimo</FormLabel>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={variable.minValue || ''}
+                                onChange={(e) => handleVariableChange(groupIndex, variableIndex, 'minValue', parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                            <div>
+                              <FormLabel className="text-xs">Valor máximo</FormLabel>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="100"
+                                value={variable.maxValue || ''}
+                                onChange={(e) => handleVariableChange(groupIndex, variableIndex, 'maxValue', parseInt(e.target.value) || 100)}
+                              />
+                            </div>
+                            <div>
+                              <FormLabel className="text-xs">Precio por unidad</FormLabel>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={variable.pricePerUnit || ''}
+                                  onChange={(e) => handleVariableChange(groupIndex, variableIndex, 'pricePerUnit', parseFloat(e.target.value) || 0)}
+                                  className="pl-7"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {!['quantity', 'price', 'min_max'].includes(variable.type) && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <FormLabel className="text-xs">Opciones</FormLabel>

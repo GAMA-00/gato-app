@@ -92,7 +92,15 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       serviceVariants: initialData.serviceVariants || [
         { name: 'Servicio básico', price: initialData.price || 0, duration: initialData.duration || 60 }
       ],
-      availability: initialData.availability || {},
+      availability: initialData.availability || {
+        monday: { enabled: false, timeSlots: [] },
+        tuesday: { enabled: false, timeSlots: [] },
+        wednesday: { enabled: false, timeSlots: [] },
+        thursday: { enabled: false, timeSlots: [] },
+        friday: { enabled: false, timeSlots: [] },
+        saturday: { enabled: false, timeSlots: [] },
+        sunday: { enabled: false, timeSlots: [] }
+      },
       useCustomVariables: initialData.useCustomVariables || false,
       customVariableGroups: initialData.customVariableGroups || []
     } : {
@@ -108,7 +116,15 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       serviceVariants: [
         { name: 'Servicio básico', price: 0, duration: 60 }
       ],
-      availability: {},
+      availability: {
+        monday: { enabled: false, timeSlots: [] },
+        tuesday: { enabled: false, timeSlots: [] },
+        wednesday: { enabled: false, timeSlots: [] },
+        thursday: { enabled: false, timeSlots: [] },
+        friday: { enabled: false, timeSlots: [] },
+        saturday: { enabled: false, timeSlots: [] },
+        sunday: { enabled: false, timeSlots: [] }
+      },
       useCustomVariables: false,
       customVariableGroups: []
     }

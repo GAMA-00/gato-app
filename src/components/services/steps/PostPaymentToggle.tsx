@@ -22,7 +22,7 @@ const PostPaymentToggle: React.FC = () => {
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-orange-600" />
-          Tipo de Precio
+          Tipo de tarifa
         </CardTitle>
       </CardHeader>
       <CardContent>

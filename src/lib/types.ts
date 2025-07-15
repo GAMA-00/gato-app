@@ -28,12 +28,16 @@ export interface CustomVariableOption {
 export interface CustomVariable {
   id: string;
   name: string;
-  type: 'single' | 'multiple' | 'quantity';
+  type: 'single' | 'multiple' | 'quantity' | 'price' | 'min_max';
   isRequired: boolean;
   options: CustomVariableOption[];
-  pricePerUnit?: number; // Para tipo 'quantity'
+  pricePerUnit?: number; // Para tipo 'quantity' y 'min_max'
   minQuantity?: number;
   maxQuantity?: number;
+  basePrice?: number; // Para tipo 'price'
+  priceIncrement?: number; // Para tipo 'price'
+  minValue?: number; // Para tipo 'min_max'
+  maxValue?: number; // Para tipo 'min_max'
 }
 
 export interface CustomVariableGroup {

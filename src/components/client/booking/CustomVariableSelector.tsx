@@ -10,7 +10,7 @@ import { CustomVariableGroup, CustomVariable, CustomVariableOption } from '@/lib
 
 interface CustomerVariableSelection {
   [variableId: string]: {
-    type: 'single' | 'multiple' | 'quantity';
+    type: 'single' | 'multiple' | 'quantity' | 'price' | 'min_max';
     value: string | string[] | number;
     price: number;
   };
@@ -38,6 +38,10 @@ const CustomVariableSelector: React.FC<CustomVariableSelectorProps> = ({
     } else if (variable.type === 'multiple') {
       const selectedOptions = variable.options.filter(opt => (value as string[]).includes(opt.id));
       return selectedOptions.reduce((total, opt) => total + opt.price, 0);
+    } else if (variable.type === 'price') {
+      return (variable.basePrice || 0) + ((variable.priceIncrement || 0) * (value as number));
+    } else if (variable.type === 'min_max') {
+      return (variable.pricePerUnit || 0) * (value as number);
     }
     return 0;
   };
@@ -182,6 +186,61 @@ const CustomVariableSelector: React.FC<CustomVariableSelectorProps> = ({
     );
   };
 
+  const renderPriceSelection = (variable: CustomVariable) => {
+    const currentValue = (selections[variable.id]?.value as number) || 1;
+    
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Cantidad</Label>
+          <Badge variant="secondary">
+            Base: ${variable.basePrice || 0} + ${variable.priceIncrement || 0} por unidad
+          </Badge>
+        </div>
+        <Input
+          type="number"
+          value={currentValue}
+          min={1}
+          onChange={(e) => {
+            const value = parseInt(e.target.value) || 1;
+            handleSelectionChange(variable.id, variable, value);
+          }}
+          className="w-20 text-center"
+        />
+      </div>
+    );
+  };
+
+  const renderMinMaxSelection = (variable: CustomVariable) => {
+    const currentValue = (selections[variable.id]?.value as number) || variable.minValue || 0;
+    
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Valor</Label>
+          <Badge variant="secondary">
+            ${variable.pricePerUnit || 0} por unidad
+          </Badge>
+        </div>
+        <Input
+          type="number"
+          value={currentValue}
+          min={variable.minValue || 0}
+          max={variable.maxValue || 100}
+          onChange={(e) => {
+            const value = parseInt(e.target.value) || variable.minValue || 0;
+            handleSelectionChange(variable.id, variable, value);
+          }}
+          className="w-20 text-center"
+        />
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>Mínimo: {variable.minValue || 0}</span>
+          <span>Máximo: {variable.maxValue || 100}</span>
+        </div>
+      </div>
+    );
+  };
+
   const renderVariable = (variable: CustomVariable) => {
     switch (variable.type) {
       case 'single':
@@ -190,6 +249,10 @@ const CustomVariableSelector: React.FC<CustomVariableSelectorProps> = ({
         return renderMultipleSelection(variable);
       case 'quantity':
         return renderQuantitySelection(variable);
+      case 'price':
+        return renderPriceSelection(variable);
+      case 'min_max':
+        return renderMinMaxSelection(variable);
       default:
         return null;
     }
