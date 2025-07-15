@@ -25,8 +25,9 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Upload, X, Plus, FileText, Image } from 'lucide-react';
+import { Upload, X, Plus, FileText, Image, Key } from 'lucide-react';
 import { toast } from 'sonner';
+import PasswordChangeModal from './PasswordChangeModal';
 
 const clientProfileSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
@@ -62,6 +63,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [existingCertifications, setExistingCertifications] = useState<string[]>([]);
   const [existingGalleryImages, setExistingGalleryImages] = useState<string[]>([]);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const certificationInputRef = useRef<HTMLInputElement>(null);
@@ -502,6 +504,24 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
               </>
             )}
 
+            {/* Password Change Section */}
+            <div className="border-t pt-4">
+              <FormLabel>Seguridad de la Cuenta</FormLabel>
+              <Card className="mt-2">
+                <CardContent className="pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsPasswordModalOpen(true)}
+                    className="w-full"
+                  >
+                    <Key className="mr-2 h-4 w-4" />
+                    Cambiar Contraseña
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Actions */}
             <div className="flex justify-end space-x-4 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>
@@ -514,6 +534,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
           </form>
         </Form>
       </DialogContent>
+
+      <PasswordChangeModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </Dialog>
   );
 };

@@ -5,6 +5,7 @@ import RoleGuard from '@/components/RoleGuard';
 import Dashboard from '@/pages/Dashboard';
 import Services from '@/pages/Services';
 import ServiceCreate from '@/pages/ServiceCreate';
+import ServiceEdit from '@/pages/ServiceEdit';
 import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
 import Team from '@/pages/Team';
@@ -35,6 +36,15 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <ServiceCreate />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="services-edit"
+      path="/services/edit/:id"
+      element={
+        <RoleGuard allowedRole="provider">
+          <ServiceEdit />
         </RoleGuard>
       }
     />,

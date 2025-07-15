@@ -19,7 +19,7 @@ const Services = () => {
   const isMobile = useIsMobile();
 
   const handleEditService = (service: Service) => {
-    console.log('Edit service:', service);
+    navigate(`/services/edit/${service.id}`);
   };
 
   const handleDeleteService = (service: Service) => {
