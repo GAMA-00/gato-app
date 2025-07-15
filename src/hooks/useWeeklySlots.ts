@@ -396,9 +396,17 @@ export const useWeeklySlots = ({
     };
   }, [slots, slotGroups, availableSlotGroups]);
 
+  // Trigger refresh when recurrence changes
+  useEffect(() => {
+    console.log(`🔄 Recurrence changed to: ${recurrence}, refreshing slots...`);
+    if (providerId && listingId && serviceDuration > 0) {
+      fetchWeeklySlots();
+    }
+  }, [recurrence, fetchWeeklySlots]);
+
   useEffect(() => {
     console.log(`🔄 useEffect triggered for fetchWeeklySlots - Provider: ${providerId}, Duration: ${serviceDuration}`);
-    if (providerId && serviceDuration > 0) {
+    if (providerId && listingId && serviceDuration > 0) {
       fetchWeeklySlots();
     }
   }, [fetchWeeklySlots]); // Only depend on the function itself
