@@ -55,7 +55,7 @@ const NewBookingForm = ({
         onFrequencyChange={onFrequencyChange}
       />
 
-      {/* 2. New Weekly Slot Grid */}
+      {/* 2. Optimized Weekly Slot Grid */}
       <WeeklySlotGrid
         providerId={providerId}
         listingId={listingId}
