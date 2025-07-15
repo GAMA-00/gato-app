@@ -14,7 +14,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ServiceVariantEditor from './ServiceVariantEditor';
-import CustomVariablesEditor from './CustomVariablesEditor';
 import PostPaymentToggle from './PostPaymentToggle';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,8 +24,6 @@ const ServiceDetailsStep: React.FC = () => {
   const serviceVariants = watch('serviceVariants') || [
     { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
-  const useCustomVariables = watch('useCustomVariables') || false;
-  const customVariableGroups = watch('customVariableGroups') || [];
 
   // Fetch residencias from Supabase
   const { data: residencias = [], isLoading: residenciasLoading } = useQuery({
@@ -64,13 +61,6 @@ const ServiceDetailsStep: React.FC = () => {
         serviceVariants={serviceVariants}
         onVariantsChange={(variants) => setValue('serviceVariants', variants)}
         isPostPayment={isPostPayment}
-      />
-
-      <CustomVariablesEditor
-        customVariableGroups={customVariableGroups}
-        onGroupsChange={(groups) => setValue('customVariableGroups', groups)}
-        useCustomVariables={useCustomVariables}
-        onUseCustomVariablesChange={(use) => setValue('useCustomVariables', use)}
       />
 
       <Card className="border-stone-200 shadow-sm">

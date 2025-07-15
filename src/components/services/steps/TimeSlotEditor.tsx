@@ -9,7 +9,7 @@ interface TimeSlotEditorProps {
 }
 
 const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({ dayKey, slotIndex }) => {
-  const { register, watch, formState: { errors } } = useFormContext();
+  const { setValue, watch, formState: { errors } } = useFormContext();
   
   const startTimeValue = watch(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`);
   const endTimeValue = watch(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`);
@@ -31,7 +31,8 @@ const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({ dayKey, slotIndex }) =>
           <label className="text-sm text-gray-600 font-medium">Hora de inicio</label>
           <Input
             type="time"
-            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`)}
+            value={startTimeValue || ''}
+            onChange={(e) => setValue(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`, e.target.value)}
             className="w-full text-base h-12"
           />
           {startTimeValue && (
@@ -45,7 +46,8 @@ const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({ dayKey, slotIndex }) =>
           <label className="text-sm text-gray-600 font-medium">Hora de fin</label>
           <Input
             type="time"
-            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`)}
+            value={endTimeValue || ''}
+            onChange={(e) => setValue(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`, e.target.value)}
             className="w-full text-base h-12"
           />
           {endTimeValue && (
@@ -62,7 +64,8 @@ const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({ dayKey, slotIndex }) =>
           <span className="text-sm text-gray-600 font-medium">De</span>
           <Input
             type="time"
-            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`)}
+            value={startTimeValue || ''}
+            onChange={(e) => setValue(`availability.${dayKey}.timeSlots.${slotIndex}.startTime`, e.target.value)}
             className="w-28 text-sm"
           />
           <span className="text-xs text-gray-500">
@@ -76,7 +79,8 @@ const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({ dayKey, slotIndex }) =>
           <span className="text-sm text-gray-600 font-medium">Hasta</span>
           <Input
             type="time"
-            {...register(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`)}
+            value={endTimeValue || ''}
+            onChange={(e) => setValue(`availability.${dayKey}.timeSlots.${slotIndex}.endTime`, e.target.value)}
             className="w-28 text-sm"
           />
           <span className="text-xs text-gray-500">

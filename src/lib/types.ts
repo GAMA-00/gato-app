@@ -15,6 +15,7 @@ export interface ServiceVariant {
   name: string;
   price: string | number;
   duration: string | number;
+  customVariables?: CustomVariable[];
 }
 
 // Nuevas interfaces para variables personalizadas flexibles

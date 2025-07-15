@@ -37,7 +37,8 @@ const serviceFormSchema = z.object({
       id: z.string().optional(),
       name: z.string().min(1, { message: 'El nombre del servicio es obligatorio' }),
       price: z.union([z.string(), z.number()]),
-      duration: z.union([z.string(), z.number()])
+      duration: z.union([z.string(), z.number()]),
+      customVariables: z.array(z.any()).optional()
     })
   ).min(1, { message: 'Debe tener al menos una variante de servicio' }),
   // Campos para variables personalizadas
@@ -90,7 +91,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       certificationFiles: initialData.certificationFiles || [],
       isPostPayment: initialData.isPostPayment || false,
       serviceVariants: initialData.serviceVariants || [
-        { name: 'Servicio básico', price: initialData.price || 0, duration: initialData.duration || 60 }
+        { name: 'Servicio básico', price: initialData.price || 0, duration: initialData.duration || 60, customVariables: [] }
       ],
       availability: initialData.availability || {
         monday: { enabled: false, timeSlots: [] },
@@ -114,7 +115,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       certificationFiles: [],
       isPostPayment: false,
       serviceVariants: [
-        { name: 'Servicio básico', price: 0, duration: 60 }
+        { name: 'Servicio básico', price: 0, duration: 60, customVariables: [] }
       ],
       availability: {
         monday: { enabled: false, timeSlots: [] },
@@ -195,7 +196,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         id: variant.id,
         name: variant.name,
         price: values.isPostPayment ? 0 : variant.price, // Precio 0 para post-pago
-        duration: variant.duration
+        duration: variant.duration,
+        customVariables: variant.customVariables || []
       })) || [];
 
       // Extract price and duration from first service variant for base values

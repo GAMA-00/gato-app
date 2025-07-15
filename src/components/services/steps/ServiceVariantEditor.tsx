@@ -11,15 +11,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, MoveVertical } from 'lucide-react';
+import { Plus, Trash2, MoveVertical, ChevronDown, ChevronRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import ServiceCustomVariablesEditor from './ServiceCustomVariablesEditor';
 
-interface ServiceVariant {
-  id?: string;
-  name: string;
-  price: string | number;
-  duration: string | number;
-}
+import { ServiceVariant } from '@/lib/types';
 
 interface ServiceVariantEditorProps {
   serviceVariants: ServiceVariant[];
@@ -33,13 +30,15 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
   isPostPayment = false
 }) => {
   const { control } = useFormContext();
+  const [expandedVariants, setExpandedVariants] = React.useState<Set<string>>(new Set());
 
   const handleAddServiceVariant = () => {
-    const newVariant = {
+    const newVariant: ServiceVariant = {
       id: uuidv4(),
       name: '',
       price: isPostPayment ? 0 : '',
-      duration: 60
+      duration: 60,
+      customVariables: []
     };
     onVariantsChange([...serviceVariants, newVariant]);
   };
@@ -57,6 +56,22 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
     const updatedVariants = [...serviceVariants];
     updatedVariants[index] = { ...updatedVariants[index], [field]: value };
     onVariantsChange(updatedVariants);
+  };
+
+  const handleCustomVariablesChange = (index: number, customVariables: any[]) => {
+    const updatedVariants = [...serviceVariants];
+    updatedVariants[index] = { ...updatedVariants[index], customVariables };
+    onVariantsChange(updatedVariants);
+  };
+
+  const toggleVariantExpansion = (variantId: string) => {
+    const newExpanded = new Set(expandedVariants);
+    if (newExpanded.has(variantId)) {
+      newExpanded.delete(variantId);
+    } else {
+      newExpanded.add(variantId);
+    }
+    setExpandedVariants(newExpanded);
   };
 
   const handleMoveVariant = (index: number, direction: 'up' | 'down') => {
@@ -203,6 +218,33 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   <strong>Post pago</strong>
                 </div>
               )}
+
+              {/* Custom Variables Section */}
+              <Collapsible 
+                open={expandedVariants.has(variant.id || String(index))}
+                onOpenChange={() => toggleVariantExpansion(variant.id || String(index))}
+              >
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    className="w-full justify-between mt-3 h-8 px-2"
+                  >
+                    <span className="text-sm font-medium">Variables adicionales</span>
+                    {expandedVariants.has(variant.id || String(index)) ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <ServiceCustomVariablesEditor
+                    customVariables={variant.customVariables || []}
+                    onVariablesChange={(variables) => handleCustomVariablesChange(index, variables)}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
             </CardContent>
           </Card>
         ))}
