@@ -68,6 +68,7 @@ export interface WeeklySlotGroup {
 
 interface UseWeeklySlotsProps {
   providerId: string;
+  listingId: string; // Añadir listingId
   serviceDuration: number;
   recurrence?: string;
   startDate?: Date;
@@ -76,6 +77,7 @@ interface UseWeeklySlotsProps {
 
 export const useWeeklySlots = ({
   providerId,
+  listingId, // Añadir listingId
   serviceDuration,
   recurrence = 'once',
   startDate,
@@ -106,7 +108,7 @@ export const useWeeklySlots = ({
     lastCallRef.current = now;
 
     // Check cache first
-    const cacheKey = `${providerId}-${serviceDuration}-${startDate?.getTime() || 'now'}-${daysAhead}`;
+    const cacheKey = `${providerId}-${listingId}-${serviceDuration}-${startDate?.getTime() || 'now'}-${daysAhead}`;
     const cached = cacheRef.current[cacheKey];
     if (cached && now - cached.timestamp < 30000) { // 30 second cache
       console.log('📦 Using cached slots');
@@ -136,7 +138,7 @@ export const useWeeklySlots = ({
       
       // Fetch with fallback to showing basic slots on network error
       let appointments: any[] = [];
-      let blockedSlots: any[] = [];
+      let providerTimeSlots: any[] = [];
       
       try {
         // Try appointments first
@@ -153,68 +155,76 @@ export const useWeeklySlots = ({
         } else {
           appointments = appointmentsResult.data || [];
         }
+
+        // Fetch provider time slots for this specific listing and date range
+        const slotsResult = await supabase
+          .from('provider_time_slots')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('is_available', true)
+          .eq('is_reserved', false)
+          .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+          .lte('slot_date', format(endDate, 'yyyy-MM-dd'));
+
+        if (slotsResult.error) {
+          console.warn('⚠️ Could not fetch provider time slots:', slotsResult.error);
+        } else {
+          providerTimeSlots = slotsResult.data || [];
+          console.log(`📅 Found ${providerTimeSlots.length} available slots for listing ${listingId}`);
+        }
       } catch (error) {
-        console.warn('⚠️ Network error fetching appointments, showing optimistic slots');
+        console.warn('⚠️ Network error fetching data, showing optimistic slots');
       }
       
       
-      console.log(`📊 Found ${appointments.length} appointments, ${blockedSlots.length} blocked slots`);
+      console.log(`📊 Found ${appointments.length} appointments, ${providerTimeSlots.length} provider slots for listing ${listingId}`);
 
-      // PHASE 2: Generate and filter slots with batch validation
+      // PHASE 2: Generate slots ONLY from provider_time_slots that match this listing
       const newSlots: WeeklySlot[] = [];
       let totalGenerated = 0;
       let totalFiltered = 0;
 
-      for (let dayOffset = 0; dayOffset < daysAhead; dayOffset++) {
-        const currentDate = addDays(baseDate, dayOffset);
-        const dayOfWeek = currentDate.getDay();
+      // Process each provider time slot for this listing
+      providerTimeSlots.forEach(timeSlot => {
+        const slotDate = new Date(timeSlot.slot_date);
+        const [hours, minutes] = timeSlot.start_time.split(':').map(Number);
+        const slotStart = new Date(slotDate);
+        slotStart.setHours(hours, minutes, 0, 0);
         
-        
-        for (const timeSlot of timeSlots) {
-          const [hours, minutes] = timeSlot.split(':').map(Number);
-          const slotStart = new Date(currentDate);
-          slotStart.setHours(hours, minutes, 0, 0);
+        const slotEnd = new Date(slotStart);
+        slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
+
+        totalGenerated++;
+
+        // CHECK: Does this slot overlap with existing appointments?
+        const hasAppointmentConflict = appointments.some(appointment => {
+          const appointmentStart = new Date(appointment.start_time);
+          const appointmentEnd = new Date(appointment.end_time);
           
-          const slotEnd = new Date(slotStart);
-          slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
+          // Check if times overlap using utility function
+          return checkTimeOverlap(slotStart, slotEnd, appointmentStart, appointmentEnd);
+        });
 
-          // Skip if slot would end after 7 PM
-          if (slotEnd.getHours() >= 19) {
-            continue;
-          }
-
-          totalGenerated++;
-          
-
-          // CHECK 2: Does this slot overlap with existing appointments?
-          const hasAppointmentConflict = appointments.some(appointment => {
-            const appointmentStart = new Date(appointment.start_time);
-            const appointmentEnd = new Date(appointment.end_time);
-            
-            // Check if times overlap using utility function
-            return checkTimeOverlap(slotStart, slotEnd, appointmentStart, appointmentEnd);
-          });
-
-          if (hasAppointmentConflict) {
-            console.log(`⏰ Slot ${timeSlot} on ${format(currentDate, 'yyyy-MM-dd')} conflicts with existing appointment`);
-            totalFiltered++;
-            continue; // Don't add conflicted slots to the list
-          }
-
-          // If we get here, the slot is truly available
-          const { time: displayTime, period } = formatTimeTo12Hour(timeSlot);
-          const slotId = createSlotId(currentDate, timeSlot);
-
-          newSlots.push({
-            id: slotId,
-            date: currentDate,
-            time: timeSlot,
-            displayTime,
-            period,
-            isAvailable: true // Only available slots make it to this point
-          });
+        if (hasAppointmentConflict) {
+          console.log(`⏰ Slot ${timeSlot.start_time} on ${format(slotDate, 'yyyy-MM-dd')} conflicts with existing appointment`);
+          totalFiltered++;
+          return; // Skip this slot
         }
-      }
+
+        // If we get here, the slot is truly available
+        const { time: displayTime, period } = formatTimeTo12Hour(timeSlot.start_time);
+        const slotId = createSlotId(slotDate, timeSlot.start_time);
+
+        newSlots.push({
+          id: slotId,
+          date: slotDate,
+          time: timeSlot.start_time,
+          displayTime,
+          period,
+          isAvailable: true // Only available slots make it to this point
+        });
+      });
 
       console.log(`✅ Slot generation complete: ${totalGenerated} generated, ${totalFiltered} filtered, ${newSlots.length} available`);
       
@@ -234,7 +244,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, serviceDuration, startDate, daysAhead]); // Simplified dependencies
+  }, [providerId, listingId, serviceDuration, startDate, daysAhead]); // Include listingId in dependencies
 
   // Validate a specific slot when it's being selected (now just for recurring conflicts)
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {

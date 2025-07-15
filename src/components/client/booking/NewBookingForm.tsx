@@ -14,6 +14,7 @@ interface NewBookingFormProps {
   onDateChange: (date: Date | undefined) => void;
   onTimeChange: (time: string) => void;
   providerId: string;
+  listingId: string; // Añadir listingId
   selectedVariant: ServiceVariant | undefined;
   notes: string;
   onNotesChange: (notes: string) => void;
@@ -30,6 +31,7 @@ const NewBookingForm = ({
   onDateChange,
   onTimeChange,
   providerId,
+  listingId, // Añadir listingId
   selectedVariant,
   notes,
   onNotesChange,
@@ -56,6 +58,7 @@ const NewBookingForm = ({
       {/* 2. New Weekly Slot Grid */}
       <WeeklySlotGrid
         providerId={providerId}
+        listingId={listingId}
         serviceDuration={selectedVariant?.duration || 60}
         selectedSlot={selectedSlotId}
         onSlotSelect={handleSlotSelect}

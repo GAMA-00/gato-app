@@ -20,6 +20,7 @@ import { addWeeks } from 'date-fns';
 
 interface WeeklySlotGridProps {
   providerId: string;
+  listingId: string; // Añadir listingId
   serviceDuration: number;
   selectedSlot?: string;
   onSlotSelect: (slotId: string, date: Date, time: string) => void;
@@ -28,6 +29,7 @@ interface WeeklySlotGridProps {
 
 const WeeklySlotGrid = ({
   providerId,
+  listingId, // Añadir listingId
   serviceDuration,
   selectedSlot,
   onSlotSelect,
@@ -49,6 +51,7 @@ const WeeklySlotGrid = ({
     refreshSlots
   } = useWeeklySlots({
     providerId,
+    listingId, // Pasar listingId
     serviceDuration,
     recurrence,
     startDate,

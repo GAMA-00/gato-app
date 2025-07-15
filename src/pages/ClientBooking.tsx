@@ -323,6 +323,7 @@ const ClientBooking = () => {
           onDateChange={setSelectedDate}
           onTimeChange={setSelectedTime}
           providerId={providerId}
+          listingId={serviceId || ''}
           selectedVariant={selectedVariant}
           notes={notes}
           onNotesChange={setNotes}
