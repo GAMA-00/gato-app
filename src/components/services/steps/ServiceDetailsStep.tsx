@@ -77,7 +77,6 @@ const ServiceDetailsStep: React.FC = () => {
         <CardHeader className="pb-6">
           <CardTitle className="text-lg">Cobertura de Servicio</CardTitle>
           <CardDescription>
-            Selecciona las residencias donde ofreces tu servicio.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -148,7 +147,6 @@ const ServiceDetailsStep: React.FC = () => {
                   )}
                 </div>
                 <FormDescription className="mt-4">
-                  Selecciona todas las residencias donde puedes ofrecer tu servicio.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

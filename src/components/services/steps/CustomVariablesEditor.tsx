@@ -121,12 +121,12 @@ const CustomVariablesEditor: React.FC<CustomVariablesEditorProps> = ({
     return (
       <div className="border rounded-lg p-6 text-center">
         <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="font-medium mb-2">Variables Personalizadas</h3>
+        <h3 className="font-medium mb-2">Variables adicionales</h3>
         <p className="text-sm text-muted-foreground mb-4">
           Crea variables personalizadas para que tus clientes puedan seleccionar opciones específicas como tipo de comida, número de personas, etc.
         </p>
         <Button onClick={() => onUseCustomVariablesChange(true)} variant="outline">
-          Activar Variables Personalizadas
+          Activar Variables adicionales
         </Button>
       </div>
     );
@@ -136,7 +136,7 @@ const CustomVariablesEditor: React.FC<CustomVariablesEditorProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium">Variables Personalizadas</h3>
+          <h3 className="font-medium">Variables adicionales</h3>
           <p className="text-sm text-muted-foreground">
             Define variables que los clientes podrán seleccionar al reservar
           </p>

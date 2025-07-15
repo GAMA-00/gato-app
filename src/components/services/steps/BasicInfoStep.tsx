@@ -65,7 +65,7 @@ const BasicInfoStep = () => {
                       categoriesData?.categories?.flatMap(category => 
                         categoriesData.serviceTypesByCategory[category.id]?.map(serviceType => (
                           <SelectItem key={serviceType.id} value={serviceType.id}>
-                            {category.name} - {serviceType.name}
+                            {category.label} - {serviceType.name}
                           </SelectItem>
                         )) || []
                       )

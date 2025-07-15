@@ -121,7 +121,7 @@ const ProfileStep: React.FC = () => {
                 </FormControl>
               </div>
                <FormDescription>
-                 La primera impresión es importante. Recomendado: Foto tipo pasaporte
+                 Recuerde que la primera impresión es clave. Reconendación: Foto tipo pasaporte
                </FormDescription>
               <FormMessage />
             </FormItem>
