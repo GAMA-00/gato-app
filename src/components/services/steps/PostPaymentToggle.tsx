@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -15,7 +14,7 @@ import { AlertCircle } from 'lucide-react';
 
 const PostPaymentToggle: React.FC = () => {
   const { control, watch } = useFormContext();
-  const isPostPayment = watch('isPostPayment') || false;
+  const paymentType = watch('isPostPayment') || false;
 
   return (
     <Card className="border-orange-200 bg-orange-50/30">
@@ -81,16 +80,27 @@ const PostPaymentToggle: React.FC = () => {
           )}
         />
 
-        {isPostPayment && (
+        {(paymentType === true || paymentType === "ambas") && (
           <div className="mt-4 p-4 bg-orange-100 border border-orange-200 rounded-lg">
             <h4 className="font-medium text-orange-800 mb-2">
-              Importante para servicios post-pago:
+              {paymentType === "ambas" ? "Importante para modalidad mixta:" : "Importante para servicios post-pago:"}
             </h4>
             <ul className="text-sm text-orange-700 space-y-1">
-              <li>• Los clientes verán una etiqueta "Post-pago" en tu servicio</li>
-              <li>• Deberás realizar un desgloce de los gastos realizados, incluyendo fotos de facturas</li>
-              <li>• El cobro se procesará automáticamente después del servicio</li>
-              <li>• Deberás establecer una duración promedio para ordenar mejor tu agenda</li>
+              {paymentType === "ambas" ? (
+                <>
+                  <li>• Debes establecer precios en el catálogo para servicios pre-pagados</li>
+                  <li>• Para servicios post-pago, deberás desglosar gastos con evidencias</li>
+                  <li>• Los clientes podrán elegir la modalidad al contratar</li>
+                  <li>• Deberás establecer una duración promedio para ordenar mejor tu agenda</li>
+                </>
+              ) : (
+                <>
+                  <li>• Los clientes verán una etiqueta "Post-pago" en tu servicio</li>
+                  <li>• Deberás realizar un desgloce de los gastos realizados, incluyendo fotos de facturas</li>
+                  <li>• El cobro se procesará automáticamente después del servicio</li>
+                  <li>• Deberás establecer una duración promedio para ordenar mejor tu agenda</li>
+                </>
+              )}
             </ul>
           </div>
         )}

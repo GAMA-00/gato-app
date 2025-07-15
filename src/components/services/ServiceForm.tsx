@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -30,8 +30,8 @@ const serviceFormSchema = z.object({
   experienceYears: z.coerce.number().min(0).optional(),
   hasCertifications: z.boolean().optional(),
   certificationFiles: z.array(z.any()).optional(),
-  // Nuevo campo para servicios post-pago
-  isPostPayment: z.boolean().optional(),
+  // Nuevo campo para servicios post-pago - ahora puede ser boolean o "ambas"
+  isPostPayment: z.union([z.boolean(), z.literal("ambas")]).optional(),
   serviceVariants: z.array(
     z.object({
       id: z.string().optional(),
@@ -77,6 +77,14 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const steps = ['basic', 'profile', 'service', 'availability', 'slots'];
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Scroll automático al cambiar de paso
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentStep]);
   
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
@@ -192,17 +200,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       }
       
       // Ensure serviceVariants meets the ServiceVariant interface requirements
+      const isFullPostPayment = values.isPostPayment === true;
       const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
         id: variant.id,
         name: variant.name,
-        price: values.isPostPayment ? 0 : variant.price, // Precio 0 para post-pago
+        price: isFullPostPayment ? 0 : variant.price, // Precio 0 solo para post-pago puro
         duration: variant.duration,
         customVariables: variant.customVariables || []
       })) || [];
 
       // Extract price and duration from first service variant for base values
       const baseVariant = formattedServiceVariants[0] || { price: 0, duration: 0 };
-      const basePrice = values.isPostPayment ? 0 : Number(baseVariant.price);
+      const basePrice = isFullPostPayment ? 0 : Number(baseVariant.price);
       const baseDuration = Number(baseVariant.duration);
       
       console.log("Variantes formateadas:", formattedServiceVariants);
@@ -316,7 +325,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
             }} className="flex flex-col flex-1 min-h-0">
               {/* Contenido principal con scroll mejorado */}
               <div className="flex-1 overflow-hidden px-3 sm:px-6">
-                <ScrollArea className="h-full">
+                <ScrollArea className="h-full" ref={scrollAreaRef}>
                   <div className="py-4 sm:py-6 pr-2 sm:pr-4">
                     <ServiceFormFields currentStep={currentStep} />
                   </div>

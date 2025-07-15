@@ -35,6 +35,7 @@ export type Database = {
           last_modified_by: string | null
           listing_id: string
           notes: string | null
+          price_finalized: boolean | null
           provider_id: string
           provider_name: string | null
           recurrence: string | null
@@ -66,6 +67,7 @@ export type Database = {
           last_modified_by?: string | null
           listing_id: string
           notes?: string | null
+          price_finalized?: boolean | null
           provider_id: string
           provider_name?: string | null
           recurrence?: string | null
@@ -97,6 +99,7 @@ export type Database = {
           last_modified_by?: string | null
           listing_id?: string
           notes?: string | null
+          price_finalized?: boolean | null
           provider_id?: string
           provider_name?: string | null
           recurrence?: string | null
@@ -336,6 +339,44 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_payment_evidence: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          description: string | null
+          file_type: string
+          file_url: string
+          id: string
+          provider_id: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          description?: string | null
+          file_type: string
+          file_url: string
+          id?: string
+          provider_id: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          description?: string | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_payment_evidence_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]
@@ -1212,6 +1253,12 @@ export type Database = {
       get_recurring_clients_count_by_listing: {
         Args: { provider_id: string; listing_id: string }
         Returns: number
+      }
+      needs_price_finalization: {
+        Args: {
+          appointment_row: Database["public"]["Tables"]["appointments"]["Row"]
+        }
+        Returns: boolean
       }
       recalculate_all_provider_ratings: {
         Args: Record<PropertyKey, never>

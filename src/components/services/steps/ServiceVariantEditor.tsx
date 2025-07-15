@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -21,7 +20,7 @@ import { ServiceVariant } from '@/lib/types';
 interface ServiceVariantEditorProps {
   serviceVariants: ServiceVariant[];
   onVariantsChange: (variants: ServiceVariant[]) => void;
-  isPostPayment?: boolean;
+  isPostPayment?: boolean | "ambas";
 }
 
 const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
@@ -31,12 +30,13 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
 }) => {
   const { control } = useFormContext();
   const [expandedVariants, setExpandedVariants] = React.useState<Set<string>>(new Set());
+  const showPriceFields = isPostPayment === false || isPostPayment === "ambas";
 
   const handleAddServiceVariant = () => {
     const newVariant: ServiceVariant = {
       id: uuidv4(),
       name: '',
-      price: isPostPayment ? 0 : '',
+      price: isPostPayment === true ? 0 : '',
       duration: 60,
       customVariables: []
     };
@@ -105,9 +105,15 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
           <Plus className="h-4 w-4 mr-1" /> Agregar servicio
         </Button>
       </div>
-      {!isPostPayment && (
+      {showPriceFields && (
         <p className="text-sm text-muted-foreground mb-4">
           Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones
+          {isPostPayment === "ambas" && " (para modalidad pre-pago)"}
+        </p>
+      )}
+      {isPostPayment === true && (
+        <p className="text-sm text-muted-foreground mb-4">
+          Define los tipos de servicios que ofreces con sus duraciones estimadas
         </p>
       )}
       
@@ -136,7 +142,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   />
                 </div>
                 
-                {!isPostPayment && (
+                {showPriceFields && (
                   <div className="col-span-5">
                     <FormField
                       control={control}
@@ -164,14 +170,14 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   </div>
                 )}
                 
-                <div className={isPostPayment ? "col-span-8" : "col-span-5"}>
+                <div className={showPriceFields ? "col-span-5" : "col-span-8"}>
                   <FormField
                     control={control}
                     name={`serviceVariants.${index}.duration`}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
-                          Duración {isPostPayment ? "(estimada)" : ""} (min)
+                          Duración {isPostPayment === true ? "(estimada)" : ""} (min)
                         </FormLabel>
                         <FormControl>
                           <Input 
@@ -189,7 +195,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   />
                 </div>
                 
-                <div className="col-span-4 flex items-end justify-end space-x-1">
+                <div className="col-span-2 flex items-end justify-end space-x-1">
                   <Button 
                     type="button" 
                     variant="ghost" 
@@ -213,9 +219,14 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                 </div>
               </div>
 
-              {isPostPayment && (
+              {isPostPayment === true && (
                 <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
                   <strong>Post pago</strong>
+                </div>
+              )}
+              {isPostPayment === "ambas" && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                  <strong>Modalidades disponibles:</strong> Pre-pago y Post-pago
                 </div>
               )}
 
