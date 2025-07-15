@@ -47,16 +47,18 @@ export const useWeeklySlots = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastParamsRef = useRef<string>('');
 
+  // Stable function to fetch slots - only recreated when essential params change
   const fetchWeeklySlots = useCallback(async () => {
     if (!providerId || !listingId || !serviceDuration) {
-      console.warn('❌ Missing required params:', { providerId, listingId, serviceDuration });
       return;
     }
 
-    // Create params signature to avoid duplicate requests
-    const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${startDate?.getTime()}-${daysAhead}`;
+    // Create stable params signature
+    const baseDate = startDate || startOfDay(new Date());
+    const endDate = addDays(baseDate, daysAhead);
+    const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${format(baseDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`;
+    
     if (lastParamsRef.current === paramsSignature) {
-      console.log('🔄 Skipping duplicate request');
       return;
     }
     lastParamsRef.current = paramsSignature;
@@ -68,19 +70,9 @@ export const useWeeklySlots = ({
     abortControllerRef.current = new AbortController();
 
     setIsLoading(true);
-    console.log(`🔄 Fetching slots for provider: ${providerId}, listing: ${listingId}`);
     
     try {
-      const baseDate = startDate || startOfDay(new Date());
-      const endDate = addDays(baseDate, daysAhead);
-      
-      console.log('🔍 Date range:', {
-        from: format(baseDate, 'yyyy-MM-dd'),
-        to: format(endDate, 'yyyy-MM-dd'),
-        recurrence
-      });
-
-      // Fetch available time slots for this specific listing with correct timezone
+      // Fetch available time slots
       const { data: timeSlots, error: slotsError } = await supabase
         .from('provider_time_slots')
         .select('*')
@@ -92,50 +84,9 @@ export const useWeeklySlots = ({
         .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
         .order('slot_datetime_start');
 
-      if (slotsError) {
-        console.error('❌ Error fetching time slots:', slotsError);
-        throw slotsError;
-      }
+      if (slotsError) throw slotsError;
 
-      console.log('⏰ Time slots found:', timeSlots?.length || 0);
-
-      // If no slots found, try to regenerate them
-      if (!timeSlots || timeSlots.length === 0) {
-        console.log('🔧 No slots found, attempting to regenerate...');
-        
-        try {
-          const { data: regenerateResult, error: regenerateError } = await supabase
-            .rpc('regenerate_slots_for_listing', { p_listing_id: listingId });
-            
-          if (regenerateError) {
-            console.error('❌ Error regenerating slots:', regenerateError);
-          } else {
-            console.log('✅ Regenerated slots:', regenerateResult);
-            
-            // Fetch again after regeneration
-            const { data: newTimeSlots, error: newSlotsError } = await supabase
-              .from('provider_time_slots')
-              .select('*')
-              .eq('provider_id', providerId)
-              .eq('listing_id', listingId)
-              .eq('is_available', true)
-              .eq('is_reserved', false)
-              .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
-              .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
-              .order('slot_datetime_start');
-              
-            if (!newSlotsError && newTimeSlots && newTimeSlots.length > 0) {
-              // Replace timeSlots with new data
-              timeSlots.splice(0, timeSlots.length, ...newTimeSlots);
-              console.log('📅 After regeneration, found:', newTimeSlots.length, 'slots');
-            }
-          }
-        } catch (regError) {
-          console.warn('⚠️ Could not regenerate slots:', regError);
-        }
-      }
-
-      // Fetch conflicting appointments for basic conflict detection
+      // Fetch conflicting appointments
       const { data: conflictingAppointments, error: appointmentsError } = await supabase
         .from('appointments')
         .select('start_time, end_time, status')
@@ -144,66 +95,46 @@ export const useWeeklySlots = ({
         .gte('start_time', baseDate.toISOString())
         .lte('start_time', endDate.toISOString());
 
-      if (appointmentsError) {
-        console.error('❌ Error fetching appointments:', appointmentsError);
-        throw appointmentsError;
-      }
+      if (appointmentsError) throw appointmentsError;
 
-      console.log('📅 Conflicting appointments:', conflictingAppointments?.length || 0);
-
-      // Convert time slots to weekly slots format with proper timezone handling
+      // Process slots with proper timezone handling
       const weeklySlots: WeeklySlot[] = timeSlots?.map(slot => {
-        // Create the slot date using the slot_date and start_time (local time)
-        const slotDateStr = slot.slot_date;
-        const startTimeStr = slot.start_time;
-        
-        // Parse the local date and time correctly
-        const [year, month, day] = slotDateStr.split('-').map(Number);
-        const [hours, minutes] = startTimeStr.split(':').map(Number);
-        
-        // Create date in local timezone (Costa Rica)
+        const [year, month, day] = slot.slot_date.split('-').map(Number);
+        const [hours, minutes] = slot.start_time.split(':').map(Number);
         const slotDate = new Date(year, month - 1, day, hours, minutes);
         
-        // Check for direct conflicts with existing appointments
+        // Check conflicts
         const hasDirectConflict = conflictingAppointments?.some(apt => {
           const aptStart = new Date(apt.start_time);
           const aptEnd = new Date(apt.end_time);
           const slotStart = new Date(slot.slot_datetime_start);
           const slotEnd = new Date(slot.slot_datetime_end);
-          
           return slotStart < aptEnd && slotEnd > aptStart;
         }) || false;
 
-        const isAvailable = !hasDirectConflict;
-        const { time: displayTime, period } = formatTimeTo12Hour(startTimeStr);
+        const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
         return {
           id: slot.id,
           date: slotDate,
-          time: startTimeStr,
+          time: slot.start_time,
           displayTime,
           period,
-          isAvailable,
+          isAvailable: !hasDirectConflict,
           conflictReason: hasDirectConflict ? 'Horario ocupado' : undefined
         };
       }) || [];
-
-      console.log('🎯 Weekly slots processed:', {
-        total: weeklySlots.length,
-        available: weeklySlots.filter(s => s.isAvailable).length,
-        unavailable: weeklySlots.filter(s => !s.isAvailable).length
-      });
       
       setSlots(weeklySlots);
       setLastUpdated(new Date());
       
     } catch (err) {
-      console.error('❌ Error in fetchWeeklySlots:', err);
+      console.error('Error fetching slots:', err);
       setSlots([]);
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead]);
+  }, [providerId, listingId, serviceDuration, recurrence]); // Removed unstable dependencies
 
   // Validate a specific slot for recurring conflicts only when needed
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -305,16 +236,13 @@ export const useWeeklySlots = ({
     };
   }, [slots, slotGroups, availableSlotGroups]);
 
-  // Single effect for all parameter changes with debounce
+  // Effect to trigger fetch when essential params change
   useEffect(() => {
     if (providerId && listingId && serviceDuration > 0) {
-      const timer = setTimeout(() => {
-        fetchWeeklySlots();
-      }, 150); // Small debounce to avoid rapid calls
-      
+      const timer = setTimeout(fetchWeeklySlots, 100);
       return () => clearTimeout(timer);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, fetchWeeklySlots]);
+  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), daysAhead, fetchWeeklySlots]);
 
   // Cleanup on unmount
   useEffect(() => {
