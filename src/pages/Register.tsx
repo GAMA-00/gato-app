@@ -16,14 +16,15 @@ const Register = () => {
   useEffect(() => {
     if (user) {
       // Redirect based on user role
-      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client';
+      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
       navigate(redirectTo);
     }
   }, [user, navigate]);
 
   const handleRegisterSuccess = (data: { user: any }) => {
     toast.success('¡Registro exitoso! Explora nuestros servicios.');
-    navigate('/client');
+    // La redirección se maneja automáticamente por el contexto de autenticación
+    // No necesitamos navigate aquí
   };
 
   return (
