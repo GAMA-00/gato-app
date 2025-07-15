@@ -88,9 +88,9 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
           <CardContent className="p-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex-1 grid grid-cols-2 gap-3">
+                <div className="flex-1 space-y-3">
                   <div>
-                    <Label className="text-xs">Nombre de la variable</Label>
+                    <Label className="text-xs text-gray-600">Nombre de la variable</Label>
                     <Input
                       placeholder="Ej. Número de personas"
                       value={variable.name}
@@ -99,7 +99,7 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Tipo</Label>
+                    <Label className="text-xs text-gray-600">Tipo</Label>
                     <Select
                       value={variable.type}
                       onValueChange={(value) => updateCustomVariable(variableIndex, 'type', value)}
@@ -120,16 +120,16 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
                   variant="ghost"
                   size="sm"
                   onClick={() => removeCustomVariable(variableIndex)}
-                  className="ml-2 text-red-500 hover:text-red-700"
+                  className="ml-4 text-red-500 hover:text-red-700 self-start"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
 
               {variable.type === 'quantity' && (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-3">
                   <div>
-                    <Label className="text-xs">Precio por unidad</Label>
+                    <Label className="text-xs text-gray-600">Precio por unidad</Label>
                     <Input
                       type="number"
                       placeholder="0"
@@ -138,33 +138,35 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
                       className="mt-1"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs">Mínimo</Label>
-                    <Input
-                      type="number"
-                      placeholder="1"
-                      value={variable.minQuantity || ''}
-                      onChange={(e) => updateCustomVariable(variableIndex, 'minQuantity', Number(e.target.value))}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Máximo</Label>
-                    <Input
-                      type="number"
-                      placeholder="10"
-                      value={variable.maxQuantity || ''}
-                      onChange={(e) => updateCustomVariable(variableIndex, 'maxQuantity', Number(e.target.value))}
-                      className="mt-1"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-600">Mínimo</Label>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        value={variable.minQuantity || ''}
+                        onChange={(e) => updateCustomVariable(variableIndex, 'minQuantity', Number(e.target.value))}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Máximo</Label>
+                      <Input
+                        type="number"
+                        placeholder="10"
+                        value={variable.maxQuantity || ''}
+                        onChange={(e) => updateCustomVariable(variableIndex, 'maxQuantity', Number(e.target.value))}
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               {variable.type === 'price' && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
                   <div>
-                    <Label className="text-xs">Precio base</Label>
+                    <Label className="text-xs text-gray-600">Precio base</Label>
                     <Input
                       type="number"
                       placeholder="0"
@@ -174,7 +176,7 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Incremento</Label>
+                    <Label className="text-xs text-gray-600">Incremento</Label>
                     <Input
                       type="number"
                       placeholder="0"
@@ -187,9 +189,9 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
               )}
 
               {variable.type === 'min_max' && (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-3">
                   <div>
-                    <Label className="text-xs">Precio por unidad</Label>
+                    <Label className="text-xs text-gray-600">Precio por unidad</Label>
                     <Input
                       type="number"
                       placeholder="0"
@@ -198,25 +200,27 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
                       className="mt-1"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs">Valor mínimo</Label>
-                    <Input
-                      type="number"
-                      placeholder="1"
-                      value={variable.minValue || ''}
-                      onChange={(e) => updateCustomVariable(variableIndex, 'minValue', Number(e.target.value))}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Valor máximo</Label>
-                    <Input
-                      type="number"
-                      placeholder="10"
-                      value={variable.maxValue || ''}
-                      onChange={(e) => updateCustomVariable(variableIndex, 'maxValue', Number(e.target.value))}
-                      className="mt-1"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-600">Valor mínimo</Label>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        value={variable.minValue || ''}
+                        onChange={(e) => updateCustomVariable(variableIndex, 'minValue', Number(e.target.value))}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600">Valor máximo</Label>
+                      <Input
+                        type="number"
+                        placeholder="10"
+                        value={variable.maxValue || ''}
+                        onChange={(e) => updateCustomVariable(variableIndex, 'maxValue', Number(e.target.value))}
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -226,9 +230,9 @@ const ServiceCustomVariablesEditor: React.FC<ServiceCustomVariablesEditorProps> 
       ))}
 
       {customVariables.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-6 text-gray-500">
           <p className="text-sm">No hay variables adicionales configuradas</p>
-          <p className="text-xs">Agregá variables como "Número de personas" o "Metros cuadrados"</p>
+          <p className="text-xs mt-1">Agregá variables como "Número de personas" o "Metros cuadrados"</p>
         </div>
       )}
     </div>
