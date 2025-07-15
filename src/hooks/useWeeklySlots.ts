@@ -94,157 +94,220 @@ export const useWeeklySlots = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchWeeklySlots = useCallback(async () => {
-    if (!providerId) {
-      console.warn('❌ No providerId provided to fetchWeeklySlots');
+    if (!providerId || !listingId || !serviceDuration) {
+      console.warn('❌ Missing required params:', { providerId, listingId, serviceDuration });
       return;
     }
-
-    // Throttling: prevent calls too close together
-    const now = Date.now();
-    if (now - lastCallRef.current < 500) {
-      console.log('🚫 Throttling fetchWeeklySlots call');
-      return;
-    }
-    lastCallRef.current = now;
-
-    // Check cache first
-    const cacheKey = `${providerId}-${listingId}-${serviceDuration}-${startDate?.getTime() || 'now'}-${daysAhead}`;
-    const cached = cacheRef.current[cacheKey];
-    if (cached && now - cached.timestamp < 30000) { // 30 second cache
-      console.log('📦 Using cached slots');
-      setSlots(cached.data);
-      setLastUpdated(new Date(cached.timestamp));
-      return;
-    }
-
-    // Cancel any pending request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
 
     setIsLoading(true);
-    console.log(`🔄 Starting fetchWeeklySlots for provider: ${providerId}`);
+    console.log(`🔄 Starting fetchWeeklySlots for provider: ${providerId}, listing: ${listingId}`);
     
     try {
       const baseDate = startDate || startOfDay(new Date());
-      
-      // Generate time slots for this service duration
-      const timeSlots = generateTimeSlots(serviceDuration);
-      
-      // PHASE 1: Get all conflicts for the date range with retry logic
       const endDate = addDays(baseDate, daysAhead);
-      console.log(`🔍 Fetching conflicts for provider ${providerId} from ${format(baseDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
       
-      // Fetch with fallback to showing basic slots on network error
-      let appointments: any[] = [];
-      let providerTimeSlots: any[] = [];
-      
-      try {
-        // Try appointments first
-        const appointmentsResult = await supabase
-          .from('appointments')
-          .select('start_time, end_time, status, recurrence, is_recurring_instance')
-          .eq('provider_id', providerId)
-          .in('status', ['pending', 'confirmed', 'completed', 'scheduled'])
-          .gte('start_time', baseDate.toISOString())
-          .lte('start_time', endDate.toISOString());
-          
-        if (appointmentsResult.error) {
-          console.warn('⚠️ Could not fetch appointments, showing optimistic slots:', appointmentsResult.error);
-        } else {
-          appointments = appointmentsResult.data || [];
-        }
-
-        // Fetch provider time slots for this specific listing and date range
-        const slotsResult = await supabase
-          .from('provider_time_slots')
-          .select('*')
-          .eq('provider_id', providerId)
-          .eq('listing_id', listingId)
-          .eq('is_available', true)
-          .eq('is_reserved', false)
-          .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
-          .lte('slot_date', format(endDate, 'yyyy-MM-dd'));
-
-        if (slotsResult.error) {
-          console.warn('⚠️ Could not fetch provider time slots:', slotsResult.error);
-        } else {
-          providerTimeSlots = slotsResult.data || [];
-          console.log(`📅 Found ${providerTimeSlots.length} available slots for listing ${listingId}`);
-        }
-      } catch (error) {
-        console.warn('⚠️ Network error fetching data, showing optimistic slots');
-      }
-      
-      
-      console.log(`📊 Found ${appointments.length} appointments, ${providerTimeSlots.length} provider slots for listing ${listingId}`);
-
-      // PHASE 2: Generate slots ONLY from provider_time_slots that match this listing
-      const newSlots: WeeklySlot[] = [];
-      let totalGenerated = 0;
-      let totalFiltered = 0;
-
-      // Process each provider time slot for this listing
-      providerTimeSlots.forEach(timeSlot => {
-        const slotDate = new Date(timeSlot.slot_date);
-        const [hours, minutes] = timeSlot.start_time.split(':').map(Number);
-        const slotStart = new Date(slotDate);
-        slotStart.setHours(hours, minutes, 0, 0);
-        
-        const slotEnd = new Date(slotStart);
-        slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
-
-        totalGenerated++;
-
-        // CHECK: Does this slot overlap with existing appointments?
-        const hasAppointmentConflict = appointments.some(appointment => {
-          const appointmentStart = new Date(appointment.start_time);
-          const appointmentEnd = new Date(appointment.end_time);
-          
-          // Check if times overlap using utility function
-          return checkTimeOverlap(slotStart, slotEnd, appointmentStart, appointmentEnd);
-        });
-
-        if (hasAppointmentConflict) {
-          console.log(`⏰ Slot ${timeSlot.start_time} on ${format(slotDate, 'yyyy-MM-dd')} conflicts with existing appointment`);
-          totalFiltered++;
-          return; // Skip this slot
-        }
-
-        // If we get here, the slot is truly available
-        const { time: displayTime, period } = formatTimeTo12Hour(timeSlot.start_time);
-        const slotId = createSlotId(slotDate, timeSlot.start_time);
-
-        newSlots.push({
-          id: slotId,
-          date: slotDate,
-          time: timeSlot.start_time,
-          displayTime,
-          period,
-          isAvailable: true // Only available slots make it to this point
-        });
+      console.log('🔍 Fetching slots with params:', {
+        providerId,
+        listingId,
+        serviceDuration,
+        recurrence,
+        dateRange: `${format(baseDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`
       });
 
-      console.log(`✅ Slot generation complete: ${totalGenerated} generated, ${totalFiltered} filtered, ${newSlots.length} available`);
+      // Fetch available time slots for this specific listing
+      const { data: timeSlots, error: slotsError } = await supabase
+        .from('provider_time_slots')
+        .select('*')
+        .eq('provider_id', providerId)
+        .eq('listing_id', listingId)
+        .eq('is_available', true)
+        .eq('is_reserved', false)
+        .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+        .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+        .order('slot_datetime_start');
+
+      if (slotsError) {
+        console.error('❌ Error fetching time slots:', slotsError);
+        throw slotsError;
+      }
+
+      console.log('⏰ Available time slots found:', timeSlots?.length || 0);
+
+      // If no slots found, try to regenerate them
+      if (!timeSlots || timeSlots.length === 0) {
+        console.log('🔧 No slots found, attempting to regenerate...');
+        
+        try {
+          const { data: regenerateResult, error: regenerateError } = await supabase
+            .rpc('regenerate_slots_for_listing', { p_listing_id: listingId });
+            
+          if (regenerateError) {
+            console.error('❌ Error regenerating slots:', regenerateError);
+          } else {
+            console.log('✅ Regenerated slots:', regenerateResult);
+            
+            // Fetch again after regeneration
+            const { data: newTimeSlots, error: newSlotsError } = await supabase
+              .from('provider_time_slots')
+              .select('*')
+              .eq('provider_id', providerId)
+              .eq('listing_id', listingId)
+              .eq('is_available', true)
+              .eq('is_reserved', false)
+              .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+              .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+              .order('slot_datetime_start');
+              
+            if (!newSlotsError && newTimeSlots) {
+              timeSlots.push(...newTimeSlots);
+              console.log('📅 After regeneration, found:', newTimeSlots.length, 'slots');
+            }
+          }
+        } catch (regError) {
+          console.warn('⚠️ Could not regenerate slots:', regError);
+        }
+      }
+
+      // Fetch conflicting appointments
+      const { data: conflictingAppointments, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select('start_time, end_time, recurrence, status')
+        .eq('provider_id', providerId)
+        .in('status', ['confirmed', 'pending'])
+        .gte('start_time', baseDate.toISOString())
+        .lte('start_time', endDate.toISOString());
+
+      if (appointmentsError) {
+        console.error('❌ Error fetching appointments:', appointmentsError);
+        throw appointmentsError;
+      }
+
+      console.log('📅 Conflicting appointments:', conflictingAppointments?.length || 0);
+
+      // Fetch existing recurring rules for conflict detection
+      const { data: recurringRules, error: rulesError } = await supabase
+        .from('recurring_rules')
+        .select('*')
+        .eq('provider_id', providerId)
+        .eq('is_active', true);
+
+      if (rulesError) {
+        console.error('❌ Error fetching recurring rules:', rulesError);
+      }
+
+      // Convert time slots to weekly slots format with enhanced conflict detection
+      const weeklySlots: WeeklySlot[] = timeSlots?.map(slot => {
+        const slotDate = new Date(slot.slot_datetime_start);
+        
+        // Check for direct conflicts with existing appointments
+        const hasDirectConflict = conflictingAppointments?.some(apt => {
+          const aptStart = new Date(apt.start_time);
+          const aptEnd = new Date(apt.end_time);
+          const slotStart = new Date(slot.slot_datetime_start);
+          const slotEnd = new Date(slot.slot_datetime_end);
+          
+          return slotStart < aptEnd && slotEnd > aptStart;
+        }) || false;
+
+        // Enhanced recurring conflict detection
+        let hasRecurringConflict = false;
+        if (recurrence && recurrence !== 'once') {
+          // Check conflicts with recurring rules
+          hasRecurringConflict = recurringRules?.some(rule => {
+            const ruleStart = new Date(`2000-01-01T${rule.start_time}`);
+            const ruleEnd = new Date(`2000-01-01T${rule.end_time}`);
+            const slotTime = new Date(`2000-01-01T${format(slotDate, 'HH:mm:ss')}`);
+            const slotEndTime = new Date(slotTime.getTime() + serviceDuration * 60000);
+            
+            // Check time overlap
+            const hasTimeOverlap = slotTime < ruleEnd && slotEndTime > ruleStart;
+            
+            if (!hasTimeOverlap) return false;
+            
+            // Check recurrence pattern conflicts
+            switch (recurrence) {
+              case 'weekly':
+                return rule.recurrence_type === 'weekly' && 
+                       rule.day_of_week === slotDate.getDay();
+              
+              case 'biweekly':
+                if (rule.recurrence_type === 'biweekly') {
+                  const ruleStartDate = new Date(rule.start_date);
+                  const weeksDiff = Math.floor((slotDate.getTime() - ruleStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                  return weeksDiff % 2 === 0 && rule.day_of_week === slotDate.getDay();
+                }
+                return rule.recurrence_type === 'weekly' && rule.day_of_week === slotDate.getDay();
+              
+              case 'monthly':
+                return rule.recurrence_type === 'monthly' && 
+                       rule.day_of_month === slotDate.getDate();
+              
+              default:
+                return false;
+            }
+          }) || false;
+
+          // Also check conflicts with existing recurring appointments
+          hasRecurringConflict = hasRecurringConflict || conflictingAppointments?.some(apt => {
+            if (!apt.recurrence || apt.recurrence === 'once') return false;
+            
+            const aptStart = new Date(apt.start_time);
+            const slotStart = new Date(slot.slot_datetime_start);
+            
+            const hasTimeMatch = aptStart.getHours() === slotStart.getHours() &&
+                                 aptStart.getMinutes() === slotStart.getMinutes();
+            
+            if (!hasTimeMatch) return false;
+            
+            switch (recurrence) {
+              case 'weekly':
+                return apt.recurrence === 'weekly' && aptStart.getDay() === slotStart.getDay();
+              
+              case 'biweekly':
+                if (apt.recurrence === 'biweekly') {
+                  const weeksDiff = Math.floor((slotStart.getTime() - aptStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                  return weeksDiff % 2 === 0 && aptStart.getDay() === slotStart.getDay();
+                }
+                return apt.recurrence === 'weekly' && aptStart.getDay() === slotStart.getDay();
+              
+              case 'monthly':
+                return apt.recurrence === 'monthly' && aptStart.getDate() === slotStart.getDate();
+              
+              default:
+                return false;
+            }
+          }) || false;
+        }
+
+        const isAvailable = !hasDirectConflict && !hasRecurringConflict;
+        const { time: displayTime, period } = formatTimeTo12Hour(format(slotDate, 'HH:mm'));
+
+        return {
+          id: slot.id,
+          date: slotDate,
+          time: format(slotDate, 'HH:mm'),
+          displayTime,
+          period,
+          isAvailable
+        };
+      }) || [];
+
+      console.log('🎯 Final weekly slots processed:', {
+        total: weeklySlots.length,
+        available: weeklySlots.filter(s => s.isAvailable).length,
+        unavailable: weeklySlots.filter(s => !s.isAvailable).length
+      });
       
-      // Cache the results
-      cacheRef.current[cacheKey] = {
-        data: newSlots,
-        timestamp: now
-      };
-      
-      setSlots(newSlots);
+      setSlots(weeklySlots);
       setLastUpdated(new Date());
-    } catch (error) {
-      if ((error as any)?.name === 'AbortError') return;
-      console.error('❌ Critical error in fetchWeeklySlots:', error);
-      // Don't leave users hanging - set empty slots and show we tried
+      
+    } catch (err) {
+      console.error('❌ Error in fetchWeeklySlots:', err);
       setSlots([]);
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, startDate, daysAhead]); // Include listingId in dependencies
+  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead])
 
   // Validate a specific slot when it's being selected (now just for recurring conflicts)
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
