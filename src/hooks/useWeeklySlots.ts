@@ -92,6 +92,10 @@ export const useWeeklySlots = ({
   const cacheRef = useRef<{ [key: string]: { data: WeeklySlot[], timestamp: number } }>({});
   const lastCallRef = useRef<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Refs to maintain current values without causing re-renders
+  const paramsRef = useRef({ recurrence, startDate, daysAhead });
+  paramsRef.current = { recurrence, startDate, daysAhead };
 
   const fetchWeeklySlots = useCallback(async () => {
     if (!providerId || !listingId || !serviceDuration) {
@@ -99,18 +103,25 @@ export const useWeeklySlots = ({
       return;
     }
 
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     console.log(`🔄 Starting fetchWeeklySlots for provider: ${providerId}, listing: ${listingId}`);
     
     try {
-      const baseDate = startDate || startOfDay(new Date());
-      const endDate = addDays(baseDate, daysAhead);
+      const { recurrence: currentRecurrence, startDate: currentStartDate, daysAhead: currentDaysAhead } = paramsRef.current;
+      const baseDate = currentStartDate || startOfDay(new Date());
+      const endDate = addDays(baseDate, currentDaysAhead);
       
       console.log('🔍 Fetching slots with params:', {
         providerId,
         listingId,
         serviceDuration,
-        recurrence,
+        recurrence: currentRecurrence,
         dateRange: `${format(baseDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`
       });
 
@@ -211,7 +222,7 @@ export const useWeeklySlots = ({
 
         // Enhanced recurring conflict detection
         let hasRecurringConflict = false;
-        if (recurrence && recurrence !== 'once') {
+        if (currentRecurrence && currentRecurrence !== 'once') {
           // Check conflicts with recurring rules
           hasRecurringConflict = recurringRules?.some(rule => {
             const ruleStart = new Date(`2000-01-01T${rule.start_time}`);
@@ -225,7 +236,7 @@ export const useWeeklySlots = ({
             if (!hasTimeOverlap) return false;
             
             // Check recurrence pattern conflicts
-            switch (recurrence) {
+            switch (currentRecurrence) {
               case 'weekly':
                 return rule.recurrence_type === 'weekly' && 
                        rule.day_of_week === slotDate.getDay();
@@ -259,7 +270,7 @@ export const useWeeklySlots = ({
             
             if (!hasTimeMatch) return false;
             
-            switch (recurrence) {
+            switch (currentRecurrence) {
               case 'weekly':
                 return apt.recurrence === 'weekly' && aptStart.getDay() === slotStart.getDay();
               
@@ -307,7 +318,12 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead])
+  }, [providerId, listingId, serviceDuration]);
+
+  // Create a stable refresh function
+  const refreshSlots = useCallback(() => {
+    fetchWeeklySlots();
+  }, [fetchWeeklySlots]);
 
   // Validate a specific slot when it's being selected (now just for recurring conflicts)
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -396,20 +412,22 @@ export const useWeeklySlots = ({
     };
   }, [slots, slotGroups, availableSlotGroups]);
 
-  // Trigger refresh when recurrence changes
+  // Main effect for initial load and when core parameters change
   useEffect(() => {
-    console.log(`🔄 Recurrence changed to: ${recurrence}, refreshing slots...`);
+    console.log(`🔄 useEffect triggered - Provider: ${providerId}, Listing: ${listingId}, Duration: ${serviceDuration}`);
     if (providerId && listingId && serviceDuration > 0) {
       fetchWeeklySlots();
     }
-  }, [recurrence, fetchWeeklySlots]);
+  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    console.log(`🔄 useEffect triggered for fetchWeeklySlots - Provider: ${providerId}, Duration: ${serviceDuration}`);
-    if (providerId && listingId && serviceDuration > 0) {
-      fetchWeeklySlots();
-    }
-  }, [fetchWeeklySlots]); // Only depend on the function itself
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     slotGroups,
@@ -419,6 +437,6 @@ export const useWeeklySlots = ({
     isValidatingSlot,
     lastUpdated,
     validateSlot,
-    refreshSlots: fetchWeeklySlots
+    refreshSlots
   };
 };
