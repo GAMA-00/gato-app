@@ -101,20 +101,23 @@ export const useWeeklySlots = ({
 
       // Process slots with proper timezone handling
       const weeklySlots: WeeklySlot[] = timeSlots?.map(slot => {
-        const [year, month, day] = slot.slot_date.split('-').map(Number);
-        const [hours, minutes] = slot.start_time.split(':').map(Number);
-        const slotDate = new Date(year, month - 1, day, hours, minutes);
+        // Use the slot_datetime_start directly instead of reconstructing the date
+        const slotStart = new Date(slot.slot_datetime_start);
+        const slotEnd = new Date(slot.slot_datetime_end);
+        
+        // Create a date object for the slot date (used for grouping)
+        const slotDate = new Date(slotStart);
         
         // Check conflicts
         const hasDirectConflict = conflictingAppointments?.some(apt => {
           const aptStart = new Date(apt.start_time);
           const aptEnd = new Date(apt.end_time);
-          const slotStart = new Date(slot.slot_datetime_start);
-          const slotEnd = new Date(slot.slot_datetime_end);
           return slotStart < aptEnd && slotEnd > aptStart;
         }) || false;
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
+
+        console.log(`Slot procesado: ${slot.slot_date} ${slot.start_time} -> ${displayTime} ${period} (disponible: ${!hasDirectConflict})`);
 
         return {
           id: slot.id,
@@ -144,12 +147,15 @@ export const useWeeklySlots = ({
 
     setIsValidatingSlot(true);
     try {
+      // Use the slot's date and time directly to create proper datetime
       const [hours, minutes] = slot.time.split(':').map(Number);
       const slotStart = new Date(slot.date);
       slotStart.setHours(hours, minutes, 0, 0);
       
       const slotEnd = new Date(slotStart);
       slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
+
+      console.log(`Validando slot recurrente: ${slot.time} en ${format(slot.date, 'yyyy-MM-dd')}`);
 
       // Simple recurring conflict check using the database function
       const { data: isAvailable, error } = await supabase
