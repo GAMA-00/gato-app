@@ -61,23 +61,24 @@ const WeeklySlotGrid = ({
     
     if (!slot || !slot.isAvailable) return;
 
-    // Select slot immediately since it's pre-filtered
+    // Select slot immediately and maintain selection
     setSelectedSlotId(slotId);
     onSlotSelect(slotId, date, time);
 
-    // Only validate for recurring conflicts if needed
-    if (recurrence !== 'once') {
+    // Only validate for recurring conflicts if explicitly configured
+    if (recurrence && recurrence !== 'once') {
       try {
         const isValid = await validateSlot(slot);
         
         if (!isValid) {
-          // Revert selection if validation fails
+          // Only revert selection if validation explicitly fails for recurring bookings
           setSelectedSlotId(undefined);
+          console.warn('Slot validation failed for recurring booking');
         }
       } catch (error) {
-        // Revert selection on any error
-        setSelectedSlotId(undefined);
-        console.error('Error validating slot:', error);
+        // For recurring bookings, log error but don't revert selection automatically
+        console.error('Error validating recurring slot:', error);
+        // Keep the selection for now, user can try again if needed
       }
     }
   };
