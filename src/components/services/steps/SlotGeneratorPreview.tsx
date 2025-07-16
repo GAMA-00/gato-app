@@ -65,16 +65,23 @@ const SlotGeneratorPreview = () => {
 
   return (
     <Card className="border-stone-200 shadow-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-4 px-4 pt-4 md:px-6">
+        <div className="text-center md:flex md:items-center md:justify-between md:text-left">
           <div>
-            <CardTitle className="text-lg">Vista Previa de Horarios</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg md:text-xl flex items-center justify-center md:justify-start gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              <span className="md:hidden">Vista previa</span>
+              <span className="hidden md:inline">Vista Previa de Horarios</span>
+            </CardTitle>
+            <CardDescription className="hidden md:block mt-2">
               Horarios generados automáticamente para los próximos 7 días. 
               Toca cualquier horario para activarlo/desactivarlo.
             </CardDescription>
+            <CardDescription className="md:hidden text-center mt-2">
+              {stats.enabledSlots} activos de {stats.totalSlots} horarios
+            </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
               <CheckCircle className="h-3 w-3 mr-1" />
               {stats.enabledSlots} activos
@@ -87,89 +94,79 @@ const SlotGeneratorPreview = () => {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-4 md:px-6">
         {/* Quick Actions */}
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-          <div className="text-sm text-gray-600">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between p-4 md:p-3 bg-gray-50 rounded-lg">
+          <div className="text-sm text-gray-600 text-center md:text-left">
             <strong>{stats.totalSlots}</strong> horarios generados
-            <span className="ml-2">({stats.enabledPercentage}% activos)</span>
+            <span className="block md:inline md:ml-2">({stats.enabledPercentage}% activos)</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-center md:justify-end">
             <Button
               variant="outline"
               size="sm"
               onClick={enableAllSlots}
-              className="text-green-700 border-green-200 hover:bg-green-50"
+              className="text-green-700 border-green-200 hover:bg-green-50 min-h-[44px] md:min-h-auto px-4 md:px-3"
             >
               <CheckCircle className="h-3 w-3 mr-1" />
-              Activar todos
+              <span className="md:hidden">Todos</span>
+              <span className="hidden md:inline">Activar todos</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={disableAllSlots}
-              className="text-red-700 border-red-200 hover:bg-red-50"
+              className="text-red-700 border-red-200 hover:bg-red-50 min-h-[44px] md:min-h-auto px-4 md:px-3"
             >
               <XCircle className="h-3 w-3 mr-1" />
-              Desactivar todos
+              <span className="md:hidden">Ninguno</span>
+              <span className="hidden md:inline">Desactivar todos</span>
             </Button>
           </div>
         </div>
 
-        {/* Slots Grid */}
-        <div className="overflow-x-auto">
-          <div className="grid grid-cols-7 gap-2 min-w-[700px]">
-            {/* Headers - Fixed height for alignment */}
-            {availableDates.map(date => (
-              <div key={date.toISOString()} className="text-center h-12 flex flex-col justify-center mb-2 bg-slate-50 rounded-md border">
-                <div className="text-sm font-medium text-gray-900">
-                  {format(date, 'EEEE', { locale: es })}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {format(date, 'd MMM', { locale: es })}
-                </div>
-              </div>
-            ))}
+        {/* Slots Grid - Responsive */}
+        <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
+          {availableDates.map(date => {
+            const dateKey = format(date, 'yyyy-MM-dd');
+            const daySlots = slotsByDate[dateKey] || [];
             
-            {/* Slots - Symmetric grid with equal column heights */}
-            {availableDates.map(date => {
-              const dateKey = format(date, 'yyyy-MM-dd');
-              const daySlots = slotsByDate[dateKey] || [];
-              const maxSlotsPerDay = Math.max(...availableDates.map(d => {
-                const key = format(d, 'yyyy-MM-dd');
-                return slotsByDate[key]?.length || 0;
-              }));
-              
-              return (
-                <div key={dateKey} className="flex flex-col space-y-1 min-h-0">
+            return (
+              <div key={dateKey} className="space-y-3">
+                {/* Day Header */}
+                <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
+                  <div className="text-base md:text-sm font-medium text-gray-900">
+                    {format(date, 'EEEE', { locale: es })}
+                  </div>
+                  <div className="text-sm md:text-xs text-gray-500">
+                    {format(date, 'd MMM', { locale: es })}
+                  </div>
+                </div>
+
+                {/* Day Slots */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
                   {daySlots.length === 0 ? (
-                    <div className="text-center text-gray-400 text-xs py-4 flex-1 flex items-center justify-center bg-gray-50 rounded border border-dashed">
+                    <div className="text-center text-gray-400 text-xs py-4 flex-1 flex items-center justify-center bg-gray-50 rounded border border-dashed min-w-[80px] md:min-w-auto">
                       Sin horarios
                     </div>
                   ) : (
-                    <>
-                      {daySlots.map(slot => (
-                        <SlotCard
-                          key={slot.id}
-                          time={slot.displayTime}
-                          period={slot.period}
-                          isEnabled={slot.isEnabled}
-                          onClick={() => toggleSlot(slot.id)}
-                          size="sm"
-                          variant="provider"
-                          className="w-full flex-shrink-0"
-                        />
-                      ))}
-                      {/* Add empty spacers to maintain grid alignment */}
-                      {Array.from({ length: maxSlotsPerDay - daySlots.length }).map((_, i) => (
-                        <div key={`spacer-${i}`} className="h-12 opacity-0" />
-                      ))}
-                    </>
+                    daySlots.map(slot => (
+                      <SlotCard
+                        key={slot.id}
+                        time={slot.displayTime}
+                        period={slot.period}
+                        isEnabled={slot.isEnabled}
+                        onClick={() => toggleSlot(slot.id)}
+                        size="sm"
+                        variant="provider"
+                        className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink"
+                      />
+                    ))
                   )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Info */}
