@@ -246,7 +246,11 @@ export const useProviderAvailability = () => {
       // Notify hooks using traditional state management to refresh their data
       if (user?.id) {
         console.log('Notificando cambio de disponibilidad para proveedor:', user.id);
-        notifyAvailabilityChange(user.id);
+        
+        // Add a small delay to ensure database operations have completed
+        setTimeout(() => {
+          notifyAvailabilityChange(user.id);
+        }, 500);
       }
     } catch (error) {
       console.error('Error saving availability:', error);
