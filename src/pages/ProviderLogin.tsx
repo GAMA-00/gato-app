@@ -88,7 +88,6 @@ const ProviderLogin = () => {
             />
           </div>
           <CardTitle className="text-2xl">Portal de Proveedor</CardTitle>
-          <p className="text-muted-foreground">Administra tu negocio y calendario</p>
         </CardHeader>
         <CardContent>
           {loginError && (

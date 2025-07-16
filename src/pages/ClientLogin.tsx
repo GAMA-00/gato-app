@@ -88,7 +88,6 @@ const ClientLogin = () => {
             />
           </div>
           <CardTitle className="text-2xl">Portal de Cliente</CardTitle>
-          <p className="text-muted-foreground">Inicia sesión para acceder a servicios</p>
         </CardHeader>
         <CardContent>
           
