@@ -61,19 +61,9 @@ const Calendar = () => {
           </div>
         )}
 
-        
-        {/* Optimized Calendar view with recurring instances */}
-        <div className="w-full">
-          <CalendarView 
-            appointments={appointments} 
-            currentDate={currentDate}
-            onDateChange={setCurrentDate}
-          />
-        </div>
-        
         {/* Manage Availability Button for providers */}
         {user?.role === 'provider' && (
-          <div className="w-full flex justify-center mt-6">
+          <div className="w-full flex justify-center mb-6">
             <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2">
@@ -90,6 +80,15 @@ const Calendar = () => {
             </Dialog>
           </div>
         )}
+        
+        {/* Optimized Calendar view with recurring instances */}
+        <div className="w-full">
+          <CalendarView 
+            appointments={appointments} 
+            currentDate={currentDate}
+            onDateChange={setCurrentDate}
+          />
+        </div>
       </div>
     </PageLayout>
   );

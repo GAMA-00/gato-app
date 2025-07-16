@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar } from 'lucide-react';
+import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
 import AvailabilitySlotPreview from './AvailabilitySlotPreview';
@@ -54,42 +54,55 @@ export const AvailabilityManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Administrar Disponibilidad</h2>
-          <p className="text-sm text-muted-foreground">
-            Configure su disponibilidad y gestione horarios específicos
-          </p>
-        </div>
-        {activeTab === 'availability' && (
-          <Button 
-            onClick={saveAvailability}
-            disabled={isSaving}
-            className="flex items-center gap-2"
-          >
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-          </Button>
-        )}
+      {/* Desktop Navigation */}
+      <div className="hidden md:block">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="availability" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Configurar Disponibilidad
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Vista Previa de Horarios
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="availability" className="flex items-center gap-2">
+      {/* Mobile Navigation */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveTab(activeTab === 'availability' ? 'preview' : 'availability')}
+            disabled={activeTab === 'availability'}
+            className="flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {activeTab === 'preview' ? 'Configurar' : ''}
+          </Button>
+          
+          <div className="flex items-center gap-2 text-sm font-medium">
             <Settings className="h-4 w-4" />
-            Configurar Disponibilidad
-          </TabsTrigger>
-          <TabsTrigger value="preview" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Vista Previa de Horarios
-          </TabsTrigger>
-        </TabsList>
+            {activeTab === 'availability' ? 'Configurar Disponibilidad' : 'Vista Previa de Horarios'}
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveTab(activeTab === 'availability' ? 'preview' : 'availability')}
+            disabled={activeTab === 'preview'}
+            className="flex items-center gap-2"
+          >
+            {activeTab === 'availability' ? 'Vista Previa' : ''}
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-        <TabsContent value="availability" className="space-y-4 mt-6">
+        <div className={`space-y-4 mt-6 ${activeTab === 'availability' ? 'block' : 'hidden'}`}>
           <div className="grid gap-4">
             {DAYS.map(({ key, label }) => (
               <Card key={key}>
@@ -165,16 +178,28 @@ export const AvailabilityManager: React.FC = () => {
               </Card>
             ))}
           </div>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="preview" className="space-y-4 mt-6">
+        <div className={`space-y-4 mt-6 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
+          <div className="flex justify-end mb-4">
+            <Button 
+              onClick={saveAvailability}
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </div>
           <AvailabilitySlotPreview
             availability={availability}
             serviceDuration={60}
           />
-        </TabsContent>
-
-      </Tabs>
+        </div>
     </div>
   );
 };
