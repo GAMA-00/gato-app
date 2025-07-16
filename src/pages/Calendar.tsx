@@ -58,9 +58,10 @@ const Calendar = () => {
       headerActions={user?.role === 'provider' ? (
         <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="flex items-center gap-1 text-xs px-2 py-1 h-7">
               <Settings className="h-3 w-3" />
-              Administrar Disponibilidad
+              <span className="hidden sm:inline">Administrar</span>
+              <span className="sm:hidden">Config</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">

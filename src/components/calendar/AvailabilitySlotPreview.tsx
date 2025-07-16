@@ -101,50 +101,98 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
           </div>
         </div>
 
-        {/* Slots Grid - Mobile optimized */}
-        <div className="space-y-6 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
-          {availableDates.map(date => {
-            const dateKey = format(date, 'yyyy-MM-dd');
-            const daySlots = slotsByDate[dateKey] || [];
-            
-            return (
-              <div key={dateKey} className="space-y-3 md:space-y-3">
-                {/* Day Header */}
-                <div className="flex flex-col md:text-center">
-                  <div className="text-base md:text-sm font-medium text-gray-900">
-                    {format(date, 'EEEE', { locale: es })}
-                  </div>
-                  <div className="text-sm md:text-xs text-gray-500">
-                    {format(date, 'd MMM', { locale: es })}
-                  </div>
-                </div>
-
-                {/* Day Slots - Individual scroll per day */}
-                <div className="flex gap-3 overflow-x-auto pb-3 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0 scrollbar-thin scrollbar-thumb-gray-300">
-                  {daySlots.length === 0 ? (
-                    <div className="text-center text-gray-400 text-xs py-4 flex-1 flex items-center justify-center bg-gray-50 rounded border border-dashed min-w-[90px] md:min-w-auto">
-                      Sin horarios
+        {/* Slots Grid - Mobile optimized with horizontal scroll */}
+        <div className="md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
+          {/* Mobile: Horizontal scroll container for all days */}
+          <div className="flex gap-4 overflow-x-auto pb-4 md:hidden">
+            {availableDates.map(date => {
+              const dateKey = format(date, 'yyyy-MM-dd');
+              const daySlots = slotsByDate[dateKey] || [];
+              
+              return (
+                <div key={dateKey} className="flex-shrink-0 w-32 space-y-3">
+                  {/* Day Header */}
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-gray-900">
+                      {format(date, 'EEE', { locale: es })}
                     </div>
-                  ) : (
-                    daySlots.map(slot => (
-                      <SlotCard
-                        key={slot.id}
-                        time={slot.displayTime}
-                        period={slot.period}
-                        isEnabled={slot.isEnabled}
-                        isSelected={slot.isEnabled}
-                        isAvailable={slot.isEnabled}
-                        onClick={() => toggleSlot(slot.id)}
-                        size="sm"
-                        variant="client"
-                        className="flex-shrink-0 min-w-[90px] md:min-w-auto md:flex-shrink"
-                      />
-                    ))
-                  )}
+                    <div className="text-xs text-gray-500">
+                      {format(date, 'd MMM', { locale: es })}
+                    </div>
+                  </div>
+
+                  {/* Day Slots - Vertical scroll for each day */}
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {daySlots.length === 0 ? (
+                      <div className="text-center text-gray-400 text-xs py-4 bg-gray-50 rounded border border-dashed">
+                        Sin horarios
+                      </div>
+                    ) : (
+                      daySlots.map(slot => (
+                        <SlotCard
+                          key={slot.id}
+                          time={slot.displayTime}
+                          period={slot.period}
+                          isEnabled={slot.isEnabled}
+                          isSelected={slot.isEnabled}
+                          isAvailable={slot.isEnabled}
+                          onClick={() => toggleSlot(slot.id)}
+                          size="sm"
+                          variant="client"
+                          className="w-full"
+                        />
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* Desktop: Grid layout */}
+          <div className="hidden md:contents">
+            {availableDates.map(date => {
+              const dateKey = format(date, 'yyyy-MM-dd');
+              const daySlots = slotsByDate[dateKey] || [];
+              
+              return (
+                <div key={dateKey} className="space-y-3">
+                  {/* Day Header */}
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-gray-900">
+                      {format(date, 'EEEE', { locale: es })}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {format(date, 'd MMM', { locale: es })}
+                    </div>
+                  </div>
+
+                  {/* Day Slots */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {daySlots.length === 0 ? (
+                      <div className="text-center text-gray-400 text-xs py-4 bg-gray-50 rounded border border-dashed">
+                        Sin horarios
+                      </div>
+                    ) : (
+                      daySlots.map(slot => (
+                        <SlotCard
+                          key={slot.id}
+                          time={slot.displayTime}
+                          period={slot.period}
+                          isEnabled={slot.isEnabled}
+                          isSelected={slot.isEnabled}
+                          isAvailable={slot.isEnabled}
+                          onClick={() => toggleSlot(slot.id)}
+                          size="sm"
+                          variant="client"
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </CardContent>
     </Card>
