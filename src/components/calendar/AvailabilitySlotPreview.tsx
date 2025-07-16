@@ -2,21 +2,21 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useFormContext } from 'react-hook-form';
 import { useSlotGeneration } from '@/hooks/useSlotGeneration';
-import SlotCard from './SlotCard';
+import SlotCard from '../services/steps/SlotCard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCircle, XCircle, RotateCcw, Calendar, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Clock } from 'lucide-react';
 
-const SlotGeneratorPreview = () => {
-  const { watch } = useFormContext();
-  const availability = watch('availability') || {};
-  const serviceVariants = watch('serviceVariants') || [];
-  
-  // Get the duration from the first service variant
-  const serviceDuration = serviceVariants[0]?.duration || 60;
-  
+interface AvailabilitySlotPreviewProps {
+  availability: any;
+  serviceDuration?: number;
+}
+
+const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({ 
+  availability, 
+  serviceDuration = 60 
+}) => {
   const {
     slotsByDate,
     availableDates,
@@ -26,7 +26,7 @@ const SlotGeneratorPreview = () => {
     disableAllSlots
   } = useSlotGeneration({
     availability,
-    serviceDuration: Number(serviceDuration),
+    serviceDuration,
     daysAhead: 7
   });
 
@@ -40,7 +40,7 @@ const SlotGeneratorPreview = () => {
           <div className="text-center text-yellow-700">
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">
-              Configura tu disponibilidad en el paso anterior para ver los horarios generados
+              Configure su disponibilidad arriba para ver los horarios generados
             </p>
           </div>
         </CardContent>
@@ -74,8 +74,7 @@ const SlotGeneratorPreview = () => {
               <span className="hidden md:inline">Vista Previa de Horarios</span>
             </CardTitle>
             <CardDescription className="hidden md:block mt-2">
-              Horarios generados automáticamente para los próximos 7 días. 
-              Toca cualquier horario para activarlo/desactivarlo.
+              Horarios generados para los próximos 7 días basados en su disponibilidad configurada.
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
               {stats.enabledSlots} activos de {stats.totalSlots} horarios
@@ -168,10 +167,9 @@ const SlotGeneratorPreview = () => {
             );
           })}
         </div>
-
       </CardContent>
     </Card>
   );
 };
 
-export default SlotGeneratorPreview;
+export default AvailabilitySlotPreview;

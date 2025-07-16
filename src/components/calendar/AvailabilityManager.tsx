@@ -5,9 +5,10 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Clock, Save, Loader2, Settings } from 'lucide-react';
+import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
+import AvailabilitySlotPreview from './AvailabilitySlotPreview';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -77,15 +78,18 @@ export const AvailabilityManager: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-1">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="availability" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Configurar Disponibilidad
           </TabsTrigger>
+          <TabsTrigger value="preview" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Vista Previa de Horarios
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="availability" className="space-y-4 mt-6">
-
           <div className="grid gap-4">
             {DAYS.map(({ key, label }) => (
               <Card key={key}>
@@ -161,6 +165,13 @@ export const AvailabilityManager: React.FC = () => {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="preview" className="space-y-4 mt-6">
+          <AvailabilitySlotPreview
+            availability={availability}
+            serviceDuration={60}
+          />
         </TabsContent>
 
       </Tabs>
