@@ -9,6 +9,7 @@ import ServiceEdit from '@/pages/ServiceEdit';
 import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
 import Team from '@/pages/Team';
+import Profile from '@/pages/Profile';
 
 const ProviderRoutes = () => {
   return [
@@ -72,6 +73,15 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <Team />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="profile"
+      path="/profile"
+      element={
+        <RoleGuard allowedRole="provider">
+          <Profile />
         </RoleGuard>
       }
     />

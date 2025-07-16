@@ -59,7 +59,7 @@ export const navItems: NavItem[] = [
     title: 'Perfil',
     href: '/profile',
     icon: Settings,
-    roles: ['client'] // Solo para clientes
+    roles: ['client', 'provider'] // Disponible para ambos roles
   }
 ];
 
