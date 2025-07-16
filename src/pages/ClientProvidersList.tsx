@@ -144,7 +144,7 @@ const ClientProvidersList = () => {
                     <Avatar className="h-12 w-12 mr-3">
                       <AvatarImage src={userData.avatar_url} />
                       <AvatarFallback>
-                        <User className="h-6 w-6" />
+                        {userData.name ? userData.name.substring(0, 2).toUpperCase() : <User className="h-6 w-6" />}
                       </AvatarFallback>
                     </Avatar>
                     <div>

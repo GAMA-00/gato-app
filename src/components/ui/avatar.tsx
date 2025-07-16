@@ -23,16 +23,19 @@ const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
 >(({ className, src, ...props }, ref) => {
-  console.log('=== AvatarImage Component Debug ===');
-  console.log('AvatarImage src prop:', src);
+  // Only render AvatarImage if src is a valid string
+  const validSrc = src && typeof src === 'string' && src.trim() !== '' ? src : undefined;
+  
+  // If no valid src, don't render anything - let AvatarFallback handle it
+  if (!validSrc) {
+    return null;
+  }
   
   return (
     <AvatarPrimitive.Image
       ref={ref}
-      src={src}
+      src={validSrc}
       className={cn("aspect-square h-full w-full object-cover object-center", className)}
-      onLoad={() => console.log('AvatarImage onLoad fired for:', src)}
-      onError={() => console.log('AvatarImage onError fired for:', src)}
       {...props}
     />
   )
@@ -43,9 +46,6 @@ const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
 >(({ className, children, ...props }, ref) => {
-  console.log('=== AvatarFallback Component Debug ===');
-  console.log('AvatarFallback children:', children);
-  
   return (
     <AvatarPrimitive.Fallback
       ref={ref}
