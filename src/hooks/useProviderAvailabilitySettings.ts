@@ -211,8 +211,41 @@ export const useProviderAvailability = () => {
       
       console.log('Queries invalidadas exitosamente');
       
+      // Regenerate time slots for all listings of this provider
+      console.log('Regenerando slots de tiempo para el proveedor:', user.id);
+      
+      // Get all listings for this provider
+      const { data: listings, error: listingsError } = await supabase
+        .from('listings')
+        .select('id')
+        .eq('provider_id', user.id)
+        .eq('is_active', true);
+      
+      if (listingsError) {
+        console.error('Error fetching listings:', listingsError);
+      } else if (listings && listings.length > 0) {
+        // Regenerate slots for each listing
+        for (const listing of listings) {
+          try {
+            const { error: regenerateError } = await supabase
+              .rpc('regenerate_slots_for_listing', {
+                p_listing_id: listing.id
+              });
+            
+            if (regenerateError) {
+              console.error('Error regenerating slots for listing:', listing.id, regenerateError);
+            } else {
+              console.log('Slots regenerados exitosamente para listing:', listing.id);
+            }
+          } catch (error) {
+            console.error('Error calling regenerate function for listing:', listing.id, error);
+          }
+        }
+      }
+      
       // Notify hooks using traditional state management to refresh their data
       if (user?.id) {
+        console.log('Notificando cambio de disponibilidad para proveedor:', user.id);
         notifyAvailabilityChange(user.id);
       }
     } catch (error) {

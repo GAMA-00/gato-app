@@ -254,6 +254,7 @@ export const useWeeklySlots = ({
     
     const unsubscribe = subscribeToAvailabilityChanges(providerId, () => {
       console.log('WeeklySlots: Disponibilidad actualizada, refrescando slots...');
+      console.log('WeeklySlots: Ejecutando refreshSlots para providerId:', providerId);
       refreshSlots();
     });
     
