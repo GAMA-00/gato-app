@@ -64,18 +64,44 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
   }
 
   return (
-    <Card className="border-stone-200 shadow-sm">
-      <CardHeader className="pb-2 px-4 pt-3 md:px-6 md:pb-3 md:pt-4">
-        <div className="flex items-center justify-center gap-2 text-center">
-          <Calendar className="h-4 w-4 text-primary" />
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">{stats.enabledSlots}</span> de <span className="font-medium">{stats.totalSlots}</span> horarios activos
+    <Card className="shadow-md">
+      <CardHeader className="pb-4 px-4 pt-4 md:px-6">
+        <div className="text-center md:flex md:items-center md:justify-between md:text-left">
+          <div>
+            <CardTitle className="text-lg md:text-xl flex items-center justify-center md:justify-start gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              <span className="md:hidden">Vista previa</span>
+              <span className="hidden md:inline">Vista previa de horarios</span>
+            </CardTitle>
+            <CardDescription className="hidden md:block mt-2">
+              Horarios generados para los próximos 7 días basados en su disponibilidad configurada.
+            </CardDescription>
+            <CardDescription className="md:hidden text-center mt-2">
+              {stats.enabledSlots} de {stats.totalSlots} horarios activos
+            </CardDescription>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              {stats.enabledSlots} activos
+            </Badge>
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+              <XCircle className="h-3 w-3 mr-1" />
+              {stats.disabledSlots} inactivos
+            </Badge>
           </div>
         </div>
       </CardHeader>
-      
-      <CardContent className="px-4 md:px-6">
-        {/* Slots Grid - Mobile Optimized */}
+
+      <CardContent className="space-y-4 px-4 md:px-6">
+        {/* Stats Summary - Desktop only */}
+        <div className="hidden md:flex justify-between items-center">
+          <div className="text-sm text-gray-600">
+            <strong>{stats.totalSlots}</strong> horarios generados ({stats.enabledPercentage}% activos)
+          </div>
+        </div>
+
+        {/* Slots Grid */}
         <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
           {availableDates.map(date => {
             const dateKey = format(date, 'yyyy-MM-dd');
@@ -84,17 +110,17 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
             return (
               <div key={dateKey} className="space-y-2 md:space-y-3">
                 {/* Day Header */}
-                <div className="text-left border-b border-gray-200 pb-1 mb-2 md:text-center md:border-b-0 md:pb-0 md:mb-0">
-                  <div className="text-sm md:text-sm font-medium text-gray-900">
+                <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
+                  <div className="text-base md:text-sm font-medium text-gray-900">
                     {format(date, 'EEEE', { locale: es })}
                   </div>
-                  <div className="text-xs md:text-xs text-gray-500">
+                  <div className="text-sm md:text-xs text-gray-500">
                     {format(date, 'd MMM', { locale: es })}
                   </div>
                 </div>
 
                 {/* Day Slots */}
-                <div className="flex gap-2 overflow-x-auto pb-2 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0 md:gap-0">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
                   {daySlots.length === 0 ? (
                     <div className="text-center text-gray-400 text-xs py-4 flex-1 flex items-center justify-center bg-gray-50 rounded border border-dashed min-w-[80px] md:min-w-auto">
                       Sin horarios
@@ -106,10 +132,12 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                         time={slot.displayTime}
                         period={slot.period}
                         isEnabled={slot.isEnabled}
+                        isSelected={slot.isEnabled}
+                        isAvailable={slot.isEnabled}
                         onClick={() => toggleSlot(slot.id)}
                         size="sm"
-                        variant="provider"
-                        className="flex-shrink-0 min-w-[80px] h-10 text-xs md:min-w-auto md:flex-shrink md:text-sm md:h-auto"
+                        variant="client"
+                        className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink"
                       />
                     ))
                   )}

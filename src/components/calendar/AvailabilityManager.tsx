@@ -56,18 +56,35 @@ export const AvailabilityManager: React.FC = () => {
     <div className="space-y-4 md:space-y-6">
       {/* Desktop Navigation */}
       <div className="hidden md:block">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="availability" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Configurar Disponibilidad
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Vista Previa de Horarios
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center justify-between mb-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="availability" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Configurar Disponibilidad
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Vista Previa de Horarios
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {activeTab === 'preview' && (
+            <Button 
+              onClick={saveAvailability}
+              disabled={isSaving}
+              size="sm"
+              className="flex items-center gap-2 h-9 text-sm px-4 ml-4"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSaving ? 'Guardando...' : 'Guardar'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Mobile Navigation */}
@@ -100,18 +117,35 @@ export const AvailabilityManager: React.FC = () => {
             )}
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab('preview')}
-            disabled={activeTab === 'preview'}
-            className={`flex items-center gap-1 text-xs px-2 ${
-              activeTab === 'preview' ? 'opacity-50' : ''
-            }`}
-          >
-            <span className="hidden xs:inline">Vista Previa</span>
-            <ChevronRight className="h-3 w-3" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {activeTab === 'preview' && (
+              <Button 
+                onClick={saveAvailability}
+                disabled={isSaving}
+                size="sm"
+                className="flex items-center gap-1 h-7 text-xs px-2"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Save className="h-3 w-3" />
+                )}
+                {isSaving ? 'Guardando...' : 'Guardar'}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveTab('preview')}
+              disabled={activeTab === 'preview'}
+              className={`flex items-center gap-1 text-xs px-2 ${
+                activeTab === 'preview' ? 'opacity-50' : ''
+              }`}
+            >
+              <span className="hidden xs:inline">Vista Previa</span>
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -194,20 +228,6 @@ export const AvailabilityManager: React.FC = () => {
         </div>
 
         <div className={`mt-4 md:mt-6 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
-          <div className="flex justify-end mb-3 md:mb-4">
-            <Button 
-              onClick={saveAvailability}
-              disabled={isSaving}
-              className="flex items-center gap-2 h-8 md:h-10 text-xs md:text-sm px-3 md:px-4"
-            >
-              {isSaving ? (
-                <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
-              ) : (
-                <Save className="h-3 w-3 md:h-4 md:w-4" />
-              )}
-              {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-            </Button>
-          </div>
           <div className="px-1">
             <AvailabilitySlotPreview
               availability={availability}
