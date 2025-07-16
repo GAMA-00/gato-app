@@ -139,7 +139,10 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           onClick={() => toggleSlot(slot.id)}
                           size="sm"
                           variant="client"
-                          className="w-full"
+                          className={`w-full ${slot.isEnabled 
+                            ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
+                            : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
+                          }`}
                         />
                       ))
                     )}
@@ -185,6 +188,10 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           onClick={() => toggleSlot(slot.id)}
                           size="sm"
                           variant="client"
+                          className={slot.isEnabled 
+                            ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
+                            : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
+                          }
                         />
                       ))
                     )}
