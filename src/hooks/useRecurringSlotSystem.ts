@@ -150,15 +150,14 @@ export const useRecurringSlotSystem = ({
         }
       }
 
-      // 2. Get recurring appointments (those with recurrence != 'none')
+      // 2. Get recurring appointments (those with actual recurrence patterns)
       let recurringQuery = supabase
         .from('appointments')
         .select(`
           *,
           listings(title, duration)
         `)
-        .neq('recurrence', 'none')
-        .not('recurrence', 'is', null)
+        .in('recurrence', ['weekly', 'biweekly', 'monthly'])
         .in('status', ['confirmed', 'pending'])
         .order('created_at', { ascending: true });
 
@@ -308,8 +307,7 @@ export const useNextClientAppointment = (clientId?: string) => {
           listings(title, duration)
         `)
         .eq('client_id', clientId)
-        .neq('recurrence', 'none')
-        .not('recurrence', 'is', null)
+        .in('recurrence', ['weekly', 'biweekly', 'monthly'])
         .in('status', ['confirmed', 'pending']);
 
       // Get exceptions
