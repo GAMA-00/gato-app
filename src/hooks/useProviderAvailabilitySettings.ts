@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAvailabilityContext } from '@/contexts/AvailabilityContext';
 
 interface AvailabilitySlot {
   id: string;
@@ -26,6 +28,8 @@ interface WeeklyAvailability {
 
 export const useProviderAvailability = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { notifyAvailabilityChange } = useAvailabilityContext();
   const [availability, setAvailability] = useState<WeeklyAvailability>({
     monday: { enabled: false, timeSlots: [] },
     tuesday: { enabled: false, timeSlots: [] },
@@ -171,6 +175,46 @@ export const useProviderAvailability = () => {
       
       // Refresh the data to confirm it was saved
       await fetchAvailability();
+      
+      // Invalidate related queries to update client-side availability immediately
+      console.log('Invalidando queries relacionadas con disponibilidad...');
+      
+      // Invalidate recurring slot system queries (used in calendar)
+      queryClient.invalidateQueries({ 
+        queryKey: ['recurring-slot-system'], 
+        exact: false 
+      });
+      
+      // Invalidate any other availability-related queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['provider-availability', user.id], 
+        exact: false 
+      });
+      
+      // Invalidate time slots queries  
+      queryClient.invalidateQueries({ 
+        queryKey: ['time-slots'], 
+        exact: false 
+      });
+      
+      // Invalidate weekly slots queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['weekly-slots'], 
+        exact: false 
+      });
+      
+      // Invalidate calendar appointments to refresh the calendar view
+      queryClient.invalidateQueries({ 
+        queryKey: ['calendar-appointments'], 
+        exact: false 
+      });
+      
+      console.log('Queries invalidadas exitosamente');
+      
+      // Notify hooks using traditional state management to refresh their data
+      if (user?.id) {
+        notifyAvailabilityChange(user.id);
+      }
     } catch (error) {
       console.error('Error saving availability:', error);
       toast.error('Error inesperado al guardar la disponibilidad');

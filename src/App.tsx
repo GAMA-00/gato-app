@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
+import { AvailabilityProvider } from './contexts/AvailabilityContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import PublicRoutes from './routes/PublicRoutes';
 import ProviderRoutes from './routes/ProviderRoutes';
@@ -25,15 +26,17 @@ function App() {
     <Router>
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
-          <ErrorBoundary>
-            <RouteDebugger />
-            <ClientPreloader />
-            <Routes>
-              {PublicRoutes()}
-              {ProviderRoutes()}
-              {ClientRoutes()}
-            </Routes>
-          </ErrorBoundary>
+          <AvailabilityProvider>
+            <ErrorBoundary>
+              <RouteDebugger />
+              <ClientPreloader />
+              <Routes>
+                {PublicRoutes()}
+                {ProviderRoutes()}
+                {ClientRoutes()}
+              </Routes>
+            </ErrorBoundary>
+          </AvailabilityProvider>
         </QueryClientProvider>
       </AuthProvider>
     </Router>

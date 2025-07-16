@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { addDays, format, startOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
+import { useAvailabilityContext } from '@/contexts/AvailabilityContext';
 
 export interface WeeklySlot {
   id: string;
@@ -38,6 +39,7 @@ export const useWeeklySlots = ({
   startDate,
   daysAhead = 7
 }: UseWeeklySlotsProps) => {
+  const { subscribeToAvailabilityChanges } = useAvailabilityContext();
   const [slots, setSlots] = useState<WeeklySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isValidatingSlot, setIsValidatingSlot] = useState(false);
@@ -243,6 +245,20 @@ export const useWeeklySlots = ({
       return () => clearTimeout(timer);
     }
   }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), daysAhead, fetchWeeklySlots]);
+
+  // Subscribe to availability changes for this provider
+  useEffect(() => {
+    if (!providerId) return;
+    
+    console.log('WeeklySlots: Suscribiendo a cambios de disponibilidad para proveedor:', providerId);
+    
+    const unsubscribe = subscribeToAvailabilityChanges(providerId, () => {
+      console.log('WeeklySlots: Disponibilidad actualizada, refrescando slots...');
+      refreshSlots();
+    });
+    
+    return unsubscribe;
+  }, [providerId, subscribeToAvailabilityChanges, refreshSlots]);
 
   // Cleanup on unmount
   useEffect(() => {

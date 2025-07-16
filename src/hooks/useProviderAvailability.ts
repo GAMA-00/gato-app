@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { checkRecurringConflicts } from '@/utils/simplifiedRecurrenceUtils';
+import { useAvailabilityContext } from '@/contexts/AvailabilityContext';
 
 interface TimeSlot {
   time: string;
@@ -25,6 +26,7 @@ export const useProviderAvailability = ({
   recurrence = 'none',
   excludeAppointmentId
 }: UseProviderAvailabilityProps) => {
+  const { subscribeToAvailabilityChanges } = useAvailabilityContext();
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -279,6 +281,20 @@ export const useProviderAvailability = ({
       refreshAvailability().finally(() => setIsLoading(false));
     }
   }, [providerId, selectedDate, refreshAvailability]);
+
+  // Subscribe to availability changes for this provider
+  useEffect(() => {
+    if (!providerId) return;
+    
+    console.log('Suscribiendo a cambios de disponibilidad para proveedor:', providerId);
+    
+    const unsubscribe = subscribeToAvailabilityChanges(providerId, () => {
+      console.log('Disponibilidad actualizada, refrescando slots...');
+      refreshAvailability();
+    });
+    
+    return unsubscribe;
+  }, [providerId, subscribeToAvailabilityChanges, refreshAvailability]);
 
   return {
     availableTimeSlots,
