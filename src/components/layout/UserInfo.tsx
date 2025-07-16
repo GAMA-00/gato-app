@@ -37,7 +37,14 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
   };
   
   const handleProfileNavigation = () => {
-    navigate('/profile');
+    console.log('UserInfo: Navigating to profile page');
+    console.log('UserInfo: Current user role:', user?.role);
+    try {
+      navigate('/profile');
+      console.log('UserInfo: Navigation to /profile successful');
+    } catch (error) {
+      console.error('UserInfo: Navigation error:', error);
+    }
   };
 
   if (!user) {

@@ -8,7 +8,7 @@ import ProviderLogin from '@/pages/ProviderLogin';
 import Register from '@/pages/Register';
 import ProviderRegister from '@/pages/ProviderRegister';
 import TestComponent from '@/components/TestComponent';
-import AuthRoute from '@/components/AuthRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import Profile from '@/pages/Profile';
 
 const PublicRoutes = () => {
@@ -24,9 +24,9 @@ const PublicRoutes = () => {
       key="profile" 
       path="/profile" 
       element={
-        <AuthRoute>
+        <ProtectedRoute allowedRoles={['client', 'provider']}>
           <Profile />
-        </AuthRoute>
+        </ProtectedRoute>
       } 
     />
   ];
