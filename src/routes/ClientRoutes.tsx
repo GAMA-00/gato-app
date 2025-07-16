@@ -76,15 +76,6 @@ const ClientRoutes = () => {
         </RoleGuard>
       }
     />,
-    <Route
-      key="profile"
-      path="/profile"
-      element={
-        <RoleGuard allowedRole="client">
-          <Profile />
-        </RoleGuard>
-      }
-    />
   ];
 };
 

@@ -8,6 +8,8 @@ import ProviderLogin from '@/pages/ProviderLogin';
 import Register from '@/pages/Register';
 import ProviderRegister from '@/pages/ProviderRegister';
 import TestComponent from '@/components/TestComponent';
+import AuthRoute from '@/components/AuthRoute';
+import Profile from '@/pages/Profile';
 
 const PublicRoutes = () => {
   return [
@@ -17,7 +19,16 @@ const PublicRoutes = () => {
     <Route key="client-login" path="/client/login" element={<ClientLogin />} />,
     <Route key="provider-login" path="/provider/login" element={<ProviderLogin />} />,
     <Route key="register" path="/register" element={<Register />} />,
-    <Route key="register-provider" path="/register-provider" element={<ProviderRegister />} />
+    <Route key="register-provider" path="/register-provider" element={<ProviderRegister />} />,
+    <Route 
+      key="profile" 
+      path="/profile" 
+      element={
+        <AuthRoute>
+          <Profile />
+        </AuthRoute>
+      } 
+    />
   ];
 };
 
