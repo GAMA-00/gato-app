@@ -101,16 +101,16 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
           </div>
         </div>
 
-        {/* Slots Grid */}
-        <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
+        {/* Slots Grid - Mobile optimized */}
+        <div className="space-y-6 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
           {availableDates.map(date => {
             const dateKey = format(date, 'yyyy-MM-dd');
             const daySlots = slotsByDate[dateKey] || [];
             
             return (
-              <div key={dateKey} className="space-y-2 md:space-y-3">
+              <div key={dateKey} className="space-y-3 md:space-y-3">
                 {/* Day Header */}
-                <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
+                <div className="flex flex-col md:text-center">
                   <div className="text-base md:text-sm font-medium text-gray-900">
                     {format(date, 'EEEE', { locale: es })}
                   </div>
@@ -119,10 +119,10 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                   </div>
                 </div>
 
-                {/* Day Slots */}
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
+                {/* Day Slots - Individual scroll per day */}
+                <div className="flex gap-3 overflow-x-auto pb-3 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0 scrollbar-thin scrollbar-thumb-gray-300">
                   {daySlots.length === 0 ? (
-                    <div className="text-center text-gray-400 text-xs py-4 flex-1 flex items-center justify-center bg-gray-50 rounded border border-dashed min-w-[80px] md:min-w-auto">
+                    <div className="text-center text-gray-400 text-xs py-4 flex-1 flex items-center justify-center bg-gray-50 rounded border border-dashed min-w-[90px] md:min-w-auto">
                       Sin horarios
                     </div>
                   ) : (
@@ -137,7 +137,7 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                         onClick={() => toggleSlot(slot.id)}
                         size="sm"
                         variant="client"
-                        className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink"
+                        className="flex-shrink-0 min-w-[90px] md:min-w-auto md:flex-shrink"
                       />
                     ))
                   )}

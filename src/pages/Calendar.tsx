@@ -51,33 +51,33 @@ const Calendar = () => {
   }
 
   return (
-    <PageLayout title="Calendario" contentClassName="max-w-7xl" className="bg-white">
+    <PageLayout 
+      title="Calendario" 
+      contentClassName="max-w-7xl" 
+      className="bg-white"
+      headerActions={user?.role === 'provider' ? (
+        <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Settings className="h-3 w-3" />
+              Administrar Disponibilidad
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Administrar Disponibilidad</DialogTitle>
+            </DialogHeader>
+            <AvailabilityManager />
+          </DialogContent>
+        </Dialog>
+      ) : undefined}
+    >
       <div className="space-y-6">
 
         {/* Show job requests for providers */}
         {user?.role === 'provider' && (
           <div className="w-full">
             <JobRequestsGrouped />
-          </div>
-        )}
-
-        {/* Manage Availability Button for providers */}
-        {user?.role === 'provider' && (
-          <div className="w-full flex justify-center mb-6">
-            <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Administrar Disponibilidad
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Administrar Disponibilidad</DialogTitle>
-                </DialogHeader>
-                <AvailabilityManager />
-              </DialogContent>
-            </Dialog>
           </div>
         )}
         

@@ -8,6 +8,7 @@ interface PageLayoutProps {
   subtitle?: string | React.ReactNode;
   className?: string;
   contentClassName?: string;
+  headerActions?: React.ReactNode;
 }
 
 const PageLayout = ({ 
@@ -15,25 +16,35 @@ const PageLayout = ({
   title, 
   subtitle, 
   className, 
-  contentClassName 
+  contentClassName,
+  headerActions 
 }: PageLayoutProps) => {
   return (
     <>
       <Navbar />
       <div className={cn("min-h-screen bg-[#FAFAFA] pt-16 pb-20 md:pt-0 md:pb-0", className)}>
         <div className="md:ml-52 p-4 md:p-6">
-          {(title || subtitle) && (
+          {(title || subtitle || headerActions) && (
             <div className="mb-6">
-              {title && (
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#2D2D2D] mb-2">
-                  {title}
-                </h1>
-              )}
-              {subtitle && (
-                <div className="text-sm text-[#6B6B6B]">
-                  {subtitle}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  {title && (
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#2D2D2D] mb-2">
+                      {title}
+                    </h1>
+                  )}
+                  {subtitle && (
+                    <div className="text-sm text-[#6B6B6B]">
+                      {subtitle}
+                    </div>
+                  )}
                 </div>
-              )}
+                {headerActions && (
+                  <div className="ml-4 flex-shrink-0">
+                    {headerActions}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <div className={cn("max-w-6xl mx-auto", contentClassName)}>
