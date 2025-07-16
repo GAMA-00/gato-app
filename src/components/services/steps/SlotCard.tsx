@@ -35,7 +35,7 @@ const SlotCard = ({
   const getButtonStyles = () => {
     if (variant === 'client') {
       if (isSelected) {
-        return 'bg-primary text-primary-foreground border-primary border-2 hover:bg-primary/90 shadow-md';
+        return 'bg-black text-white border-black hover:bg-black/90 shadow-lg';
       }
       if (!isAvailable) {
         return 'bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-50';
