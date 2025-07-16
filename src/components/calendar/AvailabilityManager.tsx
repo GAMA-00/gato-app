@@ -53,7 +53,7 @@ export const AvailabilityManager: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Desktop Navigation */}
       <div className="hidden md:block">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -72,61 +72,74 @@ export const AvailabilityManager: React.FC = () => {
 
       {/* Mobile Navigation */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setActiveTab(activeTab === 'availability' ? 'preview' : 'availability')}
+            onClick={() => setActiveTab('availability')}
             disabled={activeTab === 'availability'}
-            className="flex items-center gap-2"
+            className={`flex items-center gap-1 text-xs px-2 ${
+              activeTab === 'availability' ? 'opacity-50' : ''
+            }`}
           >
-            <ChevronLeft className="h-4 w-4" />
-            {activeTab === 'preview' ? 'Configurar' : ''}
+            <ChevronLeft className="h-3 w-3" />
+            <span className="hidden xs:inline">Configurar</span>
           </Button>
           
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Settings className="h-4 w-4" />
-            {activeTab === 'availability' ? 'Configurar Disponibilidad' : 'Vista Previa de Horarios'}
+          <div className="flex items-center gap-2 text-sm font-medium text-center flex-1">
+            {activeTab === 'availability' ? (
+              <>
+                <Settings className="h-4 w-4" />
+                <span className="truncate">Configurar Disponibilidad</span>
+              </>
+            ) : (
+              <>
+                <Calendar className="h-4 w-4" />
+                <span className="truncate">Vista Previa</span>
+              </>
+            )}
           </div>
           
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setActiveTab(activeTab === 'availability' ? 'preview' : 'availability')}
+            onClick={() => setActiveTab('preview')}
             disabled={activeTab === 'preview'}
-            className="flex items-center gap-2"
+            className={`flex items-center gap-1 text-xs px-2 ${
+              activeTab === 'preview' ? 'opacity-50' : ''
+            }`}
           >
-            {activeTab === 'availability' ? 'Vista Previa' : ''}
-            <ChevronRight className="h-4 w-4" />
+            <span className="hidden xs:inline">Vista Previa</span>
+            <ChevronRight className="h-3 w-3" />
           </Button>
         </div>
       </div>
 
-        <div className={`space-y-4 mt-6 ${activeTab === 'availability' ? 'block' : 'hidden'}`}>
-          <div className="grid gap-4">
+        <div className={`mt-4 md:mt-6 ${activeTab === 'availability' ? 'block' : 'hidden'}`}>
+          <div className="space-y-3 md:space-y-4">
             {DAYS.map(({ key, label }) => (
-              <Card key={key}>
-                <CardHeader className="pb-3">
+              <Card key={key} className="shadow-sm">
+                <CardHeader className="pb-2 md:pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{label}</CardTitle>
+                    <CardTitle className="text-base md:text-lg">{label}</CardTitle>
                     <div className="flex items-center space-x-2">
                       <Switch
                         id={`${key}-enabled`}
                         checked={availability[key]?.enabled || false}
                         onCheckedChange={(checked) => updateDayAvailability(key, checked)}
                       />
-                      <Label htmlFor={`${key}-enabled`}>Disponible</Label>
+                      <Label htmlFor={`${key}-enabled`} className="text-sm">Disponible</Label>
                     </div>
                   </div>
                 </CardHeader>
                 
                 {availability[key]?.enabled && (
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
+                  <CardContent className="pt-0 px-3 md:px-6">
+                    <div className="space-y-2 md:space-y-3">
                       {availability[key].timeSlots.map((slot, index) => (
-                        <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <div className="flex-1 grid grid-cols-2 gap-3">
+                        <div key={index} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-muted rounded-lg">
+                          <Clock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
                             <div>
                               <Label htmlFor={`${key}-start-${index}`} className="text-xs">
                                 Hora de inicio
@@ -136,7 +149,7 @@ export const AvailabilityManager: React.FC = () => {
                                 type="time"
                                 value={slot.startTime}
                                 onChange={(e) => updateTimeSlot(key, index, 'startTime', e.target.value)}
-                                className="mt-1"
+                                className="mt-1 h-8 md:h-10"
                               />
                             </div>
                             <div>
@@ -148,7 +161,7 @@ export const AvailabilityManager: React.FC = () => {
                                 type="time"
                                 value={slot.endTime}
                                 onChange={(e) => updateTimeSlot(key, index, 'endTime', e.target.value)}
-                                className="mt-1"
+                                className="mt-1 h-8 md:h-10"
                               />
                             </div>
                           </div>
@@ -156,9 +169,9 @@ export const AvailabilityManager: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeTimeSlot(key, index)}
-                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8 md:h-10 md:w-10 flex-shrink-0"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
                           </Button>
                         </div>
                       ))}
@@ -167,9 +180,9 @@ export const AvailabilityManager: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => addTimeSlot(key)}
-                        className="w-full mt-3"
+                        className="w-full mt-2 md:mt-3 h-8 md:h-10 text-xs md:text-sm"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                         Agregar Horario
                       </Button>
                     </div>
@@ -180,25 +193,27 @@ export const AvailabilityManager: React.FC = () => {
           </div>
         </div>
 
-        <div className={`space-y-4 mt-6 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
-          <div className="flex justify-end mb-4">
+        <div className={`mt-4 md:mt-6 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
+          <div className="flex justify-end mb-3 md:mb-4">
             <Button 
               onClick={saveAvailability}
               disabled={isSaving}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-8 md:h-10 text-xs md:text-sm px-3 md:px-4"
             >
               {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
               ) : (
-                <Save className="h-4 w-4" />
+                <Save className="h-3 w-3 md:h-4 md:w-4" />
               )}
               {isSaving ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           </div>
-          <AvailabilitySlotPreview
-            availability={availability}
-            serviceDuration={60}
-          />
+          <div className="px-1">
+            <AvailabilitySlotPreview
+              availability={availability}
+              serviceDuration={60}
+            />
+          </div>
         </div>
     </div>
   );
