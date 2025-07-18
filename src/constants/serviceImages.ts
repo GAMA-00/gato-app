@@ -9,6 +9,8 @@ export const homeServiceImages: Record<string, string> = {
   'chef': '/lovable-uploads/56fd025e-2847-4d55-af93-1b8c7391277d.png',
   'lavacar': '/lovable-uploads/26896390-5198-4e8f-bbe9-8b2940b77897.png',
   'lava car': '/lovable-uploads/26896390-5198-4e8f-bbe9-8b2940b77897.png',
+  'floristeria': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
+  'florist': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
 };
 
 // Map of custom images for pets category services
