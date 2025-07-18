@@ -25,7 +25,6 @@ const serviceFormSchema = z.object({
   residenciaIds: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos una residencia.' }),
   // Campos para el perfil del proveedor
   aboutMe: z.string().optional(),
-  profileImage: z.any().optional(),
   galleryImages: z.array(z.any()).optional(),
   experienceYears: z.coerce.number().min(0).optional(),
   hasCertifications: z.boolean().optional(),

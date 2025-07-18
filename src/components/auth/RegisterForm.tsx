@@ -3,16 +3,18 @@ import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import ClientResidenceField from './ClientResidenceField';
 import ProviderResidencesField from './ProviderResidencesField';
+import { uploadAvatar } from '@/utils/uploadService';
 
 // Esquema modificado para incluir confirmación de contraseña
 export const registerSchema = z.object({
@@ -23,6 +25,7 @@ export const registerSchema = z.object({
   residenciaId: z.string().optional(),
   condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
+  profileImage: z.any().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   passwordConfirm: z.string().min(6, 'La confirmación debe tener al menos 6 caracteres')
 }).refine(
@@ -53,6 +56,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const { signUp, loading } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   
   // Refinamos el esquema según el rol del usuario
   const formSchema = z.object({
@@ -63,6 +67,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     residenciaId: userRole === 'client' ? z.string().min(1, 'Selecciona una residencia') : z.string().optional(),
     condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
     houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
+    profileImage: z.any().optional(),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
     passwordConfirm: z.string().min(1, 'Por favor confirme su contraseña')
   }).refine(
@@ -83,6 +88,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       residenciaId: '',
       condominiumId: '',
       houseNumber: '',
+      profileImage: null,
       password: '',
       passwordConfirm: ''
     }
@@ -97,6 +103,18 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     try {
       setIsSubmitting(true);
       setRegistrationError(null);
+      
+      // Upload avatar if provided (for providers)
+      let avatarUrl = '';
+      if (userRole === 'provider' && values.profileImage) {
+        console.log('Uploading profile image for provider...');
+        const avatarResult = await uploadAvatar(values.profileImage, 'temp-' + Date.now().toString());
+        if (avatarResult.success && avatarResult.url) {
+          avatarUrl = avatarResult.url;
+        } else {
+          console.warn('Avatar upload failed:', avatarResult.error);
+        }
+      }
       
       if (userRole === 'client' && !values.residenciaId) {
         setRegistrationError('Debes seleccionar una residencia');
@@ -133,7 +151,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         residenciaId: userRole === 'client' ? values.residenciaId : null,
         condominiumId: userRole === 'client' ? values.condominiumId : null,
         houseNumber: userRole === 'client' ? values.houseNumber : null,
-        providerResidenciaIds: userRole === 'provider' ? values.providerResidenciaIds : []
+        providerResidenciaIds: userRole === 'provider' ? values.providerResidenciaIds : [],
+        avatarUrl: avatarUrl
       };
       
       const result = await signUp(values.email, values.password, userData);
@@ -290,12 +309,62 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         )}
         
         {userRole === 'provider' && (
-          <ProviderResidencesField 
-            residencias={residencias} 
-            isSubmitting={isSubmitting} 
-            loadingResidencias={loadingResidencias} 
-            form={form} 
-          />
+          <>
+            <ProviderResidencesField 
+              residencias={residencias} 
+              isSubmitting={isSubmitting} 
+              loadingResidencias={loadingResidencias} 
+              form={form} 
+            />
+            
+            {/* Profile Image Field for Providers */}
+            <FormField
+              control={form.control}
+              name="profileImage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">Foto de perfil</FormLabel>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16">
+                      {profileImagePreview ? (
+                        <AvatarImage 
+                          src={profileImagePreview}
+                          alt="Profile preview" 
+                        />
+                      ) : (
+                        <AvatarFallback className="text-lg">
+                          {form.getValues('name')?.charAt(0) || '?'}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <FormControl>
+                      <div>
+                        <label className="flex items-center gap-2 cursor-pointer p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Subir imagen</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                field.onChange(file);
+                                const previewUrl = URL.createObjectURL(file);
+                                setProfileImagePreview(previewUrl);
+                              }
+                            }}
+                            disabled={isSubmitting}
+                          />
+                        </label>
+                      </div>
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
 
         <FormField

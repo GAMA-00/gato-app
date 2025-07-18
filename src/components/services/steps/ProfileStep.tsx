@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Upload } from 'lucide-react';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
 import CertificationUploader from './CertificationUploader';
 
 const ProfileStep: React.FC = () => {
@@ -21,29 +21,7 @@ const ProfileStep: React.FC = () => {
   const aboutMe = watch('aboutMe') || '';
   const hasCertifications = watch('hasCertifications');
   const certificationFiles = watch('certificationFiles') || [];
-  const profileImage = watch('profileImage');
   const galleryImages = watch('galleryImages') || [];
-  
-  // Separate ref for profile image preview to avoid unnecessary updates
-  const [profileImagePreview, setProfileImagePreview] = React.useState<string | null>(null);
-  
-  // Update preview only when profile image actually changes
-  React.useEffect(() => {
-    // Check if profileImage is a valid File object
-    if (profileImage && 
-        profileImage instanceof File && 
-        typeof profileImage === 'object' &&
-        profileImage.constructor === File) {
-      const newPreview = URL.createObjectURL(profileImage as File);
-      setProfileImagePreview(newPreview);
-      
-      return () => {
-        URL.revokeObjectURL(newPreview);
-      };
-    } else {
-      setProfileImagePreview(null);
-    }
-  }, [profileImage]);
   
   // Safely create URL for files
   const safeCreateObjectURL = (file: unknown): string | null => {
@@ -65,15 +43,6 @@ const ProfileStep: React.FC = () => {
     return null;
   };
 
-  // Clean up object URLs when component unmounts
-  React.useEffect(() => {
-    return () => {
-      // Clean up profile image preview
-      if (profileImagePreview && profileImagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(profileImagePreview);
-      }
-    };
-  }, []);
 
   return (
     <div className="space-y-6">
@@ -81,52 +50,6 @@ const ProfileStep: React.FC = () => {
       
       <div className="bg-muted/40 rounded-lg border p-4">
       
-        <FormField
-          control={control}
-          name="profileImage"
-          render={({ field }) => (
-            <FormItem className="mb-4">
-              <FormLabel>Foto de perfil</FormLabel>
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  {profileImagePreview ? (
-                    <AvatarImage 
-                      src={profileImagePreview}
-                      alt="Profile preview" 
-                    />
-                  ) : (
-                    <AvatarFallback className="text-lg">
-                      {field.value?.name?.charAt(0) || '?'}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <FormControl>
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Subir imagen</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            field.onChange(file);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                </FormControl>
-              </div>
-               <FormDescription>
-                 Recordá que la primera impresión es clave
-               </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={control}
