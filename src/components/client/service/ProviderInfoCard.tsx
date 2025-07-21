@@ -48,7 +48,17 @@ const ProviderInfoCard = ({
       <CardContent className="pt-6">
         <div className="flex items-start">
           <Avatar className="h-16 w-16 border border-app-border">
-            <AvatarImage src={provider?.avatar_url} alt={provider?.name} />
+            <AvatarImage 
+              src={provider?.avatar_url} 
+              alt={provider?.name}
+              onError={(e) => {
+                console.error('Failed to load avatar in ProviderInfoCard for', provider?.name, provider?.avatar_url);
+                e.currentTarget.style.display = 'none';
+              }}
+              onLoad={() => {
+                console.log('Avatar loaded successfully in ProviderInfoCard for', provider?.name, provider?.avatar_url);
+              }}
+            />
             <AvatarFallback className="bg-app-cardAlt text-app-text">
               {provider?.name?.substring(0, 2).toUpperCase() || 'P'}
             </AvatarFallback>

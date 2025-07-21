@@ -48,7 +48,17 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
         {/* Provider Info Section */}
         <div className="flex items-start mb-3">
           <Avatar className={cn("border border-neutral-100 flex-shrink-0", isMobile ? "h-10 w-10" : "h-12 w-12")}>
-            <AvatarImage src={provider.avatar} alt={provider.name} />
+            <AvatarImage 
+              src={provider.avatar} 
+              alt={provider.name} 
+              onError={(e) => {
+                console.error('Failed to load avatar for', provider.name, provider.avatar);
+                e.currentTarget.style.display = 'none';
+              }}
+              onLoad={() => {
+                console.log('Avatar loaded successfully for', provider.name, provider.avatar);
+              }}
+            />
             <AvatarFallback className="bg-luxury-beige text-luxury-navy">
               {provider.name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
