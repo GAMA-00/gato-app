@@ -3,12 +3,12 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Star, Users, MapPin } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProviderData } from '@/components/client/service/types';
 import { ClientResidencia } from './types';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
 import { AchievementLevel } from '@/lib/achievementTypes';
+import EnhancedAvatar from '@/components/ui/enhanced-avatar';
 
 interface ProviderInfoCardProps {
   provider: ProviderData;
@@ -19,6 +19,12 @@ const ProviderInfoCard = ({
   provider, 
   clientResidencia 
 }: ProviderInfoCardProps) => {
+  console.log('ProviderInfoCard - Provider data:', {
+    name: provider?.name,
+    avatar_url: provider?.avatar_url,
+    id: provider?.id
+  });
+
   const { data: merits, isLoading } = useProviderMerits(provider?.id);
 
   if (isLoading) {
@@ -47,22 +53,14 @@ const ProviderInfoCard = ({
     <Card className="bg-app-card border border-app-border">
       <CardContent className="pt-6">
         <div className="flex items-start">
-          <Avatar className="h-16 w-16 border border-app-border">
-            <AvatarImage 
-              src={provider?.avatar_url} 
-              alt={provider?.name}
-              onError={(e) => {
-                console.error('Failed to load avatar in ProviderInfoCard for', provider?.name, provider?.avatar_url);
-                e.currentTarget.style.display = 'none';
-              }}
-              onLoad={() => {
-                console.log('Avatar loaded successfully in ProviderInfoCard for', provider?.name, provider?.avatar_url);
-              }}
-            />
-            <AvatarFallback className="bg-app-cardAlt text-app-text">
-              {provider?.name?.substring(0, 2).toUpperCase() || 'P'}
-            </AvatarFallback>
-          </Avatar>
+          <EnhancedAvatar 
+            src={provider?.avatar_url}
+            alt={provider?.name || 'Proveedor'}
+            fallback={provider?.name?.substring(0, 2).toUpperCase() || 'P'}
+            className="h-16 w-16 border border-app-border"
+            onError={() => console.error('ProviderInfoCard: Avatar failed to load for', provider?.name)}
+            onLoad={() => console.log('ProviderInfoCard: Avatar loaded for', provider?.name)}
+          />
           
           <div className="ml-4 space-y-3">
             <div className="flex items-center gap-3">

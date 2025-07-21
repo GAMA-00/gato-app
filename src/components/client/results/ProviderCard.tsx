@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, ChevronRight, Clock, Users, Award } from 'lucide-react';
 import { ProcessedProvider } from './types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useProviderServiceMerits } from '@/hooks/useProviderServiceMerits';
+import EnhancedAvatar from '@/components/ui/enhanced-avatar';
 
 interface ProviderCardProps {
   provider: ProcessedProvider;
@@ -14,7 +14,13 @@ interface ProviderCardProps {
 }
 
 const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
-  console.log('ProviderCard - Provider avatar:', provider.name, provider.avatar);
+  console.log('ProviderCard - Provider data:', {
+    name: provider.name,
+    avatar: provider.avatar,
+    id: provider.id,
+    listingId: provider.listingId
+  });
+  
   const isMobile = useIsMobile();
   const { data: merits } = useProviderServiceMerits(provider.id, provider.listingId);
   
@@ -47,22 +53,14 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
       <CardContent className={cn("p-4", isMobile ? "p-3" : "p-4")}>
         {/* Provider Info Section */}
         <div className="flex items-start mb-3">
-          <Avatar className={cn("border border-neutral-100 flex-shrink-0", isMobile ? "h-10 w-10" : "h-12 w-12")}>
-            <AvatarImage 
-              src={provider.avatar} 
-              alt={provider.name} 
-              onError={(e) => {
-                console.error('Failed to load avatar for', provider.name, provider.avatar);
-                e.currentTarget.style.display = 'none';
-              }}
-              onLoad={() => {
-                console.log('Avatar loaded successfully for', provider.name, provider.avatar);
-              }}
-            />
-            <AvatarFallback className="bg-luxury-beige text-luxury-navy">
-              {provider.name.substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <EnhancedAvatar 
+            src={provider.avatar}
+            alt={provider.name}
+            fallback={provider.name.substring(0, 2).toUpperCase()}
+            className={cn("border border-neutral-100 flex-shrink-0", isMobile ? "h-10 w-10" : "h-12 w-12")}
+            onError={() => console.error('ProviderCard: Avatar failed to load for', provider.name)}
+            onLoad={() => console.log('ProviderCard: Avatar loaded for', provider.name)}
+          />
           
           <div className="ml-3 flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2">

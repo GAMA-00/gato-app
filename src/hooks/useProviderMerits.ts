@@ -99,10 +99,10 @@ export function useProviderMerits(providerId?: string) {
       };
     },
     enabled: !!providerId,
-    staleTime: 1000, // Very short stale time for immediate updates
-    refetchOnWindowFocus: true,
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    staleTime: 300000, // 5 minutes - much longer stale time
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchInterval: false, // Don't auto-refetch
     refetchOnMount: true,
-    refetchIntervalInBackground: true // Continue refetching even when page is not focused
+    refetchIntervalInBackground: false // Don't refetch in background
   });
 }

@@ -44,6 +44,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
 
       // Get unique provider IDs
       const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
+      console.log("Provider IDs to fetch:", providerIds);
 
       // Fetch provider information separately with optimized query
       const { data: providers, error: providersError } = await supabase
@@ -63,6 +64,12 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         console.error("Error fetching providers:", providersError);
         throw providersError;
       }
+
+      console.log("Fetched providers with avatar data:", providers?.map(p => ({
+        id: p.id,
+        name: p.name,
+        avatar_url: p.avatar_url
+      })));
 
       // Create a map for quick provider lookup
       const providersMap = providers?.reduce((acc, provider) => {
@@ -124,7 +131,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           // Use the optimized rating from database (already includes 5-star base calculation)
           const rating = provider?.average_rating ? Number(provider.average_rating) : 5.0;
 
-          return {
+          const processedProvider = {
             id: listing.provider_id,
             name: provider?.name || 'Proveedor',
             avatar: provider?.avatar_url || null,
@@ -144,13 +151,23 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             ratingCount: Math.floor(Math.random() * 100) + 10, // Simulated
             joinDate: joinDate
           };
+
+          console.log("Processed provider:", {
+            name: processedProvider.name,
+            avatar: processedProvider.avatar,
+            id: processedProvider.id,
+            listingId: processedProvider.listingId
+          });
+
+          return processedProvider;
         });
 
-      console.log("Processed providers:", processedProviders);
+      console.log("Final processed providers:", processedProviders);
       return processedProviders;
     },
     enabled: !!serviceId,
-    staleTime: 60000, // Reduced for faster updates
-    refetchOnWindowFocus: false
+    staleTime: 300000, // 5 minutes - longer stale time to prevent constant refetching
+    refetchOnWindowFocus: false,
+    refetchInterval: false // Don't auto-refetch
   });
 };

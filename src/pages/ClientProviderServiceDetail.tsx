@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +15,6 @@ import ServiceVariantsSelector from '@/components/client/results/ServiceVariants
 import PriceInformation from '@/components/client/service/PriceInformation';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProviderLevelByJobs } from '@/lib/achievementTypes';
@@ -24,6 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ProviderReviews from '@/components/providers/ProviderReviews';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
+import EnhancedAvatar from '@/components/ui/enhanced-avatar';
 
 const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
@@ -32,6 +31,14 @@ const ClientProviderServiceDetail = () => {
   const [selectedVariants, setSelectedVariants] = React.useState<any[]>([]);
 
   const { serviceDetails, isLoading, error } = useServiceDetail(providerId, serviceId, user?.id);
+
+  console.log('ClientProviderServiceDetail - Service details:', {
+    provider: serviceDetails?.provider ? {
+      id: serviceDetails.provider.id,
+      name: serviceDetails.provider.name,
+      avatar_url: serviceDetails.provider.avatar_url
+    } : null
+  });
 
   // Fetch provider merits for real-time rating updates
   const { data: providerMerits } = useProviderMerits(providerId);
@@ -175,12 +182,14 @@ const ClientProviderServiceDetail = () => {
 
           {/* 1. Foto de Perfil, Nombre, Calificación y Nivel */}
           <div className="text-center space-y-4 w-full">
-            <Avatar className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg">
-              <AvatarImage src={transformedProvider.avatar} alt={transformedProvider.name} />
-              <AvatarFallback className="text-2xl bg-luxury-navy text-white">
-                {transformedProvider.name.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <EnhancedAvatar 
+              src={transformedProvider.avatar}
+              alt={transformedProvider.name}
+              fallback={transformedProvider.name.substring(0, 2).toUpperCase()}
+              className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg"
+              onError={() => console.error('ClientProviderServiceDetail: Avatar failed to load for', transformedProvider.name)}
+              onLoad={() => console.log('ClientProviderServiceDetail: Avatar loaded for', transformedProvider.name)}
+            />
             
             <div className="w-full px-2">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-luxury-navy mb-3 break-words leading-tight">
