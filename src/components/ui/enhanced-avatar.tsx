@@ -24,7 +24,7 @@ const EnhancedAvatar = ({
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleImageError = () => {
-    console.error('Enhanced Avatar: Failed to load image:', { src, alt });
+    console.error('Enhanced Avatar: Failed to load image:', { src, alt, imageError });
     setImageError(true);
     onError?.();
   };
@@ -39,6 +39,8 @@ const EnhancedAvatar = ({
   // Check if we have a valid image URL
   const hasValidSrc = src && typeof src === 'string' && src.trim() !== '';
   const shouldShowImage = hasValidSrc && !imageError;
+
+  console.log('Enhanced Avatar: Render state:', { src, hasValidSrc, shouldShowImage, imageError, imageLoaded });
 
   return (
     <Avatar className={cn("relative", className)}>
