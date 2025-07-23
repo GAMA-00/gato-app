@@ -11,8 +11,31 @@ export interface UploadResult {
 export const uploadAvatar = async (file: File, userId: string): Promise<UploadResult> => {
   try {
     console.log('=== Uploading avatar ===');
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Solo se permiten archivos de imagen');
+    }
+    
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const fileName = `${userId}/avatar.${fileExt}`;
+    
+    // Ensure proper content type
+    let contentType = file.type;
+    if (!contentType || contentType === 'application/json') {
+      // Fallback based on extension
+      if (fileExt === 'jpg' || fileExt === 'jpeg') {
+        contentType = 'image/jpeg';
+      } else if (fileExt === 'png') {
+        contentType = 'image/png';
+      } else if (fileExt === 'webp') {
+        contentType = 'image/webp';
+      } else {
+        contentType = 'image/jpeg'; // default
+      }
+    }
+    
+    console.log('Upload details:', { fileName, fileType: file.type, contentType, fileExt });
     
     // Delete existing avatar
     const { error: deleteError } = await supabase.storage
@@ -28,7 +51,7 @@ export const uploadAvatar = async (file: File, userId: string): Promise<UploadRe
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type
+        contentType: contentType
       });
 
     if (error) throw error;

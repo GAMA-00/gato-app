@@ -1223,6 +1223,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      fix_avatar_mime_types: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       generate_provider_time_slots: {
         Args: {
           p_provider_id: string

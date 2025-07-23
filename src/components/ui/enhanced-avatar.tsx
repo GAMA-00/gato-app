@@ -47,6 +47,14 @@ const EnhancedAvatar = ({
       return;
     }
     
+    // Try adding cache busting parameter to force reload
+    if (currentSrc && !currentSrc.includes('?t=') && !imageError) {
+      const cacheBustUrl = `${currentSrc}?t=${Date.now()}`;
+      console.log('Enhanced Avatar: Trying cache-busted URL:', cacheBustUrl);
+      setCurrentSrc(cacheBustUrl);
+      return;
+    }
+    
     setImageError(true);
     onError?.();
   };
@@ -68,7 +76,9 @@ const EnhancedAvatar = ({
     hasValidSrc, 
     shouldShowImage, 
     imageError, 
-    imageLoaded 
+    imageLoaded,
+    alt,
+    fallback 
   });
 
   return (
