@@ -134,7 +134,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           const processedProvider = {
             id: listing.provider_id,
             name: provider?.name || 'Proveedor',
-            avatar: provider?.avatar_url || null,
+            avatar: provider?.avatar_url && provider.avatar_url.trim() !== '' ? provider.avatar_url : null,
             rating: rating,
             price: listing.base_price || 0,
             duration: listing.duration || 60,
