@@ -9,6 +9,7 @@ import PublicRoutes from './routes/PublicRoutes';
 import ProviderRoutes from './routes/ProviderRoutes';
 import ClientRoutes from './routes/ClientRoutes';
 import ClientPreloader from './components/client/ClientPreloader';
+import AvatarTest from './components/debug/AvatarTest';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ function App() {
               <RouteDebugger />
               <ClientPreloader />
               <Routes>
+                <Route path="/avatar-test" element={<AvatarTest />} />
                 {PublicRoutes()}
                 {ProviderRoutes()}
                 {ClientRoutes()}
