@@ -26,12 +26,16 @@ const EnhancedAvatar = ({
 
   // Reset states when src changes
   useEffect(() => {
-    if (src) {
+    if (src && src !== currentSrc) {
       setImageError(false);
       setImageLoaded(false);
       setCurrentSrc(src);
+    } else if (!src) {
+      setImageError(false);
+      setImageLoaded(false);
+      setCurrentSrc(null);
     }
-  }, [src]);
+  }, [src, currentSrc]);
 
   const handleImageError = () => {
     console.error('Enhanced Avatar: Failed to load image:', { src: currentSrc, alt, imageError });
