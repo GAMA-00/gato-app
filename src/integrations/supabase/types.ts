@@ -1199,6 +1199,10 @@ export type Database = {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number
       }
+      can_update_user_role: {
+        Args: { target_user_id: string; new_role: string }
+        Returns: boolean
+      }
       check_recurring_availability: {
         Args: {
           p_provider_id: string
