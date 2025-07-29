@@ -1266,12 +1266,23 @@ export type Database = {
         Returns: undefined
       }
       generate_provider_time_slots: {
-        Args: {
-          p_provider_id: string
-          p_listing_id: string
-          p_start_date: string
-          p_end_date: string
-        }
+        Args:
+          | {
+              p_provider_id: string
+              p_listing_id: string
+              p_start_date: string
+              p_end_date: string
+            }
+          | {
+              p_provider_id: string
+              p_listing_id: string
+              p_start_date: string
+              p_end_date: string
+              p_days_of_week: string[]
+              p_start_time: string
+              p_end_time: string
+              p_slot_duration_minutes: number
+            }
         Returns: number
       }
       generate_provider_time_slots_for_listing: {
