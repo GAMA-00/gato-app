@@ -35,6 +35,11 @@ const WeeklySlotGrid = ({
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(selectedSlot);
 
+  // Sync local state with prop when it changes
+  React.useEffect(() => {
+    setSelectedSlotId(selectedSlot);
+  }, [selectedSlot]);
+
   const startDate = addWeeks(new Date(), currentWeek);
   
   const {
