@@ -74,10 +74,15 @@ export const useWeeklySlots = ({
     setIsLoading(true);
     
     try {
-      // Fetch available time slots
+      // Fetch available time slots and their preferences
       const { data: timeSlots, error: slotsError } = await supabase
         .from('provider_time_slots')
-        .select('*')
+        .select(`
+          *,
+          provider_slot_preferences!left (
+            is_manually_disabled
+          )
+        `)
         .eq('provider_id', providerId)
         .eq('listing_id', listingId)
         .eq('is_available', true)
@@ -99,7 +104,7 @@ export const useWeeklySlots = ({
 
       if (appointmentsError) throw appointmentsError;
 
-      // Process slots with proper timezone handling
+      // Process slots with proper timezone handling and provider preferences
       const weeklySlots: WeeklySlot[] = timeSlots?.map(slot => {
         // Use the slot_datetime_start directly instead of reconstructing the date
         const slotStart = new Date(slot.slot_datetime_start);
@@ -107,6 +112,12 @@ export const useWeeklySlots = ({
         
         // Create a date object for the slot date (used for grouping)
         const slotDate = new Date(slotStart);
+        
+        // Check if slot is manually disabled by provider
+        const slotPreferences = Array.isArray(slot.provider_slot_preferences) 
+          ? slot.provider_slot_preferences[0] 
+          : slot.provider_slot_preferences;
+        const isManuallyDisabled = slotPreferences?.is_manually_disabled || false;
         
         // Check conflicts
         const hasDirectConflict = conflictingAppointments?.some(apt => {
@@ -117,7 +128,17 @@ export const useWeeklySlots = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
-        console.log(`Slot procesado: ${slot.slot_date} ${slot.start_time} -> ${displayTime} ${period} (disponible: ${!hasDirectConflict})`);
+        // Slot is available only if it's not manually disabled and has no conflicts
+        const isSlotAvailable = !isManuallyDisabled && !hasDirectConflict;
+        
+        let conflictReason: string | undefined;
+        if (isManuallyDisabled) {
+          conflictReason = 'Horario no disponible';
+        } else if (hasDirectConflict) {
+          conflictReason = 'Horario ocupado';
+        }
+
+        console.log(`Slot procesado: ${slot.slot_date} ${slot.start_time} -> ${displayTime} ${period} (disponible: ${isSlotAvailable}, deshabilitado: ${isManuallyDisabled})`);
 
         return {
           id: slot.id,
@@ -125,8 +146,8 @@ export const useWeeklySlots = ({
           time: slot.start_time,
           displayTime,
           period,
-          isAvailable: !hasDirectConflict,
-          conflictReason: hasDirectConflict ? 'Horario ocupado' : undefined
+          isAvailable: isSlotAvailable,
+          conflictReason
         };
       }) || [];
       
@@ -324,6 +345,28 @@ export const useWeeklySlots = ({
           setTimeout(() => {
             refreshSlots();
           }, 1500); // Longer delay for availability changes as they trigger slot regeneration
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'provider_slot_preferences',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          console.log('WeeklySlots: Cambio detectado en provider_slot_preferences:', payload);
+          
+          // Only refresh if it affects the current listing
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
+            console.log('WeeklySlots: Cambio relevante en preferencias de slots, refrescando...');
+            setTimeout(() => {
+              refreshSlots();
+            }, 300);
+          }
         }
       )
       .subscribe();
