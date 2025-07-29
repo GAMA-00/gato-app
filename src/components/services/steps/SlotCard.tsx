@@ -35,12 +35,12 @@ const SlotCard = ({
   const getButtonStyles = () => {
     if (variant === 'client') {
       if (isSelected) {
-        return 'bg-black text-white border-black hover:bg-black/90 shadow-lg';
+        return 'bg-black text-white border-black hover:bg-black hover:text-white shadow-lg ring-2 ring-black/20';
       }
       if (!isAvailable) {
         return 'bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-50';
       }
-      return 'bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground';
+      return 'bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground hover:border-accent';
     }
     
     // Provider variant
@@ -59,7 +59,7 @@ const SlotCard = ({
         'flex flex-col items-center justify-center gap-0.5 transition-all duration-200',
         sizeClasses[size],
         getButtonStyles(),
-        'hover:scale-105 active:scale-95',
+        isSelected && variant === 'client' ? 'transform scale-105' : 'hover:scale-105 active:scale-95',
         className
       )}
     >

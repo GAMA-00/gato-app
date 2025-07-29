@@ -63,6 +63,8 @@ const WeeklySlotGrid = ({
 
     // Select slot immediately and maintain selection
     setSelectedSlotId(slotId);
+    
+    // Call parent callback immediately to update the form state
     onSlotSelect(slotId, date, time);
 
     // Only validate for recurring conflicts if explicitly configured
@@ -74,6 +76,8 @@ const WeeklySlotGrid = ({
           // Only revert selection if validation explicitly fails for recurring bookings
           setSelectedSlotId(undefined);
           console.warn('Slot validation failed for recurring booking');
+          // Also notify parent to clear the selection
+          onSlotSelect('', new Date(), '');
         }
       } catch (error) {
         // For recurring bookings, log error but don't revert selection automatically
