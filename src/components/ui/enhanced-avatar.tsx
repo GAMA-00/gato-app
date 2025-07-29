@@ -38,10 +38,15 @@ const EnhancedAvatar = ({
   }, [src, currentSrc]);
 
   const handleImageError = () => {
-    console.error('Enhanced Avatar: Failed to load image:', { src: currentSrc, alt, imageError });
+    console.error('Enhanced Avatar: Failed to load image:', { 
+      src: currentSrc, 
+      alt, 
+      imageError,
+      retryAttempts: imageError ? 'max retries reached' : 'first attempt'
+    });
     
-    // Try with different extension if this is a supabase storage URL
-    if (currentSrc && currentSrc.includes('supabase.co/storage') && !imageError) {
+    // First try with different extension if this is a supabase storage URL
+    if (currentSrc && currentSrc.includes('supabase.co/storage') && !imageError && !currentSrc.includes('?t=')) {
       const alternativeUrl = currentSrc.includes('.jpg') 
         ? currentSrc.replace('.jpg', '.png')
         : currentSrc.replace('.png', '.jpg');
@@ -59,6 +64,7 @@ const EnhancedAvatar = ({
       return;
     }
     
+    console.error('Enhanced Avatar: All retry attempts failed, showing fallback');
     setImageError(true);
     onError?.();
   };
