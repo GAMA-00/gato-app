@@ -12,16 +12,16 @@ interface PageContainerProps {
 const PageContainer = ({ children, title, subtitle, className }: PageContainerProps) => {
   return (
     <div className={cn("min-h-screen bg-[#FAFAFA] pt-16 pb-20 md:pt-0 md:pb-0", className)}>
-      <div className="md:ml-52 p-4 md:p-6">
+      <div className="md:ml-52 px-4 sm:px-6 md:px-6 py-4 sm:py-6">
         {(title || subtitle) && (
-          <div className="mb-6">
+          <div className="mb-6 sm:mb-8">
             {title && (
-              <h1 className="text-2xl font-semibold text-[#2D2D2D] mb-2">
+              <h1 className="text-xl sm:text-2xl font-semibold text-[#2D2D2D] mb-2">
                 {title}
               </h1>
             )}
             {subtitle && (
-              <p className="text-sm text-[#6B6B6B]">
+              <p className="text-sm sm:text-base text-[#6B6B6B]">
                 {subtitle}
               </p>
             )}

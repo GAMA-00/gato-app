@@ -45,42 +45,63 @@ const ProfileStep: React.FC = () => {
 
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold">2. Perfil Profesional</h2>
+    <div className="space-y-8 sm:space-y-10">
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl sm:text-2xl font-semibold text-stone-900">
+          2. Perfil Profesional
+        </h2>
+        <p className="text-sm sm:text-base text-stone-600 leading-relaxed">
+          Comparte tu experiencia y certificaciones para generar confianza en los clientes.
+        </p>
+      </div>
       
-      <div className="bg-muted/40 rounded-lg border p-4">
+      <div className="bg-stone-50/50 rounded-lg border border-stone-200 p-6 sm:p-8">
       
 
         <FormField
           control={control}
           name="aboutMe"
           render={({ field }) => (
-            <FormItem className="mb-4">
-              <FormLabel>Sobre mí</FormLabel>
+            <FormItem className="mb-8">
+              <FormLabel className="text-base sm:text-lg font-medium text-stone-900">
+                Sobre mí
+              </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Contále a tus clientes sobre tu experiencia, formación y filosofía de trabajo..."
-                  rows={4}
+                  rows={5}
                   value={field.value || ''}
                   onChange={(e) => {
                     field.onChange(e.target.value);
                   }}
+                  className="text-base sm:text-lg min-h-[120px] border-stone-300 focus:border-primary"
                 />
               </FormControl>
+              <FormDescription className="text-sm sm:text-base text-stone-600 mt-2">
+                Una descripción personal ayuda a establecer confianza con tus clientes.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-         <div className="space-y-4 pt-2">
+         <div className="space-y-8 pt-4">
           <FormField
             control={control}
             name="experienceYears"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Años de experiencia</FormLabel>
+                <FormLabel className="text-base sm:text-lg font-medium text-stone-900">
+                  Años de experiencia
+                </FormLabel>
                 <FormControl>
-                  <Input type="number" min="0" max="50" {...field} />
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    max="50" 
+                    {...field} 
+                    className="text-base sm:text-lg py-4 h-auto border-stone-300 focus:border-primary"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

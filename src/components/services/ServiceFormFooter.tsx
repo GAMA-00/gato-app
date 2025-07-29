@@ -45,18 +45,18 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
   };
   
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 sm:space-y-5">
       {/* Indicador de progreso */}
       <div className="flex justify-between items-center">
-        <div className="text-xs sm:text-sm text-muted-foreground">
+        <div className="text-sm sm:text-base text-stone-600 font-medium">
           Paso {currentStep + 1} de {totalSteps}
         </div>
-        <div className="flex space-x-1">
+        <div className="flex space-x-2">
           {Array.from({ length: totalSteps }).map((_, index) => (
             <div
               key={index}
-              className={`w-2 h-2 rounded-full ${
-                index <= currentStep ? 'bg-blue-500' : 'bg-gray-300'
+              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-colors ${
+                index <= currentStep ? 'bg-primary' : 'bg-stone-300'
               }`}
             />
           ))}
@@ -64,17 +64,17 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
       </div>
 
       {/* Botones de navegación */}
-      <div className="flex gap-2 sm:gap-3">
+      <div className="flex gap-3 sm:gap-4">
         {!isFirstStep && (
           <Button 
             type="button" 
             variant="outline" 
             onClick={onPrev}
-            className="flex-1 h-10 sm:h-11"
+            className="flex-1 h-12 sm:h-11 text-sm sm:text-base min-w-0"
             size="sm"
           >
-            <ArrowLeft className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="text-xs sm:text-sm">Anterior</span>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="truncate">Anterior</span>
           </Button>
         )}
         
@@ -82,33 +82,33 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          className={`${isFirstStep ? "flex-1" : "flex-1"} h-10 sm:h-11`}
+          className={`${isFirstStep ? "flex-1" : "flex-1"} h-12 sm:h-11 text-sm sm:text-base min-w-0`}
           size="sm"
         >
-          <X className="h-4 w-4 mr-1 sm:mr-2" />
-          <span className="text-xs sm:text-sm">Cancelar</span>
+          <X className="h-4 w-4 mr-2" />
+          <span className="truncate">Cancelar</span>
         </Button>
         
         {!isLastStep ? (
           <Button 
             type="button"
             onClick={onNext}
-            className="flex-1 h-10 sm:h-11"
+            className="flex-1 h-12 sm:h-11 text-sm sm:text-base min-w-0"
             size="sm"
           >
-            <span className="text-xs sm:text-sm">Siguiente</span>
-            <ArrowRight className="h-4 w-4 ml-1 sm:ml-2" />
+            <span className="truncate">Siguiente</span>
+            <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         ) : (
           <Button 
             type="button"
             onClick={handleSubmitClick}
             disabled={isSubmitting}
-            className="flex-1 bg-green-600 hover:bg-green-700 h-10 sm:h-11 disabled:opacity-50"
+            className="flex-1 bg-green-600 hover:bg-green-700 h-12 sm:h-11 disabled:opacity-50 text-sm sm:text-base min-w-0"
             size="sm"
           >
-            <Check className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="text-xs sm:text-sm">
+            <Check className="h-4 w-4 mr-2" />
+            <span className="truncate">
               {isSubmitting ? 'Enviando...' : (isEditing ? 'Guardar' : 'Crear')}
             </span>
           </Button>
@@ -121,11 +121,11 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           type="button" 
           variant="destructive" 
           onClick={handleDelete}
-          className="w-full h-10 sm:h-11"
+          className="w-full h-12 sm:h-11 text-sm sm:text-base"
           size="sm"
         >
           <Trash className="h-4 w-4 mr-2" /> 
-          <span className="text-xs sm:text-sm">Eliminar Servicio</span>
+          <span>Eliminar Servicio</span>
         </Button>
       )}
     </div>

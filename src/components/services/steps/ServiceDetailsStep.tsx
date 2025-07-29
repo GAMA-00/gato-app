@@ -48,11 +48,14 @@ const ServiceDetailsStep: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <h2 className="text-2xl font-semibold text-luxury-navy">
+    <div className="space-y-8 sm:space-y-10">
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl sm:text-2xl font-semibold text-stone-900">
           3. Detalles del Servicio
         </h2>
+        <p className="text-sm sm:text-base text-stone-600 leading-relaxed">
+          Define las variantes de tu servicio, precios y áreas de cobertura.
+        </p>
       </div>
       
       <PostPaymentToggle />
@@ -64,12 +67,13 @@ const ServiceDetailsStep: React.FC = () => {
       />
 
       <Card className="border-stone-200 shadow-sm">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg">Cobertura de Servicio</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-6 sm:pb-8 px-6 sm:px-8 pt-6 sm:pt-8">
+          <CardTitle className="text-lg sm:text-xl">Cobertura de Servicio</CardTitle>
+          <CardDescription className="text-sm sm:text-base text-stone-600 mt-2">
+            Selecciona las residencias donde ofreces tu servicio.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 sm:px-8 pb-8">
           <FormField
             control={control}
             name="residenciaIds"
