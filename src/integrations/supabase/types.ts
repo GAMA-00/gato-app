@@ -530,6 +530,36 @@ export type Database = {
           },
         ]
       }
+      provider_slot_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          is_manually_disabled: boolean
+          listing_id: string
+          provider_id: string
+          slot_pattern: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_manually_disabled?: boolean
+          listing_id: string
+          provider_id: string
+          slot_pattern: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_manually_disabled?: boolean
+          listing_id?: string
+          provider_id?: string
+          slot_pattern?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       provider_time_slots: {
         Row: {
           blocked_until: string | null
