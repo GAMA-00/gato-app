@@ -271,17 +271,82 @@ export const useProviderAvailability = () => {
     }));
   };
 
-  const addTimeSlot = (day: string) => {
+  const addTimeSlot = (day: string, preset?: { startTime: string; endTime: string }) => {
+    const defaultSlot = preset || { startTime: '09:00', endTime: '17:00' };
+    
     setAvailability(prev => ({
       ...prev,
       [day]: {
         ...prev[day],
         timeSlots: [
           ...prev[day].timeSlots,
-          { startTime: '09:00', endTime: '17:00' }
+          defaultSlot
         ]
       }
     }));
+  };
+
+  const copyDayToOtherDays = (sourceDay: string, targetDays: string[]) => {
+    const sourceDayData = availability[sourceDay];
+    if (!sourceDayData || !sourceDayData.enabled) {
+      toast.error('El día origen debe estar habilitado para copiar');
+      return;
+    }
+
+    setAvailability(prev => {
+      const updated = { ...prev };
+      targetDays.forEach(day => {
+        if (day !== sourceDay) {
+          updated[day] = {
+            enabled: true,
+            timeSlots: [...sourceDayData.timeSlots]
+          };
+        }
+      });
+      return updated;
+    });
+    
+    toast.success(`Horarios copiados de ${sourceDay} a ${targetDays.length} días`);
+  };
+
+  const applyPreset = (preset: 'business' | 'extended' | 'weekend') => {
+    const presets = {
+      business: {
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        timeSlots: [{ startTime: '08:00', endTime: '17:00' }]
+      },
+      extended: {
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        timeSlots: [{ startTime: '07:00', endTime: '19:00' }]
+      },
+      weekend: {
+        days: ['saturday', 'sunday'],
+        timeSlots: [{ startTime: '09:00', endTime: '15:00' }]
+      }
+    };
+
+    const selectedPreset = presets[preset];
+    
+    setAvailability(prev => {
+      const updated = { ...prev };
+      
+      // First disable all days
+      Object.keys(updated).forEach(day => {
+        updated[day] = { enabled: false, timeSlots: [] };
+      });
+      
+      // Then enable and set the preset days
+      selectedPreset.days.forEach(day => {
+        updated[day] = {
+          enabled: true,
+          timeSlots: [...selectedPreset.timeSlots]
+        };
+      });
+      
+      return updated;
+    });
+    
+    toast.success(`Preset "${preset}" aplicado correctamente`);
   };
 
   const removeTimeSlot = (day: string, index: number) => {
@@ -319,6 +384,8 @@ export const useProviderAvailability = () => {
     removeTimeSlot,
     updateTimeSlot,
     saveAvailability,
-    refreshAvailability: fetchAvailability
+    refreshAvailability: fetchAvailability,
+    copyDayToOtherDays,
+    applyPreset
   };
 };

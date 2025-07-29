@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, ChevronRight, Copy, Zap, Briefcase, Clock4, Sunset } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
 import AvailabilitySlotPreview from './AvailabilitySlotPreview';
@@ -31,7 +31,9 @@ export const AvailabilityManager: React.FC = () => {
     addTimeSlot,
     removeTimeSlot,
     updateTimeSlot,
-    saveAvailability
+    saveAvailability,
+    copyDayToOtherDays,
+    applyPreset
   } = useProviderAvailability();
 
   if (isLoading) {
@@ -149,92 +151,173 @@ export const AvailabilityManager: React.FC = () => {
         </div>
       </div>
 
-        <div className={`mt-4 md:mt-6 ${activeTab === 'availability' ? 'block' : 'hidden'}`}>
-          <div className="space-y-3 md:space-y-4">
-            {DAYS.map(({ key, label }) => (
-              <Card key={key} className="shadow-sm">
-                <CardHeader className="pb-2 md:pb-3">
-                  <div className="flex items-center justify-between">
+      {/* Quick Configuration Presets */}
+      <div className="mt-4 md:mt-6">
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm md:text-base flex items-center gap-2">
+              <Zap className="h-4 w-4 text-blue-600" />
+              Configuración Rápida
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyPreset('business')}
+                className="flex items-center gap-2 justify-start"
+              >
+                <Briefcase className="h-3 w-3" />
+                <div className="text-left">
+                  <div className="text-xs font-medium">Horario Comercial</div>
+                  <div className="text-xs text-muted-foreground">L-V 8:00-17:00</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyPreset('extended')}
+                className="flex items-center gap-2 justify-start"
+              >
+                <Clock4 className="h-3 w-3" />
+                <div className="text-left">
+                  <div className="text-xs font-medium">Horario Extendido</div>
+                  <div className="text-xs text-muted-foreground">L-S 7:00-19:00</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyPreset('weekend')}
+                className="flex items-center gap-2 justify-start"
+              >
+                <Sunset className="h-3 w-3" />
+                <div className="text-left">
+                  <div className="text-xs font-medium">Solo Fines de Semana</div>
+                  <div className="text-xs text-muted-foreground">S-D 9:00-15:00</div>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Availability Configuration Tab */}
+      <div className={`mt-4 md:mt-6 ${activeTab === 'availability' ? 'block' : 'hidden'}`}>
+        <div className="space-y-3 md:space-y-4">
+          {DAYS.map(({ key, label }) => (
+            <Card key={key} className="shadow-sm">
+              <CardHeader className="pb-2 md:pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <CardTitle className="text-base md:text-lg">{label}</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id={`${key}-enabled`}
-                        checked={availability[key]?.enabled || false}
-                        onCheckedChange={(checked) => updateDayAvailability(key, checked)}
-                      />
-                      <Label htmlFor={`${key}-enabled`} className="text-sm">Disponible</Label>
-                    </div>
+                    {availability[key]?.enabled && availability[key].timeSlots.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const otherDays = DAYS.filter(d => d.key !== key).map(d => d.key);
+                          copyDayToOtherDays(key, otherDays);
+                        }}
+                        className="h-8 px-2 text-xs"
+                        title="Copiar a otros días"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
-                </CardHeader>
-                
-                {availability[key]?.enabled && (
-                  <CardContent className="pt-0 px-3 md:px-6">
-                    <div className="space-y-2 md:space-y-3">
-                      {availability[key].timeSlots.map((slot, index) => (
-                        <div key={index} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-muted rounded-lg">
-                          <Clock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
-                            <div>
-                              <Label htmlFor={`${key}-start-${index}`} className="text-xs">
-                                Hora de inicio
-                              </Label>
-                              <Input
-                                id={`${key}-start-${index}`}
-                                type="time"
-                                value={slot.startTime}
-                                onChange={(e) => updateTimeSlot(key, index, 'startTime', e.target.value)}
-                                className="mt-1 h-8 md:h-10"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`${key}-end-${index}`} className="text-xs">
-                                Hora de fin
-                              </Label>
-                              <Input
-                                id={`${key}-end-${index}`}
-                                type="time"
-                                value={slot.endTime}
-                                onChange={(e) => updateTimeSlot(key, index, 'endTime', e.target.value)}
-                                className="mt-1 h-8 md:h-10"
-                              />
-                            </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id={`${key}-enabled`}
+                      checked={availability[key]?.enabled || false}
+                      onCheckedChange={(checked) => updateDayAvailability(key, checked)}
+                    />
+                    <Label htmlFor={`${key}-enabled`} className="text-sm">Disponible</Label>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              {availability[key]?.enabled && (
+                <CardContent className="pt-0 px-3 md:px-6">
+                  <div className="space-y-2 md:space-y-3">
+                    {availability[key].timeSlots.map((slot, index) => (
+                      <div key={index} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-muted rounded-lg">
+                        <Clock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+                          <div>
+                            <Label htmlFor={`${key}-start-${index}`} className="text-xs">
+                              Hora de inicio
+                            </Label>
+                            <Input
+                              id={`${key}-start-${index}`}
+                              type="time"
+                              value={slot.startTime}
+                              onChange={(e) => updateTimeSlot(key, index, 'startTime', e.target.value)}
+                              className="mt-1 h-8 md:h-10"
+                            />
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeTimeSlot(key, index)}
-                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8 md:h-10 md:w-10 flex-shrink-0"
-                          >
-                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-                          </Button>
+                          <div>
+                            <Label htmlFor={`${key}-end-${index}`} className="text-xs">
+                              Hora de fin
+                            </Label>
+                            <Input
+                              id={`${key}-end-${index}`}
+                              type="time"
+                              value={slot.endTime}
+                              onChange={(e) => updateTimeSlot(key, index, 'endTime', e.target.value)}
+                              className="mt-1 h-8 md:h-10"
+                            />
+                          </div>
                         </div>
-                      ))}
-                      
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeTimeSlot(key, index)}
+                          className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8 md:h-10 md:w-10 flex-shrink-0"
+                        >
+                          <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    <div className="flex flex-col sm:flex-row gap-2 mt-3">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => addTimeSlot(key)}
-                        className="w-full mt-2 md:mt-3 h-8 md:h-10 text-xs md:text-sm"
+                        className="flex-1 h-8 md:h-10 text-xs md:text-sm"
                       >
                         <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                         Agregar Horario
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addTimeSlot(key, { startTime: '12:00', endTime: '13:00' })}
+                        className="flex-1 h-8 md:h-10 text-xs md:text-sm"
+                      >
+                        <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                        + Almuerzo
+                      </Button>
                     </div>
-                  </CardContent>
-                )}
-              </Card>
-            ))}
-          </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))}
         </div>
+      </div>
 
-        <div className={`mt-4 md:mt-6 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
-          <div className="px-1">
-            <AvailabilitySlotPreview
-              availability={availability}
-              serviceDuration={60}
-            />
-          </div>
+      {/* Preview Tab */}
+      <div className={`mt-4 md:mt-6 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
+        <div className="px-1">
+          <AvailabilitySlotPreview
+            availability={availability}
+            serviceDuration={60}
+          />
         </div>
+      </div>
     </div>
   );
 };
