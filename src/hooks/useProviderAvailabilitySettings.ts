@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAvailabilityContext } from '@/contexts/AvailabilityContext';
+import { useUnifiedAvailability } from '@/contexts/UnifiedAvailabilityContext';
 
 interface AvailabilitySlot {
   id: string;
@@ -30,6 +31,7 @@ export const useProviderAvailability = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { notifyAvailabilityChange } = useAvailabilityContext();
+  const { syncAvailabilityToListing, loadAvailabilityFromListing, notifyAvailabilityChange: unifiedNotify } = useUnifiedAvailability();
   const [availability, setAvailability] = useState<WeeklyAvailability>({
     monday: { enabled: false, timeSlots: [] },
     tuesday: { enabled: false, timeSlots: [] },
@@ -59,6 +61,17 @@ export const useProviderAvailability = () => {
     try {
       console.log('Cargando disponibilidad para proveedor:', user.id);
       
+      // First try to load from listing (unified source)
+      const listingAvailability = await loadAvailabilityFromListing();
+      
+      if (listingAvailability) {
+        console.log('Disponibilidad cargada desde listing:', listingAvailability);
+        setAvailability(listingAvailability);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fallback to provider_availability table
       const { data, error } = await supabase
         .from('provider_availability')
         .select('*')
@@ -171,87 +184,21 @@ export const useProviderAvailability = () => {
       }
 
       console.log('Disponibilidad guardada exitosamente');
-      toast.success('Disponibilidad actualizada correctamente');
       
-      // Refresh the data to confirm it was saved
-      await fetchAvailability();
+      // Sync to listing (this will trigger slot regeneration via trigger)
+      await syncAvailabilityToListing(availability);
       
-      // Invalidate related queries to update client-side availability immediately
-      console.log('Invalidando queries relacionadas con disponibilidad...');
+      // Notify all components of the change
+      unifiedNotify();
       
-      // Invalidate recurring slot system queries (used in calendar)
-      queryClient.invalidateQueries({ 
-        queryKey: ['recurring-slot-system'], 
-        exact: false 
-      });
-      
-      // Invalidate any other availability-related queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['provider-availability', user.id], 
-        exact: false 
-      });
-      
-      // Invalidate time slots queries  
-      queryClient.invalidateQueries({ 
-        queryKey: ['time-slots'], 
-        exact: false 
-      });
-      
-      // Invalidate weekly slots queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['weekly-slots'], 
-        exact: false 
-      });
-      
-      // Invalidate calendar appointments to refresh the calendar view
-      queryClient.invalidateQueries({ 
-        queryKey: ['calendar-appointments'], 
-        exact: false 
-      });
-      
-      console.log('Queries invalidadas exitosamente');
-      
-      // Regenerate time slots for all listings of this provider
-      console.log('Regenerando slots de tiempo para el proveedor:', user.id);
-      
-      // Get all listings for this provider
-      const { data: listings, error: listingsError } = await supabase
-        .from('listings')
-        .select('id')
-        .eq('provider_id', user.id)
-        .eq('is_active', true);
-      
-      if (listingsError) {
-        console.error('Error fetching listings:', listingsError);
-      } else if (listings && listings.length > 0) {
-        // Regenerate slots for each listing
-        for (const listing of listings) {
-          try {
-            const { error: regenerateError } = await supabase
-              .rpc('regenerate_slots_for_listing', {
-                p_listing_id: listing.id
-              });
-            
-            if (regenerateError) {
-              console.error('Error regenerating slots for listing:', listing.id, regenerateError);
-            } else {
-              console.log('Slots regenerados exitosamente para listing:', listing.id);
-            }
-          } catch (error) {
-            console.error('Error calling regenerate function for listing:', listing.id, error);
-          }
-        }
-      }
-      
-      // Notify hooks using traditional state management to refresh their data
+      // Also notify the old system for backward compatibility
       if (user?.id) {
-        console.log('Notificando cambio de disponibilidad para proveedor:', user.id);
-        
-        // Add a small delay to ensure database operations have completed
         setTimeout(() => {
           notifyAvailabilityChange(user.id);
         }, 500);
       }
+      
+      toast.success('Disponibilidad actualizada correctamente');
     } catch (error) {
       console.error('Error saving availability:', error);
       toast.error('Error inesperado al guardar la disponibilidad');

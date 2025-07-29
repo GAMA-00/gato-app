@@ -26,6 +26,7 @@ interface ListingData {
   updated_at: string;
   service_variants: any;
   gallery_images: any;
+  availability: any;
 }
 
 interface ProviderData {
@@ -83,6 +84,18 @@ export const useListings = () => {
           console.error("Error parsing gallery images:", e);
         }
         
+        // Parse availability if available
+        let availability = {};
+        try {
+          if (listing.availability) {
+            availability = typeof listing.availability === 'string' 
+              ? JSON.parse(listing.availability)
+              : listing.availability;
+          }
+        } catch (e) {
+          console.error("Error parsing availability:", e);
+        }
+        
         return {
           id: listing.id,
           name: listing.title,
@@ -96,7 +109,8 @@ export const useListings = () => {
           providerId: listing.provider_id,
           providerName: user.name || '',
           serviceVariants: serviceVariants,
-          galleryImages: galleryImages
+          galleryImages: galleryImages,
+          availability: availability
         };
       }) as Service[];
     },

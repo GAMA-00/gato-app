@@ -72,7 +72,7 @@ export const useServiceMutations = () => {
         
         console.log('Variantes de servicio JSON:', serviceVariantsJson);
         
-        // Preparar datos para insertar
+        // Preparar datos para insertar incluyendo availability
         const insertData = {
           title: serviceData.name || '',
           service_type_id: serviceData.subcategoryId || '',
@@ -84,7 +84,8 @@ export const useServiceMutations = () => {
           service_variants: serviceVariantsJson,
           gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
           use_custom_variables: serviceData.useCustomVariables || false,
-          custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null
+          custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null,
+          availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null
         };
         
         console.log('Datos a insertar en listings:', insertData);
@@ -157,6 +158,7 @@ export const useServiceMutations = () => {
       // Invalidate user profile queries to update avatar in UI
       queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['providers'] });
+      queryClient.invalidateQueries({ queryKey: ['provider-availability', user?.id] });
       
       toast.success('¡Anuncio creado exitosamente!');
     },
@@ -252,7 +254,8 @@ export const useServiceMutations = () => {
             service_variants: serviceVariantsJson,
             gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
             use_custom_variables: serviceData.useCustomVariables || false,
-            custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null
+            custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null,
+            availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null
           })
           .eq('id', serviceData.id);
           
@@ -290,6 +293,8 @@ export const useServiceMutations = () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });
       queryClient.invalidateQueries({ queryKey: ['listing_residencias'] });
       queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['provider-availability', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] });
       toast.success('Anuncio actualizado exitosamente');
     },
     onError: (error) => {

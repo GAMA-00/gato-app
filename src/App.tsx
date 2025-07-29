@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-route
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { AvailabilityProvider } from './contexts/AvailabilityContext';
+import { UnifiedAvailabilityProvider } from './contexts/UnifiedAvailabilityContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import PublicRoutes from './routes/PublicRoutes';
 import ProviderRoutes from './routes/ProviderRoutes';
@@ -28,7 +29,8 @@ function App() {
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
           <AvailabilityProvider>
-            <ErrorBoundary>
+            <UnifiedAvailabilityProvider>
+              <ErrorBoundary>
               <RouteDebugger />
               <ClientPreloader />
               <Routes>
@@ -37,7 +39,8 @@ function App() {
                 {ProviderRoutes()}
                 {ClientRoutes()}
               </Routes>
-            </ErrorBoundary>
+              </ErrorBoundary>
+            </UnifiedAvailabilityProvider>
           </AvailabilityProvider>
         </QueryClientProvider>
       </AuthProvider>

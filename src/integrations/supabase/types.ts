@@ -1308,6 +1308,10 @@ export type Database = {
         Args: { rule_id: string; start_range: string; end_range: string }
         Returns: number
       }
+      get_provider_listing: {
+        Args: { p_provider_id: string }
+        Returns: string
+      }
       get_rated_appointments: {
         Args: { appointment_ids: string[] }
         Returns: {
@@ -1333,6 +1337,10 @@ export type Database = {
         Returns: number
       }
       regenerate_slots_for_listing: {
+        Args: { p_listing_id: string }
+        Returns: number
+      }
+      regenerate_slots_for_listing_safe: {
         Args: { p_listing_id: string }
         Returns: number
       }
