@@ -74,15 +74,10 @@ export const useWeeklySlots = ({
     setIsLoading(true);
     
     try {
-      // Fetch available time slots and their preferences
+      // Fetch available time slots
       const { data: timeSlots, error: slotsError } = await supabase
         .from('provider_time_slots')
-        .select(`
-          *,
-          provider_slot_preferences!left (
-            is_manually_disabled
-          )
-        `)
+        .select('*')
         .eq('provider_id', providerId)
         .eq('listing_id', listingId)
         .eq('is_available', true)
@@ -104,7 +99,7 @@ export const useWeeklySlots = ({
 
       if (appointmentsError) throw appointmentsError;
 
-      // Process slots with proper timezone handling and provider preferences
+      // Process slots with proper timezone handling
       const weeklySlots: WeeklySlot[] = timeSlots?.map(slot => {
         // Use the slot_datetime_start directly instead of reconstructing the date
         const slotStart = new Date(slot.slot_datetime_start);
@@ -113,11 +108,9 @@ export const useWeeklySlots = ({
         // Create a date object for the slot date (used for grouping)
         const slotDate = new Date(slotStart);
         
-        // Check if slot is manually disabled by provider
-        const slotPreferences = Array.isArray(slot.provider_slot_preferences) 
-          ? slot.provider_slot_preferences[0] 
-          : slot.provider_slot_preferences;
-        const isManuallyDisabled = slotPreferences?.is_manually_disabled || false;
+        // For now, we rely on the database's is_available field
+        // The provider slot preferences are handled at the database level during slot generation
+        const isManuallyDisabled = !slot.is_available;
         
         // Check conflicts
         const hasDirectConflict = conflictingAppointments?.some(apt => {
