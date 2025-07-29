@@ -296,6 +296,22 @@ export const useServiceMutations = () => {
       console.log('=== ELIMINANDO SERVICIO ===');
       console.log('Servicio a eliminar:', service);
       
+      // First check if there are any appointments associated with this listing
+      const { data: appointments, error: checkError } = await supabase
+        .from('appointments')
+        .select('id, status')
+        .eq('listing_id', service.id)
+        .limit(1);
+        
+      if (checkError) {
+        console.error('Error checking appointments:', checkError);
+        throw checkError;
+      }
+      
+      if (appointments && appointments.length > 0) {
+        throw new Error('APPOINTMENTS_EXIST');
+      }
+      
       const { error } = await supabase
         .from('listings')
         .delete()
@@ -314,7 +330,14 @@ export const useServiceMutations = () => {
       toast.success('Anuncio eliminado exitosamente');
     },
     onError: (error) => {
-      toast.error('Error al eliminar el anuncio: ' + (error as Error).message);
+      const errorMessage = error.message;
+      if (errorMessage === 'APPOINTMENTS_EXIST') {
+        toast.error('No se puede eliminar este servicio porque tiene citas asociadas. Primero debe cancelar o completar todas las citas relacionadas.');
+      } else if (errorMessage.includes('foreign key constraint')) {
+        toast.error('No se puede eliminar este servicio porque tiene citas asociadas. Contacte soporte si necesita ayuda.');
+      } else {
+        toast.error('Error al eliminar el anuncio: ' + errorMessage);
+      }
     }
   });
   
