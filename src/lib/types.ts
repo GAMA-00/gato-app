@@ -16,6 +16,8 @@ export interface ServiceVariant {
   price: string | number;
   duration: string | number;
   customVariables?: CustomVariable[];
+  additionalPersonPrice?: string | number; // Precio por persona adicional
+  maxPersons?: string | number; // Máximo de personas (opcional)
 }
 
 // Nuevas interfaces para variables personalizadas flexibles

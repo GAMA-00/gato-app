@@ -230,7 +230,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                 </div>
               )}
 
-              {/* Custom Variables Section */}
+              {/* Additional Person Pricing Section */}
               <Collapsible 
                 open={expandedVariants.has(variant.id || String(index))}
                 onOpenChange={() => toggleVariantExpansion(variant.id || String(index))}
@@ -241,7 +241,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                     variant="ghost" 
                     className="w-full justify-between mt-3 h-8 px-2"
                   >
-                    <span className="text-sm font-medium">Variables adicionales</span>
+                    <span className="text-sm font-medium">Agregar precio por persona</span>
                     {expandedVariants.has(variant.id || String(index)) ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
@@ -250,10 +250,57 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2">
-                  <ServiceCustomVariablesEditor
-                    customVariables={variant.customVariables || []}
-                    onVariablesChange={(variables) => handleCustomVariablesChange(index, variables)}
-                  />
+                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={control}
+                        name={`serviceVariants.${index}.additionalPersonPrice`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">Precio por persona adicional</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input 
+                                  type="number" 
+                                  min="0" 
+                                  placeholder="0" 
+                                  value={variant.additionalPersonPrice || ''}
+                                  onChange={(e) => handleServiceVariantChange(index, 'additionalPersonPrice', e.target.value)}
+                                  className="pl-7"
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={control}
+                        name={`serviceVariants.${index}.maxPersons`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">Máximo de personas (opcional)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                min="1" 
+                                placeholder="Sin límite" 
+                                value={variant.maxPersons || ''}
+                                onChange={(e) => handleServiceVariantChange(index, 'maxPersons', e.target.value)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Define el costo adicional por cada persona extra y opcionalmente establece un límite máximo de personas para este servicio.
+                    </p>
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
             </CardContent>
