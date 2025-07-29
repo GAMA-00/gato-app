@@ -1261,6 +1261,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      fix_empty_avatars: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_provider_time_slots: {
         Args: {
           p_provider_id: string

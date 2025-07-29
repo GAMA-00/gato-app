@@ -166,8 +166,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       return processedProviders;
     },
     enabled: !!serviceId,
-    staleTime: 300000, // 5 minutes - longer stale time to prevent constant refetching
-    refetchOnWindowFocus: false,
+    staleTime: 0, // Force refetch to get updated avatar URLs
+    refetchOnWindowFocus: true, // Refetch when window is focused
     refetchInterval: false // Don't auto-refetch
   });
 };
