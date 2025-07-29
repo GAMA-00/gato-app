@@ -131,15 +131,42 @@ export const updateProviderData = async (
   userId: string,
   aboutMe?: string,
   experienceYears?: number,
-  certificationFilesUrls?: any[]
+  certificationFilesUrls?: any[],
+  profileImage?: File
 ) => {
+  // Upload profile image if provided
+  let avatarUrl: string | undefined;
+  if (profileImage) {
+    console.log('=== UPLOADING PROFILE IMAGE ===');
+    console.log('Profile image:', profileImage.name, profileImage.type);
+    
+    // Import uploadAvatar function
+    const { uploadAvatar } = await import('./uploadService');
+    const avatarResult = await uploadAvatar(profileImage, userId);
+    
+    if (avatarResult.success && avatarResult.url) {
+      avatarUrl = avatarResult.url;
+      console.log('Profile image uploaded successfully:', avatarUrl);
+    } else {
+      console.warn('Profile image upload failed:', avatarResult.error);
+    }
+  }
+
+  // Prepare update data
+  const updateData: any = {
+    about_me: aboutMe || '',
+    experience_years: experienceYears || 0,
+    certification_files: certificationFilesUrls?.length ? JSON.stringify(certificationFilesUrls) : null,
+  };
+
+  // Add avatar URL if uploaded
+  if (avatarUrl) {
+    updateData.avatar_url = avatarUrl;
+  }
+
   const { error: updateProviderError } = await supabase
     .from('users')
-    .update({
-      about_me: aboutMe || '',
-      experience_years: experienceYears || 0,
-      certification_files: certificationFilesUrls?.length ? JSON.stringify(certificationFilesUrls) : null,
-    })
+    .update(updateData)
     .eq('id', userId);
     
   if (updateProviderError) {

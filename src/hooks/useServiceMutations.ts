@@ -46,7 +46,8 @@ export const useServiceMutations = () => {
           user.id,
           serviceData.aboutMe,
           serviceData.experienceYears,
-          certificationFilesUrls
+          certificationFilesUrls,
+          serviceData.profileImage
         );
         console.log('Datos del proveedor actualizados');
         
@@ -152,6 +153,11 @@ export const useServiceMutations = () => {
       });
       
       console.log('Cache actualizado directamente');
+      
+      // Invalidate user profile queries to update avatar in UI
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
+      
       toast.success('¡Anuncio creado exitosamente!');
     },
     onError: (error) => {

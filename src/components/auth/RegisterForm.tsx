@@ -15,6 +15,7 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import ClientResidenceField from './ClientResidenceField';
 import ProviderResidencesField from './ProviderResidencesField';
 import { uploadAvatar } from '@/utils/uploadService';
+import { supabase } from '@/integrations/supabase/client';
 
 // Esquema modificado para incluir confirmación de contraseña
 export const registerSchema = z.object({
@@ -104,16 +105,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       setIsSubmitting(true);
       setRegistrationError(null);
       
-      // Upload avatar if provided (for providers)
-      let avatarUrl = '';
+      // Store profile image for later upload after user creation
+      let profileImageToUpload = null;
       if (userRole === 'provider' && values.profileImage) {
-        console.log('Uploading profile image for provider...');
-        const avatarResult = await uploadAvatar(values.profileImage, 'temp-' + Date.now().toString());
-        if (avatarResult.success && avatarResult.url) {
-          avatarUrl = avatarResult.url;
-        } else {
-          console.warn('Avatar upload failed:', avatarResult.error);
-        }
+        console.log('Storing profile image for post-registration upload...');
+        profileImageToUpload = values.profileImage;
       }
       
       if (userRole === 'client' && !values.residenciaId) {
@@ -152,7 +148,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         condominiumId: userRole === 'client' ? values.condominiumId : null,
         houseNumber: userRole === 'client' ? values.houseNumber : null,
         providerResidenciaIds: userRole === 'provider' ? values.providerResidenciaIds : [],
-        avatarUrl: avatarUrl
+        avatarUrl: '' // Will be updated after user creation
       };
       
       const result = await signUp(values.email, values.password, userData);
@@ -173,6 +169,29 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       } else if (result.data?.user) {
         console.log('RegisterForm: Registro exitoso! User ID:', result.data.user.id);
         console.log('RegisterForm: User metadata sent:', userData);
+        
+        // Upload avatar after user creation if provided
+        if (profileImageToUpload && result.data.user.id) {
+          console.log('Uploading avatar with real user ID...');
+          try {
+            const avatarResult = await uploadAvatar(profileImageToUpload, result.data.user.id);
+            if (avatarResult.success && avatarResult.url) {
+              // Update user profile with avatar URL
+              const { error: updateError } = await supabase
+                .from('users')
+                .update({ avatar_url: avatarResult.url })
+                .eq('id', result.data.user.id);
+                
+              if (updateError) {
+                console.warn('Failed to update avatar URL:', updateError);
+              } else {
+                console.log('Avatar uploaded and profile updated successfully');
+              }
+            }
+          } catch (avatarError) {
+            console.warn('Avatar upload failed:', avatarError);
+          }
+        }
         
         if (onRegisterSuccess) {
           onRegisterSuccess({ 
