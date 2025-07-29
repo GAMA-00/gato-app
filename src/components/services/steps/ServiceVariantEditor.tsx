@@ -143,7 +143,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                 </div>
                 
                 {showPriceFields && (
-                  <div className="col-span-5">
+                  <div className="col-span-4">
                     <FormField
                       control={control}
                       name={`serviceVariants.${index}.price`}
@@ -170,7 +170,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   </div>
                 )}
                 
-                <div className={showPriceFields ? "col-span-5" : "col-span-8"}>
+                <div className={showPriceFields ? "col-span-6" : "col-span-8"}>
                   <FormField
                     control={control}
                     name={`serviceVariants.${index}.duration`}
