@@ -213,6 +213,7 @@ export type Database = {
       }
       listings: {
         Row: {
+          availability: Json | null
           base_price: number
           created_at: string
           custom_variable_groups: Json | null
@@ -231,6 +232,7 @@ export type Database = {
           use_custom_variables: boolean | null
         }
         Insert: {
+          availability?: Json | null
           base_price: number
           created_at?: string
           custom_variable_groups?: Json | null
@@ -249,6 +251,7 @@ export type Database = {
           use_custom_variables?: boolean | null
         }
         Update: {
+          availability?: Json | null
           base_price?: number
           created_at?: string
           custom_variable_groups?: Json | null
@@ -1241,6 +1244,10 @@ export type Database = {
           p_exclude_rule_id?: string
         }
         Returns: boolean
+      }
+      consolidate_multiple_listings: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       create_user_profile: {
         Args: {
