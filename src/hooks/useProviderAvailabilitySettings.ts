@@ -64,7 +64,7 @@ export const useProviderAvailability = () => {
       // First try to load from listing (unified source)
       const listingAvailability = await loadAvailabilityFromListing();
       
-      if (listingAvailability) {
+      if (listingAvailability && Object.values(listingAvailability).some(day => day.enabled)) {
         console.log('Disponibilidad cargada desde listing:', listingAvailability);
         setAvailability(listingAvailability);
         setIsLoading(false);
@@ -76,6 +76,7 @@ export const useProviderAvailability = () => {
         .from('provider_availability')
         .select('*')
         .eq('provider_id', user.id)
+        .eq('is_active', true)
         .order('day_of_week', { ascending: true });
 
       if (error) {
@@ -84,12 +85,17 @@ export const useProviderAvailability = () => {
         return;
       }
 
-      const newAvailability: WeeklyAvailability = { ...availability };
-      
-      // Reset all days first
-      Object.keys(newAvailability).forEach(day => {
-        newAvailability[day] = { enabled: false, timeSlots: [] };
-      });
+      console.log('Datos de provider_availability:', data);
+
+      const newAvailability: WeeklyAvailability = {
+        monday: { enabled: false, timeSlots: [] },
+        tuesday: { enabled: false, timeSlots: [] },
+        wednesday: { enabled: false, timeSlots: [] },
+        thursday: { enabled: false, timeSlots: [] },
+        friday: { enabled: false, timeSlots: [] },
+        saturday: { enabled: false, timeSlots: [] },
+        sunday: { enabled: false, timeSlots: [] }
+      };
 
       if (data && data.length > 0) {
         console.log('Disponibilidad cargada:', data.length, 'slots encontrados');
@@ -114,7 +120,24 @@ export const useProviderAvailability = () => {
         
         console.log('Disponibilidad procesada:', newAvailability);
       } else {
-        console.log('No se encontró disponibilidad previa, iniciando con configuración vacía');
+        console.log('No se encontró disponibilidad previa en provider_availability');
+        
+        // Try to load from listings table availability field
+        const { data: listingsData, error: listingsError } = await supabase
+          .from('listings')
+          .select('availability')
+          .eq('provider_id', user.id)
+          .limit(1);
+
+        if (!listingsError && listingsData?.[0]?.availability) {
+          console.log('Disponibilidad encontrada en listings:', listingsData[0].availability);
+          const savedAvailability = listingsData[0].availability as unknown as WeeklyAvailability;
+          setAvailability(savedAvailability);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('No se encontró disponibilidad en ninguna fuente, iniciando con configuración vacía');
       }
 
       setAvailability(newAvailability);
