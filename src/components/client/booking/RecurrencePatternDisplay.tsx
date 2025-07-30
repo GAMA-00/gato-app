@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, Clock, RefreshCw, AlertCircle } from 'lucide-react';
-import { getWeekPattern, getMonthlyPatternDescription } from '@/utils/monthlyRecurrenceUtils';
+import { getWeekPattern, getMonthlyPatternDescription, calculateMonthlyByWeekPattern } from '@/utils/monthlyRecurrenceUtils';
 
 interface RecurrencePatternDisplayProps {
   frequency: string;
@@ -77,7 +77,6 @@ const RecurrencePatternDisplay = ({
         
         case 'monthly':
           // Usar la nueva lógica de patrón semanal
-          const { calculateMonthlyByWeekPattern } = require('@/utils/monthlyRecurrenceUtils');
           currentDate = calculateMonthlyByWeekPattern(currentDate, currentDate);
           break;
       }
