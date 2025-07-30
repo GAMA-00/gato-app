@@ -64,6 +64,15 @@ export const useProviderAvailability = () => {
       // First try to load from listing (unified source)
       const listingAvailability = await loadAvailabilityFromListing();
       
+      console.log('=== AVAILABILITY SETTINGS DEBUG ===');
+      console.log('Listing availability result:', listingAvailability);
+      console.log('Is listingAvailability truthy?', !!listingAvailability);
+      if (listingAvailability) {
+        console.log('Days with data:', Object.keys(listingAvailability));
+        console.log('Enabled days:', Object.values(listingAvailability).some(day => day.enabled));
+      }
+      console.log('=== END AVAILABILITY SETTINGS DEBUG ===');
+      
       if (listingAvailability && Object.values(listingAvailability).some(day => day.enabled)) {
         console.log('Disponibilidad cargada desde listing (unified source):', listingAvailability);
         setAvailability(listingAvailability);

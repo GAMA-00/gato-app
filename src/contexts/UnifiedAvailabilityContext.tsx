@@ -61,6 +61,9 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
     }
 
     try {
+      console.log('=== UNIFIED CONTEXT DEBUG ===');
+      console.log('Loading availability for user:', user.id);
+      
       // Get provider's listing with availability
       const { data: listing, error: listingError } = await supabase
         .from('listings')
@@ -69,20 +72,30 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
         .eq('is_active', true)
         .maybeSingle();
 
+      console.log('Listing query result:', { listing, error: listingError });
+
       if (listingError) {
         console.error('Error getting provider listing:', listingError);
         throw listingError;
       }
 
       if (!listing || !listing.availability) {
-        console.log('No availability data in listing');
+        console.log('No listing found or no availability data in listing');
+        console.log('Listing exists:', !!listing);
+        console.log('Availability field:', listing?.availability);
         return null;
       }
+
+      console.log('Raw availability from DB:', listing.availability);
+      console.log('Availability type:', typeof listing.availability);
 
       // Parse and return availability
       const availability = typeof listing.availability === 'string' 
         ? JSON.parse(listing.availability)
         : listing.availability;
+
+      console.log('Parsed availability:', availability);
+      console.log('=== END UNIFIED CONTEXT DEBUG ===');
 
       return availability as WeeklyAvailability;
     } catch (error) {

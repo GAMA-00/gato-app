@@ -73,7 +73,11 @@ const ServiceEdit = () => {
           createdAt: new Date(data.created_at),
         };
 
-        console.log('Availability loaded from listing:', transformedData.availability);
+        console.log('=== SERVICEEDIT DEBUG ===');
+        console.log('Raw availability from DB:', data.availability);
+        console.log('Processed availability:', transformedData.availability);
+        console.log('Availability type:', typeof data.availability);
+        console.log('=== END SERVICEEDIT DEBUG ===');
 
         setServiceData(transformedData);
       } catch (error) {
