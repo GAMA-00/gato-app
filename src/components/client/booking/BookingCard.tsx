@@ -94,7 +94,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="truncate">
               {bookingIsRecurring && !booking.isRecurringInstance ? (
-                `Todos los ${format(booking.date, 'EEEE', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
+                `${format(booking.date, 'EEEE', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
               ) : (
                 `${format(booking.date, 'PPP', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
               )}
