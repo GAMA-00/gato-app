@@ -8,10 +8,18 @@
 import React from 'react';
 import { X, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { BaseBookingModal, useModalLoading, BaseModalAction } from './BaseBookingModal';
+import { useModalLoading } from './BaseBookingModal';
 
 // ===== TIPOS =====
 
@@ -141,23 +149,6 @@ export const CancelAppointmentModal = ({
 
   // ===== CONFIGURACIÓN DEL MODAL =====
 
-  const actions: BaseModalAction[] = [
-    {
-      label: isRecurring ? 'Cancelar solo esta cita' : 'Cancelar cita',
-      onClick: handleCancelSingle,
-      variant: 'outline',
-      icon: X,
-      className: 'text-red-600 border-red-200 hover:bg-red-50'
-    },
-    ...(isRecurring ? [{
-      label: 'Cancelar todas las citas futuras',
-      onClick: handleCancelRecurring,
-      variant: 'outline' as const,
-      icon: Calendar,
-      className: 'text-red-600 border-red-200 hover:bg-red-50'
-    }] : [])
-  ];
-
   const description = isRecurring 
     ? 'Esta es una cita recurrente. ¿Qué deseas cancelar?'
     : '¿Estás seguro de que deseas cancelar esta cita?';
@@ -165,15 +156,48 @@ export const CancelAppointmentModal = ({
   // ===== RENDER =====
 
   return (
-    <BaseBookingModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Cancelar Cita"
-      description={description}
-      icon={X}
-      iconColor="text-red-500"
-      actions={actions}
-      isLoading={isLoading}
-    />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <X className="h-5 w-5 text-red-500" />
+            Cancelar Cita
+          </DialogTitle>
+          <DialogDescription>
+            {description}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <Button
+            onClick={handleCancelSingle}
+            variant="outline"
+            disabled={isLoading}
+            className="w-full justify-start gap-2 text-red-600 border-red-200 hover:bg-red-50 border-2"
+          >
+            <X className="h-4 w-4" />
+            {isRecurring ? 'Cancelar solo esta cita' : 'Cancelar cita'}
+          </Button>
+
+          {isRecurring && (
+            <Button
+              onClick={handleCancelRecurring}
+              variant="outline"
+              disabled={isLoading}
+              className="w-full justify-start gap-2 text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <Calendar className="h-4 w-4" />
+              Cancelar todas las citas futuras
+            </Button>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={isLoading}>
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
