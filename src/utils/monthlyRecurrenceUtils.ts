@@ -45,51 +45,33 @@ export function getWeekPattern(date: Date) {
 }
 
 /**
- * Calcula la próxima ocurrencia mensual basada en el patrón semanal
+ * Calcula la próxima ocurrencia mensual basada en el mismo día de la semana
  * @param originalDate - Fecha original de la cita
  * @param currentDate - Fecha actual (para calcular desde cuándo)
- * @returns Próxima fecha que cumple el patrón
+ * @returns Próxima fecha que cumple el patrón (mismo día de semana, mínimo 28 días)
  */
 export function calculateMonthlyByWeekPattern(originalDate: Date, currentDate: Date = new Date()): Date {
-  const pattern = getWeekPattern(originalDate);
+  const originalDayOfWeek = originalDate.getDay(); // 0 = domingo, 1 = lunes, etc.
   
-  console.log(`📅 Calculando recurrencia mensual por patrón:`);
-  console.log(`   Original: ${format(originalDate, 'dd/MM/yyyy (EEEE)')} - ${pattern.description}`);
+  console.log(`📅 Calculando recurrencia mensual simple:`);
+  console.log(`   Original: ${format(originalDate, 'dd/MM/yyyy (EEEE)')}`);
+  console.log(`   Debe ser día de semana: ${originalDayOfWeek} (${['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][originalDayOfWeek]})`);
   
-  // Empezar desde el mes actual o siguiente
-  let targetMonth = new Date(currentDate);
-  targetMonth.setDate(1); // Primer día del mes
-  targetMonth.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
+  // Empezar desde una fecha que esté al menos 28 días después de la fecha actual
+  let searchDate = new Date(currentDate);
+  searchDate.setDate(searchDate.getDate() + 28);
   
-  // Si ya pasó la fecha de este mes, empezar desde el siguiente
-  const thisMonthOccurrence = findNthOccurrenceInMonth(targetMonth, pattern.dayOfWeek, pattern.occurrenceNumber);
-  if (thisMonthOccurrence <= currentDate) {
-    targetMonth = addMonths(targetMonth, 1);
+  // Buscar el primer día de la semana objetivo después de la fecha mínima
+  let daysToAdd = (originalDayOfWeek - searchDate.getDay() + 7) % 7;
+  if (daysToAdd === 0 && searchDate.getTime() <= currentDate.getTime()) {
+    daysToAdd = 7; // Si es el mismo día pero no han pasado 28 días, ir a la siguiente semana
   }
   
-  // Buscar la fecha correcta en el mes objetivo
-  let attempts = 0;
-  const maxAttempts = 12; // Máximo 12 meses hacia adelante
+  searchDate.setDate(searchDate.getDate() + daysToAdd);
+  searchDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
   
-  while (attempts < maxAttempts) {
-    const nextOccurrence = findNthOccurrenceInMonth(targetMonth, pattern.dayOfWeek, pattern.occurrenceNumber);
-    
-    if (nextOccurrence && nextOccurrence > currentDate) {
-      console.log(`✅ Próxima ocurrencia: ${format(nextOccurrence, 'dd/MM/yyyy (EEEE)')} - ${pattern.description}`);
-      return nextOccurrence;
-    }
-    
-    // Si no existe esa ocurrencia en este mes (ej: no hay 5to lunes), probar el siguiente
-    targetMonth = addMonths(targetMonth, 1);
-    attempts++;
-  }
-  
-  // Fallback: si no encuentra ninguna ocurrencia válida, usar el día específico del mes siguiente
-  console.warn(`⚠️ No se pudo encontrar patrón semanal, usando fallback al día ${originalDate.getDate()}`);
-  const fallback = addMonths(currentDate, 1);
-  fallback.setDate(originalDate.getDate());
-  fallback.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
-  return fallback;
+  console.log(`✅ Próxima ocurrencia: ${format(searchDate, 'dd/MM/yyyy (EEEE)')}`);
+  return searchDate;
 }
 
 /**
