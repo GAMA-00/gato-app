@@ -31,38 +31,24 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
     }
 
     try {
-      // Get provider's listing
-      const { data: listing, error: listingError } = await supabase
-        .from('listings')
-        .select('id')
-        .eq('provider_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (listingError) {
-        console.error('Error getting provider listing:', listingError);
-        throw listingError;
-      }
-
-      if (!listing) {
-        console.log('No active listing found for provider, availability saved only to provider_availability');
-        return;
-      }
-
-      // Update listing with availability data
-      const { error: updateError } = await supabase
+      console.log('Syncing availability to all user listings:', availability);
+      
+      // Update ALL user's active listings with the availability data
+      const { data: updatedListings, error: updateError } = await supabase
         .from('listings')
         .update({
-          availability: JSON.stringify(availability)
+          availability: availability // Supabase will handle JSON serialization
         })
-        .eq('id', listing.id);
+        .eq('provider_id', user.id)
+        .eq('is_active', true)
+        .select('id');
 
       if (updateError) {
-        console.error('Error updating listing availability:', updateError);
+        console.error('Error updating listings availability:', updateError);
         throw updateError;
       }
 
-      console.log('Availability synchronized to listing successfully');
+      console.log(`Availability synchronized to ${updatedListings?.length || 0} active listings successfully`);
     } catch (error) {
       console.error('Error in syncAvailabilityToListing:', error);
       throw error;
@@ -106,13 +92,16 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
   }, [user?.id]);
 
   const notifyAvailabilityChange = useCallback(() => {
-    // Invalidate all related queries
+    // Invalidate all availability-related caches for a complete refresh
     queryClient.invalidateQueries({ queryKey: ['provider-availability', user?.id] });
     queryClient.invalidateQueries({ queryKey: ['listings', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['listings'] }); // General listings cache
     queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] });
     queryClient.invalidateQueries({ queryKey: ['weekly-slots'] });
+    queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
     
-    console.log('Availability change notified - cache invalidated');
+    console.log('Availability change notified - all related caches invalidated');
   }, [queryClient, user?.id]);
 
   return (

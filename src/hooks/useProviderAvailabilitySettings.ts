@@ -65,11 +65,13 @@ export const useProviderAvailability = () => {
       const listingAvailability = await loadAvailabilityFromListing();
       
       if (listingAvailability && Object.values(listingAvailability).some(day => day.enabled)) {
-        console.log('Disponibilidad cargada desde listing:', listingAvailability);
+        console.log('Disponibilidad cargada desde listing (unified source):', listingAvailability);
         setAvailability(listingAvailability);
         setIsLoading(false);
         return;
       }
+      
+      console.log('No se encontró disponibilidad en unified source o está vacía, buscando en provider_availability...');
       
       // Fallback to provider_availability table
       const { data, error } = await supabase
@@ -206,22 +208,23 @@ export const useProviderAvailability = () => {
         }
       }
 
-      console.log('Disponibilidad guardada exitosamente');
+      console.log('Disponibilidad guardada exitosamente en provider_availability');
       
       // Sync to listing (this will trigger slot regeneration via trigger)
-      await syncAvailabilityToListing(availability);
-      
-      // Notify all components of the change
-      unifiedNotify();
-      
-      // Also notify the old system for backward compatibility
-      if (user?.id) {
-        setTimeout(() => {
-          notifyAvailabilityChange(user.id);
-        }, 500);
+      try {
+        await syncAvailabilityToListing(availability);
+        console.log('Disponibilidad sincronizada con listings');
+        
+        // Notify all components of the change
+        unifiedNotify();
+        
+        console.log('Disponibilidad guardada y sincronizada exitosamente');
+        toast.success('Disponibilidad actualizada correctamente');
+      } catch (syncError) {
+        console.error('Error al sincronizar con listings:', syncError);
+        // Even if sync fails, the save to provider_availability was successful
+        toast.success('Disponibilidad actualizada (sincronización parcial)');
       }
-      
-      toast.success('Disponibilidad actualizada correctamente');
     } catch (error) {
       console.error('Error saving availability:', error);
       toast.error('Error inesperado al guardar la disponibilidad');

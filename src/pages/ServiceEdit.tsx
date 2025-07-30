@@ -65,11 +65,15 @@ const ServiceEdit = () => {
           galleryImages: Array.isArray(data.gallery_images) ? data.gallery_images as string[] : [],
           customVariableGroups: Array.isArray(data.custom_variable_groups) ? data.custom_variable_groups as any[] : [],
           useCustomVariables: data.use_custom_variables || false,
+          // Load availability from the listing
+          availability: data.availability ? (typeof data.availability === 'string' ? JSON.parse(data.availability) : data.availability) : undefined,
           providerId: data.provider_id,
           providerName: '',
           residenciaIds: [],
           createdAt: new Date(data.created_at),
         };
+
+        console.log('Availability loaded from listing:', transformedData.availability);
 
         setServiceData(transformedData);
       } catch (error) {
