@@ -213,7 +213,9 @@ export const useProviderAvailability = () => {
       [day]: {
         ...prev[day],
         enabled,
-        timeSlots: enabled ? prev[day].timeSlots : []
+        timeSlots: enabled ? 
+          (prev[day].timeSlots.length > 0 ? prev[day].timeSlots : [{ startTime: '09:00', endTime: '17:00' }]) : 
+          []
       }
     }));
   };
