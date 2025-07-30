@@ -2,6 +2,8 @@
  * Utility for calculating the next occurrence date for recurring appointments
  */
 
+import { calculateMonthlyByWeekPattern } from './monthlyRecurrenceUtils';
+
 export function calculateNextOccurrence(
   appointmentStartTime: string,
   recurrence: string
@@ -76,7 +78,6 @@ function calculateBiweeklyOccurrence(appointmentTime: Date, now: Date): Date {
 
 function calculateMonthlyOccurrence(appointmentTime: Date, now: Date): Date {
   // Usar la nueva lógica basada en patrón semanal
-  const { calculateMonthlyByWeekPattern } = require('./monthlyRecurrenceUtils');
   const nextDate = calculateMonthlyByWeekPattern(appointmentTime, now);
   
   console.log(`⏰ Próxima ocurrencia mensual (patrón semanal): ${nextDate.toLocaleString()}`);
