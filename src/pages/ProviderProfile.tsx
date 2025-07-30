@@ -8,6 +8,7 @@ import ProviderReviews from '@/components/providers/ProviderReviews';
 import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAchievements from '@/components/providers/ProviderAchievements';
 import ProviderAbout from '@/components/providers/ProviderAbout';
+import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -163,6 +164,7 @@ const ProviderProfile = () => {
               </div>
               <div className="space-y-6">
                 <ProviderInfo provider={transformedProvider} />
+                <TeamPhotoSection providerId={providerId!} />
                 <ProviderAchievements provider={transformedProvider} />
                 <ProviderGallery provider={transformedProvider} />
               </div>

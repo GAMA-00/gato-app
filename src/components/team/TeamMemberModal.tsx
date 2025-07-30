@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { TeamMember, TeamMemberFormData } from '@/lib/teamTypes';
-import { useState, useEffect } from 'react';
-import { User, Phone, IdCard, FileCheck } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { User, Phone, IdCard, FileCheck, Upload, X } from 'lucide-react';
+import { uploadTeamMemberPhoto } from '@/utils/uploadService';
+import { toast } from 'sonner';
 
 interface TeamMemberModalProps {
   isOpen: boolean;
@@ -16,6 +18,7 @@ interface TeamMemberModalProps {
   member?: TeamMember;
   mode: 'create' | 'edit' | 'view';
   onSave?: (data: TeamMemberFormData) => void;
+  providerId: string;
 }
 
 const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
@@ -23,7 +26,8 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   onClose,
   member,
   mode,
-  onSave
+  onSave,
+  providerId
 }) => {
   const [formData, setFormData] = useState<TeamMemberFormData>({
     name: '',
@@ -32,6 +36,11 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
     photoUrl: '',
     criminalRecordFileUrl: ''
   });
+  
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (member && (mode === 'edit' || mode === 'view')) {
@@ -42,6 +51,7 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         photoUrl: member.photoUrl || '',
         criminalRecordFileUrl: member.criminalRecordFileUrl || ''
       });
+      setPhotoPreview(member.photoUrl || '');
     } else if (mode === 'create') {
       setFormData({
         name: '',
@@ -50,13 +60,51 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         photoUrl: '',
         criminalRecordFileUrl: ''
       });
+      setPhotoPreview('');
     }
+    setPhotoFile(null);
   }, [member, mode]);
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave(formData);
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    
+    setIsUploading(true);
+    try {
+      let finalFormData = { ...formData };
+      
+      // Upload photo if there's a new file
+      if (photoFile) {
+        // Generate a unique ID for the photo (using current timestamp + random)
+        const memberId = member?.id || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const uploadResult = await uploadTeamMemberPhoto(photoFile, providerId, memberId);
+        
+        if (uploadResult.success && uploadResult.url) {
+          finalFormData.photoUrl = uploadResult.url;
+        } else {
+          toast.error('Error al subir la foto: ' + uploadResult.error);
+          return;
+        }
+      }
+      
+      onSave(finalFormData);
       onClose();
+    } catch (error) {
+      console.error('Error saving team member:', error);
+      toast.error('Error al guardar el miembro del equipo');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -100,19 +148,60 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {mode === 'view' && member && (
-            <div className="text-center mb-4">
-              <Avatar className="w-20 h-20 mx-auto mb-2">
-                <AvatarImage src={member.photoUrl} alt={member.name} />
-                <AvatarFallback className="bg-blue-100 text-blue-600 text-lg">
-                  {getInitials(member.name)}
-                </AvatarFallback>
-              </Avatar>
+          {/* Photo Section */}
+          <div className="text-center mb-4">
+            <Avatar className="w-20 h-20 mx-auto mb-2">
+              <AvatarImage 
+                src={photoPreview || member?.photoUrl} 
+                alt={formData.name || 'Foto del miembro'} 
+              />
+              <AvatarFallback className="bg-blue-100 text-blue-600 text-lg">
+                {formData.name ? getInitials(formData.name) : '??'}
+              </AvatarFallback>
+            </Avatar>
+            
+            {mode === 'view' && member && (
               <Badge variant={member.role === 'lider' ? 'default' : 'secondary'}>
                 {member.role === 'lider' ? 'Líder del equipo' : `Auxiliar ${member.positionOrder}`}
               </Badge>
-            </div>
-          )}
+            )}
+            
+            {mode !== 'view' && (
+              <div className="mt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {photoPreview ? 'Cambiar Foto' : 'Agregar Foto'}
+                </Button>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+                {photoPreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => {
+                      setPhotoFile(null);
+                      setPhotoPreview(member?.photoUrl || '');
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="space-y-3">
             <div>
@@ -174,8 +263,8 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               {isReadOnly ? 'Cerrar' : 'Cancelar'}
             </Button>
             {!isReadOnly && (
-              <Button onClick={handleSave} className="flex-1">
-                {mode === 'create' ? 'Agregar' : 'Guardar cambios'}
+              <Button onClick={handleSave} className="flex-1" disabled={isUploading}>
+                {isUploading ? 'Guardando...' : mode === 'create' ? 'Agregar' : 'Guardar cambios'}
               </Button>
             )}
           </div>

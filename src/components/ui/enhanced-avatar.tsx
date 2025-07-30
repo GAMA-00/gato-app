@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -21,81 +21,28 @@ const EnhancedAvatar = ({
   onLoad 
 }: EnhancedAvatarProps) => {
   const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState<string | null>(null);
-
-  // Reset states when src changes
-  useEffect(() => {
-    if (src && src !== currentSrc) {
-      setImageError(false);
-      setImageLoaded(false);
-      setCurrentSrc(src);
-    } else if (!src) {
-      setImageError(false);
-      setImageLoaded(false);
-      setCurrentSrc(null);
-    }
-  }, [src, currentSrc]);
 
   const handleImageError = () => {
-    console.error('Enhanced Avatar: Failed to load image:', { 
-      src: currentSrc, 
-      alt, 
-      imageError,
-      retryAttempts: imageError ? 'max retries reached' : 'first attempt'
-    });
-    
-    // First try with different extension if this is a supabase storage URL
-    if (currentSrc && currentSrc.includes('supabase.co/storage') && !imageError && !currentSrc.includes('?t=')) {
-      const alternativeUrl = currentSrc.includes('.jpg') 
-        ? currentSrc.replace('.jpg', '.png')
-        : currentSrc.replace('.png', '.jpg');
-      
-      console.log('Enhanced Avatar: Trying alternative URL:', alternativeUrl);
-      setCurrentSrc(alternativeUrl);
-      return;
-    }
-    
-    // Try adding cache busting parameter to force reload
-    if (currentSrc && !currentSrc.includes('?t=') && !imageError) {
-      const cacheBustUrl = `${currentSrc}?t=${Date.now()}`;
-      console.log('Enhanced Avatar: Trying cache-busted URL:', cacheBustUrl);
-      setCurrentSrc(cacheBustUrl);
-      return;
-    }
-    
-    console.error('Enhanced Avatar: All retry attempts failed, showing fallback');
+    console.log('Avatar load failed for:', src);
     setImageError(true);
     onError?.();
   };
 
   const handleImageLoad = () => {
-    console.log('Enhanced Avatar: Image loaded successfully:', { src: currentSrc, alt });
-    setImageLoaded(true);
+    console.log('Avatar loaded successfully:', src);
     setImageError(false);
     onLoad?.();
   };
 
   // Check if we have a valid image URL
-  const hasValidSrc = currentSrc && typeof currentSrc === 'string' && currentSrc.trim() !== '';
+  const hasValidSrc = src && typeof src === 'string' && src.trim() !== '';
   const shouldShowImage = hasValidSrc && !imageError;
-
-  console.log('Enhanced Avatar: Render state:', { 
-    originalSrc: src, 
-    currentSrc, 
-    hasValidSrc, 
-    shouldShowImage, 
-    imageError, 
-    imageLoaded,
-    alt,
-    fallback 
-  });
 
   return (
     <Avatar className={cn("relative", className)}>
       {shouldShowImage && (
         <AvatarImage 
-          src={currentSrc} 
+          src={src} 
           alt={alt}
           onError={handleImageError}
           onLoad={handleImageLoad}

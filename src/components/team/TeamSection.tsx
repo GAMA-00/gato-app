@@ -195,6 +195,7 @@ const TeamSection: React.FC = () => {
         member={editingMember}
         mode={modalMode}
         onSave={handleSaveMember}
+        providerId={user?.id || ''}
       />
     </>
   );

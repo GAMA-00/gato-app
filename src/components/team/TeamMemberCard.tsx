@@ -104,6 +104,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           onClose={() => setShowDetails(false)}
           member={member}
           mode="view"
+          providerId={member.providerId}
         />
       )}
     </>
