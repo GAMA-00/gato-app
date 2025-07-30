@@ -15,7 +15,7 @@ const ClientPageLayout = ({ children, title, subtitle, className }: ClientPageLa
     <>
       <Navbar />
       <div className="min-h-screen bg-[#FAFAFA] pt-16 pb-20 md:pt-0 md:pb-0">
-        <div className="md:ml-52 p-4 md:p-6 max-h-screen overflow-y-auto">
+        <div className="md:ml-52 p-4 md:p-6">
           {(title || subtitle) && (
             <div className="mb-6">
               {title && (
