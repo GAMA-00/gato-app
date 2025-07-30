@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, ChevronRight, Copy, Zap, Briefcase, Clock4, Sunset } from 'lucide-react';
+import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
 import AvailabilitySlotPreview from './AvailabilitySlotPreview';
@@ -32,8 +32,7 @@ export const AvailabilityManager: React.FC = () => {
     removeTimeSlot,
     updateTimeSlot,
     saveAvailability,
-    copyDayToOtherDays,
-    applyPreset
+    copyDayToOtherDays
   } = useProviderAvailability();
 
   if (isLoading) {
@@ -151,57 +150,6 @@ export const AvailabilityManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Configuration Presets */}
-      <div className="mt-4 md:mt-6">
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm md:text-base flex items-center gap-2">
-              <Zap className="h-4 w-4 text-blue-600" />
-              Configuración Rápida
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => applyPreset('business')}
-                className="flex items-center gap-2 justify-start"
-              >
-                <Briefcase className="h-3 w-3" />
-                <div className="text-left">
-                  <div className="text-xs font-medium">Horario Comercial</div>
-                  <div className="text-xs text-muted-foreground">L-V 8:00-17:00</div>
-                </div>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => applyPreset('extended')}
-                className="flex items-center gap-2 justify-start"
-              >
-                <Clock4 className="h-3 w-3" />
-                <div className="text-left">
-                  <div className="text-xs font-medium">Horario Extendido</div>
-                  <div className="text-xs text-muted-foreground">L-S 7:00-19:00</div>
-                </div>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => applyPreset('weekend')}
-                className="flex items-center gap-2 justify-start"
-              >
-                <Sunset className="h-3 w-3" />
-                <div className="text-left">
-                  <div className="text-xs font-medium">Solo Fines de Semana</div>
-                  <div className="text-xs text-muted-foreground">S-D 9:00-15:00</div>
-                </div>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Availability Configuration Tab */}
       <div className={`mt-4 md:mt-6 ${activeTab === 'availability' ? 'block' : 'hidden'}`}>
@@ -281,7 +229,7 @@ export const AvailabilityManager: React.FC = () => {
                       </div>
                     ))}
                     
-                    <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                    <div className="flex mt-3">
                       <Button
                         variant="outline"
                         size="sm"
@@ -290,15 +238,6 @@ export const AvailabilityManager: React.FC = () => {
                       >
                         <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                         Agregar Horario
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addTimeSlot(key, { startTime: '12:00', endTime: '13:00' })}
-                        className="flex-1 h-8 md:h-10 text-xs md:text-sm"
-                      >
-                        <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                        + Almuerzo
                       </Button>
                     </div>
                   </div>
