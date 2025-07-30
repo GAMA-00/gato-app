@@ -113,16 +113,19 @@ export const CancelAppointmentModal = ({
         console.error('Error canceling future appointments:', cancelFutureError);
       }
       
-      // Auto-limpiar todas las citas canceladas de la serie
+      // Auto-limpiar solo las citas canceladas de esta serie específica
       setTimeout(async () => {
         try {
+          // Solo eliminar citas de la misma serie recurrente usando criterios más específicos
           await supabase
             .from('appointments')
             .delete()
+            .eq('status', 'cancelled')
+            .eq('recurrence', appointment.recurrence)
             .eq('provider_id', appointment.provider_id)
             .eq('client_id', appointment.client_id)
             .eq('listing_id', appointment.listing_id)
-            .eq('status', 'cancelled');
+            .gte('start_time', appointment.start_time); // Solo citas de esta serie (misma fecha o posteriores)
           
           queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
         } catch (deleteError) {
