@@ -42,8 +42,8 @@ const ClientCategoryDetails = () => {
         'Floristería',
         'Lavacar', 
         'Mantenimiento',
-        'Chef Privado',
         'Jardinero',
+        'Chef Privado',
         'Limpieza Profunda',
         'Planchado'
       ];
