@@ -36,7 +36,36 @@ const ClientCategoryDetails = () => {
         .eq('category_id', categoryData.id);
         
       if (error) throw error;
-      return data || [];
+      
+      // Orden personalizado para la categoría "Hogar"
+      const customOrder = [
+        'Floristería',
+        'Lavacar', 
+        'Mantenimiento',
+        'Chef Privado',
+        'Jardinero',
+        'Limpieza Profunda',
+        'Planchado'
+      ];
+      
+      const sortedData = (data || []).sort((a, b) => {
+        const indexA = customOrder.indexOf(a.name);
+        const indexB = customOrder.indexOf(b.name);
+        
+        // Si ambos están en el orden personalizado, usar ese orden
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        
+        // Si solo uno está en el orden personalizado, ponerlo primero
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        
+        // Si ninguno está en el orden personalizado, mantener orden alfabético
+        return a.name.localeCompare(b.name);
+      });
+      
+      return sortedData;
     },
     enabled: !!categoryData?.id,
   });
