@@ -3,6 +3,7 @@ import RecurrenceSelector from './RecurrenceSelector';
 import WeeklySlotGrid from './WeeklySlotGrid';
 import NotesSection from './NotesSection';
 import CustomVariableSelector from './CustomVariableSelector';
+import RecurrencePatternDisplay from './RecurrencePatternDisplay';
 import { ServiceVariant } from '@/components/client/service/types';
 import { CustomVariableGroup } from '@/lib/types';
 
@@ -55,7 +56,16 @@ const NewBookingForm = ({
         onFrequencyChange={onFrequencyChange}
       />
 
-      {/* 2. Optimized Weekly Slot Grid */}
+      {/* 2. Recurrence Pattern Display */}
+      {selectedFrequency !== 'once' && selectedDate && selectedTime && (
+        <RecurrencePatternDisplay
+          frequency={selectedFrequency}
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
+        />
+      )}
+
+      {/* 3. Optimized Weekly Slot Grid */}
       <WeeklySlotGrid
         providerId={providerId}
         listingId={listingId}
@@ -65,7 +75,7 @@ const NewBookingForm = ({
         recurrence={selectedFrequency}
       />
 
-      {/* 3. Custom Variables */}
+      {/* 4. Custom Variables */}
       {customVariableGroups && customVariableGroups.length > 0 && onCustomVariableSelectionsChange && (
         <CustomVariableSelector
           customVariableGroups={customVariableGroups}
@@ -74,7 +84,7 @@ const NewBookingForm = ({
         />
       )}
 
-      {/* 4. Notes */}
+      {/* 5. Notes */}
       <NotesSection
         notes={notes}
         onNotesChange={onNotesChange}

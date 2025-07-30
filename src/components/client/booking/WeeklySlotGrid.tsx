@@ -59,37 +59,18 @@ const WeeklySlotGrid = ({
     daysAhead: 7
   });
 
-  const handleSlotClick = async (slotId: string, date: Date, time: string) => {
+  const handleSlotClick = (slotId: string, date: Date, time: string) => {
     const slot = availableSlotGroups
       .flatMap(group => group.slots)
       .find(s => s.id === slotId);
     
     if (!slot || !slot.isAvailable) return;
 
-    // Select slot immediately and maintain selection
+    // Always select slot immediately - no async validation that could cause deselection
     setSelectedSlotId(slotId);
-    
-    // Call parent callback immediately to update the form state
     onSlotSelect(slotId, date, time);
-
-    // Only validate for recurring conflicts if explicitly configured
-    if (recurrence && recurrence !== 'once') {
-      try {
-        const isValid = await validateSlot(slot);
-        
-        if (!isValid) {
-          // Only revert selection if validation explicitly fails for recurring bookings
-          setSelectedSlotId(undefined);
-          console.warn('Slot validation failed for recurring booking');
-          // Also notify parent to clear the selection
-          onSlotSelect('', new Date(), '');
-        }
-      } catch (error) {
-        // For recurring bookings, log error but don't revert selection automatically
-        console.error('Error validating recurring slot:', error);
-        // Keep the selection for now, user can try again if needed
-      }
-    }
+    
+    console.log(`✅ Slot seleccionado: ${time} en ${date.toLocaleDateString()} (recurrencia: ${recurrence})`);
   };
 
   const goToPreviousWeek = () => {

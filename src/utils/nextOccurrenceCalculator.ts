@@ -75,14 +75,10 @@ function calculateBiweeklyOccurrence(appointmentTime: Date, now: Date): Date {
 }
 
 function calculateMonthlyOccurrence(appointmentTime: Date, now: Date): Date {
-  const dayOfMonth = appointmentTime.getDate();
-  let nextDate = new Date(now.getFullYear(), now.getMonth(), dayOfMonth);
-  nextDate.setHours(appointmentTime.getHours(), appointmentTime.getMinutes(), 0, 0);
+  // Usar la nueva lógica basada en patrón semanal
+  const { calculateMonthlyByWeekPattern } = require('./monthlyRecurrenceUtils');
+  const nextDate = calculateMonthlyByWeekPattern(appointmentTime, now);
   
-  if (nextDate <= now) {
-    nextDate.setMonth(nextDate.getMonth() + 1);
-  }
-  
-  console.log(`⏰ Próxima ocurrencia mensual: ${nextDate.toLocaleString()}`);
+  console.log(`⏰ Próxima ocurrencia mensual (patrón semanal): ${nextDate.toLocaleString()}`);
   return nextDate;
 }

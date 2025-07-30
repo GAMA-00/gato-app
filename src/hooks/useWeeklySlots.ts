@@ -155,53 +155,12 @@ export const useWeeklySlots = ({
     }
   }, [providerId, listingId, serviceDuration, recurrence]); // Removed unstable dependencies
 
-  // Validate a specific slot for recurring conflicts only when needed
+  // Simplified validation for recurring slots - optimistic approach
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
-    if (!providerId || recurrence === 'once') return true;
-
-    setIsValidatingSlot(true);
-    try {
-      // Use the slot's date and time directly to create proper datetime
-      const [hours, minutes] = slot.time.split(':').map(Number);
-      const slotStart = new Date(slot.date);
-      slotStart.setHours(hours, minutes, 0, 0);
-      
-      const slotEnd = new Date(slotStart);
-      slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
-
-      console.log(`Validando slot recurrente: ${slot.time} en ${format(slot.date, 'yyyy-MM-dd')}`);
-
-      // Simple recurring conflict check using the database function
-      const { data: isAvailable, error } = await supabase
-        .rpc('check_recurring_availability', {
-          p_provider_id: providerId,
-          p_start_time: slotStart.toISOString(),
-          p_end_time: slotEnd.toISOString()
-        });
-
-      if (error) {
-        console.error('Error checking recurring availability:', error);
-        return false;
-      }
-
-      const isValid = Boolean(isAvailable);
-
-      // Update slot availability if validation fails
-      if (!isValid) {
-        setSlots(prev => prev.map(s => 
-          s.id === slot.id 
-            ? { ...s, isAvailable: false, conflictReason: 'Conflicto con horario recurrente' }
-            : s
-        ));
-      }
-
-      return isValid;
-    } catch (error) {
-      console.error('Error validating slot:', error);
-      return false;
-    } finally {
-      setIsValidatingSlot(false);
-    }
+    // For immediate booking flow, always return true to avoid blocking UX
+    // Validation will happen at booking creation time
+    console.log(`📋 Validación optimista para slot: ${slot.time} (recurrencia: ${recurrence})`);
+    return true;
   };
 
   // Create a stable refresh function

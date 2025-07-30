@@ -90,7 +90,13 @@ export function calculateNextOccurrence(
       return addWeeks(currentDate, 2);
     
     case 'monthly':
-      return addMonths(currentDate, 1);
+      if (originalDate) {
+        // Use week-based pattern for monthly recurrence
+        const { calculateMonthlyByWeekPattern } = require('@/utils/monthlyRecurrenceUtils');
+        return calculateMonthlyByWeekPattern(originalDate, currentDate);
+      } else {
+        return addMonths(currentDate, 1);
+      }
     
     case 'once':
     case 'none':
