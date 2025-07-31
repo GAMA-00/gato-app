@@ -8,7 +8,7 @@ import { ClientResidencia } from './types';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
 import { AchievementLevel } from '@/lib/achievementTypes';
-import EnhancedAvatar from '@/components/ui/enhanced-avatar';
+import ProviderAvatar from '@/components/ui/provider-avatar';
 
 interface ProviderInfoCardProps {
   provider: ProviderData;
@@ -53,13 +53,10 @@ const ProviderInfoCard = ({
     <Card className="bg-app-card border border-app-border">
       <CardContent className="pt-6">
         <div className="flex items-start">
-          <EnhancedAvatar 
+          <ProviderAvatar
             src={provider?.avatar_url}
-            alt={provider?.name || 'Proveedor'}
-            fallback={provider?.name?.substring(0, 2).toUpperCase() || 'P'}
+            name={provider?.name || 'Proveedor'}
             className="h-16 w-16 border border-app-border"
-            onError={() => console.error('ProviderInfoCard: Avatar failed to load for', provider?.name)}
-            onLoad={() => console.log('ProviderInfoCard: Avatar loaded for', provider?.name)}
           />
           
           <div className="ml-4 space-y-3">

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ProviderAvatar from '@/components/ui/provider-avatar';
 import { Star } from 'lucide-react';
 import { ProviderProfile } from '@/lib/types';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
@@ -34,10 +34,11 @@ const ProviderHeader = ({ provider, bookingMode = false }: ProviderHeaderProps) 
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
         {/* Avatar */}
-        <Avatar className="h-24 w-24 border-2 border-luxury-navy">
-          <AvatarImage src={provider.avatar} alt={provider.name} />
-          <AvatarFallback>{provider.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <ProviderAvatar 
+          src={provider.avatar}
+          name={provider.name}
+          className="h-24 w-24 border-2 border-luxury-navy"
+        />
         
         <div className="flex-1 text-center md:text-left">
           {/* Nombre y valoración con sistema de 5 estrellas base */}

@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { uploadAvatar, uploadCertificationFiles, uploadGalleryImages } from '@/utils/uploadService';
+import { uploadAvatar as uploadAvatarNew } from '@/utils/avatarUpload';
+import { uploadCertificationFiles, uploadGalleryImages } from '@/utils/uploadService';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ProviderAvatar from '@/components/ui/provider-avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, X, Plus, FileText, Image, Key } from 'lucide-react';
@@ -173,11 +174,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
       // Upload new avatar if changed
       if (avatarFile) {
         console.log('Uploading new avatar...');
-        const avatarResult = await uploadAvatar(avatarFile, user.id);
-        if (avatarResult.success && avatarResult.url) {
-          avatarUrl = avatarResult.url;
-        } else {
-          console.warn('Avatar upload failed:', avatarResult.error);
+        try {
+          avatarUrl = await uploadAvatarNew(avatarFile, user.id);
+          console.log('Avatar uploaded successfully:', avatarUrl);
+        } catch (error) {
+          console.warn('Avatar upload failed:', error);
+          toast.error('Error al subir la imagen de perfil');
         }
       }
 
@@ -260,15 +262,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Avatar Section */}
             <div className="flex items-center space-x-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage 
-                  src={avatarPreview || profile?.avatar_url} 
-                  alt={profile?.name || 'Avatar'} 
-                />
-                <AvatarFallback className="text-2xl">
-                  {(profile?.name || user.name || 'U').substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <ProviderAvatar
+                src={avatarPreview || profile?.avatar_url}
+                name={profile?.name || user.name || 'Usuario'}
+                size="xl"
+              />
               <div>
                 <Button 
                   type="button" 

@@ -6,7 +6,7 @@ import { ProcessedProvider } from './types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useProviderServiceMerits } from '@/hooks/useProviderServiceMerits';
-import EnhancedAvatar from '@/components/ui/enhanced-avatar';
+import ProviderAvatar from '@/components/ui/provider-avatar';
 
 interface ProviderCardProps {
   provider: ProcessedProvider;
@@ -53,13 +53,11 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
       <CardContent className={cn("p-4", isMobile ? "p-3" : "p-4")}>
         {/* Provider Info Section */}
         <div className="flex items-start mb-3">
-          <EnhancedAvatar 
+          <ProviderAvatar
             src={provider.avatar}
-            alt={provider.name}
-            fallback={provider.name.substring(0, 2).toUpperCase()}
-            className={cn("border border-neutral-100 flex-shrink-0", isMobile ? "h-10 w-10" : "h-12 w-12")}
-            onError={() => console.error('ProviderCard: Avatar failed to load for', provider.name)}
-            onLoad={() => console.log('ProviderCard: Avatar loaded for', provider.name)}
+            name={provider.name}
+            size={isMobile ? "md" : "lg"}
+            className="border border-neutral-100 flex-shrink-0"
           />
           
           <div className="ml-3 flex-1 min-w-0">
