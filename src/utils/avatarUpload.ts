@@ -82,13 +82,19 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
       console.log('Delete attempt failed (non-critical):', deleteErr);
     }
 
-    console.log('Using original file directly:', {
+    console.log('Using original file directly (SW bypass):', {
       name: file.name,
       type: file.type,
       size: file.size
     });
 
-    // Upload to avatars bucket using original file
+    // Create headers to bypass Service Worker for upload
+    const uploadHeaders = {
+      'Cache-Control': 'no-cache',
+      'X-SW-Bypass': 'true'
+    };
+
+    // Upload to avatars bucket using original file with SW bypass
     const { data, error } = await supabase.storage
       .from('avatars')
       .upload(fileName, file, {

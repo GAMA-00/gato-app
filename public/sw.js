@@ -34,9 +34,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Only cache image requests
-  if (url.pathname.includes('/lovable-uploads/') || 
-      event.request.destination === 'image') {
+  // Exclude Supabase Storage upload/API requests from caching
+  if (url.hostname.includes('supabase.co') && 
+      (event.request.method !== 'GET' || url.pathname.includes('/storage/v1/object/'))) {
+    // Let upload requests pass through without caching
+    return;
+  }
+  
+  // Only cache static image requests (not uploads)
+  if ((url.pathname.includes('/lovable-uploads/') || event.request.destination === 'image') &&
+      event.request.method === 'GET') {
     
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
@@ -57,29 +64,41 @@ self.addEventListener('fetch', (event) => {
           
           return fetchAndCache(event.request, cache);
         });
+      }).catch(error => {
+        console.warn('SW cache error:', error);
+        return fetch(event.request);
       })
     );
   }
 });
 
 function fetchAndCache(request, cache) {
-  return fetch(request).then(response => {
-    if (response.ok) {
-      const responseClone = response.clone();
-      const headers = new Headers(responseClone.headers);
-      headers.set('sw-cached-date', new Date().toISOString());
-      
-      const modifiedResponse = new Response(responseClone.body, {
-        status: responseClone.status,
-        statusText: responseClone.statusText,
-        headers: headers
-      });
-      
-      cache.put(request, modifiedResponse);
+  return fetch(request).then(async (response) => {
+    if (response.ok && response.status < 400) {
+      try {
+        const responseClone = response.clone();
+        
+        // Read the body properly to avoid Response conversion errors
+        const responseBody = await responseClone.blob();
+        const headers = new Headers(responseClone.headers);
+        headers.set('sw-cached-date', new Date().toISOString());
+        
+        const modifiedResponse = new Response(responseBody, {
+          status: responseClone.status,
+          statusText: responseClone.statusText,
+          headers: headers
+        });
+        
+        // Cache the modified response
+        await cache.put(request, modifiedResponse);
+      } catch (cacheError) {
+        console.warn('Cache storage failed:', cacheError);
+      }
     }
     return response;
-  }).catch(() => {
+  }).catch(fetchError => {
+    console.warn('Fetch failed, trying cache:', fetchError);
     // Return a fallback or cached version if available
-    return cache.match(request);
+    return cache.match(request) || Promise.reject(fetchError);
   });
 }
