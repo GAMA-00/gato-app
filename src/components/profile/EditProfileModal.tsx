@@ -201,15 +201,43 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
       if (avatarFile) {
         console.log('Uploading new avatar...');
         try {
-          toast.info('Subiendo imagen de perfil...');
+          toast.info('Subiendo imagen de perfil...', { duration: 10000 });
+          
+          // Verificar autenticación antes del upload
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          if (!authUser) {
+            throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+          }
+          
+          console.log('Authenticated user verified:', authUser.id);
           avatarUrl = await uploadAvatarNew(avatarFile, user.id);
           console.log('Avatar uploaded successfully:', avatarUrl);
           toast.success('Imagen de perfil subida exitosamente');
+          
+          // Forzar recarga del perfil para mostrar la nueva imagen
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+          
         } catch (error: any) {
           console.error('Avatar upload failed:', error);
-          const errorMessage = error?.message || 'Error desconocido al subir la imagen';
-          toast.error(`Error al subir la imagen de perfil: ${errorMessage}`);
-          // Continue with the rest of the update even if avatar fails
+          console.error('Error details:', JSON.stringify(error, null, 2));
+          
+          let errorMessage = 'Error desconocido al subir la imagen';
+          if (error?.message) {
+            errorMessage = error.message;
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          }
+          
+          toast.error(`Error al subir la imagen de perfil: ${errorMessage}`, { 
+            duration: 8000,
+            description: 'Verifica tu conexión y que la imagen sea válida (JPG, PNG, WebP, máx 5MB)'
+          });
+          
+          // No continuar si falla el avatar, ya que es lo principal que se está editando
+          setIsLoading(false);
+          return;
         }
       }
 
