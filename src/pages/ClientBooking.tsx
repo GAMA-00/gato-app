@@ -95,7 +95,8 @@ const ClientBooking = () => {
   const handleBackNavigation = () => {
     // Scroll to top before navigation
     window.scrollTo(0, 0);
-    navigate(-1);
+    // Navigate back to services list instead of using browser history
+    navigate('/client/services');
   };
 
   if (!serviceDetails || !providerId || !selectedVariants) {
