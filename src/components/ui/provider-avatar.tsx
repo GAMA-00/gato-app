@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,8 @@ const ProviderAvatar = ({
   className,
   size = 'md'
 }: ProviderAvatarProps) => {
+  const [imageError, setImageError] = useState(false);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -33,27 +35,41 @@ const ProviderAvatar = ({
 
   const getAvatarUrl = (url: string | null | undefined) => {
     if (!url || typeof url !== 'string' || url.trim() === '') {
+      console.log('ProviderAvatar - No URL provided');
       return undefined;
     }
     
     // If it's already a full URL, return as is
     if (url.startsWith('http')) {
+      console.log('ProviderAvatar - Using full URL:', url);
       return url;
     }
     
     // For any path, construct the full Supabase URL (avatars bucket)
-    return `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/avatars/${url}`;
+    const fullUrl = `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/avatars/${url}`;
+    console.log('ProviderAvatar - Constructed URL:', fullUrl);
+    return fullUrl;
   };
 
-  console.log('ProviderAvatar - src:', src, 'processed:', getAvatarUrl(src));
+  const finalUrl = getAvatarUrl(src);
+  console.log('ProviderAvatar - Final processing:', { src, name, finalUrl, imageError });
 
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
-      <AvatarImage 
-        src={getAvatarUrl(src)} 
-        alt={`${name} avatar`}
-        className="object-cover"
-      />
+      {finalUrl && !imageError ? (
+        <AvatarImage 
+          src={finalUrl} 
+          alt={`${name} avatar`}
+          className="object-cover"
+          onError={(e) => {
+            console.log('ProviderAvatar - Image failed to load:', finalUrl);
+            setImageError(true);
+          }}
+          onLoad={() => {
+            console.log('ProviderAvatar - Image loaded successfully:', finalUrl);
+          }}
+        />
+      ) : null}
       <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
         {getInitials(name)}
       </AvatarFallback>
