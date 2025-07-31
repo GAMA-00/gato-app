@@ -70,6 +70,20 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
         duplex: 'half'
       });
 
+    // Verify MIME type was set correctly
+    if (!error && data) {
+      try {
+        const { data: fileInfo } = await supabase.storage
+          .from('avatars')
+          .list(userId, { limit: 1 });
+        
+        const uploadedFile = fileInfo?.find(f => f.name === `avatar.${fileExt}`);
+        console.log('Upload verification - File metadata:', uploadedFile?.metadata);
+      } catch (verifyError) {
+        console.log('MIME type verification failed (non-critical):', verifyError);
+      }
+    }
+
     if (error) {
       console.error('Storage upload error:', error);
       throw new Error(`Error al subir la imagen: ${error.message}`);
@@ -77,13 +91,15 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
 
     console.log('Upload successful:', data);
 
-    // Get public URL
+    // Get public URL with cache busting
     const { data: urlData } = supabase.storage
       .from('avatars')
       .getPublicUrl(fileName);
 
-    const avatarUrl = urlData.publicUrl;
-    console.log('Avatar URL generated:', avatarUrl);
+    // Add cache busting timestamp to force image refresh
+    const timestamp = new Date().getTime();
+    const avatarUrl = `${urlData.publicUrl}?t=${timestamp}`;
+    console.log('Avatar URL generated with cache busting:', avatarUrl);
 
     // Verify the file was uploaded correctly by checking its metadata
     try {

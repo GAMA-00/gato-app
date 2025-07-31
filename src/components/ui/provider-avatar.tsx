@@ -39,15 +39,21 @@ const ProviderAvatar = ({
       return undefined;
     }
     
-    // If it's already a full URL, return as is
+    // If it's already a full URL, add cache busting if needed
     if (url.startsWith('http')) {
       console.log('ProviderAvatar - Using full URL:', url);
+      // Add cache busting if not already present
+      if (!url.includes('?t=')) {
+        const timestamp = new Date().getTime();
+        return `${url}?t=${timestamp}`;
+      }
       return url;
     }
     
-    // For any path, construct the full Supabase URL (avatars bucket)
-    const fullUrl = `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/avatars/${url}`;
-    console.log('ProviderAvatar - Constructed URL:', fullUrl);
+    // For any path, construct the full Supabase URL (avatars bucket) with cache busting
+    const timestamp = new Date().getTime();
+    const fullUrl = `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/avatars/${url}?t=${timestamp}`;
+    console.log('ProviderAvatar - Constructed URL with cache busting:', fullUrl);
     return fullUrl;
   };
 
@@ -62,11 +68,25 @@ const ProviderAvatar = ({
           alt={`${name} avatar`}
           className="object-cover"
           onError={(e) => {
-            console.log('ProviderAvatar - Image failed to load:', finalUrl);
+            console.error('ProviderAvatar - Image failed to load:', finalUrl);
+            console.error('ProviderAvatar - Error details:', e);
             setImageError(true);
+            
+            // Retry once without cache busting in case the issue is with the timestamp
+            if (finalUrl?.includes('?t=')) {
+              const urlWithoutCache = finalUrl.split('?t=')[0];
+              console.log('ProviderAvatar - Retrying without cache busting:', urlWithoutCache);
+              setTimeout(() => {
+                const img = document.createElement('img');
+                img.onload = () => console.log('ProviderAvatar - Retry successful');
+                img.onerror = () => console.error('ProviderAvatar - Retry also failed');
+                img.src = urlWithoutCache;
+              }, 1000);
+            }
           }}
           onLoad={() => {
             console.log('ProviderAvatar - Image loaded successfully:', finalUrl);
+            setImageError(false);
           }}
         />
       ) : null}

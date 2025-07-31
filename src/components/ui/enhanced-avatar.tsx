@@ -23,10 +23,26 @@ const EnhancedAvatar = ({
   const [imageError, setImageError] = useState(false);
 
   const handleImageError = () => {
-    console.log('EnhancedAvatar: Image load failed for:', src);
-    console.log('EnhancedAvatar: Error details:', { src, alt, className });
+    console.error('EnhancedAvatar: Image load failed for:', src);
+    console.error('EnhancedAvatar: Error details:', { src, alt, className });
     setImageError(true);
     onError?.();
+    
+    // Retry with cache busting if not already present
+    if (src && !src.includes('?t=')) {
+      const timestamp = new Date().getTime();
+      const retryUrl = `${src}?t=${timestamp}`;
+      console.log('EnhancedAvatar: Retrying with cache busting:', retryUrl);
+      setTimeout(() => {
+        const img = document.createElement('img');
+        img.onload = () => {
+          console.log('EnhancedAvatar: Retry successful, forcing component update');
+          setImageError(false);
+        };
+        img.onerror = () => console.error('EnhancedAvatar: Retry also failed');
+        img.src = retryUrl;
+      }, 1000);
+    }
   };
 
   const handleImageLoad = () => {
