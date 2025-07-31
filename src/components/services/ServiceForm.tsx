@@ -29,7 +29,6 @@ const serviceFormSchema = z.object({
   experienceYears: z.coerce.number().min(0).optional(),
   hasCertifications: z.boolean().optional(),
   certificationFiles: z.array(z.any()).optional(),
-  profileImage: z.any().optional(),
   // Nuevo campo para servicios post-pago - ahora puede ser boolean o "ambas"
   isPostPayment: z.union([z.boolean(), z.literal("ambas")]).optional(),
   serviceVariants: z.array(
@@ -97,7 +96,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: initialData.experienceYears || 0,
       hasCertifications: initialData.hasCertifications || false,
       certificationFiles: initialData.certificationFiles || [],
-      profileImage: null,
       isPostPayment: initialData.isPostPayment || false,
       serviceVariants: initialData.serviceVariants || [
         { name: 'Servicio básico', price: initialData.price || 0, duration: initialData.duration || 60, customVariables: [] }
@@ -122,7 +120,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       experienceYears: 0,
       hasCertifications: false,
       certificationFiles: [],
-      profileImage: null,
       isPostPayment: false,
       serviceVariants: [
         { name: 'Servicio básico', price: 0, duration: 60, customVariables: [] }

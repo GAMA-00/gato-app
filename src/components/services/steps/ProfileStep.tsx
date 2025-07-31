@@ -12,8 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, User } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Upload } from 'lucide-react';
 
 import CertificationUploader from './CertificationUploader';
 
@@ -23,8 +22,6 @@ const ProfileStep: React.FC = () => {
   const hasCertifications = watch('hasCertifications');
   const certificationFiles = watch('certificationFiles') || [];
   const galleryImages = watch('galleryImages') || [];
-  const profileImage = watch('profileImage');
-  const [profileImagePreview, setProfileImagePreview] = React.useState<string | null>(null);
   
   // Safely create URL for files
   const safeCreateObjectURL = (file: unknown): string | null => {
@@ -59,59 +56,6 @@ const ProfileStep: React.FC = () => {
       </div>
       
       <div className="bg-stone-50/50 rounded-lg border border-stone-200 p-6 sm:p-8">
-        {/* Avatar Section */}
-        <FormField
-          control={control}
-          name="profileImage"
-          render={({ field }) => (
-            <FormItem className="mb-8">
-              <FormLabel className="text-base sm:text-lg font-medium text-stone-900">
-                Foto de perfil
-              </FormLabel>
-              <div className="flex items-center gap-4">
-                <Avatar className="h-20 w-20">
-                  {profileImagePreview ? (
-                    <AvatarImage 
-                      src={profileImagePreview}
-                      alt="Profile preview" 
-                    />
-                  ) : (
-                    <AvatarFallback className="text-xl">
-                      <User className="h-8 w-8" />
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <FormControl>
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-md hover:bg-stone-50 transition-colors border border-stone-300">
-                      <Upload className="h-4 w-4 text-stone-600" />
-                      <span className="text-sm font-medium text-stone-700">Subir imagen</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            field.onChange(file);
-                            const previewUrl = URL.createObjectURL(file);
-                            setProfileImagePreview(previewUrl);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                </FormControl>
-              </div>
-              <FormDescription className="text-sm sm:text-base text-stone-600 mt-2">
-                Una foto profesional ayuda a generar confianza con tus clientes.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      
-
         <FormField
           control={control}
           name="aboutMe"
