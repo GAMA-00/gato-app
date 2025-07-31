@@ -1272,6 +1272,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_all_provider_time_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       generate_provider_time_slots: {
         Args:
           | {
