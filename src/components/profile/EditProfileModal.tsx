@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { uploadAvatar as uploadAvatarNew } from '@/utils/avatarUpload';
+import { uploadAvatarSimple } from '@/utils/simpleAvatarUpload';
 import { uploadCertificationFiles, uploadGalleryImages } from '@/utils/uploadService';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -201,23 +201,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
       if (avatarFile) {
         console.log('Uploading new avatar...');
         try {
-          toast.info('Subiendo imagen de perfil...', { duration: 10000 });
+          toast.info('📸 Subiendo imagen de perfil...');
           
-          // Verificar autenticación antes del upload
+          console.log('🔐 Verificando autenticación...');
           const { data: { user: authUser } } = await supabase.auth.getUser();
           if (!authUser) {
             throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
           }
           
-          console.log('Authenticated user verified:', authUser.id);
-          avatarUrl = await uploadAvatarNew(avatarFile, user.id);
-          console.log('Avatar uploaded successfully:', avatarUrl);
-          toast.success('Imagen de perfil subida exitosamente');
+          console.log('✅ Usuario autenticado:', authUser.id);
           
-          // Forzar recarga del perfil para mostrar la nueva imagen
+          // Usar upload simple
+          avatarUrl = await uploadAvatarSimple(avatarFile, user.id);
+          console.log('✅ Avatar subido exitosamente:', avatarUrl);
+          
+          toast.success('✅ Imagen de perfil actualizada');
+          
+          // Forzar recarga para mostrar el nuevo avatar
           setTimeout(() => {
             window.location.reload();
-          }, 1500);
+          }, 1000);
           
         } catch (error: any) {
           console.error('Avatar upload failed:', error);
