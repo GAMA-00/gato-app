@@ -1330,6 +1330,10 @@ export type Database = {
         Args: { provider_id: string; listing_id: string }
         Returns: number
       }
+      migrate_all_provider_availability_and_generate_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       needs_price_finalization: {
         Args: {
           appointment_row: Database["public"]["Tables"]["appointments"]["Row"]
