@@ -131,10 +131,36 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log('Avatar file selected:', { 
+        name: file.name, 
+        type: file.type, 
+        size: file.size 
+      });
+
+      // Validate file type immediately
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!file.type || !allowedTypes.includes(file.type)) {
+        toast.error('El archivo debe ser una imagen válida (JPEG, PNG o WebP)');
+        event.target.value = ''; // Clear the input
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('La imagen debe ser menor a 5MB');
+        event.target.value = ''; // Clear the input
+        return;
+      }
+
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setAvatarPreview(e.target?.result as string);
+      };
+      reader.onerror = () => {
+        toast.error('Error al leer el archivo');
+        setAvatarFile(null);
+        setAvatarPreview(null);
       };
       reader.readAsDataURL(file);
     }
@@ -175,11 +201,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
       if (avatarFile) {
         console.log('Uploading new avatar...');
         try {
+          toast.info('Subiendo imagen de perfil...');
           avatarUrl = await uploadAvatarNew(avatarFile, user.id);
           console.log('Avatar uploaded successfully:', avatarUrl);
-        } catch (error) {
-          console.warn('Avatar upload failed:', error);
-          toast.error('Error al subir la imagen de perfil');
+          toast.success('Imagen de perfil subida exitosamente');
+        } catch (error: any) {
+          console.error('Avatar upload failed:', error);
+          const errorMessage = error?.message || 'Error desconocido al subir la imagen';
+          toast.error(`Error al subir la imagen de perfil: ${errorMessage}`);
+          // Continue with the rest of the update even if avatar fails
         }
       }
 

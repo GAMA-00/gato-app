@@ -23,13 +23,14 @@ const EnhancedAvatar = ({
   const [imageError, setImageError] = useState(false);
 
   const handleImageError = () => {
-    console.log('Avatar load failed for:', src);
+    console.log('EnhancedAvatar: Image load failed for:', src);
+    console.log('EnhancedAvatar: Error details:', { src, alt, className });
     setImageError(true);
     onError?.();
   };
 
   const handleImageLoad = () => {
-    console.log('Avatar loaded successfully:', src);
+    console.log('EnhancedAvatar: Image loaded successfully:', src);
     setImageError(false);
     onLoad?.();
   };
