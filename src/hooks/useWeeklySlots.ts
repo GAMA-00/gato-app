@@ -55,10 +55,13 @@ export const useWeeklySlots = ({
       return;
     }
 
-    // Create stable params signature
-    const baseDate = startDate || startOfDay(new Date());
-    const endDate = addDays(baseDate, daysAhead);
-    const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${format(baseDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`;
+    // Create stable params signature - Always look forward from today
+    const today = startOfDay(new Date());
+    const baseDate = startDate || today;
+    // Ensure we're always looking forward in time
+    const adjustedBaseDate = baseDate < today ? today : baseDate;
+    const endDate = addDays(adjustedBaseDate, daysAhead);
+    const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${format(adjustedBaseDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`;
     
     if (lastParamsRef.current === paramsSignature) {
       return;
@@ -73,8 +76,27 @@ export const useWeeklySlots = ({
 
     setIsLoading(true);
     
+    console.log('=== WEEKLY SLOTS DEBUG ===');
+    console.log('Parámetros de consulta:', {
+      providerId,
+      listingId,
+      serviceDuration,
+      recurrence,
+      baseDate: format(adjustedBaseDate, 'yyyy-MM-dd'),
+      endDate: format(endDate, 'yyyy-MM-dd'),
+      paramsSignature
+    });
+    
+    console.log('📅 Fechas de consulta detalladas:', {
+      fechaHoy: format(new Date(), 'yyyy-MM-dd'),
+      fechaOriginal: startDate ? format(startDate, 'yyyy-MM-dd') : 'no provided',
+      fechaBase: format(adjustedBaseDate, 'yyyy-MM-dd'),
+      fechaFin: format(endDate, 'yyyy-MM-dd'),
+      esFechaEnFuturo: adjustedBaseDate > new Date()
+    });
+    
     try {
-      // Fetch available time slots
+      // Fetch available time slots using adjusted dates
       const { data: timeSlots, error: slotsError } = await supabase
         .from('provider_time_slots')
         .select('*')
@@ -82,11 +104,20 @@ export const useWeeklySlots = ({
         .eq('listing_id', listingId)
         .eq('is_available', true)
         .eq('is_reserved', false)
-        .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+        .gte('slot_date', format(adjustedBaseDate, 'yyyy-MM-dd'))
         .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
         .order('slot_datetime_start');
 
       if (slotsError) throw slotsError;
+      
+      console.log('📊 Resultado de consulta timeSlots:', {
+        totalSlots: timeSlots?.length || 0,
+        primeros3Slots: timeSlots?.slice(0, 3),
+        rangoFechas: timeSlots?.length > 0 ? {
+          primera: timeSlots[0]?.slot_date,
+          ultima: timeSlots[timeSlots.length - 1]?.slot_date
+        } : null
+      });
 
       // Fetch conflicting appointments
       const { data: conflictingAppointments, error: appointmentsError } = await supabase
@@ -94,7 +125,7 @@ export const useWeeklySlots = ({
         .select('start_time, end_time, status')
         .eq('provider_id', providerId)
         .in('status', ['confirmed', 'pending'])
-        .gte('start_time', baseDate.toISOString())
+        .gte('start_time', adjustedBaseDate.toISOString())
         .lte('start_time', endDate.toISOString());
 
       if (appointmentsError) throw appointmentsError;
