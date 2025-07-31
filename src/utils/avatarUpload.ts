@@ -82,22 +82,16 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
       console.log('Delete attempt failed (non-critical):', deleteErr);
     }
 
-    // Create a new File object to ensure clean metadata
-    const cleanFile = new File([file], `avatar.${fileExt}`, {
+    console.log('Using original file directly:', {
+      name: file.name,
       type: file.type,
-      lastModified: Date.now()
+      size: file.size
     });
 
-    console.log('Clean file created:', {
-      name: cleanFile.name,
-      type: cleanFile.type,
-      size: cleanFile.size
-    });
-
-    // Upload to avatars bucket with explicit settings
+    // Upload to avatars bucket using original file
     const { data, error } = await supabase.storage
       .from('avatars')
-      .upload(fileName, cleanFile, {
+      .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,
         contentType: file.type,
