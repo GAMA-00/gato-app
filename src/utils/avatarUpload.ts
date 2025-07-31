@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const uploadAvatar = async (file: File, userId: string): Promise<string> => {
   try {
-    console.log('=== Avatar upload using gallery logic ===');
+    console.log('=== Avatar upload - Simple gallery logic ===');
     
     // Validate file type (exact same as gallery)
     if (!file.type.startsWith('image/')) {
@@ -15,14 +15,14 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
     }
 
     const fileExt = file.name.split('.').pop()?.toLowerCase();
-    // Use same pattern as gallery: userId/avatar-timestamp.ext
-    const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`;
+    // Single avatar per user: userId/avatar.ext
+    const fileName = `${userId}/avatar.${fileExt}`;
 
     console.log('Avatar upload details:', { fileName, fileType: file.type, fileExt });
 
-    // Upload to service-gallery bucket (same as gallery images)
+    // Upload to avatars bucket with same simple logic as gallery
     const { data, error } = await supabase.storage
-      .from('service-gallery')
+      .from('avatars')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,
@@ -36,7 +36,7 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
 
     // Get public URL (same as gallery)
     const { data: urlData } = supabase.storage
-      .from('service-gallery')
+      .from('avatars')
       .getPublicUrl(fileName);
 
     const avatarUrl = urlData.publicUrl;
