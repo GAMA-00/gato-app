@@ -2,7 +2,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const uploadAvatar = async (file: File, userId: string): Promise<string> => {
   try {
-    // Validate file type
+    console.log('=== Avatar upload using gallery logic ===');
+    
+    // Validate file type (exact same as gallery)
     if (!file.type.startsWith('image/')) {
       throw new Error('El archivo debe ser una imagen');
     }
@@ -12,16 +14,19 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
       throw new Error('La imagen debe ser menor a 5MB');
     }
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/avatar.${fileExt}`;
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    // Use same pattern as gallery: userId/avatar-timestamp.ext
+    const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`;
 
-    // Upload file to Supabase Storage
+    console.log('Avatar upload details:', { fileName, fileType: file.type, fileExt });
+
+    // Upload to service-gallery bucket (same as gallery images)
     const { data, error } = await supabase.storage
-      .from('avatars')
+      .from('service-gallery')
       .upload(fileName, file, {
+        cacheControl: '3600',
         upsert: true,
-        contentType: file.type,
-        cacheControl: '3600'
+        contentType: file.type
       });
 
     if (error) {
@@ -29,12 +34,13 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
       throw new Error('Error al subir la imagen');
     }
 
-    // Get public URL
+    // Get public URL (same as gallery)
     const { data: urlData } = supabase.storage
-      .from('avatars')
+      .from('service-gallery')
       .getPublicUrl(fileName);
 
     const avatarUrl = urlData.publicUrl;
+    console.log('Avatar uploaded successfully:', avatarUrl);
 
     // Update user profile with new avatar URL
     const { error: updateError } = await supabase
@@ -47,8 +53,7 @@ export const uploadAvatar = async (file: File, userId: string): Promise<string> 
       throw new Error('Error al actualizar el perfil');
     }
 
-    // Add cache buster to ensure immediate refresh
-    return `${avatarUrl}?t=${Date.now()}`;
+    return avatarUrl;
   } catch (error: any) {
     console.error('Avatar upload failed:', error);
     throw error;

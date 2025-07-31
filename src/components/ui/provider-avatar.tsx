@@ -41,14 +41,11 @@ const ProviderAvatar = ({
       return url;
     }
     
-    // If it's a Supabase storage path, construct the full URL
-    if (url.includes('/storage/v1/object/public/')) {
-      return url;
-    }
-    
-    // If it's just a path, construct the full Supabase URL
-    return `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/avatars/${url}`;
+    // For any path, construct the full Supabase URL (service-gallery bucket)
+    return `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/service-gallery/${url}`;
   };
+
+  console.log('ProviderAvatar - src:', src, 'processed:', getAvatarUrl(src));
 
   return (
     <Avatar className={cn(sizeClasses[size], className)}>

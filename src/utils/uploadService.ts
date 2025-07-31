@@ -10,54 +10,32 @@ export interface UploadResult {
 
 export const uploadAvatar = async (file: File, userId: string): Promise<UploadResult> => {
   try {
-    console.log('=== Uploading avatar ===');
+    console.log('=== Uploading avatar using gallery logic ===');
     
-    // Validate file type
+    // Validate file type (same as gallery)
     if (!file.type.startsWith('image/')) {
       throw new Error('Solo se permiten archivos de imagen');
     }
     
     const fileExt = file.name.split('.').pop()?.toLowerCase();
-    const fileName = `${userId}/avatar.${fileExt}`;
+    // Use exact same pattern as gallery but in service-gallery bucket
+    const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`;
     
-    // Ensure proper content type
-    let contentType = file.type;
-    if (!contentType || contentType === 'application/json') {
-      // Fallback based on extension
-      if (fileExt === 'jpg' || fileExt === 'jpeg') {
-        contentType = 'image/jpeg';
-      } else if (fileExt === 'png') {
-        contentType = 'image/png';
-      } else if (fileExt === 'webp') {
-        contentType = 'image/webp';
-      } else {
-        contentType = 'image/jpeg'; // default
-      }
-    }
+    console.log('Avatar upload details:', { fileName, fileType: file.type, fileExt });
     
-    console.log('Upload details:', { fileName, fileType: file.type, contentType, fileExt });
-    
-    // Delete existing avatar
-    const { error: deleteError } = await supabase.storage
-      .from('avatars')
-      .remove([fileName]);
-    
-    if (deleteError) {
-      console.warn('Could not delete existing avatar:', deleteError);
-    }
-
+    // Use service-gallery bucket (same as gallery images)
     const { data, error } = await supabase.storage
-      .from('avatars')
+      .from('service-gallery')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,
-        contentType: contentType
+        contentType: file.type
       });
 
     if (error) throw error;
 
     const { data: publicUrlData } = supabase.storage
-      .from('avatars')
+      .from('service-gallery')
       .getPublicUrl(fileName);
 
     console.log('Avatar uploaded successfully:', publicUrlData.publicUrl);
