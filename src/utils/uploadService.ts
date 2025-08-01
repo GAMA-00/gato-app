@@ -8,42 +8,12 @@ export interface UploadResult {
   error?: string;
 }
 
+// Avatar upload now handled by unifiedAvatarUpload.ts
+// This function is deprecated but kept for backwards compatibility
 export const uploadAvatar = async (file: File, userId: string): Promise<UploadResult> => {
-  try {
-    console.log('=== Avatar upload - Simple logic ===');
-    
-    // Validate file type (same as gallery)
-    if (!file.type.startsWith('image/')) {
-      throw new Error('Solo se permiten archivos de imagen');
-    }
-    
-    const fileExt = file.name.split('.').pop()?.toLowerCase();
-    // Single avatar per user
-    const fileName = `${userId}/avatar.${fileExt}`;
-    
-    console.log('Avatar upload details:', { fileName, fileType: file.type, fileExt });
-    
-    // Use avatars bucket with same simple logic as gallery
-    const { data, error } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: file.type
-      });
-
-    if (error) throw error;
-
-    const { data: publicUrlData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName);
-
-    console.log('Avatar uploaded successfully:', publicUrlData.publicUrl);
-    return { success: true, url: publicUrlData.publicUrl };
-  } catch (error: any) {
-    console.error('Error uploading avatar:', error);
-    return { success: false, error: error.message };
-  }
+  console.warn('⚠️ uploadAvatar is deprecated, use unifiedAvatarUpload instead');
+  // Redirect to unified system would go here if needed
+  throw new Error('Esta función está obsoleta. Usa unifiedAvatarUpload.');
 };
 
 export const uploadCertificationFiles = async (files: File[], userId: string): Promise<string[]> => {

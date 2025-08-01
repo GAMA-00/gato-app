@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { uploadAvatar } from '@/utils/avatarUpload';
+import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import EnhancedAvatar from '@/components/ui/enhanced-avatar';
@@ -36,7 +36,7 @@ const AvatarUploadTest = () => {
     setIsUploading(true);
     try {
       console.log('=== Starting avatar upload test ===');
-      const url = await uploadAvatar(file, user.id);
+      const url = await unifiedAvatarUpload(file, user.id);
       setUploadedUrl(url);
       toast.success('Avatar subido exitosamente!');
       console.log('=== Avatar upload test completed successfully ===');

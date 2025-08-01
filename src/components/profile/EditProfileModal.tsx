@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { uploadAvatarSimple } from '@/utils/simpleAvatarUpload';
+import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { uploadCertificationFiles, uploadGalleryImages } from '@/utils/uploadService';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import ProviderAvatar from '@/components/ui/provider-avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, X, Plus, FileText, Image, Key } from 'lucide-react';
@@ -197,30 +197,20 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
 
       let avatarUrl = profile?.avatar_url || '';
       
-      // Upload new avatar if changed
-      if (avatarFile) {
-        console.log('Uploading new avatar...');
-        try {
-          toast.info('📸 Subiendo imagen de perfil...');
-          
-          console.log('🔐 Verificando autenticación...');
-          const { data: { user: authUser } } = await supabase.auth.getUser();
-          if (!authUser) {
-            throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
-          }
-          
-          console.log('✅ Usuario autenticado:', authUser.id);
-          
-          // Usar upload simple
-          avatarUrl = await uploadAvatarSimple(avatarFile, user.id);
-          console.log('✅ Avatar subido exitosamente:', avatarUrl);
-          
-          toast.success('✅ Imagen de perfil actualizada');
-          
-          // Forzar recarga para mostrar el nuevo avatar
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+          // Upload new avatar if changed
+          if (avatarFile) {
+            console.log('Uploading new avatar with unified system...');
+            try {
+              toast.info('📸 Subiendo imagen de perfil...');
+              
+              // Usar el sistema unificado como la galería
+              avatarUrl = await unifiedAvatarUpload(avatarFile, user.id);
+              console.log('✅ Avatar subido exitosamente:', avatarUrl);
+              
+              toast.success('✅ Imagen de perfil actualizada');
+              
+              // Invalidar cache de React Query en lugar de reload
+              invalidateProfile();
           
         } catch (error: any) {
           console.error('Avatar upload failed:', error);
@@ -323,7 +313,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Avatar Section */}
             <div className="flex items-center space-x-4">
-              <ProviderAvatar
+              <UnifiedAvatar
                 src={avatarPreview || profile?.avatar_url}
                 name={profile?.name || user.name || 'Usuario'}
                 size="xl"
