@@ -62,7 +62,7 @@ export const useWeeklySlots = ({
     const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${format(baseDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`;
     
     // Prevent duplicate requests with same signature
-    if (lastParamsRef.current === paramsSignature && !abortControllerRef.current?.signal.aborted) {
+    if (lastParamsRef.current === paramsSignature) {
       console.log('⏭️ Evitando petición duplicada:', paramsSignature);
       return;
     }
@@ -186,7 +186,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate]); // Include startDate to recreate when week changes
+  }, [providerId, listingId, serviceDuration, recurrence]); // Minimal stable dependencies
 
   // Simplified validation for recurring slots - optimistic approach
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -267,15 +267,12 @@ export const useWeeklySlots = ({
         listingId
       });
       
-      // Clear cache when startDate changes to ensure fresh data for the new week
-      lastParamsRef.current = '';
-      
       const timer = setTimeout(() => {
         fetchWeeklySlots();
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), daysAhead, fetchWeeklySlots]);
+  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime()]);
 
   // Subscribe to availability changes for this provider
   useEffect(() => {
@@ -285,19 +282,18 @@ export const useWeeklySlots = ({
     
     const unsubscribe = subscribeToAvailabilityChanges(providerId, () => {
       console.log('WeeklySlots: Disponibilidad actualizada, refrescando slots...');
-      console.log('WeeklySlots: Ejecutando refreshSlots para providerId:', providerId);
       
-      // Clear cache and force immediate refresh
+      // Clear cache and force immediate refresh without using refreshSlots
       lastParamsRef.current = '';
       
       // Add small delay to ensure database changes are propagated
       setTimeout(() => {
-        refreshSlots();
+        fetchWeeklySlots();
       }, 1000);
     });
     
     return unsubscribe;
-  }, [providerId, subscribeToAvailabilityChanges, refreshSlots]);
+  }, [providerId, subscribeToAvailabilityChanges, fetchWeeklySlots]);
 
   // Subscribe to real-time changes in provider_time_slots
   useEffect(() => {
@@ -323,8 +319,9 @@ export const useWeeklySlots = ({
           const oldRecord = payload.old as any;
           if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
             console.log('WeeklySlots: Cambio relevante para listing actual, refrescando...');
+            lastParamsRef.current = '';
             setTimeout(() => {
-              refreshSlots();
+              fetchWeeklySlots();
             }, 500);
           }
         }
@@ -339,8 +336,9 @@ export const useWeeklySlots = ({
         },
         (payload) => {
           console.log('WeeklySlots: Cambio detectado en provider_availability:', payload);
+          lastParamsRef.current = '';
           setTimeout(() => {
-            refreshSlots();
+            fetchWeeklySlots();
           }, 1500); // Longer delay for availability changes as they trigger slot regeneration
         }
       )
@@ -360,8 +358,9 @@ export const useWeeklySlots = ({
           const oldRecord = payload.old as any;
           if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
             console.log('WeeklySlots: Cambio relevante en preferencias de slots, refrescando...');
+            lastParamsRef.current = '';
             setTimeout(() => {
-              refreshSlots();
+              fetchWeeklySlots();
             }, 300);
           }
         }
@@ -372,7 +371,7 @@ export const useWeeklySlots = ({
       console.log('WeeklySlots: Cancelando suscripción en tiempo real');
       supabase.removeChannel(channel);
     };
-  }, [providerId, listingId, refreshSlots]);
+  }, [providerId, listingId, fetchWeeklySlots]);
 
   // Cleanup on unmount
   useEffect(() => {
