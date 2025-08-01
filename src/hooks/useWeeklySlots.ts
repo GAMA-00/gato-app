@@ -66,6 +66,8 @@ export const useWeeklySlots = ({
       console.log('⏭️ Evitando petición duplicada:', paramsSignature);
       return;
     }
+    
+    console.log('🚀 Nueva petición con firma:', paramsSignature);
     lastParamsRef.current = paramsSignature;
 
     // Cancel previous request
@@ -184,7 +186,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence]); // Stable dependencies only
+  }, [providerId, listingId, serviceDuration, recurrence, startDate]); // Include startDate to recreate when week changes
 
   // Simplified validation for recurring slots - optimistic approach
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -259,6 +261,15 @@ export const useWeeklySlots = ({
   // Effect to trigger fetch when essential params change
   useEffect(() => {
     if (providerId && listingId && serviceDuration > 0) {
+      console.log('🔄 Disparando fetch por cambio de parámetros:', {
+        startDate: startDate ? format(startDate, 'yyyy-MM-dd') : 'today',
+        providerId,
+        listingId
+      });
+      
+      // Clear cache when startDate changes to ensure fresh data for the new week
+      lastParamsRef.current = '';
+      
       const timer = setTimeout(() => {
         fetchWeeklySlots();
       }, 100);
