@@ -14,7 +14,7 @@ import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import ClientResidenceField from './ClientResidenceField';
 import ProviderResidencesField from './ProviderResidencesField';
-import { uploadAvatar } from '@/utils/uploadService';
+import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { supabase } from '@/integrations/supabase/client';
 
 // Esquema modificado para incluir confirmación de contraseña
@@ -170,26 +170,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         console.log('RegisterForm: Registro exitoso! User ID:', result.data.user.id);
         console.log('RegisterForm: User metadata sent:', userData);
         
-        // Upload avatar after user creation if provided
+        // Upload avatar after user creation if provided - FIX usando unified system
         if (profileImageToUpload && result.data.user.id) {
-          console.log('Uploading avatar with real user ID...');
+          console.log('🔵 RegisterForm: Uploading avatar with unified system...');
           try {
-            const avatarResult = await uploadAvatar(profileImageToUpload, result.data.user.id);
-            if (avatarResult.success && avatarResult.url) {
-              // Update user profile with avatar URL
-              const { error: updateError } = await supabase
-                .from('users')
-                .update({ avatar_url: avatarResult.url })
-                .eq('id', result.data.user.id);
-                
-              if (updateError) {
-                console.warn('Failed to update avatar URL:', updateError);
-              } else {
-                console.log('Avatar uploaded and profile updated successfully');
-              }
-            }
+            const avatarUrl = await unifiedAvatarUpload(profileImageToUpload, result.data.user.id);
+            console.log('✅ RegisterForm: Avatar uploaded successfully:', avatarUrl);
           } catch (avatarError) {
-            console.warn('Avatar upload failed:', avatarError);
+            console.warn('⚠️ RegisterForm: Avatar upload failed:', avatarError);
+            // No bloqueamos el registro si falla el avatar
           }
         }
         
