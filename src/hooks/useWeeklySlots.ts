@@ -61,8 +61,9 @@ export const useWeeklySlots = ({
     const endDate = addDays(baseDate, daysAhead - 1); // Exact 7 days from baseDate
     const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${format(baseDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`;
     
-    // Always allow fresh fetch when startDate changes - critical for week navigation
-    if (lastParamsRef.current === paramsSignature) {
+    // Prevent duplicate requests with same signature
+    if (lastParamsRef.current === paramsSignature && !abortControllerRef.current?.signal.aborted) {
+      console.log('⏭️ Evitando petición duplicada:', paramsSignature);
       return;
     }
     lastParamsRef.current = paramsSignature;
@@ -183,7 +184,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead]);
+  }, [providerId, listingId, serviceDuration, recurrence]); // Stable dependencies only
 
   // Simplified validation for recurring slots - optimistic approach
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -195,7 +196,7 @@ export const useWeeklySlots = ({
 
   // Create a stable refresh function
   const refreshSlots = useCallback(() => {
-    console.log('WeeklySlots: Forzando actualización de slots para providerId:', providerId);
+    console.log('WeeklySlots: Forzando actualización manual de slots');
     lastParamsRef.current = ''; // Clear cache to force refresh
     
     // Cancel any existing request
@@ -203,6 +204,7 @@ export const useWeeklySlots = ({
       abortControllerRef.current.abort();
     }
     
+    // Trigger immediate fetch
     fetchWeeklySlots();
   }, [fetchWeeklySlots]);
 
@@ -257,9 +259,9 @@ export const useWeeklySlots = ({
   // Effect to trigger fetch when essential params change
   useEffect(() => {
     if (providerId && listingId && serviceDuration > 0) {
-      // Clear cache when key parameters change to ensure fresh data
-      lastParamsRef.current = '';
-      const timer = setTimeout(fetchWeeklySlots, 100);
+      const timer = setTimeout(() => {
+        fetchWeeklySlots();
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), daysAhead, fetchWeeklySlots]);
