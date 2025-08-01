@@ -186,7 +186,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence]); // Minimal stable dependencies
+  }, [providerId, listingId, serviceDuration, recurrence, startDate]); // Include startDate to recreate when week changes
 
   // Simplified validation for recurring slots - optimistic approach
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
