@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import EnhancedAvatar from '@/components/ui/enhanced-avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 
 const AvatarUploadTest = () => {
   const { user } = useAuth();
@@ -102,10 +102,10 @@ const AvatarUploadTest = () => {
           <div>
             <Label>Avatar subido:</Label>
             <div className="flex items-center space-x-4">
-              <EnhancedAvatar 
+              <UnifiedAvatar 
                 src={uploadedUrl} 
-                alt="Uploaded avatar"
-                className="w-16 h-16"
+                name="Uploaded"
+                size="lg"
               />
               <div className="text-xs break-all">
                 <strong>URL:</strong> {uploadedUrl}
@@ -118,10 +118,10 @@ const AvatarUploadTest = () => {
           <div>
             <Label>Avatar actual del usuario:</Label>
             <div className="flex items-center space-x-4">
-              <EnhancedAvatar 
+              <UnifiedAvatar 
                 src={user.avatar_url} 
-                alt="Current avatar"
-                className="w-16 h-16"
+                name={user?.name || "User"}
+                size="lg"
               />
               <div className="text-xs break-all">
                 <strong>URL:</strong> {user.avatar_url}

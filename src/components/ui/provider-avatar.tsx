@@ -14,7 +14,7 @@ const ProviderAvatar = ({
   className,
   size = 'md'
 }: ProviderAvatarProps) => {
-  // Usar el componente unificado directamente
+  // REFACTORED: Direct proxy to UnifiedAvatar for consistency
   return (
     <UnifiedAvatar
       src={src}

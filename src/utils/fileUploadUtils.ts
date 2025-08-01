@@ -140,15 +140,14 @@ export const updateProviderData = async (
     console.log('=== UPLOADING PROFILE IMAGE ===');
     console.log('Profile image:', profileImage.name, profileImage.type);
     
-    // Import uploadAvatar function
-    const { uploadAvatar } = await import('./uploadService');
-    const avatarResult = await uploadAvatar(profileImage, userId);
-    
-    if (avatarResult.success && avatarResult.url) {
-      avatarUrl = avatarResult.url;
-      console.log('Profile image uploaded successfully:', avatarUrl);
-    } else {
-      console.warn('Profile image upload failed:', avatarResult.error);
+    // REFACTORED: Use unified avatar upload system
+    const { unifiedAvatarUpload } = await import('./unifiedAvatarUpload');
+    try {
+      avatarUrl = await unifiedAvatarUpload(profileImage, userId);
+      console.log('✅ Profile image uploaded successfully:', avatarUrl);
+    } catch (error) {
+      console.warn('⚠️ Profile image upload failed:', error);
+      // Don't throw - allow profile creation to continue without avatar
     }
   }
 

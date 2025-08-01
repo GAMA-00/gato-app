@@ -8,12 +8,11 @@ export interface UploadResult {
   error?: string;
 }
 
-// Avatar upload now handled by unifiedAvatarUpload.ts
-// This function is deprecated but kept for backwards compatibility
+// DEPRECATED: Avatar upload now handled by unifiedAvatarUpload.ts
+// This function is kept only for backwards compatibility and will be removed
 export const uploadAvatar = async (file: File, userId: string): Promise<UploadResult> => {
-  console.warn('⚠️ uploadAvatar is deprecated, use unifiedAvatarUpload instead');
-  // Redirect to unified system would go here if needed
-  throw new Error('Esta función está obsoleta. Usa unifiedAvatarUpload.');
+  console.warn('⚠️ uploadAvatar is DEPRECATED. Use unifiedAvatarUpload instead.');
+  throw new Error('uploadAvatar is deprecated. Use unifiedAvatarUpload from @/utils/unifiedAvatarUpload');
 };
 
 export const uploadCertificationFiles = async (files: File[], userId: string): Promise<string[]> => {

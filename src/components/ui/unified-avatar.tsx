@@ -30,16 +30,6 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [currentSrc, setCurrentSrc] = useState<string>('');
 
-  // Estados como ServiceGallery exitosa
-  console.log("🔍 UnifiedAvatar Debug:", {
-    src,
-    name,
-    size,
-    imageLoadStatus,
-    retryCount,
-    currentSrc
-  });
-
   // Generar initiales del nombre
   const getInitials = (name: string): string => {
     return name
@@ -51,21 +41,17 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
   };
 
   const getAvatarUrl = (url: string | null | undefined): string | null => {
-    // Validación estricta como ServiceGallery - evita loading infinito con strings vacíos
+    // Validación estricta - evita loading infinito con valores inválidos
     if (!url || typeof url !== 'string' || url.trim() === '' || url === 'null' || url === 'undefined') {
-      console.log("🔗 Avatar URL: Invalid or empty, returning null:", url);
       return null;
     }
 
     let fullUrl = url;
     
-    // FIX: Validar si ya es una URL completa para evitar duplicación
+    // URL completa - solo agregar cache busting si no lo tiene
     if (url.startsWith('https://') || url.startsWith('http://')) {
-      // URL completa - solo agregar cache busting si no lo tiene
       const hasTimestamp = url.includes('?t=') || url.includes('&t=');
-      fullUrl = hasTimestamp ? url : `${url}?t=${Date.now()}`;
-      console.log("🔗 Complete URL processed:", fullUrl);
-      return fullUrl;
+      return hasTimestamp ? url : `${url}?t=${Date.now()}`;
     }
     
     // URL relativa - construir URL completa con base de Supabase
@@ -78,16 +64,14 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
       fullUrl += `?t=${Date.now()}`;
     }
     
-    console.log("🔗 Relative URL processed:", { original: url, processed: fullUrl });
     return fullUrl;
   };
 
-  // Actualizar src cuando cambie la prop - FIX para evitar loading infinito
+  // Actualizar src cuando cambie la prop
   useEffect(() => {
     const processedSrc = getAvatarUrl(src);
     if (processedSrc !== currentSrc) {
       setCurrentSrc(processedSrc || '');
-      // Solo establecer 'loading' si realmente hay una URL válida para cargar
       setImageLoadStatus(processedSrc ? 'loading' : 'error');
       setRetryCount(0);
     }

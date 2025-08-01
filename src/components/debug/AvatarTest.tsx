@@ -1,5 +1,5 @@
 import React from 'react';
-import EnhancedAvatar from '@/components/ui/enhanced-avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 
 const AvatarTest = () => {
   const testAvatars = [
@@ -26,10 +26,10 @@ const AvatarTest = () => {
       <h2 className="text-xl font-bold mb-4">Avatar Test</h2>
       {testAvatars.map((user, index) => (
         <div key={index} className="flex items-center space-x-4 p-4 border rounded">
-          <EnhancedAvatar
-            src={user.avatar_url || null}
-            alt={user.name}
-            className="w-16 h-16"
+          <UnifiedAvatar
+            src={user.avatar_url}
+            name={user.name}
+            size="lg"
           />
           <div>
             <p className="font-medium">{user.name}</p>
