@@ -50,7 +50,6 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
       .slice(0, 2) || 'U';
   };
 
-  // Construir URL con cache busting como la galería - FIX para loading infinito
   const getAvatarUrl = (url: string | null | undefined): string | null => {
     // Validación estricta como ServiceGallery - evita loading infinito con strings vacíos
     if (!url || typeof url !== 'string' || url.trim() === '' || url === 'null' || url === 'undefined') {
@@ -60,17 +59,26 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
 
     let fullUrl = url;
     
-    // Si es una URL relativa, construir URL completa
+    // FIX: Validar si ya es una URL completa para evitar duplicación
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      // URL completa - solo agregar cache busting si no lo tiene
+      const hasTimestamp = url.includes('?t=') || url.includes('&t=');
+      fullUrl = hasTimestamp ? url : `${url}?t=${Date.now()}`;
+      console.log("🔗 Complete URL processed:", fullUrl);
+      return fullUrl;
+    }
+    
+    // URL relativa - construir URL completa con base de Supabase
     if (url.startsWith('avatars/') || url.includes('/avatars/')) {
       fullUrl = `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/${url}`;
     }
     
-    // Cache busting como ServiceGallery
+    // Cache busting para URLs relativas
     if (!fullUrl.includes('?t=')) {
       fullUrl += `?t=${Date.now()}`;
     }
     
-    console.log("🔗 Avatar URL processing:", { original: url, processed: fullUrl });
+    console.log("🔗 Relative URL processed:", { original: url, processed: fullUrl });
     return fullUrl;
   };
 
