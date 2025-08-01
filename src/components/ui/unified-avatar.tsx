@@ -50,9 +50,11 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
       .slice(0, 2) || 'U';
   };
 
-  // Construir URL con cache busting como la galería
+  // Construir URL con cache busting como la galería - FIX para loading infinito
   const getAvatarUrl = (url: string | null | undefined): string | null => {
-    if (!url || typeof url !== 'string' || url.trim() === '') {
+    // Validación estricta como ServiceGallery - evita loading infinito con strings vacíos
+    if (!url || typeof url !== 'string' || url.trim() === '' || url === 'null' || url === 'undefined') {
+      console.log("🔗 Avatar URL: Invalid or empty, returning null:", url);
       return null;
     }
 
@@ -72,12 +74,13 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
     return fullUrl;
   };
 
-  // Actualizar src cuando cambie la prop
+  // Actualizar src cuando cambie la prop - FIX para evitar loading infinito
   useEffect(() => {
     const processedSrc = getAvatarUrl(src);
     if (processedSrc !== currentSrc) {
       setCurrentSrc(processedSrc || '');
-      setImageLoadStatus('loading');
+      // Solo establecer 'loading' si realmente hay una URL válida para cargar
+      setImageLoadStatus(processedSrc ? 'loading' : 'error');
       setRetryCount(0);
     }
   }, [src, currentSrc]);
