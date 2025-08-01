@@ -45,6 +45,14 @@ export const RECURRENCE_INFO_MAP: Record<RecurrenceType, RecurrenceInfo> = {
     icon: 'Repeat2',
     description: 'Se repite cada 2 semanas en el mismo día y hora'
   },
+  triweekly: {
+    type: 'triweekly',
+    label: 'Trisemanal',
+    shortLabel: 'Tris',
+    color: 'bg-orange-100 text-orange-800 border-orange-300',
+    icon: 'Repeat',
+    description: 'Se repite cada 3 semanas en el mismo día y hora'
+  },
   monthly: {
     type: 'monthly',
     label: 'Mensual',
@@ -80,6 +88,13 @@ export const RECURRENCE_SELECTOR_OPTIONS: RecurrenceSelectorOption[] = [
     label: 'Quincenal',
     description: 'Cada 2 semanas',
     icon: 'Repeat2',
+    popular: true
+  },
+  {
+    value: 'triweekly',
+    label: 'Trisemanal',
+    description: 'Cada 3 semanas',
+    icon: 'Repeat',
     popular: true
   },
   {

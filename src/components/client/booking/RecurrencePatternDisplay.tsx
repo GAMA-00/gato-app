@@ -35,6 +35,7 @@ const RecurrencePatternDisplay = ({
     switch (freq) {
       case 'weekly': return 'Semanal';
       case 'biweekly': return 'Quincenal';
+      case 'triweekly': return 'Trisemanal';
       case 'monthly': return 'Mensual';
       default: return 'Una vez';
     }
@@ -47,6 +48,9 @@ const RecurrencePatternDisplay = ({
       
       case 'biweekly':
         return `Cada dos semanas, los ${format(selectedDate, 'EEEE', { locale: es })}`;
+      
+      case 'triweekly':
+        return `Cada tres semanas, los ${format(selectedDate, 'EEEE', { locale: es })}`;
       
       case 'monthly':
         return getMonthlyPatternDescription(selectedDate);
@@ -73,6 +77,11 @@ const RecurrencePatternDisplay = ({
         case 'biweekly':
           currentDate = new Date(currentDate);
           currentDate.setDate(currentDate.getDate() + 14);
+          break;
+        
+        case 'triweekly':
+          currentDate = new Date(currentDate);
+          currentDate.setDate(currentDate.getDate() + 21);
           break;
         
         case 'monthly':

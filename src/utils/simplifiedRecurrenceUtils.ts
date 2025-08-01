@@ -76,6 +76,8 @@ function getNextRecurrenceDate(currentDate: Date, recurrence: string): Date {
       return addWeeks(currentDate, 1);
     case 'biweekly':
       return addWeeks(currentDate, 2);
+    case 'triweekly':
+      return addWeeks(currentDate, 3);
     case 'monthly':
       return addMonths(currentDate, 1);
     default:

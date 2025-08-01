@@ -13,6 +13,7 @@ export type RecurrenceType =
   | 'once'      // Alias para 'none' 
   | 'weekly'    // Cada semana
   | 'biweekly'  // Cada 2 semanas (quincenal)
+  | 'triweekly' // Cada 3 semanas (trisemanal)
   | 'monthly'   // Cada mes
 
 /** Estados de instancias recurrentes */

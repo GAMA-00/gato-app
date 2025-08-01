@@ -8,6 +8,7 @@ export interface RecurringServicesSummary {
   totalActiveInstances: number;
   weeklyServices: number;
   biweeklyServices: number;
+  triweeklyServices: number;
   monthlyServices: number;
 }
 
@@ -17,6 +18,7 @@ export function useRecurringServices() {
     totalActiveInstances: 0,
     weeklyServices: 0,
     biweeklyServices: 0,
+    triweeklyServices: 0,
     monthlyServices: 0,
   });
   const { user } = useAuth();
@@ -29,6 +31,7 @@ export function useRecurringServices() {
           totalActiveInstances: 0,
           weeklyServices: 0,
           biweeklyServices: 0,
+          triweeklyServices: 0,
           monthlyServices: 0,
         });
         return;
@@ -50,7 +53,7 @@ export function useRecurringServices() {
           `)
           .eq('client_id', user.id)
           .in('status', ['pending', 'confirmed'])
-          .in('recurrence', ['weekly', 'biweekly', 'monthly']);
+          .in('recurrence', ['weekly', 'biweekly', 'triweekly', 'monthly']);
 
         if (error) {
           console.error('❌ Error fetching recurring appointments:', error);
@@ -90,6 +93,10 @@ export function useRecurringServices() {
           key => groupedByRecurrence[key].recurrence === 'biweekly'
         ).length;
         
+        const triweeklyServices = uniqueServices.filter(
+          key => groupedByRecurrence[key].recurrence === 'triweekly'
+        ).length;
+        
         const monthlyServices = uniqueServices.filter(
           key => groupedByRecurrence[key].recurrence === 'monthly'
         ).length;
@@ -99,6 +106,7 @@ export function useRecurringServices() {
           totalActiveInstances,
           weeklyServices,
           biweeklyServices,
+          triweeklyServices,
           monthlyServices,
         };
 
@@ -112,6 +120,7 @@ export function useRecurringServices() {
           totalActiveInstances: 0,
           weeklyServices: 0,
           biweeklyServices: 0,
+          triweeklyServices: 0,
           monthlyServices: 0,
         });
       }

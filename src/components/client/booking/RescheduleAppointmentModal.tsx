@@ -322,10 +322,10 @@ export const RescheduleAppointmentModal = ({
                   No hay horarios disponibles para esta fecha.
                 </p>
                 <p className="text-xs text-yellow-600 mt-1">
-                  {recurrence && recurrence !== 'none' 
-                    ? `Intenta con otra fecha que mantenga la recurrencia ${recurrence === 'weekly' ? 'semanal' : recurrence === 'biweekly' ? 'quincenal' : 'mensual'}.`
-                    : 'Intenta con otra fecha.'
-                  }
+                   {recurrence && recurrence !== 'none' 
+                     ? `Intenta con otra fecha que mantenga la recurrencia ${recurrence === 'weekly' ? 'semanal' : recurrence === 'biweekly' ? 'quincenal' : recurrence === 'triweekly' ? 'trisemanal' : 'mensual'}.`
+                     : 'Intenta con otra fecha.'
+                   }
                 </p>
               </div>
             )}

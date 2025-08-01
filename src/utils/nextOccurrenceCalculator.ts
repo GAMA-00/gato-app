@@ -26,6 +26,9 @@ export function calculateNextOccurrence(
     case 'biweekly':
       return calculateBiweeklyOccurrence(appointmentTime, now);
     
+    case 'triweekly':
+      return calculateTriweeklyOccurrence(appointmentTime, now);
+    
     case 'monthly':
       return calculateMonthlyOccurrence(appointmentTime, now);
     
@@ -73,6 +76,30 @@ function calculateBiweeklyOccurrence(appointmentTime: Date, now: Date): Date {
   }
   
   console.log(`⏰ Próxima ocurrencia quincenal: ${nextDate.toLocaleString()}`);
+  return nextDate;
+}
+
+function calculateTriweeklyOccurrence(appointmentTime: Date, now: Date): Date {
+  const dayOfWeek = appointmentTime.getDay();
+  let nextDate = new Date(now);
+  nextDate.setHours(appointmentTime.getHours(), appointmentTime.getMinutes(), 0, 0);
+  
+  // Encontrar la próxima fecha que coincida con el patrón trisemanal
+  const daysUntilNext = (dayOfWeek - nextDate.getDay() + 7) % 7;
+  nextDate.setDate(nextDate.getDate() + daysUntilNext);
+  
+  // Verificar si cae en la semana correcta del patrón trisemanal (cada 3 semanas)
+  const diffWeeks = Math.floor((nextDate.getTime() - appointmentTime.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  const remainder = diffWeeks % 3;
+  if (remainder !== 0) {
+    nextDate.setDate(nextDate.getDate() + (3 - remainder) * 7);
+  }
+  
+  if (nextDate <= now) {
+    nextDate.setDate(nextDate.getDate() + 21); // 3 semanas
+  }
+  
+  console.log(`⏰ Próxima ocurrencia trisemanal: ${nextDate.toLocaleString()}`);
   return nextDate;
 }
 

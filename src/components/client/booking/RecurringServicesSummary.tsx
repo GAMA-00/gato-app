@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RotateCcw, Calendar, Clock, CheckCircle } from 'lucide-react';
+import { RotateCcw, Calendar, Clock, CheckCircle, Repeat } from 'lucide-react';
 import { RecurringServicesSummary } from '@/hooks/useRecurringServices';
 
 interface RecurringServicesSummaryProps {
@@ -61,6 +61,13 @@ export const RecurringServicesSummaryCard = ({
             <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
               <Calendar className="h-3 w-3 mr-1" />
               {summary.biweeklyServices} Quincenal{summary.biweeklyServices > 1 ? 'es' : ''}
+            </Badge>
+          )}
+          
+          {summary.triweeklyServices > 0 && (
+            <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
+              <Repeat className="h-3 w-3 mr-1" />
+              {summary.triweeklyServices} Trisemanal{summary.triweeklyServices > 1 ? 'es' : ''}
             </Badge>
           )}
           

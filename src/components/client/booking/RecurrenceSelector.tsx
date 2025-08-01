@@ -31,7 +31,7 @@ const RecurrenceSelector = ({
               ¿Con qué frecuencia necesitas este servicio?
             </Label>
             <RadioGroup value={selectedFrequency} onValueChange={onFrequencyChange}>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="once" id="once" />
                   <Label htmlFor="once" className="cursor-pointer">Una vez</Label>
@@ -43,6 +43,10 @@ const RecurrenceSelector = ({
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="biweekly" id="biweekly" />
                   <Label htmlFor="biweekly" className="cursor-pointer">Quincenal</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                  <RadioGroupItem value="triweekly" id="triweekly" />
+                  <Label htmlFor="triweekly" className="cursor-pointer">Trisemanal</Label>
                 </div>
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="monthly" id="monthly" />

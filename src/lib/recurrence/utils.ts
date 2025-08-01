@@ -37,6 +37,11 @@ export function normalizeRecurrence(recurrence: string | null | undefined): Recu
     case 'bi-weekly':
     case 'cada dos semanas':
       return 'biweekly';
+    case 'triweekly':
+    case 'trisemanal':
+    case 'tri-weekly':
+    case 'cada tres semanas':
+      return 'triweekly';
     case 'monthly':
     case 'mensual':
     case 'month':
@@ -88,6 +93,9 @@ export function calculateNextOccurrence(
     
     case 'biweekly':
       return addWeeks(currentDate, 2);
+    
+    case 'triweekly':
+      return addWeeks(currentDate, 3);
     
     case 'monthly':
       if (originalDate) {
@@ -145,6 +153,24 @@ export function findFirstValidOccurrence(
       }
       break;
       
+    case 'triweekly':
+      if (targetDayOfWeek !== undefined) {
+        // Encontrar el próximo día correcto en el ciclo de 3 semanas
+        while (getDay(candidate) !== targetDayOfWeek) {
+          candidate = addDays(candidate, 1);
+        }
+        
+        // Asegurar que esté en el ciclo correcto de 3 semanas
+        while (true) {
+          const daysDiff = Math.floor((candidate.getTime() - ruleStartDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysDiff >= 0 && daysDiff % 21 === 0) {
+            break;
+          }
+          candidate = addDays(candidate, 7);
+        }
+      }
+      break;
+      
     case 'monthly':
       if (targetDayOfMonth !== undefined) {
         // Establecer el día del mes correcto
@@ -180,6 +206,9 @@ export function shouldGenerateInstance(
     
     case 'biweekly':
       return daysDiff >= 0 && daysDiff % 14 === 0 && getDay(targetDate) === getDay(originalDate);
+    
+    case 'triweekly':
+      return daysDiff >= 0 && daysDiff % 21 === 0 && getDay(targetDate) === getDay(originalDate);
     
     case 'monthly':
       return targetDate.getDate() === originalDate.getDate() && targetDate >= originalDate;
@@ -222,6 +251,7 @@ export function validateRecurrenceConfig(
   switch (recurrenceType) {
     case 'weekly':
     case 'biweekly':
+    case 'triweekly':
       if (dayOfWeek === undefined || dayOfWeek < 0 || dayOfWeek > 6) {
         errors.push('Día de la semana no válido (debe ser 0-6)');
       }
@@ -333,6 +363,7 @@ export function getRecurrenceDescription(
   switch (recurrenceType) {
     case 'weekly':
     case 'biweekly':
+    case 'triweekly':
       if (dayOfWeek !== undefined) {
         const dayName = WEEKDAY_NAMES[dayOfWeek];
         description += ` (${dayName}s)`;
