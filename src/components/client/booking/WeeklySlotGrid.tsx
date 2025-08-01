@@ -77,12 +77,16 @@ const WeeklySlotGrid = ({
     if (currentWeek > 0) {
       setCurrentWeek(prev => prev - 1);
       setSelectedSlotId(undefined);
+      // Notify parent that slot selection was cleared
+      onSlotSelect('', new Date(), '');
     }
   };
 
   const goToNextWeek = () => {
     setCurrentWeek(prev => prev + 1);
     setSelectedSlotId(undefined);
+    // Notify parent that slot selection was cleared
+    onSlotSelect('', new Date(), '');
   };
 
   const getRecurrenceText = (freq: string) => {

@@ -55,14 +55,13 @@ export const useWeeklySlots = ({
       return;
     }
 
-    // Create stable params signature - Always look forward from today
+    // Always use the provided startDate for the exact week being requested
     const today = startOfDay(new Date());
-    const baseDate = startDate || today;
-    // Ensure we're always looking forward in time
-    const adjustedBaseDate = baseDate < today ? today : baseDate;
-    const endDate = addDays(adjustedBaseDate, daysAhead);
-    const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${format(adjustedBaseDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`;
+    const baseDate = startDate ? startOfDay(startDate) : today;
+    const endDate = addDays(baseDate, daysAhead - 1); // Exact 7 days from baseDate
+    const paramsSignature = `${providerId}-${listingId}-${serviceDuration}-${recurrence}-${format(baseDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`;
     
+    // Always allow fresh fetch when startDate changes - critical for week navigation
     if (lastParamsRef.current === paramsSignature) {
       return;
     }
@@ -82,7 +81,7 @@ export const useWeeklySlots = ({
       listingId,
       serviceDuration,
       recurrence,
-      baseDate: format(adjustedBaseDate, 'yyyy-MM-dd'),
+      baseDate: format(baseDate, 'yyyy-MM-dd'),
       endDate: format(endDate, 'yyyy-MM-dd'),
       paramsSignature
     });
@@ -90,9 +89,9 @@ export const useWeeklySlots = ({
     console.log('📅 Fechas de consulta detalladas:', {
       fechaHoy: format(new Date(), 'yyyy-MM-dd'),
       fechaOriginal: startDate ? format(startDate, 'yyyy-MM-dd') : 'no provided',
-      fechaBase: format(adjustedBaseDate, 'yyyy-MM-dd'),
+      fechaBase: format(baseDate, 'yyyy-MM-dd'),
       fechaFin: format(endDate, 'yyyy-MM-dd'),
-      esFechaEnFuturo: adjustedBaseDate > new Date()
+      diasAdelante: daysAhead
     });
     
     try {
@@ -104,7 +103,7 @@ export const useWeeklySlots = ({
         .eq('listing_id', listingId)
         .eq('is_available', true)
         .eq('is_reserved', false)
-        .gte('slot_date', format(adjustedBaseDate, 'yyyy-MM-dd'))
+        .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
         .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
         .order('slot_datetime_start');
 
@@ -125,7 +124,7 @@ export const useWeeklySlots = ({
         .select('start_time, end_time, status')
         .eq('provider_id', providerId)
         .in('status', ['confirmed', 'pending'])
-        .gte('start_time', adjustedBaseDate.toISOString())
+        .gte('start_time', baseDate.toISOString())
         .lte('start_time', endDate.toISOString());
 
       if (appointmentsError) throw appointmentsError;
@@ -184,7 +183,7 @@ export const useWeeklySlots = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence]); // Removed unstable dependencies
+  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead]);
 
   // Simplified validation for recurring slots - optimistic approach
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
@@ -205,7 +204,7 @@ export const useWeeklySlots = ({
     }
     
     fetchWeeklySlots();
-  }, [fetchWeeklySlots, providerId]);
+  }, [fetchWeeklySlots]);
 
   // Group slots by date for easier rendering
   const slotGroups = useMemo((): WeeklySlotGroup[] => {
@@ -258,6 +257,8 @@ export const useWeeklySlots = ({
   // Effect to trigger fetch when essential params change
   useEffect(() => {
     if (providerId && listingId && serviceDuration > 0) {
+      // Clear cache when key parameters change to ensure fresh data
+      lastParamsRef.current = '';
       const timer = setTimeout(fetchWeeklySlots, 100);
       return () => clearTimeout(timer);
     }
