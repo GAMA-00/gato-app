@@ -8,7 +8,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
-import AvailabilitySlotPreview from './AvailabilitySlotPreview';
+import { useProviderListing } from '@/hooks/useProviderListing';
+import ProviderSlotBlockingGrid from './ProviderSlotBlockingGrid';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -23,6 +24,7 @@ const DAYS = [
 export const AvailabilityManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState('availability');
   const { user } = useAuth();
+  const { firstListingId, isLoading: isLoadingListing } = useProviderListing();
   const {
     availability,
     isLoading,
@@ -66,7 +68,7 @@ export const AvailabilityManager: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger value="preview" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                Vista Previa de Horarios
+                Administrar Horarios
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -113,7 +115,7 @@ export const AvailabilityManager: React.FC = () => {
             ) : (
               <>
                 <Calendar className="h-4 w-4" />
-                <span className="truncate">Vista Previa</span>
+                <span className="truncate">Administrar Horarios</span>
               </>
             )}
           </div>
@@ -143,7 +145,7 @@ export const AvailabilityManager: React.FC = () => {
                 activeTab === 'preview' ? 'opacity-50' : ''
               }`}
             >
-              <span className="hidden xs:inline">Vista Previa</span>
+              <span className="hidden xs:inline">Administrar</span>
               <ChevronRight className="h-3 w-3" />
             </Button>
           </div>
@@ -250,13 +252,30 @@ export const AvailabilityManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Preview Tab */}
+      {/* Slot Management Tab */}
       <div className={`mt-4 md:mt-6 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
         <div className="px-1">
-          <AvailabilitySlotPreview
-            availability={availability}
-            serviceDuration={60}
-          />
+          {firstListingId && user?.id ? (
+            <ProviderSlotBlockingGrid
+              providerId={user.id}
+              listingId={firstListingId}
+              serviceDuration={60}
+            />
+          ) : (
+            <Card className="shadow-md border-yellow-200 bg-yellow-50">
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
+                  <p className="text-yellow-800 font-medium">
+                    {isLoadingListing ? 'Cargando configuración...' : 'No hay servicios configurados'}
+                  </p>
+                  <p className="text-yellow-700 text-sm mt-2">
+                    Primero debes crear un servicio para poder administrar tus horarios
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
