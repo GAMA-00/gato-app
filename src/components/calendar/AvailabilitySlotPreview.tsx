@@ -72,20 +72,20 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     }
     
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    console.log('Today reference:', format(today, 'yyyy-MM-dd'));
+    const todayStr = format(today, 'yyyy-MM-dd');
+    console.log('Today reference:', todayStr);
     
-    // Convert date keys to Date objects and filter
+    // Convert date keys to Date objects and filter (include today and future dates)
     const validDates = dateKeys
-      .map(dateKey => new Date(dateKey))
-      .filter(date => {
-        const isValidDate = date >= today;
-        console.log(`  Date ${format(date, 'yyyy-MM-dd')}: isValidDate=${isValidDate}`);
+      .filter(dateKey => {
+        const isValidDate = dateKey >= todayStr; // Compare date strings directly
+        console.log(`  Date ${dateKey}: isValidDate=${isValidDate} (today: ${todayStr})`);
         return isValidDate;
       })
+      .map(dateKey => new Date(dateKey))
       .sort((a, b) => a.getTime() - b.getTime());
     
-    console.log('Valid dates result:', validDates.length, validDates);
+    console.log('Valid dates result:', validDates.length, validDates.map(d => format(d, 'yyyy-MM-dd')));
     return validDates;
   }, [slotsByDate]);
 
