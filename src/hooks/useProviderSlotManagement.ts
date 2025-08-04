@@ -118,7 +118,7 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
     try {
       const today = startOfDay(new Date());
       const daysToGenerate = config.daysAhead || 14;
-      const newSlots = [];
+      const newSlots: ProviderSlot[] = [];
 
       for (let i = 0; i < daysToGenerate; i++) {
         const currentDate = addDays(today, i);
@@ -146,42 +146,65 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
             const endDateTime = new Date(startDateTime);
             endDateTime.setMinutes(endDateTime.getMinutes() + config.serviceDuration);
 
+            const { time: displayTime, period } = formatTimeTo12Hour(time);
+
             newSlots.push({
-              provider_id: user.id,
-              listing_id: config.listingId || null,
-              slot_date: format(currentDate, 'yyyy-MM-dd'),
-              start_time: time,
-              end_time: format(endDateTime, 'HH:mm'),
-              slot_datetime_start: startDateTime.toISOString(),
-              slot_datetime_end: endDateTime.toISOString(),
-              is_available: true,
-              is_reserved: false
+              id: `${format(currentDate, 'yyyy-MM-dd')}-${time}`,
+              date: currentDate,
+              time,
+              displayTime,
+              period,
+              isAvailable: true,
+              isReserved: false,
+              listingId: config.listingId || undefined
             });
           }
         }
       }
 
-      if (newSlots.length > 0) {
-        // First, delete existing slots for the date range to avoid conflicts
-        const startDate = format(today, 'yyyy-MM-dd');
-        const endDate = format(addDays(today, config.daysAhead || 14), 'yyyy-MM-dd');
-        
-        await supabase
-          .from('provider_time_slots')
-          .delete()
-          .eq('provider_id', user.id)
-          .gte('slot_date', startDate)
-          .lte('slot_date', endDate)
-          .eq('is_reserved', false);
-        
-        // Then insert the new slots
-        const { error } = await supabase
-          .from('provider_time_slots')
-          .insert(newSlots);
+      // If this is for a specific listing, save to database
+      if (config.listingId) {
+        const slotsToInsert = newSlots.map(slot => ({
+          provider_id: user.id,
+          listing_id: config.listingId!,
+          slot_date: format(slot.date, 'yyyy-MM-dd'),
+          start_time: slot.time,
+          end_time: format(new Date(slot.date.getTime() + config.serviceDuration * 60000), 'HH:mm'),
+          slot_datetime_start: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
+            parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1])).toISOString(),
+          slot_datetime_end: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
+            parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]) + config.serviceDuration).toISOString(),
+          is_available: true,
+          is_reserved: false
+        }));
 
-        if (error) throw error;
-        toast.success(`${newSlots.length} horarios generados`);
-        await loadProviderSlots();
+        if (slotsToInsert.length > 0) {
+          // First, delete existing slots for the date range to avoid conflicts
+          const startDate = format(today, 'yyyy-MM-dd');
+          const endDate = format(addDays(today, config.daysAhead || 14), 'yyyy-MM-dd');
+          
+          await supabase
+            .from('provider_time_slots')
+            .delete()
+            .eq('provider_id', user.id)
+            .eq('listing_id', config.listingId)
+            .gte('slot_date', startDate)
+            .lte('slot_date', endDate)
+            .eq('is_reserved', false);
+          
+          // Then insert the new slots
+          const { error } = await supabase
+            .from('provider_time_slots')
+            .insert(slotsToInsert);
+
+          if (error) throw error;
+          toast.success(`${slotsToInsert.length} horarios generados`);
+          await loadProviderSlots();
+        }
+      } else {
+        // For availability preview (no specific listing), just set the in-memory slots
+        setSlots(newSlots);
+        toast.success(`Vista previa generada con ${newSlots.length} horarios`);
       }
     } catch (error) {
       console.error('Error generating slots:', error);
@@ -194,6 +217,14 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
   const toggleSlot = async (slotId: string) => {
     const slot = slots.find(s => s.id === slotId);
     if (!slot || slot.isReserved) return;
+
+    // If this is an in-memory slot (no listingId), just update state
+    if (!slot.listingId) {
+      setSlots(prev => prev.map(s => 
+        s.id === slotId ? { ...s, isAvailable: !s.isAvailable } : s
+      ));
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -221,15 +252,25 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
     const availableSlots = slots.filter(s => !s.isReserved);
     if (availableSlots.length === 0) return;
 
+    // If these are in-memory slots (no listingId), just update state
+    if (availableSlots.every(s => !s.listingId)) {
+      setSlots(prev => prev.map(s => 
+        !s.isReserved ? { ...s, isAvailable } : s
+      ));
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const slotIds = availableSlots.map(s => s.id);
-      const { error } = await supabase
-        .from('provider_time_slots')
-        .update({ is_available: isAvailable })
-        .in('id', slotIds);
+      const slotIds = availableSlots.filter(s => s.listingId).map(s => s.id);
+      if (slotIds.length > 0) {
+        const { error } = await supabase
+          .from('provider_time_slots')
+          .update({ is_available: isAvailable })
+          .in('id', slotIds);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       setSlots(prev => prev.map(s => 
         !s.isReserved ? { ...s, isAvailable } : s
