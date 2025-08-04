@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,13 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
   availability, 
   serviceDuration = 60 
 }) => {
+  // Memoize availability config to prevent infinite re-renders
+  const availabilityConfig = useMemo(() => ({
+    availability,
+    serviceDuration,
+    daysAhead: 7
+  }), [availability, serviceDuration]);
+
   const {
     slotsByDate,
     availableDates,
@@ -27,19 +34,15 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     isLoading,
     isSaving,
     generateSlotsFromAvailability
-  } = useProviderSlotManagement({
-    availability,
-    serviceDuration,
-    daysAhead: 7
-  });
+  } = useProviderSlotManagement(availabilityConfig);
 
   // Generate slots when availability changes
   useEffect(() => {
-    const hasAvailability = Object.values(availability).some((day: any) => day?.enabled);
-    if (hasAvailability) {
+    const hasAvailability = Object.values(availability || {}).some((day: any) => day?.enabled);
+    if (hasAvailability && availability) {
       generateSlotsFromAvailability();
     }
-  }, [availability, generateSlotsFromAvailability]);
+  }, [availability, serviceDuration]); // Only depend on actual data, not the function
 
   // Don't show if no availability is configured
   const hasAvailability = Object.values(availability).some((day: any) => day?.enabled);
