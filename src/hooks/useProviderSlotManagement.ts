@@ -360,11 +360,17 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
     };
   }, [slots]);
 
+  // Only load provider slots when we have a specific listing (not in preview mode)
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && config?.listingId) {
+      console.log('=== LOADING PROVIDER SLOTS FROM DB ===');
+      console.log('User ID:', user.id, 'Listing ID:', config.listingId);
       loadProviderSlots();
+    } else if (user?.id && !config?.listingId) {
+      console.log('=== PREVIEW MODE - NOT LOADING FROM DB ===');
+      console.log('Keeping slots in memory only for preview');
     }
-  }, [user?.id]);
+  }, [user?.id, config?.listingId]);
 
   return {
     slots,
