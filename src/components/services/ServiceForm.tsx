@@ -50,7 +50,9 @@ const serviceFormSchema = z.object({
       startTime: z.string().optional(),
       endTime: z.string().optional()
     })).optional()
-  })).optional()
+  })).optional(),
+  // Preferencias de slots permanentes
+  slotPreferences: z.record(z.boolean()).optional()
 });
 
 type ServiceFormValues = z.infer<typeof serviceFormSchema>;
@@ -109,6 +111,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         saturday: { enabled: false, timeSlots: [] },
         sunday: { enabled: false, timeSlots: [] }
       },
+      slotPreferences: initialData.slotPreferences || {},
       useCustomVariables: initialData.useCustomVariables || false,
       customVariableGroups: initialData.customVariableGroups || []
     } : {
@@ -133,6 +136,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         saturday: { enabled: false, timeSlots: [] },
         sunday: { enabled: false, timeSlots: [] }
       },
+      slotPreferences: {},
       useCustomVariables: false,
       customVariableGroups: []
     }

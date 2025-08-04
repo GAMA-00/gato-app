@@ -34,7 +34,7 @@ const SlotGeneratorPreview = () => {
     availability,
     serviceDuration: Number(serviceDuration),
     daysAhead: 7
-  }, handleSlotPreferencesChange);
+  }, handleSlotPreferencesChange, slotPreferences);
 
   // Don't show if no availability is configured
   const hasAvailability = Object.values(availability).some((day: any) => day?.enabled);
@@ -80,11 +80,12 @@ const SlotGeneratorPreview = () => {
               <span className="hidden md:inline">Vista Previa de Horarios</span>
             </CardTitle>
             <CardDescription className="hidden md:block mt-2">
-              Configura qué horarios estarán disponibles de forma permanente. 
-              Los cambios se aplicarán a todas las semanas futuras.
+              <strong>Configuración Permanente:</strong> Los horarios que actives (verde) o desactives (rojo) 
+              se aplicarán de forma recurrente a todas las semanas futuras. Por ejemplo, si bloqueas 
+              los lunes a las 9:00 AM, esa hora quedará permanentemente bloqueada todos los lunes.
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
-              {stats.enabledSlots} activos de {stats.totalSlots} horarios
+              <strong>Configuración permanente:</strong> {stats.enabledSlots} activos de {stats.totalSlots} horarios
             </CardDescription>
           </div>
           <div className="hidden md:flex items-center gap-2">

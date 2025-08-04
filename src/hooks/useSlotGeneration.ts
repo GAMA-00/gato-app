@@ -44,9 +44,22 @@ const dayLabels: Record<number, string> = {
   6: 'Sábado',
 };
 
-export const useSlotGeneration = (config: SlotGenerationConfig, onSlotPreferencesChange?: (preferences: Record<string, boolean>) => void) => {
+export const useSlotGeneration = (
+  config: SlotGenerationConfig, 
+  onSlotPreferencesChange?: (preferences: Record<string, boolean>) => void,
+  initialSlotPreferences?: Record<string, boolean>
+) => {
   const [manuallyDisabledSlots, setManuallyDisabledSlots] = useState<Set<string>>(new Set());
-  const [permanentSlotPreferences, setPermanentSlotPreferences] = useState<Record<string, boolean>>({});
+  const [permanentSlotPreferences, setPermanentSlotPreferences] = useState<Record<string, boolean>>(
+    initialSlotPreferences || {}
+  );
+
+  // Initialize with provided preferences
+  useEffect(() => {
+    if (initialSlotPreferences) {
+      setPermanentSlotPreferences(initialSlotPreferences);
+    }
+  }, [initialSlotPreferences]);
 
   const formatTimeTo12Hour = (time24: string): { time: string; period: 'AM' | 'PM' } => {
     const [hours, minutes] = time24.split(':').map(Number);
