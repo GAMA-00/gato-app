@@ -190,7 +190,13 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
         console.log(`${format(slot.date, 'yyyy-MM-dd')} ${slot.displayTime} ${slot.period}`);
       });
 
-      // If this is for a specific listing, save to database
+      // Always update the local state first
+      console.log('=== UPDATING LOCAL STATE ===');
+      console.log('Previous slots count:', slots.length);
+      setSlots(newSlots);
+      console.log('New slots count:', newSlots.length);
+
+      // If this is for a specific listing, also save to database
       if (config.listingId) {
         const slotsToInsert = newSlots.map(slot => ({
           provider_id: user.id,
@@ -308,6 +314,9 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
 
   // Group slots by date
   const slotsByDate = useMemo(() => {
+    console.log('=== RECOMPUTING slotsByDate ===');
+    console.log('Input slots count:', slots.length);
+    
     const grouped: Record<string, ProviderSlot[]> = {};
     
     slots.forEach(slot => {
@@ -318,6 +327,13 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
       grouped[dateKey].push(slot);
     });
 
+    // Sort slots within each date by time
+    Object.keys(grouped).forEach(dateKey => {
+      grouped[dateKey].sort((a, b) => a.time.localeCompare(b.time));
+    });
+    
+    console.log('Grouped slots by date:', Object.keys(grouped).map(date => `${date}: ${grouped[date].length} slots`));
+    
     return grouped;
   }, [slots]);
 

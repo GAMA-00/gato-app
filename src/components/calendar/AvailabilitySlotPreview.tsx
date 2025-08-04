@@ -25,6 +25,7 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
   }), [availability, serviceDuration]);
 
   const {
+    slots,
     slotsByDate,
     availableDates,
     stats,
@@ -35,6 +36,19 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     isSaving,
     generateSlotsFromAvailability
   } = useProviderSlotManagement(availabilityConfig);
+
+  // Debug logs for tracking state changes
+  useEffect(() => {
+    console.log('=== AVAILABILITY SLOT PREVIEW DEBUG ===');
+    console.log('Total slots in state:', slots.length);
+    console.log('Slots by date keys:', Object.keys(slotsByDate));
+    console.log('Available dates count:', availableDates.length);
+    console.log('Stats:', stats);
+    
+    Object.entries(slotsByDate).forEach(([date, slots]) => {
+      console.log(`Date ${date}: ${slots.length} slots`);
+    });
+  }, [slots, slotsByDate, availableDates, stats]);
 
   // Generate slots when availability changes
   useEffect(() => {
