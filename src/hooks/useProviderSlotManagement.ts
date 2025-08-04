@@ -11,7 +11,6 @@ export interface ProviderSlot {
   displayTime: string;
   period: 'AM' | 'PM';
   isAvailable: boolean;
-  isReserved: boolean;
   listingId?: string;
 }
 
@@ -97,7 +96,6 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
           displayTime,
           period,
           isAvailable: slot.is_available,
-          isReserved: slot.is_reserved,
           listingId: slot.listing_id
         };
       });
@@ -155,7 +153,6 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
               displayTime,
               period,
               isAvailable: true,
-              isReserved: false,
               listingId: config.listingId || undefined
             });
           }
@@ -174,8 +171,7 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
             parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1])).toISOString(),
           slot_datetime_end: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
             parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]) + config.serviceDuration).toISOString(),
-          is_available: true,
-          is_reserved: false
+          is_available: true
         }));
 
         if (slotsToInsert.length > 0) {
@@ -189,8 +185,7 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
             .eq('provider_id', user.id)
             .eq('listing_id', config.listingId)
             .gte('slot_date', startDate)
-            .lte('slot_date', endDate)
-            .eq('is_reserved', false);
+            .lte('slot_date', endDate);
           
           // Then insert the new slots
           const { error } = await supabase
@@ -216,7 +211,7 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
 
   const toggleSlot = async (slotId: string) => {
     const slot = slots.find(s => s.id === slotId);
-    if (!slot || slot.isReserved) return;
+    if (!slot) return;
 
     // If this is an in-memory slot (no listingId), just update state
     if (!slot.listingId) {
@@ -249,20 +244,17 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
   };
 
   const updateAllSlots = async (isAvailable: boolean) => {
-    const availableSlots = slots.filter(s => !s.isReserved);
-    if (availableSlots.length === 0) return;
+    if (slots.length === 0) return;
 
     // If these are in-memory slots (no listingId), just update state
-    if (availableSlots.every(s => !s.listingId)) {
-      setSlots(prev => prev.map(s => 
-        !s.isReserved ? { ...s, isAvailable } : s
-      ));
+    if (slots.every(s => !s.listingId)) {
+      setSlots(prev => prev.map(s => ({ ...s, isAvailable })));
       return;
     }
 
     setIsSaving(true);
     try {
-      const slotIds = availableSlots.filter(s => s.listingId).map(s => s.id);
+      const slotIds = slots.filter(s => s.listingId).map(s => s.id);
       if (slotIds.length > 0) {
         const { error } = await supabase
           .from('provider_time_slots')
@@ -272,9 +264,7 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
         if (error) throw error;
       }
 
-      setSlots(prev => prev.map(s => 
-        !s.isReserved ? { ...s, isAvailable } : s
-      ));
+      setSlots(prev => prev.map(s => ({ ...s, isAvailable })));
 
       toast.success(isAvailable ? 'Todos los horarios activados' : 'Todos los horarios desactivados');
     } catch (error) {
@@ -312,15 +302,13 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
 
   const stats = useMemo(() => {
     const totalSlots = slots.length;
-    const availableSlots = slots.filter(slot => slot.isAvailable && !slot.isReserved).length;
-    const reservedSlots = slots.filter(slot => slot.isReserved).length;
-    const disabledSlots = slots.filter(slot => !slot.isAvailable && !slot.isReserved).length;
+    const availableSlots = slots.filter(slot => slot.isAvailable).length;
+    const blockedSlots = slots.filter(slot => !slot.isAvailable).length;
 
     return {
       totalSlots,
       availableSlots,
-      reservedSlots,
-      disabledSlots,
+      blockedSlots,
       availablePercentage: totalSlots > 0 ? Math.round((availableSlots / totalSlots) * 100) : 0
     };
   }, [slots]);

@@ -65,11 +65,11 @@ export const SlotManagementGrid: React.FC<SlotManagementGridProps> = ({ provider
             </div>
           </div>
           
-          <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-            <Users className="h-4 w-4 text-blue-600" />
+          <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
+            <Users className="h-4 w-4 text-red-600" />
             <div>
-              <p className="text-sm text-blue-600">Reservados</p>
-              <p className="text-lg font-semibold text-blue-700">{stats.reservedSlots}</p>
+              <p className="text-sm text-red-600">Bloqueados</p>
+              <p className="text-lg font-semibold text-red-700">{stats.blockedSlots}</p>
             </div>
           </div>
         </div>

@@ -116,14 +116,8 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
             </Badge>
             <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
               <XCircle className="h-3 w-3 mr-1" />
-              {stats.disabledSlots} bloqueados
+              {stats.blockedSlots} bloqueados
             </Badge>
-            {stats.reservedSlots > 0 && (
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                <Clock className="h-3 w-3 mr-1" />
-                {stats.reservedSlots} reservados
-              </Badge>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -190,19 +184,10 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           key={slot.id}
                           time={slot.displayTime}
                           period={slot.period}
-                          isEnabled={slot.isAvailable && !slot.isReserved}
-                          isSelected={slot.isAvailable && !slot.isReserved}
-                          isAvailable={!slot.isReserved}
+                          isEnabled={slot.isAvailable}
                           onClick={() => toggleSlot(slot.id)}
                           size="sm"
                           variant="provider"
-                          className={`w-full ${
-                            slot.isReserved 
-                              ? 'bg-yellow-50 border-yellow-200 text-yellow-800 cursor-not-allowed opacity-70'
-                              : slot.isAvailable 
-                                ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
-                                : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
-                          }`}
                         />
                       ))
                     )}
@@ -242,19 +227,10 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           key={slot.id}
                           time={slot.displayTime}
                           period={slot.period}
-                          isEnabled={slot.isAvailable && !slot.isReserved}
-                          isSelected={slot.isAvailable && !slot.isReserved}
-                          isAvailable={!slot.isReserved}
+                          isEnabled={slot.isAvailable}
                           onClick={() => toggleSlot(slot.id)}
                           size="sm"
                           variant="provider"
-                          className={
-                            slot.isReserved 
-                              ? 'bg-yellow-50 border-yellow-200 text-yellow-800 cursor-not-allowed opacity-70'
-                              : slot.isAvailable 
-                                ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
-                                : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
-                          }
                         />
                       ))
                     )}
