@@ -1,466 +1,140 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { addDays, format, startOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { addDays, format, getDay, startOfDay } from 'date-fns';
-import { toast } from 'sonner';
+import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
+import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
+import { createSlotSignature } from '@/utils/weeklySlotUtils';
 
-export interface ProviderSlot {
-  id: string;
-  date: Date;
-  time: string;
-  displayTime: string;
-  period: 'AM' | 'PM';
-  isAvailable: boolean;
-  listingId?: string;
+interface UseProviderSlotManagementReturn {
+  slots: WeeklySlot[];
+  isLoading: boolean;
+  lastUpdated: Date | null;
+  fetchSlots: () => Promise<void>;
+  refreshSlots: () => void;
 }
 
-export interface ProviderSlotConfig {
-  availability: Record<string, {
-    enabled: boolean;
-    timeSlots: Array<{
-      startTime: string;
-      endTime: string;
-    }>;
-  }>;
-  serviceDuration: number;
-  daysAhead?: number;
-  listingId?: string;
-}
-
-const dayMap: Record<string, number> = {
-  sunday: 0,
-  monday: 1,
-  tuesday: 2,
-  wednesday: 3,
-  thursday: 4,
-  friday: 5,
-  saturday: 6,
-};
-
-export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
-  const { user } = useAuth();
-  const [slots, setSlots] = useState<ProviderSlot[]>([]);
+export const useProviderSlotManagement = ({
+  providerId,
+  listingId,
+  serviceDuration,
+  startDate,
+  daysAhead = 7
+}: Omit<UseWeeklySlotsProps, 'recurrence'>): UseProviderSlotManagementReturn => {
+  const [slots, setSlots] = useState<WeeklySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Stable cache for request deduplication
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastParamsRef = useRef<string>('');
 
-  const formatTimeTo12Hour = (time24: string): { time: string; period: 'AM' | 'PM' } => {
-    const [hours, minutes] = time24.split(':').map(Number);
-    const period: 'AM' | 'PM' = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-    return {
-      time: `${hours12}:${minutes.toString().padStart(2, '0')}`,
-      period
-    };
-  };
+  // Fetch ALL slots (available and blocked) for provider management
+  const fetchSlots = useCallback(async () => {
+    if (!providerId || !listingId || !serviceDuration) {
+      return;
+    }
 
-  const generateTimeSlots = (startTime: string, endTime: string, duration: number): string[] => {
-    const slots: string[] = [];
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
+    const today = startOfDay(new Date());
+    const baseDate = startDate ? startOfDay(startDate) : today;
+    const endDate = addDays(baseDate, daysAhead - 1);
+    const paramsSignature = createSlotSignature(providerId, listingId, serviceDuration, 'admin', baseDate, endDate);
     
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    
-    for (let currentMinutes = startMinutes; currentMinutes + duration <= endMinutes; currentMinutes += duration) {
-      const hour = Math.floor(currentMinutes / 60);
-      const minute = currentMinutes % 60;
-      slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+    // Prevent duplicate requests
+    if (lastParamsRef.current === paramsSignature) {
+      console.log('⏭️ Evitando petición duplicada (admin):', paramsSignature);
+      return;
     }
     
-    return slots;
-  };
+    console.log('🚀 Nueva petición admin con firma:', paramsSignature);
+    lastParamsRef.current = paramsSignature;
 
-  const loadProviderSlots = async () => {
-    if (!user?.id) return;
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     setIsLoading(true);
+    
+    console.log('=== PROVIDER SLOT MANAGEMENT DEBUG ===');
+    console.log('Parámetros de consulta (TODOS los slots):', {
+      providerId,
+      listingId,
+      serviceDuration,
+      baseDate: format(baseDate, 'yyyy-MM-dd'),
+      endDate: format(endDate, 'yyyy-MM-dd')
+    });
+    
     try {
-      const endDate = addDays(new Date(), config?.daysAhead || 14);
-      
-      let query = supabase
+      // Fetch ALL time slots (available and blocked) - NO FILTER on is_available
+      const { data: timeSlots, error: slotsError } = await supabase
         .from('provider_time_slots')
         .select('*')
-        .eq('provider_id', user.id)
-        .gte('slot_date', format(new Date(), 'yyyy-MM-dd'))
-        .lte('slot_date', format(endDate, 'yyyy-MM-dd'));
+        .eq('provider_id', providerId)
+        .eq('listing_id', listingId)
+        .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+        .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+        .order('slot_datetime_start');
 
-      // If we have a specific listing, filter by it
-      if (config?.listingId) {
-        query = query.eq('listing_id', config.listingId);
-      }
+      if (slotsError) throw slotsError;
+      
+      console.log('📊 Resultado consulta ALL slots (admin):', {
+        totalSlots: timeSlots?.length || 0,
+        disponibles: timeSlots?.filter(s => s.is_available)?.length || 0,
+        bloqueados: timeSlots?.filter(s => !s.is_available)?.length || 0,
+        primeros3Slots: timeSlots?.slice(0, 3)
+      });
 
-      const { data, error } = await query.order('slot_datetime_start');
-      if (error) throw error;
+      // Process ALL slots
+      const providerSlots: WeeklySlot[] = timeSlots?.map(slot => {
+        const slotStart = new Date(slot.slot_datetime_start);
+        const slotDate = new Date(slotStart);
 
-      const providerSlots: ProviderSlot[] = (data || []).map(slot => {
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
+
+        console.log(`Admin Slot: ${slot.slot_date} ${slot.start_time} -> ${displayTime} ${period} (disponible: ${slot.is_available})`);
+
         return {
           id: slot.id,
-          date: new Date(slot.slot_date),
+          date: slotDate,
           time: slot.start_time,
           displayTime,
           period,
-          isAvailable: slot.is_available,
-          listingId: slot.listing_id
+          isAvailable: slot.is_available, // Preserva el estado real del slot
+          conflictReason: slot.is_available ? undefined : 'Bloqueado manualmente'
         };
-      });
-
+      }) || [];
+      
       setSlots(providerSlots);
-    } catch (error) {
-      console.error('Error loading provider slots:', error);
-      toast.error('Error al cargar los horarios');
+      setLastUpdated(new Date());
+      
+    } catch (err) {
+      console.error('Error fetching admin slots:', err);
+      setSlots([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [providerId, listingId, serviceDuration, startDate, daysAhead]);
 
-  const generateSlotsFromAvailability = async () => {
-    if (!user?.id || !config?.availability) return;
-
-    console.log('=== SLOT GENERATION DEBUG ===');
-    console.log('Config availability:', config.availability);
-    console.log('Service duration:', config.serviceDuration);
-    console.log('Days ahead:', config.daysAhead);
-
-    setIsLoading(true);
-    try {
-      const today = startOfDay(new Date());
-      const daysToGenerate = config.daysAhead || 14;
-      const newSlots: ProviderSlot[] = [];
-
-      for (let i = 0; i < daysToGenerate; i++) {
-        const currentDate = addDays(today, i);
-        const dayOfWeek = getDay(currentDate);
-        const dayKey = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
-        
-        console.log(`Day ${i}: ${format(currentDate, 'yyyy-MM-dd')} (${dayKey}) - dayOfWeek: ${dayOfWeek}`);
-        
-        if (!dayKey) {
-          console.log(`  - No dayKey found for dayOfWeek ${dayOfWeek}`);
-          continue;
-        }
-
-        const dayAvailability = config.availability[dayKey];
-        console.log(`  - Day availability:`, dayAvailability);
-        
-        if (!dayAvailability?.enabled) {
-          console.log(`  - Day ${dayKey} not enabled, skipping`);
-          continue;
-        }
-
-        if (!dayAvailability.timeSlots || dayAvailability.timeSlots.length === 0) {
-          console.log(`  - No timeSlots for ${dayKey}, skipping`);
-          continue;
-        }
-
-        console.log(`  - Processing ${dayAvailability.timeSlots.length} time slots for ${dayKey}`);
-        
-        for (const timeSlot of dayAvailability.timeSlots) {
-          console.log(`    - Processing timeSlot:`, timeSlot);
-          const timeSlots = generateTimeSlots(
-            timeSlot.startTime,
-            timeSlot.endTime,
-            config.serviceDuration
-          );
-          console.log(`    - Generated ${timeSlots.length} time slots:`, timeSlots);
-
-          for (const time of timeSlots) {
-            const startDateTime = new Date(currentDate);
-            const [hours, minutes] = time.split(':').map(Number);
-            startDateTime.setHours(hours, minutes);
-
-            const endDateTime = new Date(startDateTime);
-            endDateTime.setMinutes(endDateTime.getMinutes() + config.serviceDuration);
-
-            const { time: displayTime, period } = formatTimeTo12Hour(time);
-
-            const slot: ProviderSlot = {
-              id: `${format(currentDate, 'yyyy-MM-dd')}-${time}`,
-              date: currentDate,
-              time,
-              displayTime,
-              period,
-              isAvailable: true,
-              listingId: config.listingId || undefined
-            };
-
-            console.log(`      - Created slot:`, slot);
-            newSlots.push(slot);
-          }
-        }
-      }
-
-      console.log(`=== FINAL RESULT: ${newSlots.length} slots generated ===`);
-      newSlots.forEach(slot => {
-        console.log(`${format(slot.date, 'yyyy-MM-dd')} ${slot.displayTime} ${slot.period}`);
-      });
-
-      // Always update the local state first
-      console.log('=== UPDATING LOCAL STATE ===');
-      console.log('Previous slots count:', slots.length);
-      setSlots(newSlots);
-      console.log('New slots count:', newSlots.length);
-
-      // If this is for a specific listing, also save to database
-      if (config.listingId) {
-        console.log('=== SAVING TO DATABASE WITH PERSISTENCE ===');
-        console.log('Listing ID:', config.listingId);
-        
-        const startDate = format(today, 'yyyy-MM-dd');
-        const endDate = format(addDays(today, config.daysAhead || 14), 'yyyy-MM-dd');
-        
-        // First, get existing manually blocked slots to preserve them
-        const { data: existingSlots, error: fetchError } = await supabase
-          .from('provider_time_slots')
-          .select('*')
-          .eq('provider_id', user.id)
-          .eq('listing_id', config.listingId)
-          .gte('slot_date', startDate)
-          .lte('slot_date', endDate)
-          .eq('is_available', false); // Only get manually blocked slots
-
-        if (fetchError) {
-          console.error('Error fetching existing slots:', fetchError);
-        }
-
-        const manuallyBlockedSlots = existingSlots || [];
-        console.log('Found manually blocked slots:', manuallyBlockedSlots.length);
-
-        // Delete all slots to regenerate, except manually blocked ones
-        await supabase
-          .from('provider_time_slots')
-          .delete()
-          .eq('provider_id', user.id)
-          .eq('listing_id', config.listingId)
-          .gte('slot_date', startDate)
-          .lte('slot_date', endDate)
-          .eq('is_available', true); // Only delete available slots
-
-        // Create slots to insert, but check against manually blocked ones
-        const slotsToInsert = newSlots
-          .filter(slot => {
-            // Don't create a slot if it conflicts with a manually blocked one
-            const slotDateTime = new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
-              parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]));
-            
-            const isManuallyBlocked = manuallyBlockedSlots.some(blockedSlot => {
-              const blockedDateTime = new Date(blockedSlot.slot_datetime_start);
-              return Math.abs(slotDateTime.getTime() - blockedDateTime.getTime()) < 60000; // Within 1 minute
-            });
-            
-            return !isManuallyBlocked;
-          })
-          .map(slot => ({
-            provider_id: user.id,
-            listing_id: config.listingId!,
-            slot_date: format(slot.date, 'yyyy-MM-dd'),
-            start_time: slot.time,
-            end_time: format(new Date(slot.date.getTime() + config.serviceDuration * 60000), 'HH:mm'),
-            slot_datetime_start: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
-              parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1])).toISOString(),
-            slot_datetime_end: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
-              parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]) + config.serviceDuration).toISOString(),
-            is_available: true
-          }));
-
-        if (slotsToInsert.length > 0) {
-          console.log('Inserting new slots:', slotsToInsert.length);
-          const { error } = await supabase
-            .from('provider_time_slots')
-            .insert(slotsToInsert);
-
-          if (error) throw error;
-          
-          console.log('Manually blocked slots preserved:', manuallyBlockedSlots.length);
-          toast.success(`${slotsToInsert.length} horarios generados. ${manuallyBlockedSlots.length} bloqueos manuales preservados.`);
-        }
-        
-        // Reload slots to get the complete state including manual blocks
-        await loadProviderSlots();
-      } else {
-        // For availability preview (no specific listing), just set the in-memory slots
-        setSlots(newSlots);
-        toast.success(`Vista previa generada con ${newSlots.length} horarios`);
-      }
-    } catch (error) {
-      console.error('Error generating slots:', error);
-      toast.error('Error al generar horarios');
-    } finally {
-      setIsLoading(false);
+  // Create a stable refresh function
+  const refreshSlots = useCallback(() => {
+    console.log('ProviderSlotManagement: Forzando actualización manual');
+    lastParamsRef.current = ''; // Clear cache to force refresh
+    
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
-  };
-
-  const toggleSlot = async (slotId: string) => {
-    const slot = slots.find(s => s.id === slotId);
-    if (!slot) return;
-
-    console.log('=== TOGGLING SLOT ===');
-    console.log('Slot ID:', slotId);
-    console.log('Current availability:', slot.isAvailable);
-    console.log('Has listingId:', !!slot.listingId);
-    console.log('Config listingId:', config?.listingId);
-
-    // If we have a listingId (either in slot or config), persist to database
-    const listingId = slot.listingId || config?.listingId;
     
-    if (listingId) {
-      setIsSaving(true);
-      try {
-        // For database slots, find by slot properties if we don't have the actual DB ID
-        let updateQuery;
-        
-        if (slot.id.includes('-')) {
-          // This is a generated ID, find by slot properties
-          const slotDateTime = new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
-            parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]));
-          
-          updateQuery = supabase
-            .from('provider_time_slots')
-            .update({ is_available: !slot.isAvailable })
-            .eq('provider_id', user?.id)
-            .eq('listing_id', listingId)
-            .eq('slot_datetime_start', slotDateTime.toISOString());
-        } else {
-          // This is a real DB ID
-          updateQuery = supabase
-            .from('provider_time_slots')
-            .update({ is_available: !slot.isAvailable })
-            .eq('id', slotId);
-        }
-
-        const { error } = await updateQuery;
-        if (error) throw error;
-
-        // Update local state
-        setSlots(prev => prev.map(s => 
-          s.id === slotId ? { ...s, isAvailable: !s.isAvailable } : s
-        ));
-
-        console.log('Manual block persisted to database');
-        toast.success(slot.isAvailable ? 'Horario bloqueado permanentemente' : 'Horario activado');
-      } catch (error) {
-        console.error('Error updating slot:', error);
-        toast.error('Error al actualizar horario');
-      } finally {
-        setIsSaving(false);
-      }
-    } else {
-      // In-memory only (should not happen with listingId now)
-      setSlots(prev => prev.map(s => 
-        s.id === slotId ? { ...s, isAvailable: !s.isAvailable } : s
-      ));
-      toast.success(slot.isAvailable ? 'Horario bloqueado (solo vista previa)' : 'Horario activado (solo vista previa)');
-    }
-  };
-
-  const updateAllSlots = async (isAvailable: boolean) => {
-    if (slots.length === 0) return;
-
-    console.log('=== UPDATING ALL SLOTS ===');
-    console.log('Setting all slots to available:', isAvailable);
-    console.log('Config listingId:', config?.listingId);
-
-    // If we have a listingId, persist to database
-    if (config?.listingId) {
-      setIsSaving(true);
-      try {
-        const { error } = await supabase
-          .from('provider_time_slots')
-          .update({ is_available: isAvailable })
-          .eq('provider_id', user?.id)
-          .eq('listing_id', config.listingId);
-
-        if (error) throw error;
-
-        // Update local state
-        setSlots(prev => prev.map(s => ({ ...s, isAvailable })));
-
-        console.log('All slots updated in database');
-        toast.success(isAvailable ? 'Todos los horarios activados permanentemente' : 'Todos los horarios bloqueados permanentemente');
-      } catch (error) {
-        console.error('Error updating all slots:', error);
-        toast.error('Error al actualizar horarios');
-      } finally {
-        setIsSaving(false);
-      }
-    } else {
-      // In-memory only (should not happen with listingId now)
-      setSlots(prev => prev.map(s => ({ ...s, isAvailable })));
-      toast.success(isAvailable ? 'Todos los horarios activados (solo vista previa)' : 'Todos los horarios bloqueados (solo vista previa)');
-    }
-  };
-
-  // Group slots by date
-  const slotsByDate = useMemo(() => {
-    console.log('=== RECOMPUTING slotsByDate ===');
-    console.log('Input slots count:', slots.length);
-    
-    const grouped: Record<string, ProviderSlot[]> = {};
-    
-    slots.forEach(slot => {
-      const dateKey = format(slot.date, 'yyyy-MM-dd');
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(slot);
-    });
-
-    // Sort slots within each date by time
-    Object.keys(grouped).forEach(dateKey => {
-      grouped[dateKey].sort((a, b) => a.time.localeCompare(b.time));
-    });
-    
-    console.log('Grouped slots by date:', Object.keys(grouped).map(date => `${date}: ${grouped[date].length} slots`));
-    
-    return grouped;
-  }, [slots]);
-
-  // Get available dates
-  const availableDates = useMemo(() => {
-    const dates = slots.map(slot => slot.date);
-    const uniqueDates = Array.from(new Set(dates.map(date => date.getTime())))
-      .map(time => new Date(time))
-      .sort((a, b) => a.getTime() - b.getTime());
-    
-    return uniqueDates;
-  }, [slots]);
-
-  const stats = useMemo(() => {
-    const totalSlots = slots.length;
-    const availableSlots = slots.filter(slot => slot.isAvailable).length;
-    const blockedSlots = slots.filter(slot => !slot.isAvailable).length;
-
-    return {
-      totalSlots,
-      availableSlots,
-      blockedSlots,
-      availablePercentage: totalSlots > 0 ? Math.round((availableSlots / totalSlots) * 100) : 0
-    };
-  }, [slots]);
-
-  // Only load provider slots when we have a specific listing (not in preview mode)
-  useEffect(() => {
-    if (user?.id && config?.listingId) {
-      console.log('=== LOADING PROVIDER SLOTS FROM DB ===');
-      console.log('User ID:', user.id, 'Listing ID:', config.listingId);
-      loadProviderSlots();
-    } else if (user?.id && !config?.listingId) {
-      console.log('=== PREVIEW MODE - NOT LOADING FROM DB ===');
-      console.log('Keeping slots in memory only for preview');
-    }
-  }, [user?.id, config?.listingId]);
+    // Trigger immediate fetch
+    fetchSlots();
+  }, [fetchSlots]);
 
   return {
     slots,
-    slotsByDate,
-    availableDates,
-    stats,
     isLoading,
-    isSaving,
-    loadProviderSlots,
-    generateSlotsFromAvailability,
-    toggleSlot,
-    enableAllSlots: () => updateAllSlots(true),
-    disableAllSlots: () => updateAllSlots(false)
+    lastUpdated,
+    fetchSlots,
+    refreshSlots
   };
 };

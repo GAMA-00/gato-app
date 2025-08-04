@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
+// import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
 import { useProviderListing } from '@/hooks/useProviderListing';
 import SlotCard from '../services/steps/SlotCard';
 import { format } from 'date-fns';
@@ -29,18 +29,19 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     listingId: firstListingId // Now we use real listingId for persistence
   }), [availability, serviceDuration, firstListingId]);
 
-  const {
-    slots,
-    slotsByDate,
-    availableDates,
-    stats,
-    toggleSlot,
-    enableAllSlots,
-    disableAllSlots,
-    isLoading,
-    isSaving,
-    generateSlotsFromAvailability
-  } = useProviderSlotManagement(availabilityConfig);
+  // Este componente ya no se usa, se reemplazó por ProviderSlotBlockingGrid
+  const slots = [];
+  const slotsByDate = {};
+  const availableDates = [];
+  const stats = { totalSlots: 0, availableSlots: 0, blockedSlots: 0, availablePercentage: 0 };
+  const isLoading = false;
+  const isSaving = false;
+  
+  // Funciones dummy para evitar errores
+  const toggleSlot = () => {};
+  const enableAllSlots = () => {};
+  const disableAllSlots = () => {};
+  const generateSlotsFromAvailability = () => {};
 
   // Debug logs for tracking state changes
   useEffect(() => {
@@ -50,8 +51,8 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     console.log('Slots by date keys:', Object.keys(slotsByDate));
     console.log('Stats:', stats);
     
-    Object.entries(slotsByDate).forEach(([date, daySlots]) => {
-      console.log(`Date ${date}: ${daySlots.length} slots`);
+    Object.entries(slotsByDate).forEach(([date, daySlots]: [string, any]) => {
+      console.log(`Date ${date}: ${Array.isArray(daySlots) ? daySlots.length : 0} slots`);
     });
   }, [slots, slotsByDate, availableDates, stats]);
 
@@ -238,8 +239,8 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           time={slot.displayTime}
                           period={slot.period}
                           isEnabled={slot.isAvailable}
-                          onClick={() => toggleSlot(slot.id)}
-                          size="sm"
+                           onClick={() => toggleSlot()}
+                           size="sm"
                           variant="provider"
                         />
                       ))
@@ -281,8 +282,8 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           time={slot.displayTime}
                           period={slot.period}
                           isEnabled={slot.isAvailable}
-                          onClick={() => toggleSlot(slot.id)}
-                          size="sm"
+                           onClick={() => toggleSlot()}
+                           size="sm"
                           variant="provider"
                         />
                       ))

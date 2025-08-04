@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useWeeklySlots } from '@/hooks/useWeeklySlots';
+import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
+import { groupSlotsByDate } from '@/utils/weeklySlotUtils';
 import { format, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -36,19 +37,20 @@ const ProviderSlotBlockingGrid = ({
   const startDate = addWeeks(new Date(), currentWeek);
   
   const {
-    slotGroups, // Usar slotGroups para ver TODOS los slots (disponibles y bloqueados)
-    stats,
+    slots,
     isLoading,
     lastUpdated,
     refreshSlots
-  } = useWeeklySlots({
+  } = useProviderSlotManagement({
     providerId,
     listingId,
     serviceDuration,
-    recurrence: 'once',
     startDate,
     daysAhead: 7
   });
+
+  // Group slots by date manually
+  const slotGroups = useMemo(() => groupSlotsByDate(slots), [slots]);
 
   const handleSlotToggle = async (slotId: string, date: Date, time: string) => {
     const slot = slotGroups

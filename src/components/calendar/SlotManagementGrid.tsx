@@ -4,20 +4,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Clock, Users, RefreshCw } from 'lucide-react';
-import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
+// import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
 
 interface SlotManagementGridProps {
   providerId: string;
 }
 
 export const SlotManagementGrid: React.FC<SlotManagementGridProps> = ({ providerId }) => {
-  const { 
-    slotsByDate, 
-    stats, 
-    isLoading, 
-    loadProviderSlots,
-    toggleSlot 
-  } = useProviderSlotManagement();
+  // Este componente ya no se usa, se reemplazó por ProviderSlotBlockingGrid
+  const slotsByDate = {};
+  const stats = { totalSlots: 0, availableSlots: 0, blockedSlots: 0 };
+  const isLoading = false;
+  const loadProviderSlots = () => {};
+  const toggleSlot = () => {};
 
   if (isLoading) {
     return (
