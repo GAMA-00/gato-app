@@ -67,8 +67,8 @@ const ServiceEdit = () => {
           useCustomVariables: data.use_custom_variables || false,
           // Load availability from the listing
           availability: data.availability ? (typeof data.availability === 'string' ? JSON.parse(data.availability) : data.availability) : undefined,
-          // Load slot preferences from the listing
-          slotPreferences: data.slot_preferences ? (typeof data.slot_preferences === 'string' ? JSON.parse(data.slot_preferences) : data.slot_preferences) : {},
+          // Load slot preferences from the listing (with safe access)
+          slotPreferences: (data as any).slot_preferences ? (typeof (data as any).slot_preferences === 'string' ? JSON.parse((data as any).slot_preferences) : (data as any).slot_preferences) : {},
           providerId: data.provider_id,
           providerName: '',
           residenciaIds: [],
