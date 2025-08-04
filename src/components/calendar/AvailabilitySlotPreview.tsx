@@ -59,6 +59,14 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
   const validAvailableDates = useMemo(() => {
     console.log('=== FILTERING AVAILABLE DATES ===');
     console.log('Input availableDates:', availableDates.length, availableDates);
+    console.log('Slots state count:', slots.length);
+    console.log('slotsByDate keys:', Object.keys(slotsByDate));
+    
+    // Only filter if we have slots loaded
+    if (slots.length === 0) {
+      console.log('No slots loaded yet, returning empty array');
+      return [];
+    }
     
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day
@@ -81,7 +89,7 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     
     console.log('Valid dates result:', uniqueDates.length, uniqueDates);
     return uniqueDates;
-  }, [availableDates]);
+  }, [availableDates, slots.length, slotsByDate]);
 
   // Generate slots when availability changes
   useEffect(() => {
