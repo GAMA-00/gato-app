@@ -55,23 +55,21 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     });
   }, [slots, slotsByDate, availableDates, stats]);
 
-  // Filter and sort available dates to avoid duplicates and past dates
+  // Filter and sort available dates using slotsByDate directly to avoid race conditions
   const validAvailableDates = useMemo(() => {
     console.log('=== FILTERING AVAILABLE DATES ===');
     console.log('Input availableDates:', availableDates.length, availableDates);
     console.log('Slots state count:', slots.length);
     console.log('slotsByDate keys:', Object.keys(slotsByDate));
     
-    // Only filter if we have slots loaded
-    if (slots.length === 0) {
-      console.log('No slots loaded yet, returning empty array');
-      return [];
-    }
-    
-    // ISSUE FOUND: Instead of using availableDates (which has timezone issues),
-    // get dates directly from slotsByDate keys which are already in correct format
+    // Get dates directly from slotsByDate keys which are already in correct format
     const dateKeys = Object.keys(slotsByDate);
     console.log('Using slotsByDate keys directly:', dateKeys);
+    
+    if (dateKeys.length === 0) {
+      console.log('No dates in slotsByDate yet');
+      return [];
+    }
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -89,7 +87,7 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     
     console.log('Valid dates result:', validDates.length, validDates);
     return validDates;
-  }, [slotsByDate, slots.length]);
+  }, [slotsByDate]);
 
   // Generate slots when availability changes
   useEffect(() => {
@@ -132,7 +130,7 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     );
   }
 
-  if (availableDates.length === 0) {
+  if (validAvailableDates.length === 0 && !isLoading && !isLoadingListing) {
     return (
       <Card className="border-gray-200">
         <CardContent className="pt-6">
