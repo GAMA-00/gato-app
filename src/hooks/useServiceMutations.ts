@@ -85,7 +85,8 @@ export const useServiceMutations = () => {
           gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
           use_custom_variables: serviceData.useCustomVariables || false,
           custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null,
-          availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null
+          availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null,
+          slot_preferences: serviceData.slotPreferences ? JSON.stringify(serviceData.slotPreferences) : null
         };
         
         console.log('Datos a insertar en listings:', insertData);
@@ -255,7 +256,8 @@ export const useServiceMutations = () => {
             gallery_images: galleryImageUrls.length ? JSON.stringify(galleryImageUrls) : null,
             use_custom_variables: serviceData.useCustomVariables || false,
             custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null,
-            availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null
+            availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null,
+            slot_preferences: serviceData.slotPreferences ? JSON.stringify(serviceData.slotPreferences) : null
           })
           .eq('id', serviceData.id);
           

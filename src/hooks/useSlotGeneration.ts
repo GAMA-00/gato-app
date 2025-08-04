@@ -44,8 +44,9 @@ const dayLabels: Record<number, string> = {
   6: 'Sábado',
 };
 
-export const useSlotGeneration = (config: SlotGenerationConfig) => {
+export const useSlotGeneration = (config: SlotGenerationConfig, onSlotPreferencesChange?: (preferences: Record<string, boolean>) => void) => {
   const [manuallyDisabledSlots, setManuallyDisabledSlots] = useState<Set<string>>(new Set());
+  const [permanentSlotPreferences, setPermanentSlotPreferences] = useState<Record<string, boolean>>({});
 
   const formatTimeTo12Hour = (time24: string): { time: string; period: 'AM' | 'PM' } => {
     const [hours, minutes] = time24.split(':').map(Number);
@@ -101,6 +102,11 @@ export const useSlotGeneration = (config: SlotGenerationConfig) => {
           const { time: displayTime, period } = formatTimeTo12Hour(time);
           const slotId = `${format(currentDate, 'yyyy-MM-dd')}-${time}`;
           
+          // Create a permanent pattern key (day-time) for recurring blocks
+          const patternKey = `${dayKey}-${time}`;
+          const isPermanentlyDisabled = permanentSlotPreferences[patternKey] === false;
+          const isTemporarilyDisabled = manuallyDisabledSlots.has(slotId);
+          
           slots.push({
             id: slotId,
             day: dayLabels[dayOfWeek],
@@ -108,35 +114,77 @@ export const useSlotGeneration = (config: SlotGenerationConfig) => {
             time,
             displayTime,
             period,
-            isEnabled: !manuallyDisabledSlots.has(slotId),
-            isManuallyDisabled: manuallyDisabledSlots.has(slotId)
+            isEnabled: !isPermanentlyDisabled && !isTemporarilyDisabled,
+            isManuallyDisabled: isPermanentlyDisabled || isTemporarilyDisabled
           });
         });
       });
     }
 
     return slots;
-  }, [config, manuallyDisabledSlots]);
+  }, [config, manuallyDisabledSlots, permanentSlotPreferences]);
 
   const toggleSlot = (slotId: string) => {
-    setManuallyDisabledSlots(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(slotId)) {
-        newSet.delete(slotId);
-      } else {
-        newSet.add(slotId);
-      }
-      return newSet;
+    // Extract date and time from slotId (format: YYYY-MM-DD-HH:MM)
+    const lastDashIndex = slotId.lastIndexOf('-');
+    const datePart = slotId.substring(0, 10); // YYYY-MM-DD
+    const timePart = slotId.substring(11); // HH:MM
+    
+    const date = new Date(datePart);
+    const dayOfWeek = getDay(date);
+    const dayKey = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
+    
+    if (!dayKey) return;
+    
+    const patternKey = `${dayKey}-${timePart}`;
+    
+    setPermanentSlotPreferences(prev => {
+      const newPrefs = { ...prev };
+      const currentState = newPrefs[patternKey] !== false; // true by default
+      newPrefs[patternKey] = !currentState;
+      
+      // Notify parent component of changes
+      onSlotPreferencesChange?.(newPrefs);
+      
+      return newPrefs;
     });
   };
 
   const enableAllSlots = () => {
+    // Get all unique pattern keys and enable them permanently
+    const allPatternKeys = generatedSlots.reduce((patterns, slot) => {
+      const date = new Date(slot.id.substring(0, 10));
+      const dayOfWeek = getDay(date);
+      const dayKey = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
+      if (dayKey) {
+        const patternKey = `${dayKey}-${slot.time}`;
+        patterns.add(patternKey);
+      }
+      return patterns;
+    }, new Set<string>());
+
+    const newPrefs = Object.fromEntries(Array.from(allPatternKeys).map(key => [key, true]));
+    setPermanentSlotPreferences(newPrefs);
+    onSlotPreferencesChange?.(newPrefs);
     setManuallyDisabledSlots(new Set());
   };
 
   const disableAllSlots = () => {
-    const allSlotIds = generatedSlots.map(slot => slot.id);
-    setManuallyDisabledSlots(new Set(allSlotIds));
+    // Get all unique pattern keys and disable them permanently
+    const allPatternKeys = generatedSlots.reduce((patterns, slot) => {
+      const date = new Date(slot.id.substring(0, 10));
+      const dayOfWeek = getDay(date);
+      const dayKey = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
+      if (dayKey) {
+        const patternKey = `${dayKey}-${slot.time}`;
+        patterns.add(patternKey);
+      }
+      return patterns;
+    }, new Set<string>());
+
+    const newPrefs = Object.fromEntries(Array.from(allPatternKeys).map(key => [key, false]));
+    setPermanentSlotPreferences(newPrefs);
+    onSlotPreferencesChange?.(newPrefs);
   };
 
   // Group slots by date for easier rendering

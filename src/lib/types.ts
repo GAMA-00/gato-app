@@ -84,6 +84,8 @@ export interface Service {
   serviceVariants?: ServiceVariant[];
   // Nueva disponibilidad semanal
   availability?: WeeklyAvailability;
+  // Preferencias permanentes de slots (day-time -> enabled)
+  slotPreferences?: Record<string, boolean>;
   // Nuevo campo para servicios post-pago - ahora puede ser boolean o "ambas"
   isPostPayment?: boolean | "ambas";
   // Nuevos campos para variables personalizadas flexibles

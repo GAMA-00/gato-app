@@ -10,12 +10,18 @@ import { es } from 'date-fns/locale';
 import { CheckCircle, XCircle, RotateCcw, Calendar, Clock } from 'lucide-react';
 
 const SlotGeneratorPreview = () => {
-  const { watch } = useFormContext();
+  const { watch, setValue } = useFormContext();
   const availability = watch('availability') || {};
   const serviceVariants = watch('serviceVariants') || [];
+  const slotPreferences = watch('slotPreferences') || {};
   
   // Get the duration from the first service variant
   const serviceDuration = serviceVariants[0]?.duration || 60;
+  
+  // Handle slot preferences changes
+  const handleSlotPreferencesChange = (preferences: Record<string, boolean>) => {
+    setValue('slotPreferences', preferences, { shouldDirty: true });
+  };
   
   const {
     slotsByDate,
@@ -28,7 +34,7 @@ const SlotGeneratorPreview = () => {
     availability,
     serviceDuration: Number(serviceDuration),
     daysAhead: 7
-  });
+  }, handleSlotPreferencesChange);
 
   // Don't show if no availability is configured
   const hasAvailability = Object.values(availability).some((day: any) => day?.enabled);
@@ -74,8 +80,8 @@ const SlotGeneratorPreview = () => {
               <span className="hidden md:inline">Vista Previa de Horarios</span>
             </CardTitle>
             <CardDescription className="hidden md:block mt-2">
-              Horarios generados automáticamente para los próximos 7 días. 
-              Toca cualquier horario para activarlo/desactivarlo.
+              Configura qué horarios estarán disponibles de forma permanente. 
+              Los cambios se aplicarán a todas las semanas futuras.
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
               {stats.enabledSlots} activos de {stats.totalSlots} horarios
