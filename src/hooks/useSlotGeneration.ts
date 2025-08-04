@@ -139,7 +139,6 @@ export const useSlotGeneration = (
 
   const toggleSlot = (slotId: string) => {
     // Extract date and time from slotId (format: YYYY-MM-DD-HH:MM)
-    const lastDashIndex = slotId.lastIndexOf('-');
     const datePart = slotId.substring(0, 10); // YYYY-MM-DD
     const timePart = slotId.substring(11); // HH:MM
     
@@ -153,7 +152,9 @@ export const useSlotGeneration = (
     
     setPermanentSlotPreferences(prev => {
       const newPrefs = { ...prev };
-      const currentState = newPrefs[patternKey] !== false; // true by default
+      // If the pattern key doesn't exist or is true, set it to false (disable)
+      // If it's false, set it to true (enable)
+      const currentState = newPrefs[patternKey] ?? true; // Default to enabled if not set
       newPrefs[patternKey] = !currentState;
       
       // Notify parent component of changes
