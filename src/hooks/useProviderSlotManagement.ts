@@ -162,12 +162,22 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
       }
 
       if (newSlots.length > 0) {
+        // First, delete existing slots for the date range to avoid conflicts
+        const startDate = format(today, 'yyyy-MM-dd');
+        const endDate = format(addDays(today, config.daysAhead || 14), 'yyyy-MM-dd');
+        
+        await supabase
+          .from('provider_time_slots')
+          .delete()
+          .eq('provider_id', user.id)
+          .gte('slot_date', startDate)
+          .lte('slot_date', endDate)
+          .eq('is_reserved', false);
+        
+        // Then insert the new slots
         const { error } = await supabase
           .from('provider_time_slots')
-          .upsert(newSlots, {
-            onConflict: 'provider_id,slot_datetime_start',
-            ignoreDuplicates: false
-          });
+          .insert(newSlots);
 
         if (error) throw error;
         toast.success(`${newSlots.length} horarios generados`);

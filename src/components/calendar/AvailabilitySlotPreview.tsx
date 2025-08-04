@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useSlotGeneration } from '@/hooks/useSlotGeneration';
+import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
 import SlotCard from '../services/steps/SlotCard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCircle, XCircle, Calendar, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Clock, Loader2 } from 'lucide-react';
 
 interface AvailabilitySlotPreviewProps {
   availability: any;
@@ -23,12 +23,23 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     stats,
     toggleSlot,
     enableAllSlots,
-    disableAllSlots
-  } = useSlotGeneration({
+    disableAllSlots,
+    isLoading,
+    isSaving,
+    generateSlotsFromAvailability
+  } = useProviderSlotManagement({
     availability,
     serviceDuration,
     daysAhead: 7
   });
+
+  // Generate slots when availability changes
+  useEffect(() => {
+    const hasAvailability = Object.values(availability).some((day: any) => day?.enabled);
+    if (hasAvailability) {
+      generateSlotsFromAvailability();
+    }
+  }, [availability, generateSlotsFromAvailability]);
 
   // Don't show if no availability is configured
   const hasAvailability = Object.values(availability).some((day: any) => day?.enabled);
@@ -41,6 +52,21 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">
               Configure su disponibilidad arriba para ver los horarios generados
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="border-gray-200">
+        <CardContent className="pt-6">
+          <div className="text-center text-gray-500">
+            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
+            <p className="text-sm">
+              Generando horarios disponibles...
             </p>
           </div>
         </CardContent>
@@ -74,21 +100,27 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
               <span className="hidden md:inline">Vista previa de horarios</span>
             </CardTitle>
             <CardDescription className="hidden md:block mt-2">
-              Horarios generados para los próximos 7 días basados en su disponibilidad configurada.
+              Bloquee o active horarios específicos para los próximos 7 días. Verde = disponible, Rojo = bloqueado.
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
-              {stats.enabledSlots} de {stats.totalSlots} horarios activos
+              {stats.availableSlots} de {stats.totalSlots} horarios activos
             </CardDescription>
           </div>
           <div className="hidden md:flex items-center gap-2">
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
               <CheckCircle className="h-3 w-3 mr-1" />
-              {stats.enabledSlots} activos
+              {stats.availableSlots} disponibles
             </Badge>
             <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
               <XCircle className="h-3 w-3 mr-1" />
-              {stats.disabledSlots} inactivos
+              {stats.disabledSlots} bloqueados
             </Badge>
+            {stats.reservedSlots > 0 && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                <Clock className="h-3 w-3 mr-1" />
+                {stats.reservedSlots} reservados
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -97,7 +129,29 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
         {/* Stats Summary - Desktop only */}
         <div className="hidden md:flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            <strong>{stats.totalSlots}</strong> horarios generados ({stats.enabledPercentage}% activos)
+            <strong>{stats.totalSlots}</strong> horarios generados ({stats.availablePercentage}% disponibles)
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={enableAllSlots}
+              disabled={isSaving}
+              className="h-8 text-xs"
+            >
+              {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+              Activar todos
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={disableAllSlots}
+              disabled={isSaving}
+              className="h-8 text-xs"
+            >
+              {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+              Bloquear todos
+            </Button>
           </div>
         </div>
 
@@ -133,15 +187,18 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           key={slot.id}
                           time={slot.displayTime}
                           period={slot.period}
-                          isEnabled={slot.isEnabled}
-                          isSelected={slot.isEnabled}
-                          isAvailable={slot.isEnabled}
+                          isEnabled={slot.isAvailable && !slot.isReserved}
+                          isSelected={slot.isAvailable && !slot.isReserved}
+                          isAvailable={!slot.isReserved}
                           onClick={() => toggleSlot(slot.id)}
                           size="sm"
-                          variant="client"
-                          className={`w-full ${slot.isEnabled 
-                            ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
-                            : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
+                          variant="provider"
+                          className={`w-full ${
+                            slot.isReserved 
+                              ? 'bg-yellow-50 border-yellow-200 text-yellow-800 cursor-not-allowed opacity-70'
+                              : slot.isAvailable 
+                                ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
+                                : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
                           }`}
                         />
                       ))
@@ -182,15 +239,18 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                           key={slot.id}
                           time={slot.displayTime}
                           period={slot.period}
-                          isEnabled={slot.isEnabled}
-                          isSelected={slot.isEnabled}
-                          isAvailable={slot.isEnabled}
+                          isEnabled={slot.isAvailable && !slot.isReserved}
+                          isSelected={slot.isAvailable && !slot.isReserved}
+                          isAvailable={!slot.isReserved}
                           onClick={() => toggleSlot(slot.id)}
                           size="sm"
-                          variant="client"
-                          className={slot.isEnabled 
-                            ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
-                            : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
+                          variant="provider"
+                          className={
+                            slot.isReserved 
+                              ? 'bg-yellow-50 border-yellow-200 text-yellow-800 cursor-not-allowed opacity-70'
+                              : slot.isAvailable 
+                                ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' 
+                                : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100'
                           }
                         />
                       ))
