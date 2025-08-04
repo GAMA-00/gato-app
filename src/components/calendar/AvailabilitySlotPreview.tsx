@@ -42,18 +42,26 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     generateSlotsFromAvailability
   } = useProviderSlotManagement(availabilityConfig);
 
-  // Debug logs for tracking state changes
-  useEffect(() => {
-    console.log('=== AVAILABILITY SLOT PREVIEW DEBUG ===');
-    console.log('Total slots in state:', slots.length);
-    console.log('Slots by date keys:', Object.keys(slotsByDate));
-    console.log('Available dates count:', availableDates.length);
-    console.log('Stats:', stats);
+  // Filter and sort available dates to avoid duplicates and past dates
+  const validAvailableDates = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
     
-    Object.entries(slotsByDate).forEach(([date, slots]) => {
-      console.log(`Date ${date}: ${slots.length} slots`);
-    });
-  }, [slots, slotsByDate, availableDates, stats]);
+    // Get unique dates that are today or in the future
+    const uniqueDates = Array.from(new Set(
+      availableDates
+        .filter(date => {
+          const dateOnly = new Date(date);
+          dateOnly.setHours(0, 0, 0, 0);
+          return dateOnly >= today;
+        })
+        .map(date => format(date, 'yyyy-MM-dd'))
+    ))
+    .map(dateStr => new Date(dateStr))
+    .sort((a, b) => a.getTime() - b.getTime()); // Sort chronologically
+    
+    return uniqueDates;
+  }, [availableDates]);
 
   // Generate slots when availability changes
   useEffect(() => {
@@ -175,7 +183,7 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
         <div className="md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
           {/* Mobile: Horizontal scroll container for all days */}
           <div className="flex gap-4 overflow-x-auto pb-4 md:hidden">
-            {availableDates.map(date => {
+            {validAvailableDates.map(date => {
               const dateKey = format(date, 'yyyy-MM-dd');
               const daySlots = slotsByDate[dateKey] || [];
               
@@ -218,7 +226,7 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
 
           {/* Desktop: Grid layout */}
           <div className="hidden md:contents">
-            {availableDates.map(date => {
+            {validAvailableDates.map(date => {
               const dateKey = format(date, 'yyyy-MM-dd');
               const daySlots = slotsByDate[dateKey] || [];
               
