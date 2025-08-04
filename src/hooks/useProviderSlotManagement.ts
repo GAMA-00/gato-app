@@ -112,6 +112,11 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
   const generateSlotsFromAvailability = async () => {
     if (!user?.id || !config?.availability) return;
 
+    console.log('=== SLOT GENERATION DEBUG ===');
+    console.log('Config availability:', config.availability);
+    console.log('Service duration:', config.serviceDuration);
+    console.log('Days ahead:', config.daysAhead);
+
     setIsLoading(true);
     try {
       const today = startOfDay(new Date());
@@ -123,18 +128,36 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
         const dayOfWeek = getDay(currentDate);
         const dayKey = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
         
-        if (!dayKey || !config.availability[dayKey]?.enabled) {
+        console.log(`Day ${i}: ${format(currentDate, 'yyyy-MM-dd')} (${dayKey}) - dayOfWeek: ${dayOfWeek}`);
+        
+        if (!dayKey) {
+          console.log(`  - No dayKey found for dayOfWeek ${dayOfWeek}`);
           continue;
         }
 
         const dayAvailability = config.availability[dayKey];
+        console.log(`  - Day availability:`, dayAvailability);
+        
+        if (!dayAvailability?.enabled) {
+          console.log(`  - Day ${dayKey} not enabled, skipping`);
+          continue;
+        }
+
+        if (!dayAvailability.timeSlots || dayAvailability.timeSlots.length === 0) {
+          console.log(`  - No timeSlots for ${dayKey}, skipping`);
+          continue;
+        }
+
+        console.log(`  - Processing ${dayAvailability.timeSlots.length} time slots for ${dayKey}`);
         
         for (const timeSlot of dayAvailability.timeSlots) {
+          console.log(`    - Processing timeSlot:`, timeSlot);
           const timeSlots = generateTimeSlots(
             timeSlot.startTime,
             timeSlot.endTime,
             config.serviceDuration
           );
+          console.log(`    - Generated ${timeSlots.length} time slots:`, timeSlots);
 
           for (const time of timeSlots) {
             const startDateTime = new Date(currentDate);
@@ -146,7 +169,7 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
 
             const { time: displayTime, period } = formatTimeTo12Hour(time);
 
-            newSlots.push({
+            const slot: ProviderSlot = {
               id: `${format(currentDate, 'yyyy-MM-dd')}-${time}`,
               date: currentDate,
               time,
@@ -154,10 +177,18 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
               period,
               isAvailable: true,
               listingId: config.listingId || undefined
-            });
+            };
+
+            console.log(`      - Created slot:`, slot);
+            newSlots.push(slot);
           }
         }
       }
+
+      console.log(`=== FINAL RESULT: ${newSlots.length} slots generated ===`);
+      newSlots.forEach(slot => {
+        console.log(`${format(slot.date, 'yyyy-MM-dd')} ${slot.displayTime} ${slot.period}`);
+      });
 
       // If this is for a specific listing, save to database
       if (config.listingId) {
