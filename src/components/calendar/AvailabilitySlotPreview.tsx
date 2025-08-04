@@ -68,28 +68,28 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
       return [];
     }
     
+    // ISSUE FOUND: Instead of using availableDates (which has timezone issues),
+    // get dates directly from slotsByDate keys which are already in correct format
+    const dateKeys = Object.keys(slotsByDate);
+    console.log('Using slotsByDate keys directly:', dateKeys);
+    
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to start of day
-    console.log('Today reference:', today);
+    today.setHours(0, 0, 0, 0);
+    console.log('Today reference:', format(today, 'yyyy-MM-dd'));
     
-    // Get unique dates that are today or in the future
-    const uniqueDates = Array.from(new Set(
-      availableDates
-        .filter(date => {
-          const dateOnly = new Date(date);
-          dateOnly.setHours(0, 0, 0, 0);
-          const isValidDate = dateOnly >= today;
-          console.log(`  Date ${format(dateOnly, 'yyyy-MM-dd')}: isValidDate=${isValidDate}`);
-          return isValidDate;
-        })
-        .map(date => format(date, 'yyyy-MM-dd'))
-    ))
-    .map(dateStr => new Date(dateStr))
-    .sort((a, b) => a.getTime() - b.getTime()); // Sort chronologically
+    // Convert date keys to Date objects and filter
+    const validDates = dateKeys
+      .map(dateKey => new Date(dateKey))
+      .filter(date => {
+        const isValidDate = date >= today;
+        console.log(`  Date ${format(date, 'yyyy-MM-dd')}: isValidDate=${isValidDate}`);
+        return isValidDate;
+      })
+      .sort((a, b) => a.getTime() - b.getTime());
     
-    console.log('Valid dates result:', uniqueDates.length, uniqueDates);
-    return uniqueDates;
-  }, [availableDates, slots.length, slotsByDate]);
+    console.log('Valid dates result:', validDates.length, validDates);
+    return validDates;
+  }, [slotsByDate, slots.length]);
 
   // Generate slots when availability changes
   useEffect(() => {
