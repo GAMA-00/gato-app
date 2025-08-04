@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
+import { useProviderListing } from '@/hooks/useProviderListing';
 import SlotCard from '../services/steps/SlotCard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -17,12 +18,16 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
   availability, 
   serviceDuration = 60 
 }) => {
+  // Get provider's first listing ID for persistence
+  const { firstListingId, isLoading: isLoadingListing } = useProviderListing();
+
   // Memoize availability config to prevent infinite re-renders
   const availabilityConfig = useMemo(() => ({
     availability,
     serviceDuration,
-    daysAhead: 7
-  }), [availability, serviceDuration]);
+    daysAhead: 7,
+    listingId: firstListingId // Now we use real listingId for persistence
+  }), [availability, serviceDuration, firstListingId]);
 
   const {
     slots,
@@ -76,14 +81,14 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingListing) {
     return (
       <Card className="border-gray-200">
         <CardContent className="pt-6">
           <div className="text-center text-gray-500">
             <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
             <p className="text-sm">
-              Generando horarios disponibles...
+              {isLoadingListing ? 'Configurando persistencia...' : 'Generando horarios disponibles...'}
             </p>
           </div>
         </CardContent>

@@ -77,14 +77,19 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
     try {
       const endDate = addDays(new Date(), config?.daysAhead || 14);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('provider_time_slots')
         .select('*')
         .eq('provider_id', user.id)
         .gte('slot_date', format(new Date(), 'yyyy-MM-dd'))
-        .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
-        .order('slot_datetime_start');
+        .lte('slot_date', format(endDate, 'yyyy-MM-dd'));
 
+      // If we have a specific listing, filter by it
+      if (config?.listingId) {
+        query = query.eq('listing_id', config.listingId);
+      }
+
+      const { data, error } = await query.order('slot_datetime_start');
       if (error) throw error;
 
       const providerSlots: ProviderSlot[] = (data || []).map(slot => {
@@ -198,41 +203,80 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
 
       // If this is for a specific listing, also save to database
       if (config.listingId) {
-        const slotsToInsert = newSlots.map(slot => ({
-          provider_id: user.id,
-          listing_id: config.listingId!,
-          slot_date: format(slot.date, 'yyyy-MM-dd'),
-          start_time: slot.time,
-          end_time: format(new Date(slot.date.getTime() + config.serviceDuration * 60000), 'HH:mm'),
-          slot_datetime_start: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
-            parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1])).toISOString(),
-          slot_datetime_end: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
-            parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]) + config.serviceDuration).toISOString(),
-          is_available: true
-        }));
+        console.log('=== SAVING TO DATABASE WITH PERSISTENCE ===');
+        console.log('Listing ID:', config.listingId);
+        
+        const startDate = format(today, 'yyyy-MM-dd');
+        const endDate = format(addDays(today, config.daysAhead || 14), 'yyyy-MM-dd');
+        
+        // First, get existing manually blocked slots to preserve them
+        const { data: existingSlots, error: fetchError } = await supabase
+          .from('provider_time_slots')
+          .select('*')
+          .eq('provider_id', user.id)
+          .eq('listing_id', config.listingId)
+          .gte('slot_date', startDate)
+          .lte('slot_date', endDate)
+          .eq('is_available', false); // Only get manually blocked slots
+
+        if (fetchError) {
+          console.error('Error fetching existing slots:', fetchError);
+        }
+
+        const manuallyBlockedSlots = existingSlots || [];
+        console.log('Found manually blocked slots:', manuallyBlockedSlots.length);
+
+        // Delete all slots to regenerate, except manually blocked ones
+        await supabase
+          .from('provider_time_slots')
+          .delete()
+          .eq('provider_id', user.id)
+          .eq('listing_id', config.listingId)
+          .gte('slot_date', startDate)
+          .lte('slot_date', endDate)
+          .eq('is_available', true); // Only delete available slots
+
+        // Create slots to insert, but check against manually blocked ones
+        const slotsToInsert = newSlots
+          .filter(slot => {
+            // Don't create a slot if it conflicts with a manually blocked one
+            const slotDateTime = new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
+              parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]));
+            
+            const isManuallyBlocked = manuallyBlockedSlots.some(blockedSlot => {
+              const blockedDateTime = new Date(blockedSlot.slot_datetime_start);
+              return Math.abs(slotDateTime.getTime() - blockedDateTime.getTime()) < 60000; // Within 1 minute
+            });
+            
+            return !isManuallyBlocked;
+          })
+          .map(slot => ({
+            provider_id: user.id,
+            listing_id: config.listingId!,
+            slot_date: format(slot.date, 'yyyy-MM-dd'),
+            start_time: slot.time,
+            end_time: format(new Date(slot.date.getTime() + config.serviceDuration * 60000), 'HH:mm'),
+            slot_datetime_start: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
+              parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1])).toISOString(),
+            slot_datetime_end: new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
+              parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]) + config.serviceDuration).toISOString(),
+            is_available: true
+          }));
 
         if (slotsToInsert.length > 0) {
-          // First, delete existing slots for the date range to avoid conflicts
-          const startDate = format(today, 'yyyy-MM-dd');
-          const endDate = format(addDays(today, config.daysAhead || 14), 'yyyy-MM-dd');
-          
-          await supabase
-            .from('provider_time_slots')
-            .delete()
-            .eq('provider_id', user.id)
-            .eq('listing_id', config.listingId)
-            .gte('slot_date', startDate)
-            .lte('slot_date', endDate);
-          
-          // Then insert the new slots
+          console.log('Inserting new slots:', slotsToInsert.length);
           const { error } = await supabase
             .from('provider_time_slots')
             .insert(slotsToInsert);
 
           if (error) throw error;
-          toast.success(`${slotsToInsert.length} horarios generados`);
-          await loadProviderSlots();
+          
+          console.log('Manually blocked slots preserved:', manuallyBlockedSlots.length);
+          toast.success(`${slotsToInsert.length} horarios generados. ${manuallyBlockedSlots.length} bloqueos manuales preservados.`);
         }
+        
+        // Reload slots to get the complete state including manual blocks
+        await loadProviderSlots();
       } else {
         // For availability preview (no specific listing), just set the in-memory slots
         setSlots(newSlots);
@@ -250,65 +294,99 @@ export const useProviderSlotManagement = (config?: ProviderSlotConfig) => {
     const slot = slots.find(s => s.id === slotId);
     if (!slot) return;
 
-    // If this is an in-memory slot (no listingId), just update state
-    if (!slot.listingId) {
+    console.log('=== TOGGLING SLOT ===');
+    console.log('Slot ID:', slotId);
+    console.log('Current availability:', slot.isAvailable);
+    console.log('Has listingId:', !!slot.listingId);
+    console.log('Config listingId:', config?.listingId);
+
+    // If we have a listingId (either in slot or config), persist to database
+    const listingId = slot.listingId || config?.listingId;
+    
+    if (listingId) {
+      setIsSaving(true);
+      try {
+        // For database slots, find by slot properties if we don't have the actual DB ID
+        let updateQuery;
+        
+        if (slot.id.includes('-')) {
+          // This is a generated ID, find by slot properties
+          const slotDateTime = new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
+            parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]));
+          
+          updateQuery = supabase
+            .from('provider_time_slots')
+            .update({ is_available: !slot.isAvailable })
+            .eq('provider_id', user?.id)
+            .eq('listing_id', listingId)
+            .eq('slot_datetime_start', slotDateTime.toISOString());
+        } else {
+          // This is a real DB ID
+          updateQuery = supabase
+            .from('provider_time_slots')
+            .update({ is_available: !slot.isAvailable })
+            .eq('id', slotId);
+        }
+
+        const { error } = await updateQuery;
+        if (error) throw error;
+
+        // Update local state
+        setSlots(prev => prev.map(s => 
+          s.id === slotId ? { ...s, isAvailable: !s.isAvailable } : s
+        ));
+
+        console.log('Manual block persisted to database');
+        toast.success(slot.isAvailable ? 'Horario bloqueado permanentemente' : 'Horario activado');
+      } catch (error) {
+        console.error('Error updating slot:', error);
+        toast.error('Error al actualizar horario');
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      // In-memory only (should not happen with listingId now)
       setSlots(prev => prev.map(s => 
         s.id === slotId ? { ...s, isAvailable: !s.isAvailable } : s
       ));
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('provider_time_slots')
-        .update({ is_available: !slot.isAvailable })
-        .eq('id', slotId);
-
-      if (error) throw error;
-
-      setSlots(prev => prev.map(s => 
-        s.id === slotId ? { ...s, isAvailable: !s.isAvailable } : s
-      ));
-
-      toast.success(slot.isAvailable ? 'Horario desactivado' : 'Horario activado');
-    } catch (error) {
-      console.error('Error updating slot:', error);
-      toast.error('Error al actualizar horario');
-    } finally {
-      setIsSaving(false);
+      toast.success(slot.isAvailable ? 'Horario bloqueado (solo vista previa)' : 'Horario activado (solo vista previa)');
     }
   };
 
   const updateAllSlots = async (isAvailable: boolean) => {
     if (slots.length === 0) return;
 
-    // If these are in-memory slots (no listingId), just update state
-    if (slots.every(s => !s.listingId)) {
-      setSlots(prev => prev.map(s => ({ ...s, isAvailable })));
-      return;
-    }
+    console.log('=== UPDATING ALL SLOTS ===');
+    console.log('Setting all slots to available:', isAvailable);
+    console.log('Config listingId:', config?.listingId);
 
-    setIsSaving(true);
-    try {
-      const slotIds = slots.filter(s => s.listingId).map(s => s.id);
-      if (slotIds.length > 0) {
+    // If we have a listingId, persist to database
+    if (config?.listingId) {
+      setIsSaving(true);
+      try {
         const { error } = await supabase
           .from('provider_time_slots')
           .update({ is_available: isAvailable })
-          .in('id', slotIds);
+          .eq('provider_id', user?.id)
+          .eq('listing_id', config.listingId);
 
         if (error) throw error;
+
+        // Update local state
+        setSlots(prev => prev.map(s => ({ ...s, isAvailable })));
+
+        console.log('All slots updated in database');
+        toast.success(isAvailable ? 'Todos los horarios activados permanentemente' : 'Todos los horarios bloqueados permanentemente');
+      } catch (error) {
+        console.error('Error updating all slots:', error);
+        toast.error('Error al actualizar horarios');
+      } finally {
+        setIsSaving(false);
       }
-
+    } else {
+      // In-memory only (should not happen with listingId now)
       setSlots(prev => prev.map(s => ({ ...s, isAvailable })));
-
-      toast.success(isAvailable ? 'Todos los horarios activados' : 'Todos los horarios desactivados');
-    } catch (error) {
-      console.error('Error updating slots:', error);
-      toast.error('Error al actualizar horarios');
-    } finally {
-      setIsSaving(false);
+      toast.success(isAvailable ? 'Todos los horarios activados (solo vista previa)' : 'Todos los horarios bloqueados (solo vista previa)');
     }
   };
 
