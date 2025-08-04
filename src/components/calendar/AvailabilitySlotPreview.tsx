@@ -42,10 +42,27 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
     generateSlotsFromAvailability
   } = useProviderSlotManagement(availabilityConfig);
 
+  // Debug logs for tracking state changes
+  useEffect(() => {
+    console.log('=== AVAILABILITY SLOT PREVIEW DEBUG ===');
+    console.log('Total slots in state:', slots.length);
+    console.log('Available dates raw:', availableDates.length, availableDates);
+    console.log('Slots by date keys:', Object.keys(slotsByDate));
+    console.log('Stats:', stats);
+    
+    Object.entries(slotsByDate).forEach(([date, daySlots]) => {
+      console.log(`Date ${date}: ${daySlots.length} slots`);
+    });
+  }, [slots, slotsByDate, availableDates, stats]);
+
   // Filter and sort available dates to avoid duplicates and past dates
   const validAvailableDates = useMemo(() => {
+    console.log('=== FILTERING AVAILABLE DATES ===');
+    console.log('Input availableDates:', availableDates.length, availableDates);
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day
+    console.log('Today reference:', today);
     
     // Get unique dates that are today or in the future
     const uniqueDates = Array.from(new Set(
@@ -53,13 +70,16 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
         .filter(date => {
           const dateOnly = new Date(date);
           dateOnly.setHours(0, 0, 0, 0);
-          return dateOnly >= today;
+          const isValidDate = dateOnly >= today;
+          console.log(`  Date ${format(dateOnly, 'yyyy-MM-dd')}: isValidDate=${isValidDate}`);
+          return isValidDate;
         })
         .map(date => format(date, 'yyyy-MM-dd'))
     ))
     .map(dateStr => new Date(dateStr))
     .sort((a, b) => a.getTime() - b.getTime()); // Sort chronologically
     
+    console.log('Valid dates result:', uniqueDates.length, uniqueDates);
     return uniqueDates;
   }, [availableDates]);
 
