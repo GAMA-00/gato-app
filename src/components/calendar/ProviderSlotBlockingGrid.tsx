@@ -36,7 +36,7 @@ const ProviderSlotBlockingGrid = ({
   const startDate = addWeeks(new Date(), currentWeek);
   
   const {
-    slotGroups, // Usamos slotGroups para ver TODOS los slots, no solo availableSlotGroups
+    slotGroups, // Usar slotGroups para ver TODOS los slots (disponibles y bloqueados)
     stats,
     isLoading,
     lastUpdated,
@@ -296,7 +296,7 @@ const ProviderSlotBlockingGrid = ({
           </Button>
         </div>
 
-        {/* Slots Grid */}
+        {/* Slots Grid - Mostrar TODOS los slots con colores diferentes */}
         <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
           {slotGroups.map(group => (
             <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
@@ -309,11 +309,11 @@ const ProviderSlotBlockingGrid = ({
                   {group.dayNumber} {group.dayMonth}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {group.slots.filter(s => s.isAvailable).length} disponibles
+                  {group.slots.filter(s => s.isAvailable).length} de {group.slots.length} disponibles
                 </div>
               </div>
 
-              {/* Day Slots */}
+              {/* Day Slots - Mostrar TODOS los slots */}
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
                 {group.slots.map(slot => {
                   const isBlocking = blockingSlots.has(slot.id);
