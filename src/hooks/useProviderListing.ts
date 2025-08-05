@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const useProviderListing = () => {
   const { user } = useAuth();
   const [firstListingId, setFirstListingId] = useState<string | null>(null);
+  const [serviceDuration, setServiceDuration] = useState<number>(60);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -15,7 +16,7 @@ export const useProviderListing = () => {
       try {
         const { data, error } = await supabase
           .from('listings')
-          .select('id')
+          .select('id, duration')
           .eq('provider_id', user.id)
           .eq('is_active', true)
           .order('created_at', { ascending: true })
@@ -28,6 +29,7 @@ export const useProviderListing = () => {
         }
 
         setFirstListingId(data?.id || null);
+        setServiceDuration(data?.duration || 60);
       } catch (error) {
         console.error('Error in fetchFirstListing:', error);
       } finally {
@@ -40,6 +42,7 @@ export const useProviderListing = () => {
 
   return {
     firstListingId,
+    serviceDuration,
     isLoading
   };
 };

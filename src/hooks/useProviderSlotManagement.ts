@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { addDays, format, startOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
@@ -115,6 +115,23 @@ export const useProviderSlotManagement = ({
       setIsLoading(false);
     }
   }, [providerId, listingId, serviceDuration, startDate, daysAhead]);
+
+  // Auto-fetch slots when parameters change
+  useEffect(() => {
+    if (providerId && listingId && serviceDuration > 0) {
+      console.log('🔄 [ProviderSlotManagement] Disparando fetch por cambio de parámetros:', {
+        startDate: startDate ? startDate.toISOString().split('T')[0] : 'today',
+        providerId,
+        listingId,
+        serviceDuration
+      });
+      
+      const timer = setTimeout(() => {
+        fetchSlots();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [providerId, listingId, serviceDuration, startDate?.getTime(), fetchSlots]);
 
   // Create a stable refresh function
   const refreshSlots = useCallback(() => {

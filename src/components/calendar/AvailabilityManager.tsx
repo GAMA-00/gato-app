@@ -24,7 +24,7 @@ const DAYS = [
 export const AvailabilityManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState('availability');
   const { user } = useAuth();
-  const { firstListingId, isLoading: isLoadingListing } = useProviderListing();
+  const { firstListingId, serviceDuration, isLoading: isLoadingListing } = useProviderListing();
   const {
     availability,
     isLoading,
@@ -259,7 +259,7 @@ export const AvailabilityManager: React.FC = () => {
             <ProviderSlotBlockingGrid
               providerId={user.id}
               listingId={firstListingId}
-              serviceDuration={60}
+              serviceDuration={serviceDuration}
             />
           ) : (
             <Card className="shadow-md border-yellow-200 bg-yellow-50">
