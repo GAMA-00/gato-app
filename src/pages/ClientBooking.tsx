@@ -29,6 +29,7 @@ const ClientBooking = () => {
   const [selectedFrequency, setSelectedFrequency] = useState('once');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [totalDuration, setTotalDuration] = useState<number>(0);
   const [notes, setNotes] = useState('');
   const [customVariableSelections, setCustomVariableSelections] = useState<any>({});
   const [customVariablesTotalPrice, setCustomVariablesTotalPrice] = useState<number>(0);
@@ -141,7 +142,8 @@ const ClientBooking = () => {
       startDateTime.setHours(hours, minutes, 0, 0);
       
       const endDateTime = new Date(startDateTime);
-      endDateTime.setMinutes(endDateTime.getMinutes() + selectedVariant.duration);
+      const duration = totalDuration > 0 ? totalDuration : selectedVariant.duration;
+      endDateTime.setMinutes(endDateTime.getMinutes() + duration);
 
       console.log('Horario seleccionado:', {
         startDateTime: startDateTime.toISOString(),
@@ -322,8 +324,10 @@ const ClientBooking = () => {
           onFrequencyChange={setSelectedFrequency}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
+          totalDuration={totalDuration}
           onDateChange={setSelectedDate}
           onTimeChange={setSelectedTime}
+          onDurationChange={setTotalDuration}
           providerId={providerId}
           listingId={serviceId || ''}
            selectedVariants={selectedVariants}

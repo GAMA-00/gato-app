@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +20,8 @@ interface WeeklySlotGridProps {
   providerId: string;
   listingId: string;
   serviceDuration: number;
-  selectedSlot?: string;
-  onSlotSelect: (slotId: string, date: Date, time: string) => void;
+  selectedSlots?: string[];
+  onSlotSelect: (slots: string[], startDate: Date, startTime: string, totalDuration: number) => void;
   recurrence?: string;
   requiredSlots?: number;
 }
@@ -29,18 +30,18 @@ const WeeklySlotGrid = ({
   providerId,
   listingId,
   serviceDuration,
-  selectedSlot,
+  selectedSlots = [],
   onSlotSelect,
   recurrence = 'once',
   requiredSlots = 1
 }: WeeklySlotGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
-  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(selectedSlot);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);
 
   // Sync local state with prop when it changes
   React.useEffect(() => {
-    setSelectedSlotId(selectedSlot);
-  }, [selectedSlot]);
+    setSelectedSlotIds(selectedSlots);
+  }, [selectedSlots]);
 
   const startDate = addWeeks(new Date(), currentWeek);
   
@@ -61,6 +62,37 @@ const WeeklySlotGrid = ({
     daysAhead: 7
   });
 
+  const areSlotConsecutive = (slots: any[]): boolean => {
+    if (slots.length <= 1) return true;
+    
+    // Group by date
+    const slotsByDate = slots.reduce((acc, slot) => {
+      const dateKey = format(slot.date, 'yyyy-MM-dd');
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(slot);
+      return acc;
+    }, {} as Record<string, any[]>);
+    
+    // Check if all slots are on the same date
+    const dates = Object.keys(slotsByDate);
+    if (dates.length !== 1) return false;
+    
+    // Sort slots by time and check consecutivity
+    const sortedSlots = slotsByDate[dates[0]].sort((a, b) => {
+      const timeA = parseInt(a.time.split(':')[0]);
+      const timeB = parseInt(b.time.split(':')[0]);
+      return timeA - timeB;
+    });
+    
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const prevHour = parseInt(sortedSlots[i - 1].time.split(':')[0]);
+      const currentHour = parseInt(sortedSlots[i].time.split(':')[0]);
+      if (currentHour !== prevHour + 1) return false;
+    }
+    
+    return true;
+  };
+
   const handleSlotClick = (slotId: string, date: Date, time: string) => {
     const slot = availableSlotGroups
       .flatMap(group => group.slots)
@@ -68,27 +100,61 @@ const WeeklySlotGrid = ({
     
     if (!slot || !slot.isAvailable) return;
 
-    // Always select slot immediately - no async validation that could cause deselection
-    setSelectedSlotId(slotId);
-    onSlotSelect(slotId, date, time);
+    const newSelectedSlots = selectedSlotIds.includes(slotId)
+      ? selectedSlotIds.filter(id => id !== slotId)
+      : [...selectedSlotIds, slotId];
     
-    console.log(`✅ Slot seleccionado: ${time} en ${date.toLocaleDateString()} (recurrencia: ${recurrence})`);
+    // Find the actual slot objects
+    const allSlots = availableSlotGroups.flatMap(group => group.slots);
+    const selectedSlotObjects = allSlots.filter(s => newSelectedSlots.includes(s.id));
+    
+    // Validate consecutivity
+    if (selectedSlotObjects.length > 1 && !areSlotConsecutive(selectedSlotObjects)) {
+      toast.error('Los slots deben ser consecutivos del mismo día');
+      return;
+    }
+    
+    // Validate max slots
+    if (newSelectedSlots.length > requiredSlots) {
+      toast.error(`Solo puedes seleccionar ${requiredSlots} slot${requiredSlots > 1 ? 's' : ''}`);
+      return;
+    }
+    
+    setSelectedSlotIds(newSelectedSlots);
+    
+    if (newSelectedSlots.length > 0) {
+      // Sort selected slots by time to get the start time
+      const sortedSlots = selectedSlotObjects.sort((a, b) => {
+        const timeA = parseInt(a.time.split(':')[0]);
+        const timeB = parseInt(b.time.split(':')[0]);
+        return timeA - timeB;
+      });
+      
+      const startSlot = sortedSlots[0];
+      const totalDuration = serviceDuration * newSelectedSlots.length;
+      
+      onSlotSelect(newSelectedSlots, startSlot.date, startSlot.time, totalDuration);
+      console.log(`✅ ${newSelectedSlots.length} slots seleccionados consecutivos, duración total: ${totalDuration} min`);
+    } else {
+      // No slots selected
+      onSlotSelect([], new Date(), '', 0);
+    }
   };
 
   const goToPreviousWeek = () => {
     if (currentWeek > 0) {
       setCurrentWeek(prev => prev - 1);
-      setSelectedSlotId(undefined);
+      setSelectedSlotIds([]);
       // Notify parent that slot selection was cleared
-      onSlotSelect('', new Date(), '');
+      onSlotSelect([], new Date(), '', 0);
     }
   };
 
   const goToNextWeek = () => {
     setCurrentWeek(prev => prev + 1);
-    setSelectedSlotId(undefined);
+    setSelectedSlotIds([]);
     // Notify parent that slot selection was cleared
-    onSlotSelect('', new Date(), '');
+    onSlotSelect([], new Date(), '', 0);
   };
 
   const getRecurrenceText = (freq: string) => {
@@ -166,9 +232,17 @@ const WeeklySlotGrid = ({
             <CardDescription className="hidden md:block mt-2">
               Horarios disponibles para servicio {getRecurrenceText(recurrence)}
               {requiredSlots > 1 && (
-                <span className="block text-xs text-orange-600 mt-1">
-                  ⚡ Debes seleccionar {requiredSlots} horarios (tienes {requiredSlots} servicios)
-                </span>
+                <div className="mt-2 space-y-1">
+                  <span className="block text-xs text-orange-600">
+                    ⚡ Debes seleccionar {requiredSlots} horarios consecutivos (tienes {requiredSlots} servicios)
+                  </span>
+                  {selectedSlotIds.length > 0 && (
+                    <span className="block text-xs text-blue-600">
+                      📍 {selectedSlotIds.length} de {requiredSlots} slots seleccionados
+                      {selectedSlotIds.length === requiredSlots && " ✓ Completo"}
+                    </span>
+                  )}
+                </div>
               )}
               {recurrence !== 'once' && (
                 <span className="block text-xs text-green-600 mt-1">
@@ -179,9 +253,16 @@ const WeeklySlotGrid = ({
             <CardDescription className="md:hidden text-center mt-2">
               {stats.availableSlots} horarios disponibles
               {requiredSlots > 1 && (
-                <span className="block text-xs text-orange-600 mt-1">
-                  Selecciona {requiredSlots} horarios
-                </span>
+                <div className="mt-1 space-y-1">
+                  <span className="block text-xs text-orange-600">
+                    Selecciona {requiredSlots} consecutivos
+                  </span>
+                  {selectedSlotIds.length > 0 && (
+                    <span className="block text-xs text-blue-600">
+                      {selectedSlotIds.length}/{requiredSlots} slots
+                    </span>
+                  )}
+                </div>
               )}
             </CardDescription>
           </div>
@@ -269,7 +350,7 @@ const WeeklySlotGrid = ({
                       time={slot.displayTime}
                       period={slot.period}
                       isEnabled={slot.isAvailable}
-                      isSelected={selectedSlotId === slot.id}
+                      isSelected={selectedSlotIds.includes(slot.id)}
                       isAvailable={slot.isAvailable}
                       onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
                       size="sm"

@@ -12,8 +12,10 @@ interface NewBookingFormProps {
   onFrequencyChange: (frequency: string) => void;
   selectedDate: Date | undefined;
   selectedTime: string;
+  totalDuration: number;
   onDateChange: (date: Date | undefined) => void;
   onTimeChange: (time: string) => void;
+  onDurationChange: (duration: number) => void;
   providerId: string;
   listingId: string; // Añadir listingId
   selectedVariants: ServiceVariantWithQuantity[];
@@ -29,8 +31,10 @@ const NewBookingForm = ({
   onFrequencyChange,
   selectedDate,
   selectedTime,
+  totalDuration,
   onDateChange,
   onTimeChange,
+  onDurationChange,
   providerId,
   listingId, // Añadir listingId
   selectedVariants,
@@ -40,12 +44,13 @@ const NewBookingForm = ({
   customVariableSelections,
   onCustomVariableSelectionsChange
 }: NewBookingFormProps) => {
-  const [selectedSlotId, setSelectedSlotId] = useState<string>('');
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
-  const handleSlotSelect = (slotId: string, date: Date, time: string) => {
-    setSelectedSlotId(slotId);
+  const handleSlotSelect = (slotIds: string[], date: Date, time: string, duration: number) => {
+    setSelectedSlotIds(slotIds);
     onDateChange(date);
     onTimeChange(time);
+    onDurationChange(duration);
   };
 
   return (
@@ -70,7 +75,7 @@ const NewBookingForm = ({
         providerId={providerId}
         listingId={listingId}
         serviceDuration={selectedVariants[0]?.duration || 60}
-        selectedSlot={selectedSlotId}
+        selectedSlots={selectedSlotIds}
         onSlotSelect={handleSlotSelect}
         recurrence={selectedFrequency}
         requiredSlots={selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)}
