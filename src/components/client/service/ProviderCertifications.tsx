@@ -24,6 +24,31 @@ const ProviderCertifications = ({ certifications }: ProviderCertificationsProps)
     return null;
   }
 
+  const handleCertificationClick = (file: CertificationFile) => {
+    try {
+      // Crear una URL que fuerce la descarga con el Content-Type correcto
+      const link = document.createElement('a');
+      link.href = file.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      
+      // Para PDFs, añadir parámetros que ayuden con la visualización
+      if (file.type === 'application/pdf' || file.url?.toLowerCase().endsWith('.pdf')) {
+        // Forzar que se abra como PDF y no como texto
+        const url = new URL(file.url);
+        url.searchParams.set('response-content-type', 'application/pdf');
+        url.searchParams.set('response-content-disposition', 'inline');
+        link.href = url.toString();
+      }
+      
+      link.click();
+    } catch (error) {
+      console.error('Error opening certification:', error);
+      // Fallback a window.open
+      window.open(file.url, '_blank');
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -39,7 +64,7 @@ const ProviderCertifications = ({ certifications }: ProviderCertificationsProps)
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => window.open(file.url, '_blank')}
+                onClick={() => handleCertificationClick(file)}
                 className="text-blue-700 font-medium"
               >
                 Certificación <ExternalLink className="h-3.5 w-3.5 ml-1" />
