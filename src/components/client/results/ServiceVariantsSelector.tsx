@@ -67,7 +67,10 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                 <h4 className="font-medium">{variant.name}</h4>
                 <div className="flex items-center text-sm text-muted-foreground mt-1">
                   <Clock className="h-4 w-4 mr-1" />
-                  <span>{variant.duration}h</span>
+                  <span>
+                    {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
+                    {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
+                  </span>
                   <span className="mx-2">•</span>
                   <span>${formatCurrency(Number(variant.price))}</span>
                 </div>
