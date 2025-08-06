@@ -1260,6 +1260,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      debug_slot_generation: {
+        Args: { p_listing_id: string }
+        Returns: {
+          debug_info: string
+          debug_value: string
+        }[]
+      }
       extend_recurring_instances: {
         Args: Record<PropertyKey, never>
         Returns: number
