@@ -61,16 +61,7 @@ const NewBookingForm = ({
         onFrequencyChange={onFrequencyChange}
       />
 
-      {/* 2. Recurrence Pattern Display */}
-      {selectedFrequency !== 'once' && selectedDate && selectedTime && (
-        <RecurrencePatternDisplay
-          frequency={selectedFrequency}
-          selectedDate={selectedDate}
-          selectedTime={selectedTime}
-        />
-      )}
-
-      {/* 3. Optimized Weekly Slot Grid */}
+      {/* 2. Optimized Weekly Slot Grid - Schedule Selection */}
       <WeeklySlotGrid
         providerId={providerId}
         listingId={listingId}
@@ -80,6 +71,15 @@ const NewBookingForm = ({
         recurrence={selectedFrequency}
         requiredSlots={selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)}
       />
+
+      {/* 3. Recurrence Pattern Display - After schedule selection */}
+      {selectedFrequency !== 'once' && selectedDate && selectedTime && (
+        <RecurrencePatternDisplay
+          frequency={selectedFrequency}
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
+        />
+      )}
 
       {/* 4. Custom Variables */}
       {customVariableGroups && customVariableGroups.length > 0 && onCustomVariableSelectionsChange && (
