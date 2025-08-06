@@ -82,6 +82,22 @@ export const useUnifiedProviderAvailability = ({
       // Check availability for each slot using unified validation
       const checkedSlots: TimeSlot[] = [];
       
+      // First, get all blocked time slots for this provider on this date to optimize queries
+      const { data: blockedTimeSlots } = await supabase
+        .from('provider_time_slots')
+        .select('*')
+        .eq('provider_id', providerId)
+        .eq('slot_date', format(selectedDate, 'yyyy-MM-dd'))
+        .eq('recurring_blocked', true);
+      
+      const blockedSlotsMap = new Map();
+      blockedTimeSlots?.forEach(slot => {
+        if (slot.slot_datetime_start) {
+          const slotTime = new Date(slot.slot_datetime_start).toTimeString().substring(0, 5);
+          blockedSlotsMap.set(slotTime, slot);
+        }
+      });
+      
       for (const slot of timeSlots) {
         const [slotHour, slotMinute] = slot.time.split(':').map(Number);
         const slotStart = new Date(selectedDate);
@@ -95,17 +111,8 @@ export const useUnifiedProviderAvailability = ({
           continue;
         }
 
-        // Check if slot is blocked by recurring appointments
-        const { data: blockedSlots } = await supabase
-          .from('provider_time_slots')
-          .select('*')
-          .eq('provider_id', providerId)
-          .eq('slot_datetime_start', slotStart.toISOString())
-          .eq('recurring_blocked', true)
-          .single();
-
-        if (blockedSlots) {
-          // Slot is blocked by recurring appointment
+        // Check if slot is blocked by recurring appointments (optimized lookup)
+        if (blockedSlotsMap.has(slot.time)) {
           checkedSlots.push({
             time: slot.time,
             available: false,
@@ -212,6 +219,21 @@ export const useUnifiedProviderAvailability = ({
         },
         (payload) => {
           console.log('Real-time blocked slot update detected, invalidating cache for provider:', providerId);
+          invalidateProviderCache();
+          fetchUnifiedAvailability(true);
+        }
+      )
+      // Listen to provider time slots changes (including recurring blocked slots)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'provider_time_slots',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          console.log('Real-time provider time slot update detected, invalidating cache for provider:', providerId);
           invalidateProviderCache();
           fetchUnifiedAvailability(true);
         }
