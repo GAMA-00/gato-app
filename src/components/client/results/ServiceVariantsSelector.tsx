@@ -2,30 +2,47 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, Plus } from 'lucide-react';
+import { Clock, Plus, Minus } from 'lucide-react';
 import { ServiceVariant } from '@/components/client/service/types';
 import { formatCurrency } from '@/lib/utils';
 
+export interface ServiceVariantWithQuantity extends ServiceVariant {
+  quantity: number;
+}
+
 interface ServiceVariantsSelectorProps {
   variants: ServiceVariant[];
-  onSelectVariant: (variants: ServiceVariant[]) => void;
+  onSelectVariant: (variants: ServiceVariantWithQuantity[]) => void;
 }
 
 const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsSelectorProps) => {
-  const [selectedVariants, setSelectedVariants] = React.useState<ServiceVariant[]>([]);
+  const [variantQuantities, setVariantQuantities] = React.useState<{ [key: string]: number }>({});
   
-  const handleVariantToggle = (variant: ServiceVariant) => {
-    const isSelected = selectedVariants.find(v => v.id === variant.id);
-    let newSelection: ServiceVariant[];
+  const handleQuantityChange = (variant: ServiceVariant, change: number) => {
+    const currentQuantity = variantQuantities[variant.id] || 0;
+    const newQuantity = Math.max(0, currentQuantity + change);
     
-    if (isSelected) {
-      newSelection = selectedVariants.filter(v => v.id !== variant.id);
-    } else {
-      newSelection = [...selectedVariants, variant];
+    const newQuantities = {
+      ...variantQuantities,
+      [variant.id]: newQuantity
+    };
+    
+    // Remove variants with 0 quantity
+    if (newQuantity === 0) {
+      delete newQuantities[variant.id];
     }
     
-    setSelectedVariants(newSelection);
-    onSelectVariant(newSelection);
+    setVariantQuantities(newQuantities);
+    
+    // Convert to array with quantities for parent component
+    const selectedVariantsWithQuantities: ServiceVariantWithQuantity[] = Object.entries(newQuantities)
+      .map(([variantId, quantity]) => {
+        const variant = variants.find(v => v.id === variantId);
+        return variant ? { ...variant, quantity } : null;
+      })
+      .filter(Boolean) as ServiceVariantWithQuantity[];
+    
+    onSelectVariant(selectedVariantsWithQuantities);
   };
   
   if (!variants || variants.length === 0) {
@@ -39,7 +56,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
       </CardHeader>
       <CardContent className="space-y-3">
         {variants.map((variant) => {
-          const isSelected = selectedVariants.find(v => v.id === variant.id);
+          const quantity = variantQuantities[variant.id] || 0;
           
           return (
             <div 
@@ -56,14 +73,30 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                 </div>
               </div>
               
-              <Button
-                variant={isSelected ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleVariantToggle(variant)}
-                className="ml-4"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuantityChange(variant, -1)}
+                  disabled={quantity === 0}
+                  className="h-8 w-8 p-0"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                
+                <span className="min-w-[2rem] text-center font-medium">
+                  {quantity}
+                </span>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuantityChange(variant, 1)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           );
         })}

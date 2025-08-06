@@ -326,7 +326,7 @@ const ClientBooking = () => {
           onTimeChange={setSelectedTime}
           providerId={providerId}
           listingId={serviceId || ''}
-          selectedVariant={selectedVariant}
+           selectedVariants={selectedVariants}
           notes={notes}
           onNotesChange={setNotes}
           customVariableGroups={serviceDetails.custom_variable_groups}

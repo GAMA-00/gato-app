@@ -11,7 +11,7 @@ import ServiceDescription from '@/components/client/service/ServiceDescription';
 import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAbout from '@/components/providers/ProviderAbout';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
-import ServiceVariantsSelector from '@/components/client/results/ServiceVariantsSelector';
+import ServiceVariantsSelector, { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import PriceInformation from '@/components/client/service/PriceInformation';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,7 +28,7 @@ const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedVariants, setSelectedVariants] = React.useState<any[]>([]);
+  const [selectedVariants, setSelectedVariants] = React.useState<ServiceVariantWithQuantity[]>([]);
 
   const { serviceDetails, isLoading, error } = useServiceDetail(providerId, serviceId, user?.id);
 

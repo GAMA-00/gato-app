@@ -4,7 +4,7 @@ import WeeklySlotGrid from './WeeklySlotGrid';
 import NotesSection from './NotesSection';
 import CustomVariableSelector from './CustomVariableSelector';
 import RecurrencePatternDisplay from './RecurrencePatternDisplay';
-import { ServiceVariant } from '@/components/client/service/types';
+import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import { CustomVariableGroup } from '@/lib/types';
 
 interface NewBookingFormProps {
@@ -16,7 +16,7 @@ interface NewBookingFormProps {
   onTimeChange: (time: string) => void;
   providerId: string;
   listingId: string; // Añadir listingId
-  selectedVariant: ServiceVariant | undefined;
+  selectedVariants: ServiceVariantWithQuantity[];
   notes: string;
   onNotesChange: (notes: string) => void;
   customVariableGroups?: CustomVariableGroup[];
@@ -33,7 +33,7 @@ const NewBookingForm = ({
   onTimeChange,
   providerId,
   listingId, // Añadir listingId
-  selectedVariant,
+  selectedVariants,
   notes,
   onNotesChange,
   customVariableGroups,
@@ -69,10 +69,11 @@ const NewBookingForm = ({
       <WeeklySlotGrid
         providerId={providerId}
         listingId={listingId}
-        serviceDuration={selectedVariant?.duration || 60}
+        serviceDuration={selectedVariants[0]?.duration || 60}
         selectedSlot={selectedSlotId}
         onSlotSelect={handleSlotSelect}
         recurrence={selectedFrequency}
+        requiredSlots={selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)}
       />
 
       {/* 4. Custom Variables */}

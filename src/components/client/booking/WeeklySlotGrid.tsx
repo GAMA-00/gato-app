@@ -22,6 +22,7 @@ interface WeeklySlotGridProps {
   selectedSlot?: string;
   onSlotSelect: (slotId: string, date: Date, time: string) => void;
   recurrence?: string;
+  requiredSlots?: number;
 }
 
 const WeeklySlotGrid = ({
@@ -30,7 +31,8 @@ const WeeklySlotGrid = ({
   serviceDuration,
   selectedSlot,
   onSlotSelect,
-  recurrence = 'once'
+  recurrence = 'once',
+  requiredSlots = 1
 }: WeeklySlotGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(selectedSlot);
@@ -163,6 +165,11 @@ const WeeklySlotGrid = ({
             </CardTitle>
             <CardDescription className="hidden md:block mt-2">
               Horarios disponibles para servicio {getRecurrenceText(recurrence)}
+              {requiredSlots > 1 && (
+                <span className="block text-xs text-orange-600 mt-1">
+                  ⚡ Debes seleccionar {requiredSlots} horarios (tienes {requiredSlots} servicios)
+                </span>
+              )}
               {recurrence !== 'once' && (
                 <span className="block text-xs text-green-600 mt-1">
                   ✓ Considerando disponibilidad para recurrencia
@@ -171,6 +178,11 @@ const WeeklySlotGrid = ({
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
               {stats.availableSlots} horarios disponibles
+              {requiredSlots > 1 && (
+                <span className="block text-xs text-orange-600 mt-1">
+                  Selecciona {requiredSlots} horarios
+                </span>
+              )}
             </CardDescription>
           </div>
           <div className="hidden md:flex items-center gap-2">

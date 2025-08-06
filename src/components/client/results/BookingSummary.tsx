@@ -3,19 +3,20 @@ import React from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, Calendar } from 'lucide-react';
-import { ServiceVariant } from '@/components/client/service/types';
+import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 
 interface BookingSummaryProps {
-  selectedVariants: ServiceVariant[];
+  selectedVariants: ServiceVariantWithQuantity[];
   onSchedule: () => void;
 }
 
 const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) => {
-  // Calculate totals
-  const totalPrice = selectedVariants.reduce((sum, variant) => sum + Number(variant.price), 0);
-  const totalDuration = selectedVariants.reduce((sum, variant) => sum + Number(variant.duration), 0);
+  // Calculate totals considering quantities
+  const totalPrice = selectedVariants.reduce((sum, variant) => sum + (Number(variant.price) * variant.quantity), 0);
+  const totalDuration = selectedVariants.reduce((sum, variant) => sum + (Number(variant.duration) * variant.quantity), 0);
+  const totalServices = selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0);
   
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -36,12 +37,21 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
         {selectedVariants.map((variant, index) => (
           <div key={variant.id || index} className="mb-5">
             <div className="flex justify-between items-center mb-1">
-              <h3 className="font-medium">{variant.name}</h3>
-              <span className="font-semibold">${formatCurrency(Number(variant.price))}</span>
+              <h3 className="font-medium">
+                {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
+              </h3>
+              <span className="font-semibold">${formatCurrency(Number(variant.price) * variant.quantity)}</span>
             </div>
-            <div className="flex items-center text-muted-foreground">
-              <Clock size={16} className="mr-1" />
-              <span className="text-sm">{formatDuration(Number(variant.duration))}</span>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center">
+                <Clock size={16} className="mr-1" />
+                <span className="text-sm">{formatDuration(Number(variant.duration) * variant.quantity)}</span>
+              </div>
+              {variant.quantity > 1 && (
+                <span className="text-sm">
+                  ${formatCurrency(Number(variant.price))} c/u
+                </span>
+              )}
             </div>
           </div>
         ))}
@@ -49,7 +59,7 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
         <Separator className="my-4" />
         
         <div className="flex justify-between items-center mb-1 font-bold">
-          <span className="text-lg">Total</span>
+          <span className="text-lg">Total ({totalServices} servicio{totalServices !== 1 ? 's' : ''})</span>
           <span className="text-lg">${formatCurrency(totalPrice)}</span>
         </div>
         <div className="flex items-center text-muted-foreground">
