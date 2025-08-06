@@ -313,6 +313,7 @@ const ClientBooking = () => {
         clientLocation={clientLocation}
         isLoadingLocation={isLoadingUserData}
         selectedVariant={selectedVariant}
+        selectedVariants={selectedVariants}
         formatPrice={formatPrice}
       />
 
@@ -346,6 +347,7 @@ const ClientBooking = () => {
           serviceTitle={serviceDetails.title}
           providerName={serviceDetails.provider?.name}
           selectedVariant={selectedVariant}
+          selectedVariants={selectedVariants}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
           clientLocation={clientLocation}
