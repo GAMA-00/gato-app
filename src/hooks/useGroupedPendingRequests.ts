@@ -127,6 +127,7 @@ export function useGroupedPendingRequests() {
               recurrence_label: 
                 appointment.recurrence === 'weekly' ? 'Semanal' :
                 appointment.recurrence === 'biweekly' ? 'Quincenal' :
+                appointment.recurrence === 'triweekly' ? 'Trisemanal' :
                 appointment.recurrence === 'monthly' ? 'Mensual' :
                 appointment.recurrence && appointment.recurrence !== 'none' ? 'Recurrente' : null
             };

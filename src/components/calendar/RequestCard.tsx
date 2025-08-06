@@ -3,8 +3,9 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
-import { Clock, MapPin, ExternalLink, Repeat } from 'lucide-react';
+import { Clock, MapPin, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
+import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
 import RequestActions from './RequestActions';
 
 interface RequestCardProps {
@@ -30,27 +31,19 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
       .toUpperCase();
   };
 
-  // Helper function to get recurrence display text
-  const getRecurrenceDisplay = (request: any) => {
-    const isGroup = request.appointment_count > 1;
-    
-    if (!isGroup) {
-      return 'Una vez';
-    }
-    
-    return request.recurrence_label || 'Recurrente';
-  };
-
-  const recurrenceDisplay = getRecurrenceDisplay(request);
+  // Get the recurrence type to display - use the actual recurrence value or fallback
+  const recurrenceType = request.recurrence || (request.appointment_count > 1 ? 'weekly' : 'none');
 
   return (
     <div className="border rounded-lg p-4 bg-amber-50 border-amber-200 relative">
       {/* Recurrence indicator positioned in top-right corner */}
       <div className="absolute top-3 right-3">
-        <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 flex items-center gap-1 text-[10px] px-1 py-0">
-          <Repeat className="h-2.5 w-2.5" />
-          {recurrenceDisplay}
-        </Badge>
+        <RecurrenceIndicator 
+          recurrence={recurrenceType}
+          size="sm"
+          showIcon={true}
+          showText={true}
+        />
       </div>
       
       <div className="flex items-start gap-3 mb-3 pr-20">
