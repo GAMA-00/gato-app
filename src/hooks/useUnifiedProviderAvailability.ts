@@ -95,6 +95,25 @@ export const useUnifiedProviderAvailability = ({
           continue;
         }
 
+        // Check if slot is blocked by recurring appointments
+        const { data: blockedSlots } = await supabase
+          .from('provider_time_slots')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('slot_datetime_start', slotStart.toISOString())
+          .eq('recurring_blocked', true)
+          .single();
+
+        if (blockedSlots) {
+          // Slot is blocked by recurring appointment
+          checkedSlots.push({
+            time: slot.time,
+            available: false,
+            conflictReason: 'Bloqueado por cita recurrente'
+          });
+          continue;
+        }
+
         // Validate slot against ALL provider appointments and blocks
         const validation = await validateAppointmentSlot(providerId, slotStart, slotEnd);
         

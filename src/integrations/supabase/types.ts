@@ -1228,6 +1228,10 @@ export type Database = {
         Args: { p_recurring_rule_id: string; p_months_ahead?: number }
         Returns: number
       }
+      block_recurring_slots_for_appointment: {
+        Args: { p_appointment_id: string; p_months_ahead?: number }
+        Returns: number
+      }
       calculate_refund_percentage: {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number
@@ -1341,6 +1345,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      migrate_existing_recurring_appointments: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       needs_price_finalization: {
         Args: {
           appointment_row: Database["public"]["Tables"]["appointments"]["Row"]
@@ -1378,6 +1386,10 @@ export type Database = {
       }
       unblock_recurring_slots: {
         Args: { p_recurring_rule_id: string }
+        Returns: number
+      }
+      unblock_recurring_slots_for_appointment: {
+        Args: { p_appointment_id: string }
         Returns: number
       }
     }
