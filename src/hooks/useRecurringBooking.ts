@@ -141,7 +141,8 @@ export function useRecurringBooking() {
         toast.success('¡Cita creada exitosamente!');
       } else {
         const recurrenceText = data.recurrenceType === 'weekly' ? 'semanal' : 
-                               data.recurrenceType === 'biweekly' ? 'quincenal' : 'mensual';
+                               data.recurrenceType === 'biweekly' ? 'quincenal' : 
+                               data.recurrenceType === 'triweekly' ? 'trisemanal' : 'mensual';
         toast.success(`¡Servicio recurrente ${recurrenceText} creado exitosamente!`);
       }
 
