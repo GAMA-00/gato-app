@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
-import { filterTemporalSlots, calculateWeekDateRange } from '@/utils/temporalSlotFiltering';
+import { filterTemporalSlots, calculateWeekDateRange, filterSlotsByRecurrence } from '@/utils/temporalSlotFiltering';
 
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
@@ -154,9 +154,19 @@ export const useWeeklySlotsFetcher = ({
       }) || [];
       
       // Apply temporal filtering based on week context
-      const filteredSlots = filterTemporalSlots(weeklySlots, weekIndex);
+      const temporalFilteredSlots = filterTemporalSlots(weeklySlots, weekIndex);
       
-      setSlots(filteredSlots);
+      // Apply recurrence-based filtering
+      const finalSlots = filterSlotsByRecurrence(temporalFilteredSlots, recurrence);
+      
+      console.log('🔄 Filtrado por recurrencia:', {
+        tipoRecurrencia: recurrence,
+        slotsAntesDeRecurrencia: temporalFilteredSlots.length,
+        slotsDespuesDeRecurrencia: finalSlots.length,
+        slotsEliminados: temporalFilteredSlots.length - finalSlots.length
+      });
+      
+      setSlots(finalSlots);
       setLastUpdated(new Date());
       
     } catch (err) {

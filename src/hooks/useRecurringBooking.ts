@@ -83,6 +83,36 @@ export function useRecurringBooking() {
       console.log('Tipo de recurrencia:', data.recurrenceType);
       console.log('Start time exacto:', data.startTime);
       
+      // Validar que el slot es válido para la recurrencia seleccionada
+      if (data.recurrenceType && data.recurrenceType !== 'once') {
+        console.log('🔄 Validando slot para recurrencia:', data.recurrenceType);
+        
+        const { shouldHaveRecurrenceOn } = await import('@/utils/optimizedRecurrenceSystem');
+        const normalizeRecurrenceType = (recurrence: string): 'once' | 'weekly' | 'biweekly' | 'triweekly' | 'monthly' => {
+          switch (recurrence?.toLowerCase()) {
+            case 'weekly': return 'weekly';
+            case 'biweekly': return 'biweekly';  
+            case 'triweekly': return 'triweekly';
+            case 'monthly': return 'monthly';
+            default: return 'once';
+          }
+        };
+        
+        const config = {
+          type: normalizeRecurrenceType(data.recurrenceType),
+          startDate: new Date(data.startTime)
+        };
+        
+        const isValidForRecurrence = shouldHaveRecurrenceOn(new Date(data.startTime), config);
+        
+        if (!isValidForRecurrence) {
+          console.log('❌ Slot no válido para la recurrencia seleccionada');
+          throw new Error(`Este horario no es válido para una cita ${data.recurrenceType}. Por favor selecciona un horario diferente.`);
+        }
+        
+        console.log('✅ Slot validado correctamente para recurrencia');
+      }
+      
       // Solo verificar si ya existe una cita confirmada o pendiente para este slot exacto
       const { data: existingAppointments, error: checkError } = await supabase
         .from('appointments')

@@ -1,6 +1,7 @@
 import { isToday, isAfter, startOfWeek, endOfWeek, addWeeks, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { WeeklySlot } from '@/lib/weeklySlotTypes';
+import { shouldHaveRecurrenceOn, OptimizedRecurrenceConfig } from '@/utils/optimizedRecurrenceSystem';
 
 /**
  * Determines if we are looking at the current week
@@ -136,4 +137,70 @@ export const shouldShowSlot = (slot: WeeklySlot, weekIndex: number): boolean => 
   }
   
   return true;
+};
+
+/**
+ * Converts recurrence string to OptimizedRecurrenceConfig
+ */
+const normalizeRecurrenceType = (recurrence: string): OptimizedRecurrenceConfig['type'] => {
+  switch (recurrence?.toLowerCase()) {
+    case 'weekly': return 'weekly';
+    case 'biweekly': return 'biweekly';
+    case 'triweekly': return 'triweekly';
+    case 'monthly': return 'monthly';
+    default: return 'once';
+  }
+};
+
+/**
+ * Filters slots based on recurrence pattern
+ * Only shows slots that are valid for the chosen recurrence type
+ */
+export const filterSlotsByRecurrence = (slots: WeeklySlot[], recurrence: string = 'once'): WeeklySlot[] => {
+  // For 'once' recurrence, return all available slots
+  if (!recurrence || recurrence === 'once') {
+    console.log('✅ Recurrencia "once" - mostrando todos los slots disponibles');
+    return slots;
+  }
+
+  const recurrenceType = normalizeRecurrenceType(recurrence);
+  
+  console.log('🔄 Aplicando filtrado de recurrencia:', {
+    tipoRecurrencia: recurrenceType,
+    totalSlots: slots.length
+  });
+
+  const filteredSlots = slots.filter(slot => {
+    try {
+      // Create recurrence config starting from this slot's date
+      const config: OptimizedRecurrenceConfig = {
+        type: recurrenceType,
+        startDate: slot.date
+      };
+
+      // Check if this slot date should have a recurrence occurrence
+      const shouldShow = shouldHaveRecurrenceOn(slot.date, config);
+      
+      if (!shouldShow) {
+        console.log(`❌ Slot eliminado por recurrencia: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (no válido para ${recurrenceType})`);
+      } else {
+        console.log(`✅ Slot válido para recurrencia: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (${recurrenceType})`);
+      }
+      
+      return shouldShow;
+    } catch (error) {
+      console.error('Error validating slot for recurrence:', error);
+      // En caso de error, conservar el slot para no bloquear la UI
+      return true;
+    }
+  });
+
+  console.log('🎯 Resultado del filtrado por recurrencia:', {
+    slotsOriginales: slots.length,
+    slotsFiltrados: filteredSlots.length,
+    slotsEliminados: slots.length - filteredSlots.length,
+    porcentajeRetenido: Math.round((filteredSlots.length / slots.length) * 100) + '%'
+  });
+
+  return filteredSlots;
 };

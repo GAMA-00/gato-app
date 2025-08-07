@@ -202,6 +202,11 @@ const WeeklySlotGrid = ({
             <p className="text-yellow-800 font-medium mb-2">
               {contextMessage}
             </p>
+            {recurrence !== 'once' && (
+              <p className="text-orange-700 text-sm mb-2">
+                📅 No hay horarios válidos para recurrencia {getRecurrenceText(recurrence)} en esta semana
+              </p>
+            )}
             <p className="text-yellow-700 text-sm mb-4">
               {navigationHint}
             </p>
@@ -259,7 +264,7 @@ const WeeklySlotGrid = ({
               )}
               {recurrence !== 'once' && (
                 <span className="block text-xs text-green-600 mt-1">
-                  ✓ Considerando disponibilidad para recurrencia
+                  ✓ Solo mostrando slots válidos para recurrencia {getRecurrenceText(recurrence)}
                 </span>
               )}
             </CardDescription>
