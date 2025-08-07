@@ -30,9 +30,12 @@ export const ensureAllSlotsExist = async (
   const serviceDuration = 60; // 1 hora por defecto
   const slotsToCreate: any[] = [];
   
-  // Iterar por cada día en el rango
+  // Iterar por cada día en el rango EXACTO
   const currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
+  const endDateTime = new Date(endDate);
+  endDateTime.setHours(23, 59, 59, 999); // Incluir todo el último día
+  
+  while (currentDate <= endDateTime) {
     const dayOfWeek = currentDate.getDay();
     const dateString = format(currentDate, 'yyyy-MM-dd');
     
@@ -88,8 +91,9 @@ export const ensureAllSlotsExist = async (
       }
     }
     
-    // Avanzar al siguiente día
+    // Avanzar al siguiente día, pero no salir del rango de la semana
     currentDate.setDate(currentDate.getDate() + 1);
+    if (currentDate > endDateTime) break;
   }
   
   // Insertar slots faltantes si los hay

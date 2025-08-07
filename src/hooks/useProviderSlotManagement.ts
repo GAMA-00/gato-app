@@ -37,7 +37,8 @@ export const useProviderSlotManagement = ({
 
     const today = startOfDay(new Date());
     const baseDate = startDate ? startOfDay(startDate) : today;
-    const endDate = endOfDay(addDays(baseDate, daysAhead - 1));
+    // Usar exactamente las fechas de inicio y fin de la semana, sin agregar días extra
+    const endDate = startOfDay(addDays(baseDate, daysAhead - 1));
     const paramsSignature = createSlotSignature(providerId, listingId, serviceDuration, 'admin', baseDate, endDate);
     
     // Prevent duplicate requests
@@ -63,7 +64,8 @@ export const useProviderSlotManagement = ({
       listingId,
       serviceDuration,
       baseDate: format(baseDate, 'yyyy-MM-dd'),
-      endDate: format(endDate, 'yyyy-MM-dd')
+      endDate: format(endDate, 'yyyy-MM-dd'),
+      daysAhead
     });
     
     try {

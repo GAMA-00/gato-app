@@ -52,8 +52,19 @@ const ProviderSlotBlockingGrid = ({
     daysAhead: daysInWeek
   });
 
-  // Group slots by date manually
-  const slotGroups = useMemo(() => groupSlotsByDate(slots), [slots]);
+  // Group slots by date y filtrar solo los slots de ESTA semana específica
+  const slotGroups = useMemo(() => {
+    // Filtrar slots que estén exactamente dentro del rango de esta semana
+    const weekSlots = slots.filter(slot => {
+      const slotDate = slot.date;
+      return slotDate >= startDate && slotDate <= endDate;
+    });
+    
+    console.log(`📅 Semana ${currentWeek}: Filtrando slots entre ${format(startDate, 'yyyy-MM-dd')} y ${format(endDate, 'yyyy-MM-dd')}`);
+    console.log(`📊 Slots totales: ${slots.length}, Slots en esta semana: ${weekSlots.length}`);
+    
+    return groupSlotsByDate(weekSlots);
+  }, [slots, startDate, endDate, currentWeek]);
 
   const handleSlotToggle = async (slotId: string, date: Date, time: string) => {
     const slot = slotGroups
