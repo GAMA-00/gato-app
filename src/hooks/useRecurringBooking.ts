@@ -132,24 +132,37 @@ export function useRecurringBooking() {
         console.error('Error checking slot:', slotError);
       }
 
-      // Liberar slot si está marcado como reservado/bloqueado pero no hay citas activas
-      if (slotData && (slotData.is_reserved || slotData.recurring_blocked || !slotData.is_available)) {
-        console.log('Liberando slot bloqueado:', slotData);
-        const { error: updateError } = await supabase
-          .from('provider_time_slots')
-          .update({ 
-            is_available: true, 
-            is_reserved: false, 
-            recurring_blocked: false 
-          })
-          .eq('id', slotData.id);
-        
-        if (updateError) {
-          console.error('Error updating slot availability:', updateError);
+      // Manejo defensivo del slot para evitar conflictos de unicidad en inserción de cita
+      if (slotData) {
+        // 3.1 Si el slot está bloqueado o reservado pero no hay citas activas, liberarlo
+        if (slotData.is_reserved || slotData.recurring_blocked || !slotData.is_available) {
+          console.log('Liberando slot bloqueado:', slotData);
+          const { error: updateError } = await supabase
+            .from('provider_time_slots')
+            .update({ 
+              is_available: true, 
+              is_reserved: false, 
+              recurring_blocked: false 
+            })
+            .eq('id', slotData.id);
+          if (updateError) {
+            console.error('Error updating slot availability:', updateError);
+          }
+        } else {
+          // 3.2 Si el slot existe y está disponible (no reservado), eliminarlo para evitar
+          // violación de unicidad cuando el trigger/intento cree el registro al confirmar la cita
+          console.log('Eliminando slot disponible previo para evitar conflicto único:', slotData.id);
+          const { error: deleteFreeSlotError } = await supabase
+            .from('provider_time_slots')
+            .delete()
+            .eq('id', slotData.id);
+          if (deleteFreeSlotError) {
+            console.error('Error deleting pre-existing free slot:', deleteFreeSlotError);
+          }
         }
       }
       
-      console.log('✅ Slot limpiado y disponible, procediendo con la creación de la cita...');
+      console.log('✅ Slot preparado, procediendo con la creación de la cita...');
 
       // Crear la cita directamente en appointments con el campo recurrence
       const appointmentData = {
