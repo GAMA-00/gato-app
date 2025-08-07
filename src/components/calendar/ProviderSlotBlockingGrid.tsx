@@ -233,110 +233,216 @@ const ProviderSlotBlockingGrid = ({
   const blockedSlots = totalSlots - availableSlots;
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-4 px-4 pt-4 md:px-6">
-        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-          <div className="text-center md:text-left">
-            <CardTitle className="text-lg md:text-xl flex items-center justify-center md:justify-start gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <span className="md:hidden">Gestionar horarios</span>
-              <span className="hidden md:inline">Administrar Disponibilidad de Horarios</span>
-            </CardTitle>
-            <CardDescription className="mt-2 text-sm">
-              <span className="md:hidden">Toca para bloquear/desbloquear horarios</span>
-              <span className="hidden md:inline">Estos son los mismos horarios que ven tus clientes. Puedes bloquearlos si tienes otros compromisos.</span>
-            </CardDescription>
+    <div className="flex flex-col h-full">
+      {/* Fixed Header - Mobile */}
+      <div className="md:hidden flex-shrink-0 sticky top-0 z-10 bg-white border-b pb-3 mb-3">
+        {/* Week Navigation + Stats */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+            <Button
+              variant="outline"
+              size="default"
+              onClick={goToPreviousWeek}
+              disabled={currentWeek === 0}
+              className="flex items-center gap-1 min-h-[44px] px-3 rounded-lg border-2 disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-xs">Anterior</span>
+            </Button>
+            
+            <div className="text-center px-2 flex-1">
+              <div className="text-sm font-semibold text-gray-900">
+                {getCalendarWeekLabel(currentWeek)}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                {format(startDate, 'd MMM', { locale: es })} - {format(endDate, 'd MMM', { locale: es })}
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="default"
+              onClick={goToNextWeek}
+              className="flex items-center gap-1 min-h-[44px] px-3 rounded-lg border-2"
+            >
+              <span className="text-xs">Siguiente</span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
           
-          {/* Stats badges - Móvil: compactos, Desktop: detallados */}
-          <div className="flex items-center justify-center gap-2 md:gap-3">
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1">
+          {/* Stats badges */}
+          <div className="flex items-center justify-center gap-2">
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-2">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-xs font-medium">{availableSlots}</span>
-                <span className="hidden md:inline text-xs">disponibles</span>
+                <span className="text-xs font-medium">{availableSlots} disponibles</span>
               </div>
             </Badge>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-1">
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-2">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-red-500" />
-                <span className="text-xs font-medium">{blockedSlots}</span>
-                <span className="hidden md:inline text-xs">bloqueados</span>
+                <span className="text-xs font-medium">{blockedSlots} bloqueados</span>
               </div>
             </Badge>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-6 px-4 md:px-6">
-        {/* Week Navigation - Mejorado para móvil */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
-          <Button
-            variant="outline"
-            size="default"
-            onClick={goToPreviousWeek}
-            disabled={currentWeek === 0}
-            className="flex items-center gap-2 min-h-[48px] px-4 rounded-xl border-2 disabled:opacity-50"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Anterior</span>
-          </Button>
-          
-          <div className="text-center px-2">
-            <div className="text-base font-semibold text-gray-900">
-              {getCalendarWeekLabel(currentWeek)}
+      {/* Desktop Header */}
+      <Card className="shadow-md hidden md:block">
+        <CardHeader className="pb-4 px-4 pt-4 md:px-6">
+          <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+            <div className="text-center md:text-left">
+              <CardTitle className="text-lg md:text-xl flex items-center justify-center md:justify-start gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                <span className="hidden md:inline">Administrar Disponibilidad de Horarios</span>
+              </CardTitle>
+              <CardDescription className="mt-2 text-sm">
+                <span className="hidden md:inline">Estos son los mismos horarios que ven tus clientes. Puedes bloquearlos si tienes otros compromisos.</span>
+              </CardDescription>
             </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {format(startDate, 'd MMM', { locale: es })} - {format(endDate, 'd MMM', { locale: es })}
+            
+            {/* Stats badges - Desktop */}
+            <div className="flex items-center justify-center gap-2 md:gap-3">
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-xs font-medium">{availableSlots}</span>
+                  <span className="hidden md:inline text-xs">disponibles</span>
+                </div>
+              </Badge>
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-1">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-xs font-medium">{blockedSlots}</span>
+                  <span className="hidden md:inline text-xs">bloqueados</span>
+                </div>
+              </Badge>
             </div>
           </div>
+        </CardHeader>
 
-          <Button
-            variant="outline"
-            size="default"
-            onClick={goToNextWeek}
-            className="flex items-center gap-2 min-h-[48px] px-4 rounded-xl border-2"
-          >
-            <span className="hidden sm:inline">Siguiente</span>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <CardContent className="space-y-6 px-4 md:px-6">
+          {/* Week Navigation - Desktop */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
+            <Button
+              variant="outline"
+              size="default"
+              onClick={goToPreviousWeek}
+              disabled={currentWeek === 0}
+              className="flex items-center gap-2 min-h-[48px] px-4 rounded-xl border-2 disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Anterior</span>
+            </Button>
+            
+            <div className="text-center px-2">
+              <div className="text-base font-semibold text-gray-900">
+                {getCalendarWeekLabel(currentWeek)}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {format(startDate, 'd MMM', { locale: es })} - {format(endDate, 'd MMM', { locale: es })}
+              </div>
+            </div>
 
-        {/* Stats and Refresh - Desktop only */}
-        <div className="hidden md:flex justify-between items-center py-2 px-1">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>{slotGroups.length} días con horarios</span>
-            <span>•</span>
-            <span>Total: {totalSlots} horarios</span>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={goToNextWeek}
+              className="flex items-center gap-2 min-h-[48px] px-4 rounded-xl border-2"
+            >
+              <span className="hidden sm:inline">Siguiente</span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={refreshSlots}
-            disabled={isLoading}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Actualizar
-          </Button>
-        </div>
 
-        {/* Slots Grid - Optimizado para móvil con scrolls horizontales independientes */}
-        <div className="space-y-6 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
+
+          {/* Desktop Content */}
+          <div className="hidden md:block">
+            {/* Stats and Refresh */}
+            <div className="flex justify-between items-center py-2 px-1">
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <span>{slotGroups.length} días con horarios</span>
+                <span>•</span>
+                <span>Total: {totalSlots} horarios</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshSlots}
+                disabled={isLoading}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+            </div>
+
+            {/* Desktop Slots Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
+              {slotGroups.map(group => (
+                <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
+                  {/* Day Header */}
+                  <div className="text-center">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {format(group.date, 'EEEE', { locale: es })}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {group.dayNumber} {group.dayMonth}
+                    </div>
+                    <div className="text-xs text-gray-600 font-medium mt-1">
+                      {group.slots.filter(s => s.isAvailable).length} de {group.slots.length} disponibles
+                    </div>
+                  </div>
+
+                  {/* Day Slots */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {group.slots.map(slot => {
+                      const isBlocking = blockingSlots.has(slot.id);
+                      return (
+                        <button
+                          key={slot.id}
+                          onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
+                          disabled={isBlocking}
+                          className={cn(
+                            'w-full flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed',
+                            slot.isAvailable 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md' 
+                              : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md',
+                            isBlocking ? 'animate-pulse' : ''
+                          )}
+                        >
+                          <span className="font-bold">{slot.displayTime}</span>
+                          <span className="text-xs opacity-75">{slot.period}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Mobile Content - Scrollable */}
+      <div className="md:hidden flex-1 overflow-hidden">
+        {/* Slots Grid - Con scroll independiente por día */}
+        <div className="space-y-4 px-1 pb-4 h-full overflow-y-auto">
           {slotGroups.map(group => (
-            <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
-              {/* Day Header - Mejorado para móvil */}
-              <div className="flex items-center justify-between md:block md:text-center">
+            <div key={format(group.date, 'yyyy-MM-dd')} className="bg-white rounded-xl border shadow-sm p-3">
+              {/* Day Header */}
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                 <div className="flex flex-col">
-                  <div className="text-base md:text-sm font-semibold text-gray-900">
+                  <div className="text-base font-semibold text-gray-900">
                     {format(group.date, 'EEEE', { locale: es })}
                   </div>
-                  <div className="text-sm md:text-xs text-gray-500">
+                  <div className="text-sm text-gray-500">
                     {group.dayNumber} {group.dayMonth}
                   </div>
                 </div>
-                <div className="text-right md:text-center md:mt-1">
-                  <div className="text-xs text-gray-600 font-medium">
+                <div className="text-right">
+                  <div className="text-sm text-gray-600 font-medium">
                     {group.slots.filter(s => s.isAvailable).length} de {group.slots.length}
                   </div>
                   <div className="text-xs text-gray-500">
@@ -347,7 +453,7 @@ const ProviderSlotBlockingGrid = ({
 
               {/* Day Slots - Lista horizontal con scroll independiente */}
               <div className="relative">
-                <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
                   {group.slots.map(slot => {
                     const isBlocking = blockingSlots.has(slot.id);
                     return (
@@ -358,65 +464,93 @@ const ProviderSlotBlockingGrid = ({
                         className={cn(
                           'flex-shrink-0 flex flex-col items-center justify-center gap-1',
                           'w-20 h-16 rounded-xl text-sm font-medium transition-all duration-200',
-                          'border-2 shadow-sm',
+                          'border-2 shadow-sm touch-manipulation',
                           'disabled:opacity-50 disabled:cursor-not-allowed',
                           slot.isAvailable 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md hover:scale-105 active:scale-95' 
-                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md hover:scale-105 active:scale-95',
-                          isBlocking ? 'animate-pulse' : '',
-                          'md:w-auto md:h-auto md:flex-shrink md:px-3 md:py-2 md:rounded-lg md:hover:scale-100'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md active:scale-95' 
+                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md active:scale-95',
+                          isBlocking ? 'animate-pulse' : ''
                         )}
                       >
                         <span className="text-base font-bold leading-none">{slot.displayTime}</span>
                         <span className="text-xs opacity-75 leading-none">{slot.period}</span>
-                        {slot.isAvailable ? (
-                          <div className="w-3 h-3 rounded-full bg-emerald-500 md:hidden" />
-                        ) : (
-                          <div className="w-3 h-3 rounded-full bg-red-500 md:hidden" />
-                        )}
+                        <div className={cn(
+                          'w-3 h-3 rounded-full',
+                          slot.isAvailable ? 'bg-emerald-500' : 'bg-red-500'
+                        )} />
                       </button>
                     );
                   })}
                 </div>
                 
-                {/* Scroll indicator shadow - Solo móvil */}
-                <div className="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
+                {/* Scroll indicator shadow */}
+                <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none" />
               </div>
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Instructions - Rediseñado para móvil */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+      {/* Instructions - Fijo al final para móvil */}
+      <div className="md:hidden mt-4 mx-1">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800">
               <p className="font-semibold mb-2">¿Cómo gestionar tus horarios?</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded bg-emerald-500" />
-                  <span>Disponible para clientes</span>
+                  <span>Verde: Disponible para clientes</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded bg-red-500" />
-                  <span>Bloqueado (no visible)</span>
+                  <span>Rojo: Bloqueado (no visible)</span>
                 </div>
               </div>
               <p className="mt-2 text-xs opacity-90">
-                Toca cualquier horario para bloquearlo o desbloquearlo instantáneamente
+                Toca cualquier horario para bloquearlo o desbloquearlo
               </p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Last Updated - Desktop only */}
-        {lastUpdated && (
-          <div className="hidden md:block text-center text-xs text-gray-500">
-            Actualizado: {format(lastUpdated, 'HH:mm')}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {/* Desktop Instructions and Last Updated */}
+      <div className="hidden md:block">
+        <Card className="shadow-md mt-4">
+          <CardContent className="pt-6">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-semibold mb-2">¿Cómo gestionar tus horarios?</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-emerald-500" />
+                      <span>Disponible para clientes</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-red-500" />
+                      <span>Bloqueado (no visible)</span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs opacity-90">
+                    Haz clic en cualquier horario para bloquearlo o desbloquearlo instantáneamente
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {lastUpdated && (
+              <div className="text-center text-xs text-gray-500 mt-4">
+                Actualizado: {format(lastUpdated, 'HH:mm')}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 
