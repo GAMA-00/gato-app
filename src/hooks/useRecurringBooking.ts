@@ -79,182 +79,65 @@ export function useRecurringBooking() {
       console.log('Slot solicitado:', { providerId: listing.provider_id, listingId: data.listingId });
       console.log('Start time exacto:', data.startTime);
       
-      // 1. Verificar si existe una cita cancelada/completada en este slot
-      const { data: existingAppointments, error: checkError } = await supabase
-        .from('appointments')
-        .select('id, status')
-        .eq('provider_id', listing.provider_id)
-        .eq('listing_id', data.listingId)
-        .eq('start_time', data.startTime);
+      // Usamos RPC atómica para crear la cita y reservar el slot en una sola transacción
+      console.log('▶️ Invocando RPC create_appointment_with_slot (operación atómica)');
 
-      if (checkError) {
-        console.error('Error checking existing appointments:', checkError);
-      }
-
-      // 2. Limpiar citas canceladas o completadas que podrían estar bloqueando el slot
-      if (existingAppointments && existingAppointments.length > 0) {
-        const blockedAppointments = existingAppointments.filter(apt => 
-          apt.status === 'cancelled' || apt.status === 'completed'
-        );
-        
-        if (blockedAppointments.length > 0) {
-          console.log('Limpiando citas bloqueadas:', blockedAppointments);
-          const { error: deleteError } = await supabase
-            .from('appointments')
-            .delete()
-            .in('id', blockedAppointments.map(apt => apt.id));
-          
-          if (deleteError) {
-            console.error('Error cleaning blocked appointments:', deleteError);
-          }
-        }
-
-        // Verificar si hay citas activas que realmente bloquean el slot
-        const activeAppointments = existingAppointments.filter(apt => 
-          apt.status === 'pending' || apt.status === 'confirmed'
-        );
-        
-        if (activeAppointments.length > 0) {
-          throw new Error('Este horario ya está reservado por otro cliente');
-        }
-      }
-
-      // 3. Verificar y actualizar estado del slot en provider_time_slots
-      const { data: slotData, error: slotError } = await supabase
-        .from('provider_time_slots')
-        .select('id, is_available, is_reserved, recurring_blocked')
-        .eq('provider_id', listing.provider_id)
-        .eq('listing_id', data.listingId)
-        .eq('slot_datetime_start', data.startTime)
-        .maybeSingle();
-
-      if (slotError) {
-        console.error('Error checking slot:', slotError);
-      }
-
-      // Manejo defensivo del slot para evitar conflictos de unicidad en inserción de cita
-      if (slotData) {
-        // 3.1 Si el slot está bloqueado o reservado pero no hay citas activas, liberarlo
-        if (slotData.is_reserved || slotData.recurring_blocked || !slotData.is_available) {
-          console.log('Liberando slot bloqueado:', slotData);
-          const { error: updateError } = await supabase
-            .from('provider_time_slots')
-            .update({ 
-              is_available: true, 
-              is_reserved: false, 
-              recurring_blocked: false 
-            })
-            .eq('id', slotData.id);
-          if (updateError) {
-            console.error('Error updating slot availability:', updateError);
-          }
-        } else {
-          // 3.2 Si el slot existe y está disponible (no reservado), eliminarlo para evitar
-          // violación de unicidad cuando el trigger/intento cree el registro al confirmar la cita
-          console.log('Eliminando slot disponible previo para evitar conflicto único:', slotData.id);
-          const { error: deleteFreeSlotError } = await supabase
-            .from('provider_time_slots')
-            .delete()
-            .eq('id', slotData.id);
-          if (deleteFreeSlotError) {
-            console.error('Error deleting pre-existing free slot:', deleteFreeSlotError);
-          }
-        }
-      }
-      
-      console.log('✅ Slot preparado, procediendo con la creación de la cita...');
-
-      // Crear la cita directamente en appointments con el campo recurrence
-      const appointmentData = {
-        listing_id: data.listingId,
-        client_id: user.id,
-        provider_id: listing.provider_id,
-        start_time: data.startTime,
-        end_time: data.endTime,
-        status: 'pending',
-        notes: data.notes || '',
-        client_address: data.clientAddress,
-        client_phone: data.clientPhone,
-        client_email: data.clientEmail,
-        client_name: user.name || 'Cliente',
-        recurrence: data.recurrenceType,
-        external_booking: false,
-        is_recurring_instance: false, // Base appointment, not an instance
-        custom_variable_selections: data.customVariableSelections ? JSON.stringify(data.customVariableSelections) : null,
-        custom_variables_total_price: data.customVariablesTotalPrice || 0
+      // Preparar parámetros para la función RPC
+      const rpcParams = {
+        p_provider_id: listing.provider_id,
+        p_listing_id: data.listingId,
+        p_client_id: user.id,
+        p_start_time: data.startTime,
+        p_end_time: data.endTime,
+        p_recurrence: data.recurrenceType || 'none',
+        p_notes: data.notes || '',
+        p_client_name: user.name || 'Cliente',
+        p_client_email: data.clientEmail || null,
+        p_client_phone: data.clientPhone || null,
+        p_client_address: data.clientAddress || null,
+        p_residencia_id: null as string | null
       };
 
-      console.log('Datos de cita preparados:', appointmentData);
-      console.log('Insertando cita en base de datos...');
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('create_appointment_with_slot', rpcParams);
 
-      // Intentar crear la cita con manejo robusto de errores
-      let appointment;
-      let insertAttempts = 0;
-      const maxInsertAttempts = 2;
-
-      while (insertAttempts < maxInsertAttempts) {
-        insertAttempts++;
-        console.log(`Intento ${insertAttempts} de crear appointment...`);
-
-        const { data: appointmentResult, error } = await supabase
-          .from('appointments')
-          .insert(appointmentData)
-          .select()
-          .single();
-
-        if (!error) {
-          appointment = appointmentResult;
-          break;
+      if (rpcError) {
+        console.error('RPC error:', rpcError);
+        // Mapear mensajes conocidos
+        if (rpcError.code === 'P0001') {
+          throw new Error(rpcError.message || 'El horario no está disponible en este momento');
         }
-
-        console.error(`Error en intento ${insertAttempts}:`, error);
-
-        // Si es error P0001 (slot ya existe), intentar limpiar y reintentar una vez
-        if (error.code === 'P0001' && insertAttempts === 1) {
-          console.log('🔧 Error P0001 detectado, limpiando conflictos y reintentando...');
-          
-          // Limpiar cualquier cita conflictiva
-          await supabase
-            .from('appointments')
-            .delete()
-            .eq('provider_id', listing.provider_id)
-            .eq('listing_id', data.listingId)
-            .eq('start_time', data.startTime)
-            .in('status', ['cancelled', 'completed']);
-
-          // Limpiar estado del slot
-          await supabase
-            .from('provider_time_slots')
-            .update({ 
-              is_available: true, 
-              is_reserved: false, 
-              recurring_blocked: false 
-            })
-            .eq('provider_id', listing.provider_id)
-            .eq('listing_id', data.listingId)
-            .eq('slot_datetime_start', data.startTime);
-
-          // Esperar un momento antes del siguiente intento
-          await new Promise(resolve => setTimeout(resolve, 500));
-          continue;
-        }
-
-        // Para otros errores o si ya reintentamos
-        if (error.code === '23505') {
+        if (rpcError.code === '23505') {
           throw new Error('Este horario ya fue reservado. Selecciona otro horario.');
-        } else if (error.code === '23503') {
-          throw new Error('Error de referencia en los datos');
-        } else if (error.code === '23514') {
-          throw new Error('Los datos no cumplen con los requisitos');
-        } else if (error.code === 'P0001') {
-          throw new Error('Este horario no está disponible en este momento');
-        } else {
-          throw new Error(`Error de base de datos: ${error.message}`);
         }
+        throw rpcError;
+      }
+
+      // Normalizar resultado (puede venir como objeto o arreglo con una fila)
+      const resultRow: any = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+      const createdId: string | undefined = resultRow?.appointment_id;
+
+      if (!createdId) {
+        throw new Error('No se recibió el ID de la cita creada');
+      }
+
+      console.log('RPC creada con éxito. ID:', createdId, 'status:', resultRow?.status);
+
+      // Obtener la cita completa para mantener compatibilidad con el resto del flujo
+      const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', createdId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.warn('No se pudo obtener la cita completa, devolviendo sólo el ID', fetchError);
+        return { id: createdId } as any;
       }
 
       if (!appointment) {
-        throw new Error('No se pudo crear la cita después de varios intentos');
+        // Si por alguna razón no se recupera, devolvemos un objeto mínimo con ID
+        return { id: createdId } as any;
       }
 
       if (!appointment) {

@@ -1269,6 +1269,27 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      create_appointment_with_slot: {
+        Args: {
+          p_provider_id: string
+          p_listing_id: string
+          p_client_id: string
+          p_start_time: string
+          p_end_time: string
+          p_recurrence?: string
+          p_notes?: string
+          p_client_name?: string
+          p_client_email?: string
+          p_client_phone?: string
+          p_client_address?: string
+          p_residencia_id?: string
+        }
+        Returns: {
+          appointment_id: string
+          status: string
+          message: string
+        }[]
+      }
       create_user_profile: {
         Args: {
           user_id: string
