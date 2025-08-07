@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
 import { groupSlotsByDate } from '@/utils/weeklySlotUtils';
-import { format, addWeeks } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getCalendarWeekRange, getCalendarWeekLabel } from '@/utils/calendarWeekUtils';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -34,7 +35,9 @@ const ProviderSlotBlockingGrid = ({
   const [blockingSlots, setBlockingSlots] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
-  const startDate = addWeeks(new Date(), currentWeek);
+  // Usar semanas calendario reales (lunes a domingo)
+  const { startDate, endDate } = getCalendarWeekRange(currentWeek);
+  const daysInWeek = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   
   const {
     slots,
@@ -46,7 +49,7 @@ const ProviderSlotBlockingGrid = ({
     listingId,
     serviceDuration,
     startDate,
-    daysAhead: 7
+    daysAhead: daysInWeek
   });
 
   // Group slots by date manually
@@ -263,10 +266,10 @@ const ProviderSlotBlockingGrid = ({
           
           <div className="text-center">
             <div className="text-base md:text-sm font-medium">
-              {currentWeek === 0 ? 'Esta semana' : `Semana ${currentWeek + 1}`}
+              {getCalendarWeekLabel(currentWeek)}
             </div>
             <div className="hidden md:block text-xs text-gray-500">
-              {format(startDate, 'd MMM', { locale: es })} - {format(addWeeks(startDate, 1), 'd MMM', { locale: es })}
+              {format(startDate, 'd MMM', { locale: es })} - {format(endDate, 'd MMM', { locale: es })}
             </div>
           </div>
 

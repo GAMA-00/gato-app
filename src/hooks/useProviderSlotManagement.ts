@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { addDays, format, startOfDay } from 'date-fns';
+import { addDays, format, startOfDay, endOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature } from '@/utils/weeklySlotUtils';
+import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 
 interface UseProviderSlotManagementReturn {
   slots: WeeklySlot[];
@@ -36,7 +37,7 @@ export const useProviderSlotManagement = ({
 
     const today = startOfDay(new Date());
     const baseDate = startDate ? startOfDay(startDate) : today;
-    const endDate = addDays(baseDate, daysAhead - 1);
+    const endDate = endOfDay(addDays(baseDate, daysAhead - 1));
     const paramsSignature = createSlotSignature(providerId, listingId, serviceDuration, 'admin', baseDate, endDate);
     
     // Prevent duplicate requests
@@ -66,7 +67,18 @@ export const useProviderSlotManagement = ({
     });
     
     try {
-      // Fetch ALL time slots (available and blocked) - NO FILTER on is_available
+      // Primero obtener la disponibilidad configurada del proveedor
+      const { data: availability, error: availError } = await supabase
+        .from('provider_availability')
+        .select('*')
+        .eq('provider_id', providerId)
+        .eq('is_active', true);
+
+      if (availError) throw availError;
+
+      console.log('📋 Disponibilidad configurada:', availability);
+
+      // Fetch ALL existing time slots (available and blocked)
       const { data: timeSlots, error: slotsError } = await supabase
         .from('provider_time_slots')
         .select('*')
@@ -82,17 +94,37 @@ export const useProviderSlotManagement = ({
         totalSlots: timeSlots?.length || 0,
         disponibles: timeSlots?.filter(s => s.is_available)?.length || 0,
         bloqueados: timeSlots?.filter(s => !s.is_available)?.length || 0,
+        fechasEncontradas: [...new Set(timeSlots?.map(s => s.slot_date))],
         primeros3Slots: timeSlots?.slice(0, 3)
       });
 
+      // Verificar si faltan slots y regenerarlos si es necesario
+      await ensureAllSlotsExist(providerId, listingId, baseDate, endDate, availability || [], timeSlots || []);
+
+      // Volver a consultar después de la posible regeneración
+      const { data: finalTimeSlots, error: finalSlotsError } = await supabase
+        .from('provider_time_slots')
+        .select('*')
+        .eq('provider_id', providerId)
+        .eq('listing_id', listingId)
+        .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+        .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+        .order('slot_datetime_start');
+
+      if (finalSlotsError) throw finalSlotsError;
+
+      console.log('📊 Slots finales después de regeneración:', {
+        totalSlots: finalTimeSlots?.length || 0,
+        disponibles: finalTimeSlots?.filter(s => s.is_available)?.length || 0,
+        bloqueados: finalTimeSlots?.filter(s => !s.is_available)?.length || 0
+      });
+
       // Process ALL slots
-      const providerSlots: WeeklySlot[] = timeSlots?.map(slot => {
+      const providerSlots: WeeklySlot[] = finalTimeSlots?.map(slot => {
         const slotStart = new Date(slot.slot_datetime_start);
         const slotDate = new Date(slotStart);
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
-
-        console.log(`Admin Slot: ${slot.slot_date} ${slot.start_time} -> ${displayTime} ${period} (disponible: ${slot.is_available})`);
 
         return {
           id: slot.id,
@@ -100,7 +132,7 @@ export const useProviderSlotManagement = ({
           time: slot.start_time,
           displayTime,
           period,
-          isAvailable: slot.is_available, // Preserva el estado real del slot
+          isAvailable: slot.is_available,
           conflictReason: slot.is_available ? undefined : 'Bloqueado manualmente'
         };
       }) || [];
