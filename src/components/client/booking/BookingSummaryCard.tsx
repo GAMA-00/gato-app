@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ServiceVariant } from '@/components/client/service/types';
 import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
+import { RobustBookingButton } from './RobustBookingButton';
 
 interface BookingSummaryCardProps {
   serviceTitle: string;
@@ -23,6 +24,20 @@ interface BookingSummaryCardProps {
   getRecurrenceText: (frequency: string) => string;
   selectedFrequency: string;
   customVariablesTotalPrice?: number;
+  // New props for robust booking
+  bookingData?: {
+    listingId: string;
+    startTime: string;
+    endTime: string;
+    recurrenceType: string;
+    notes?: string;
+    clientAddress?: string;
+    clientPhone?: string;
+    clientEmail?: string;
+    customVariableSelections?: any;
+    customVariablesTotalPrice?: number;
+  };
+  onBookingSuccess?: (appointment: any) => void;
 }
 
 const BookingSummaryCard = ({
@@ -40,7 +55,9 @@ const BookingSummaryCard = ({
   formatPrice,
   getRecurrenceText,
   selectedFrequency,
-  customVariablesTotalPrice = 0
+  customVariablesTotalPrice = 0,
+  bookingData,
+  onBookingSuccess
 }: BookingSummaryCardProps) => {
   // Calculate totals for multiple variants
   const totalPrice = selectedVariants.length > 0 
@@ -154,25 +171,34 @@ const BookingSummaryCard = ({
           </p>
         </div>
 
-        {/* OPTIMIZED Booking Button with Enhanced Feedback */}
-        <Button
-          onClick={onBooking}
-          disabled={isLoading || !selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0)}
-          className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
-          size="lg"
-        >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-              <span className="animate-pulse">Procesando reserva...</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span>Confirmar Reserva</span>
-              <span className="text-xs opacity-80">✓</span>
-            </div>
-          )}
-        </Button>
+        {/* ROBUST Booking Button with Enhanced Error Handling */}
+        {bookingData ? (
+          <RobustBookingButton
+            bookingData={bookingData}
+            onSuccess={onBookingSuccess}
+            disabled={!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0)}
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
+          />
+        ) : (
+          <Button
+            onClick={onBooking}
+            disabled={isLoading || !selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0)}
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
+            size="lg"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <span className="animate-pulse">Procesando reserva...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span>Confirmar Reserva</span>
+                <span className="text-xs opacity-80">✓</span>
+              </div>
+            )}
+          </Button>
+        )}
 
         {/* ENHANCED validation feedback with better UX */}
         {(!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0)) && !isLoading && (

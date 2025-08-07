@@ -31,7 +31,7 @@ export function useRecurringBooking() {
     if (!user) {
       console.error('Usuario no autenticado');
       toast.error('Debe estar autenticado para crear una cita');
-      return null;
+      throw new Error('Usuario no autenticado');
     }
 
     console.log('Usuario autenticado:', { id: user.id, name: user.name });
@@ -74,14 +74,24 @@ export function useRecurringBooking() {
         throw new Error('Se requiere al menos teléfono o email');
       }
 
-      // Verificar disponibilidad del slot antes de crear la cita
-      const slotDateStr = format(new Date(data.startTime), 'yyyy-MM-dd');
-      const slotTimeStr = format(new Date(data.startTime), 'HH:mm');
-      
+      // Verificar disponibilidad del slot usando nuestra validación mejorada
       console.log('=== VERIFICANDO DISPONIBILIDAD DEL SLOT ===');
-      console.log('Slot solicitado:', { slotDateStr, slotTimeStr, providerId: listing.provider_id, listingId: data.listingId });
+      console.log('Slot solicitado:', { providerId: listing.provider_id, listingId: data.listingId });
       console.log('Tipo de recurrencia:', data.recurrenceType);
       console.log('Start time exacto:', data.startTime);
+      
+      const { validateSlotAvailabilityForBooking } = await import('@/utils/enhancedBookingValidation');
+      const availabilityResult = await validateSlotAvailabilityForBooking(
+        listing.provider_id,
+        data.listingId,
+        new Date(data.startTime),
+        new Date(data.endTime),
+        data.recurrenceType
+      );
+      
+      if (!availabilityResult.isAvailable) {
+        throw new Error(availabilityResult.reason || 'El horario seleccionado no está disponible');
+      }
       
       // Validar que el slot es válido para la recurrencia seleccionada
       if (data.recurrenceType && data.recurrenceType !== 'once') {
@@ -113,35 +123,6 @@ export function useRecurringBooking() {
         console.log('✅ Slot validado correctamente para recurrencia');
       }
       
-      // Solo verificar si ya existe una cita confirmada o pendiente para este slot exacto
-      const { data: existingAppointments, error: checkError } = await supabase
-        .from('appointments')
-        .select('id, status, recurrence, start_time, end_time, client_id')
-        .eq('provider_id', listing.provider_id)
-        .eq('start_time', data.startTime)
-        .in('status', ['confirmed', 'pending']);
-
-      if (checkError) {
-        console.error('Error checking slot availability:', checkError);
-        throw new Error('Error verificando disponibilidad del horario');
-      }
-
-      console.log('Citas existentes encontradas:', existingAppointments);
-
-      if (existingAppointments && existingAppointments.length > 0) {
-        // Verificar si alguna de estas citas es del mismo cliente (podrían ser duplicadas por error)
-        const otherClientsAppointments = existingAppointments.filter(apt => apt.client_id !== user.id);
-        
-        if (otherClientsAppointments.length > 0) {
-          console.log('❌ Slot ya ocupado por otros clientes:', otherClientsAppointments);
-          throw new Error('Este horario ya fue reservado por otro cliente. Por favor selecciona un horario diferente.');
-        }
-        
-        // Si todas las citas son del mismo cliente, podría ser un intento duplicado
-        console.log('⚠️ Encontradas citas del mismo cliente para este horario:', existingAppointments);
-        throw new Error('Ya tienes una cita para este horario. Revisa tu lista de citas.');
-      }
-
       console.log('✅ Slot disponible, procediendo con la creación de la cita...');
 
       // Crear la cita directamente en appointments con el campo recurrence
@@ -264,7 +245,7 @@ export function useRecurringBooking() {
           onClick: () => window.location.href = '/client/bookings'
         }
       });
-      return null;
+      throw error;
     } finally {
       console.log('Finalizando proceso de creación...');
       setIsLoading(false);
