@@ -293,10 +293,10 @@ const WeeklySlotGrid = ({
         <div className="flex items-center justify-between p-4 md:p-3 bg-gray-50 rounded-lg">
           <Button
             variant="outline"
-            size="default"
+            size="sm"
             onClick={goToPreviousWeek}
             disabled={currentWeek === 0}
-            className="flex items-center gap-1 min-h-[44px] md:min-h-auto px-4 md:px-3"
+            className="flex items-center gap-1 min-h-[36px] md:min-h-auto px-3 md:px-3 text-sm"
           >
             <ChevronLeft className="h-4 w-4" />
             Anterior
@@ -318,9 +318,9 @@ const WeeklySlotGrid = ({
 
           <Button
             variant="outline"
-            size="default"
+            size="sm"
             onClick={goToNextWeek}
-            className="flex items-center gap-1 min-h-[44px] md:min-h-auto px-4 md:px-3"
+            className="flex items-center gap-1 min-h-[36px] md:min-h-auto px-3 md:px-3 text-sm"
           >
             Siguiente
             <ChevronRight className="h-4 w-4" />
@@ -352,7 +352,7 @@ const WeeklySlotGrid = ({
               <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
                 {/* Day Header */}
                 <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
-                  <div className="text-base md:text-sm font-medium text-gray-900">
+                  <div className="text-base md:text-sm font-medium text-gray-900 capitalize">
                     {format(group.date, 'EEEE', { locale: es })}
                   </div>
                   <div className="text-sm md:text-xs text-gray-500">
