@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 interface RecurringBookingData {
   listingId: string;
@@ -73,6 +74,31 @@ export function useRecurringBooking() {
         throw new Error('Se requiere al menos teléfono o email');
       }
 
+      // Verificar disponibilidad del slot antes de crear la cita
+      const slotDateStr = format(new Date(data.startTime), 'yyyy-MM-dd');
+      const slotTimeStr = format(new Date(data.startTime), 'HH:mm');
+      
+      console.log('Verificando disponibilidad del slot:', { slotDateStr, slotTimeStr, providerId: listing.provider_id, listingId: data.listingId });
+      
+      // Verificar si ya existe una cita confirmada o pendiente para este slot
+      const { data: existingAppointments, error: checkError } = await supabase
+        .from('appointments')
+        .select('id, status')
+        .eq('provider_id', listing.provider_id)
+        .eq('listing_id', data.listingId)
+        .eq('start_time', data.startTime)
+        .in('status', ['confirmed', 'pending']);
+
+      if (checkError) {
+        console.error('Error checking slot availability:', checkError);
+        throw new Error('Error verificando disponibilidad del horario');
+      }
+
+      if (existingAppointments && existingAppointments.length > 0) {
+        console.log('Slot ya ocupado por citas existentes:', existingAppointments);
+        throw new Error('Este horario ya fue reservado por otro cliente. Por favor selecciona un horario diferente.');
+      }
+
       // Crear la cita directamente en appointments con el campo recurrence
       const appointmentData = {
         listing_id: data.listingId,
@@ -111,11 +137,14 @@ export function useRecurringBooking() {
           if (error.message?.includes('unique_active_appointment_slot')) {
             throw new Error('Ya existe una cita activa para este horario. Selecciona otro horario.');
           }
-          throw new Error('Ya existe una cita para este horario');
+          throw new Error('Este horario ya fue reservado mientras procesábamos tu solicitud. Por favor selecciona otro horario.');
         } else if (error.code === '23503') {
           throw new Error('Error de referencia en los datos');
         } else if (error.code === '23514') {
           throw new Error('Los datos no cumplen con los requisitos');
+        } else if (error.code === 'P0001') {
+          // Custom database function error
+          throw new Error('Este horario ya fue reservado. Por favor selecciona un horario diferente.');
         } else {
           throw new Error(`Error de base de datos: ${error.message}`);
         }

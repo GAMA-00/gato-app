@@ -98,9 +98,12 @@ export class RobustBookingSystem {
       '23505', // Unique constraint violation (should be rare now)
       '23503', // Foreign key constraint violation
       '23514', // Check constraint violation
+      'P0001', // Custom database function error (slot conflicts)
       'conflict',
       'already exists',
       'ya existe',
+      'ya fue reservado',
+      'horario ya fue reservado',
       'unique_active_appointment_slot' // Our new constraint
     ];
 
@@ -144,6 +147,10 @@ export class RobustBookingSystem {
     if (error.code === '23514') {
       return 'Los datos no cumplen con los requisitos del sistema.';
     }
+
+    if (error.code === 'P0001') {
+      return 'Este horario ya fue reservado por otro cliente. Por favor selecciona un horario diferente.';
+    }
     
     if (error.message?.includes('timeout')) {
       return 'La operación tardó demasiado. Tu reserva podría haberse creado.';
@@ -155,6 +162,10 @@ export class RobustBookingSystem {
 
     if (error.message?.includes('unique_active_appointment_slot')) {
       return 'Este horario ya está reservado por otra cita activa.';
+    }
+
+    if (error.message?.includes('ya fue reservado') || error.message?.includes('ya existe un slot')) {
+      return 'Este horario ya fue reservado por otro cliente. Por favor selecciona un horario diferente.';
     }
 
     return error.message || 'Error al procesar la reserva';
