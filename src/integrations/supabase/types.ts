@@ -1299,6 +1299,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      fix_missing_slots_for_provider: {
+        Args: { p_provider_id: string; p_listing_id: string }
+        Returns: number
+      }
       fix_triweekly_blocked_slots: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -1411,6 +1415,16 @@ export type Database = {
       unblock_recurring_slots_for_appointment: {
         Args: { p_appointment_id: string }
         Returns: number
+      }
+      validate_provider_slots_coverage: {
+        Args: { p_provider_id: string; p_listing_id: string }
+        Returns: {
+          day_name: string
+          expected_enabled: boolean
+          has_slots: boolean
+          slots_count: number
+          missing_slots: boolean
+        }[]
       }
     }
     Enums: {
