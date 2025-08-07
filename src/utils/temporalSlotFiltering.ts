@@ -17,9 +17,10 @@ export const calculateWeekDateRange = (weekIndex: number): { startDate: Date, en
   const now = new Date();
   
   if (weekIndex === 0) {
-    // Current week: from now until end of current week (Sunday)
+    // Current week: complete Monday to Sunday week (not just from today)
+    // This ensures we search all available slots for the week, then filter temporally later
     return {
-      startDate: now,
+      startDate: startOfWeek(now, { weekStartsOn: 1 }),
       endDate: endOfWeek(now, { weekStartsOn: 1 }) // Week starts on Monday
     };
   } else {
