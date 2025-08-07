@@ -134,132 +134,103 @@ export const useProviderAvailability = ({
         exceptions = exceptionData || [];
       }
 
-      // 5. Generar slots disponibles basados en la disponibilidad configurada
+      // 5. Generar slots disponibles basados en la disponibilidad configurada (reflejo 1:1 de "Administrar disponibilidad")
       const slots: TimeSlot[] = [];
-      const blockedTimes = new Set<string>();
 
-      // Marcar horarios bloqueados por citas existentes
-      existingAppointments?.forEach(appointment => {
-        const startTime = new Date(appointment.start_time);
-        const endTime = new Date(appointment.end_time);
-        const startHour = startTime.getHours();
-        const startMinute = startTime.getMinutes();
-        const endHour = endTime.getHours();
-        const endMinute = endTime.getMinutes();
-        
-        // Bloquear el rango de tiempo ocupado
-        for (let hour = startHour; hour <= endHour; hour++) {
-          const timeKey = `${hour.toString().padStart(2, '0')}:${hour === startHour ? startMinute.toString().padStart(2, '0') : '00'}`;
-          if (hour === endHour && endMinute === 0) break; // No bloquear la hora exacta de fin si termina en :00
-          blockedTimes.add(timeKey);
+      // Normalizar helper
+      const toHM = (t: string) => t.slice(0, 5); // HH:MM:SS -> HH:MM
+
+      // 5.1 Construir intervalos de bloqueo por citas y por slots bloqueados/reservados
+      const appointmentIntervals = (existingAppointments || []).map(ap => ({
+        start: new Date(ap.start_time),
+        end: new Date(ap.end_time),
+      }));
+
+      // Traer TODOS los provider_time_slots del día para usarlos solo como BLOQUEOS/RESERVAS
+      const { data: providerDaySlots } = await supabase
+        .from('provider_time_slots')
+        .select('start_time, end_time, is_available, is_reserved, recurring_blocked')
+        .eq('provider_id', providerId)
+        .eq('slot_date', targetDate);
+
+      const blockedIntervals = (providerDaySlots || [])
+        .filter(s => s.is_reserved === true || s.recurring_blocked === true || s.is_available === false)
+        .map(s => ({
+          start: toHM(s.start_time),
+          end: toHM(s.end_time)
+        }));
+
+      const overlaps = (aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) => aStart < bEnd && aEnd > bStart;
+
+      // 5.2 Generar slots a partir de la disponibilidad configurada, avanzando por serviceDuration
+      const now = new Date();
+      const serviceStep = Math.max(15, serviceDuration); // mínimo 15m para evitar bucles extraños
+
+      workingHours.forEach(av => {
+        const startStr = av.start_time as string | undefined;
+        const endStr = av.end_time as string | undefined;
+        if (!startStr || !endStr) return;
+
+        const [sH, sM] = toHM(startStr).split(':').map(Number);
+        const [eH, eM] = toHM(endStr).split(':').map(Number);
+
+        // Construir límites de la ventana del día
+        const windowStart = new Date(selectedDate);
+        windowStart.setHours(sH, sM, 0, 0);
+        const windowEnd = new Date(selectedDate);
+        windowEnd.setHours(eH, eM, 0, 0);
+
+        // Iterar por pasos de duración del servicio
+        for (let t = new Date(windowStart); t.getTime() + serviceDuration * 60000 <= windowEnd.getTime(); t = new Date(t.getTime() + serviceStep * 60000)) {
+          const slotStart = new Date(t);
+          const slotEnd = new Date(t.getTime() + serviceDuration * 60000);
+
+          // Mostrar solo a partir del momento actual cuando es hoy
+          if (format(selectedDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd') && slotStart <= now) {
+            continue;
+          }
+
+          // Bloqueos por provider_time_slots (bloqueado, reservado, recurrente)
+          const isBlockedByProviderSlot = blockedIntervals.some(b => {
+            const [bSH, bSM] = b.start.split(':').map(Number);
+            const [bEH, bEM] = b.end.split(':').map(Number);
+            const bStart = new Date(selectedDate);
+            bStart.setHours(bSH, bSM, 0, 0);
+            const bEnd = new Date(selectedDate);
+            bEnd.setHours(bEH, bEM, 0, 0);
+            return overlaps(slotStart, slotEnd, bStart, bEnd);
+          });
+
+          if (isBlockedByProviderSlot) {
+            slots.push({ time: format(slotStart, 'HH:mm'), isAvailable: false, available: false, conflictReason: 'Bloqueado' });
+            continue;
+          }
+
+          // Conflictos por citas existentes (pendientes/confirmadas)
+          const isBusy = appointmentIntervals.some(iv => overlaps(slotStart, slotEnd, iv.start, iv.end));
+          if (isBusy) {
+            slots.push({ time: format(slotStart, 'HH:mm'), isAvailable: false, available: false, conflictReason: 'Horario ocupado' });
+            continue;
+          }
+
+          // Conflictos con series recurrentes + excepciones
+          const hasRecurringConflict = checkRecurringConflicts(
+            recurringAppointments || [],
+            exceptions.map(ex => ({ ...ex, action_type: ex.action_type as 'cancelled' | 'rescheduled' })),
+            slotStart,
+            slotEnd,
+            excludeAppointmentId
+          );
+
+          if (hasRecurringConflict) {
+            slots.push({ time: format(slotStart, 'HH:mm'), isAvailable: false, available: false, conflictReason: 'Conflicto con serie recurrente' });
+            continue;
+          }
+
+          // Si pasó todos los filtros, el slot está disponible
+          slots.push({ time: format(slotStart, 'HH:mm'), isAvailable: true, available: true });
         }
       });
-
-
-      // 6. Generar slots basados en disponibilidad o usar slots existentes
-      if (timeSlots && timeSlots.length > 0) {
-        // Usar slots específicos del proveedor
-        timeSlots.forEach(slot => {
-          const timeKey = slot.start_time;
-          let isAvailable = true;
-          let conflictReason: string | undefined;
-
-          // Verificar si está bloqueado por citas existentes
-          if (blockedTimes.has(timeKey)) {
-            isAvailable = false;
-            conflictReason = 'Horario ocupado';
-          }
-          // Si está bloqueado por recurrencia, verificar si podemos liberarlo
-          else if (slot.recurring_blocked && excludeAppointmentId) {
-            // Check if this slot is blocked by the appointment being rescheduled
-            // Note: We need to query the recurring_rule_id from appointments table
-            const currentAppointment = recurringAppointments?.find(apt => apt.id === excludeAppointmentId);
-            const isBlockedBySameAppointment = slot.recurring_rule_id && 
-              currentAppointment && 
-              slot.recurring_rule_id === currentAppointment.id; // Using appointment id as rule reference
-            
-            if (isBlockedBySameAppointment) {
-              // Check if there's an exception that would make this slot available
-              const slotDateTime = new Date(selectedDate);
-              const [hours, minutes] = timeKey.split(':').map(Number);
-              slotDateTime.setHours(hours, minutes, 0, 0);
-              
-              const hasException = exceptions.some(ex => 
-                ex.appointment_id === excludeAppointmentId &&
-                new Date(ex.exception_date).toDateString() === selectedDate.toDateString()
-              );
-              
-              isAvailable = !hasException; // Available if no exception exists
-              conflictReason = hasException ? 'Horario ya tiene excepción' : undefined;
-            } else {
-              isAvailable = false;
-              conflictReason = 'Bloqueado por otra serie recurrente';
-            }
-          }
-          
-          slots.push({
-            time: timeKey,
-            isAvailable,
-            available: isAvailable,
-            conflictReason
-          });
-        });
-      } else {
-        // Generar slots basados en disponibilidad general
-        workingHours.forEach(availability => {
-          const startTime = availability.start_time;
-          const endTime = availability.end_time;
-          
-          if (startTime && endTime) {
-            const [startHour, startMinute] = startTime.split(':').map(Number);
-            const [endHour, endMinute] = endTime.split(':').map(Number);
-            
-            // Generar slots cada hora dentro del rango
-            for (let hour = startHour; hour < endHour; hour++) {
-              for (let minute = 0; minute < 60; minute += 60) { // Solo cada hora por ahora
-                const timeKey = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                let isAvailable = true;
-                let conflictReason: string | undefined;
-                
-                // Verificar conflictos
-                if (blockedTimes.has(timeKey)) {
-                  isAvailable = false;
-                  conflictReason = 'Horario ocupado';
-                } else if (recurringAppointments) {
-                  // Check for recurring conflicts for this specific time
-                  const testStartTime = new Date(selectedDate);
-                  testStartTime.setHours(hour, minute, 0, 0);
-                  const testEndTime = new Date(testStartTime);
-                  testEndTime.setMinutes(testEndTime.getMinutes() + serviceDuration);
-                  
-                  const hasConflict = checkRecurringConflicts(
-                    recurringAppointments,
-                    exceptions.map(ex => ({
-                      ...ex,
-                      action_type: ex.action_type as 'cancelled' | 'rescheduled'
-                    })),
-                    testStartTime,
-                    testEndTime,
-                    excludeAppointmentId
-                  );
-                  
-                  if (hasConflict) {
-                    isAvailable = false;
-                    conflictReason = 'Conflicto con serie recurrente';
-                  }
-                }
-                
-                slots.push({
-                  time: timeKey,
-                  isAvailable,
-                  available: isAvailable,
-                  conflictReason
-                });
-              }
-            }
-          }
-        });
-      }
 
       // Ordenar slots por hora
       slots.sort((a, b) => a.time.localeCompare(b.time));
@@ -295,6 +266,19 @@ export const useProviderAvailability = ({
     
     return unsubscribe;
   }, [providerId, subscribeToAvailabilityChanges, refreshAvailability]);
+
+  // Suscripción en tiempo real a cambios en provider_availability
+  useEffect(() => {
+    if (!providerId) return;
+    const channel = supabase
+      .channel(`provider-availability-${providerId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'provider_availability', filter: `provider_id=eq.${providerId}` }, () => {
+        console.log('Cambio en provider_availability detectado, refrescando slots...');
+        refreshAvailability();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [providerId, refreshAvailability]);
 
   return {
     availableTimeSlots,

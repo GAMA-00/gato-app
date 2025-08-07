@@ -67,13 +67,35 @@ export const useUnifiedProviderAvailability = ({
     try {
       console.log(`Fetching unified availability for provider ${providerId} on ${format(selectedDate, 'yyyy-MM-dd')}`);
       
-      // Generate time slots from 7 AM to 7 PM every 30 minutes
+      // Construir ventanas base desde la disponibilidad configurada del proveedor
+      const dayOfWeek = selectedDate.getDay();
+      const { data: providerAvailability } = await supabase
+        .from('provider_availability')
+        .select('start_time, end_time')
+        .eq('provider_id', providerId)
+        .eq('day_of_week', dayOfWeek)
+        .eq('is_active', true);
+
+      const workingHours = (providerAvailability && providerAvailability.length > 0)
+        ? providerAvailability
+        : [{ start_time: '08:00:00', end_time: '18:00:00' }];
+
+      const toHM = (t: string) => t.slice(0, 5);
+
       const timeSlots: TimeSlot[] = [];
-      for (let hour = 7; hour < 19; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-          const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      const now = new Date();
+      const step = Math.max(15, serviceDuration); // paso = duración del servicio (mín. 15m)
+      for (const av of workingHours) {
+        const [sH, sM] = toHM(av.start_time as string).split(':').map(Number);
+        const [eH, eM] = toHM(av.end_time as string).split(':').map(Number);
+        const windowStart = new Date(selectedDate);
+        windowStart.setHours(sH, sM, 0, 0);
+        const windowEnd = new Date(selectedDate);
+        windowEnd.setHours(eH, eM, 0, 0);
+        for (let t = new Date(windowStart); t.getTime() + serviceDuration * 60000 <= windowEnd.getTime(); t = new Date(t.getTime() + step * 60000)) {
+          if (format(selectedDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd') && t <= now) continue;
           timeSlots.push({
-            time: timeString,
+            time: format(t, 'HH:mm'),
             available: true
           });
         }
