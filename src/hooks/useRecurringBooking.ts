@@ -78,14 +78,16 @@ export function useRecurringBooking() {
       const slotDateStr = format(new Date(data.startTime), 'yyyy-MM-dd');
       const slotTimeStr = format(new Date(data.startTime), 'HH:mm');
       
-      console.log('Verificando disponibilidad del slot:', { slotDateStr, slotTimeStr, providerId: listing.provider_id, listingId: data.listingId });
+      console.log('=== VERIFICANDO DISPONIBILIDAD DEL SLOT ===');
+      console.log('Slot solicitado:', { slotDateStr, slotTimeStr, providerId: listing.provider_id, listingId: data.listingId });
+      console.log('Tipo de recurrencia:', data.recurrenceType);
+      console.log('Start time exacto:', data.startTime);
       
-      // Verificar si ya existe una cita confirmada o pendiente para este slot
+      // Solo verificar si ya existe una cita confirmada o pendiente para este slot exacto
       const { data: existingAppointments, error: checkError } = await supabase
         .from('appointments')
-        .select('id, status')
+        .select('id, status, recurrence, start_time, end_time, client_id')
         .eq('provider_id', listing.provider_id)
-        .eq('listing_id', data.listingId)
         .eq('start_time', data.startTime)
         .in('status', ['confirmed', 'pending']);
 
@@ -94,10 +96,23 @@ export function useRecurringBooking() {
         throw new Error('Error verificando disponibilidad del horario');
       }
 
+      console.log('Citas existentes encontradas:', existingAppointments);
+
       if (existingAppointments && existingAppointments.length > 0) {
-        console.log('Slot ya ocupado por citas existentes:', existingAppointments);
-        throw new Error('Este horario ya fue reservado por otro cliente. Por favor selecciona un horario diferente.');
+        // Verificar si alguna de estas citas es del mismo cliente (podrían ser duplicadas por error)
+        const otherClientsAppointments = existingAppointments.filter(apt => apt.client_id !== user.id);
+        
+        if (otherClientsAppointments.length > 0) {
+          console.log('❌ Slot ya ocupado por otros clientes:', otherClientsAppointments);
+          throw new Error('Este horario ya fue reservado por otro cliente. Por favor selecciona un horario diferente.');
+        }
+        
+        // Si todas las citas son del mismo cliente, podría ser un intento duplicado
+        console.log('⚠️ Encontradas citas del mismo cliente para este horario:', existingAppointments);
+        throw new Error('Ya tienes una cita para este horario. Revisa tu lista de citas.');
       }
+
+      console.log('✅ Slot disponible, procediendo con la creación de la cita...');
 
       // Crear la cita directamente en appointments con el campo recurrence
       const appointmentData = {

@@ -94,10 +94,19 @@ export const useWeeklySlotsFetcher = ({
 
       if (slotsError) throw slotsError;
       
+      
       console.log('📊 Resultado de consulta timeSlots:', {
         totalSlots: timeSlots?.length || 0,
-        primeros3Slots: timeSlots?.slice(0, 3),
-        rangoFechas: timeSlots?.length > 0 ? {
+        filtros: { providerId, listingId, is_available: true, is_reserved: false },
+        rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') },
+        primeros3Slots: timeSlots?.slice(0, 3)?.map(s => ({ 
+          fecha: s.slot_date, 
+          hora: s.start_time, 
+          disponible: s.is_available, 
+          reservado: s.is_reserved,
+          tipo: s.slot_type
+        })),
+        rangoFechasSlotsEncontrados: timeSlots?.length > 0 ? {
           primera: timeSlots[0]?.slot_date,
           ultima: timeSlots[timeSlots.length - 1]?.slot_date
         } : null
