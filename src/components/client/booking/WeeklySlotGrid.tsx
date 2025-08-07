@@ -309,11 +309,6 @@ const WeeklySlotGrid = ({
             <div className="hidden md:block text-xs text-gray-500">
               {format(weekStartDate, 'd MMM', { locale: es })} - {format(weekEndDate, 'd MMM', { locale: es })}
             </div>
-            {isCurrentWeek(currentWeek) && (
-              <div className="text-xs text-blue-600 mt-1">
-                Desde ahora en adelante
-              </div>
-            )}
           </div>
 
           <Button
