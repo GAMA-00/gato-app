@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
-import { filterTemporalSlots } from '@/utils/temporalSlotFiltering';
+import { filterTemporalSlots, calculateWeekDateRange } from '@/utils/temporalSlotFiltering';
 
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
@@ -37,10 +37,10 @@ export const useWeeklySlotsFetcher = ({
       return;
     }
 
-    // Always use the provided startDate for the exact week being requested
-    const today = startOfDay(new Date());
-    const baseDate = startDate ? startOfDay(startDate) : today;
-    const endDate = addDays(baseDate, daysAhead - 1); // Exact 7 days from baseDate
+    // Use correct week boundaries based on weekIndex
+    const { startDate: weekStartDate, endDate: weekEndDate } = calculateWeekDateRange(weekIndex);
+    const baseDate = startOfDay(weekStartDate);
+    const endDate = startOfDay(weekEndDate);
     const paramsSignature = createSlotSignature(providerId, listingId, serviceDuration, recurrence, baseDate, endDate);
     
     // Prevent duplicate requests with same signature

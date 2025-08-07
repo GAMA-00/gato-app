@@ -1,4 +1,5 @@
-import { isToday, isSameWeek, isAfter, parseISO } from 'date-fns';
+import { isToday, isAfter, startOfWeek, endOfWeek, addWeeks, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { WeeklySlot } from '@/lib/weeklySlotTypes';
 
 /**
@@ -6,6 +7,41 @@ import { WeeklySlot } from '@/lib/weeklySlotTypes';
  */
 export const isCurrentWeek = (weekIndex: number): boolean => {
   return weekIndex === 0;
+};
+
+/**
+ * Calculates the correct date range for a specific week
+ */
+export const calculateWeekDateRange = (weekIndex: number): { startDate: Date, endDate: Date } => {
+  const now = new Date();
+  
+  if (weekIndex === 0) {
+    // Current week: from now until end of current week (Sunday)
+    return {
+      startDate: now,
+      endDate: endOfWeek(now, { weekStartsOn: 1 }) // Week starts on Monday
+    };
+  } else {
+    // Future weeks: complete Monday to Sunday weeks
+    const futureWeekStart = addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekIndex);
+    return {
+      startDate: futureWeekStart,
+      endDate: endOfWeek(futureWeekStart, { weekStartsOn: 1 })
+    };
+  }
+};
+
+/**
+ * Gets the week label with date range
+ */
+export const getWeekLabel = (weekIndex: number): string => {
+  const { startDate, endDate } = calculateWeekDateRange(weekIndex);
+  
+  if (weekIndex === 0) {
+    return `Esta semana (hasta ${format(endDate, 'd MMM', { locale: es })})`;
+  } else {
+    return `Semana ${weekIndex + 1} (${format(startDate, 'd MMM', { locale: es })} - ${format(endDate, 'd MMM', { locale: es })})`;
+  }
 };
 
 /**

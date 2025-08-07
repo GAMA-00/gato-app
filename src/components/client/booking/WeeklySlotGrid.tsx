@@ -18,7 +18,9 @@ import {
 import { 
   isCurrentWeek, 
   getWeekContextMessage, 
-  getNavigationHint 
+  getNavigationHint,
+  calculateWeekDateRange,
+  getWeekLabel
 } from '@/utils/temporalSlotFiltering';
 
 interface WeeklySlotGridProps {
@@ -48,9 +50,11 @@ const WeeklySlotGrid = ({
     setSelectedSlotIds(selectedSlots);
   }, [selectedSlots]);
 
-  const startDate = addWeeks(new Date(), currentWeek);
+  // Calculate correct week boundaries
+  const { startDate: weekStartDate, endDate: weekEndDate } = calculateWeekDateRange(currentWeek);
   
   const {
+    slotGroups,
     availableSlotGroups,
     stats,
     isLoading,
@@ -63,7 +67,7 @@ const WeeklySlotGrid = ({
     listingId,
     serviceDuration,
     recurrence,
-    startDate,
+    startDate: weekStartDate,
     daysAhead: 7,
     weekIndex: currentWeek
   });
@@ -303,7 +307,7 @@ const WeeklySlotGrid = ({
               {isCurrentWeek(currentWeek) ? 'Esta semana' : `Semana ${currentWeek + 1}`}
             </div>
             <div className="hidden md:block text-xs text-gray-500">
-              {format(startDate, 'd MMM', { locale: es })} - {format(addWeeks(startDate, 1), 'd MMM', { locale: es })}
+              {format(weekStartDate, 'd MMM', { locale: es })} - {format(weekEndDate, 'd MMM', { locale: es })}
             </div>
             {isCurrentWeek(currentWeek) && (
               <div className="text-xs text-blue-600 mt-1">
@@ -342,39 +346,46 @@ const WeeklySlotGrid = ({
 
         {/* Slots Grid */}
         <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
-          {availableSlotGroups.map(group => (
-            <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
-              {/* Day Header */}
-              <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
-                <div className="text-base md:text-sm font-medium text-gray-900">
-                  {format(group.date, 'EEEE', { locale: es })}
+          {slotGroups.map(group => {
+            const availableSlots = group.slots.filter(slot => slot.isAvailable);
+            return (
+              <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
+                {/* Day Header */}
+                <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
+                  <div className="text-base md:text-sm font-medium text-gray-900">
+                    {format(group.date, 'EEEE', { locale: es })}
+                  </div>
+                  <div className="text-sm md:text-xs text-gray-500">
+                    {group.dayNumber} {group.dayMonth}
+                  </div>
                 </div>
-                <div className="text-sm md:text-xs text-gray-500">
-                  {group.dayNumber} {group.dayMonth}
-                </div>
-              </div>
 
-              {/* Day Slots */}
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
-                {group.slots
-                  .filter(slot => slot.isAvailable)
-                  .map(slot => (
-                    <SlotCard
-                      key={slot.id}
-                      time={slot.displayTime}
-                      period={slot.period}
-                      isEnabled={slot.isAvailable}
-                      isSelected={selectedSlotIds.includes(slot.id)}
-                      isAvailable={slot.isAvailable}
-                      onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
-                      size="sm"
-                      variant="client"
-                      className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink"
-                    />
-                  ))}
+                {/* Day Slots */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
+                  {availableSlots.length > 0 ? (
+                    availableSlots.map(slot => (
+                      <SlotCard
+                        key={slot.id}
+                        time={slot.displayTime}
+                        period={slot.period}
+                        isEnabled={slot.isAvailable}
+                        isSelected={selectedSlotIds.includes(slot.id)}
+                        isAvailable={slot.isAvailable}
+                        onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
+                        size="sm"
+                        variant="client"
+                        className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink"
+                      />
+                    ))
+                  ) : (
+                    <div className="text-xs text-gray-400 italic text-center md:text-left py-2">
+                      No disponible
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Loading Indicator */}
