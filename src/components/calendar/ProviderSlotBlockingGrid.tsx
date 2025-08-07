@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface ProviderSlotBlockingGridProps {
   providerId: string;
@@ -234,52 +235,58 @@ const ProviderSlotBlockingGrid = ({
   return (
     <Card className="shadow-md">
       <CardHeader className="pb-4 px-4 pt-4 md:px-6">
-        <div className="text-center md:flex md:items-center md:justify-between md:text-left">
-          <div>
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <div className="text-center md:text-left">
             <CardTitle className="text-lg md:text-xl flex items-center justify-center md:justify-start gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              <span className="md:hidden">Administrar Horarios</span>
+              <span className="md:hidden">Gestionar horarios</span>
               <span className="hidden md:inline">Administrar Disponibilidad de Horarios</span>
             </CardTitle>
-            <CardDescription className="hidden md:block mt-2">
-              Estos son los mismos horarios que ven tus clientes. Puedes bloquearlos si tienes otros compromisos.
-            </CardDescription>
-            <CardDescription className="md:hidden text-center mt-2">
-              {availableSlots} disponibles, {blockedSlots} bloqueados
+            <CardDescription className="mt-2 text-sm">
+              <span className="md:hidden">Toca para bloquear/desbloquear horarios</span>
+              <span className="hidden md:inline">Estos son los mismos horarios que ven tus clientes. Puedes bloquearlos si tienes otros compromisos.</span>
             </CardDescription>
           </div>
-          <div className="hidden md:flex items-center gap-2">
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              {availableSlots} disponibles
+          
+          {/* Stats badges - Móvil: compactos, Desktop: detallados */}
+          <div className="flex items-center justify-center gap-2 md:gap-3">
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-xs font-medium">{availableSlots}</span>
+                <span className="hidden md:inline text-xs">disponibles</span>
+              </div>
             </Badge>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-              <XCircle className="h-3 w-3 mr-1" />
-              {blockedSlots} bloqueados
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-1">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-xs font-medium">{blockedSlots}</span>
+                <span className="hidden md:inline text-xs">bloqueados</span>
+              </div>
             </Badge>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 px-4 md:px-6">
-        {/* Week Navigation */}
-        <div className="flex items-center justify-between p-4 md:p-3 bg-gray-50 rounded-lg">
+      <CardContent className="space-y-6 px-4 md:px-6">
+        {/* Week Navigation - Mejorado para móvil */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
           <Button
             variant="outline"
             size="default"
             onClick={goToPreviousWeek}
             disabled={currentWeek === 0}
-            className="flex items-center gap-1 min-h-[44px] md:min-h-auto px-4 md:px-3"
+            className="flex items-center gap-2 min-h-[48px] px-4 rounded-xl border-2 disabled:opacity-50"
           >
             <ChevronLeft className="h-4 w-4" />
-            Anterior
+            <span className="hidden sm:inline">Anterior</span>
           </Button>
           
-          <div className="text-center">
-            <div className="text-base md:text-sm font-medium">
+          <div className="text-center px-2">
+            <div className="text-base font-semibold text-gray-900">
               {getCalendarWeekLabel(currentWeek)}
             </div>
-            <div className="hidden md:block text-xs text-gray-500">
+            <div className="text-xs text-gray-500 mt-1">
               {format(startDate, 'd MMM', { locale: es })} - {format(endDate, 'd MMM', { locale: es })}
             </div>
           </div>
@@ -288,96 +295,116 @@ const ProviderSlotBlockingGrid = ({
             variant="outline"
             size="default"
             onClick={goToNextWeek}
-            className="flex items-center gap-1 min-h-[44px] md:min-h-auto px-4 md:px-3"
+            className="flex items-center gap-2 min-h-[48px] px-4 rounded-xl border-2"
           >
-            Siguiente
+            <span className="hidden sm:inline">Siguiente</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Refresh Button - Desktop only */}
-        <div className="hidden md:flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            {slotGroups.length} días con horarios • Total: {totalSlots} horarios
+        {/* Stats and Refresh - Desktop only */}
+        <div className="hidden md:flex justify-between items-center py-2 px-1">
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span>{slotGroups.length} días con horarios</span>
+            <span>•</span>
+            <span>Total: {totalSlots} horarios</span>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={refreshSlots}
             disabled={isLoading}
-            className="flex items-center gap-1"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
-            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
         </div>
 
-        {/* Slots Grid - Mostrar TODOS los slots con colores diferentes */}
-        <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
+        {/* Slots Grid - Optimizado para móvil con scrolls horizontales independientes */}
+        <div className="space-y-6 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
           {slotGroups.map(group => (
             <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
-              {/* Day Header */}
-              <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
-                <div className="text-base md:text-sm font-medium text-gray-900">
-                  {format(group.date, 'EEEE', { locale: es })}
+              {/* Day Header - Mejorado para móvil */}
+              <div className="flex items-center justify-between md:block md:text-center">
+                <div className="flex flex-col">
+                  <div className="text-base md:text-sm font-semibold text-gray-900">
+                    {format(group.date, 'EEEE', { locale: es })}
+                  </div>
+                  <div className="text-sm md:text-xs text-gray-500">
+                    {group.dayNumber} {group.dayMonth}
+                  </div>
                 </div>
-                <div className="text-sm md:text-xs text-gray-500">
-                  {group.dayNumber} {group.dayMonth}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {group.slots.filter(s => s.isAvailable).length} de {group.slots.length} disponibles
+                <div className="text-right md:text-center md:mt-1">
+                  <div className="text-xs text-gray-600 font-medium">
+                    {group.slots.filter(s => s.isAvailable).length} de {group.slots.length}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    disponibles
+                  </div>
                 </div>
               </div>
 
-              {/* Day Slots - Mostrar TODOS los slots */}
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
-                {group.slots.map(slot => {
-                  const isBlocking = blockingSlots.has(slot.id);
-                  return (
-                    <button
-                      key={slot.id}
-                      onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
-                      disabled={isBlocking}
-                      className={`
-                        flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink
-                        px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                        ${slot.isAvailable 
-                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100' 
-                          : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                        }
-                        ${isBlocking ? 'animate-pulse' : ''}
-                      `}
-                    >
-                      <div className="flex flex-col items-center">
-                        <span className="text-xs font-normal">{slot.displayTime}</span>
-                        <span className="text-xs">{slot.period}</span>
-                        {slot.isAvailable ? (
-                          <CheckCircle className="h-3 w-3 mt-1" />
-                        ) : (
-                          <XCircle className="h-3 w-3 mt-1" />
+              {/* Day Slots - Lista horizontal con scroll independiente */}
+              <div className="relative">
+                <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-2 md:max-h-64 md:overflow-y-auto md:pb-0">
+                  {group.slots.map(slot => {
+                    const isBlocking = blockingSlots.has(slot.id);
+                    return (
+                      <button
+                        key={slot.id}
+                        onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
+                        disabled={isBlocking}
+                        className={cn(
+                          'flex-shrink-0 flex flex-col items-center justify-center gap-1',
+                          'w-20 h-16 rounded-xl text-sm font-medium transition-all duration-200',
+                          'border-2 shadow-sm',
+                          'disabled:opacity-50 disabled:cursor-not-allowed',
+                          slot.isAvailable 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md hover:scale-105 active:scale-95' 
+                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md hover:scale-105 active:scale-95',
+                          isBlocking ? 'animate-pulse' : '',
+                          'md:w-auto md:h-auto md:flex-shrink md:px-3 md:py-2 md:rounded-lg md:hover:scale-100'
                         )}
-                      </div>
-                    </button>
-                  );
-                })}
+                      >
+                        <span className="text-base font-bold leading-none">{slot.displayTime}</span>
+                        <span className="text-xs opacity-75 leading-none">{slot.period}</span>
+                        {slot.isAvailable ? (
+                          <div className="w-3 h-3 rounded-full bg-emerald-500 md:hidden" />
+                        ) : (
+                          <div className="w-3 h-3 rounded-full bg-red-500 md:hidden" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* Scroll indicator shadow - Solo móvil */}
+                <div className="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
               </div>
             </div>
           ))}
         </div>
 
-        {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        {/* Instructions - Rediseñado para móvil */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">¿Cómo funciona?</p>
-              <ul className="text-xs space-y-1">
-                <li>• <strong>Verde:</strong> Horario disponible para clientes</li>
-                <li>• <strong>Rojo:</strong> Horario bloqueado (no visible para clientes)</li>
-                <li>• Haz clic en cualquier horario para bloquearlo/desbloquearlo</li>
-                <li>• Los cambios se reflejan inmediatamente para nuevas reservas</li>
-              </ul>
+              <p className="font-semibold mb-2">¿Cómo gestionar tus horarios?</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-emerald-500" />
+                  <span>Disponible para clientes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-red-500" />
+                  <span>Bloqueado (no visible)</span>
+                </div>
+              </div>
+              <p className="mt-2 text-xs opacity-90">
+                Toca cualquier horario para bloquearlo o desbloquearlo instantáneamente
+              </p>
             </div>
           </div>
         </div>
