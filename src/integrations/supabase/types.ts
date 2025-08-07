@@ -1232,6 +1232,14 @@ export type Database = {
         Args: { p_appointment_id: string; p_months_ahead?: number }
         Returns: number
       }
+      calculate_next_occurrence_sql: {
+        Args: {
+          original_date: string
+          recurrence_type: string
+          reference_date?: string
+        }
+        Returns: string
+      }
       calculate_refund_percentage: {
         Args: { cancellation_time: string; appointment_start: string }
         Returns: number
@@ -1248,6 +1256,10 @@ export type Database = {
           p_exclude_rule_id?: string
         }
         Returns: boolean
+      }
+      cleanup_and_regenerate_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       consolidate_multiple_listings: {
         Args: Record<PropertyKey, never>
@@ -1282,6 +1294,10 @@ export type Database = {
       fix_empty_avatars: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      fix_triweekly_blocked_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       generate_all_provider_time_slots: {
         Args: Record<PropertyKey, never>
