@@ -74,56 +74,82 @@ export function useRecurringBooking() {
         throw new Error('Se requiere al menos teléfono o email');
       }
 
-      // Verificar disponibilidad del slot usando nuestra validación mejorada
-      console.log('=== VERIFICANDO DISPONIBILIDAD DEL SLOT ===');
+      // Verificar y limpiar estado del slot antes de booking
+      console.log('=== VERIFICANDO Y LIMPIANDO ESTADO DEL SLOT ===');
       console.log('Slot solicitado:', { providerId: listing.provider_id, listingId: data.listingId });
-      console.log('Tipo de recurrencia:', data.recurrenceType);
       console.log('Start time exacto:', data.startTime);
       
-      const { validateSlotAvailabilityForBooking } = await import('@/utils/enhancedBookingValidation');
-      const availabilityResult = await validateSlotAvailabilityForBooking(
-        listing.provider_id,
-        data.listingId,
-        new Date(data.startTime),
-        new Date(data.endTime),
-        data.recurrenceType
-      );
-      
-      if (!availabilityResult.isAvailable) {
-        throw new Error(availabilityResult.reason || 'El horario seleccionado no está disponible');
+      // 1. Verificar si existe una cita cancelada/completada en este slot
+      const { data: existingAppointments, error: checkError } = await supabase
+        .from('appointments')
+        .select('id, status')
+        .eq('provider_id', listing.provider_id)
+        .eq('listing_id', data.listingId)
+        .eq('start_time', data.startTime);
+
+      if (checkError) {
+        console.error('Error checking existing appointments:', checkError);
       }
-      
-      // Validar que el slot es válido para la recurrencia seleccionada
-      if (data.recurrenceType && data.recurrenceType !== 'once') {
-        console.log('🔄 Validando slot para recurrencia:', data.recurrenceType);
+
+      // 2. Limpiar citas canceladas o completadas que podrían estar bloqueando el slot
+      if (existingAppointments && existingAppointments.length > 0) {
+        const blockedAppointments = existingAppointments.filter(apt => 
+          apt.status === 'cancelled' || apt.status === 'completed'
+        );
         
-        const { shouldHaveRecurrenceOn } = await import('@/utils/optimizedRecurrenceSystem');
-        const normalizeRecurrenceType = (recurrence: string): 'once' | 'weekly' | 'biweekly' | 'triweekly' | 'monthly' => {
-          switch (recurrence?.toLowerCase()) {
-            case 'weekly': return 'weekly';
-            case 'biweekly': return 'biweekly';  
-            case 'triweekly': return 'triweekly';
-            case 'monthly': return 'monthly';
-            default: return 'once';
+        if (blockedAppointments.length > 0) {
+          console.log('Limpiando citas bloqueadas:', blockedAppointments);
+          const { error: deleteError } = await supabase
+            .from('appointments')
+            .delete()
+            .in('id', blockedAppointments.map(apt => apt.id));
+          
+          if (deleteError) {
+            console.error('Error cleaning blocked appointments:', deleteError);
           }
-        };
-        
-        const config = {
-          type: normalizeRecurrenceType(data.recurrenceType),
-          startDate: new Date(data.startTime)
-        };
-        
-        const isValidForRecurrence = shouldHaveRecurrenceOn(new Date(data.startTime), config);
-        
-        if (!isValidForRecurrence) {
-          console.log('❌ Slot no válido para la recurrencia seleccionada');
-          throw new Error(`Este horario no es válido para una cita ${data.recurrenceType}. Por favor selecciona un horario diferente.`);
         }
+
+        // Verificar si hay citas activas que realmente bloquean el slot
+        const activeAppointments = existingAppointments.filter(apt => 
+          apt.status === 'pending' || apt.status === 'confirmed'
+        );
         
-        console.log('✅ Slot validado correctamente para recurrencia');
+        if (activeAppointments.length > 0) {
+          throw new Error('Este horario ya está reservado por otro cliente');
+        }
+      }
+
+      // 3. Verificar y actualizar estado del slot en provider_time_slots
+      const { data: slotData, error: slotError } = await supabase
+        .from('provider_time_slots')
+        .select('id, is_available, is_reserved, recurring_blocked')
+        .eq('provider_id', listing.provider_id)
+        .eq('listing_id', data.listingId)
+        .eq('slot_datetime_start', data.startTime)
+        .maybeSingle();
+
+      if (slotError) {
+        console.error('Error checking slot:', slotError);
+      }
+
+      // Liberar slot si está marcado como reservado/bloqueado pero no hay citas activas
+      if (slotData && (slotData.is_reserved || slotData.recurring_blocked || !slotData.is_available)) {
+        console.log('Liberando slot bloqueado:', slotData);
+        const { error: updateError } = await supabase
+          .from('provider_time_slots')
+          .update({ 
+            is_available: true, 
+            is_reserved: false, 
+            recurring_blocked: false 
+          })
+          .eq('id', slotData.id);
+        
+        if (updateError) {
+          console.error('Error updating slot availability:', updateError);
+        }
       }
       
-      console.log('✅ Slot disponible, procediendo con la creación de la cita...');
+      console.log('✅ Slot limpiado y disponible, procediendo con la creación de la cita...');
 
       // Crear la cita directamente en appointments con el campo recurrence
       const appointmentData = {
@@ -148,32 +174,74 @@ export function useRecurringBooking() {
       console.log('Datos de cita preparados:', appointmentData);
       console.log('Insertando cita en base de datos...');
 
-      const { data: appointment, error } = await supabase
-        .from('appointments')
-        .insert(appointmentData)
-        .select()
-        .single();
+      // Intentar crear la cita con manejo robusto de errores
+      let appointment;
+      let insertAttempts = 0;
+      const maxInsertAttempts = 2;
 
-      if (error) {
-        console.error('Error creating appointment:', error);
-        
-        // Enhanced error handling with more specific messages
+      while (insertAttempts < maxInsertAttempts) {
+        insertAttempts++;
+        console.log(`Intento ${insertAttempts} de crear appointment...`);
+
+        const { data: appointmentResult, error } = await supabase
+          .from('appointments')
+          .insert(appointmentData)
+          .select()
+          .single();
+
+        if (!error) {
+          appointment = appointmentResult;
+          break;
+        }
+
+        console.error(`Error en intento ${insertAttempts}:`, error);
+
+        // Si es error P0001 (slot ya existe), intentar limpiar y reintentar una vez
+        if (error.code === 'P0001' && insertAttempts === 1) {
+          console.log('🔧 Error P0001 detectado, limpiando conflictos y reintentando...');
+          
+          // Limpiar cualquier cita conflictiva
+          await supabase
+            .from('appointments')
+            .delete()
+            .eq('provider_id', listing.provider_id)
+            .eq('listing_id', data.listingId)
+            .eq('start_time', data.startTime)
+            .in('status', ['cancelled', 'completed']);
+
+          // Limpiar estado del slot
+          await supabase
+            .from('provider_time_slots')
+            .update({ 
+              is_available: true, 
+              is_reserved: false, 
+              recurring_blocked: false 
+            })
+            .eq('provider_id', listing.provider_id)
+            .eq('listing_id', data.listingId)
+            .eq('slot_datetime_start', data.startTime);
+
+          // Esperar un momento antes del siguiente intento
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+
+        // Para otros errores o si ya reintentamos
         if (error.code === '23505') {
-          // This should be very rare now due to our database constraint changes
-          if (error.message?.includes('unique_active_appointment_slot')) {
-            throw new Error('Ya existe una cita activa para este horario. Selecciona otro horario.');
-          }
-          throw new Error('Este horario ya fue reservado mientras procesábamos tu solicitud. Por favor selecciona otro horario.');
+          throw new Error('Este horario ya fue reservado. Selecciona otro horario.');
         } else if (error.code === '23503') {
           throw new Error('Error de referencia en los datos');
         } else if (error.code === '23514') {
           throw new Error('Los datos no cumplen con los requisitos');
         } else if (error.code === 'P0001') {
-          // Custom database function error
-          throw new Error('Este horario ya fue reservado. Por favor selecciona un horario diferente.');
+          throw new Error('Este horario no está disponible en este momento');
         } else {
           throw new Error(`Error de base de datos: ${error.message}`);
         }
+      }
+
+      if (!appointment) {
+        throw new Error('No se pudo crear la cita después de varios intentos');
       }
 
       if (!appointment) {
