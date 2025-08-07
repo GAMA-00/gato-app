@@ -15,6 +15,11 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
+import { 
+  isCurrentWeek, 
+  getWeekContextMessage, 
+  getNavigationHint 
+} from '@/utils/temporalSlotFiltering';
 
 interface WeeklySlotGridProps {
   providerId: string;
@@ -59,7 +64,8 @@ const WeeklySlotGrid = ({
     serviceDuration,
     recurrence,
     startDate,
-    daysAhead: 7
+    daysAhead: 7,
+    weekIndex: currentWeek
   });
 
   const areSlotConsecutive = (slots: any[]): boolean => {
@@ -181,16 +187,19 @@ const WeeklySlotGrid = ({
   }
 
   if (availableSlotGroups.length === 0) {
+    const contextMessage = getWeekContextMessage(currentWeek, false, 0);
+    const navigationHint = getNavigationHint(currentWeek, false);
+    
     return (
       <Card className="shadow-md border-yellow-200 bg-yellow-50">
         <CardContent className="pt-6">
           <div className="text-center py-8">
             <AlertCircle className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
             <p className="text-yellow-800 font-medium mb-2">
-              No hay horarios disponibles esta semana
+              {contextMessage}
             </p>
             <p className="text-yellow-700 text-sm mb-4">
-              {currentWeek === 0 ? 'Intenta la próxima semana' : 'Intenta otra semana'}
+              {navigationHint}
             </p>
             <div className="flex justify-center gap-2">
               <Button
@@ -291,11 +300,16 @@ const WeeklySlotGrid = ({
           
           <div className="text-center">
             <div className="text-base md:text-sm font-medium">
-              {currentWeek === 0 ? 'Esta semana' : `Semana ${currentWeek + 1}`}
+              {isCurrentWeek(currentWeek) ? 'Esta semana' : `Semana ${currentWeek + 1}`}
             </div>
             <div className="hidden md:block text-xs text-gray-500">
               {format(startDate, 'd MMM', { locale: es })} - {format(addWeeks(startDate, 1), 'd MMM', { locale: es })}
             </div>
+            {isCurrentWeek(currentWeek) && (
+              <div className="text-xs text-blue-600 mt-1">
+                Desde ahora en adelante
+              </div>
+            )}
           </div>
 
           <Button
@@ -312,7 +326,7 @@ const WeeklySlotGrid = ({
         {/* Refresh Button - Desktop only */}
         <div className="hidden md:flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            {stats.daysWithAvailableSlots} días con horarios disponibles
+            {getWeekContextMessage(currentWeek, stats.daysWithAvailableSlots > 0, stats.availableSlots)}
           </div>
           <Button
             variant="outline"

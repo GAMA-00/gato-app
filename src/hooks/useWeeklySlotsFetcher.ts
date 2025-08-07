@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
+import { filterTemporalSlots } from '@/utils/temporalSlotFiltering';
 
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
@@ -19,7 +20,8 @@ export const useWeeklySlotsFetcher = ({
   serviceDuration,
   recurrence = 'once',
   startDate,
-  daysAhead = 7
+  daysAhead = 7,
+  weekIndex = 0
 }: UseWeeklySlotsProps): UseWeeklySlotsFetcherReturn => {
   const [slots, setSlots] = useState<WeeklySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -142,7 +144,10 @@ export const useWeeklySlotsFetcher = ({
         };
       }) || [];
       
-      setSlots(weeklySlots);
+      // Apply temporal filtering based on week context
+      const filteredSlots = filterTemporalSlots(weeklySlots, weekIndex);
+      
+      setSlots(filteredSlots);
       setLastUpdated(new Date());
       
     } catch (err) {
@@ -151,7 +156,7 @@ export const useWeeklySlotsFetcher = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead]);
+  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex]);
 
   // Create a stable refresh function
   const refreshSlots = useCallback(() => {

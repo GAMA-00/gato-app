@@ -19,7 +19,8 @@ export const useWeeklySlots = ({
   serviceDuration,
   recurrence = 'once',
   startDate,
-  daysAhead = 7
+  daysAhead = 7,
+  weekIndex = 0
 }: UseWeeklySlotsProps): UseWeeklySlotsReturn => {
   const [isValidatingSlot, setIsValidatingSlot] = useState(false);
 
@@ -36,7 +37,8 @@ export const useWeeklySlots = ({
     serviceDuration,
     recurrence,
     startDate,
-    daysAhead
+    daysAhead,
+    weekIndex
   });
 
   // Handle real-time subscriptions
@@ -77,7 +79,7 @@ export const useWeeklySlots = ({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), fetchWeeklySlots]);
+  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), weekIndex, fetchWeeklySlots]);
 
   return {
     slotGroups,

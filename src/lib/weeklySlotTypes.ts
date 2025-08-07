@@ -23,6 +23,7 @@ export interface UseWeeklySlotsProps {
   recurrence?: string;
   startDate?: Date;
   daysAhead?: number;
+  weekIndex?: number;
 }
 
 export interface WeeklySlotStats {
