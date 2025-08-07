@@ -1257,6 +1257,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      clean_duplicate_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_and_regenerate_slots: {
         Args: Record<PropertyKey, never>
         Returns: number
