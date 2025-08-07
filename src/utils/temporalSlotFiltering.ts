@@ -1,4 +1,4 @@
-import { isToday, isAfter, startOfWeek, endOfWeek, addWeeks, format } from 'date-fns';
+import { isToday, isAfter, startOfWeek, endOfWeek, addWeeks, format, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { WeeklySlot } from '@/lib/weeklySlotTypes';
 import { shouldHaveRecurrenceOn, OptimizedRecurrenceConfig } from '@/utils/optimizedRecurrenceSystem';
@@ -56,21 +56,27 @@ export const filterTemporalSlots = (slots: WeeklySlot[], weekIndex: number): Wee
     return slots.filter(slot => slot.isAvailable);
   }
 
-  // For current week, filter out past slots
+  // For current week, filter out past slots and past days
   const now = new Date();
+  const today = startOfDay(now);
   
   return slots.filter(slot => {
     if (!slot.isAvailable) return false;
     
-    // Create a full datetime for this slot
-    const slotDateTime = createSlotDateTime(slot.date, slot.time);
+    const slotDate = startOfDay(slot.date);
+    
+    // Filter out days that have already passed
+    if (slotDate < today) {
+      return false;
+    }
     
     // For today's slots, only show future times
     if (isToday(slot.date)) {
+      const slotDateTime = createSlotDateTime(slot.date, slot.time);
       return isAfter(slotDateTime, now);
     }
     
-    // For other days this week, show all available slots
+    // For future days this week, show all available slots
     return true;
   });
 };
