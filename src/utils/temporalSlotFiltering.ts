@@ -157,25 +157,35 @@ const normalizeRecurrenceType = (recurrence: string): OptimizedRecurrenceConfig[
  * Only shows slots that are valid for the chosen recurrence type
  */
 export const filterSlotsByRecurrence = (slots: WeeklySlot[], recurrence: string = 'once'): WeeklySlot[] => {
-  // For 'once' recurrence, return all available slots
+  console.log('🔄 Iniciando filtrado por recurrencia:', {
+    tipoRecurrencia: recurrence,
+    totalSlots: slots.length,
+    fechasSlots: slots.map(s => `${format(s.date, 'yyyy-MM-dd')} ${s.time}`).slice(0, 5)
+  });
+
+  // For 'once' recurrence, return all available slots without any filtering
   if (!recurrence || recurrence === 'once') {
-    console.log('✅ Recurrencia "once" - mostrando todos los slots disponibles');
+    console.log('✅ Servicio "una vez" - devolviendo TODOS los slots disponibles sin filtrado');
     return slots;
   }
 
   const recurrenceType = normalizeRecurrenceType(recurrence);
   
-  console.log('🔄 Aplicando filtrado de recurrencia:', {
+  console.log('🔄 Aplicando filtrado de recurrencia para servicio recurrente:', {
     tipoRecurrencia: recurrenceType,
     totalSlots: slots.length
   });
 
+  // For recurring services, we need a consistent start date for the pattern
+  // Use the first slot's date as the base for the recurrence pattern
+  const firstSlotDate = slots.length > 0 ? slots[0].date : new Date();
+  
   const filteredSlots = slots.filter(slot => {
     try {
-      // Create recurrence config starting from this slot's date
+      // Create recurrence config with consistent start date
       const config: OptimizedRecurrenceConfig = {
         type: recurrenceType,
-        startDate: slot.date
+        startDate: firstSlotDate // Use consistent start date, not each slot's date
       };
 
       // Check if this slot date should have a recurrence occurrence
@@ -183,8 +193,6 @@ export const filterSlotsByRecurrence = (slots: WeeklySlot[], recurrence: string 
       
       if (!shouldShow) {
         console.log(`❌ Slot eliminado por recurrencia: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (no válido para ${recurrenceType})`);
-      } else {
-        console.log(`✅ Slot válido para recurrencia: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (${recurrenceType})`);
       }
       
       return shouldShow;
