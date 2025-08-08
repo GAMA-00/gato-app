@@ -27,6 +27,7 @@ export function useRecurringBooking() {
   const createRecurringBooking = async (data: RecurringBookingData) => {
     console.log('=== INICIANDO CREACIÓN DE RESERVA RECURRENTE ===');
     console.log('Datos recibidos:', data);
+    console.log('Tipo de recurrencia:', data.recurrenceType);
 
     if (!user) {
       console.error('Usuario no autenticado');
@@ -81,6 +82,7 @@ export function useRecurringBooking() {
       
       // Usamos RPC atómica para crear la cita y reservar el slot en una sola transacción
       console.log('▶️ Invocando RPC create_appointment_with_slot (operación atómica)');
+      console.log('🔄 Recurrencia detectada:', data.recurrenceType !== 'once' ? data.recurrenceType : 'Cita única');
 
       // Preparar parámetros para la función RPC
       const rpcParams = {
@@ -118,8 +120,14 @@ export function useRecurringBooking() {
         
         if (rpcError.code === '23505') {
           console.error('Error 23505 - Conflicto de unicidad - RPC debería haber limpiado duplicados');
-          // The new RPC should handle this automatically, but if we still get this error,
-          // it means there's a deeper issue
+          
+          // For recurring bookings, be more tolerant of 23505 errors
+          if (data.recurrenceType !== 'once') {
+            console.log('🔄 Recurring booking - 23505 might be transient, will allow retry');
+            throw new Error('RECURRING_SLOT_CONFLICT'); // Special error code for recurring retry logic
+          }
+          
+          // For single bookings, treat as permanent conflict
           throw new Error('Conflicto de horario persistente. El horario podría estar ocupado. Por favor selecciona otro.');
         }
         

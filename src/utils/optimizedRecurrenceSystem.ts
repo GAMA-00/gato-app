@@ -179,8 +179,8 @@ export function formatRecurrenceDescription(config: OptimizedRecurrenceConfig): 
 }
 
 /**
- * Validación optimista para conflictos de recurrencia
- * Permite que la reserva continúe y valida en el backend
+ * Validación optimista mejorada para conflictos de recurrencia
+ * Permite que la reserva continúe y valida en el backend con mejor logging
  */
 export function validateRecurrenceOptimistically(
   config: OptimizedRecurrenceConfig,
@@ -191,28 +191,41 @@ export function validateRecurrenceOptimistically(
   isValid: boolean;
   warnings: string[];
   shouldProceed: boolean;
+  confidence: 'high' | 'medium' | 'low';
 } {
   const warnings: string[] = [];
   let shouldProceed = true;
+  let confidence: 'high' | 'medium' | 'low' = 'high';
 
-  console.log(`🔍 Validación optimista para recurrencia ${config.type}`);
+  console.log(`🔍 Validación optimista mejorada para recurrencia ${config.type}`);
+  console.log(`📅 Slot: ${format(slotStart, 'yyyy-MM-dd HH:mm')} - ${format(slotEnd, 'HH:mm')}`);
+  console.log(`📊 Citas existentes a evaluar: ${existingAppointments.length}`);
 
-  // Para citas únicas, validación simple
+  // Para citas únicas, validación directa
   if (config.type === 'once') {
-    const hasDirectConflict = existingAppointments.some(apt => {
+    const directConflicts = existingAppointments.filter(apt => {
       const aptStart = new Date(apt.start_time);
       const aptEnd = new Date(apt.end_time);
-      return slotStart < aptEnd && slotEnd > aptStart;
+      const hasConflict = slotStart < aptEnd && slotEnd > aptStart;
+      
+      if (hasConflict) {
+        console.log(`⚠️ Conflicto directo detectado con cita ${apt.id}: ${format(aptStart, 'yyyy-MM-dd HH:mm')}`);
+      }
+      
+      return hasConflict;
     });
 
     return {
-      isValid: !hasDirectConflict,
-      warnings: hasDirectConflict ? ['Conflicto directo detectado'] : [],
-      shouldProceed: !hasDirectConflict
+      isValid: directConflicts.length === 0,
+      warnings: directConflicts.length > 0 ? [`${directConflicts.length} conflicto(s) directo(s) detectado(s)`] : [],
+      shouldProceed: directConflicts.length === 0,
+      confidence: directConflicts.length === 0 ? 'high' : 'low'
     };
   }
 
-  // Para recurrencia, hacer validación básica pero permisiva
+  // Para recurrencia, validación permisiva pero informativa
+  console.log(`🔄 Evaluando recurrencia ${config.type} para futuros conflictos...`);
+  
   const rangeEnd = addDays(slotStart, 90); // Validar 3 meses hacia adelante
   const futureOccurrences = generateRecurrenceOccurrences(
     config,
@@ -220,30 +233,128 @@ export function validateRecurrenceOptimistically(
     rangeEnd
   );
 
-  const conflictCount = futureOccurrences.filter(occurrence => {
+  console.log(`📈 ${futureOccurrences.length} ocurrencias futuras generadas para evaluación`);
+
+  const conflictAnalysis = futureOccurrences.map(occurrence => {
     const occurrenceEnd = new Date(occurrence.date);
     occurrenceEnd.setHours(slotEnd.getHours(), slotEnd.getMinutes());
 
-    return existingAppointments.some(apt => {
+    const conflicts = existingAppointments.filter(apt => {
       const aptStart = new Date(apt.start_time);
       const aptEnd = new Date(apt.end_time);
       return occurrence.date < aptEnd && occurrenceEnd > aptStart;
     });
-  }).length;
 
-  if (conflictCount > 0) {
-    warnings.push(`${conflictCount} posibles conflictos detectados en futuras ocurrencias`);
-    // Pero seguimos permitiendo la reserva para mejor UX
+    return {
+      date: occurrence.date,
+      conflicts: conflicts.length,
+      appointmentIds: conflicts.map(apt => apt.id)
+    };
+  }).filter(analysis => analysis.conflicts > 0);
+
+  const totalConflicts = conflictAnalysis.length;
+
+  if (totalConflicts > 0) {
+    console.log(`⚠️ ${totalConflicts} conflictos potenciales detectados en ocurrencias futuras:`);
+    conflictAnalysis.forEach(analysis => {
+      console.log(`  📅 ${format(analysis.date, 'yyyy-MM-dd')}: ${analysis.conflicts} conflicto(s)`);
+    });
+    
+    warnings.push(`${totalConflicts} posibles conflictos en futuras ocurrencias`);
+    
+    // Ajustar confianza basada en número de conflictos
+    if (totalConflicts > futureOccurrences.length * 0.5) {
+      confidence = 'low';
+      warnings.push('Alto porcentaje de conflictos detectados');
+    } else if (totalConflicts > futureOccurrences.length * 0.2) {
+      confidence = 'medium';
+      warnings.push('Conflictos moderados detectados');
+    } else {
+      confidence = 'high';
+      warnings.push('Pocos conflictos detectados');
+    }
   }
 
   if (config.type === 'monthly') {
     const pattern = getWeekPattern(slotStart);
     warnings.push(`Patrón mensual: ${pattern.description}`);
+    console.log(`📊 Patrón mensual configurado: ${pattern.description}`);
   }
 
+  // Para recurrencia, siempre proceder pero con información detallada
+  console.log(`✅ Validación optimista completada - Proceder: ${shouldProceed}, Confianza: ${confidence}`);
+  
   return {
-    isValid: true, // Siempre optimista
+    isValid: true, // Siempre optimista para recurrencia
     warnings,
-    shouldProceed: true
+    shouldProceed: true, // Permitir continuar siempre
+    confidence
   };
+}
+
+/**
+ * Función de pre-validación específica para reservas recurrentes
+ */
+export function preValidateRecurringBooking(
+  config: OptimizedRecurrenceConfig,
+  slotStart: Date,
+  slotEnd: Date
+): {
+  canProceed: boolean;
+  warnings: string[];
+  recommendations: string[];
+} {
+  const warnings: string[] = [];
+  const recommendations: string[] = [];
+  let canProceed = true;
+
+  console.log(`🔧 Pre-validación para reserva recurrente: ${config.type}`);
+
+  // Validar que la fecha de inicio no esté en el pasado
+  const now = new Date();
+  if (slotStart < now) {
+    warnings.push('La fecha de inicio está en el pasado');
+    recommendations.push('Selecciona una fecha futura');
+    canProceed = false;
+  }
+
+  // Validar duración razonable del slot
+  const duration = slotEnd.getTime() - slotStart.getTime();
+  const hours = duration / (1000 * 60 * 60);
+  
+  if (hours > 8) {
+    warnings.push('Duración del servicio muy extensa (>8 horas)');
+    recommendations.push('Considera dividir en múltiples sesiones');
+  }
+
+  if (hours < 0.25) {
+    warnings.push('Duración del servicio muy corta (<15 minutos)');
+    recommendations.push('Verifica la duración del servicio');
+  }
+
+  // Validaciones específicas por tipo de recurrencia
+  switch (config.type) {
+    case 'monthly':
+      const pattern = getWeekPattern(slotStart);
+      if (pattern.occurrenceNumber > 4) {
+        warnings.push('Cuidado: Es el último fin de semana del mes, algunos meses podrían no tener esta fecha');
+        recommendations.push('Considera usar una semana anterior para mayor consistencia');
+      }
+      break;
+      
+    case 'weekly':
+      recommendations.push('Recurrencia semanal configurada correctamente');
+      break;
+      
+    case 'biweekly':
+      recommendations.push('Recurrencia quincenal configurada correctamente');
+      break;
+      
+    case 'triweekly':
+      recommendations.push('Recurrencia trisemanal configurada correctamente');
+      break;
+  }
+
+  console.log(`🎯 Pre-validación completada: ${canProceed ? 'PASSED' : 'FAILED'}`);
+  return { canProceed, warnings, recommendations };
 }

@@ -26,12 +26,14 @@ export class RobustBookingSystem {
       maxAttempts?: number;
       showProgress?: boolean;
       optimisticValidation?: boolean;
+      isRecurring?: boolean;
     }
   ): Promise<BookingResult> {
     const { 
       maxAttempts = this.maxAttempts, 
       showProgress = true,
-      optimisticValidation = true 
+      optimisticValidation = true,
+      isRecurring = false
     } = options || {};
 
     let lastError: any = null;
@@ -65,7 +67,7 @@ export class RobustBookingSystem {
         lastError = error;
 
         // Check if we should retry based on error type
-        const shouldRetry = this.shouldRetryError(error);
+        const shouldRetry = this.shouldRetryError(error, isRecurring);
         
         if (!shouldRetry) {
           console.log('🚫 Error is non-retryable, stopping attempts');
@@ -92,10 +94,52 @@ export class RobustBookingSystem {
     };
   }
 
-  private shouldRetryError(error: any): boolean {
-    // Enhanced retry logic based on new database constraint behavior
+  private shouldRetryError(error: any, isRecurring: boolean = false): boolean {
+    const errorStr = (error?.code || error?.message || '').toLowerCase();
+    
+    console.log(`🔍 Evaluating retry for error: ${errorStr} (recurring: ${isRecurring})`);
+    
+    // Always retry on network/timeout issues
+    const alwaysRetryableErrors = ['timeout', 'network', 'connection', 'temporary', 'enotfound', 'etimedout'];
+    const shouldAlwaysRetry = alwaysRetryableErrors.some(retryable => 
+      errorStr.includes(retryable.toLowerCase())
+    );
+
+    if (shouldAlwaysRetry) {
+      console.log('✅ Network/timeout error - will retry:', errorStr);
+      return true;
+    }
+
+    // For recurring bookings, be more permissive with retries
+    if (isRecurring) {
+      console.log('🔄 Recurring booking - using permissive retry logic');
+      
+      // Only absolutely non-retryable errors for recurring bookings
+      const definitelyNonRetryable = [
+        '23503', // Foreign key violation - data integrity issue
+        '23514', // Check constraint violation - data validation issue
+        'unauthorized',
+        'permission denied',
+        'access denied'
+      ];
+
+      const shouldNotRetry = definitelyNonRetryable.some(nonRetryable => 
+        errorStr.includes(nonRetryable.toLowerCase())
+      );
+
+      if (shouldNotRetry) {
+        console.log('🚫 Definitive non-retryable error for recurring booking:', errorStr);
+        return false;
+      }
+
+      // For recurring bookings, retry most other errors (including slot conflicts)
+      console.log('✅ Recurring booking error - will retry:', errorStr);
+      return true;
+    }
+
+    // For single bookings, use stricter retry logic
     const nonRetryableErrors = [
-      '23505', // Unique constraint violation (should be rare now)
+      '23505', // Unique constraint violation
       '23503', // Foreign key constraint violation
       '23514', // Check constraint violation
       'P0001', // Custom database function error (slot conflicts)
@@ -104,29 +148,20 @@ export class RobustBookingSystem {
       'ya existe',
       'ya fue reservado',
       'horario ya fue reservado',
-      'unique_active_appointment_slot' // Our new constraint
+      'unique_active_appointment_slot'
     ];
 
-    const errorStr = (error?.code || error?.message || '').toLowerCase();
-    
-    // Don't retry if it's a definitive conflict
     const shouldNotRetry = nonRetryableErrors.some(nonRetryable => 
       errorStr.includes(nonRetryable.toLowerCase())
     );
 
     if (shouldNotRetry) {
-      console.log('🚫 Non-retryable error detected:', errorStr);
+      console.log('🚫 Non-retryable error for single booking:', errorStr);
       return false;
     }
 
-    // Retry on network, timeout, and temporary errors
-    const retryableErrors = ['timeout', 'network', 'connection', 'temporary'];
-    const shouldRetry = retryableErrors.some(retryable => 
-      errorStr.includes(retryable.toLowerCase())
-    );
-
-    console.log('🔄 Retry decision:', { shouldRetry, errorStr });
-    return shouldRetry;
+    console.log('✅ Single booking error - will retry:', errorStr);
+    return true;
   }
 
   private getErrorMessage(error: any): string {
@@ -189,6 +224,7 @@ export class RobustBookingSystem {
       maxAttempts?: number;
       showProgress?: boolean;
       optimisticValidation?: boolean;
+      isRecurring?: boolean;
     }
   ): Promise<BookingResult> {
     const system = new RobustBookingSystem();
