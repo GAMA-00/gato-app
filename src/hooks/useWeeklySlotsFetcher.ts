@@ -189,8 +189,8 @@ export const useWeeklySlotsFetcher = ({
         };
       });
 
-      // Calcular recomendación basada en citas adyacentes (no aplica a bloqueos manuales)
-      // Crear un mapa de horas ocupadas por citas por fecha
+      // Calcular recomendación basada en citas adyacentes y bloqueos por recurrencia
+      // 1) Construir mapa de horas ocupadas por citas por fecha
       const apptHoursByDate: Record<string, Set<number>> = {};
       for (const apt of conflictingAppointments) {
         try {
@@ -207,12 +207,31 @@ export const useWeeklySlotsFetcher = ({
         } catch {}
       }
 
+      // 2) Detectar horas bloqueadas por las reglas de recurrencia (las que se eliminan por el filtro)
+      const availableBeforeRec = weeklySlots.filter(s => s.isAvailable);
+      const afterRec = filterSlotsByRecurrence(availableBeforeRec, recurrence);
+      const afterRecKey = new Set(afterRec.map(s => `${format(s.date, 'yyyy-MM-dd')}|${parseInt(s.time.split(':')[0], 10)}`));
+      const recBlockedHoursByDate: Record<string, Set<number>> = {};
+      for (const s of availableBeforeRec) {
+        const dateKey = format(s.date, 'yyyy-MM-dd');
+        const hour = parseInt(s.time.split(':')[0], 10);
+        const key = `${dateKey}|${hour}`;
+        if (!afterRecKey.has(key)) {
+          if (!recBlockedHoursByDate[dateKey]) recBlockedHoursByDate[dateKey] = new Set<number>();
+          recBlockedHoursByDate[dateKey].add(hour);
+        }
+      }
+
+      // 3) Marcar slots recomendados si son adyacentes a citas o a bloqueos por recurrencia
       const weeklySlotsWithRec: WeeklySlot[] = weeklySlots.map(s => {
         if (!s.isAvailable) return s;
         const dateKey = format(s.date, 'yyyy-MM-dd');
         const hour = parseInt(s.time.split(':')[0], 10);
-        const hours = apptHoursByDate[dateKey] || new Set<number>();
-        const isRecommended = hours.has(hour - 1) || hours.has(hour + 1);
+        const apptHours = apptHoursByDate[dateKey] || new Set<number>();
+        const recBlocked = recBlockedHoursByDate[dateKey] || new Set<number>();
+        const isAdjToAppt = apptHours.has(hour - 1) || apptHours.has(hour + 1);
+        const isAdjToRecBlocked = recBlocked.has(hour - 1) || recBlocked.has(hour + 1);
+        const isRecommended = isAdjToAppt || isAdjToRecBlocked;
         return { ...s, isRecommended };
       });
 
