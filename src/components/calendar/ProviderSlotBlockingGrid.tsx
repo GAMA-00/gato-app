@@ -235,7 +235,7 @@ const ProviderSlotBlockingGrid = ({
   return (
     <div className="flex flex-col h-full">
       {/* Fixed Header - Mobile */}
-      <div className="md:hidden flex-shrink-0 sticky top-0 z-10 bg-white border-b pb-3 mb-3">
+      <div className="md:hidden flex-shrink-0 bg-white border-b pb-3 mb-3">
         {/* Week Navigation + Stats */}
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
@@ -453,7 +453,7 @@ const ProviderSlotBlockingGrid = ({
 
               {/* Day Slots - Lista horizontal con scroll independiente */}
               <div className="relative">
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 snap-x snap-mandatory">
                   {group.slots.map(slot => {
                     const isBlocking = blockingSlots.has(slot.id);
                     return (
@@ -464,7 +464,7 @@ const ProviderSlotBlockingGrid = ({
                         className={cn(
                           'flex-shrink-0 flex flex-col items-center justify-center gap-1',
                           'w-20 h-16 rounded-xl text-sm font-medium transition-all duration-200',
-                          'border-2 shadow-sm touch-manipulation',
+                          'border-2 shadow-sm touch-manipulation snap-center',
                           'disabled:opacity-50 disabled:cursor-not-allowed',
                           slot.isAvailable 
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md active:scale-95' 

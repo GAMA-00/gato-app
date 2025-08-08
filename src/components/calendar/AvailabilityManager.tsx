@@ -91,63 +91,62 @@ export const AvailabilityManager: React.FC = () => {
       </div>
 
       {/* Fixed Header - Mobile */}
-      <div className="md:hidden flex-shrink-0 sticky top-0 z-10 bg-white border-b pb-3 mb-3">
-        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab('availability')}
-            disabled={activeTab === 'availability'}
-            className={`flex items-center gap-1 text-xs px-3 min-h-[40px] ${
-              activeTab === 'availability' ? 'bg-background text-foreground' : 'hover:bg-background/80'
-            }`}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="hidden xs:inline text-xs">Configurar</span>
-          </Button>
-          
-          <div className="flex items-center gap-2 text-sm font-medium text-center flex-1 px-2">
-            {activeTab === 'availability' ? (
-              <>
-                <Settings className="h-4 w-4 text-primary" />
-                <span className="truncate">Configurar</span>
-              </>
-            ) : (
-              <>
-                <Calendar className="h-4 w-4 text-primary" />
-                <span className="truncate">Administrar</span>
-              </>
-            )}
-          </div>
-          
+      <div className="md:hidden flex-shrink-0 sticky top-0 z-20 bg-background border-b">
+        {/* Row 1: Title + Save */}
+        <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-2">
-            {activeTab === 'preview' && (
-              <Button 
-                onClick={saveAvailability}
-                disabled={isSaving}
-                size="sm"
-                className="flex items-center gap-1 h-8 text-xs px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {isSaving ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Save className="h-3 w-3" />
-                )}
-                <span className="hidden xs:inline">{isSaving ? 'Guardando...' : 'Guardar'}</span>
-              </Button>
+            {activeTab === 'availability' ? (
+              <Settings className="h-4 w-4 text-primary" />
+            ) : (
+              <Calendar className="h-4 w-4 text-primary" />
             )}
-            <Button
-              variant="ghost"
+            <span className="text-sm font-semibold">
+              {activeTab === 'availability' ? 'Configurar disponibilidad' : 'Administrar horarios'}
+            </span>
+          </div>
+
+          {activeTab === 'preview' && (
+            <Button 
+              onClick={saveAvailability}
+              disabled={isSaving}
               size="sm"
-              onClick={() => setActiveTab('preview')}
-              disabled={activeTab === 'preview'}
-              className={`flex items-center gap-1 text-xs px-3 min-h-[40px] ${
-                activeTab === 'preview' ? 'bg-background text-foreground' : 'hover:bg-background/80'
+              className="flex items-center gap-2 h-10 text-sm px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSaving ? 'Guardando...' : 'Guardar'}
+            </Button>
+          )}
+        </div>
+
+        {/* Row 2: Segmented Control */}
+        <div className="px-3 pb-2">
+          <div className="grid grid-cols-2 bg-muted rounded-full p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('availability')}
+              aria-pressed={activeTab === 'availability'}
+              className={`h-11 rounded-full flex items-center justify-center gap-2 transition ${
+                activeTab === 'availability' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
               }`}
             >
-              <span className="hidden xs:inline text-xs">Administrar</span>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+              <Settings className="h-4 w-4" />
+              <span className="text-sm">Configurar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('preview')}
+              aria-pressed={activeTab === 'preview'}
+              className={`h-11 rounded-full flex items-center justify-center gap-2 transition ${
+                activeTab === 'preview' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              <span className="text-sm">Administrar</span>
+            </button>
           </div>
         </div>
       </div>
