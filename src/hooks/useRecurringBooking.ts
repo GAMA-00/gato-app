@@ -107,6 +107,7 @@ export function useRecurringBooking() {
         console.error('RPC error completo:', rpcError);
         console.error('Código de error:', rpcError.code);
         console.error('Mensaje de error:', rpcError.message);
+        console.error('Detalles adicionales:', rpcError.details);
         
         // Mapear mensajes conocidos con mejor manejo
         if (rpcError.code === 'P0001') {
@@ -114,9 +115,24 @@ export function useRecurringBooking() {
           console.error('Error P0001 - Horario no disponible:', errorMsg);
           throw new Error(errorMsg);
         }
+        
         if (rpcError.code === '23505') {
-          console.error('Error 23505 - Conflicto de unicidad');
-          throw new Error('Este horario ya fue reservado. Selecciona otro horario.');
+          console.error('Error 23505 - Conflicto de unicidad - RPC debería haber limpiado duplicados');
+          // The new RPC should handle this automatically, but if we still get this error,
+          // it means there's a deeper issue
+          throw new Error('Conflicto de horario persistente. El horario podría estar ocupado. Por favor selecciona otro.');
+        }
+        
+        if (rpcError.message?.includes('conflicts with an existing appointment')) {
+          throw new Error('Ya existe una cita confirmada para este horario. Selecciona otro horario.');
+        }
+        
+        if (rpcError.message?.includes('blocked by a recurring schedule')) {
+          throw new Error('Este horario está bloqueado por un servicio recurrente existente.');
+        }
+        
+        if (rpcError.message?.includes('Unauthorized')) {
+          throw new Error('No tienes permisos para crear esta reserva.');
         }
         
         console.error('Error no manejado, re-throwing:', rpcError);
