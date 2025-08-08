@@ -56,7 +56,7 @@ export const AvailabilityManager: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-x-hidden">
       {/* Fixed Header - Desktop */}
       <div className="hidden md:block flex-shrink-0 mb-4">
         <div className="flex items-center justify-between">
@@ -153,7 +153,7 @@ export const AvailabilityManager: React.FC = () => {
 
 
       {/* Content Container - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {/* Availability Configuration Tab */}
         <div className={`${activeTab === 'availability' ? 'block' : 'hidden'}`}>
           <div className="space-y-3 md:space-y-4 pb-4">

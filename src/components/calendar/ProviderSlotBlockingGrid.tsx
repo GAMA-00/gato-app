@@ -426,7 +426,7 @@ const ProviderSlotBlockingGrid = ({
       </Card>
 
       {/* Mobile Content - Scrollable */}
-      <div className="md:hidden flex-1 overflow-hidden">
+      <div className="md:hidden flex-1 w-full overflow-hidden">
         {/* Slots Grid - Con scroll independiente por día */}
         <div className="space-y-4 px-1 pb-4 h-full overflow-y-auto">
           {slotGroups.map(group => (
@@ -483,7 +483,8 @@ const ProviderSlotBlockingGrid = ({
                   })}
                 </div>
                 
-                {/* Scroll indicator shadow */}
+                {/* Scroll indicator shadows */}
+                <div className="absolute left-0 top-0 bottom-2 w-6 bg-gradient-to-r from-white to-transparent pointer-events-none" />
                 <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none" />
               </div>
             </div>
