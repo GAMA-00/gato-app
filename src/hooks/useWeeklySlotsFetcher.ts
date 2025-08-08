@@ -231,9 +231,6 @@ export const useWeeklySlotsFetcher = ({
       setLastUpdated(new Date());
       
     } catch (err) {
-      setLastUpdated(new Date());
-      
-    } catch (err) {
       console.error('Error fetching slots:', err);
       setSlots([]);
     } finally {
