@@ -5,6 +5,7 @@ export interface WeeklySlot {
   displayTime: string;
   period: 'AM' | 'PM';
   isAvailable: boolean;
+  isRecommended?: boolean;
   conflictReason?: string;
 }
 

@@ -189,8 +189,35 @@ export const useWeeklySlotsFetcher = ({
         };
       });
 
+      // Calcular recomendación basada en citas adyacentes (no aplica a bloqueos manuales)
+      // Crear un mapa de horas ocupadas por citas por fecha
+      const apptHoursByDate: Record<string, Set<number>> = {};
+      for (const apt of conflictingAppointments) {
+        try {
+          const start = new Date(apt.start_time);
+          const end = new Date(apt.end_time);
+          const dateKey = format(start, 'yyyy-MM-dd');
+          if (!apptHoursByDate[dateKey]) apptHoursByDate[dateKey] = new Set<number>();
+          let h = start.getHours();
+          const endHour = Math.max(h, end.getHours());
+          while (h < endHour) {
+            apptHoursByDate[dateKey].add(h);
+            h++;
+          }
+        } catch {}
+      }
+
+      const weeklySlotsWithRec: WeeklySlot[] = weeklySlots.map(s => {
+        if (!s.isAvailable) return s;
+        const dateKey = format(s.date, 'yyyy-MM-dd');
+        const hour = parseInt(s.time.split(':')[0], 10);
+        const hours = apptHoursByDate[dateKey] || new Set<number>();
+        const isRecommended = hours.has(hour - 1) || hours.has(hour + 1);
+        return { ...s, isRecommended };
+      });
+
       // Filtrado temporal y por recurrencia
-      const temporalFilteredSlots = filterTemporalSlots(weeklySlots, weekIndex);
+      const temporalFilteredSlots = filterTemporalSlots(weeklySlotsWithRec, weekIndex);
       const finalSlots = filterSlotsByRecurrence(temporalFilteredSlots, recurrence);
 
       console.log('🔄 Resumen de filtrado:', {
@@ -201,6 +228,9 @@ export const useWeeklySlotsFetcher = ({
       });
 
       setSlots(finalSlots);
+      setLastUpdated(new Date());
+      
+    } catch (err) {
       setLastUpdated(new Date());
       
     } catch (err) {

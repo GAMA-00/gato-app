@@ -11,6 +11,7 @@ interface SlotCardProps {
   variant?: 'provider' | 'client';
   isSelected?: boolean;
   isAvailable?: boolean;
+  recommended?: boolean;
   className?: string;
 }
 
@@ -23,6 +24,7 @@ const SlotCard = ({
   variant = 'provider',
   isSelected = false,
   isAvailable = true,
+  recommended = false,
   className
 }: SlotCardProps) => {
   
@@ -56,13 +58,19 @@ const SlotCard = ({
       onClick={onClick}
       disabled={variant === 'client' && !isAvailable}
       className={cn(
-        'flex flex-col items-center justify-center gap-0.5 transition-all duration-200',
+        'relative overflow-hidden flex flex-col items-center justify-center gap-0.5 transition-all duration-200',
         sizeClasses[size],
         getButtonStyles(),
         isSelected && variant === 'client' ? 'transform scale-105' : 'hover:scale-105 active:scale-95',
         className
       )}
     >
+      {variant === 'client' && recommended && isAvailable && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-8 border-l-8 border-t-primary border-l-transparent"
+        />
+      )}
       <span className="font-bold leading-none">{time}</span>
       <span className="text-xs opacity-75 leading-none">{period}</span>
     </Button>

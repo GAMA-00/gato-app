@@ -72,6 +72,11 @@ const WeeklySlotGrid = ({
     weekIndex: currentWeek
   });
 
+  const hasRecommended = React.useMemo(() =>
+    availableSlotGroups.some(g => g.slots.some(s => s.isAvailable && s.isRecommended)),
+    [availableSlotGroups]
+  );
+
   const areSlotConsecutive = (slots: any[]): boolean => {
     if (slots.length <= 1) return true;
     
@@ -344,6 +349,19 @@ const WeeklySlotGrid = ({
           </Button>
         </div>
 
+        {/* Aviso de horario recomendado */}
+        {hasRecommended && (
+          <div className="rounded-md border border-primary/20 bg-primary/10 p-3">
+            <div className="text-sm font-medium text-primary">Horario recomendado</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              El proveedor ya se encuentra en el condominio antes o después de estos horarios.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Reservá estos espacios para ayudar a ordenar su agenda y recibí un 10% de descuento.
+            </p>
+          </div>
+        )}
+
         {/* Slots Grid */}
         <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
           {slotGroups.map(group => {
@@ -371,6 +389,7 @@ const WeeklySlotGrid = ({
                         isEnabled={slot.isAvailable}
                         isSelected={selectedSlotIds.includes(slot.id)}
                         isAvailable={slot.isAvailable}
+                        recommended={slot.isRecommended}
                         onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
                         size="sm"
                         variant="client"
