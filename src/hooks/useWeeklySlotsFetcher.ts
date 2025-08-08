@@ -80,7 +80,7 @@ export const useWeeklySlotsFetcher = ({
     });
     
     try {
-      // Fetch available time slots using adjusted dates
+      // Fetch available time slots using adjusted dates (primary by datetime)
       const { data: timeSlots, error: slotsError } = await supabase
         .from('provider_time_slots')
         .select('*')
@@ -93,25 +93,47 @@ export const useWeeklySlotsFetcher = ({
         .order('slot_datetime_start');
 
       if (slotsError) throw slotsError;
-      
-      
-      console.log('📊 Resultado de consulta timeSlots:', {
-        totalSlots: timeSlots?.length || 0,
+
+      let fetchedSlots = timeSlots;
+
+      // Fallback: some legacy records might still rely on slot_date/start_time
+      if (!fetchedSlots || fetchedSlots.length === 0) {
+        console.warn('⚠️ Sin resultados por slot_datetime_start. Activando fallback por slot_date/start_time');
+        const { data: timeSlotsByDate, error: fallbackError } = await supabase
+          .from('provider_time_slots')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('is_available', true)
+          .eq('is_reserved', false)
+          .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+          .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+          .order('slot_date', { ascending: true })
+          .order('start_time', { ascending: true });
+
+        if (fallbackError) throw fallbackError;
+        fetchedSlots = timeSlotsByDate || [];
+      }
+
+      console.log('📊 Resultado de consulta de slots:', {
+        totalSlots: fetchedSlots?.length || 0,
         filtros: { providerId, listingId, is_available: true, is_reserved: false },
         rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') },
-        primeros3Slots: timeSlots?.slice(0, 3)?.map(s => ({ 
-          fecha: s.slot_date, 
-          hora: s.start_time, 
-          disponible: s.is_available, 
+        primeros3Slots: fetchedSlots?.slice(0, 3)?.map(s => ({
+          fecha: s.slot_date,
+          hora: s.start_time,
+          disponible: s.is_available,
           reservado: s.is_reserved,
-          tipo: s.slot_type
+          tipo: s.slot_type,
+          dtInicio: s.slot_datetime_start,
+          dtFin: s.slot_datetime_end,
         })),
-        rangoFechasSlotsEncontrados: timeSlots?.length > 0 ? {
-          primera: timeSlots[0]?.slot_date,
-          ultima: timeSlots[timeSlots.length - 1]?.slot_date
+        rangoFechasSlotsEncontrados: fetchedSlots?.length > 0 ? {
+          primera: fetchedSlots[0]?.slot_date,
+          ultima: fetchedSlots[fetchedSlots.length - 1]?.slot_date
         } : null
       });
-
+      
       // Fetch conflicting appointments
       const { data: conflictingAppointments, error: appointmentsError } = await supabase
         .from('appointments')
@@ -124,7 +146,7 @@ export const useWeeklySlotsFetcher = ({
       if (appointmentsError) throw appointmentsError;
 
       // Process slots with proper timezone handling
-      const weeklySlots: WeeklySlot[] = timeSlots?.map(slot => {
+      const weeklySlots: WeeklySlot[] = fetchedSlots?.map(slot => {
         // Use the slot_datetime_start as the single source of truth to avoid TZ mismatches
         const slotStart = new Date(slot.slot_datetime_start);
         const slotEnd = new Date(slot.slot_datetime_end);
