@@ -353,7 +353,7 @@ const WeeklySlotGrid = ({
           <div className="relative overflow-hidden rounded-md border border-primary/30 bg-primary/5 p-2 md:p-3">
             <span
               aria-hidden
-              className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-10 border-l-10 md:border-t-12 md:border-l-12 border-t-primary border-l-transparent"
+              className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-[16px] border-l-[16px] md:border-t-[20px] md:border-l-[20px] border-t-primary border-l-transparent"
             />
             <div className="text-xs md:text-sm font-medium text-primary">Horario recomendado</div>
             <p className="text-xs text-muted-foreground mt-1">
