@@ -125,27 +125,33 @@ export const useWeeklySlotsFetcher = ({
 
       // Process slots with proper timezone handling
       const weeklySlots: WeeklySlot[] = timeSlots?.map(slot => {
-        // Use the slot_datetime_start directly instead of reconstructing the date
+        // Use the slot_datetime_start as the single source of truth to avoid TZ mismatches
         const slotStart = new Date(slot.slot_datetime_start);
         const slotEnd = new Date(slot.slot_datetime_end);
-        
+
         // Create a date object for the slot date (used for grouping)
         const slotDate = new Date(slotStart);
-        
+
+        // Derive the local 24h time (HH:mm) from slotStart to stay consistent
+        const hh = slotStart.getHours().toString().padStart(2, '0');
+        const mm = slotStart.getMinutes().toString().padStart(2, '0');
+        const time24 = `${hh}:${mm}`;
+
         // Check if slot should be blocked
         const { isBlocked, reason } = shouldBlockSlot(slot, conflictingAppointments);
 
-        const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
+        // Display time in 12h format based on the same local time reference
+        const { time: displayTime, period } = formatTimeTo12Hour(time24);
 
         // Slot is available only if it's not blocked
         const isSlotAvailable = !isBlocked;
 
-        console.log(`Slot procesado: ${slot.slot_date} ${slot.start_time} -> ${displayTime} ${period} (disponible: ${isSlotAvailable}, bloqueado: ${isBlocked})`);
+        console.log(`Slot procesado (TZ-safe): ${slot.slot_date} ${time24} -> ${displayTime} ${period} (disponible: ${isSlotAvailable}, bloqueado: ${isBlocked})`);
 
         return {
           id: slot.id,
           date: slotDate,
-          time: slot.start_time,
+          time: time24,
           displayTime,
           period,
           isAvailable: isSlotAvailable,
