@@ -349,15 +349,18 @@ const WeeklySlotGrid = ({
           </Button>
         </div>
 
-        {/* Aviso de horario recomendado */}
         {hasRecommended && (
-          <div className="rounded-md border border-primary/20 bg-primary/10 p-3">
-            <div className="text-sm font-medium text-primary">Horario recomendado</div>
+          <div className="relative overflow-hidden rounded-md border border-primary/30 bg-primary/5 p-2 md:p-3">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-10 border-l-10 md:border-t-12 md:border-l-12 border-t-primary border-l-transparent"
+            />
+            <div className="text-xs md:text-sm font-medium text-primary">Horario recomendado</div>
             <p className="text-xs text-muted-foreground mt-1">
               El proveedor ya se encuentra en el condominio antes o después de estos horarios.
             </p>
             <p className="text-xs text-muted-foreground">
-              Reservá estos espacios para ayudar a ordenar su agenda y recibí un 10% de descuento.
+              Reservá estos espacios para ayudar a ordenar su agenda.
             </p>
           </div>
         )}
