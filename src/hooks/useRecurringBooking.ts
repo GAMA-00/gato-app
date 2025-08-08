@@ -101,27 +101,52 @@ export function useRecurringBooking() {
       const { data: rpcResult, error: rpcError } = await supabase
         .rpc('create_appointment_with_slot', rpcParams);
 
+      console.log('RPC Response:', { rpcResult, rpcError });
+
       if (rpcError) {
-        console.error('RPC error:', rpcError);
-        // Mapear mensajes conocidos
+        console.error('RPC error completo:', rpcError);
+        console.error('Código de error:', rpcError.code);
+        console.error('Mensaje de error:', rpcError.message);
+        
+        // Mapear mensajes conocidos con mejor manejo
         if (rpcError.code === 'P0001') {
-          throw new Error(rpcError.message || 'El horario no está disponible en este momento');
+          const errorMsg = rpcError.message || 'El horario no está disponible en este momento';
+          console.error('Error P0001 - Horario no disponible:', errorMsg);
+          throw new Error(errorMsg);
         }
         if (rpcError.code === '23505') {
+          console.error('Error 23505 - Conflicto de unicidad');
           throw new Error('Este horario ya fue reservado. Selecciona otro horario.');
         }
-        throw rpcError;
+        
+        console.error('Error no manejado, re-throwing:', rpcError);
+        throw new Error(`Error del servidor: ${rpcError.message || 'Error desconocido'}`);
       }
+
+      console.log('RPC ejecutado sin errores, procesando resultado...');
 
       // Normalizar resultado (puede venir como objeto o arreglo con una fila)
       const resultRow: any = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+      console.log('ResultRow procesado:', resultRow);
+      
       const createdId: string | undefined = resultRow?.appointment_id;
+      const rpcStatus: string | undefined = resultRow?.status;
+
+      console.log('Datos extraídos del RPC:', { createdId, rpcStatus });
 
       if (!createdId) {
+        console.error('No se recibió appointment_id del RPC');
+        console.error('Resultado completo:', rpcResult);
         throw new Error('No se recibió el ID de la cita creada');
       }
 
-      console.log('RPC creada con éxito. ID:', createdId, 'status:', resultRow?.status);
+      if (rpcStatus === 'exists') {
+        console.log('Cita ya existía, devolviendo ID existente:', createdId);
+        toast.success('Ya tienes una cita para este horario');
+        return { id: createdId } as any;
+      }
+
+      console.log('RPC creada con éxito. ID:', createdId, 'status:', rpcStatus);
 
       // Obtener la cita completa para mantener compatibilidad con el resto del flujo
       const { data: appointment, error: fetchError } = await supabase

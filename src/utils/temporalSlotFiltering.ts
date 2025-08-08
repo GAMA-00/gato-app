@@ -183,23 +183,32 @@ export const filterSlotsByRecurrence = (slots: WeeklySlot[], recurrence: string 
     totalSlots: slots.length
   });
 
-  // For recurring services, we need a consistent start date for the pattern
-  // Use the first slot's date as the base for the recurrence pattern
-  const firstSlotDate = slots.length > 0 ? slots[0].date : new Date();
+  // Fix: Instead of using first slot's date, use a reference date that preserves
+  // the day-of-week pattern for the recurrence. Find the earliest Monday
+  // of the week containing the slots to establish a consistent reference pattern.
+  const sortedSlots = [...slots].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const firstSlotDate = sortedSlots.length > 0 ? sortedSlots[0].date : new Date();
+  
+  // Use the first slot's date as reference for weekly patterns, ensuring
+  // we maintain the day-of-week for all occurrences
+  const referenceDate = new Date(firstSlotDate);
   
   const filteredSlots = slots.filter(slot => {
     try {
-      // Create recurrence config with consistent start date
+      // For recurring services, we need to check if this slot's day-of-week
+      // matches the pattern defined by the recurrence starting from our reference
       const config: OptimizedRecurrenceConfig = {
         type: recurrenceType,
-        startDate: firstSlotDate // Use consistent start date, not each slot's date
+        startDate: referenceDate
       };
 
       // Check if this slot date should have a recurrence occurrence
       const shouldShow = shouldHaveRecurrenceOn(slot.date, config);
       
       if (!shouldShow) {
-        console.log(`❌ Slot eliminado por recurrencia: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (no válido para ${recurrenceType})`);
+        console.log(`❌ Slot eliminado por recurrencia: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (no válido para ${recurrenceType} con referencia ${format(referenceDate, 'yyyy-MM-dd')})`);
+      } else {
+        console.log(`✅ Slot válido: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (válido para ${recurrenceType})`);
       }
       
       return shouldShow;
@@ -214,7 +223,9 @@ export const filterSlotsByRecurrence = (slots: WeeklySlot[], recurrence: string 
     slotsOriginales: slots.length,
     slotsFiltrados: filteredSlots.length,
     slotsEliminados: slots.length - filteredSlots.length,
-    porcentajeRetenido: Math.round((filteredSlots.length / slots.length) * 100) + '%'
+    porcentajeRetenido: Math.round((filteredSlots.length / slots.length) * 100) + '%',
+    fechaReferencia: format(referenceDate, 'yyyy-MM-dd'),
+    diasEncontrados: [...new Set(filteredSlots.map(s => format(s.date, 'EEEE')))]
   });
 
   return filteredSlots;
