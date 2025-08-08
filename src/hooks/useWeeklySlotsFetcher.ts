@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { addDays, format, startOfDay } from 'date-fns';
+import { addDays, format, startOfDay, endOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
@@ -88,8 +88,8 @@ export const useWeeklySlotsFetcher = ({
         .eq('listing_id', listingId)
         .eq('is_available', true)
         .eq('is_reserved', false)
-        .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
-        .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+        .gte('slot_datetime_start', baseDate.toISOString())
+        .lte('slot_datetime_start', endOfDay(endDate).toISOString())
         .order('slot_datetime_start');
 
       if (slotsError) throw slotsError;
@@ -118,8 +118,8 @@ export const useWeeklySlotsFetcher = ({
         .select('start_time, end_time, status')
         .eq('provider_id', providerId)
         .in('status', ['confirmed', 'pending'])
-        .gte('start_time', baseDate.toISOString())
-        .lte('start_time', endDate.toISOString());
+         .gte('start_time', baseDate.toISOString())
+         .lte('start_time', endOfDay(endDate).toISOString());
 
       if (appointmentsError) throw appointmentsError;
 
