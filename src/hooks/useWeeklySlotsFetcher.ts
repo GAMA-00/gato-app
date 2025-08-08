@@ -80,26 +80,19 @@ export const useWeeklySlotsFetcher = ({
     });
     
     try {
-      // Fetch available time slots using adjusted dates (primary by datetime)
-      const { data: timeSlots, error: slotsError } = await supabase
-        .from('provider_time_slots')
-        .select('*')
-        .eq('provider_id', providerId)
-        .eq('listing_id', listingId)
-        .eq('is_available', true)
-        .eq('is_reserved', false)
-        .gte('slot_datetime_start', baseDate.toISOString())
-        .lte('slot_datetime_start', endOfDay(endDate).toISOString())
-        .order('slot_datetime_start');
-
-      if (slotsError) throw slotsError;
-
-      let fetchedSlots = timeSlots;
-
-      // Fallback: some legacy records might still rely on slot_date/start_time
-      if (!fetchedSlots || fetchedSlots.length === 0) {
-        console.warn('⚠️ Sin resultados por slot_datetime_start. Activando fallback por slot_date/start_time');
-        const { data: timeSlotsByDate, error: fallbackError } = await supabase
+      // Consultar slots con datetime y legacy en paralelo y fusionar resultados
+      const [dtRes, legacyRes, apptRes] = await Promise.all([
+        supabase
+          .from('provider_time_slots')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('is_available', true)
+          .eq('is_reserved', false)
+          .gte('slot_datetime_start', baseDate.toISOString())
+          .lte('slot_datetime_start', endOfDay(endDate).toISOString())
+          .order('slot_datetime_start'),
+        supabase
           .from('provider_time_slots')
           .select('*')
           .eq('provider_id', providerId)
@@ -109,66 +102,81 @@ export const useWeeklySlotsFetcher = ({
           .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
           .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
           .order('slot_date', { ascending: true })
-          .order('start_time', { ascending: true });
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('appointments')
+          .select('start_time, end_time, status')
+          .eq('provider_id', providerId)
+          .in('status', ['confirmed', 'pending'])
+          .gte('start_time', baseDate.toISOString())
+          .lte('start_time', endOfDay(endDate).toISOString())
+      ]);
 
-        if (fallbackError) throw fallbackError;
-        fetchedSlots = timeSlotsByDate || [];
+      if (dtRes.error) throw dtRes.error;
+      if (legacyRes.error) throw legacyRes.error;
+      if (apptRes.error) throw apptRes.error;
+
+      const timeSlotsDt = dtRes.data || [];
+      const timeSlotsLegacy = legacyRes.data || [];
+
+      // Fusionar y desduplicar por id (priorizar registros con datetime)
+      const byId = new Map<string, any>();
+      for (const s of [...timeSlotsLegacy, ...timeSlotsDt]) {
+        const key = String(s.id);
+        if (!byId.has(key)) {
+          byId.set(key, s);
+        } else {
+          const existing = byId.get(key);
+          const existingHasDt = !!existing.slot_datetime_start && !!existing.slot_datetime_end;
+          const candidateHasDt = !!s.slot_datetime_start && !!s.slot_datetime_end;
+          if (!existingHasDt && candidateHasDt) byId.set(key, s);
+        }
       }
+      const mergedSlots = Array.from(byId.values()).filter(s => s.is_available && !s.is_reserved);
 
-      console.log('📊 Resultado de consulta de slots:', {
-        totalSlots: fetchedSlots?.length || 0,
-        filtros: { providerId, listingId, is_available: true, is_reserved: false },
-        rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') },
-        primeros3Slots: fetchedSlots?.slice(0, 3)?.map(s => ({
-          fecha: s.slot_date,
-          hora: s.start_time,
-          disponible: s.is_available,
-          reservado: s.is_reserved,
-          tipo: s.slot_type,
-          dtInicio: s.slot_datetime_start,
-          dtFin: s.slot_datetime_end,
-        })),
-        rangoFechasSlotsEncontrados: fetchedSlots?.length > 0 ? {
-          primera: fetchedSlots[0]?.slot_date,
-          ultima: fetchedSlots[fetchedSlots.length - 1]?.slot_date
-        } : null
+      console.log('📊 Fusión de slots:', {
+        totalDatetime: timeSlotsDt.length,
+        totalLegacy: timeSlotsLegacy.length,
+        mergedUnicos: mergedSlots.length,
+        rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') }
       });
-      
-      // Fetch conflicting appointments
-      const { data: conflictingAppointments, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select('start_time, end_time, status')
-        .eq('provider_id', providerId)
-        .in('status', ['confirmed', 'pending'])
-         .gte('start_time', baseDate.toISOString())
-         .lte('start_time', endOfDay(endDate).toISOString());
 
-      if (appointmentsError) throw appointmentsError;
+      const conflictingAppointments = apptRes.data || [];
 
-      // Process slots with proper timezone handling
-      const weeklySlots: WeeklySlot[] = fetchedSlots?.map(slot => {
-        // Use the slot_datetime_start as the single source of truth to avoid TZ mismatches
-        const slotStart = new Date(slot.slot_datetime_start);
-        const slotEnd = new Date(slot.slot_datetime_end);
+      // Procesar slots con manejo correcto de TZ y compatibilidad legacy
+      const weeklySlots: WeeklySlot[] = mergedSlots.map(slot => {
+        // Calcular inicio/fin
+        let slotStart: Date;
+        let slotEnd: Date;
+        if (slot.slot_datetime_start) {
+          slotStart = new Date(slot.slot_datetime_start);
+          slotEnd = slot.slot_datetime_end
+            ? new Date(slot.slot_datetime_end)
+            : new Date(slotStart.getTime() + serviceDuration * 60_000);
+        } else {
+          const dateStr: string = slot.slot_date; // YYYY-MM-DD
+          const timeStr: string = slot.start_time || '00:00:00'; // HH:mm:ss
+          // Interpretar como hora local
+          slotStart = new Date(`${dateStr}T${timeStr}`);
+          slotEnd = new Date(slotStart.getTime() + serviceDuration * 60_000);
+        }
 
-        // Create a date object for the slot date (used for grouping)
+        // Construir objeto con datetime para la detección de conflictos
+        const slotForBlock = {
+          ...slot,
+          slot_datetime_start: slotStart.toISOString(),
+          slot_datetime_end: slotEnd.toISOString(),
+        };
+        const { isBlocked, reason } = shouldBlockSlot(slotForBlock, conflictingAppointments);
+
+        // Datos para UI
         const slotDate = new Date(slotStart);
-
-        // Derive the local 24h time (HH:mm) from slotStart to stay consistent
         const hh = slotStart.getHours().toString().padStart(2, '0');
         const mm = slotStart.getMinutes().toString().padStart(2, '0');
         const time24 = `${hh}:${mm}`;
-
-        // Check if slot should be blocked
-        const { isBlocked, reason } = shouldBlockSlot(slot, conflictingAppointments);
-
-        // Display time in 12h format based on the same local time reference
         const { time: displayTime, period } = formatTimeTo12Hour(time24);
 
-        // Slot is available only if it's not blocked
-        const isSlotAvailable = !isBlocked;
-
-        console.log(`Slot procesado (TZ-safe): ${slot.slot_date} ${time24} -> ${displayTime} ${period} (disponible: ${isSlotAvailable}, bloqueado: ${isBlocked})`);
+        console.log(`Slot procesado: ${format(slotDate, 'yyyy-MM-dd')} ${time24} -> ${displayTime} ${period} (disp: ${!isBlocked})`);
 
         return {
           id: slot.id,
@@ -176,24 +184,22 @@ export const useWeeklySlotsFetcher = ({
           time: time24,
           displayTime,
           period,
-          isAvailable: isSlotAvailable,
+          isAvailable: !isBlocked,
           conflictReason: reason
         };
-      }) || [];
-      
-      // Apply temporal filtering based on week context
-      const temporalFilteredSlots = filterTemporalSlots(weeklySlots, weekIndex);
-      
-      // Apply recurrence-based filtering
-      const finalSlots = filterSlotsByRecurrence(temporalFilteredSlots, recurrence);
-      
-      console.log('🔄 Filtrado por recurrencia:', {
-        tipoRecurrencia: recurrence,
-        slotsAntesDeRecurrencia: temporalFilteredSlots.length,
-        slotsDespuesDeRecurrencia: finalSlots.length,
-        slotsEliminados: temporalFilteredSlots.length - finalSlots.length
       });
-      
+
+      // Filtrado temporal y por recurrencia
+      const temporalFilteredSlots = filterTemporalSlots(weeklySlots, weekIndex);
+      const finalSlots = filterSlotsByRecurrence(temporalFilteredSlots, recurrence);
+
+      console.log('🔄 Resumen de filtrado:', {
+        semana: weekIndex,
+        antesTemporal: weeklySlots.length,
+        despuesTemporal: temporalFilteredSlots.length,
+        despuesRecurrencia: finalSlots.length
+      });
+
       setSlots(finalSlots);
       setLastUpdated(new Date());
       
