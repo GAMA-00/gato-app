@@ -190,7 +190,8 @@ export const useWeeklySlotsFetcher = ({
       });
 
       // Calcular recomendación basada únicamente en citas adyacentes (cliente directo o recurrencia)
-      const apptHoursByDate: Record<string, Set<number>> = {};
+      // Usamos minutos del día para soportar duraciones != 60 min
+      const apptStartMinutesByDate: Record<string, Set<number>> = {};
       for (const apt of conflictingAppointments) {
         try {
           // Elegibles: instancia recurrente o reserva directa en app (no externa)
@@ -199,24 +200,20 @@ export const useWeeklySlotsFetcher = ({
           if (!(isRecurring || isDirectClientBooking)) continue;
 
           const start = new Date(apt.start_time);
-          const end = new Date(apt.end_time);
           const dateKey = format(start, 'yyyy-MM-dd');
-          if (!apptHoursByDate[dateKey]) apptHoursByDate[dateKey] = new Set<number>();
-          let h = start.getHours();
-          const endHour = Math.max(h, end.getHours());
-          while (h < endHour) {
-            apptHoursByDate[dateKey].add(h);
-            h++;
-          }
+          const minutes = start.getHours() * 60 + start.getMinutes();
+          if (!apptStartMinutesByDate[dateKey]) apptStartMinutesByDate[dateKey] = new Set<number>();
+          apptStartMinutesByDate[dateKey].add(minutes);
         } catch {}
       }
 
       const weeklySlotsWithRec: WeeklySlot[] = weeklySlots.map(s => {
         if (!s.isAvailable) return s;
         const dateKey = format(s.date, 'yyyy-MM-dd');
-        const hour = parseInt(s.time.split(':')[0], 10);
-        const apptHours = apptHoursByDate[dateKey] || new Set<number>();
-        const isRecommended = apptHours.has(hour - 1) || apptHours.has(hour + 1);
+        const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
+        const slotMin = (hh * 60) + (mm || 0);
+        const apptStarts = apptStartMinutesByDate[dateKey] || new Set<number>();
+        const isRecommended = apptStarts.has(slotMin - serviceDuration) || apptStarts.has(slotMin + serviceDuration);
         return { ...s, isRecommended };
       });
 
