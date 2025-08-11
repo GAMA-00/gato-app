@@ -2,28 +2,19 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type { UserProfile } from '@/contexts/auth/types';
 
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: 'client' | 'provider';
-  avatar_url?: string;
-  condominium_name?: string;
+
+type UserProfileEx = UserProfile & {
   condominium_text?: string;
-  house_number?: string;
-  about_me?: string;
-  experience_years?: number;
   certification_files?: any[];
-  created_at?: string;
-}
+};
 
 export const useUserProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading, error, refetch } = useQuery({
+  const { data: profile, isLoading, error, refetch } = useQuery<UserProfileEx | null>({
     queryKey: ['user-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -43,7 +34,7 @@ export const useUserProfile = () => {
         }
 
         console.log('useUserProfile: Profile fetched successfully');
-        return data as UserProfile;
+        return data as UserProfileEx;
       } catch (err) {
         console.log('useUserProfile: Exception fetching profile (non-critical):', err);
         return null;
