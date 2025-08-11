@@ -1,7 +1,7 @@
 import { isToday, isAfter, startOfWeek, endOfWeek, addWeeks, format, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { WeeklySlot } from '@/lib/weeklySlotTypes';
-import { shouldHaveRecurrenceOn, OptimizedRecurrenceConfig } from '@/utils/optimizedRecurrenceSystem';
+
 
 /**
  * Determines if we are looking at the current week
@@ -146,87 +146,14 @@ export const shouldShowSlot = (slot: WeeklySlot, weekIndex: number): boolean => 
   return true;
 };
 
-/**
- * Converts recurrence string to OptimizedRecurrenceConfig
- */
-const normalizeRecurrenceType = (recurrence: string): OptimizedRecurrenceConfig['type'] => {
-  switch (recurrence?.toLowerCase()) {
-    case 'weekly': return 'weekly';
-    case 'biweekly': return 'biweekly';
-    case 'triweekly': return 'triweekly';
-    case 'monthly': return 'monthly';
-    default: return 'once';
-  }
-};
 
-/**
- * Filters slots based on recurrence pattern
- * Only shows slots that are valid for the chosen recurrence type
- */
 export const filterSlotsByRecurrence = (slots: WeeklySlot[], recurrence: string = 'once'): WeeklySlot[] => {
-  console.log('🔄 Iniciando filtrado por recurrencia:', {
-    tipoRecurrencia: recurrence,
-    totalSlots: slots.length,
-    fechasSlots: slots.map(s => `${format(s.date, 'yyyy-MM-dd')} ${s.time}`).slice(0, 5)
-  });
-
-  // For 'once' recurrence, return all available slots without any filtering
-  if (!recurrence || recurrence === 'once') {
-    console.log('✅ Servicio "una vez" - devolviendo TODOS los slots disponibles sin filtrado');
-    return slots;
-  }
-
-  const recurrenceType = normalizeRecurrenceType(recurrence);
-  
-  console.log('🔄 Aplicando filtrado de recurrencia para servicio recurrente:', {
-    tipoRecurrencia: recurrenceType,
+  console.log('🔄 Filtrado por recurrencia desactivado: mostrando todos los slots', {
+    tipoRecurrencia: recurrence || 'once',
     totalSlots: slots.length
   });
 
-  // Fix: Instead of using first slot's date, use a reference date that preserves
-  // the day-of-week pattern for the recurrence. Find the earliest Monday
-  // of the week containing the slots to establish a consistent reference pattern.
-  const sortedSlots = [...slots].sort((a, b) => a.date.getTime() - b.date.getTime());
-  const firstSlotDate = sortedSlots.length > 0 ? sortedSlots[0].date : new Date();
-  
-  // Use the first slot's date as reference for weekly patterns, ensuring
-  // we maintain the day-of-week for all occurrences
-  const referenceDate = new Date(firstSlotDate);
-  
-  const filteredSlots = slots.filter(slot => {
-    try {
-      // For recurring services, we need to check if this slot's day-of-week
-      // matches the pattern defined by the recurrence starting from our reference
-      const config: OptimizedRecurrenceConfig = {
-        type: recurrenceType,
-        startDate: referenceDate
-      };
-
-      // Check if this slot date should have a recurrence occurrence
-      const shouldShow = shouldHaveRecurrenceOn(slot.date, config);
-      
-      if (!shouldShow) {
-        console.log(`❌ Slot eliminado por recurrencia: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (no válido para ${recurrenceType} con referencia ${format(referenceDate, 'yyyy-MM-dd')})`);
-      } else {
-        console.log(`✅ Slot válido: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time} (válido para ${recurrenceType})`);
-      }
-      
-      return shouldShow;
-    } catch (error) {
-      console.error('Error validating slot for recurrence:', error);
-      // En caso de error, conservar el slot para no bloquear la UI
-      return true;
-    }
-  });
-
-  console.log('🎯 Resultado del filtrado por recurrencia:', {
-    slotsOriginales: slots.length,
-    slotsFiltrados: filteredSlots.length,
-    slotsEliminados: slots.length - filteredSlots.length,
-    porcentajeRetenido: Math.round((filteredSlots.length / slots.length) * 100) + '%',
-    fechaReferencia: format(referenceDate, 'yyyy-MM-dd'),
-    diasEncontrados: [...new Set(filteredSlots.map(s => format(s.date, 'EEEE')))]
-  });
-
-  return filteredSlots;
+  // Mostrar todos los slots disponibles independientemente de la frecuencia seleccionada.
+  // La validación de recurrencia ocurrirá al confirmar la reserva.
+  return slots;
 };

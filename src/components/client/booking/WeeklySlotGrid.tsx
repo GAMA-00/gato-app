@@ -210,11 +210,6 @@ const WeeklySlotGrid = ({
             <p className="text-yellow-800 font-medium mb-2">
               {contextMessage}
             </p>
-            {recurrence !== 'once' && (
-              <p className="text-orange-700 text-sm mb-2">
-                📅 No hay horarios válidos para recurrencia {getRecurrenceText(recurrence)} en esta semana
-              </p>
-            )}
             <p className="text-yellow-700 text-sm mb-4">
               {navigationHint}
             </p>
@@ -256,7 +251,7 @@ const WeeklySlotGrid = ({
               <span className="hidden md:inline">Selecciona tu horario</span>
             </CardTitle>
             <CardDescription className="hidden md:block mt-2">
-              Horarios disponibles para servicio {getRecurrenceText(recurrence)}
+              Horarios disponibles del proveedor
               {requiredSlots > 1 && (
                 <div className="mt-2 space-y-1">
                   <span className="block text-xs text-orange-600">
@@ -270,11 +265,9 @@ const WeeklySlotGrid = ({
                   )}
                 </div>
               )}
-              {recurrence !== 'once' && (
-                <span className="block text-xs text-green-600 mt-1">
-                  ✓ Solo mostrando slots válidos para recurrencia {getRecurrenceText(recurrence)}
-                </span>
-              )}
+              <span className="block text-xs text-muted-foreground mt-1">
+                Mostramos todos los horarios disponibles; validaremos la recurrencia al confirmar la reserva.
+              </span>
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
               {stats.availableSlots} horarios disponibles
