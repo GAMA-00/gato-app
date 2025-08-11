@@ -29,11 +29,10 @@ const SlotCard = ({
 }: SlotCardProps) => {
   
   const sizeClasses = {
-    sm: 'h-12 w-16 text-xs',
-    md: 'h-16 w-20 text-sm',
-    lg: 'h-20 w-24 text-base'
+    sm: 'h-14 w-20 text-sm md:h-12 md:w-16 md:text-xs',
+    md: 'h-20 w-24 text-base md:h-16 md:w-20 md:text-sm',
+    lg: 'h-24 w-28 text-lg md:h-20 md:w-24 md:text-base'
   };
-
   const getButtonStyles = () => {
     if (variant === 'client') {
       if (isSelected) {
