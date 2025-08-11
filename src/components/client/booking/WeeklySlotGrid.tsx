@@ -396,7 +396,7 @@ const WeeklySlotGrid = ({
                         onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
                         size="sm"
                         variant="client"
-                        className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink md:h-20 md:w-28 md:text-base lg:h-24 lg:w-32 lg:text-lg"
+                        className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink md:h-16 md:w-24 md:text-sm lg:h-20 lg:w-28 lg:text-base"
                       />
                     ))
                   ) : (
