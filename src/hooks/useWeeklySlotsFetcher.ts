@@ -213,8 +213,9 @@ export const useWeeklySlotsFetcher = ({
         };
       });
 
-      // Calcular recomendación basada en adyacencia y misma residencia
+      // Calcular recomendación basada en adyacencia (excluye externas)
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
+      const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
       // Construir pool de adyacencia con TODAS las reservas internas (excluye externas)
       const directInternal = (apptAllRes.data || []).filter((apt: any) => {
@@ -240,10 +241,15 @@ export const useWeeklySlotsFetcher = ({
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);
-          const dateKey = format(start, 'yyyy-MM-dd');
-          const minutes = start.getHours() * 60 + start.getMinutes();
-          if (!apptStartMinutesByDate[dateKey]) apptStartMinutesByDate[dateKey] = new Set<number>();
-          apptStartMinutesByDate[dateKey].add(minutes);
+          const end = apt.end_time ? new Date(apt.end_time) : new Date(start.getTime() + serviceDuration * 60_000);
+          const startKey = format(start, 'yyyy-MM-dd');
+          const endKey = format(end, 'yyyy-MM-dd');
+          const startMin = start.getHours() * 60 + start.getMinutes();
+          const endMin = end.getHours() * 60 + end.getMinutes();
+          if (!apptStartMinutesByDate[startKey]) apptStartMinutesByDate[startKey] = new Set<number>();
+          if (!apptEndMinutesByDate[endKey]) apptEndMinutesByDate[endKey] = new Set<number>();
+          apptStartMinutesByDate[startKey].add(startMin);
+          apptEndMinutesByDate[endKey].add(endMin);
         } catch {}
       }
 
@@ -284,8 +290,10 @@ export const useWeeklySlotsFetcher = ({
         const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
         const slotMin = (hh * 60) + (mm || 0);
         const apptStarts = apptStartMinutesByDate[dateKey] || new Set<number>();
+        const apptEnds = apptEndMinutesByDate[dateKey] || new Set<number>();
         const step = slotStepByDate[dateKey] || 60;
-        const isRecommended = apptStarts.has(slotMin - step) || apptStarts.has(slotMin + step);
+        // Recomendado si el siguiente slot inmediato es inicio de cita, o si justo antes terminó una cita
+        const isRecommended = apptStarts.has(slotMin + step) || apptEnds.has(slotMin);
         return { ...s, isRecommended };
       });
 
