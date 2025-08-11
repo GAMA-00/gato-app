@@ -33,6 +33,10 @@
     --input: 0 0% 88%;
     --ring: 240 5% 12%;
 
+    /* Warning (orange) semantic token for highlights like recommended slots */
+    --warning: 28 92% 54%;
+    --warning-foreground: 0 0% 100%;
+
     --radius: 0.75rem;           /* Bordes redondeados */
   }
   

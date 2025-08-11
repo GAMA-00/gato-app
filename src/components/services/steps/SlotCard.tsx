@@ -68,7 +68,7 @@ const SlotCard = ({
       {variant === 'client' && recommended && isAvailable && (
         <span
           aria-hidden
-          className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-[16px] border-l-[16px] md:border-t-[20px] md:border-l-[20px] border-t-primary border-l-transparent"
+          className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-[16px] border-l-[16px] md:border-t-[20px] md:border-l-[20px] border-t-warning border-l-transparent"
         />
       )}
       <span className="font-bold leading-none">{time}</span>

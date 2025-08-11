@@ -353,12 +353,12 @@ const WeeklySlotGrid = ({
         </div>
 
         {hasRecommended && (
-          <div className="relative overflow-hidden rounded-md border border-primary/30 bg-primary/5 p-2 md:p-3">
+          <div className="relative overflow-hidden rounded-md border border-warning/30 bg-warning/5 p-2 md:p-3">
             <span
               aria-hidden
-              className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-[16px] border-l-[16px] md:border-t-[20px] md:border-l-[20px] border-t-primary border-l-transparent"
+              className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-[16px] border-l-[16px] md:border-t-[20px] md:border-l-[20px] border-t-warning border-l-transparent"
             />
-            <div className="text-xs md:text-sm font-medium text-primary">Horario recomendado</div>
+            <div className="text-xs md:text-sm font-medium text-warning">Horario recomendado</div>
             <p className="text-xs text-muted-foreground mt-1">
               El proveedor ya se encuentra en el condominio antes o después de estos horarios.
             </p>
