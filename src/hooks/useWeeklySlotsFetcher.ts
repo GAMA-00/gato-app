@@ -5,7 +5,7 @@ import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { filterTemporalSlots, calculateWeekDateRange, filterSlotsByRecurrence } from '@/utils/temporalSlotFiltering';
-
+import { generateFutureInstancesFromAppointment } from '@/lib/recurrence/generator';
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
   isLoading: boolean;
@@ -21,7 +21,8 @@ export const useWeeklySlotsFetcher = ({
   recurrence = 'once',
   startDate,
   daysAhead = 7,
-  weekIndex = 0
+  weekIndex = 0,
+  clientResidenciaId
 }: UseWeeklySlotsProps): UseWeeklySlotsFetcherReturn => {
   const [slots, setSlots] = useState<WeeklySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +42,7 @@ export const useWeeklySlotsFetcher = ({
     const { startDate: weekStartDate, endDate: weekEndDate } = calculateWeekDateRange(weekIndex);
     const baseDate = startOfDay(weekStartDate);
     const endDate = startOfDay(weekEndDate);
-    const paramsSignature = createSlotSignature(providerId, listingId, serviceDuration, recurrence, baseDate, endDate);
+    const paramsSignature = createSlotSignature(providerId, listingId, serviceDuration, recurrence, baseDate, endDate) + `|res:${clientResidenciaId || 'none'}`;
     
     // Prevent duplicate requests with same signature
     if (lastParamsRef.current === paramsSignature) {
@@ -81,7 +82,7 @@ export const useWeeklySlotsFetcher = ({
     
     try {
       // Consultar slots con datetime y legacy en paralelo y fusionar resultados
-      const [dtRes, legacyRes, apptRes] = await Promise.all([
+      const [dtRes, legacyRes, apptAllRes, apptDirectRes, apptRecurringBaseRes] = await Promise.all([
         supabase
           .from('provider_time_slots')
           .select('*')
@@ -105,16 +106,41 @@ export const useWeeklySlotsFetcher = ({
           .order('start_time', { ascending: true }),
         supabase
           .from('appointments')
-          .select('start_time, end_time, status, is_recurring_instance, external_booking')
+          .select('start_time, end_time, status, is_recurring_instance, external_booking, recurrence, residencia_id')
           .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
           .in('status', ['confirmed', 'pending'])
           .gte('start_time', baseDate.toISOString())
-          .lte('start_time', endOfDay(endDate).toISOString())
+          .lte('start_time', endOfDay(endDate).toISOString()),
+        clientResidenciaId ?
+          supabase
+            .from('appointments')
+            .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id')
+            .eq('provider_id', providerId)
+            .eq('listing_id', listingId)
+            .in('status', ['confirmed', 'pending'])
+            .eq('residencia_id', clientResidenciaId)
+            .gte('start_time', baseDate.toISOString())
+            .lte('start_time', endOfDay(endDate).toISOString())
+          : Promise.resolve({ data: [], error: null }),
+        clientResidenciaId ?
+          supabase
+            .from('appointments')
+            .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status')
+            .eq('provider_id', providerId)
+            .eq('listing_id', listingId)
+            .in('status', ['confirmed', 'pending'])
+            .not('recurrence', 'in', '("none","once")')
+            .eq('residencia_id', clientResidenciaId)
+            .lte('start_time', endOfDay(endDate).toISOString())
+          : Promise.resolve({ data: [], error: null })
       ]);
 
       if (dtRes.error) throw dtRes.error;
       if (legacyRes.error) throw legacyRes.error;
-      if (apptRes.error) throw apptRes.error;
+      if (apptAllRes.error) throw apptAllRes.error;
+      if (apptDirectRes && 'error' in apptDirectRes && apptDirectRes.error) throw apptDirectRes.error;
+      if (apptRecurringBaseRes && 'error' in apptRecurringBaseRes && apptRecurringBaseRes.error) throw apptRecurringBaseRes.error;
 
       const timeSlotsDt = dtRes.data || [];
       const timeSlotsLegacy = legacyRes.data || [];
@@ -141,7 +167,7 @@ export const useWeeklySlotsFetcher = ({
         rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') }
       });
 
-      const conflictingAppointments = apptRes.data || [];
+      const allAppointments = apptAllRes.data || [];
 
       // Procesar slots con manejo correcto de TZ y compatibilidad legacy
       const weeklySlots: WeeklySlot[] = mergedSlots.map(slot => {
@@ -167,7 +193,7 @@ export const useWeeklySlotsFetcher = ({
           slot_datetime_start: slotStart.toISOString(),
           slot_datetime_end: slotEnd.toISOString(),
         };
-        const { isBlocked, reason } = shouldBlockSlot(slotForBlock, conflictingAppointments);
+          const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allAppointments);
 
         // Datos para UI
         const slotDate = new Date(slotStart);
@@ -189,22 +215,40 @@ export const useWeeklySlotsFetcher = ({
         };
       });
 
-      // Calcular recomendación basada únicamente en citas adyacentes (cliente directo o recurrencia)
-      // Usamos minutos del día para soportar duraciones != 60 min
+      // Calcular recomendación basada en adyacencia y misma residencia
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
-      for (const apt of conflictingAppointments) {
-        try {
-          // Elegibles: instancia recurrente o reserva directa en app (no externa)
-          const isRecurring = apt.is_recurring_instance === true;
-          const isDirectClientBooking = apt.external_booking === false || apt.external_booking == null;
-          if (!(isRecurring || isDirectClientBooking)) continue;
 
-          const start = new Date(apt.start_time);
-          const dateKey = format(start, 'yyyy-MM-dd');
-          const minutes = start.getHours() * 60 + start.getMinutes();
-          if (!apptStartMinutesByDate[dateKey]) apptStartMinutesByDate[dateKey] = new Set<number>();
-          apptStartMinutesByDate[dateKey].add(minutes);
-        } catch {}
+      if (clientResidenciaId) {
+        // 1) Citas directas del app (no externas), dentro del rango y misma residencia
+        const directForRes = (apptDirectRes.data || []).filter((apt: any) => {
+          const isDirect = apt.external_booking === false || apt.external_booking == null;
+          const isNonRecurring = !apt.recurrence || apt.recurrence === 'none' || apt.recurrence === 'once';
+          return isDirect && isNonRecurring && apt.residencia_id === clientResidenciaId;
+        });
+
+        // 2) Generar instancias futuras a partir de citas recurrentes base (misma residencia)
+        const recurringBase = (apptRecurringBaseRes.data || []).filter((apt: any) => apt.recurrence && apt.recurrence !== 'none');
+        const generatedInstances: any[] = [];
+        for (const base of recurringBase) {
+          try {
+            const gens = generateFutureInstancesFromAppointment(base, baseDate, endOfDay(endDate), 50)
+              .map(inst => ({ ...inst, residencia_id: base.residencia_id }));
+            generatedInstances.push(...gens);
+          } catch (e) {
+            console.log('Recurrence generation error:', e);
+          }
+        }
+
+        const adjacentPool = [...directForRes, ...generatedInstances];
+        for (const apt of adjacentPool) {
+          try {
+            const start = new Date(apt.start_time);
+            const dateKey = format(start, 'yyyy-MM-dd');
+            const minutes = start.getHours() * 60 + start.getMinutes();
+            if (!apptStartMinutesByDate[dateKey]) apptStartMinutesByDate[dateKey] = new Set<number>();
+            apptStartMinutesByDate[dateKey].add(minutes);
+          } catch {}
+        }
       }
 
       const weeklySlotsWithRec: WeeklySlot[] = weeklySlots.map(s => {
@@ -237,7 +281,7 @@ export const useWeeklySlotsFetcher = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex]);
+  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex, clientResidenciaId]);
 
   // Create a stable refresh function
   const refreshSlots = useCallback(() => {

@@ -20,7 +20,8 @@ export const useWeeklySlots = ({
   recurrence = 'once',
   startDate,
   daysAhead = 7,
-  weekIndex = 0
+  weekIndex = 0,
+  clientResidenciaId
 }: UseWeeklySlotsProps): UseWeeklySlotsReturn => {
   const [isValidatingSlot, setIsValidatingSlot] = useState(false);
 
@@ -38,7 +39,8 @@ export const useWeeklySlots = ({
     recurrence,
     startDate,
     daysAhead,
-    weekIndex
+    weekIndex,
+    clientResidenciaId
   });
 
   // Handle real-time subscriptions

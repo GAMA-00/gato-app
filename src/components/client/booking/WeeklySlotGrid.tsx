@@ -22,6 +22,7 @@ import {
   calculateWeekDateRange,
   getWeekLabel
 } from '@/utils/temporalSlotFiltering';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface WeeklySlotGridProps {
   providerId: string;
@@ -44,6 +45,7 @@ const WeeklySlotGrid = ({
 }: WeeklySlotGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);
+  const { profile } = useUserProfile();
 
   // Sync local state with prop when it changes
   React.useEffect(() => {
@@ -69,7 +71,8 @@ const WeeklySlotGrid = ({
     recurrence,
     startDate: weekStartDate,
     daysAhead: 7,
-    weekIndex: currentWeek
+    weekIndex: currentWeek,
+    clientResidenciaId: profile?.residencia_id
   });
 
   const hasRecommended = React.useMemo(() =>

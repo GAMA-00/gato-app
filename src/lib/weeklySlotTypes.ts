@@ -25,6 +25,7 @@ export interface UseWeeklySlotsProps {
   startDate?: Date;
   daysAhead?: number;
   weekIndex?: number;
+  clientResidenciaId?: string;
 }
 
 export interface WeeklySlotStats {
