@@ -105,7 +105,7 @@ export const useWeeklySlotsFetcher = ({
           .order('start_time', { ascending: true }),
         supabase
           .from('appointments')
-          .select('start_time, end_time, status')
+          .select('start_time, end_time, status, is_recurring_instance, external_booking')
           .eq('provider_id', providerId)
           .in('status', ['confirmed', 'pending'])
           .gte('start_time', baseDate.toISOString())
@@ -189,11 +189,15 @@ export const useWeeklySlotsFetcher = ({
         };
       });
 
-      // Calcular recomendación basada en citas adyacentes y bloqueos por recurrencia
-      // 1) Construir mapa de horas ocupadas por citas por fecha
+      // Calcular recomendación basada únicamente en citas adyacentes (cliente directo o recurrencia)
       const apptHoursByDate: Record<string, Set<number>> = {};
       for (const apt of conflictingAppointments) {
         try {
+          // Elegibles: instancia recurrente o reserva directa en app (no externa)
+          const isRecurring = apt.is_recurring_instance === true;
+          const isDirectClientBooking = apt.external_booking === false || apt.external_booking == null;
+          if (!(isRecurring || isDirectClientBooking)) continue;
+
           const start = new Date(apt.start_time);
           const end = new Date(apt.end_time);
           const dateKey = format(start, 'yyyy-MM-dd');
@@ -207,31 +211,12 @@ export const useWeeklySlotsFetcher = ({
         } catch {}
       }
 
-      // 2) Detectar horas bloqueadas por las reglas de recurrencia (las que se eliminan por el filtro)
-      const availableBeforeRec = weeklySlots.filter(s => s.isAvailable);
-      const afterRec = filterSlotsByRecurrence(availableBeforeRec, recurrence);
-      const afterRecKey = new Set(afterRec.map(s => `${format(s.date, 'yyyy-MM-dd')}|${parseInt(s.time.split(':')[0], 10)}`));
-      const recBlockedHoursByDate: Record<string, Set<number>> = {};
-      for (const s of availableBeforeRec) {
-        const dateKey = format(s.date, 'yyyy-MM-dd');
-        const hour = parseInt(s.time.split(':')[0], 10);
-        const key = `${dateKey}|${hour}`;
-        if (!afterRecKey.has(key)) {
-          if (!recBlockedHoursByDate[dateKey]) recBlockedHoursByDate[dateKey] = new Set<number>();
-          recBlockedHoursByDate[dateKey].add(hour);
-        }
-      }
-
-      // 3) Marcar slots recomendados si son adyacentes a citas o a bloqueos por recurrencia
       const weeklySlotsWithRec: WeeklySlot[] = weeklySlots.map(s => {
         if (!s.isAvailable) return s;
         const dateKey = format(s.date, 'yyyy-MM-dd');
         const hour = parseInt(s.time.split(':')[0], 10);
         const apptHours = apptHoursByDate[dateKey] || new Set<number>();
-        const recBlocked = recBlockedHoursByDate[dateKey] || new Set<number>();
-        const isAdjToAppt = apptHours.has(hour - 1) || apptHours.has(hour + 1);
-        const isAdjToRecBlocked = recBlocked.has(hour - 1) || recBlocked.has(hour + 1);
-        const isRecommended = isAdjToAppt || isAdjToRecBlocked;
+        const isRecommended = apptHours.has(hour - 1) || apptHours.has(hour + 1);
         return { ...s, isRecommended };
       });
 
