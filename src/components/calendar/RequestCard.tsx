@@ -19,6 +19,9 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
   const isGroup = request.appointment_count > 1;
   const isExternal = request.is_external;
 
+  // Normalize and validate notes: show only if user actually wrote additional notes
+  const normalizedNotes = typeof request.notes === 'string' ? request.notes.trim() : '';
+  const shouldShowNotes = normalizedNotes.length > 0 && normalizedNotes !== 'Reserva creada desde la aplicación';
   // Helper function to get initials from name
   const getInitials = (name: string) => {
     if (!name || name === 'Cliente sin nombre' || name === 'Cliente Externo') return 'CL';
@@ -37,7 +40,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
   return (
     <div className="border rounded-lg p-4 bg-amber-50 border-amber-200 relative">
       {/* Recurrence indicator positioned in top-right corner */}
-      <div className="absolute top-3 right-3">
+      <div className="absolute top-2 right-2 md:top-3 md:right-3 z-10">
         <RecurrenceIndicator 
           recurrence={recurrenceType}
           size="sm"
@@ -46,7 +49,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
         />
       </div>
       
-      <div className="flex items-start gap-3 mb-3 pr-20">
+      <div className="flex items-start gap-3 mb-3 pr-28 md:pr-24">
         <Avatar className="h-10 w-10 border border-amber-200 flex-shrink-0">
           <AvatarImage alt={request.client_name} />
           <AvatarFallback className="bg-amber-100 text-amber-800">
@@ -112,10 +115,10 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
         </Table>
       </div>
       
-      {request.notes && (
+      {shouldShowNotes && (
         <div className="text-sm bg-amber-100 p-3 rounded-md mb-3 overflow-hidden">
           <span className="font-medium">Notas: </span> 
-          <span className="break-words">{request.notes}</span>
+          <span className="break-words">{normalizedNotes}</span>
         </div>
       )}
       
