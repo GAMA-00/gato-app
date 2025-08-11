@@ -251,13 +251,34 @@ export const useWeeklySlotsFetcher = ({
         }
       }
 
+      // Detectar el paso real entre slots por día (ej. 60 min), independiente de serviceDuration
+      const slotStepByDate: Record<string, number> = {};
+      const minutesByDate: Record<string, number[]> = {};
+      for (const s of weeklySlots) {
+        const dateKey = format(s.date, 'yyyy-MM-dd');
+        const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
+        const min = (hh * 60) + (mm || 0);
+        if (!minutesByDate[dateKey]) minutesByDate[dateKey] = [];
+        minutesByDate[dateKey].push(min);
+      }
+      for (const [dateKey, mins] of Object.entries(minutesByDate)) {
+        const uniq = Array.from(new Set(mins)).sort((a, b) => a - b);
+        let step = 0;
+        for (let i = 1; i < uniq.length; i++) {
+          const diff = uniq[i] - uniq[i - 1];
+          if (diff > 0) step = step === 0 ? diff : Math.min(step, diff);
+        }
+        slotStepByDate[dateKey] = step > 0 ? step : 60; // fallback a 60 min
+      }
+
       const weeklySlotsWithRec: WeeklySlot[] = weeklySlots.map(s => {
         if (!s.isAvailable) return s;
         const dateKey = format(s.date, 'yyyy-MM-dd');
         const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
         const slotMin = (hh * 60) + (mm || 0);
         const apptStarts = apptStartMinutesByDate[dateKey] || new Set<number>();
-        const isRecommended = apptStarts.has(slotMin - serviceDuration) || apptStarts.has(slotMin + serviceDuration);
+        const step = slotStepByDate[dateKey] || 60;
+        const isRecommended = apptStarts.has(slotMin - step) || apptStarts.has(slotMin + step);
         return { ...s, isRecommended };
       });
 
