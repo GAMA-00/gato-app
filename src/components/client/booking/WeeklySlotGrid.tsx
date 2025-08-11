@@ -366,7 +366,7 @@ const WeeklySlotGrid = ({
         )}
 
         {/* Slots Grid */}
-        <div className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-7 md:gap-4 md:space-y-0">
+        <div className="space-y-4 md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 md:gap-4 lg:gap-5 xl:gap-6 md:space-y-0">
           {slotGroups.map(group => {
             const availableSlots = group.slots.filter(slot => slot.isAvailable);
             return (
@@ -382,7 +382,7 @@ const WeeklySlotGrid = ({
                 </div>
 
                 {/* Day Slots */}
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:space-y-3 lg:space-y-4 md:max-h-64 md:overflow-y-auto md:pb-0">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 md:flex-col md:overflow-x-visible md:overflow-y-visible md:space-y-2 lg:space-y-3 md:pb-0">
                   {availableSlots.length > 0 ? (
                     availableSlots.map(slot => (
                       <SlotCard
@@ -396,7 +396,7 @@ const WeeklySlotGrid = ({
                         onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
                         size="sm"
                         variant="client"
-                        className="flex-shrink-0 min-w-[80px] md:min-w-auto md:flex-shrink md:h-16 md:w-24 md:text-sm lg:h-20 lg:w-28 lg:text-base"
+                        className="flex-shrink-0 min-w-[80px] md:min-w-0 md:w-full md:h-14 md:text-sm lg:h-16 lg:text-base"
                       />
                     ))
                   ) : (
