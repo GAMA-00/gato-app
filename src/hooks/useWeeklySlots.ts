@@ -81,7 +81,7 @@ export const useWeeklySlots = ({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), weekIndex, fetchWeeklySlots]);
+  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), weekIndex, clientResidenciaId, fetchWeeklySlots]);
 
   return {
     slotGroups,

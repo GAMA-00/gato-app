@@ -123,17 +123,15 @@ export const useWeeklySlotsFetcher = ({
             .gte('start_time', baseDate.toISOString())
             .lte('start_time', endOfDay(endDate).toISOString())
           : Promise.resolve({ data: [], error: null }),
-        clientResidenciaId ?
+        // recurring base for all residencias
           supabase
             .from('appointments')
-            .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status')
+            .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status, external_booking')
             .eq('provider_id', providerId)
             .eq('listing_id', listingId)
             .in('status', ['confirmed', 'pending'])
             .not('recurrence', 'in', '("none","once")')
-            .eq('residencia_id', clientResidenciaId)
             .lte('start_time', endOfDay(endDate).toISOString())
-          : Promise.resolve({ data: [], error: null })
       ]);
 
       if (dtRes.error) throw dtRes.error;
@@ -218,48 +216,57 @@ export const useWeeklySlotsFetcher = ({
       // Calcular recomendación basada en adyacencia y misma residencia
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
 
-      if (clientResidenciaId) {
-        // 1) Citas directas del app (no externas), dentro del rango y misma residencia
-        const directForRes = (apptDirectRes.data || []).filter((apt: any) => {
-          const isDirect = apt.external_booking === false || apt.external_booking == null;
-          const isNonRecurring = !apt.recurrence || apt.recurrence === 'none' || apt.recurrence === 'once';
-          return isDirect && isNonRecurring && apt.residencia_id === clientResidenciaId;
-        });
+      // Construir pool de adyacencia con TODAS las reservas internas (excluye externas)
+      const directInternal = (apptAllRes.data || []).filter((apt: any) => {
+        return apt && (apt.external_booking === false || apt.external_booking == null);
+      });
 
-        // 2) Generar instancias futuras a partir de citas recurrentes base (misma residencia)
-        const recurringBase = (apptRecurringBaseRes.data || []).filter((apt: any) => apt.recurrence && apt.recurrence !== 'none');
-        const generatedInstances: any[] = [];
-        for (const base of recurringBase) {
-          try {
-            const gens = generateFutureInstancesFromAppointment(base, baseDate, endOfDay(endDate), 50)
-              .map(inst => ({ ...inst, residencia_id: base.residencia_id }));
-            generatedInstances.push(...gens);
-          } catch (e) {
-            console.log('Recurrence generation error:', e);
-          }
-        }
+      const recurringBaseAll = (apptRecurringBaseRes.data || []).filter((apt: any) => {
+        return apt && apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== 'once' && (apt.external_booking === false || apt.external_booking == null);
+      });
 
-        const adjacentPool = [...directForRes, ...generatedInstances];
-        for (const apt of adjacentPool) {
-          try {
-            const start = new Date(apt.start_time);
-            const dateKey = format(start, 'yyyy-MM-dd');
-            const minutes = start.getHours() * 60 + start.getMinutes();
-            if (!apptStartMinutesByDate[dateKey]) apptStartMinutesByDate[dateKey] = new Set<number>();
-            apptStartMinutesByDate[dateKey].add(minutes);
-          } catch {}
+      const generatedInstances: any[] = [];
+      for (const base of recurringBaseAll) {
+        try {
+          const gens = generateFutureInstancesFromAppointment(base, baseDate, endOfDay(endDate), 50)
+            .map(inst => ({ ...inst, residencia_id: base.residencia_id }));
+          generatedInstances.push(...gens);
+        } catch (e) {
+          console.log('Recurrence generation error:', e);
         }
+      }
+
+      const adjacentPool = [...directInternal, ...generatedInstances];
+      for (const apt of adjacentPool) {
+        try {
+          const start = new Date(apt.start_time);
+          const dateKey = format(start, 'yyyy-MM-dd');
+          const minutes = start.getHours() * 60 + start.getMinutes();
+          if (!apptStartMinutesByDate[dateKey]) apptStartMinutesByDate[dateKey] = new Set<number>();
+          apptStartMinutesByDate[dateKey].add(minutes);
+        } catch {}
       }
 
       // Detectar el paso real entre slots por día (ej. 60 min), independiente de serviceDuration
       const slotStepByDate: Record<string, number> = {};
       const minutesByDate: Record<string, number[]> = {};
+      // 1) Minutos de los slots configurados
       for (const s of weeklySlots) {
         const dateKey = format(s.date, 'yyyy-MM-dd');
         const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
         const min = (hh * 60) + (mm || 0);
         if (!minutesByDate[dateKey]) minutesByDate[dateKey] = [];
         minutesByDate[dateKey].push(min);
+      }
+      // 2) También considerar minutos de citas (internas) para calcular el paso
+      for (const apt of adjacentPool) {
+        try {
+          const start = new Date(apt.start_time);
+          const dateKey = format(start, 'yyyy-MM-dd');
+          const minutes = start.getHours() * 60 + start.getMinutes();
+          if (!minutesByDate[dateKey]) minutesByDate[dateKey] = [];
+          minutesByDate[dateKey].push(minutes);
+        } catch {}
       }
       for (const [dateKey, mins] of Object.entries(minutesByDate)) {
         const uniq = Array.from(new Set(mins)).sort((a, b) => a - b);
