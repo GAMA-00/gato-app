@@ -16,9 +16,7 @@ const LandingPage = () => {
         <div className="flex flex-col items-center space-y-6">
           <div className="w-24 h-24 md:w-32 md:h-32">
             <img 
-              src="/images/logo-96.png"
-              srcSet="/images/logo-96.png 96w, /images/logo-128.png 128w"
-              sizes="(min-width: 768px) 128px, 96px"
+              src="/lovable-uploads/b420fb6c-9eb8-4971-971f-1f343e64d9ed.png"
               width="96"
               height="96"
               alt="Gato Logo"
