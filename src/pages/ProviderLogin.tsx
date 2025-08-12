@@ -82,8 +82,11 @@ const ProviderLogin = () => {
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4">
             <img 
-              src="/lovable-uploads/4bcbe888-923a-422c-850d-31560fe2e659.png" 
+              src="/images/logo-64.png" 
+              width="64"
+              height="64"
               alt="Gato Logo" 
+              decoding="async"
               className="w-full h-full object-contain"
             />
           </div>

@@ -15,11 +15,17 @@ const LandingPage = () => {
         {/* Logo */}
         <div className="flex flex-col items-center space-y-6">
           <div className="w-24 h-24 md:w-32 md:h-32">
-            <img 
-              src="/lovable-uploads/4bcbe888-923a-422c-850d-31560fe2e659.png" 
-              alt="Gato Logo" 
-              className="w-full h-full object-contain"
-            />
+            <picture>
+              <source srcSet="/images/logo-128.png" media="(min-width: 768px)" />
+              <img 
+                src="/images/logo-96.png"
+                width="96"
+                height="96"
+                alt="Gato Logo" 
+                decoding="async"
+                className="w-full h-full object-contain"
+              />
+            </picture>
           </div>
           
           {/* Welcome Text */}
