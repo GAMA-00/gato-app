@@ -82,7 +82,7 @@ const ProviderLogin = () => {
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4">
             <img 
-              src="/images/logo-64.png" 
+              src="/lovable-uploads/7940cf6c-ca54-4600-baf8-e31bdbbc4ffa.png" 
               width="64"
               height="64"
               alt="Gato Logo" 
