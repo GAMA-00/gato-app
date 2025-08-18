@@ -89,7 +89,6 @@ export const useWeeklySlotsFetcher = ({
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
           .eq('is_available', true)
-          .eq('is_reserved', false)
           .gte('slot_datetime_start', baseDate.toISOString())
           .lte('slot_datetime_start', endOfDay(endDate).toISOString())
           .order('slot_datetime_start'),
@@ -99,7 +98,6 @@ export const useWeeklySlotsFetcher = ({
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
           .eq('is_available', true)
-          .eq('is_reserved', false)
           .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
           .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
           .order('slot_date', { ascending: true })
@@ -156,7 +154,7 @@ export const useWeeklySlotsFetcher = ({
           if (!existingHasDt && candidateHasDt) byId.set(key, s);
         }
       }
-      const mergedSlots = Array.from(byId.values()).filter(s => s.is_available && !s.is_reserved);
+      const mergedSlots = Array.from(byId.values()).filter(s => s.is_available);
 
       console.log('📊 Fusión de slots:', {
         totalDatetime: timeSlotsDt.length,
@@ -237,14 +235,13 @@ export const useWeeklySlotsFetcher = ({
 
       // Construir pool de adyacencia SOLO con reservas de la misma residencia del cliente
       const clientResidenceFilter = clientResidenciaId 
-        ? (apt: any) => apt && apt.residencia_id === clientResidenciaId && (apt.external_booking === false || apt.external_booking == null)
-        : (apt: any) => apt && (apt.external_booking === false || apt.external_booking == null);
+        ? (apt: any) => !!apt && apt.residencia_id === clientResidenciaId
+        : (apt: any) => !!apt;
 
       const directInternal = (apptDirectRes?.data || []).filter(clientResidenceFilter);
 
       const recurringBaseSameResidence = (apptRecurringBaseRes.data || []).filter((apt: any) => {
         return apt && apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== 'once' && 
-               (apt.external_booking === false || apt.external_booking == null) &&
                (!clientResidenciaId || apt.residencia_id === clientResidenciaId);
       });
 
