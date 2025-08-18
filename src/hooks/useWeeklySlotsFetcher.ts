@@ -166,6 +166,24 @@ export const useWeeklySlotsFetcher = ({
       });
 
       const allAppointments = apptAllRes.data || [];
+      
+      // Generate future recurring instances to include in conflicts
+      const recurringBaseAll = (apptRecurringBaseRes.data || []).filter((apt: any) => {
+        return apt && apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== 'once';
+      });
+
+      const generatedInstances: any[] = [];
+      for (const base of recurringBaseAll) {
+        try {
+          const gens = generateFutureInstancesFromAppointment(base, baseDate, endOfDay(endDate), 50);
+          generatedInstances.push(...gens);
+        } catch (e) {
+          console.log('Recurrence generation error:', e);
+        }
+      }
+
+      // Include recurring instances in conflicts to block recurring slots
+      const allConflicts = [...allAppointments, ...generatedInstances];
 
       // Procesar slots con manejo correcto de TZ y compatibilidad legacy
       const weeklySlots: WeeklySlot[] = mergedSlots.map(slot => {
@@ -191,7 +209,7 @@ export const useWeeklySlotsFetcher = ({
           slot_datetime_start: slotStart.toISOString(),
           slot_datetime_end: slotEnd.toISOString(),
         };
-          const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allAppointments);
+          const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allConflicts);
 
         // Datos para UI
         const slotDate = new Date(slotStart);
@@ -213,31 +231,35 @@ export const useWeeklySlotsFetcher = ({
         };
       });
 
-      // Calcular recomendación basada en adyacencia (excluye externas)
+      // Calcular recomendación basada en adyacencia (solo citas de la misma residencia del cliente)
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
       const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
-      // Construir pool de adyacencia con TODAS las reservas internas (excluye externas)
-      const directInternal = (apptAllRes.data || []).filter((apt: any) => {
-        return apt && (apt.external_booking === false || apt.external_booking == null);
+      // Construir pool de adyacencia SOLO con reservas de la misma residencia del cliente
+      const clientResidenceFilter = clientResidenciaId 
+        ? (apt: any) => apt && apt.residencia_id === clientResidenciaId && (apt.external_booking === false || apt.external_booking == null)
+        : (apt: any) => apt && (apt.external_booking === false || apt.external_booking == null);
+
+      const directInternal = (apptDirectRes?.data || []).filter(clientResidenceFilter);
+
+      const recurringBaseSameResidence = (apptRecurringBaseRes.data || []).filter((apt: any) => {
+        return apt && apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== 'once' && 
+               (apt.external_booking === false || apt.external_booking == null) &&
+               (!clientResidenciaId || apt.residencia_id === clientResidenciaId);
       });
 
-      const recurringBaseAll = (apptRecurringBaseRes.data || []).filter((apt: any) => {
-        return apt && apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== 'once' && (apt.external_booking === false || apt.external_booking == null);
-      });
-
-      const generatedInstances: any[] = [];
-      for (const base of recurringBaseAll) {
+      const generatedInstancesSameResidence: any[] = [];
+      for (const base of recurringBaseSameResidence) {
         try {
           const gens = generateFutureInstancesFromAppointment(base, baseDate, endOfDay(endDate), 50)
             .map(inst => ({ ...inst, residencia_id: base.residencia_id }));
-          generatedInstances.push(...gens);
+          generatedInstancesSameResidence.push(...gens);
         } catch (e) {
           console.log('Recurrence generation error:', e);
         }
       }
 
-      const adjacentPool = [...directInternal, ...generatedInstances];
+      const adjacentPool = [...directInternal, ...generatedInstancesSameResidence];
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);

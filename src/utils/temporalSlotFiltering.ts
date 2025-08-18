@@ -48,12 +48,13 @@ export const getWeekLabel = (weekIndex: number): string => {
 
 /**
  * Filters out past slots for the current week only
- * For future weeks, returns all available slots
+ * For future weeks, returns all slots
+ * IMPORTANT: Now preserves all slots to show complete availability picture
  */
 export const filterTemporalSlots = (slots: WeeklySlot[], weekIndex: number): WeeklySlot[] => {
-  // If this is not the current week, return all available slots
+  // If this is not the current week, return all slots
   if (!isCurrentWeek(weekIndex)) {
-    return slots.filter(slot => slot.isAvailable);
+    return slots;
   }
 
   // For current week, filter out past slots and past days
@@ -61,8 +62,6 @@ export const filterTemporalSlots = (slots: WeeklySlot[], weekIndex: number): Wee
   const today = startOfDay(now);
   
   return slots.filter(slot => {
-    if (!slot.isAvailable) return false;
-    
     const slotDate = startOfDay(slot.date);
     
     // Filter out days that have already passed
@@ -70,13 +69,13 @@ export const filterTemporalSlots = (slots: WeeklySlot[], weekIndex: number): Wee
       return false;
     }
     
-    // For today's slots, only show future times
+    // For today's slots, filter based on time regardless of availability
     if (isToday(slot.date)) {
       const slotDateTime = createSlotDateTime(slot.date, slot.time);
       return isAfter(slotDateTime, now);
     }
     
-    // For future days this week, show all available slots
+    // For future days this week, show all slots (available and unavailable)
     return true;
   });
 };

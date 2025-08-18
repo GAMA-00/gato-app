@@ -38,10 +38,9 @@ export const groupSlotsByDate = (slots: WeeklySlot[]): WeeklySlotGroup[] => {
 };
 
 export const filterAvailableSlotGroups = (slotGroups: WeeklySlotGroup[]): WeeklySlotGroup[] => {
-  // For client booking, only show days that have available slots after temporal filtering
-  return slotGroups.filter(group => 
-    group.slots.some(slot => slot.isAvailable)
-  );
+  // Show all days with slots (both available and unavailable) to provide complete availability picture
+  // This ensures enabled days are always visible even if all slots are booked
+  return slotGroups.filter(group => group.slots.length > 0);
 };
 
 export const calculateSlotStats = (
