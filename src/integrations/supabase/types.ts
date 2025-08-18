@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1225,7 +1225,7 @@ export type Database = {
     }
     Functions: {
       block_recurring_slots: {
-        Args: { p_recurring_rule_id: string; p_months_ahead?: number }
+        Args: { p_months_ahead?: number; p_recurring_rule_id: string }
         Returns: number
       }
       block_recurring_slots_for_appointment: {
@@ -1241,19 +1241,19 @@ export type Database = {
         Returns: string
       }
       calculate_refund_percentage: {
-        Args: { cancellation_time: string; appointment_start: string }
+        Args: { appointment_start: string; cancellation_time: string }
         Returns: number
       }
       can_update_user_role: {
-        Args: { target_user_id: string; new_role: string }
+        Args: { new_role: string; target_user_id: string }
         Returns: boolean
       }
       check_recurring_availability: {
         Args: {
-          p_provider_id: string
-          p_start_time: string
           p_end_time: string
           p_exclude_rule_id?: string
+          p_provider_id: string
+          p_start_time: string
         }
         Returns: boolean
       }
@@ -1270,34 +1270,50 @@ export type Database = {
         Returns: number
       }
       create_appointment_with_slot: {
-        Args: {
-          p_provider_id: string
-          p_listing_id: string
-          p_client_id: string
-          p_start_time: string
-          p_end_time: string
-          p_recurrence?: string
-          p_notes?: string
-          p_client_name?: string
-          p_client_email?: string
-          p_client_phone?: string
-          p_client_address?: string
-          p_residencia_id?: string
-        }
+        Args:
+          | {
+              p_client_address?: string
+              p_client_email?: string
+              p_client_id: string
+              p_client_name?: string
+              p_client_phone?: string
+              p_end_time: string
+              p_listing_id: string
+              p_notes?: string
+              p_provider_id: string
+              p_recurrence?: string
+              p_residencia_id?: string
+              p_selected_slot_ids?: string[]
+              p_start_time: string
+              p_total_duration?: number
+            }
+          | {
+              p_client_address?: string
+              p_client_email?: string
+              p_client_id: string
+              p_client_name?: string
+              p_client_phone?: string
+              p_end_time: string
+              p_listing_id: string
+              p_notes?: string
+              p_provider_id: string
+              p_recurrence?: string
+              p_residencia_id?: string
+              p_start_time: string
+            }
         Returns: {
           appointment_id: string
           status: string
-          message: string
         }[]
       }
       create_user_profile: {
         Args: {
+          user_email: string
           user_id: string
           user_name: string
-          user_email: string
           user_phone: string
-          user_role: string
           user_residencia_id?: string
+          user_role: string
         }
         Returns: undefined
       }
@@ -1321,7 +1337,7 @@ export type Database = {
         Returns: undefined
       }
       fix_missing_slots_for_provider: {
-        Args: { p_provider_id: string; p_listing_id: string }
+        Args: { p_listing_id: string; p_provider_id: string }
         Returns: number
       }
       fix_triweekly_blocked_slots: {
@@ -1335,27 +1351,27 @@ export type Database = {
       generate_provider_time_slots: {
         Args:
           | {
-              p_provider_id: string
-              p_listing_id: string
-              p_start_date: string
+              p_days_of_week: string[]
               p_end_date: string
+              p_end_time: string
+              p_listing_id: string
+              p_provider_id: string
+              p_slot_duration_minutes: number
+              p_start_date: string
+              p_start_time: string
             }
           | {
-              p_provider_id: string
-              p_listing_id: string
-              p_start_date: string
               p_end_date: string
-              p_days_of_week: string[]
-              p_start_time: string
-              p_end_time: string
-              p_slot_duration_minutes: number
+              p_listing_id: string
+              p_provider_id: string
+              p_start_date: string
             }
         Returns: number
       }
       generate_provider_time_slots_for_listing: {
         Args: {
-          p_provider_id: string
           p_listing_id: string
+          p_provider_id: string
           p_weeks_ahead?: number
         }
         Returns: number
@@ -1365,7 +1381,7 @@ export type Database = {
         Returns: number
       }
       generate_recurring_instances: {
-        Args: { rule_id: string; start_range: string; end_range: string }
+        Args: { end_range: string; rule_id: string; start_range: string }
         Returns: number
       }
       get_provider_listing: {
@@ -1383,7 +1399,7 @@ export type Database = {
         Returns: number
       }
       get_recurring_clients_count_by_listing: {
-        Args: { provider_id: string; listing_id: string }
+        Args: { listing_id: string; provider_id: string }
         Returns: number
       }
       migrate_all_provider_availability_and_generate_slots: {
@@ -1415,17 +1431,17 @@ export type Database = {
       submit_provider_rating: {
         Args:
           | {
-              p_provider_id: string
-              p_client_id: string
               p_appointment_id: string
+              p_client_id: string
+              p_comment?: string
+              p_provider_id: string
               p_rating: number
             }
           | {
-              p_provider_id: string
-              p_client_id: string
               p_appointment_id: string
+              p_client_id: string
+              p_provider_id: string
               p_rating: number
-              p_comment?: string
             }
         Returns: undefined
       }
@@ -1438,13 +1454,13 @@ export type Database = {
         Returns: number
       }
       validate_provider_slots_coverage: {
-        Args: { p_provider_id: string; p_listing_id: string }
+        Args: { p_listing_id: string; p_provider_id: string }
         Returns: {
           day_name: string
           expected_enabled: boolean
           has_slots: boolean
-          slots_count: number
           missing_slots: boolean
+          slots_count: number
         }[]
       }
     }
