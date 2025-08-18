@@ -15,7 +15,7 @@ interface NewBookingFormProps {
   totalDuration: number;
   onDateChange: (date: Date | undefined) => void;
   onTimeChange: (time: string) => void;
-  onDurationChange: (duration: number) => void;
+  onDurationChange: (duration: number, slotIds?: string[]) => void;
   providerId: string;
   listingId: string; // Añadir listingId
   selectedVariants: ServiceVariantWithQuantity[];
@@ -50,7 +50,7 @@ const NewBookingForm = ({
     setSelectedSlotIds(slotIds);
     onDateChange(date);
     onTimeChange(time);
-    onDurationChange(duration);
+    onDurationChange(duration, slotIds);
   };
 
   return (

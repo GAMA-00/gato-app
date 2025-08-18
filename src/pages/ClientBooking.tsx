@@ -30,6 +30,7 @@ const ClientBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [totalDuration, setTotalDuration] = useState<number>(0);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [customVariableSelections, setCustomVariableSelections] = useState<any>({});
   const [customVariablesTotalPrice, setCustomVariablesTotalPrice] = useState<number>(0);
@@ -211,7 +212,9 @@ const ClientBooking = () => {
         clientPhone: user.phone || 'Por confirmar',
         clientEmail: user.email || 'Por confirmar',
         customVariableSelections: Object.keys(customVariableSelections).length > 0 ? customVariableSelections : undefined,
-        customVariablesTotalPrice: customVariablesTotalPrice
+        customVariablesTotalPrice: customVariablesTotalPrice,
+        selectedSlotIds: selectedSlotIds.length > 0 ? selectedSlotIds : undefined,
+        totalDuration: totalDuration > 0 ? totalDuration : undefined
       };
 
       console.log('Datos de reserva preparados:', bookingData);
@@ -328,10 +331,13 @@ const ClientBooking = () => {
           totalDuration={totalDuration}
           onDateChange={setSelectedDate}
           onTimeChange={setSelectedTime}
-          onDurationChange={setTotalDuration}
+          onDurationChange={(duration, slotIds) => {
+            setTotalDuration(duration);
+            setSelectedSlotIds(slotIds || []);
+          }}
           providerId={providerId}
           listingId={serviceId || ''}
-           selectedVariants={selectedVariants}
+          selectedVariants={selectedVariants}
           notes={notes}
           onNotesChange={setNotes}
           customVariableGroups={serviceDetails.custom_variable_groups}
