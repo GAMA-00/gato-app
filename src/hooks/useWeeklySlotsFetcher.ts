@@ -88,7 +88,6 @@ export const useWeeklySlotsFetcher = ({
           .select('*')
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
-          .eq('is_available', true)
           .gte('slot_datetime_start', baseDate.toISOString())
           .lte('slot_datetime_start', endOfDay(endDate).toISOString())
           .order('slot_datetime_start'),
@@ -97,7 +96,6 @@ export const useWeeklySlotsFetcher = ({
           .select('*')
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
-          .eq('is_available', true)
           .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
           .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
           .order('slot_date', { ascending: true })
@@ -154,7 +152,7 @@ export const useWeeklySlotsFetcher = ({
           if (!existingHasDt && candidateHasDt) byId.set(key, s);
         }
       }
-      const mergedSlots = Array.from(byId.values()).filter(s => s.is_available);
+      const mergedSlots = Array.from(byId.values());
 
       console.log('📊 Fusión de slots:', {
         totalDatetime: timeSlotsDt.length,
@@ -229,34 +227,12 @@ export const useWeeklySlotsFetcher = ({
         };
       });
 
-      // Calcular recomendación basada en adyacencia (solo citas de la misma residencia del cliente)
+      // Calcular recomendación basada en adyacencia respecto a TODAS las reservas (puntuales y recurrentes)
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
       const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
-      // Construir pool de adyacencia SOLO con reservas de la misma residencia del cliente
-      const clientResidenceFilter = clientResidenciaId 
-        ? (apt: any) => !!apt && apt.residencia_id === clientResidenciaId
-        : (apt: any) => !!apt;
-
-      const directInternal = (apptDirectRes?.data || []).filter(clientResidenceFilter);
-
-      const recurringBaseSameResidence = (apptRecurringBaseRes.data || []).filter((apt: any) => {
-        return apt && apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== 'once' && 
-               (!clientResidenciaId || apt.residencia_id === clientResidenciaId);
-      });
-
-      const generatedInstancesSameResidence: any[] = [];
-      for (const base of recurringBaseSameResidence) {
-        try {
-          const gens = generateFutureInstancesFromAppointment(base, baseDate, endOfDay(endDate), 50)
-            .map(inst => ({ ...inst, residencia_id: base.residencia_id }));
-          generatedInstancesSameResidence.push(...gens);
-        } catch (e) {
-          console.log('Recurrence generation error:', e);
-        }
-      }
-
-      const adjacentPool = [...directInternal, ...generatedInstancesSameResidence];
+      // Usar todas las citas del rango (pendientes/confirmadas) y las instancias generadas
+      const adjacentPool = [...allAppointments, ...generatedInstances];
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);
