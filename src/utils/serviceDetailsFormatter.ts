@@ -2,11 +2,11 @@
  * Utility functions for formatting service details in appointments
  */
 
-// Helper function to format price
+// Helper function to format price in dollars
 export const formatPrice = (price: number | string | null) => {
-  if (!price) return '₡0';
+  if (!price) return '$0';
   const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
-  return `₡${numericPrice.toLocaleString('es-CR')}`;
+  return `$${numericPrice.toLocaleString('en-US')}`;
 };
 
 // Helper function to format duration
@@ -50,23 +50,59 @@ export const hasCustomVariables = (appointment: any) => {
          Object.keys(appointment.custom_variable_selections).length > 0;
 };
 
+// Helper function to get service variants with quantities from custom variables
+export const getServiceVariantsWithQuantity = (appointment: any) => {
+  const customVariableSelections = appointment.custom_variable_selections;
+  if (!customVariableSelections) return [];
+
+  const variants = [];
+  
+  // Process custom variable selections to extract service variants and quantities
+  for (const [groupId, selections] of Object.entries(customVariableSelections)) {
+    if (typeof selections === 'object' && selections !== null) {
+      for (const [optionId, quantity] of Object.entries(selections)) {
+        if (typeof quantity === 'number' && quantity > 0) {
+          // Try to find the option name from the listing's custom variable groups
+          const listing = appointment.listings;
+          if (listing?.custom_variable_groups) {
+            const group = listing.custom_variable_groups.find((g: any) => g.id === groupId);
+            if (group?.variables) {
+              for (const variable of group.variables) {
+                const option = variable.options?.find((opt: any) => opt.id === optionId);
+                if (option) {
+                  variants.push({
+                    name: option.name,
+                    quantity: quantity,
+                    price: option.price || 0
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return variants;
+};
+
 // Helper function to format service details for display
 export const formatServiceDetails = (appointment: any) => {
   const price = getServicePrice(appointment);
   const duration = formatDuration(appointment.start_time, appointment.end_time);
   const formattedPrice = formatPrice(price);
   
-  const hasCustomVars = hasCustomVariables(appointment);
-  const isMultiUnit = duration.includes('h') && !duration.includes('1h');
+  const serviceVariants = getServiceVariantsWithQuantity(appointment);
   
-  let details = `${formattedPrice}`;
+  let details = `${formattedPrice} • ${duration}`;
   
-  if (isMultiUnit) {
-    details += ` • ${duration}`;
-  }
-  
-  if (hasCustomVars) {
-    details += ' • Personalizado';
+  // Add service variant details if available
+  if (serviceVariants.length > 0) {
+    const variantDetails = serviceVariants
+      .map(variant => `${variant.name} (${variant.quantity})`)
+      .join(', ');
+    details += ` • ${variantDetails}`;
   }
   
   return details;
