@@ -117,16 +117,13 @@ const slotsToDeleteByDate: Record<string, Set<string>> = {};
     
     const { error } = await supabase
       .from('provider_time_slots')
-      .upsert(slotsToCreate, {
-        onConflict: 'provider_id,listing_id,slot_datetime_start',
-        ignoreDuplicates: true
-      });
+      .insert(slotsToCreate);
     
     if (error) {
-      console.error('❌ Error en upsert de slots:', error);
+      console.error('❌ Error al crear slots faltantes:', error);
       throw error;
     } else {
-      console.log(`✅ ${slotsToCreate.length} slots procesados exitosamente (upsert)`);
+      console.log(`✅ ${slotsToCreate.length} slots creados exitosamente`);
     }
   } else {
     console.log('✅ Todos los slots ya existen');
