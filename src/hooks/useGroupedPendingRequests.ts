@@ -20,6 +20,12 @@ interface GroupedRequest {
   recurrence_label: string | null;
   appointment_count: number;
   appointment_ids: string[];
+  // Pricing and service details
+  listings?: any;
+  final_price?: number | null;
+  custom_variable_selections?: any;
+  custom_variables_total_price?: number | null;
+  service_title?: string;
 }
 
 export function useGroupedPendingRequests() {
@@ -41,7 +47,9 @@ export function useGroupedPendingRequests() {
               title,
               description,
               base_price,
-              duration
+              duration,
+              service_variants,
+              custom_variable_groups
             )
           `)
           .eq('provider_id', user.id)
@@ -124,6 +132,7 @@ export function useGroupedPendingRequests() {
                 : clientLocation,
               is_external: isExternal,
               service_name: appointment.listings?.title || 'Servicio',
+              service_title: appointment.listings?.title || 'Servicio',
               recurrence_label: 
                 appointment.recurrence === 'weekly' ? 'Semanal' :
                 appointment.recurrence === 'biweekly' ? 'Quincenal' :
@@ -169,7 +178,13 @@ export function useGroupedPendingRequests() {
               recurrence: app.recurrence,
               recurrence_label: app.recurrence_label,
               appointment_count: 1,
-              appointment_ids: [app.id]
+              appointment_ids: [app.id],
+              // Include listing data for pricing
+              listings: app.listings,
+              final_price: app.final_price,
+              custom_variable_selections: app.custom_variable_selections,
+              custom_variables_total_price: app.custom_variables_total_price,
+              service_title: app.service_title
             });
           }
         });

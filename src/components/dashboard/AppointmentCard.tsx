@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, MapPin, ExternalLink } from 'lucide-react';
+import { Clock, MapPin, ExternalLink, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import {
   getContactInfo, 
   getInitials 
 } from '@/utils/appointmentUtils';
+import { formatServiceDetails } from '@/utils/serviceDetailsFormatter';
 
 interface AppointmentCardProps {
   appointment: any;
@@ -33,6 +34,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const isExternal = appointment.is_external || appointment.external_booking;
   const contactInfo = getContactInfo(appointment);
   const locationInfo = getLocationInfo(appointment);
+  const serviceDetails = formatServiceDetails(appointment);
 
   console.log(`📍 DASHBOARD CARD: Rendering appointment ${appointment.id} with location:`, locationInfo);
   console.log(`📋 DASHBOARD CARD: Appointment data:`, {
@@ -68,6 +70,9 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
             </div>
             <p className="text-sm text-muted-foreground truncate">
               {serviceName}
+            </p>
+            <p className="text-xs text-primary font-medium truncate">
+              {serviceDetails}
             </p>
             {/* Show contact info for external bookings */}
             {contactInfo && (

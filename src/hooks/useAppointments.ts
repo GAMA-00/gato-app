@@ -34,7 +34,10 @@ export const useAppointments = () => {
             *,
             listings(
               title,
-              duration
+              duration,
+              base_price,
+              service_variants,
+              custom_variable_groups
             )
           `)
           .order('start_time', { ascending: true });

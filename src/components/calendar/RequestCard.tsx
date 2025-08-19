@@ -3,9 +3,10 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
-import { Clock, MapPin, ExternalLink } from 'lucide-react';
+import { Clock, MapPin, ExternalLink, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
+import { getServiceSummary } from '@/utils/serviceDetailsFormatter';
 import RequestActions from './RequestActions';
 
 interface RequestCardProps {
@@ -18,6 +19,7 @@ interface RequestCardProps {
 const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline, isLoading = false }) => {
   const isGroup = request.appointment_count > 1;
   const isExternal = request.is_external;
+  const { serviceName, details } = getServiceSummary(request);
 
   // Normalize and validate notes: show only if user actually wrote additional notes
   const normalizedNotes = typeof request.notes === 'string' ? request.notes.trim() : '';
@@ -67,7 +69,10 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {request.service_name}
+            {serviceName}
+          </div>
+          <div className="text-xs text-primary font-medium mt-1">
+            {details}
           </div>
           {/* Show contact info for external bookings */}
           {isExternal && (request.client_phone || request.client_email) && (
