@@ -85,6 +85,8 @@ export function useRecurringBooking() {
       // Usamos RPC atómica para crear la cita y reservar el slot en una sola transacción
       console.log('▶️ Invocando RPC create_appointment_with_slot (operación atómica)');
       console.log('🔄 Recurrencia detectada:', data.recurrenceType !== 'once' ? data.recurrenceType : 'Cita única');
+      console.log('📊 Múltiples unidades:', data.totalDuration ? `${data.totalDuration} min total` : 'Duración estándar');
+      console.log('🎯 Slots seleccionados:', data.selectedSlotIds?.length || 'N/A');
 
       // Preparar parámetros para la función RPC
       const rpcParams = {
@@ -99,7 +101,9 @@ export function useRecurringBooking() {
         p_client_email: data.clientEmail || null,
         p_client_phone: data.clientPhone || null,
         p_client_address: data.clientAddress || null,
-        p_residencia_id: null as string | null
+        p_residencia_id: null as string | null,
+        p_selected_slot_ids: data.selectedSlotIds || null,
+        p_total_duration: data.totalDuration || null
       };
 
       const { data: rpcResult, error: rpcError } = await supabase
