@@ -107,9 +107,11 @@ export const useProviderSlotManagement = ({
       // Verificar si faltan slots y regenerarlos si es necesario
       let finalTimeSlots = timeSlots;
       try {
+        // Forzar regeneración para garantizar consistencia con la configuración de disponibilidad
+        console.log('🔧 Ejecutando regeneración de slots para garantizar consistencia...');
         await ensureAllSlotsExist(providerId, listingId, baseDate, endDate, availability || [], timeSlots || []);
 
-        // Volver a consultar después de la posible regeneración
+        // Volver a consultar después de la regeneración
         const { data: refreshedSlots, error: finalSlotsError } = await supabase
           .from('provider_time_slots')
           .select('*')
@@ -121,17 +123,17 @@ export const useProviderSlotManagement = ({
 
         if (finalSlotsError) throw finalSlotsError;
         finalTimeSlots = refreshedSlots;
+        
+        console.log('📊 Slots después de regeneración:', {
+          totalSlots: finalTimeSlots?.length || 0,
+          disponibles: finalTimeSlots?.filter(s => s.is_available)?.length || 0,
+          bloqueados: finalTimeSlots?.filter(s => !s.is_available)?.length || 0
+        });
       } catch (regenerationError) {
         console.error('⚠️ Error en regeneración de slots, usando slots existentes:', regenerationError);
         // Usar slots existentes si la regeneración falla para mantener la UI funcional
         finalTimeSlots = timeSlots;
       }
-
-      console.log('📊 Slots finales después de regeneración:', {
-        totalSlots: finalTimeSlots?.length || 0,
-        disponibles: finalTimeSlots?.filter(s => s.is_available)?.length || 0,
-        bloqueados: finalTimeSlots?.filter(s => !s.is_available)?.length || 0
-      });
 
       // Process ALL slots
       const providerSlots: WeeklySlot[] = (finalTimeSlots || []).map(slot => {

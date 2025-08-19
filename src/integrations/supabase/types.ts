@@ -1340,6 +1340,10 @@ export type Database = {
         Args: { p_listing_id: string; p_provider_id: string }
         Returns: number
       }
+      fix_provider_slot_consistency: {
+        Args: { p_listing_id?: string; p_provider_id: string }
+        Returns: number
+      }
       fix_triweekly_blocked_slots: {
         Args: Record<PropertyKey, never>
         Returns: number
