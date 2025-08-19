@@ -205,7 +205,7 @@ export const useWeeklySlotsFetcher = ({
           slot_datetime_start: slotStart.toISOString(),
           slot_datetime_end: slotEnd.toISOString(),
         };
-          const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allConflicts);
+        const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allConflicts);
 
         // Datos para UI
         const slotDate = new Date(slotStart);
@@ -226,6 +226,84 @@ export const useWeeklySlotsFetcher = ({
           conflictReason: reason
         };
       });
+
+      // Fallback: generar slots a partir de la disponibilidad del listing para cubrir huecos
+      let enrichedSlots: WeeklySlot[] = weeklySlots;
+      try {
+        const listingAvailRes = await supabase
+          .from('listings')
+          .select('availability')
+          .eq('id', listingId)
+          .maybeSingle();
+
+        const availability = listingAvailRes.data?.availability;
+        if (availability) {
+          const existingKeys = new Set(enrichedSlots.map(s => `${format(s.date, 'yyyy-MM-dd')}-${s.time}`));
+          const additional: WeeklySlot[] = [];
+          const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+          for (let d = new Date(baseDate); d.getTime() <= endDate.getTime(); d = addDays(d, 1)) {
+            const dayKey = dayKeys[d.getDay()];
+            const dayCfg = availability[dayKey];
+            if (!dayCfg?.enabled || !Array.isArray(dayCfg.timeSlots)) continue;
+
+            for (const win of dayCfg.timeSlots) {
+              // Generar horas en pasos de serviceDuration
+              const genTimes: string[] = (() => {
+                const times: string[] = [];
+                const [sh, sm] = win.startTime.split(':').map(Number);
+                const [eh, em] = win.endTime.split(':').map(Number);
+                const startMin = (sh || 0) * 60 + (sm || 0);
+                const endMin = (eh || 0) * 60 + (em || 0);
+                for (let m = startMin; m + serviceDuration <= endMin; m += serviceDuration) {
+                  const hh = Math.floor(m / 60).toString().padStart(2, '0');
+                  const mm = (m % 60).toString().padStart(2, '0');
+                  times.push(`${hh}:${mm}`);
+                }
+                return times;
+              })();
+
+              for (const time of genTimes) {
+                const key = `${format(d, 'yyyy-MM-dd')}-${time}`;
+                if (existingKeys.has(key)) continue; // ya existe desde BD (incluye bloqueados manualmente)
+
+                const slotDate = new Date(d);
+                const [hh, mm] = time.split(':').map(n => parseInt(n, 10));
+                slotDate.setHours(hh, mm || 0, 0, 0);
+                const slotEnd = new Date(slotDate.getTime() + serviceDuration * 60_000);
+
+                const virtualForBlock = {
+                  is_available: true,
+                  slot_datetime_start: slotDate.toISOString(),
+                  slot_datetime_end: slotEnd.toISOString(),
+                } as any;
+                const { isBlocked, reason } = shouldBlockSlot(virtualForBlock, allConflicts);
+                const { time: displayTime, period } = formatTimeTo12Hour(time);
+
+                additional.push({
+                  id: key,
+                  date: new Date(slotDate),
+                  time,
+                  displayTime,
+                  period,
+                  isAvailable: !isBlocked,
+                  conflictReason: reason
+                });
+              }
+            }
+          }
+
+          if (additional.length > 0) {
+            enrichedSlots = [...enrichedSlots, ...additional];
+            console.log('🧩 Fallback de disponibilidad aplicado', {
+              agregados: additional.length,
+              total_resultado: enrichedSlots.length
+            });
+          }
+        }
+      } catch (e) {
+        console.log('ℹ️ No se pudo cargar disponibilidad del listing para fallback:', e);
+      }
 
       // Calcular recomendación basada en adyacencia respecto a TODAS las reservas (puntuales y recurrentes)
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
@@ -252,7 +330,7 @@ export const useWeeklySlotsFetcher = ({
       const slotStepByDate: Record<string, number> = {};
       const minutesByDate: Record<string, number[]> = {};
       // 1) Minutos de los slots configurados
-      for (const s of weeklySlots) {
+      for (const s of enrichedSlots) {
         const dateKey = format(s.date, 'yyyy-MM-dd');
         const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
         const min = (hh * 60) + (mm || 0);
@@ -279,7 +357,7 @@ export const useWeeklySlotsFetcher = ({
         slotStepByDate[dateKey] = step > 0 ? step : 60; // fallback a 60 min
       }
 
-      const weeklySlotsWithRec: WeeklySlot[] = weeklySlots.map(s => {
+      const weeklySlotsWithRec: WeeklySlot[] = enrichedSlots.map(s => {
         if (!s.isAvailable) return s;
         const dateKey = format(s.date, 'yyyy-MM-dd');
         const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
@@ -298,7 +376,7 @@ export const useWeeklySlotsFetcher = ({
 
       console.log('🔄 Resumen de filtrado:', {
         semana: weekIndex,
-        antesTemporal: weeklySlots.length,
+        antesTemporal: enrichedSlots.length,
         despuesTemporal: temporalFilteredSlots.length,
         despuesRecurrencia: finalSlots.length
       });
