@@ -99,9 +99,7 @@ export function useRecurringBooking() {
         p_client_email: data.clientEmail || null,
         p_client_phone: data.clientPhone || null,
         p_client_address: data.clientAddress || null,
-        p_residencia_id: null as string | null,
-        p_selected_slot_ids: data.selectedSlotIds || null,
-        p_total_duration: data.totalDuration || null
+        p_residencia_id: null as string | null
       };
 
       const { data: rpcResult, error: rpcError } = await supabase
