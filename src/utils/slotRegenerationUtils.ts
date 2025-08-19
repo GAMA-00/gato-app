@@ -47,47 +47,49 @@ export const ensureAllSlotsExist = async (
     if (dayAvailability.length > 0) {
       console.log(`📅 Verificando ${dateString} (día ${dayOfWeek}):`, dayAvailability.length, 'configuraciones');
       
-      for (const avail of dayAvailability) {
-        // Generar slots para este período de disponibilidad
-        const startTime = new Date(`1970-01-01T${avail.start_time}`);
-        const endTime = new Date(`1970-01-01T${avail.end_time}`);
-        
-        let currentSlotTime = startTime;
-        while (currentSlotTime < endTime) {
-          const timeString = format(currentSlotTime, 'HH:mm:ss');
+        for (const avail of dayAvailability) {
+          // Generar slots para este período de disponibilidad usando zona horaria de Costa Rica
+          const startTime = new Date(`1970-01-01T${avail.start_time}`);
+          const endTime = new Date(`1970-01-01T${avail.end_time}`);
           
-          // Verificar si este slot ya existe
-          const existingSlot = existingSlots.find(slot => 
-            slot.slot_date === dateString && 
-            slot.start_time === timeString
-          );
-          
-          if (!existingSlot) {
-            // Crear el slot faltante
-            const slotStartDateTime = new Date(currentDate);
-            slotStartDateTime.setHours(currentSlotTime.getHours(), currentSlotTime.getMinutes(), 0, 0);
+          let currentSlotTime = startTime;
+          while (currentSlotTime < endTime) {
+            const timeString = format(currentSlotTime, 'HH:mm:ss');
             
-            const slotEndDateTime = addMinutes(slotStartDateTime, serviceDuration);
+            // Verificar si este slot ya existe
+            const existingSlot = existingSlots.find(slot => 
+              slot.slot_date === dateString && 
+              slot.start_time === timeString
+            );
             
-            slotsToCreate.push({
-              provider_id: providerId,
-              listing_id: listingId,
-              slot_date: dateString,
-              start_time: timeString,
-              end_time: format(slotEndDateTime, 'HH:mm:ss'),
-              slot_datetime_start: slotStartDateTime.toISOString(),
-              slot_datetime_end: slotEndDateTime.toISOString(),
-              is_available: true,
-              is_reserved: false,
-              slot_type: 'generated'
-            });
+            if (!existingSlot) {
+              // Crear el slot faltante con zona horaria de Costa Rica
+              const localDate = new Date(currentDate);
+              localDate.setHours(currentSlotTime.getHours(), currentSlotTime.getMinutes(), 0, 0);
+              
+              // Crear datetime con zona horaria de Costa Rica
+              const slotStartDateTime = new Date(`${dateString}T${timeString}`);
+              const slotEndDateTime = addMinutes(slotStartDateTime, serviceDuration);
+              
+              slotsToCreate.push({
+                provider_id: providerId,
+                listing_id: listingId,
+                slot_date: dateString,
+                start_time: timeString,
+                end_time: format(slotEndDateTime, 'HH:mm:ss'),
+                slot_datetime_start: slotStartDateTime.toISOString(),
+                slot_datetime_end: slotEndDateTime.toISOString(),
+                is_available: true,
+                is_reserved: false,
+                slot_type: 'generated'
+              });
+              
+              console.log(`✨ Slot faltante: ${dateString} ${timeString}`);
+            }
             
-            console.log(`✨ Slot faltante: ${dateString} ${timeString}`);
+            // Avanzar al siguiente slot
+            currentSlotTime = addMinutes(currentSlotTime, serviceDuration);
           }
-          
-          // Avanzar al siguiente slot
-          currentSlotTime = addMinutes(currentSlotTime, serviceDuration);
-        }
       }
     }
     
