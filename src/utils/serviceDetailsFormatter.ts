@@ -33,7 +33,7 @@ export const getServicePrice = (appointment: any) => {
     return appointment.final_price;
   }
   
-  if (appointment.custom_variables_total_price !== null && appointment.custom_variables_total_price !== undefined) {
+  if (appointment.custom_variables_total_price && appointment.custom_variables_total_price > 0) {
     return appointment.custom_variables_total_price;
   }
   
@@ -48,6 +48,34 @@ export const getServicePrice = (appointment: any) => {
 export const hasCustomVariables = (appointment: any) => {
   return appointment.custom_variable_selections && 
          Object.keys(appointment.custom_variable_selections).length > 0;
+};
+
+// Helper function to get selected service variant
+export const getSelectedServiceVariant = (appointment: any) => {
+  // Check if there are service variants in the listing
+  const listing = appointment.listings;
+  if (!listing?.service_variants) return null;
+
+  try {
+    const variants = typeof listing.service_variants === 'string' 
+      ? JSON.parse(listing.service_variants) 
+      : listing.service_variants;
+
+    // For now, since we don't have variant selection info in the appointment,
+    // we'll assume the base variant was selected (first one or base_price match)
+    const selectedVariant = variants.find((v: any) => 
+      parseFloat(v.price) === listing.base_price
+    ) || variants[0];
+
+    return selectedVariant ? {
+      name: selectedVariant.name,
+      price: parseFloat(selectedVariant.price),
+      quantity: 1
+    } : null;
+  } catch (error) {
+    console.error('Error parsing service variants:', error);
+    return null;
+  }
 };
 
 // Helper function to get service variants with quantities from custom variables
@@ -94,15 +122,20 @@ export const formatServiceDetails = (appointment: any) => {
   const formattedPrice = formatPrice(price);
   
   const serviceVariants = getServiceVariantsWithQuantity(appointment);
+  const selectedVariant = getSelectedServiceVariant(appointment);
   
   let details = `${formattedPrice} • ${duration}`;
   
-  // Add service variant details if available
+  // Add service variant details if available (custom variables)
   if (serviceVariants.length > 0) {
     const variantDetails = serviceVariants
       .map(variant => `${variant.name} (${variant.quantity})`)
       .join(', ');
     details += ` • ${variantDetails}`;
+  }
+  // Otherwise, add selected service variant (base service type)
+  else if (selectedVariant) {
+    details += ` • ${selectedVariant.name} (${selectedVariant.quantity})`;
   }
   
   return details;
