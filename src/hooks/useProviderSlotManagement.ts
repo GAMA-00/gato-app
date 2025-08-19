@@ -109,7 +109,7 @@ export const useProviderSlotManagement = ({
       try {
         // Forzar regeneración para garantizar consistencia con la configuración de disponibilidad
         console.log('🔧 Ejecutando regeneración de slots para garantizar consistencia...');
-        await ensureAllSlotsExist(providerId, listingId, baseDate, endDate, availability || [], timeSlots || []);
+        await ensureAllSlotsExist(providerId, listingId, baseDate, endDate, availability || [], timeSlots || [], serviceDuration);
 
         // Volver a consultar después de la regeneración
         const { data: refreshedSlots, error: finalSlotsError } = await supabase
