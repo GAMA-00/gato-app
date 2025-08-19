@@ -28,7 +28,7 @@ export const formatDuration = (start: string, end: string) => {
 
 // Helper function to get total appointment price (sum of all services)
 export const getTotalAppointmentPrice = (appointment: any) => {
-  // Priority order: final_price -> sum of custom variables -> selected service variant price -> base_price
+  // Priority order: final_price -> sum of custom variables -> sum of selected service variants -> base_price
   if (appointment.final_price !== null && appointment.final_price !== undefined) {
     return appointment.final_price;
   }
@@ -36,6 +36,14 @@ export const getTotalAppointmentPrice = (appointment: any) => {
   // Sum custom variables if they exist
   if (appointment.custom_variables_total_price && appointment.custom_variables_total_price > 0) {
     return appointment.custom_variables_total_price;
+  }
+  
+  // Sum all custom variable selections
+  const customVariants = getServiceVariantsWithQuantity(appointment);
+  if (customVariants.length > 0) {
+    return customVariants.reduce((total, variant) => {
+      return total + (variant.price * variant.quantity);
+    }, 0);
   }
   
   // Get selected service variant price or fall back to base price
@@ -143,19 +151,25 @@ export const getTotalDuration = (appointment: any) => {
   return Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
 };
 
-// Helper function to get service breakdown
-export const getServiceBreakdown = (appointment: any) => {
+// Helper function to get all services breakdown (custom variables + selected variant)
+export const getAllServicesBreakdown = (appointment: any) => {
+  const services = [];
+  
+  // Add custom variable services
   const customVariants = getServiceVariantsWithQuantity(appointment);
-  if (customVariants.length > 0) {
-    return customVariants.map(variant => `${variant.name} (${variant.quantity})`);
+  customVariants.forEach(variant => {
+    services.push(`${variant.name} (${variant.quantity})`);
+  });
+  
+  // Add selected service variant if no custom variables
+  if (customVariants.length === 0) {
+    const selectedVariant = getSelectedServiceVariant(appointment);
+    if (selectedVariant) {
+      services.push(`${selectedVariant.name} (${selectedVariant.quantity})`);
+    }
   }
   
-  const selectedVariant = getSelectedServiceVariant(appointment);
-  if (selectedVariant) {
-    return [`${selectedVariant.name} (${selectedVariant.quantity})`];
-  }
-  
-  return [];
+  return services;
 };
 
 // Helper function to format service details for display
@@ -167,13 +181,13 @@ export const formatServiceDetails = (appointment: any) => {
     ? `${Math.floor(totalDuration / 60)}h${totalDuration % 60 > 0 ? ` ${totalDuration % 60}m` : ''}`
     : `${totalDuration}m`;
   
-  const serviceBreakdown = getServiceBreakdown(appointment);
+  const allServices = getAllServicesBreakdown(appointment);
   
   let details = `${formattedPrice} • ${formattedDuration}`;
   
-  // Add service breakdown
-  if (serviceBreakdown.length > 0) {
-    details += ` • ${serviceBreakdown.join(' • ')}`;
+  // Add all services breakdown separated by bullets
+  if (allServices.length > 0) {
+    details += ` • ${allServices.join(' • ')}`;
   }
   
   return details;
