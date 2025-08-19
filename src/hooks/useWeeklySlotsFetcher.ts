@@ -153,11 +153,27 @@ export const useWeeklySlotsFetcher = ({
         }
       }
       const mergedSlots = Array.from(byId.values());
+      
+      // Validar filtros de rango de fecha
+      const validRangeSlots = mergedSlots.filter(slot => {
+        const slotDateStr = slot.slot_date;
+        if (!slotDateStr) return true; // Slots sin fecha pasan la validación
+        
+        const slotDate = new Date(slotDateStr + 'T00:00:00');
+        const isInRange = slotDate >= baseDate && slotDate <= endDate;
+        
+        if (!isInRange) {
+          console.log(`🔍 Slot fuera de rango filtrado: ${slotDateStr} (rango: ${format(baseDate, 'yyyy-MM-dd')} - ${format(endDate, 'yyyy-MM-dd')})`);
+        }
+        
+        return isInRange;
+      });
 
       console.log('📊 Fusión de slots:', {
         totalDatetime: timeSlotsDt.length,
         totalLegacy: timeSlotsLegacy.length,
         mergedUnicos: mergedSlots.length,
+        validRangeSlots: validRangeSlots.length,
         rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') }
       });
 
@@ -182,7 +198,7 @@ export const useWeeklySlotsFetcher = ({
       const allConflicts = [...allAppointments, ...generatedInstances];
 
       // Procesar slots con manejo correcto de TZ y compatibilidad legacy
-      const weeklySlots: WeeklySlot[] = mergedSlots.map(slot => {
+      const weeklySlots: WeeklySlot[] = validRangeSlots.map(slot => {
         // Calcular inicio/fin
         let slotStart: Date;
         let slotEnd: Date;
@@ -214,7 +230,16 @@ export const useWeeklySlotsFetcher = ({
         const time24 = `${hh}:${mm}`;
         const { time: displayTime, period } = formatTimeTo12Hour(time24);
 
-        console.log(`Slot procesado: ${format(slotDate, 'yyyy-MM-dd')} ${time24} -> ${displayTime} ${period} (disp: ${!isBlocked})`);
+        // Solo mostrar slots que no están bloqueados manualmente, excepto si es un bloqueo manual específico
+        const isManuallyBlocked = !slot.is_available && slot.slot_type !== 'reserved';
+        const shouldShow = slot.is_available || !isManuallyBlocked;
+
+        if (!shouldShow) {
+          console.log(`🚫 Slot bloqueado manualmente ocultado: ${format(slotDate, 'yyyy-MM-dd')} ${time24}`);
+          return null;
+        }
+
+        console.log(`✅ Slot procesado: ${format(slotDate, 'yyyy-MM-dd')} ${time24} -> ${displayTime} ${period} (disp: ${!isBlocked})`);
 
         return {
           id: slot.id,
@@ -225,7 +250,7 @@ export const useWeeklySlotsFetcher = ({
           isAvailable: !isBlocked,
           conflictReason: reason
         };
-      });
+      }).filter(Boolean) as WeeklySlot[]; // Filtrar slots nulos (bloqueados manualmente)
 
       // Fallback: generar slots a partir de la disponibilidad del listing para cubrir huecos
       let enrichedSlots: WeeklySlot[] = weeklySlots;

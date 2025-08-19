@@ -28,6 +28,10 @@ export const useProviderSlotManagement = ({
   // Stable cache for request deduplication
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastParamsRef = useRef<string>('');
+  
+  // Real-time subscription management
+  const subscriptionRef = useRef<any>(null);
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch ALL slots (available and blocked) for provider management
   const fetchSlots = useCallback(async () => {
@@ -101,19 +105,27 @@ export const useProviderSlotManagement = ({
       });
 
       // Verificar si faltan slots y regenerarlos si es necesario
-      await ensureAllSlotsExist(providerId, listingId, baseDate, endDate, availability || [], timeSlots || []);
+      let finalTimeSlots = timeSlots;
+      try {
+        await ensureAllSlotsExist(providerId, listingId, baseDate, endDate, availability || [], timeSlots || []);
 
-      // Volver a consultar después de la posible regeneración
-      const { data: finalTimeSlots, error: finalSlotsError } = await supabase
-        .from('provider_time_slots')
-        .select('*')
-        .eq('provider_id', providerId)
-        .eq('listing_id', listingId)
-        .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
-        .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
-        .order('slot_datetime_start');
+        // Volver a consultar después de la posible regeneración
+        const { data: refreshedSlots, error: finalSlotsError } = await supabase
+          .from('provider_time_slots')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+          .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+          .order('slot_datetime_start');
 
-      if (finalSlotsError) throw finalSlotsError;
+        if (finalSlotsError) throw finalSlotsError;
+        finalTimeSlots = refreshedSlots;
+      } catch (regenerationError) {
+        console.error('⚠️ Error en regeneración de slots, usando slots existentes:', regenerationError);
+        // Usar slots existentes si la regeneración falla para mantener la UI funcional
+        finalTimeSlots = timeSlots;
+      }
 
       console.log('📊 Slots finales después de regeneración:', {
         totalSlots: finalTimeSlots?.length || 0,
@@ -122,7 +134,7 @@ export const useProviderSlotManagement = ({
       });
 
       // Process ALL slots
-      const providerSlots: WeeklySlot[] = finalTimeSlots?.map(slot => {
+      const providerSlots: WeeklySlot[] = (finalTimeSlots || []).map(slot => {
         const slotStart = new Date(slot.slot_datetime_start);
         const slotDate = new Date(slotStart);
 
@@ -137,7 +149,7 @@ export const useProviderSlotManagement = ({
           isAvailable: slot.is_available,
           conflictReason: slot.is_available ? undefined : 'Bloqueado manualmente'
         };
-      }) || [];
+      });
       
       setSlots(providerSlots);
       setLastUpdated(new Date());
@@ -149,6 +161,20 @@ export const useProviderSlotManagement = ({
       setIsLoading(false);
     }
   }, [providerId, listingId, serviceDuration, startDate, daysAhead]);
+
+  // Create a stable refresh function
+  const refreshSlots = useCallback(() => {
+    console.log('ProviderSlotManagement: Forzando actualización manual');
+    lastParamsRef.current = ''; // Clear cache to force refresh
+    
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Trigger immediate fetch
+    fetchSlots();
+  }, [fetchSlots]);
 
   // Auto-fetch slots when parameters change
   useEffect(() => {
@@ -167,19 +193,64 @@ export const useProviderSlotManagement = ({
     }
   }, [providerId, listingId, serviceDuration, startDate?.getTime(), fetchSlots]);
 
-  // Create a stable refresh function
-  const refreshSlots = useCallback(() => {
-    console.log('ProviderSlotManagement: Forzando actualización manual');
-    lastParamsRef.current = ''; // Clear cache to force refresh
+  // Real-time subscription for slot changes
+  useEffect(() => {
+    if (!providerId || !listingId) return;
+
+    console.log('🔗 Configurando suscripción en tiempo real para slots del proveedor');
     
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    // Cleanup previous subscription
+    if (subscriptionRef.current) {
+      console.log('🧹 Limpiando suscripción previa');
+      supabase.removeChannel(subscriptionRef.current);
     }
-    
-    // Trigger immediate fetch
-    fetchSlots();
-  }, [fetchSlots]);
+
+    // Debounced refresh function to avoid too many calls
+    const debouncedRefresh = () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        console.log('🔄 Actualizando slots por cambio en tiempo real');
+        refreshSlots();
+      }, 500);
+    };
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel(`provider-slots-${providerId}-${listingId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'provider_time_slots',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          console.log('📡 Cambio detectado en provider_time_slots:', payload);
+          // Only refresh if it's for our listing
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
+            debouncedRefresh();
+          }
+        }
+      )
+      .subscribe();
+
+    subscriptionRef.current = channel;
+
+    return () => {
+      console.log('🧹 Limpiando suscripción en tiempo real');
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+      }
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [providerId, listingId, refreshSlots]);
 
   return {
     slots,

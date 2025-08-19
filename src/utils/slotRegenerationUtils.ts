@@ -96,19 +96,22 @@ export const ensureAllSlotsExist = async (
     if (currentDate > endDateTime) break;
   }
   
-  // Insertar slots faltantes si los hay
+  // Insertar slots faltantes si los hay usando upsert para evitar errores de duplicados
   if (slotsToCreate.length > 0) {
-    console.log(`🚀 Creando ${slotsToCreate.length} slots faltantes...`);
+    console.log(`🚀 Creando ${slotsToCreate.length} slots faltantes con upsert...`);
     
     const { error } = await supabase
       .from('provider_time_slots')
-      .insert(slotsToCreate);
+      .upsert(slotsToCreate, {
+        onConflict: 'provider_id,listing_id,slot_datetime_start',
+        ignoreDuplicates: true
+      });
     
     if (error) {
-      console.error('❌ Error creando slots:', error);
+      console.error('❌ Error en upsert de slots:', error);
       throw error;
     } else {
-      console.log(`✅ ${slotsToCreate.length} slots creados exitosamente`);
+      console.log(`✅ ${slotsToCreate.length} slots procesados exitosamente (upsert)`);
     }
   } else {
     console.log('✅ Todos los slots ya existen');
