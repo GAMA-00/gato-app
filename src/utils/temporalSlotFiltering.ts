@@ -102,7 +102,7 @@ export const getWeekContextMessage = (
     if (!hasSlots) {
       return 'No hay más horarios disponibles esta semana';
     }
-    return `${totalAvailableSlots} horarios disponibles desde ahora`;
+    return '';
   } else {
     if (!hasSlots) {
       return `No hay horarios disponibles en la semana ${weekIndex + 1}`;

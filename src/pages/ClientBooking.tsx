@@ -275,7 +275,7 @@ const ClientBooking = () => {
     switch (frequency) {
       case 'weekly': return 'semanal';
       case 'biweekly': return 'quincenal';
-      case 'triweekly': return 'trisemanal';
+      case 'triweekly': return 'cada 3 semanas';
       case 'monthly': return 'mensual';
       default: return 'una vez';
     }

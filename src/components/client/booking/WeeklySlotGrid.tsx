@@ -265,9 +265,6 @@ const WeeklySlotGrid = ({
                   )}
                 </div>
               )}
-              <span className="block text-xs text-muted-foreground mt-1">
-                Mostramos todos los horarios disponibles; validaremos la recurrencia al confirmar la reserva.
-              </span>
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
               {stats.availableSlots} horarios disponibles

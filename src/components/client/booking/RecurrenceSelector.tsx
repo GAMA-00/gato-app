@@ -46,7 +46,7 @@ const RecurrenceSelector = ({
                 </div>
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="triweekly" id="triweekly" />
-                  <Label htmlFor="triweekly" className="cursor-pointer">Trisemanal</Label>
+                  <Label htmlFor="triweekly" className="cursor-pointer">Cada 3 semanas</Label>
                 </div>
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="monthly" id="monthly" />
