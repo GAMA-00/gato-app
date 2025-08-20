@@ -115,15 +115,25 @@ const slotsToDeleteByDate: Record<string, Set<string>> = {};
   if (slotsToCreate.length > 0) {
     console.log(`🚀 Creando ${slotsToCreate.length} slots faltantes con upsert...`);
     
+    // Normalizar formato de tiempo a HH:mm:ss antes de insertar
+    const normalizedSlots = slotsToCreate.map(slot => ({
+      ...slot,
+      start_time: slot.start_time.padEnd(8, ':00').substring(0, 8),
+      end_time: slot.end_time.padEnd(8, ':00').substring(0, 8)
+    }));
+    
     const { error } = await supabase
       .from('provider_time_slots')
-      .insert(slotsToCreate);
+      .upsert(normalizedSlots, {
+        onConflict: 'provider_id,listing_id,slot_datetime_start',
+        ignoreDuplicates: true
+      });
     
     if (error) {
-      console.error('❌ Error al crear slots faltantes:', error);
+      console.error('❌ Error en upsert de slots:', error);
       throw error;
     } else {
-      console.log(`✅ ${slotsToCreate.length} slots creados exitosamente`);
+      console.log(`✅ ${normalizedSlots.length} slots procesados exitosamente (upsert)`);
     }
   } else {
     console.log('✅ Todos los slots ya existen');

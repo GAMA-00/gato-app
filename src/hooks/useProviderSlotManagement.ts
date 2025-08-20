@@ -142,6 +142,20 @@ export const useProviderSlotManagement = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
+        // Determinar el motivo del bloqueo de manera más precisa
+        let conflictReason: string | undefined;
+        if (!slot.is_available) {
+          if (slot.is_reserved && slot.slot_type === 'reserved') {
+            conflictReason = 'Reservado por cliente';
+          } else if (slot.slot_type === 'manually_blocked') {
+            conflictReason = 'Bloqueado manualmente';
+          } else if (slot.recurring_blocked) {
+            conflictReason = 'Bloqueado por cita recurrente';
+          } else {
+            conflictReason = 'No disponible';
+          }
+        }
+
         return {
           id: slot.id,
           date: slotDate,
@@ -149,7 +163,7 @@ export const useProviderSlotManagement = ({
           displayTime,
           period,
           isAvailable: slot.is_available,
-          conflictReason: slot.is_available ? undefined : 'Bloqueado manualmente'
+          conflictReason
         };
       });
       
