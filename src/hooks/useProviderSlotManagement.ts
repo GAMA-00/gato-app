@@ -135,8 +135,48 @@ export const useProviderSlotManagement = ({
         finalTimeSlots = timeSlots;
       }
 
-      // Process ALL slots
-      const providerSlots: WeeklySlot[] = (finalTimeSlots || []).map(slot => {
+      // Ensure UI shows ALL configured slots. Merge DB slots with expected slots from provider_availability.
+      let uiSlots = finalTimeSlots || [];
+      try {
+        const current = new Date(baseDate);
+        const endD = new Date(endDate);
+        endD.setHours(23,59,59,999);
+        while (current <= endD) {
+          const dow = current.getDay();
+          const dateStr = format(current, 'yyyy-MM-dd');
+          const dayAvail = (availability || []).filter((av: any) => av.day_of_week === dow && av.is_active);
+          for (const av of dayAvail) {
+            let t = new Date(`1970-01-01T${av.start_time}`);
+            const e = new Date(`1970-01-01T${av.end_time}`);
+            while (t < e) {
+              const timeStr = format(t, 'HH:mm:ss');
+              const exists = uiSlots?.some((s: any) => s.slot_date === dateStr && s.start_time === timeStr);
+              if (!exists) {
+                uiSlots.push({
+                  id: `virtual-${dateStr}-${timeStr}`,
+                  provider_id: providerId,
+                  listing_id: listingId,
+                  slot_date: dateStr,
+                  start_time: timeStr,
+                  end_time: timeStr,
+                  slot_datetime_start: new Date(`${dateStr}T${timeStr}`).toISOString(),
+                  slot_datetime_end: new Date(new Date(`${dateStr}T${timeStr}`).getTime() + serviceDuration*60000).toISOString(),
+                  is_available: true,
+                  is_reserved: false,
+                  slot_type: 'generated'
+                } as any);
+              }
+              t = new Date(t.getTime() + serviceDuration * 60000);
+            }
+          }
+          current.setDate(current.getDate() + 1);
+        }
+      } catch (e) {
+        console.warn('⚠️ UI slot completion failed:', e);
+      }
+
+      // Process ALL slots (DB + virtual)
+      const providerSlots: WeeklySlot[] = (uiSlots || []).map((slot: any) => {
         const slotStart = new Date(slot.slot_datetime_start);
         const slotDate = new Date(slotStart);
 
@@ -157,7 +197,7 @@ export const useProviderSlotManagement = ({
         }
 
         return {
-          id: slot.id,
+          id: slot.id || `virtual-${format(slotDate, 'yyyy-MM-dd')}-${slot.start_time}`,
           date: slotDate,
           time: slot.start_time,
           displayTime,
