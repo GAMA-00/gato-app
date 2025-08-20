@@ -28,7 +28,7 @@ const RecurrenceSelector = ({
         <div className="space-y-4">
           <div>
             <Label className="text-base font-medium mb-3 block">
-              ¿Con qué frecuencia necesitas este servicio?
+              Reserve su campo fijo
             </Label>
             <RadioGroup value={selectedFrequency} onValueChange={onFrequencyChange}>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
