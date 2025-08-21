@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,11 +12,11 @@ import { Plus } from 'lucide-react';
 import { useServiceMutations } from '@/hooks/useServiceMutations';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Services = () => {
   const navigate = useNavigate();
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createListingMutation } = useServiceMutations();
@@ -43,7 +44,30 @@ const Services = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Map database result to Service interface
+      const mappedServices: Service[] = (data || []).map(listing => ({
+        id: listing.id,
+        name: listing.title, // Map title to name
+        subcategoryId: listing.service_type_id,
+        category: listing.service_types.service_categories.name,
+        duration: listing.standard_duration || listing.duration, // Use standard_duration as primary
+        price: Number(listing.base_price), // Map base_price to price
+        description: listing.description,
+        createdAt: new Date(listing.created_at), // Map and convert to Date
+        residenciaIds: [], // Will be populated separately if needed
+        providerId: listing.provider_id,
+        providerName: user?.name || '', // Use current user name
+        galleryImages: listing.gallery_images ? (Array.isArray(listing.gallery_images) ? listing.gallery_images as string[] : []) : [],
+        serviceVariants: listing.service_variants || [],
+        availability: listing.availability || {},
+        isPostPayment: listing.is_post_payment,
+        customVariableGroups: listing.custom_variable_groups || [],
+        useCustomVariables: listing.use_custom_variables || false,
+        slotPreferences: listing.slot_preferences || {},
+      }));
+      
+      return mappedServices;
     },
     enabled: !!user?.id,
   });
