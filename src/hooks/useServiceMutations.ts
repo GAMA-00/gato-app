@@ -33,6 +33,12 @@ export const useServiceMutations = () => {
       console.log('=== CREATING LISTING ===');
       console.log('Service data:', serviceData);
 
+      // Convert galleryImages to strings only
+      const processedGalleryImages = serviceData.galleryImages ? 
+        serviceData.galleryImages
+          .map(img => typeof img === 'string' ? img : '')
+          .filter(url => url !== '') : [];
+
       const listingData: CreateListingData = {
         title: serviceData.name!,
         description: serviceData.description!,
@@ -43,7 +49,7 @@ export const useServiceMutations = () => {
         provider_id: serviceData.providerId!,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         service_variants: serviceData.serviceVariants || [],
-        gallery_images: serviceData.galleryImages || [],
+        gallery_images: processedGalleryImages,
         custom_variable_groups: serviceData.customVariableGroups || [],
         use_custom_variables: serviceData.useCustomVariables || false,
         availability: serviceData.availability || {},
@@ -104,6 +110,12 @@ export const useServiceMutations = () => {
       console.log('=== UPDATING LISTING ===');
       console.log('Service data:', serviceData);
 
+      // Convert galleryImages to strings only
+      const processedGalleryImages = serviceData.galleryImages ? 
+        serviceData.galleryImages
+          .map(img => typeof img === 'string' ? img : '')
+          .filter(url => url !== '') : undefined;
+
       const listingData: Partial<CreateListingData> = {
         title: serviceData.name,
         description: serviceData.description,
@@ -113,7 +125,7 @@ export const useServiceMutations = () => {
         service_type_id: serviceData.subcategoryId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         service_variants: serviceData.serviceVariants,
-        gallery_images: serviceData.galleryImages,
+        gallery_images: processedGalleryImages,
         custom_variable_groups: serviceData.customVariableGroups,
         use_custom_variables: serviceData.useCustomVariables,
         availability: serviceData.availability,

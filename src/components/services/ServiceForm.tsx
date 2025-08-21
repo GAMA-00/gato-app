@@ -88,6 +88,19 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       console.log('=== SERVICEFORM: Precargando datos ===');
       console.log('Initial data:', initialData);
       
+      // Convert galleryImages from File[] | string[] to string[] for the form
+      const processedGalleryImages = initialData.galleryImages ? 
+        initialData.galleryImages.map(img => {
+          if (typeof img === 'string') {
+            return img;
+          } else if (img instanceof File) {
+            // For File objects, we'd need to convert to URL or handle differently
+            // For now, we'll skip File objects in edit mode since they should be URLs from DB
+            return '';
+          }
+          return '';
+        }).filter(url => url !== '') : [];
+      
       const formValues = {
         name: initialData.name || '',
         subcategoryId: initialData.subcategoryId || '',
@@ -99,7 +112,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           ? initialData.serviceVariants 
           : [{ id: uuidv4(), name: initialData.name || '', price: initialData.price || '', duration: initialData.duration || 60 }],
         residenciaIds: initialData.residenciaIds || [],
-        galleryImages: initialData.galleryImages || [],
+        galleryImages: processedGalleryImages,
         customVariableGroups: initialData.customVariableGroups || [],
         useCustomVariables: initialData.useCustomVariables || false,
         availability: initialData.availability || {

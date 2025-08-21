@@ -1,101 +1,123 @@
-
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import Navbar from '@/components/layout/Navbar';
+import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
-import { useListings } from '@/hooks/useListings';
-import { useServiceMutations } from '@/hooks/useServiceMutations';
-import { Skeleton } from '@/components/ui/skeleton';
+import ServiceForm from '@/components/services/ServiceForm';
+import { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import PageLayout from '@/components/layout/PageLayout';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Service } from '@/lib/types';
+import { useServiceMutations } from '@/hooks/useServiceMutations';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const Services = () => {
-  const { listings, isLoading } = useListings();
-  const { deleteListingMutation } = useServiceMutations();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const { user } = useAuthContext();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createListingMutation } = useServiceMutations();
 
-  const handleEditService = (service: Service) => {
-    navigate(`/services/edit/${service.id}`);
+  const { data: services, isLoading, error } = useQuery({
+    queryKey: ['listings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('listings')
+        .select(`
+          *,
+          service_types!inner(
+            id,
+            name,
+            service_categories!inner(
+              id,
+              name,
+              label
+            )
+          )
+        `)
+        .eq('provider_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const handleEdit = (serviceId: string) => {
+    navigate(`/services/edit/${serviceId}`);
   };
 
-  const handleDeleteService = (service: Service) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar "${service.name}"?`)) {
-      deleteListingMutation.mutate(service, {
+  const handleCreateService = (data: Partial<Service>) => {
+    setIsSubmitting(true);
+    createListingMutation.mutate(
+      { ...data, providerId: user?.id, providerName: user?.name },
+      {
         onSuccess: () => {
-          toast.success('Anuncio eliminado exitosamente');
+          setIsFormOpen(false);
+          toast.success('Anuncio creado exitosamente');
+          setIsSubmitting(false);
         },
         onError: (error) => {
-          toast.error('Error al eliminar el anuncio');
-          console.error('Delete error:', error);
-        }
-      });
-    }
-  };
-
-  const handleCreateService = () => {
-    if (listings.length > 0) {
-      toast.error('Ya tienes un anuncio creado. Solo puedes tener uno por cuenta.');
-      return;
-    }
-    navigate('/services/create');
-  };
-
-  if (isLoading) {
-    return (
-      <PageLayout title="Mis Servicios" contentClassName="max-w-4xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 justify-items-center">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-64 w-full max-w-sm rounded-lg" />
-          ))}
-        </div>
-      </PageLayout>
+          console.error('Error creating service:', error);
+          toast.error('Error al crear el anuncio');
+          setIsSubmitting(false);
+        },
+      }
     );
-  }
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+  };
 
   return (
-    <PageLayout title={listings.length > 0 ? "Mi Anuncio" : "Mis Servicios"} contentClassName="max-w-4xl">
-      {/* Solo mostrar botón crear si no hay anuncios */}
-      {listings.length === 0 && (
-        <div className="mb-8 flex justify-center md:justify-start">
-          <Button 
-            onClick={handleCreateService}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Crear mi anuncio
+    <>
+      <Navbar />
+      <PageContainer title="Mis Anuncios">
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setIsFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Crear Anuncio
           </Button>
         </div>
-      )}
 
-      {/* Mostrar el único anuncio del proveedor */}
-      {listings.length > 0 && (
-        <div className="flex justify-center">
-          <div className="w-full max-w-sm">
-            <ServiceCard 
-              service={listings[0]} 
-              onEdit={handleEditService}
-              onDelete={handleDeleteService}
-            />
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[200px]">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
           </div>
-        </div>
-      )}
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-500">Error al cargar los anuncios.</p>
+          </div>
+        ) : services && services.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {services.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                onEdit={() => handleEdit(service.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No tienes anuncios creados.</p>
+          </div>
+        )}
 
-      {/* Mensaje cuando no hay servicios */}
-      {listings.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">
-            Aún no tienes tu anuncio creado
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Cada proveedor puede tener un solo anuncio con todas sus variantes de servicio.
-          </p>
-        </div>
-      )}
-    </PageLayout>
+        <ServiceForm
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          onSubmit={handleCreateService}
+          isSubmitting={isSubmitting}
+        />
+      </PageContainer>
+    </>
   );
 };
 
