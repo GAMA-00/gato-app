@@ -1,12 +1,6 @@
 import { format, addMinutes } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-
-interface ProviderAvailability {
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
-  is_active: boolean;
-}
+import { generateAvailabilitySlots, ProviderAvailability } from './availabilitySlotGenerator';
 
 interface TimeSlot {
   slot_date: string;
@@ -46,54 +40,30 @@ const slotsToDeleteByDate: Record<string, Set<string>> = {};
     if (dayAvailability.length > 0) {
       console.log(`📅 Verificando ${dateString} (día ${dayOfWeek}):`, dayAvailability.length, 'configuraciones');
 
-      // Conjunto de horas permitidas para este día según disponibilidad
+      // Use centralized slot generation with "full fit" validation
+      const daySlots = generateAvailabilitySlots(
+        providerId,
+        listingId,
+        currentDate,
+        dayAvailability,
+        serviceDuration
+      );
+
+      // Track allowed times for cleanup logic
       const allowedTimes = new Set<string>();
       
-      for (const avail of dayAvailability) {
-        // Generar slots para este período de disponibilidad
-        const startTime = new Date(`1970-01-01T${avail.start_time}`);
-        const endTime = new Date(`1970-01-01T${avail.end_time}`);
+      for (const generatedSlot of daySlots) {
+        allowedTimes.add(generatedSlot.start_time);
         
-        let currentSlotTime = startTime;
-        while (currentSlotTime < endTime) {
-          const timeString = format(currentSlotTime, 'HH:mm:ss');
-          allowedTimes.add(timeString);
-          
-          // Verificar si este slot ya existe
-          const existingSlot = existingSlots.find(slot => 
-            slot.slot_date === dateString && 
-            slot.start_time === timeString
-          );
-          
-          if (!existingSlot) {
-            // Crear el slot faltante
-            const localDate = new Date(currentDate);
-            localDate.setHours(currentSlotTime.getHours(), currentSlotTime.getMinutes(), 0, 0);
-            
-            // Crear fecha local explícitamente para evitar problemas de timezone  
-            const [year, month, day] = dateString.split('-').map(Number);
-            const [hours, minutes, seconds] = timeString.split(':').map(Number);
-            const slotStartDateTime = new Date(year, month - 1, day, hours, minutes || 0, seconds || 0);
-            const slotEndDateTime = addMinutes(slotStartDateTime, serviceDuration);
-            
-            slotsToCreate.push({
-              provider_id: providerId,
-              listing_id: listingId,
-              slot_date: dateString,
-              start_time: timeString,
-              end_time: format(slotEndDateTime, 'HH:mm:ss'),
-              slot_datetime_start: slotStartDateTime.toISOString(),
-              slot_datetime_end: slotEndDateTime.toISOString(),
-              is_available: true,
-              is_reserved: false,
-              slot_type: 'generated'
-            });
-            
-            console.log(`✨ Slot faltante: ${dateString} ${timeString}`);
-          }
-          
-          // Avanzar al siguiente slot
-          currentSlotTime = addMinutes(currentSlotTime, serviceDuration);
+        // Check if this slot already exists
+        const existingSlot = existingSlots.find(slot => 
+          slot.slot_date === dateString && 
+          slot.start_time === generatedSlot.start_time
+        );
+        
+        if (!existingSlot) {
+          slotsToCreate.push(generatedSlot);
+          console.log(`✨ Slot faltante: ${dateString} ${generatedSlot.start_time}`);
         }
       }
 

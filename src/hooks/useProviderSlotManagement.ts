@@ -5,6 +5,7 @@ import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature } from '@/utils/weeklySlotUtils';
 import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
+import { generateAvailabilitySlots } from '@/utils/availabilitySlotGenerator';
 
 interface UseProviderSlotManagementReturn {
   slots: WeeklySlot[];
@@ -135,49 +136,38 @@ export const useProviderSlotManagement = ({
         finalTimeSlots = timeSlots;
       }
 
-      // Ensure UI shows ALL configured slots. Merge DB slots with expected slots from provider_availability.
+      // Ensure UI shows ALL configured slots with proper "full fit" validation
       let uiSlots = finalTimeSlots || [];
       try {
         const current = new Date(baseDate);
         const endD = new Date(endDate);
         endD.setHours(23,59,59,999);
+        
         while (current <= endD) {
-          const dow = current.getDay();
           const dateStr = format(current, 'yyyy-MM-dd');
-          const dayAvail = (availability || []).filter((av: any) => av.day_of_week === dow && av.is_active);
-          for (const av of dayAvail) {
-            let t = new Date(`1970-01-01T${av.start_time}`);
-            const e = new Date(`1970-01-01T${av.end_time}`);
-            while (t < e) {
-              const timeStr = format(t, 'HH:mm:ss');
-              const exists = uiSlots?.some((s: any) => s.slot_date === dateStr && s.start_time === timeStr);
-              if (!exists) {
-                uiSlots.push({
-                  id: `virtual-${dateStr}-${timeStr}`,
-                  provider_id: providerId,
-                  listing_id: listingId,
-                  slot_date: dateStr,
-                  start_time: timeStr,
-                  end_time: timeStr,
-                  slot_datetime_start: (() => {
-                    const [year, month, day] = dateStr.split('-').map(Number);
-                    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
-                    return new Date(year, month - 1, day, hours, minutes || 0, seconds || 0).toISOString();
-                  })(),
-                  slot_datetime_end: (() => {
-                    const [year, month, day] = dateStr.split('-').map(Number);
-                    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
-                    const startTime = new Date(year, month - 1, day, hours, minutes || 0, seconds || 0);
-                    return new Date(startTime.getTime() + serviceDuration * 60000).toISOString();
-                  })(),
-                  is_available: true,
-                  is_reserved: false,
-                  slot_type: 'generated'
-                } as any);
-              }
-              t = new Date(t.getTime() + serviceDuration * 60000);
+          
+          // Generate slots using centralized logic with "full fit" validation
+          const daySlots = generateAvailabilitySlots(
+            providerId,
+            listingId,
+            current,
+            availability || [],
+            serviceDuration
+          );
+          
+          for (const generatedSlot of daySlots) {
+            const exists = uiSlots?.some((s: any) => 
+              s.slot_date === dateStr && s.start_time === generatedSlot.start_time
+            );
+            
+            if (!exists) {
+              uiSlots.push({
+                ...generatedSlot,
+                id: `virtual-${dateStr}-${generatedSlot.start_time}`,
+              } as any);
             }
           }
+          
           current.setDate(current.getDate() + 1);
         }
       } catch (e) {

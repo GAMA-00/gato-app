@@ -6,6 +6,7 @@ import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { filterTemporalSlots, calculateWeekDateRange, filterSlotsByRecurrence } from '@/utils/temporalSlotFiltering';
 import { generateFutureInstancesFromAppointment } from '@/lib/recurrence/generator';
+import { generateAvailabilitySlots, generateListingSlots } from '@/utils/availabilitySlotGenerator';
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
   isLoading: boolean;
@@ -254,63 +255,106 @@ export const useWeeklySlotsFetcher = ({
         };
       }).filter(Boolean) as WeeklySlot[]; // Filtrar slots nulos (bloqueados manualmente)
 
-      // Fallback: generar slots a partir de la disponibilidad del listing para cubrir huecos
+      // Enhanced fallback: Use provider_availability first, then listing availability
       let enrichedSlots: WeeklySlot[] = weeklySlots;
+      
       try {
-        const listingAvailRes = await supabase
-          .from('listings')
-          .select('availability')
-          .eq('id', listingId)
-          .maybeSingle();
+        // First try provider_availability as primary fallback for consistency
+        const providerAvailRes = await supabase
+          .from('provider_availability')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('is_active', true);
 
-        const availability = listingAvailRes.data?.availability;
-        if (availability) {
+        if (providerAvailRes.data && providerAvailRes.data.length > 0) {
+          console.log('🔧 Using provider_availability for client fallback to ensure parity');
           const existingKeys = new Set(enrichedSlots.map(s => `${format(s.date, 'yyyy-MM-dd')}-${s.time}`));
           const additional: WeeklySlot[] = [];
-          const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
           for (let d = new Date(baseDate); d.getTime() <= endDate.getTime(); d = addDays(d, 1)) {
-            const dayKey = dayKeys[d.getDay()];
-            const dayCfg = availability[dayKey];
-            if (!dayCfg?.enabled || !Array.isArray(dayCfg.timeSlots)) continue;
+            // Generate slots using same logic as provider view
+            const daySlots = generateAvailabilitySlots(
+              providerId,
+              listingId,
+              d,
+              providerAvailRes.data,
+              serviceDuration
+            );
 
-            for (const win of dayCfg.timeSlots) {
-              // Generar horas en pasos de serviceDuration
-              const genTimes: string[] = (() => {
-                const times: string[] = [];
-                const [sh, sm] = win.startTime.split(':').map(Number);
-                const [eh, em] = win.endTime.split(':').map(Number);
-                const startMin = (sh || 0) * 60 + (sm || 0);
-                const endMin = (eh || 0) * 60 + (em || 0);
-                for (let m = startMin; m + serviceDuration <= endMin; m += serviceDuration) {
-                  const hh = Math.floor(m / 60).toString().padStart(2, '0');
-                  const mm = (m % 60).toString().padStart(2, '0');
-                  times.push(`${hh}:${mm}`);
-                }
-                return times;
-              })();
+            for (const generatedSlot of daySlots) {
+              const key = `${format(d, 'yyyy-MM-dd')}-${generatedSlot.start_time.substring(0, 5)}`;
+              if (existingKeys.has(key)) continue;
 
-              for (const time of genTimes) {
-                const key = `${format(d, 'yyyy-MM-dd')}-${time}`;
-                if (existingKeys.has(key)) continue; // ya existe desde BD (incluye bloqueados manualmente)
+              const slotDate = new Date(generatedSlot.slot_datetime_start);
+              const virtualForBlock = {
+                is_available: true,
+                slot_datetime_start: generatedSlot.slot_datetime_start,
+                slot_datetime_end: generatedSlot.slot_datetime_end,
+              } as any;
+              
+              const { isBlocked, reason } = shouldBlockSlot(virtualForBlock, allConflicts);
+              const { time: displayTime, period } = formatTimeTo12Hour(generatedSlot.start_time.substring(0, 5));
 
-                const slotDate = new Date(d);
-                const [hh, mm] = time.split(':').map(n => parseInt(n, 10));
-                slotDate.setHours(hh, mm || 0, 0, 0);
-                const slotEnd = new Date(slotDate.getTime() + serviceDuration * 60_000);
+              additional.push({
+                id: key,
+                date: new Date(slotDate),
+                time: generatedSlot.start_time.substring(0, 5),
+                displayTime,
+                period,
+                isAvailable: !isBlocked,
+                conflictReason: reason
+              });
+            }
+          }
+
+          if (additional.length > 0) {
+            enrichedSlots = [...enrichedSlots, ...additional];
+            console.log('🔧 Provider availability fallback applied for client parity', {
+              agregados: additional.length,
+              total_resultado: enrichedSlots.length
+            });
+          }
+        } else {
+          // Fallback to listing availability if no provider_availability
+          const listingAvailRes = await supabase
+            .from('listings')
+            .select('availability')
+            .eq('id', listingId)
+            .maybeSingle();
+
+          const availability = listingAvailRes.data?.availability;
+          if (availability) {
+            console.log('📋 Using listing availability as final fallback');
+            const existingKeys = new Set(enrichedSlots.map(s => `${format(s.date, 'yyyy-MM-dd')}-${s.time}`));
+            const additional: WeeklySlot[] = [];
+
+            for (let d = new Date(baseDate); d.getTime() <= endDate.getTime(); d = addDays(d, 1)) {
+              // Use centralized listing slot generation with "full fit" validation
+              const daySlots = generateListingSlots(
+                providerId,
+                listingId,
+                d,
+                availability,
+                serviceDuration
+              );
+
+              for (const generatedSlot of daySlots) {
+                const key = `${format(d, 'yyyy-MM-dd')}-${generatedSlot.start_time.substring(0, 5)}`;
+                if (existingKeys.has(key)) continue;
 
                 const virtualForBlock = {
                   is_available: true,
-                  slot_datetime_start: slotDate.toISOString(),
-                  slot_datetime_end: slotEnd.toISOString(),
+                  slot_datetime_start: generatedSlot.slot_datetime_start,
+                  slot_datetime_end: generatedSlot.slot_datetime_end,
                 } as any;
+                
                 const { isBlocked, reason } = shouldBlockSlot(virtualForBlock, allConflicts);
-                const { time: displayTime, period } = formatTimeTo12Hour(time);
+                const { time: displayTime, period } = formatTimeTo12Hour(generatedSlot.start_time.substring(0, 5));
 
                 additional.push({
                   id: key,
-                  date: new Date(slotDate),
-                  time,
+                  date: new Date(generatedSlot.slot_datetime_start),
+                  time: generatedSlot.start_time.substring(0, 5),
                   displayTime,
                   period,
                   isAvailable: !isBlocked,
@@ -318,18 +362,18 @@ export const useWeeklySlotsFetcher = ({
                 });
               }
             }
-          }
 
-          if (additional.length > 0) {
-            enrichedSlots = [...enrichedSlots, ...additional];
-            console.log('🧩 Fallback de disponibilidad aplicado', {
-              agregados: additional.length,
-              total_resultado: enrichedSlots.length
-            });
+            if (additional.length > 0) {
+              enrichedSlots = [...enrichedSlots, ...additional];
+              console.log('📋 Listing availability fallback applied', {
+                agregados: additional.length,
+                total_resultado: enrichedSlots.length
+              });
+            }
           }
         }
       } catch (e) {
-        console.log('ℹ️ No se pudo cargar disponibilidad del listing para fallback:', e);
+        console.log('ℹ️ No se pudo cargar disponibilidad para fallback:', e);
       }
 
       // Calcular recomendación basada en adyacencia respecto a TODAS las reservas (puntuales y recurrentes)
