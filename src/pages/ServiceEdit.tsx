@@ -169,6 +169,7 @@ const ServiceEdit = () => {
       onSuccess: (data) => {
         console.log('=== SERVICEEDIT: Mutation successful ===');
         console.log('Updated service data:', data);
+        setIsSubmitting(false);
         setIsFormOpen(false);
         toast.success('Anuncio actualizado exitosamente');
         navigate('/services');
@@ -176,8 +177,8 @@ const ServiceEdit = () => {
       onError: (error) => {
         console.error('=== SERVICEEDIT: Mutation failed ===');
         console.error('Error details:', error);
-        toast.error('Error al actualizar el anuncio');
         setIsSubmitting(false);
+        toast.error('Error al actualizar el anuncio');
       }
     });
   };

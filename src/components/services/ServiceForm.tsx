@@ -20,14 +20,14 @@ const serviceSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   subcategoryId: z.string().min(1, 'La subcategoría es requerida'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
-  price: z.number().min(0, 'El precio debe ser mayor a 0'),
-  duration: z.number().min(15, 'La duración debe ser de al menos 15 minutos'),
-  isPostPayment: z.union([z.boolean(), z.literal("ambas")]),
+  price: z.coerce.number().min(0, 'El precio debe ser mayor a 0'),
+  duration: z.coerce.number().min(15, 'La duración debe ser de al menos 15 minutos'),
+  isPostPayment: z.union([z.boolean(), z.literal("ambas")]).default(false),
   serviceVariants: z.array(z.any()).min(1, 'Debe tener al menos una variante'),
   residenciaIds: z.array(z.string()).min(1, 'Debe seleccionar al menos una residencia'),
-  galleryImages: z.array(z.string()).optional(),
-  customVariableGroups: z.array(z.any()).optional(),
-  useCustomVariables: z.boolean().optional(),
+  galleryImages: z.array(z.string()).optional().default([]),
+  customVariableGroups: z.array(z.any()).optional().default([]),
+  useCustomVariables: z.boolean().optional().default(false),
   availability: z.any().optional(),
   slotPreferences: z.any().optional(),
 });
@@ -171,6 +171,19 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   const handleFormSubmit = (data: ServiceFormData) => {
     console.log('=== SERVICEFORM: Submitting form ===');
     console.log('Form data:', data);
+    console.log('Form errors:', form.formState.errors);
+    
+    // Validar que todos los campos requeridos estén presentes
+    if (!data.name || !data.subcategoryId || !data.description || !data.serviceVariants?.length) {
+      console.error('Missing required fields:', {
+        name: !data.name,
+        subcategoryId: !data.subcategoryId, 
+        description: !data.description,
+        serviceVariants: !data.serviceVariants?.length
+      });
+      toast.error('Por favor completa todos los campos requeridos');
+      return;
+    }
     
     // Invalidar caches relevantes antes de enviar
     queryClient.invalidateQueries({ queryKey: ['listings'] });
@@ -259,8 +272,13 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                 {isLastStep ? (
                   <Button 
                     type="submit" 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !form.formState.isValid}
                     className="min-w-[120px]"
+                    onClick={() => {
+                      console.log('Submit button clicked');
+                      console.log('Form valid:', form.formState.isValid);
+                      console.log('Form errors:', form.formState.errors);
+                    }}
                   >
                     {isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')}
                   </Button>
