@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +18,13 @@ const SlotGeneratorPreview = () => {
   // Get the duration from the first service variant
   const serviceDuration = serviceVariants[0]?.duration || 60;
   
-  // Handle slot preferences changes
-  const handleSlotPreferencesChange = (preferences: Record<string, boolean>) => {
-    setValue('slotPreferences', preferences, { shouldDirty: true });
-  };
+  // Handle slot preferences changes with useCallback to prevent re-renders
+  const handleSlotPreferencesChange = useCallback((preferences: Record<string, boolean>) => {
+    // Use setTimeout to avoid setState during render
+    setTimeout(() => {
+      setValue('slotPreferences', preferences, { shouldDirty: true });
+    }, 0);
+  }, [setValue]);
   
   const {
     slotsByDate,
