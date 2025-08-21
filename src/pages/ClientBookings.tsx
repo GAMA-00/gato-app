@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { useClientBookings } from '@/hooks/useClientBookings';
+import { useAppointmentCompletion } from '@/hooks/useAppointmentCompletion';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,6 +15,10 @@ import ClientPageLayout from '@/components/layout/ClientPageLayout';
 const ClientBookings = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Ensure past appointments are marked as completed
+  useAppointmentCompletion();
+  
   const { summary: recurringServicesSummary } = useRecurringServices();
   const { data: bookings, isLoading, error, refetch } = useClientBookings();
   

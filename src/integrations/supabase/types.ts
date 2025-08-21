@@ -1388,6 +1388,15 @@ export type Database = {
         Args: { end_range: string; rule_id: string; start_range: string }
         Returns: number
       }
+      get_provider_achievements_data: {
+        Args: { p_provider_id: string }
+        Returns: {
+          average_rating: number
+          completed_jobs_count: number
+          recurring_clients_count: number
+          total_ratings: number
+        }[]
+      }
       get_provider_listing: {
         Args: { p_provider_id: string }
         Returns: string
@@ -1404,6 +1413,10 @@ export type Database = {
       }
       get_recurring_clients_count_by_listing: {
         Args: { listing_id: string; provider_id: string }
+        Returns: number
+      }
+      mark_past_appointments_completed: {
+        Args: Record<PropertyKey, never>
         Returns: number
       }
       migrate_all_provider_availability_and_generate_slots: {

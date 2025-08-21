@@ -16,76 +16,78 @@ export function useProviderAchievements() {
 
       console.log('Fetching provider achievements for:', user.id);
 
-      // Fetch appointments and recurring clients count in parallel
-      const [appointmentsResponse, recurringClientsResponse] = await Promise.all([
-        // Fetch ALL completed appointments throughout history (no date restriction)
-        // This ensures the achievement system counts all work done historically, not just current month
-        supabase
-          .from('appointments')
+      try {
+        // Use the new efficient function to get achievements data
+        const { data: achievementsData, error: achievementsError } = await supabase
+          .rpc('get_provider_achievements_data', { p_provider_id: user.id });
+
+        if (achievementsError) {
+          console.error('Error fetching provider achievements data:', achievementsError);
+          throw achievementsError;
+        }
+
+        const achievementStats = achievementsData?.[0] || {
+          completed_jobs_count: 0,
+          recurring_clients_count: 0,
+          average_rating: 5.0,
+          total_ratings: 0
+        };
+
+        // Fetch rating history separately for display
+        const { data: ratingHistoryData, error: historyError } = await supabase
+          .from('provider_ratings')
           .select(`
             id,
-            start_time,
-            status,
-            client_name,
-            listings!inner(base_price, title),
-            provider_ratings(rating)
+            rating,
+            comment,
+            created_at,
+            appointments!inner(
+              id,
+              client_name,
+              start_time,
+              listings!inner(base_price, title)
+            )
           `)
           .eq('provider_id', user.id)
-          .in('status', ['completed'])  // Only count actually completed jobs for achievements
-          .order('start_time', { ascending: false }),
+          .eq('appointments.status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-        // Get recurring clients count
-        supabase.rpc('get_recurring_clients_count', { provider_id: user.id })
-      ]);
+        if (historyError) {
+          console.error('Error fetching rating history:', historyError);
+        }
 
-      const { data: appointments, error } = appointmentsResponse;
+        // Build rating history
+        const ratingHistory: RatingHistory[] = (ratingHistoryData || []).map(rating => ({
+          id: rating.id,
+          clientName: rating.appointments?.client_name || 'Cliente',
+          appointmentDate: new Date(rating.appointments?.start_time || rating.created_at),
+          servicePrice: rating.appointments?.listings?.base_price || 0,
+          rating: rating.rating,
+          serviceName: rating.appointments?.listings?.title
+        }));
 
-      if (error) {
-        console.error('Error fetching provider achievements:', error);
+        const completedJobs = achievementStats.completed_jobs_count;
+        const currentLevelInfo = getProviderLevelByJobs(completedJobs);
+        const nextLevelInfo = getNextLevel(currentLevelInfo.level);
+        const jobsToNextLevel = nextLevelInfo ? nextLevelInfo.minJobs - completedJobs : 0;
+
+        return {
+          totalCompletedJobs: completedJobs,
+          currentLevel: currentLevelInfo.level,
+          nextLevel: nextLevelInfo?.level || null,
+          jobsToNextLevel: Math.max(0, jobsToNextLevel),
+          averageRating: parseFloat(achievementStats.average_rating.toFixed(1)),
+          ratingHistory,
+          recurringClientsCount: achievementStats.recurring_clients_count
+        };
+      } catch (error) {
+        console.error('Error in provider achievements query:', error);
         throw error;
       }
-
-      const { error: recurringError } = recurringClientsResponse;
-      if (recurringError) {
-        console.error('Error fetching recurring clients count:', recurringError);
-      }
-
-      const recurringClientsCount = recurringClientsResponse.data || 0;
-
-      const completedJobs = appointments?.length || 0;
-      const currentLevelInfo = getProviderLevelByJobs(completedJobs);
-      const nextLevelInfo = getNextLevel(currentLevelInfo.level);
-
-      // Calculate average rating - filter appointments that have ratings
-      const ratingsData = appointments?.filter(app => app.provider_ratings && app.provider_ratings.rating) || [];
-      const averageRating = ratingsData.length > 0
-        ? ratingsData.reduce((sum, app) => sum + (app.provider_ratings?.rating || 0), 0) / ratingsData.length
-        : 5.0; // Default to 5.0 for new providers
-
-      // Build rating history
-      const ratingHistory: RatingHistory[] = ratingsData.map(appointment => ({
-        id: appointment.id,
-        clientName: appointment.client_name || 'Cliente',
-        appointmentDate: new Date(appointment.start_time),
-        servicePrice: appointment.listings?.base_price || 0,
-        rating: appointment.provider_ratings?.rating || 0,
-        serviceName: appointment.listings?.title
-      }));
-
-      const jobsToNextLevel = nextLevelInfo ? nextLevelInfo.minJobs - completedJobs : 0;
-
-      return {
-        totalCompletedJobs: completedJobs,
-        currentLevel: currentLevelInfo.level,
-        nextLevel: nextLevelInfo?.level || null,
-        jobsToNextLevel: Math.max(0, jobsToNextLevel),
-        averageRating: parseFloat(averageRating.toFixed(1)),
-        ratingHistory,
-        recurringClientsCount
-      };
     },
     enabled: !!user && user.role === 'provider',
-    staleTime: 300000, // 5 minutes
+    staleTime: 60000, // Reduce to 1 minute for more frequent updates
     refetchOnWindowFocus: false
   });
 }

@@ -2,6 +2,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProviderAchievements } from '@/hooks/useProviderAchievements';
+import { useAppointmentCompletion } from '@/hooks/useAppointmentCompletion';
 import LevelCard from '@/components/achievements/LevelCard';
 import RatingHistory from '@/components/achievements/RatingHistory';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,8 +13,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const Achievements = () => {
   const { user } = useAuth();
-  const { data: achievements, isLoading } = useProviderAchievements();
   const isMobile = useIsMobile();
+  
+  // Ensure past appointments are marked as completed
+  useAppointmentCompletion();
+  
+  const { data: achievements, isLoading } = useProviderAchievements();
 
   if (isLoading) {
     return (
