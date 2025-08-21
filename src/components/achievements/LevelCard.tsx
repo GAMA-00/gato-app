@@ -83,11 +83,6 @@ const LevelCard: React.FC<{
             value={isAchieved && !isCurrentLevel ? 100 : isCurrentLevel ? progress : 0} 
             className="h-3 bg-muted/30" 
           />
-          
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Mínimo: {level.minJobs}</span>
-            {level.maxJobs !== Infinity && <span>Máximo: {level.maxJobs}</span>}
-          </div>
         </div>
         
         {isCurrentLevel && (
