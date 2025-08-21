@@ -190,6 +190,24 @@ const BookingSummaryCard = ({
           </p>
         </div>
 
+        {/* Information box with materials and cancellation policy */}
+        <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg space-y-3">
+          <div>
+            <h4 className="font-semibold text-blue-900 mb-1">Materiales incluidos</h4>
+            <p className="text-blue-800 text-sm">
+              El proveedor llevará todos los materiales e insumos necesarios para realizar el servicio.
+            </p>
+          </div>
+          
+          <div>
+            <h4 className="font-semibold text-blue-900 mb-1">Política de cancelación</h4>
+            <ul className="text-blue-800 text-sm space-y-1">
+              <li>• Entre 3 y 24 horas antes del servicio: multa del 20%.</li>
+              <li>• Menos de 3 horas antes del servicio: multa del 50%.</li>
+            </ul>
+          </div>
+        </div>
+
         {/* ROBUST Booking Button with Enhanced Error Handling */}
         {bookingData ? (
           <RobustBookingButton
