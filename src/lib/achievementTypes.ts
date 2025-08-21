@@ -18,6 +18,7 @@ export interface RatingHistory {
   servicePrice: number;
   rating: number;
   serviceName?: string;
+  comment?: string;
 }
 
 export interface ProviderAchievements {

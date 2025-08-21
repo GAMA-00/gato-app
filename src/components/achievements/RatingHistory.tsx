@@ -118,6 +118,12 @@ const RatingHistoryComponent = ({ ratingHistory, isLoading }: RatingHistoryProps
                   <strong>Servicio:</strong> {rating.serviceName}
                 </div>
               )}
+              
+              {rating.comment && (
+                <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                  <p className="text-sm text-foreground italic">"{rating.comment}"</p>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -64,7 +64,8 @@ export function useProviderAchievements() {
           appointmentDate: new Date(rating.appointments?.start_time || rating.created_at),
           servicePrice: rating.appointments?.listings?.base_price || 0,
           rating: rating.rating,
-          serviceName: rating.appointments?.listings?.title
+          serviceName: rating.appointments?.listings?.title,
+          comment: rating.comment
         }));
 
         const completedJobs = achievementStats.completed_jobs_count;

@@ -182,6 +182,7 @@ const Achievements = () => {
                       isCurrentLevel={isCurrentLevel}
                       isAchieved={isAchieved}
                       progress={progress}
+                      completedJobs={achievements.totalCompletedJobs}
                     />
                   );
                 })}

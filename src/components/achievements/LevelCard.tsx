@@ -40,8 +40,9 @@ const LevelCard: React.FC<{
   level: AchievementLevelInfo, 
   isCurrentLevel: boolean,
   isAchieved: boolean,
-  progress: number
-}> = ({ level, isCurrentLevel, isAchieved, progress }) => {
+  progress: number,
+  completedJobs?: number
+}> = ({ level, isCurrentLevel, isAchieved, progress, completedJobs = 0 }) => {
   return (
     <Card className={`transition-all duration-300 h-full ${
       isCurrentLevel ? 'border-primary shadow-md glassmorphism border-2' : 
@@ -62,19 +63,25 @@ const LevelCard: React.FC<{
         <CardDescription className="line-clamp-4 min-h-[6rem]">{level.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mt-2">
+        <div className="mt-3 space-y-2">
+          {/* Current progress display */}
+          <div className="flex items-center justify-between text-xs font-medium">
+            <span className="text-muted-foreground">
+              {completedJobs} / {level.maxJobs === Infinity ? `${level.minJobs}+` : level.maxJobs} trabajos
+            </span>
+            <span className="text-primary">
+              {isAchieved ? '100%' : isCurrentLevel ? `${Math.round(progress)}%` : '0%'}
+            </span>
+          </div>
+          
           <Progress 
             value={isAchieved ? 100 : isCurrentLevel ? progress : 0} 
-            className="h-2" 
-            style={{ 
-              background: isAchieved ? level.color : undefined,
-              opacity: isAchieved ? 0.3 : 1
-            }}
+            className="h-3 bg-muted/30" 
           />
           
-          <div className="flex items-center justify-between text-xs mt-1">
-            <span>{level.minJobs} trabajos</span>
-            {level.maxJobs !== Infinity && <span>{level.maxJobs} trabajos</span>}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Mínimo: {level.minJobs}</span>
+            {level.maxJobs !== Infinity && <span>Máximo: {level.maxJobs}</span>}
           </div>
         </div>
         
