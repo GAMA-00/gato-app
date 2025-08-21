@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
-import { Service } from '@/lib/types';
+import { Service, ServiceVariant, WeeklyAvailability, CustomVariableGroup } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useServiceMutations } from '@/hooks/useServiceMutations';
@@ -46,7 +44,7 @@ const Services = () => {
 
       if (error) throw error;
       
-      // Map database result to Service interface
+      // Map database result to Service interface with proper type casting
       const mappedServices: Service[] = (data || []).map(listing => ({
         id: listing.id,
         name: listing.title, // Map title to name
@@ -60,12 +58,12 @@ const Services = () => {
         providerId: listing.provider_id,
         providerName: user?.name || '', // Use current user name
         galleryImages: Array.isArray(listing.gallery_images) ? listing.gallery_images as string[] : [],
-        serviceVariants: Array.isArray(listing.service_variants) ? listing.service_variants : [],
-        availability: (typeof listing.availability === 'object' && listing.availability !== null) ? listing.availability : {},
+        serviceVariants: Array.isArray(listing.service_variants) ? listing.service_variants as ServiceVariant[] : [],
+        availability: (typeof listing.availability === 'object' && listing.availability !== null) ? listing.availability as WeeklyAvailability : {},
         isPostPayment: listing.is_post_payment,
-        customVariableGroups: Array.isArray(listing.custom_variable_groups) ? listing.custom_variable_groups : [],
+        customVariableGroups: Array.isArray(listing.custom_variable_groups) ? listing.custom_variable_groups as CustomVariableGroup[] : [],
         useCustomVariables: listing.use_custom_variables || false,
-        slotPreferences: (typeof listing.slot_preferences === 'object' && listing.slot_preferences !== null) ? listing.slot_preferences : {},
+        slotPreferences: (typeof listing.slot_preferences === 'object' && listing.slot_preferences !== null) ? listing.slot_preferences as Record<string, boolean> : {},
       }));
       
       return mappedServices;
@@ -162,4 +160,3 @@ const Services = () => {
 };
 
 export default Services;
-
