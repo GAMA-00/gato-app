@@ -67,14 +67,24 @@ const slotsToDeleteByDate: Record<string, Set<string>> = {};
         }
       }
 
-      // Detectar y marcar para eliminación los slots fuera de horario configurado
+      // Detectar y marcar para eliminación los slots fuera de horario configurado (más estricto)
       const existingForDate = existingSlots.filter(s => s.slot_date === dateString);
-      const extras = existingForDate.filter((s: any) =>
-        !allowedTimes.has(s.start_time) && s.is_reserved !== true && (s.slot_type === undefined || s.slot_type === 'generated')
-      );
+      const extras = existingForDate.filter((s: any) => {
+        // Solo eliminar slots generados automáticamente que no están en el horario configurado
+        const isGenerated = s.slot_type === 'generated' || !s.slot_type;
+        const isNotReserved = s.is_reserved !== true;
+        const isOutsideConfig = !allowedTimes.has(s.start_time);
+        const isAvailable = s.is_available === true;
+        
+        return isGenerated && isNotReserved && isOutsideConfig && isAvailable;
+      });
+      
       if (extras.length) {
         if (!slotsToDeleteByDate[dateString]) slotsToDeleteByDate[dateString] = new Set<string>();
-        extras.forEach((s: any) => slotsToDeleteByDate[dateString].add(s.start_time));
+        extras.forEach((s: any) => {
+          slotsToDeleteByDate[dateString].add(s.start_time);
+          console.log(`🧹 Marcando slot extra para eliminar: ${dateString} ${s.start_time} (tipo: ${s.slot_type})`);
+        });
         console.log(`🧹 Se marcaron ${extras.length} slots fuera de horario para eliminar en ${dateString}`);
       }
     }

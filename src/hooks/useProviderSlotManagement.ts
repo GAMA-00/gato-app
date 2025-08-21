@@ -136,43 +136,16 @@ export const useProviderSlotManagement = ({
         finalTimeSlots = timeSlots;
       }
 
-      // Ensure UI shows ALL configured slots with proper "full fit" validation
-      let uiSlots = finalTimeSlots || [];
-      try {
-        const current = new Date(baseDate);
-        const endD = new Date(endDate);
-        endD.setHours(23,59,59,999);
-        
-        while (current <= endD) {
-          const dateStr = format(current, 'yyyy-MM-dd');
-          
-          // Generate slots using centralized logic with "full fit" validation
-          const daySlots = generateAvailabilitySlots(
-            providerId,
-            listingId,
-            current,
-            availability || [],
-            serviceDuration
-          );
-          
-          for (const generatedSlot of daySlots) {
-            const exists = uiSlots?.some((s: any) => 
-              s.slot_date === dateStr && s.start_time === generatedSlot.start_time
-            );
-            
-            if (!exists) {
-              uiSlots.push({
-                ...generatedSlot,
-                id: `virtual-${dateStr}-${generatedSlot.start_time}`,
-              } as any);
-            }
-          }
-          
-          current.setDate(current.getDate() + 1);
-        }
-      } catch (e) {
-        console.warn('⚠️ UI slot completion failed:', e);
-      }
+      // Use final time slots directly without adding virtual duplicates
+      // The regeneration already ensures all needed slots exist in the database
+      const uiSlots = finalTimeSlots || [];
+      
+      console.log('📊 Slots finales para UI (sin duplicados):', {
+        totalSlots: uiSlots.length,
+        disponibles: uiSlots.filter(s => s.is_available)?.length || 0,
+        bloqueados: uiSlots.filter(s => !s.is_available)?.length || 0,
+        fechasDistintas: [...new Set(uiSlots.map(s => s.slot_date))]
+      });
 
       // Process ALL slots (DB + virtual)
       const providerSlots: WeeklySlot[] = (uiSlots || []).map((slot: any) => {
