@@ -1465,6 +1465,10 @@ export type Database = {
             }
         Returns: undefined
       }
+      sync_provider_availability_from_listing: {
+        Args: { p_listing_id: string }
+        Returns: number
+      }
       unblock_recurring_slots: {
         Args: { p_recurring_rule_id: string }
         Returns: number

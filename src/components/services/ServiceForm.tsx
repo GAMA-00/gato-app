@@ -1,132 +1,74 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { z } from 'zod';
 import { Form } from '@/components/ui/form';
-import { Service, ServiceVariant, WeeklyAvailability, CustomVariableGroup } from '@/lib/types';
-import ServiceFormFields from './ServiceFormFields';
-import ServiceFormFooter from './ServiceFormFooter';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import BasicInfoStep from './steps/BasicInfoStep';
+import ProfileStep from './steps/ProfileStep';
+import ServiceDetailsStep from './steps/ServiceDetailsStep';
+import AvailabilityStep from './steps/AvailabilityStep';
+import { Service } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
-// Schema definitions for validation con soporte para post-pago
-const serviceFormSchema = z.object({
-  name: z.string().min(2, { message: 'Service name must be at least 2 characters.' }),
-  subcategoryId: z.string().min(1, { message: 'Debe seleccionar una subcategoría.' }),
-  description: z.string().optional(),
-  residenciaIds: z.array(z.string()).min(1, { message: 'Debe seleccionar al menos una residencia.' }),
-  // Campos para el perfil del proveedor
-  aboutMe: z.string().optional(),
-  galleryImages: z.array(z.any()).optional(),
-  experienceYears: z.coerce.number().min(0).optional(),
-  hasCertifications: z.boolean().optional(),
-  certificationFiles: z.array(z.any()).optional(),
-  // Nuevo campo para servicios post-pago - ahora puede ser boolean o "ambas"
-  isPostPayment: z.union([z.boolean(), z.literal("ambas")]).optional(),
-  serviceVariants: z.array(
-    z.object({
-      id: z.string().optional(),
-      name: z.string().min(1, { message: 'El nombre del servicio es obligatorio' }),
-      price: z.union([z.string(), z.number()]),
-      duration: z.union([z.string(), z.number()]),
-      customVariables: z.array(z.any()).optional()
-    })
-  ).min(1, { message: 'Debe tener al menos una variante de servicio' }),
-  // Campos para variables personalizadas
-  useCustomVariables: z.boolean().optional(),
+const serviceSchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido'),
+  subcategoryId: z.string().min(1, 'La subcategoría es requerida'),
+  description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
+  price: z.number().min(0, 'El precio debe ser mayor a 0'),
+  duration: z.number().min(15, 'La duración debe ser de al menos 15 minutos'),
+  isPostPayment: z.union([z.boolean(), z.literal("ambas")]),
+  serviceVariants: z.array(z.any()).min(1, 'Debe tener al menos una variante'),
+  residenciaIds: z.array(z.string()).min(1, 'Debe seleccionar al menos una residencia'),
+  galleryImages: z.array(z.string()).optional(),
   customVariableGroups: z.array(z.any()).optional(),
-  // Nueva sección de disponibilidad
-  availability: z.record(z.object({
-    enabled: z.boolean().optional(),
-    timeSlots: z.array(z.object({
-      startTime: z.string().optional(),
-      endTime: z.string().optional()
-    })).optional()
-  })).optional(),
-  // Preferencias de slots permanentes
-  slotPreferences: z.record(z.boolean()).optional()
+  useCustomVariables: z.boolean().optional(),
+  availability: z.any().optional(),
+  slotPreferences: z.any().optional(),
 });
 
-type ServiceFormValues = z.infer<typeof serviceFormSchema>;
+type ServiceFormData = z.infer<typeof serviceSchema>;
 
 interface ServiceFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (service: Partial<Service>) => void;
-  initialData?: Service;
-  onDelete?: (service: Service) => void;
+  onSubmit: (data: Partial<Service>) => void;
   isSubmitting?: boolean;
+  initialData?: Service;
 }
 
 const ServiceForm: React.FC<ServiceFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  initialData,
-  onDelete,
-  isSubmitting: externalIsSubmitting = false
+  isSubmitting = false,
+  initialData
 }) => {
-  // Estado para controlar el paso actual del wizard
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const steps = ['basic', 'profile', 'service', 'availability', 'slots'];
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
-  // Scroll automático al cambiar de paso
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [currentStep]);
-  
-  const form = useForm<ServiceFormValues>({
-    resolver: zodResolver(serviceFormSchema),
-    defaultValues: initialData ? {
-      name: initialData.name,
-      subcategoryId: initialData.subcategoryId,
-      description: initialData.description,
-      residenciaIds: initialData.residenciaIds,
-      aboutMe: initialData.aboutMe || '',
-      experienceYears: initialData.experienceYears || 0,
-      hasCertifications: initialData.hasCertifications || false,
-      certificationFiles: initialData.certificationFiles || [],
-      isPostPayment: initialData.isPostPayment || false,
-      serviceVariants: initialData.serviceVariants || [
-        { name: 'Servicio básico', price: initialData.price || 0, duration: initialData.duration || 60, customVariables: [] }
-      ],
-      availability: initialData.availability || {
-        monday: { enabled: false, timeSlots: [] },
-        tuesday: { enabled: false, timeSlots: [] },
-        wednesday: { enabled: false, timeSlots: [] },
-        thursday: { enabled: false, timeSlots: [] },
-        friday: { enabled: false, timeSlots: [] },
-        saturday: { enabled: false, timeSlots: [] },
-        sunday: { enabled: false, timeSlots: [] }
-      },
-      slotPreferences: initialData.slotPreferences || {},
-      useCustomVariables: initialData.useCustomVariables || false,
-      customVariableGroups: initialData.customVariableGroups || []
-    } : {
+  const form = useForm<ServiceFormData>({
+    resolver: zodResolver(serviceSchema),
+    defaultValues: {
       name: '',
       subcategoryId: '',
       description: '',
-      residenciaIds: [],
-      aboutMe: '',
-      experienceYears: 0,
-      hasCertifications: false,
-      certificationFiles: [],
+      price: 0,
+      duration: 60,
       isPostPayment: false,
       serviceVariants: [
-        { name: 'Servicio básico', price: 0, duration: 60, customVariables: [] }
+        { id: uuidv4(), name: '', price: '', duration: 60 }
       ],
+      residenciaIds: [],
+      galleryImages: [],
+      customVariableGroups: [],
+      useCustomVariables: false,
       availability: {
         monday: { enabled: false, timeSlots: [] },
         tuesday: { enabled: false, timeSlots: [] },
@@ -137,224 +79,190 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         sunday: { enabled: false, timeSlots: [] }
       },
       slotPreferences: {},
-      useCustomVariables: false,
-      customVariableGroups: []
     }
   });
-  
-  // Transform availability data to match WeeklyAvailability interface
-  const transformAvailability = (formAvailability: ServiceFormValues['availability']): WeeklyAvailability => {
-    if (!formAvailability) return {};
-    
-    const transformed: WeeklyAvailability = {};
-    
-    Object.entries(formAvailability).forEach(([day, dayData]) => {
-      if (dayData && dayData.enabled !== undefined) {
-        transformed[day] = {
-          enabled: dayData.enabled,
-          timeSlots: (dayData.timeSlots || []).filter(slot => 
-            slot?.startTime && slot?.endTime
-          ).map(slot => ({
-            startTime: slot!.startTime!,
-            endTime: slot!.endTime!
-          }))
-        };
-      }
-    });
-    
-    return transformed;
-  };
-  
-  const handleSubmit = (values: ServiceFormValues) => {
-    console.log("=== FORMULARIO ENVIADO ===");
-    console.log("Valores del formulario:", values);
-    
-    if (isSubmitting || externalIsSubmitting) {
-      console.log("Ya se está enviando el formulario, ignorando");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Validar datos requeridos
-      if (!values.name) {
-        console.error("Error: Nombre del servicio requerido");
-        toast.error("El nombre del servicio es obligatorio");
-        return;
-      }
-      
-      if (!values.subcategoryId) {
-        console.error("Error: Subcategoría requerida");
-        toast.error("Debe seleccionar una subcategoría");
-        return;
-      }
-      
-      if (!values.residenciaIds || values.residenciaIds.length === 0) {
-        console.error("Error: Residencias requeridas");
-        toast.error("Debe seleccionar al menos una residencia");
-        return;
-      }
-      
-      if (!values.serviceVariants || values.serviceVariants.length === 0) {
-        console.error("Error: Variantes de servicio requeridas");
-        toast.error("Debe configurar al menos una variante de servicio");
-        return;
-      }
-      
-      // Ensure serviceVariants meets the ServiceVariant interface requirements
-      const isFullPostPayment = values.isPostPayment === true;
-      const formattedServiceVariants: ServiceVariant[] = values.serviceVariants?.map(variant => ({
-        id: variant.id,
-        name: variant.name,
-        price: isFullPostPayment ? 0 : variant.price, // Precio 0 solo para post-pago puro
-        duration: variant.duration,
-        customVariables: variant.customVariables || []
-      })) || [];
 
-      // Extract price and duration from first service variant for base values
-      const baseVariant = formattedServiceVariants[0] || { price: 0, duration: 0 };
-      const basePrice = isFullPostPayment ? 0 : Number(baseVariant.price);
-      const baseDuration = Number(baseVariant.duration);
+  // Precargar datos cuando hay initialData
+  useEffect(() => {
+    if (initialData) {
+      console.log('=== SERVICEFORM: Precargando datos ===');
+      console.log('Initial data:', initialData);
       
-      console.log("Variantes formateadas:", formattedServiceVariants);
-      console.log("Precio base:", basePrice);
-      console.log("Duración base:", baseDuration);
-      console.log("Es post-pago:", values.isPostPayment);
-
-      // Transform availability to match WeeklyAvailability interface
-      const transformedAvailability = transformAvailability(values.availability);
-      console.log("Disponibilidad transformada:", transformedAvailability);
-
-      const serviceData: Partial<Service> = {
-        ...initialData,
-        ...values,
-        // Add these fields for compatibility with existing code
-        price: basePrice,
-        duration: baseDuration,
-        serviceVariants: formattedServiceVariants,
-        availability: transformedAvailability,
-        isPostPayment: values.isPostPayment || false,
-        useCustomVariables: values.useCustomVariables || false,
-        customVariableGroups: values.customVariableGroups || []
+      const formValues = {
+        name: initialData.name || '',
+        subcategoryId: initialData.subcategoryId || '',
+        description: initialData.description || '',
+        price: Number(initialData.price) || 0,
+        duration: Number(initialData.duration) || 60,
+        isPostPayment: initialData.isPostPayment || false,
+        serviceVariants: initialData.serviceVariants?.length > 0 
+          ? initialData.serviceVariants 
+          : [{ id: uuidv4(), name: initialData.name || '', price: initialData.price || '', duration: initialData.duration || 60 }],
+        residenciaIds: initialData.residenciaIds || [],
+        galleryImages: initialData.galleryImages || [],
+        customVariableGroups: initialData.customVariableGroups || [],
+        useCustomVariables: initialData.useCustomVariables || false,
+        availability: initialData.availability || {
+          monday: { enabled: false, timeSlots: [] },
+          tuesday: { enabled: false, timeSlots: [] },
+          wednesday: { enabled: false, timeSlots: [] },
+          thursday: { enabled: false, timeSlots: [] },
+          friday: { enabled: false, timeSlots: [] },
+          saturday: { enabled: false, timeSlots: [] },
+          sunday: { enabled: false, timeSlots: [] }
+        },
+        slotPreferences: initialData.slotPreferences || {},
       };
       
-      console.log("Datos finales a enviar:", serviceData);
+      console.log('Form values to reset:', formValues);
+      form.reset(formValues);
+    }
+  }, [initialData, form]);
 
-      onSubmit(serviceData);
-      
-      // El estado isSubmitting se resetea en el onSuccess/onError del componente padre
-      console.log("Formulario enviado, esperando respuesta de la mutación...");
-    } catch (error) {
-      console.error('Error al enviar el formulario:', error);
-      toast.error('Error al enviar el formulario');
-      setIsSubmitting(false);
+  // Scroll to top function
+  const scrollToTop = () => {
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    } else {
+      // Fallback: scroll window to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-  
-  const handleDelete = () => {
-    if (onDelete && initialData) {
-      onDelete(initialData);
-      onClose();
-    }
-  };
-  
+
+  const steps = [
+    { title: 'Información Básica', component: BasicInfoStep },
+    { title: 'Perfil', component: ProfileStep },
+    { title: 'Detalles del Servicio', component: ServiceDetailsStep },
+    { title: 'Disponibilidad', component: AvailabilityStep },
+  ];
+
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(prev => prev + 1);
+      // Scroll to top after step change
+      setTimeout(scrollToTop, 100);
     }
   };
-  
+
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(prev => prev - 1);
+      // Scroll to top after step change
+      setTimeout(scrollToTop, 100);
     }
   };
-  
-  const submitForm = () => {
-    console.log("=== INTENTANDO ENVIAR FORMULARIO ===");
-    const currentValues = form.getValues();
-    console.log("Valores actuales:", currentValues);
-    console.log("Estado del formulario:", {
-      isValid: form.formState.isValid,
-      isSubmitting: form.formState.isSubmitting,
-      errors: form.formState.errors
-    });
+
+  const handleFormSubmit = (data: ServiceFormData) => {
+    console.log('=== SERVICEFORM: Submitting form ===');
+    console.log('Form data:', data);
     
-    // Validar el formulario manualmente antes de enviarlo
-    form.trigger().then(isValid => {
-      console.log("Resultado de validación tras trigger:", isValid);
-      console.log("Errores de validación tras trigger:", form.formState.errors);
-      
-      if (isValid) {
-        // Si es válido, enviar el formulario
-        const values = form.getValues();
-        console.log("Formulario válido, enviando valores:", values);
-        handleSubmit(values);
-      } else {
-        // Si no es válido, mostrar un mensaje de error
-        console.error("Formulario inválido:", form.formState.errors);
-        
-        // Mostrar errores específicos para ayudar al debug
-        const errorMessages = Object.entries(form.formState.errors).map(([field, error]) => 
-          `${field}: ${error?.message || 'Error de validación'}`
-        ).join(', ');
-        
-        console.error("Errores detallados:", errorMessages);
-        toast.error(`Formulario inválido. Errores: ${errorMessages}`);
-      }
+    // Invalidar caches relevantes antes de enviar
+    queryClient.invalidateQueries({ queryKey: ['listings'] });
+    queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
+    queryClient.invalidateQueries({ queryKey: ['provider-slots'] });
+    
+    onSubmit({
+      ...data,
+      id: initialData?.id,
+      providerId: initialData?.providerId,
+      providerName: initialData?.providerName,
+      category: initialData?.category,
+      createdAt: initialData?.createdAt,
     });
   };
-  
+
+  if (!isOpen) return null;
+
+  const CurrentStepComponent = steps[currentStep].component;
+  const isLastStep = currentStep === steps.length - 1;
+  const isFirstStep = currentStep === 0;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[95vh] h-[95vh] flex flex-col p-0">
-        <DialogHeader className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 border-b border-stone-200 flex-shrink-0 bg-white">
-          <DialogTitle className="text-lg sm:text-xl font-semibold text-stone-900">
-            {initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}
-          </DialogTitle>
-          <DialogDescription className="text-sm sm:text-base text-stone-600 mt-1">
-            {initialData 
-              ? 'Realiza los cambios necesarios en tu anuncio.' 
-              : 'Completa la información para crear tu anuncio de servicio'}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <FormProvider {...form}>
-          <Form {...form}>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              // No hacer nada aquí, el submit se maneja desde el footer
-            }} className="flex flex-col flex-1 min-h-0">
-              {/* Contenido principal con scroll mejorado */}
-              <div className="flex-1 overflow-hidden px-5 sm:px-6">
-                <ScrollArea className="h-full" ref={scrollAreaRef}>
-                  <div className="py-6 sm:py-8 pr-3 sm:pr-4">
-                    <ServiceFormFields currentStep={currentStep} />
-                  </div>
-                </ScrollArea>
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 z-50 overflow-y-auto">
+      <div ref={formRef} className="bg-white rounded-lg w-full max-w-4xl my-8">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+            {/* Header */}
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">
+                  {initialData ? 'Editar Anuncio' : 'Crear Nuevo Anuncio'}
+                </h2>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  ✕
+                </Button>
               </div>
               
-              {/* Footer fijo */}
-              <div className="flex-shrink-0 border-t border-stone-200 bg-white px-5 sm:px-6 py-4 sm:py-5">
-                <ServiceFormFooter 
-                  isEditing={!!initialData}
-                  onDelete={handleDelete}
-                  initialData={initialData}
-                  onCancel={onClose}
-                  currentStep={currentStep}
-                  totalSteps={steps.length}
-                  onNext={nextStep}
-                  onPrev={prevStep}
-                  onSubmit={submitForm}
-                  isSubmitting={isSubmitting || externalIsSubmitting}
-                />
+              {/* Progress */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                  <span>Paso {currentStep + 1} de {steps.length}</span>
+                  <span>{steps[currentStep].title}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                  />
+                </div>
               </div>
-            </form>
-          </Form>
-        </FormProvider>
-      </DialogContent>
-    </Dialog>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 min-h-[400px]">
+              <CurrentStepComponent />
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t bg-gray-50 flex justify-between rounded-b-lg">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={prevStep}
+                disabled={isFirstStep || isSubmitting}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Anterior
+              </Button>
+              
+              <div className="flex space-x-2">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                
+                {isLastStep ? (
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="min-w-[120px]"
+                  >
+                    {isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')}
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={nextStep}>
+                    Siguiente
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </form>
+        </Form>
+      </div>
+    </div>
   );
 };
 

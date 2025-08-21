@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -27,7 +28,8 @@ const ServiceEdit = () => {
       }
 
       try {
-        const { data, error } = await supabase
+        // Obtener el listing con todos los campos necesarios
+        const { data: listingData, error: listingError } = await supabase
           .from('listings')
           .select(`
             *,
@@ -44,41 +46,101 @@ const ServiceEdit = () => {
           .eq('id', id)
           .single();
 
-        if (error) {
-          console.error('Error loading service:', error);
+        if (listingError) {
+          console.error('Error loading listing:', listingError);
           toast.error('Error al cargar el servicio');
           navigate('/services');
           return;
         }
 
-        // Transformar datos para el formulario
+        // Obtener las residencias asociadas al listing
+        const { data: residenciasData, error: residenciasError } = await supabase
+          .from('listing_residencias')
+          .select('residencia_id')
+          .eq('listing_id', id);
+
+        if (residenciasError) {
+          console.error('Error loading residencias:', residenciasError);
+        }
+
+        const residenciaIds = residenciasData?.map(r => r.residencia_id) || [];
+
+        // Transformar datos para el formulario - usar standard_duration como fuente de verdad
         const transformedData: Service = {
-          id: data.id,
-          name: data.title,
-          description: data.description,
-          price: data.base_price,
-          duration: data.duration,
-          subcategoryId: data.service_type_id,
-          category: data.service_types.service_categories.name,
-          isPostPayment: data.is_post_payment,
-          serviceVariants: Array.isArray(data.service_variants) ? data.service_variants as any[] : [],
-          galleryImages: Array.isArray(data.gallery_images) ? data.gallery_images as string[] : [],
-          customVariableGroups: Array.isArray(data.custom_variable_groups) ? data.custom_variable_groups as any[] : [],
-          useCustomVariables: data.use_custom_variables || false,
-          // Load availability from the listing
-          availability: data.availability ? (typeof data.availability === 'string' ? JSON.parse(data.availability) : data.availability) : undefined,
-          // Load slot preferences from the listing (with safe access)
-          slotPreferences: (data as any).slot_preferences ? (typeof (data as any).slot_preferences === 'string' ? JSON.parse((data as any).slot_preferences) : (data as any).slot_preferences) : {},
-          providerId: data.provider_id,
+          id: listingData.id,
+          name: listingData.title,
+          description: listingData.description,
+          price: listingData.base_price,
+          duration: listingData.standard_duration, // Usar standard_duration en lugar de duration
+          subcategoryId: listingData.service_type_id,
+          category: listingData.service_types.service_categories.name,
+          isPostPayment: listingData.is_post_payment,
+          
+          // Parsear service_variants como array de objetos
+          serviceVariants: Array.isArray(listingData.service_variants) 
+            ? listingData.service_variants as any[]
+            : (typeof listingData.service_variants === 'string' && listingData.service_variants.trim() !== '')
+              ? JSON.parse(listingData.service_variants)
+              : [{ 
+                  id: 'default-variant', 
+                  name: listingData.title || 'Servicio básico', 
+                  price: listingData.base_price, 
+                  duration: listingData.standard_duration 
+                }],
+          
+          // Parsear gallery_images como array de strings
+          galleryImages: Array.isArray(listingData.gallery_images) 
+            ? listingData.gallery_images as string[]
+            : (typeof listingData.gallery_images === 'string' && listingData.gallery_images.trim() !== '')
+              ? JSON.parse(listingData.gallery_images)
+              : [],
+          
+          // Parsear custom_variable_groups como array de objetos
+          customVariableGroups: Array.isArray(listingData.custom_variable_groups) 
+            ? listingData.custom_variable_groups as any[]
+            : (typeof listingData.custom_variable_groups === 'string' && listingData.custom_variable_groups.trim() !== '')
+              ? JSON.parse(listingData.custom_variable_groups)
+              : [],
+          
+          useCustomVariables: listingData.use_custom_variables || false,
+          
+          // Parsear availability como objeto
+          availability: listingData.availability 
+            ? (typeof listingData.availability === 'string' 
+                ? JSON.parse(listingData.availability) 
+                : listingData.availability)
+            : {
+                monday: { enabled: false, timeSlots: [] },
+                tuesday: { enabled: false, timeSlots: [] },
+                wednesday: { enabled: false, timeSlots: [] },
+                thursday: { enabled: false, timeSlots: [] },
+                friday: { enabled: false, timeSlots: [] },
+                saturday: { enabled: false, timeSlots: [] },
+                sunday: { enabled: false, timeSlots: [] }
+              },
+          
+          // Parsear slot_preferences como objeto
+          slotPreferences: listingData.slot_preferences 
+            ? (typeof listingData.slot_preferences === 'string' 
+                ? JSON.parse(listingData.slot_preferences) 
+                : listingData.slot_preferences)
+            : {},
+          
+          providerId: listingData.provider_id,
           providerName: '',
-          residenciaIds: [],
-          createdAt: new Date(data.created_at),
+          residenciaIds: residenciaIds, // Usar los IDs obtenidos de la consulta
+          createdAt: new Date(listingData.created_at),
         };
 
-        console.log('=== SERVICEEDIT DEBUG ===');
-        console.log('Raw availability from DB:', data.availability);
-        console.log('Processed availability:', transformedData.availability);
-        console.log('Availability type:', typeof data.availability);
+        console.log('=== SERVICEEDIT DEBUG (FIXED) ===');
+        console.log('Raw data from DB:', {
+          availability: listingData.availability,
+          standard_duration: listingData.standard_duration,
+          duration: listingData.duration,
+          service_variants: listingData.service_variants,
+          residenciaIds: residenciaIds
+        });
+        console.log('Processed service data:', transformedData);
         console.log('=== END SERVICEEDIT DEBUG ===');
 
         setServiceData(transformedData);
