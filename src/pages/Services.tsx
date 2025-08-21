@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,7 @@ const Services = () => {
   const { user } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { createListingMutation } = useServiceMutations();
+  const { createListingMutation, deleteListingMutation } = useServiceMutations();
 
   const { data: services, isLoading, error } = useQuery({
     queryKey: ['listings', user?.id],
@@ -58,13 +59,13 @@ const Services = () => {
         residenciaIds: [], // Will be populated separately if needed
         providerId: listing.provider_id,
         providerName: user?.name || '', // Use current user name
-        galleryImages: listing.gallery_images ? (Array.isArray(listing.gallery_images) ? listing.gallery_images as string[] : []) : [],
-        serviceVariants: listing.service_variants || [],
-        availability: listing.availability || {},
+        galleryImages: Array.isArray(listing.gallery_images) ? listing.gallery_images as string[] : [],
+        serviceVariants: Array.isArray(listing.service_variants) ? listing.service_variants : [],
+        availability: (typeof listing.availability === 'object' && listing.availability !== null) ? listing.availability : {},
         isPostPayment: listing.is_post_payment,
-        customVariableGroups: listing.custom_variable_groups || [],
+        customVariableGroups: Array.isArray(listing.custom_variable_groups) ? listing.custom_variable_groups : [],
         useCustomVariables: listing.use_custom_variables || false,
-        slotPreferences: listing.slot_preferences || {},
+        slotPreferences: (typeof listing.slot_preferences === 'object' && listing.slot_preferences !== null) ? listing.slot_preferences : {},
       }));
       
       return mappedServices;
@@ -74,6 +75,20 @@ const Services = () => {
 
   const handleEdit = (serviceId: string) => {
     navigate(`/services/edit/${serviceId}`);
+  };
+
+  const handleDelete = (service: Service) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este anuncio?')) {
+      deleteListingMutation.mutate(service.id, {
+        onSuccess: () => {
+          toast.success('Anuncio eliminado exitosamente');
+        },
+        onError: (error) => {
+          console.error('Error deleting service:', error);
+          toast.error('Error al eliminar el anuncio');
+        },
+      });
+    }
   };
 
   const handleCreateService = (data: Partial<Service>) => {
@@ -125,6 +140,7 @@ const Services = () => {
                 key={service.id}
                 service={service}
                 onEdit={() => handleEdit(service.id)}
+                onDelete={() => handleDelete(service)}
               />
             ))}
           </div>
@@ -146,3 +162,4 @@ const Services = () => {
 };
 
 export default Services;
+
