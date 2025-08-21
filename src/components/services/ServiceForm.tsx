@@ -210,7 +210,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 z-50 overflow-y-auto">
       <div ref={formRef} className="bg-white rounded-lg w-full max-w-4xl my-8">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          <div className="space-y-6">
             {/* Header */}
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
@@ -271,13 +271,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                 
                 {isLastStep ? (
                   <Button 
-                    type="submit" 
-                    disabled={isSubmitting || !form.formState.isValid}
+                    type="button" 
+                    disabled={isSubmitting}
                     className="min-w-[120px]"
                     onClick={() => {
-                      console.log('Submit button clicked');
-                      console.log('Form valid:', form.formState.isValid);
-                      console.log('Form errors:', form.formState.errors);
+                      console.log('Submit button clicked manually');
+                      form.handleSubmit(handleFormSubmit)();
                     }}
                   >
                     {isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')}
@@ -290,7 +289,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                 )}
               </div>
             </div>
-          </form>
+          </div>
         </Form>
       </div>
     </div>
