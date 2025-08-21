@@ -70,7 +70,10 @@ const slotsToDeleteByDate: Record<string, Set<string>> = {};
             const localDate = new Date(currentDate);
             localDate.setHours(currentSlotTime.getHours(), currentSlotTime.getMinutes(), 0, 0);
             
-            const slotStartDateTime = new Date(`${dateString}T${timeString}`);
+            // Crear fecha local explícitamente para evitar problemas de timezone  
+            const [year, month, day] = dateString.split('-').map(Number);
+            const [hours, minutes, seconds] = timeString.split(':').map(Number);
+            const slotStartDateTime = new Date(year, month - 1, day, hours, minutes || 0, seconds || 0);
             const slotEndDateTime = addMinutes(slotStartDateTime, serviceDuration);
             
             slotsToCreate.push({

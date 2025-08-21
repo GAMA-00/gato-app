@@ -159,8 +159,17 @@ export const useProviderSlotManagement = ({
                   slot_date: dateStr,
                   start_time: timeStr,
                   end_time: timeStr,
-                  slot_datetime_start: new Date(`${dateStr}T${timeStr}`).toISOString(),
-                  slot_datetime_end: new Date(new Date(`${dateStr}T${timeStr}`).getTime() + serviceDuration*60000).toISOString(),
+                  slot_datetime_start: (() => {
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+                    return new Date(year, month - 1, day, hours, minutes || 0, seconds || 0).toISOString();
+                  })(),
+                  slot_datetime_end: (() => {
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+                    const startTime = new Date(year, month - 1, day, hours, minutes || 0, seconds || 0);
+                    return new Date(startTime.getTime() + serviceDuration * 60000).toISOString();
+                  })(),
                   is_available: true,
                   is_reserved: false,
                   slot_type: 'generated'

@@ -210,8 +210,10 @@ export const useWeeklySlotsFetcher = ({
         } else {
           const dateStr: string = slot.slot_date; // YYYY-MM-DD
           const timeStr: string = slot.start_time || '00:00:00'; // HH:mm:ss
-          // Interpretar como hora local
-          slotStart = new Date(`${dateStr}T${timeStr}`);
+          // Crear fecha local explícitamente para evitar problemas de timezone
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+          slotStart = new Date(year, month - 1, day, hours, minutes || 0, seconds || 0);
           slotEnd = new Date(slotStart.getTime() + serviceDuration * 60_000);
         }
 
