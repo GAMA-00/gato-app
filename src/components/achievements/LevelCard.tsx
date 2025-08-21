@@ -67,15 +67,20 @@ const LevelCard: React.FC<{
           {/* Current progress display */}
           <div className="flex items-center justify-between text-xs font-medium">
             <span className="text-muted-foreground">
-              {completedJobs} / {level.maxJobs === Infinity ? `${level.minJobs}+` : level.maxJobs} trabajos
+              {isCurrentLevel 
+                ? `${completedJobs} / ${level.maxJobs === Infinity ? `${level.minJobs}+` : level.maxJobs} trabajos`
+                : isAchieved 
+                  ? "Completado"
+                  : `${level.minJobs} - ${level.maxJobs === Infinity ? `${level.minJobs}+` : level.maxJobs} trabajos`
+              }
             </span>
             <span className="text-primary">
-              {isAchieved ? '100%' : isCurrentLevel ? `${Math.round(progress)}%` : '0%'}
+              {isAchieved && !isCurrentLevel ? '100%' : isCurrentLevel ? `${Math.round(progress)}%` : '0%'}
             </span>
           </div>
           
           <Progress 
-            value={isAchieved ? 100 : isCurrentLevel ? progress : 0} 
+            value={isAchieved && !isCurrentLevel ? 100 : isCurrentLevel ? progress : 0} 
             className="h-3 bg-muted/30" 
           />
           

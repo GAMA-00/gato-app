@@ -91,10 +91,6 @@ const Achievements = () => {
   );
   
   const currentLevel = currentLevelIndex >= 0 ? ACHIEVEMENT_LEVELS[currentLevelIndex] : ACHIEVEMENT_LEVELS[0];
-  const nextLevel = currentLevelIndex < ACHIEVEMENT_LEVELS.length - 1 ? ACHIEVEMENT_LEVELS[currentLevelIndex + 1] : null;
-  const progressPercentage = nextLevel 
-    ? ((achievements.totalCompletedJobs - currentLevel.minJobs) / (nextLevel.minJobs - currentLevel.minJobs)) * 100
-    : 100;
 
   return (
       <>
@@ -173,7 +169,14 @@ const Achievements = () => {
                 {ACHIEVEMENT_LEVELS.map((level) => {
                   const isCurrentLevel = level.level === currentLevel.level;
                   const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
-                  const progress = isCurrentLevel ? progressPercentage : 0;
+                  
+                  // Calculate progress within current level range
+                  let progress = 0;
+                  if (isCurrentLevel) {
+                    const levelRange = level.maxJobs === Infinity ? level.minJobs + 100 : level.maxJobs - level.minJobs;
+                    const jobsInLevel = Math.min(achievements.totalCompletedJobs, level.maxJobs) - level.minJobs;
+                    progress = (jobsInLevel / levelRange) * 100;
+                  }
                   
                   return (
                     <LevelCard
