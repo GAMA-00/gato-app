@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,12 +59,12 @@ const Services = () => {
         providerId: listing.provider_id,
         providerName: user?.name || '', // Use current user name
         galleryImages: Array.isArray(listing.gallery_images) ? listing.gallery_images as string[] : [],
-        serviceVariants: Array.isArray(listing.service_variants) ? listing.service_variants as ServiceVariant[] : [],
-        availability: (typeof listing.availability === 'object' && listing.availability !== null) ? listing.availability as WeeklyAvailability : {},
+        serviceVariants: Array.isArray(listing.service_variants) ? (listing.service_variants as unknown) as ServiceVariant[] : [],
+        availability: (typeof listing.availability === 'object' && listing.availability !== null) ? (listing.availability as unknown) as WeeklyAvailability : {},
         isPostPayment: listing.is_post_payment,
-        customVariableGroups: Array.isArray(listing.custom_variable_groups) ? listing.custom_variable_groups as CustomVariableGroup[] : [],
+        customVariableGroups: Array.isArray(listing.custom_variable_groups) ? (listing.custom_variable_groups as unknown) as CustomVariableGroup[] : [],
         useCustomVariables: listing.use_custom_variables || false,
-        slotPreferences: (typeof listing.slot_preferences === 'object' && listing.slot_preferences !== null) ? listing.slot_preferences as Record<string, boolean> : {},
+        slotPreferences: (typeof listing.slot_preferences === 'object' && listing.slot_preferences !== null) ? (listing.slot_preferences as unknown) as Record<string, boolean> : {},
       }));
       
       return mappedServices;
