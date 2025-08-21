@@ -59,9 +59,15 @@ const BookingSummaryCard = ({
   bookingData,
   onBookingSuccess
 }: BookingSummaryCardProps) => {
-  // Calculate totals for multiple variants
+  // Calculate totals for multiple variants (including per-person pricing if present)
   const totalPrice = selectedVariants.length > 0 
-    ? selectedVariants.reduce((sum, variant) => sum + (Number(variant.price) * variant.quantity), 0) + customVariablesTotalPrice
+    ? selectedVariants.reduce((sum, variant) => {
+        const base = Number(variant.price) * variant.quantity;
+        const persons = variant.personQuantity && variant.additionalPersonPrice
+          ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+          : 0;
+        return sum + base + persons;
+      }, 0) + customVariablesTotalPrice
     : (selectedVariant ? Number(selectedVariant.price) + customVariablesTotalPrice : 0);
   
   const totalDuration = selectedVariants.length > 0 
@@ -89,27 +95,40 @@ const BookingSummaryCard = ({
             {selectedVariants.length > 0 ? (
               // Multiple variants display
               <div className="space-y-3">
-                {selectedVariants.map((variant, index) => (
-                  <div key={variant.id || index} className="pb-2 border-b last:border-b-0">
-                    <p className="font-medium">
-                      {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
-                    </p>
-                    <div className="flex justify-between text-sm">
-                      <span>Duración:</span>
-                      <span>{variant.duration * variant.quantity} min</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal:</span>
-                      <span className="font-medium">${formatPrice(Number(variant.price) * variant.quantity)}</span>
-                    </div>
-                    {variant.quantity > 1 && (
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Precio unitario:</span>
-                        <span>${formatPrice(Number(variant.price))} c/u</span>
+                {selectedVariants.map((variant, index) => {
+                  const base = Number(variant.price) * variant.quantity;
+                  const persons = variant.personQuantity && variant.additionalPersonPrice
+                    ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+                    : 0;
+                  const total = base + persons;
+                  return (
+                    <div key={variant.id || index} className="pb-2 border-b last:border-b-0">
+                      <p className="font-medium">
+                        {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
+                      </p>
+                      <div className="flex justify-between text-sm">
+                        <span>Duración:</span>
+                        <span>{Number(variant.duration) * variant.quantity} min</span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span className="font-medium">${formatPrice(total)}</span>
+                      </div>
+                      {variant.personQuantity && variant.personQuantity > 1 && (
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Desglose:</span>
+                          <span>Base ${formatPrice(base)} + Personas extra ${formatPrice(persons)}</span>
+                        </div>
+                      )}
+                      {variant.quantity > 1 && (
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Precio unitario:</span>
+                          <span>${formatPrice(Number(variant.price))} c/u</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 {customVariablesTotalPrice > 0 && (
                   <div className="flex justify-between text-sm">
                     <span>Variables adicionales:</span>

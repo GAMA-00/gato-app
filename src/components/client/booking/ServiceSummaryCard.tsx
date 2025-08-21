@@ -9,7 +9,7 @@ interface ServiceSummaryCardProps {
   clientLocation: string;
   isLoadingLocation: boolean;
   selectedVariant?: ServiceVariant;
-  selectedVariants?: Array<ServiceVariant & { quantity: number }>;
+  selectedVariants?: Array<ServiceVariant & { quantity: number; personQuantity?: number; additionalPersonPrice?: number }>;
   formatPrice: (price: number | string) => string;
 }
 
@@ -27,7 +27,13 @@ const ServiceSummaryCard = ({
     : (selectedVariant ? Number(selectedVariant.duration) : 0);
   
   const totalPrice = selectedVariants.length > 0 
-    ? selectedVariants.reduce((sum, variant) => sum + (Number(variant.price) * variant.quantity), 0)
+    ? selectedVariants.reduce((sum, variant) => {
+        const base = Number(variant.price) * variant.quantity;
+        const persons = variant.personQuantity && variant.additionalPersonPrice
+          ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+          : 0;
+        return sum + base + persons;
+      }, 0)
     : (selectedVariant ? Number(selectedVariant.price) : 0);
 
   const totalServices = selectedVariants.length > 0 

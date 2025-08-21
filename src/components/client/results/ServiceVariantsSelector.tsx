@@ -3,17 +3,8 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, Plus, Minus } from 'lucide-react';
+import { ServiceVariant } from '@/components/client/service/types';
 import { formatCurrency } from '@/lib/utils';
-
-// Extended ServiceVariant interface that includes per-person pricing
-export interface ServiceVariant {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-  additionalPersonPrice?: number;
-  maxPersons?: number;
-}
 
 export interface ServiceVariantWithQuantity extends ServiceVariant {
   quantity: number;

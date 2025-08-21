@@ -36,6 +36,8 @@ export interface ServiceVariant {
   name: string;
   price: number;
   duration: number;
+  additionalPersonPrice?: number; // Precio por persona adicional (opcional)
+  maxPersons?: number; // Máximo de personas permitido (opcional)
 }
 
 export interface CertificationFile {

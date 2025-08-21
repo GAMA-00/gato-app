@@ -288,7 +288,9 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
               id: variant.id || `variant-${index}`,
               name: variant.name || `Opción ${index + 1}`,
               price: parseFloat(variant.price) || listing.base_price,
-              duration: parseInt(variant.duration) || listing.duration
+              duration: parseInt(variant.duration) || listing.duration,
+              additionalPersonPrice: variant.additionalPersonPrice != null ? parseFloat(variant.additionalPersonPrice) : undefined,
+              maxPersons: variant.maxPersons != null ? parseInt(variant.maxPersons) : undefined,
             }));
           }
         } catch (error) {
