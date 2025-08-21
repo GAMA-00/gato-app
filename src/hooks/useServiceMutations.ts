@@ -86,7 +86,7 @@ export const useServiceMutations = () => {
           use_custom_variables: serviceData.useCustomVariables || false,
           custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null,
           availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null,
-          slot_preferences: serviceData.slotPreferences ? JSON.stringify(serviceData.slotPreferences) : null
+          slot_preferences: serviceData.slotPreferences ? serviceData.slotPreferences : {}
         };
         
         console.log('Datos a insertar en listings:', insertData);
@@ -257,7 +257,7 @@ export const useServiceMutations = () => {
             use_custom_variables: serviceData.useCustomVariables || false,
             custom_variable_groups: serviceData.customVariableGroups ? JSON.stringify(serviceData.customVariableGroups) : null,
             availability: serviceData.availability ? JSON.stringify(serviceData.availability) : null,
-            slot_preferences: serviceData.slotPreferences ? JSON.stringify(serviceData.slotPreferences) : null
+            slot_preferences: serviceData.slotPreferences ? serviceData.slotPreferences : {}
           })
           .eq('id', serviceData.id);
           
