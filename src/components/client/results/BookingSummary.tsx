@@ -13,9 +13,18 @@ interface BookingSummaryProps {
 }
 
 const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) => {
-  // Calculate totals considering quantities
-  const totalPrice = selectedVariants.reduce((sum, variant) => sum + (Number(variant.price) * variant.quantity), 0);
-  const totalDuration = selectedVariants.reduce((sum, variant) => sum + (Number(variant.duration) * variant.quantity), 0);
+  // Calculate totals considering quantities and person counts
+  const totalPrice = selectedVariants.reduce((sum, variant) => {
+    const basePrice = Number(variant.price) * variant.quantity;
+    const additionalPersonPrice = variant.personQuantity && variant.additionalPersonPrice 
+      ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+      : 0;
+    return sum + basePrice + additionalPersonPrice;
+  }, 0);
+  
+  const totalDuration = selectedVariants.reduce((sum, variant) => 
+    sum + (Number(variant.duration) * variant.quantity), 0
+  );
   const totalServices = selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0);
   
   const formatDuration = (minutes: number) => {
@@ -34,27 +43,43 @@ const BookingSummary = ({ selectedVariants, onSchedule }: BookingSummaryProps) =
   return (
     <Card className="shadow-sm sticky top-4 mb-6">
       <CardContent className="p-6">
-        {selectedVariants.map((variant, index) => (
-          <div key={variant.id || index} className="mb-5">
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="font-medium">
-                {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
-              </h3>
-              <span className="font-semibold">${formatCurrency(Number(variant.price) * variant.quantity)}</span>
-            </div>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <div className="flex items-center">
-                <Clock size={16} className="mr-1" />
-                <span className="text-sm">{formatDuration(Number(variant.duration) * variant.quantity)}</span>
+        {selectedVariants.map((variant, index) => {
+          const basePrice = Number(variant.price) * variant.quantity;
+          const additionalPersonPrice = variant.personQuantity && variant.additionalPersonPrice 
+            ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+            : 0;
+          const variantTotal = basePrice + additionalPersonPrice;
+
+          return (
+            <div key={variant.id || index} className="mb-5">
+              <div className="flex justify-between items-center mb-1">
+                <h3 className="font-medium">
+                  {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
+                </h3>
+                <span className="font-semibold">${formatCurrency(variantTotal)}</span>
               </div>
-              {variant.quantity > 1 && (
-                <span className="text-sm">
-                  ${formatCurrency(Number(variant.price))} c/u
-                </span>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <div className="flex items-center">
+                  <Clock size={16} className="mr-1" />
+                  <span className="text-sm">{formatDuration(Number(variant.duration) * variant.quantity)}</span>
+                  {variant.personQuantity && variant.personQuantity > 1 && (
+                    <span className="text-sm ml-2">• {variant.personQuantity} personas</span>
+                  )}
+                </div>
+                {variant.quantity > 1 && (
+                  <span className="text-sm">
+                    ${formatCurrency(Number(variant.price))} c/u
+                  </span>
+                )}
+              </div>
+              {variant.personQuantity && variant.personQuantity > 1 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Precio base: ${formatCurrency(basePrice)} + Personas extra: ${formatCurrency(additionalPersonPrice)}
+                </div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
         
         <Separator className="my-4" />
         
