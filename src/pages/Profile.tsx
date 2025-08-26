@@ -3,17 +3,21 @@ import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useProfileSync } from '@/hooks/useProfileSync';
+import { useComprehensiveSync } from '@/hooks/useComprehensiveSync';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Edit, User, Mail, Phone, Building, FileText, Calendar } from 'lucide-react';
+import { Edit, User, Mail, Phone, Building, FileText, Calendar, RefreshCw } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 
 const Profile = () => {
   const { user } = useAuth();
   const { profile, isLoading } = useUserProfile();
+  const { syncProfileChanges, forceSyncProfile } = useProfileSync();
+  const { forceFullSync } = useComprehensiveSync();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (!user) {
@@ -138,14 +142,25 @@ const Profile = () => {
               )}
             </div>
             
-            <div className="mt-6 pt-6 border-t">
+            <div className="mt-6 pt-6 border-t flex space-x-3">
               <Button 
-                className="w-full"
+                className="flex-1"
                 onClick={() => setIsEditModalOpen(true)}
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Editar Perfil
               </Button>
+              
+              {user.role === 'provider' && (
+                <Button 
+                  variant="outline"
+                  size="icon"
+                  onClick={forceFullSync}
+                  title="Sincronizar todas las secciones"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </Card>
         </div>

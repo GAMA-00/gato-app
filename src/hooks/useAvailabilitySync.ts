@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { SlotSyncUtils } from '@/utils/slotSyncUtils';
 
 interface AvailabilitySlot {
   startTime: string;
@@ -67,18 +68,18 @@ export const useAvailabilitySync = () => {
   }, []);
 
   /**
-   * Sincroniza los cambios de availability desde el service form a Config Disponibilidad
+   * Sincroniza los cambios de availability y duración desde el service form a Config Disponibilidad
    */
-  const syncFromServiceToConfig = useCallback(async (listingId: string) => {
+  const syncFromServiceToConfig = useCallback(async (listingId: string, forceSlotRegeneration = false) => {
     if (!user?.id) return;
 
     try {
       console.log('🔄 Sincronizando desde Mis Servicios a Config Disponibilidad...');
       
-      // Obtener availability del listing actualizado
+      // Obtener availability y otros campos relevantes del listing actualizado
       const { data: listing, error: listingError } = await supabase
         .from('listings')
-        .select('availability, standard_duration')
+        .select('availability, standard_duration, title, description, base_price, is_post_payment, service_variants')
         .eq('id', listingId)
         .eq('provider_id', user.id)
         .single();
@@ -153,31 +154,65 @@ export const useAvailabilitySync = () => {
         console.error('Error sincronizando a otros listings:', updateError);
       }
 
-      // Regenerar slots para todos los listings
+      // Regenerar slots para todos los listings (especialmente si cambió la duración o hay forzado)
       try {
         const { data: allListings } = await supabase
           .from('listings')
-          .select('id')
+          .select('id, standard_duration, title')
           .eq('provider_id', user.id)
           .eq('is_active', true);
 
-        if (allListings) {
-          for (const listing of allListings) {
-            await supabase.rpc('regenerate_slots_for_listing', { 
-              p_listing_id: listing.id 
-            });
+        if (allListings && allListings.length > 0) {
+          console.log('🔄 Regenerando slots para todos los listings activos...');
+          
+          if (forceSlotRegeneration) {
+            // Si hay cambios importantes, usar regeneración completa
+            const slotsCreated = await SlotSyncUtils.regenerateAllProviderSlots(
+              user.id, 
+              'Cambio en duración o disponibilidad detectado'
+            );
+            console.log(`✅ Regeneración completa: ${slotsCreated} slots creados`);
+          } else {
+            // Regeneración estándar por listing
+            for (const listingItem of allListings) {
+              try {
+                const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing', { 
+                  p_listing_id: listingItem.id 
+                });
+
+                if (rpcError) {
+                  console.error(`Error regenerando slots para ${listingItem.title}:`, rpcError);
+                } else {
+                  console.log(`✅ Slots regenerados para ${listingItem.title}`);
+                }
+              } catch (err) {
+                console.error(`Error procesando listing ${listingItem.title}:`, err);
+              }
+            }
           }
-          console.log('✅ Slots regenerados para todos los listings');
+          
+          // Log del estado final
+          await SlotSyncUtils.logSlotStatus(user.id);
+          
+        } else {
+          console.log('ℹ️ No hay listings activos para regenerar slots');
         }
       } catch (slotError) {
         console.warn('⚠️ Error regenerando slots:', slotError);
       }
 
-      // Invalidar caches para actualizar UI
-      queryClient.invalidateQueries({ queryKey: ['provider-availability', user.id] });
-      queryClient.invalidateQueries({ queryKey: ['listings', user.id] });
-      queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] });
-      queryClient.invalidateQueries({ queryKey: ['weekly-slots'] });
+      // Invalidar TODOS los caches para actualizar UI completamente
+      await queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
+      await queryClient.invalidateQueries({ queryKey: ['listings'] });
+      await queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] });
+      await queryClient.invalidateQueries({ queryKey: ['weekly-slots'] });
+      await queryClient.invalidateQueries({ queryKey: ['provider-slots'] });
+      await queryClient.invalidateQueries({ queryKey: ['availability-settings'] });
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      
+      // Forzar refetch de datos críticos
+      queryClient.refetchQueries({ queryKey: ['provider-availability', user.id] });
+      queryClient.refetchQueries({ queryKey: ['listings', user.id] });
 
       console.log('✅ Sincronización completada exitosamente');
       
@@ -209,11 +244,22 @@ export const useAvailabilitySync = () => {
           console.log('📡 Cambio detectado en listing:', payload);
           const updatedListing = payload.new as any;
           
-          // Solo sincronizar si se cambió la availability
-          if (updatedListing.availability) {
+          // Sincronizar si cambió availability, duración, o información del perfil
+          const hasAvailabilityChange = updatedListing.availability;
+          const hasDurationChange = updatedListing.standard_duration;
+          const hasProfileChange = updatedListing.title || updatedListing.description || updatedListing.base_price;
+          
+          if (hasAvailabilityChange || hasDurationChange || hasProfileChange) {
+            console.log('🔄 Cambios detectados:', {
+              availability: hasAvailabilityChange,
+              duration: hasDurationChange,
+              profile: hasProfileChange
+            });
+            
             setTimeout(() => {
-              syncFromServiceToConfig(updatedListing.id);
-            }, 1000); // Pequeño delay para evitar conflicts
+              const forceRegeneration = hasDurationChange || hasAvailabilityChange;
+              syncFromServiceToConfig(updatedListing.id, forceRegeneration);
+            }, 1500); // Delay para evitar conflicts
           }
         }
       )
@@ -225,7 +271,52 @@ export const useAvailabilitySync = () => {
     };
   }, [user?.id, syncFromServiceToConfig]);
 
+  /**
+   * Sincroniza cambios de perfil del proveedor
+   */
+  const syncProviderProfile = useCallback(async (profileData: any) => {
+    if (!user?.id) return;
+
+    try {
+      console.log('🔄 Sincronizando perfil del proveedor...');
+      
+      // Actualizar tabla users
+      const { error: userError } = await supabase
+        .from('users')
+        .update({
+          name: profileData.name,
+          about_me: profileData.about_me,
+          experience_years: profileData.experience_years,
+          certification_files: profileData.certification_files,
+          avatar_url: profileData.avatar_url,
+          phone: profileData.phone
+        })
+        .eq('id', user.id);
+
+      if (userError) {
+        console.error('Error actualizando perfil de usuario:', userError);
+        return;
+      }
+
+      // Invalidar caches de perfil
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['listings'] });
+      
+      // Refetch datos críticos
+      queryClient.refetchQueries({ queryKey: ['user-profile', user.id] });
+      
+      console.log('✅ Perfil sincronizado exitosamente');
+      toast.success('Perfil actualizado en todas las secciones');
+
+    } catch (error) {
+      console.error('❌ Error sincronizando perfil:', error);
+      toast.error('Error actualizando perfil');
+    }
+  }, [user?.id, queryClient]);
+
   return {
-    syncFromServiceToConfig
+    syncFromServiceToConfig,
+    syncProviderProfile
   };
 };

@@ -177,15 +177,32 @@ export const useServiceMutations = () => {
 
       return listing;
     },
-    onSuccess: () => {
-      // Invalidar todas las queries relevantes para asegurar consistencia
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-slots'] });
-      queryClient.invalidateQueries({ queryKey: ['weekly-slots'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-slot-management'] });
-      queryClient.invalidateQueries({ queryKey: ['unified-availability'] });
-      toast.success('Servicio actualizado exitosamente');
+    onSuccess: async (updatedListing) => {
+      console.log('✅ Listing actualizado exitosamente:', updatedListing);
+      
+      // Invalidar TODAS las queries relevantes para asegurar consistencia total
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['listings'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-availability'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-slot-management'] }),
+        queryClient.invalidateQueries({ queryKey: ['unified-availability'] }),
+        queryClient.invalidateQueries({ queryKey: ['availability-settings'] }),
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
+      ]);
+      
+      // Forzar refetch inmediato de datos críticos
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['listings'] }),
+        queryClient.refetchQueries({ queryKey: ['provider-availability'] })
+      ]);
+      
+      console.log('🔄 Todas las queries invalidadas y refetcheadas');
+      toast.success('Servicio actualizado - Todas las secciones sincronizadas');
     },
     onError: (error) => {
       console.error('Error updating service:', error);
@@ -202,12 +219,20 @@ export const useServiceMutations = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      // Invalidar queries relevantes
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-slots'] });
-      queryClient.invalidateQueries({ queryKey: ['weekly-slots'] });
+    onSuccess: async () => {
+      // Invalidar TODAS las queries relevantes
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['listings'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-availability'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-slot-management'] }),
+        queryClient.invalidateQueries({ queryKey: ['unified-availability'] }),
+        queryClient.invalidateQueries({ queryKey: ['availability-settings'] })
+      ]);
+      
+      console.log('🔄 Caches invalidados después de eliminar servicio');
       toast.success('Servicio eliminado exitosamente');
     },
     onError: (error) => {

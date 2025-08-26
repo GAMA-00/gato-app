@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { AvailabilityProvider } from './contexts/AvailabilityContext';
 import { UnifiedAvailabilityProvider } from './contexts/UnifiedAvailabilityContext';
+import { useComprehensiveSync } from './hooks/useComprehensiveSync';
 import ErrorBoundary from './components/ErrorBoundary';
 import PublicRoutes from './routes/PublicRoutes';
 import ProviderRoutes from './routes/ProviderRoutes';
@@ -21,6 +22,12 @@ const RouteDebugger = () => {
   return null;
 };
 
+// Global sync component for providers
+const GlobalSyncProvider = () => {
+  useComprehensiveSync();
+  return null;
+};
+
 function App() {
   console.log('App - Component render');
   
@@ -32,6 +39,7 @@ function App() {
             <UnifiedAvailabilityProvider>
               <ErrorBoundary>
               <RouteDebugger />
+              <GlobalSyncProvider />
               <ClientPreloader />
               <Routes>
                 <Route path="/avatar-test" element={<AvatarTest />} />
