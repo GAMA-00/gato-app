@@ -387,6 +387,97 @@ export type Database = {
           },
         ]
       }
+      post_payment_invoices: {
+        Row: {
+          appointment_id: string
+          approved_at: string | null
+          base_price: number
+          client_id: string
+          created_at: string
+          evidence_file_url: string | null
+          id: string
+          provider_id: string
+          rejected_at: string | null
+          rejection_reason: string | null
+          status: string
+          submitted_at: string | null
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          approved_at?: string | null
+          base_price: number
+          client_id: string
+          created_at?: string
+          evidence_file_url?: string | null
+          id?: string
+          provider_id: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          total_price?: number
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          approved_at?: string | null
+          base_price?: number
+          client_id?: string
+          created_at?: string
+          evidence_file_url?: string | null
+          id?: string
+          provider_id?: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_payment_invoices_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_payment_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_payment_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "post_payment_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           amount: number

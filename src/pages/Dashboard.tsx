@@ -4,6 +4,8 @@ import { useDashboardAppointments } from '@/hooks/useDashboardAppointments';
 import DashboardLoadingState from '@/components/dashboard/DashboardLoadingState';
 import DashboardErrorState from '@/components/dashboard/DashboardErrorState';
 import DashboardContent from '@/components/dashboard/DashboardContent';
+import PostPaymentGate from '@/components/dashboard/PostPaymentGate';
+import ClientPostPaymentGate from '@/components/client/PostPaymentGate';
 
 const Dashboard = () => {
   const {
@@ -39,16 +41,20 @@ const Dashboard = () => {
     );
   }
 
-  // Main content rendering
+  // Main content rendering with post-payment gating
   return (
-    <DashboardContent 
-      user={user}
-      activeAppointmentsToday={activeAppointmentsToday}
-      tomorrowsAppointments={tomorrowsAppointments}
-      stats={stats}
-      isLoadingStats={isLoadingStats}
-      statsError={statsError}
-    />
+    <PostPaymentGate>
+      <ClientPostPaymentGate>
+        <DashboardContent 
+          user={user}
+          activeAppointmentsToday={activeAppointmentsToday}
+          tomorrowsAppointments={tomorrowsAppointments}
+          stats={stats}
+          isLoadingStats={isLoadingStats}
+          statsError={statsError}
+        />
+      </ClientPostPaymentGate>
+    </PostPaymentGate>
   );
 };
 
