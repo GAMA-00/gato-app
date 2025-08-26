@@ -9,6 +9,7 @@ import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, Ch
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProviderListing } from '@/hooks/useProviderListing';
+import { useAvailabilitySync } from '@/hooks/useAvailabilitySync';
 import ProviderSlotBlockingGrid from './ProviderSlotBlockingGrid';
 
 const DAYS = [
@@ -36,6 +37,9 @@ export const AvailabilityManager: React.FC = () => {
     saveAvailability,
     copyDayToOtherDays
   } = useProviderAvailability();
+  
+  // Initialize availability sync system
+  useAvailabilitySync();
 
   if (isLoading) {
     return (

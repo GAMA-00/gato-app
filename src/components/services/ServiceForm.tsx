@@ -15,6 +15,7 @@ import { Service } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { useServiceFormSync } from '@/hooks/useServiceFormSync';
 
 const serviceSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
@@ -66,6 +67,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
+  
+  // Initialize sync system for availability changes
+  useServiceFormSync(initialData?.id);
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
