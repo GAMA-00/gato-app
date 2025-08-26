@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, MoveVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, MoveVertical, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import ServiceCustomVariablesEditor from './ServiceCustomVariablesEditor';
@@ -105,15 +105,28 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
           <Plus className="h-4 w-4 mr-1" /> Agregar servicio
         </Button>
       </div>
+      {isPostPayment === true && (
+        <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="text-orange-600 mt-0.5">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-orange-800 mb-1">
+                Servicios Post-pago - Tarifa Base Obligatoria
+              </p>
+              <p className="text-xs text-orange-700">
+                Para servicios post-pago, debes definir una <strong>tarifa base</strong> que se cobrará al cliente al momento de hacer la reserva. 
+                Los costos adicionales se agregarán al finalizar el servicio mediante un formulario de facturación.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {showPriceFields && (
         <p className="text-sm text-muted-foreground mb-4">
           Define las variantes o tipos de servicios que ofreces con sus respectivos precios y duraciones
-          {isPostPayment === "ambas" && " (para modalidad pre-pago)"}
-        </p>
-      )}
-      {isPostPayment === true && (
-        <p className="text-sm text-muted-foreground mb-4">
-          Define los tipos de servicios que ofreces con sus duraciones estimadas
         </p>
       )}
       
@@ -142,6 +155,40 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   />
                 </div>
                 
+                {isPostPayment === true && (
+                  <div className="col-span-4">
+                    <FormField
+                      control={control}
+                      name={`serviceVariants.${index}.price`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium text-orange-700">
+                            Tarifa Base (se cobra al reservar)
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₡</span>
+                              <Input 
+                                type="number" 
+                                min="1" 
+                                placeholder="Precio base" 
+                                value={variant.price}
+                                onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
+                                className="pl-7 border-orange-200 focus:border-orange-400"
+                                required
+                              />
+                            </div>
+                          </FormControl>
+                          <p className="text-xs text-orange-600 mt-1">
+                            Esta tarifa se cobra al cliente al momento de hacer la reserva
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+                
                 {showPriceFields && (
                   <div className="col-span-4">
                     <FormField
@@ -152,7 +199,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                           <FormLabel className="text-xs">Precio</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₡</span>
                               <Input 
                                 type="number" 
                                 min="1" 
@@ -170,7 +217,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   </div>
                 )}
                 
-                <div className={showPriceFields ? "col-span-6" : "col-span-8"}>
+                <div className={isPostPayment === true ? "col-span-6" : (showPriceFields ? "col-span-6" : "col-span-8")}>
                   <FormField
                     control={control}
                     name={`serviceVariants.${index}.duration`}
@@ -220,8 +267,18 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
               </div>
 
               {isPostPayment === true && (
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
-                  <strong>Post pago</strong>
+                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-800">Modalidad Post-pago</p>
+                      <p className="text-xs text-orange-700">
+                        Tarifa base: ₡{variant.price || 0} + costos adicionales al finalizar
+                      </p>
+                    </div>
+                    <div className="bg-orange-100 px-2 py-1 rounded text-xs font-medium text-orange-800">
+                      Post pago
+                    </div>
+                  </div>
                 </div>
               )}
               {isPostPayment === "ambas" && (

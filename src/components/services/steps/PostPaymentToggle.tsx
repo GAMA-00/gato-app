@@ -72,7 +72,7 @@ const PostPaymentToggle: React.FC = () => {
             </h4>
             <ul className="text-sm text-orange-700 space-y-1">
               <li>• Los clientes verán una etiqueta "Post-pago" en tu servicio</li>
-              <li>• Debes definir una tarifa base obligatoria</li>
+              <li>• Debes definir una <strong>tarifa base obligatoria</strong> que se cobra al reservar</li>
               <li>• Al finalizar el servicio, completarás un desglose de costos adicionales</li>
               <li>• El cliente debe aprobar la factura antes del cobro final</li>
             </ul>

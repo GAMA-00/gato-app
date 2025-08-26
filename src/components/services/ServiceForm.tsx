@@ -13,7 +13,7 @@ import ServiceDetailsStep from './steps/ServiceDetailsStep';
 import AvailabilityStep from './steps/AvailabilityStep';
 import { Service } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 const serviceSchema = z.object({
@@ -23,7 +23,21 @@ const serviceSchema = z.object({
   price: z.coerce.number().min(0, 'El precio debe ser mayor a 0'),
   duration: z.coerce.number().min(15, 'La duración debe ser de al menos 15 minutos'),
   isPostPayment: z.union([z.boolean(), z.literal("ambas")]).default(false),
-  serviceVariants: z.array(z.any()).min(1, 'Debe tener al menos una variante'),
+  serviceVariants: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, 'El nombre del servicio es requerido'),
+    price: z.union([z.string(), z.coerce.number()]).refine((val) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return !isNaN(num) && num > 0;
+    }, 'El precio debe ser mayor a 0'),
+    duration: z.union([z.string(), z.coerce.number()]).refine((val) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return !isNaN(num) && num >= 15;
+    }, 'La duración debe ser de al menos 15 minutos'),
+    customVariables: z.array(z.any()).optional().default([]),
+    additionalPersonPrice: z.union([z.string(), z.coerce.number()]).optional(),
+    maxPersons: z.union([z.string(), z.coerce.number()]).optional()
+  })).min(1, 'Debe tener al menos una variante'),
   residenciaIds: z.array(z.string()).min(1, 'Debe seleccionar al menos una residencia'),
   galleryImages: z.array(z.string()).optional().default([]),
   customVariableGroups: z.array(z.any()).optional().default([]),
@@ -63,7 +77,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       duration: 60,
       isPostPayment: false,
       serviceVariants: [
-        { id: uuidv4(), name: '', price: '', duration: 60 }
+        { id: uuidv4(), name: '', price: '', duration: 60, customVariables: [] }
       ],
       residenciaIds: [],
       galleryImages: [],
@@ -109,8 +123,16 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         duration: Number(initialData.duration) || 60,
         isPostPayment: initialData.isPostPayment || false,
         serviceVariants: initialData.serviceVariants?.length > 0 
-          ? initialData.serviceVariants 
-          : [{ id: uuidv4(), name: initialData.name || '', price: initialData.price || '', duration: initialData.duration || 60 }],
+          ? initialData.serviceVariants.map(variant => ({
+              id: variant.id || uuidv4(),
+              name: variant.name || '',
+              price: variant.price || '',
+              duration: variant.duration || 60,
+              customVariables: variant.customVariables || [],
+              additionalPersonPrice: variant.additionalPersonPrice,
+              maxPersons: variant.maxPersons
+            }))
+          : [{ id: uuidv4(), name: initialData.name || '', price: initialData.price || '', duration: initialData.duration || 60, customVariables: [] }],
         residenciaIds: initialData.residenciaIds || [],
         galleryImages: processedGalleryImages,
         customVariableGroups: initialData.customVariableGroups || [],
@@ -181,7 +203,11 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         description: !data.description,
         serviceVariants: !data.serviceVariants?.length
       });
-      toast.error('Por favor completa todos los campos requeridos');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Por favor completa todos los campos requeridos"
+      });
       return;
     }
     
@@ -197,7 +223,16 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       providerName: initialData?.providerName,
       category: initialData?.category,
       createdAt: initialData?.createdAt,
-    });
+      serviceVariants: data.serviceVariants.map(variant => ({
+        id: variant.id || uuidv4(),
+        name: variant.name,
+        price: variant.price,
+        duration: variant.duration,
+        customVariables: variant.customVariables || [],
+        additionalPersonPrice: variant.additionalPersonPrice,
+        maxPersons: variant.maxPersons
+      })) as any,
+    } as Partial<Service>);
   };
 
   if (!isOpen) return null;
