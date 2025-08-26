@@ -17,6 +17,12 @@ import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useServiceFormSync } from '@/hooks/useServiceFormSync';
 
+// Wrapper component to use sync hook inside form context
+const ServiceFormSyncWrapper: React.FC<{ listingId?: string }> = ({ listingId }) => {
+  useServiceFormSync(listingId);
+  return null;
+};
+
 const serviceSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   subcategoryId: z.string().min(1, 'La subcategoría es requerida'),
@@ -68,9 +74,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
   
-  // Initialize sync system for availability changes
-  useServiceFormSync(initialData?.id);
-
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
@@ -283,6 +286,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
 
             {/* Content */}
             <div className="p-6 min-h-[400px]">
+              <ServiceFormSyncWrapper listingId={initialData?.id} />
               <CurrentStepComponent />
             </div>
 

@@ -7,8 +7,16 @@ import { useAvailabilitySync } from './useAvailabilitySync';
  * con Config Disponibilidad cuando se guarde o actualice un servicio
  */
 export const useServiceFormSync = (listingId?: string) => {
-  const { watch } = useFormContext();
+  const formContext = useFormContext();
   const { syncFromServiceToConfig } = useAvailabilitySync();
+  
+  // Early return if form context is not available
+  if (!formContext) {
+    console.warn('useServiceFormSync: Form context not available');
+    return null;
+  }
+  
+  const { watch } = formContext;
   
   const availability = watch('availability');
 
