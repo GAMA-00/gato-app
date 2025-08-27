@@ -36,8 +36,90 @@ export interface CreateInvoiceData {
   base_price: number;
 }
 
+// Hook to auto-create invoices for completed post-payment appointments
+export const useAutoCreatePostPaymentInvoices = (providerId?: string) => {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ['auto-create-invoices', providerId],
+    queryFn: async () => {
+      if (!providerId) return [];
+
+      // Get completed post-payment appointments that don't have invoices
+      const { data: completedAppointments, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          listings!inner(
+            id,
+            title,
+            base_price,
+            is_post_payment
+          )
+        `)
+        .eq('provider_id', providerId)
+        .eq('status', 'completed')
+        .eq('listings.is_post_payment', true)
+        .lt('end_time', new Date().toISOString())
+        .is('price_finalized', false);
+
+      if (error) {
+        console.error('Error fetching completed post-payment appointments:', error);
+        return [];
+      }
+
+      if (!completedAppointments?.length) return [];
+
+      // Check which appointments already have invoices
+      const appointmentIds = completedAppointments.map(apt => apt.id);
+      const { data: existingInvoices } = await supabase
+        .from('post_payment_invoices')
+        .select('appointment_id')
+        .in('appointment_id', appointmentIds);
+
+      const existingInvoiceAppointmentIds = new Set(
+        existingInvoices?.map(inv => inv.appointment_id) || []
+      );
+
+      // Create draft invoices for appointments that don't have them
+      const appointmentsNeedingInvoices = completedAppointments.filter(
+        apt => !existingInvoiceAppointmentIds.has(apt.id)
+      );
+
+      for (const appointment of appointmentsNeedingInvoices) {
+        try {
+          await supabase.from('post_payment_invoices').insert({
+            appointment_id: appointment.id,
+            provider_id: providerId,
+            client_id: appointment.client_id,
+            base_price: appointment.listings.base_price,
+            total_price: appointment.listings.base_price,
+            status: 'draft'
+          });
+
+          console.log(`Auto-created invoice for appointment ${appointment.id}`);
+        } catch (error) {
+          console.error(`Error creating auto-invoice for appointment ${appointment.id}:`, error);
+        }
+      }
+
+      // Invalidate related queries to trigger refetch
+      if (appointmentsNeedingInvoices.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['pending-invoices'] });
+      }
+
+      return appointmentsNeedingInvoices;
+    },
+    enabled: !!providerId,
+    refetchInterval: 60000, // Check every minute for new completed services
+  });
+};
+
 // Hook for providers to get their pending invoices
 export const usePendingInvoices = (providerId?: string) => {
+  // Auto-create invoices for completed post-payment services
+  useAutoCreatePostPaymentInvoices(providerId);
+
   return useQuery({
     queryKey: ['pending-invoices', providerId],
     queryFn: async () => {
