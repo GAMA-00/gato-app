@@ -201,6 +201,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     console.log('=== SERVICEFORM: Submitting form ===');
     console.log('Form data:', data);
     console.log('Form errors:', form.formState.errors);
+    console.log('Form isValid:', form.formState.isValid);
+    console.log('Form isSubmitting:', form.formState.isSubmitting);
     
     // Validar que todos los campos requeridos estén presentes
     if (!data.name || !data.subcategoryId || !data.description || !data.serviceVariants?.length) {
@@ -214,6 +216,17 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         variant: "destructive",
         title: "Error",
         description: "Por favor completa todos los campos requeridos"
+      });
+      return;
+    }
+    
+    // Validar residenciaIds específicamente
+    if (!data.residenciaIds || data.residenciaIds.length === 0) {
+      console.error('No residencias selected');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debe seleccionar al menos una residencia"
       });
       return;
     }
@@ -318,7 +331,24 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                     disabled={isSubmitting}
                     className="min-w-[120px]"
                     onClick={() => {
-                      console.log('Submit button clicked manually');
+                      console.log('=== Submit button clicked ===');
+                      console.log('Form values before submit:', form.getValues());
+                      console.log('Form errors before submit:', form.formState.errors);
+                      console.log('Form isValid before submit:', form.formState.isValid);
+                      
+                      const formData = form.getValues();
+                      const hasErrors = Object.keys(form.formState.errors).length > 0;
+                      
+                      if (hasErrors) {
+                        console.error('Form has validation errors:', form.formState.errors);
+                        toast({
+                          variant: "destructive",
+                          title: "Error de validación", 
+                          description: "Por favor revisa los campos marcados en rojo"
+                        });
+                        return;
+                      }
+                      
                       form.handleSubmit(handleFormSubmit)();
                     }}
                   >
