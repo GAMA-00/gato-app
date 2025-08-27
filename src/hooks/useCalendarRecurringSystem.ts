@@ -44,7 +44,7 @@ interface CalendarAppointment {
   recurring_rule_id?: string;
   complete_location: string;
   external_booking: boolean;
-  listings?: { title: string; duration: number } | null;
+  listings?: { title: string; duration: number; base_price?: number; service_variants?: any; custom_variable_groups?: any } | null;
 }
 
 // Deterministic recurring instance generator
@@ -54,6 +54,7 @@ function generateRecurringAppointments(
   endDate: Date,
   existingAppointments: any[] = [],
   serviceMap: Record<string, string> = {},
+  listingDetailsMap: Record<string, { title: string; duration: number; base_price?: number; service_variants?: any; custom_variable_groups?: any }> = {},
   clientsDataMap: Record<string, any> = {}
 ): CalendarAppointment[] {
   const instances: CalendarAppointment[] = [];
@@ -159,7 +160,8 @@ function generateRecurringAppointments(
           is_recurring_instance: true,
           recurring_rule_id: rule.id,
           complete_location: completeLocation,
-          external_booking: false
+          external_booking: false,
+          listings: listingDetailsMap[rule.listing_id] || { title: serviceMap[rule.listing_id] || 'Servicio', duration: 60 }
         });
 
         
@@ -268,7 +270,13 @@ export const useCalendarRecurringSystem = ({
         .from('appointments')
         .select(`
           *,
-          listings(title, duration)
+          listings(
+            title,
+            duration,
+            base_price,
+            service_variants,
+            custom_variable_groups
+          )
         `)
         .eq('provider_id', providerId)
         .in('status', ['pending', 'confirmed', 'completed', 'scheduled'])
@@ -332,10 +340,11 @@ export const useCalendarRecurringSystem = ({
       ]);
       
       let serviceMap: Record<string, string> = {};
+      let listingDetailsMap: Record<string, { title: string; duration: number; base_price?: number; service_variants?: any; custom_variable_groups?: any }> = {};
       if (allListingIds.size > 0) {
         const { data: listings } = await supabase
           .from('listings')
-          .select('id, title')
+          .select('id, title, duration, base_price, service_variants, custom_variable_groups')
           .in('id', Array.from(allListingIds));
         
         if (listings) {
@@ -343,6 +352,17 @@ export const useCalendarRecurringSystem = ({
             acc[listing.id] = listing.title;
             return acc;
           }, {} as Record<string, string>);
+          
+          listingDetailsMap = listings.reduce((acc, listing) => {
+            acc[listing.id] = {
+              title: listing.title,
+              duration: typeof listing.duration === 'number' ? listing.duration : 60,
+              base_price: listing.base_price ?? undefined,
+              service_variants: listing.service_variants ?? undefined,
+              custom_variable_groups: listing.custom_variable_groups ?? undefined,
+            };
+            return acc;
+          }, {} as Record<string, { title: string; duration: number; base_price?: number; service_variants?: any; custom_variable_groups?: any }>);
         }
       }
 
@@ -416,7 +436,7 @@ export const useCalendarRecurringSystem = ({
             clientData
           }),
           external_booking: false,
-          listings: { title: serviceMap[instance.recurring_rules?.listing_id || ''] || 'Servicio', duration: 60 }
+          listings: listingDetailsMap[instance.recurring_rules?.listing_id || ''] || { title: serviceMap[instance.recurring_rules?.listing_id || ''] || 'Servicio', duration: 60 }
         };
       });
 
@@ -440,6 +460,7 @@ export const useCalendarRecurringSystem = ({
           endDate,
           regularAppointments || [],
           serviceMap,
+          listingDetailsMap,
           clientsDataMap
         );
       }
