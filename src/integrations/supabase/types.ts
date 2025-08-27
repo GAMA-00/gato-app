@@ -1113,6 +1113,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           experience_years: number | null
+          has_certifications: boolean | null
           has_payment_method: boolean | null
           house_number: string | null
           id: string
@@ -1132,6 +1133,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           experience_years?: number | null
+          has_certifications?: boolean | null
           has_payment_method?: boolean | null
           house_number?: string | null
           id: string
@@ -1151,6 +1153,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           experience_years?: number | null
+          has_certifications?: boolean | null
           has_payment_method?: boolean | null
           house_number?: string | null
           id?: string

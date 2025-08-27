@@ -41,12 +41,6 @@ const ServiceEdit = () => {
                 name,
                 label
               )
-            ),
-            users!inner(
-              about_me,
-              experience_years,
-              has_certifications,
-              certification_files
             )
           `)
           .eq('id', id)
@@ -57,6 +51,17 @@ const ServiceEdit = () => {
           toast.error('Error al cargar el servicio');
           navigate('/services');
           return;
+        }
+
+        // Obtener los datos del perfil del proveedor por separado
+        const { data: providerData, error: providerError } = await supabase
+          .from('users')
+          .select('about_me, experience_years, has_certifications, certification_files')
+          .eq('id', listingData.provider_id)
+          .single();
+
+        if (providerError) {
+          console.error('Error loading provider profile:', providerError);
         }
 
         // Obtener las residencias asociadas al listing
@@ -138,10 +143,12 @@ const ServiceEdit = () => {
           createdAt: new Date(listingData.created_at),
           
           // Campos del perfil profesional
-          aboutMe: listingData.users?.about_me || '',
-          experienceYears: listingData.users?.experience_years || 0,
-          hasCertifications: listingData.users?.has_certifications || false,
-          certificationFiles: listingData.users?.certification_files || [],
+          aboutMe: providerData?.about_me || '',
+          experienceYears: providerData?.experience_years || 0,
+          hasCertifications: providerData?.has_certifications || false,
+          certificationFiles: Array.isArray(providerData?.certification_files) 
+            ? providerData.certification_files 
+            : (providerData?.certification_files ? [providerData.certification_files] : []),
         };
 
         console.log('=== SERVICEEDIT DEBUG (FIXED) ===');
