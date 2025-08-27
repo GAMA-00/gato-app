@@ -1,13 +1,11 @@
+import { formatCurrency } from '@/utils/currencyUtils';
+
 /**
  * Utility functions for formatting service details in appointments
  */
 
 // Helper function to format price in dollars
-export const formatPrice = (price: number | string | null) => {
-  if (!price) return '$0';
-  const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
-  return `$${numericPrice.toLocaleString('en-US')}`;
-};
+export const formatPrice = formatCurrency;
 
 // Helper function to format duration
 export const formatDuration = (start: string, end: string) => {
@@ -28,34 +26,54 @@ export const formatDuration = (start: string, end: string) => {
 
 // Helper function to get total appointment price (sum of all services)
 export const getTotalAppointmentPrice = (appointment: any) => {
+  // Debug logging for price calculation
+  console.log(`📊 Calculating price for appointment ${appointment.id}:`, {
+    final_price: appointment.final_price,
+    custom_variables_total_price: appointment.custom_variables_total_price,
+    listings_base_price: appointment.listings?.base_price,
+    has_listings: !!appointment.listings
+  });
+
   // Priority order: final_price -> sum of custom variables -> sum of selected service variants -> base_price
   if (appointment.final_price !== null && appointment.final_price !== undefined) {
-    return appointment.final_price;
+    const finalPrice = parseFloat(appointment.final_price);
+    console.log(`💰 Using final_price: ${finalPrice}`);
+    return finalPrice;
   }
   
   // Sum custom variables if they exist
   if (appointment.custom_variables_total_price && appointment.custom_variables_total_price > 0) {
-    return appointment.custom_variables_total_price;
+    const customPrice = parseFloat(appointment.custom_variables_total_price);
+    console.log(`💰 Using custom_variables_total_price: ${customPrice}`);
+    return customPrice;
   }
   
   // Sum all custom variable selections
   const customVariants = getServiceVariantsWithQuantity(appointment);
   if (customVariants.length > 0) {
-    return customVariants.reduce((total, variant) => {
+    const variantsTotal = customVariants.reduce((total, variant) => {
       return total + (variant.price * variant.quantity);
     }, 0);
+    console.log(`💰 Using custom variants total: ${variantsTotal}`);
+    return variantsTotal;
   }
   
   // Get selected service variant price or fall back to base price
   const selectedVariant = getSelectedServiceVariant(appointment);
   if (selectedVariant) {
-    return selectedVariant.price * selectedVariant.quantity;
+    const variantPrice = selectedVariant.price * selectedVariant.quantity;
+    console.log(`💰 Using selected variant price: ${variantPrice}`);
+    return variantPrice;
   }
   
+  // Use listings base_price as final fallback
   if (appointment.listings?.base_price !== null && appointment.listings?.base_price !== undefined) {
-    return appointment.listings.base_price;
+    const basePrice = parseFloat(appointment.listings.base_price);
+    console.log(`💰 Using listings base_price: ${basePrice}`);
+    return basePrice;
   }
   
+  console.warn(`❌ No price found for appointment ${appointment.id}, returning 0`);
   return 0;
 };
 
@@ -176,7 +194,7 @@ export const getAllServicesBreakdown = (appointment: any) => {
 export const formatServiceDetails = (appointment: any) => {
   const totalPrice = getTotalAppointmentPrice(appointment);
   const totalDuration = getTotalDuration(appointment);
-  const formattedPrice = formatPrice(totalPrice);
+  const formattedPrice = formatCurrency(totalPrice);
   const formattedDuration = totalDuration >= 60 
     ? `${Math.floor(totalDuration / 60)}h${totalDuration % 60 > 0 ? ` ${totalDuration % 60}m` : ''}`
     : `${totalDuration}m`;
@@ -189,6 +207,8 @@ export const formatServiceDetails = (appointment: any) => {
   if (allServices.length > 0) {
     details += ` • ${allServices.join(' • ')}`;
   }
+  
+  console.log(`💴 Service details for appointment ${appointment.id}: "${details}"`);
   
   return details;
 };

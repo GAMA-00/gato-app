@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientInvoices } from '@/hooks/usePostPaymentInvoices';
+import { formatCurrency } from '@/utils/currencyUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Clock, DollarSign, FileText } from 'lucide-react';
@@ -72,7 +73,7 @@ const ClientPostPaymentGate: React.FC<ClientPostPaymentGateProps> = ({ children 
                           {formatDate(appointment?.start_time)}
                         </div>
                         <div className="text-sm font-semibold text-blue-700">
-                          Total: ₡{invoice.total_price.toLocaleString()}
+                          Total: {formatCurrency(invoice.total_price)}
                         </div>
                       </div>
                       

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/utils/currencyUtils';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, XCircle, FileImage, Calendar, User, DollarSign, AlertTriangle } from 'lucide-react';
 import { useInvoiceApprovalMutation, useInvoiceItems } from '@/hooks/usePostPaymentInvoices';
@@ -103,7 +105,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 </div>
                 <div>
                   <span className="text-muted-foreground">Tarifa Base:</span>
-                  <p className="font-semibold text-primary">₡{invoice.base_price.toLocaleString()}</p>
+                  <p className="font-semibold text-primary">{formatCurrency(invoice.base_price)}</p>
                 </div>
               </div>
             </CardContent>
@@ -129,7 +131,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">₡{item.amount.toLocaleString()}</p>
+                        <p className="font-semibold">{formatCurrency(item.amount)}</p>
                       </div>
                     </div>
                     
@@ -158,16 +160,16 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Tarifa Base:</span>
-                  <span>₡{invoice.base_price.toLocaleString()}</span>
+                  <span>{formatCurrency(invoice.base_price)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Gastos Adicionales:</span>
-                  <span>₡{totalItems.toLocaleString()}</span>
+                  <span>{formatCurrency(totalItems)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total a Pagar:</span>
-                  <span className="text-primary">₡{invoice.total_price.toLocaleString()}</span>
+                  <span className="text-primary">{formatCurrency(invoice.total_price)}</span>
                 </div>
               </div>
             </CardContent>
