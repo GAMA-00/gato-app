@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Service } from '@/lib/types';
 import { toast } from 'sonner';
+import { uploadGalleryImages, uploadCertificationFiles } from '@/utils/fileUploadUtils';
 
 interface CreateListingData {
   title: string;
@@ -33,11 +34,29 @@ export const useServiceMutations = () => {
       console.log('=== CREATING LISTING ===');
       console.log('Service data:', serviceData);
 
-      // Convert galleryImages to strings only
-      const processedGalleryImages = serviceData.galleryImages ? 
-        serviceData.galleryImages
-          .map(img => typeof img === 'string' ? img : '')
-          .filter(url => url !== '') : [];
+      // Get provider_id securely from auth if not provided
+      let providerId = serviceData.providerId;
+      if (!providerId) {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user?.id) {
+          throw new Error('No se pudo obtener el ID del proveedor autenticado');
+        }
+        providerId = user.id;
+        console.log('Using authenticated user ID as provider_id:', providerId);
+      }
+
+      // Upload gallery images first
+      const galleryImageUrls = await uploadGalleryImages(
+        serviceData.galleryImages || [], 
+        providerId
+      );
+
+      // Upload certification files if provided
+      const certificationFilesUrls = await uploadCertificationFiles(
+        serviceData.certificationFiles || [],
+        providerId,
+        serviceData.hasCertifications || false
+      );
 
       const listingData: CreateListingData = {
         title: serviceData.name!,
@@ -46,10 +65,10 @@ export const useServiceMutations = () => {
         duration: Number(serviceData.duration), // Mantener por compatibilidad
         standard_duration: Number(serviceData.duration), // Fuente de verdad
         service_type_id: serviceData.subcategoryId!,
-        provider_id: serviceData.providerId!,
+        provider_id: providerId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         service_variants: serviceData.serviceVariants || [],
-        gallery_images: processedGalleryImages,
+        gallery_images: galleryImageUrls,
         custom_variable_groups: serviceData.customVariableGroups || [],
         use_custom_variables: serviceData.useCustomVariables || false,
         availability: serviceData.availability || {},
@@ -72,6 +91,24 @@ export const useServiceMutations = () => {
 
       console.log('Listing created:', listing);
 
+      // Update provider profile data
+      const profileUpdateData: any = {
+        about_me: serviceData.aboutMe || '',
+        experience_years: serviceData.experienceYears || 0,
+        has_certifications: serviceData.hasCertifications || false,
+        certification_files: certificationFilesUrls.length > 0 ? certificationFilesUrls : null,
+      };
+
+      const { error: profileError } = await supabase
+        .from('users')
+        .update(profileUpdateData)
+        .eq('id', providerId);
+
+      if (profileError) {
+        console.warn('Error updating provider profile:', profileError);
+        // Don't throw - listing creation succeeded
+      }
+
       // Insertar las residencias asociadas
       if (serviceData.residenciaIds && serviceData.residenciaIds.length > 0) {
         const residenciaData = serviceData.residenciaIds.map(residenciaId => ({
@@ -89,15 +126,42 @@ export const useServiceMutations = () => {
         }
       }
 
+      // Regenerate slots for the new listing
+      const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing', {
+        p_listing_id: listing.id
+      });
+
+      if (rpcError) {
+        console.warn('Error regenerating slots for new listing:', rpcError);
+        // Don't throw - listing creation succeeded
+      }
+
       return listing;
     },
-    onSuccess: () => {
-      // Invalidar todas las queries relevantes
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
-      queryClient.invalidateQueries({ queryKey: ['provider-slots'] });
-      queryClient.invalidateQueries({ queryKey: ['weekly-slots'] });
-      toast.success('Servicio creado exitosamente');
+    onSuccess: async () => {
+      console.log('✅ Listing creado exitosamente - invalidando caches para perspectiva del cliente');
+      
+      // Invalidar TODAS las queries relevantes para refresco inmediato en cliente
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['listings'] }),
+        queryClient.invalidateQueries({ queryKey: ['providers'] }),
+        queryClient.invalidateQueries({ queryKey: ['service-detail'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-availability'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
+      ]);
+      
+      // Forzar refetch inmediato de datos críticos para clientes
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['listings'] }),
+        queryClient.refetchQueries({ queryKey: ['providers'] })
+      ]);
+      
+      console.log('🔄 Todas las queries invalidadas - cambios reflejados en vista de clientes');
+      toast.success('Servicio creado exitosamente - Visible para clientes al instante');
     },
     onError: (error) => {
       console.error('Error creating service:', error);
@@ -110,11 +174,31 @@ export const useServiceMutations = () => {
       console.log('=== UPDATING LISTING ===');
       console.log('Service data:', serviceData);
 
-      // Convert galleryImages to strings only
-      const processedGalleryImages = serviceData.galleryImages ? 
-        serviceData.galleryImages
-          .map(img => typeof img === 'string' ? img : '')
-          .filter(url => url !== '') : undefined;
+      // Get provider_id from the existing listing
+      const { data: existingListing, error: fetchError } = await supabase
+        .from('listings')
+        .select('provider_id')
+        .eq('id', serviceData.id)
+        .single();
+
+      if (fetchError || !existingListing) {
+        throw new Error('No se pudo obtener información del listing existente');
+      }
+
+      const providerId = existingListing.provider_id;
+
+      // Upload new gallery images and preserve existing ones
+      const galleryImageUrls = await uploadGalleryImages(
+        serviceData.galleryImages || [], 
+        providerId
+      );
+
+      // Upload certification files if provided
+      const certificationFilesUrls = await uploadCertificationFiles(
+        serviceData.certificationFiles || [],
+        providerId,
+        serviceData.hasCertifications || false
+      );
 
       const listingData: Partial<CreateListingData> = {
         title: serviceData.name,
@@ -125,7 +209,7 @@ export const useServiceMutations = () => {
         service_type_id: serviceData.subcategoryId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         service_variants: serviceData.serviceVariants,
-        gallery_images: processedGalleryImages,
+        gallery_images: galleryImageUrls.length > 0 ? galleryImageUrls : undefined,
         custom_variable_groups: serviceData.customVariableGroups,
         use_custom_variables: serviceData.useCustomVariables,
         availability: serviceData.availability,
@@ -148,6 +232,29 @@ export const useServiceMutations = () => {
       }
 
       console.log('Listing updated:', listing);
+
+      // Update provider profile data - CRITICAL FOR PROFILE STEP
+      console.log('=== UPDATING PROVIDER PROFILE ===');
+      const profileUpdateData: any = {
+        about_me: serviceData.aboutMe || '',
+        experience_years: serviceData.experienceYears || 0,
+        has_certifications: serviceData.hasCertifications || false,
+        certification_files: certificationFilesUrls.length > 0 ? certificationFilesUrls : null,
+      };
+
+      console.log('Profile data to update:', profileUpdateData);
+
+      const { error: profileError } = await supabase
+        .from('users')
+        .update(profileUpdateData)
+        .eq('id', providerId);
+
+      if (profileError) {
+        console.error('❌ Error updating provider profile:', profileError);
+        throw profileError; // This is critical - profile update must succeed
+      }
+
+      console.log('✅ Provider profile updated successfully');
 
       // Actualizar las residencias asociadas
       if (serviceData.residenciaIds !== undefined) {
@@ -175,14 +282,33 @@ export const useServiceMutations = () => {
         }
       }
 
+      // Regenerate slots if duration changed - CRITICAL FOR AVAILABILITY
+      if (serviceData.duration) {
+        console.log('=== REGENERATING SLOTS FOR DURATION CHANGE ===');
+        const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing', {
+          p_listing_id: serviceData.id
+        });
+
+        if (rpcError) {
+          console.warn('⚠️ Error regenerating slots:', rpcError);
+          // Don't throw - listing update succeeded
+        } else {
+          console.log('✅ Slots regenerated successfully');
+        }
+      }
+
       return listing;
     },
     onSuccess: async (updatedListing) => {
       console.log('✅ Listing actualizado exitosamente:', updatedListing);
       
-      // Invalidar TODAS las queries relevantes para asegurar consistencia total
+      // Invalidar TODAS las queries relevantes para refresco inmediato en CLIENTE
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['listings'] }),
+        queryClient.invalidateQueries({ queryKey: ['providers'] }),
+        queryClient.invalidateQueries({ queryKey: ['service-detail'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
         queryClient.invalidateQueries({ queryKey: ['provider-availability'] }),
         queryClient.invalidateQueries({ queryKey: ['provider-slots'] }),
         queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] }),
@@ -190,19 +316,20 @@ export const useServiceMutations = () => {
         queryClient.invalidateQueries({ queryKey: ['provider-slot-management'] }),
         queryClient.invalidateQueries({ queryKey: ['unified-availability'] }),
         queryClient.invalidateQueries({ queryKey: ['availability-settings'] }),
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
-        queryClient.invalidateQueries({ queryKey: ['provider-profile'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
       ]);
       
-      // Forzar refetch inmediato de datos críticos
+      // Forzar refetch inmediato de datos críticos para CLIENTES
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['listings'] }),
-        queryClient.refetchQueries({ queryKey: ['provider-availability'] })
+        queryClient.refetchQueries({ queryKey: ['providers'] }),
+        queryClient.refetchQueries({ queryKey: ['service-detail'] }),
+        queryClient.refetchQueries({ queryKey: ['provider-profile'] }),
+        queryClient.refetchQueries({ queryKey: ['user-profile'] })
       ]);
       
-      console.log('🔄 Todas las queries invalidadas y refetcheadas');
-      toast.success('Servicio actualizado - Todas las secciones sincronizadas');
+      console.log('🔄 PERFIL PROFESIONAL + LISTINGS sincronizados - cambios reflejados AL INSTANTE en vista de clientes');
+      toast.success('Anuncio actualizado - Perfil y cambios visibles para clientes inmediatamente');
     },
     onError: (error) => {
       console.error('Error updating service:', error);
