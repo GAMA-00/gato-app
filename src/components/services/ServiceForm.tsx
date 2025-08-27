@@ -158,6 +158,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           sunday: { enabled: false, timeSlots: [] }
         },
         slotPreferences: initialData.slotPreferences || {},
+        
+        // Campos del perfil profesional
+        aboutMe: initialData.aboutMe || '',
+        experienceYears: initialData.experienceYears || 0,
+        hasCertifications: initialData.hasCertifications || false,
+        certificationFiles: initialData.certificationFiles || [],
       };
       
       console.log('Form values to reset:', formValues);

@@ -41,6 +41,12 @@ const ServiceEdit = () => {
                 name,
                 label
               )
+            ),
+            users!inner(
+              about_me,
+              experience_years,
+              has_certifications,
+              certification_files
             )
           `)
           .eq('id', id)
@@ -130,6 +136,12 @@ const ServiceEdit = () => {
           providerName: '',
           residenciaIds: residenciaIds, // Usar los IDs obtenidos de la consulta
           createdAt: new Date(listingData.created_at),
+          
+          // Campos del perfil profesional
+          aboutMe: listingData.users?.about_me || '',
+          experienceYears: listingData.users?.experience_years || 0,
+          hasCertifications: listingData.users?.has_certifications || false,
+          certificationFiles: listingData.users?.certification_files || [],
         };
 
         console.log('=== SERVICEEDIT DEBUG (FIXED) ===');
