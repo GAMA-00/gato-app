@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientInvoices } from '@/hooks/usePostPaymentInvoices';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Clock, DollarSign, FileText } from 'lucide-react';
-import PostPaymentReview from '@/components/client/PostPaymentReview';
+import PostPaymentReview from './PostPaymentReview';
 
 interface ClientPostPaymentGateProps {
   children: React.ReactNode;
@@ -21,7 +22,7 @@ const ClientPostPaymentGate: React.FC<ClientPostPaymentGateProps> = ({ children 
     return <>{children}</>;
   }
 
-  const handleInvoiceProcessed = () => {
+  const handleInvoiceReviewed = () => {
     setSelectedInvoice(null);
     refetch();
   };
@@ -29,27 +30,27 @@ const ClientPostPaymentGate: React.FC<ClientPostPaymentGateProps> = ({ children 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
-      month: 'long', 
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
-  // Show gating screen with pending invoices for approval
+  // Show gating screen with pending invoice reviews
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="max-w-2xl mx-auto border-blue-200 bg-blue-50/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-blue-800">
             <FileText className="w-6 h-6" />
-            Facturas por Aprobar
+            Facturas Pendientes de Revisión
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-sm text-blue-700 bg-blue-100 p-4 rounded-lg">
-            <p className="font-medium mb-2">Tienes facturas de servicios post-pago esperando tu aprobación:</p>
-            <p>Revisa los detalles y aprueba o rechaza cada factura para continuar.</p>
+            <p className="font-medium mb-2">Tienes facturas post-pago pendientes de revisión:</p>
+            <p>Los proveedores han completado servicios y necesitan tu aprobación para los gastos adicionales antes de procesar el cobro final.</p>
           </div>
 
           <div className="space-y-3">
@@ -59,7 +60,7 @@ const ClientPostPaymentGate: React.FC<ClientPostPaymentGateProps> = ({ children 
                 <Card key={invoice.id} className="border-blue-200">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="font-medium text-sm">
                           {appointment?.listings?.title}
                         </div>
@@ -71,17 +72,17 @@ const ClientPostPaymentGate: React.FC<ClientPostPaymentGateProps> = ({ children 
                           {formatDate(appointment?.start_time)}
                         </div>
                         <div className="text-sm font-semibold text-blue-700">
-                          Total: ₡{invoice.total_price?.toLocaleString()}
+                          Total: ₡{invoice.total_price.toLocaleString()}
                         </div>
                       </div>
                       
                       <Button
                         onClick={() => setSelectedInvoice(invoice)}
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="flex items-center gap-2"
                       >
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        Revisar
+                        <DollarSign className="w-4 h-4" />
+                        Revisar Factura
                       </Button>
                     </div>
                   </CardContent>
@@ -92,18 +93,18 @@ const ClientPostPaymentGate: React.FC<ClientPostPaymentGateProps> = ({ children 
 
           <div className="text-center pt-4 border-t border-blue-200">
             <p className="text-sm text-blue-700">
-              {pendingInvoices.length} factura{pendingInvoices.length > 1 ? 's' : ''} por revisar
+              {pendingInvoices.length} factura{pendingInvoices.length > 1 ? 's' : ''} pendiente{pendingInvoices.length > 1 ? 's' : ''} de revisión
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Review Modal */}
+      {/* Invoice Review Modal */}
       <PostPaymentReview
         isOpen={!!selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
         invoice={selectedInvoice}
-        onSuccess={handleInvoiceProcessed}
+        onSuccess={handleInvoiceReviewed}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,8 +23,10 @@ export interface PostPaymentInvoice {
 export interface PostPaymentItem {
   id: string;
   invoice_id: string;
-  description: string;
+  item_name: string;
+  description?: string;
   amount: number;
+  evidence_file_url?: string;
 }
 
 export interface CreateInvoiceData {
@@ -138,12 +141,15 @@ export const useInvoiceMutation = () => {
   return useMutation({
     mutationFn: async ({ 
       invoiceData, 
-      items, 
-      evidenceFile 
+      items 
     }: { 
       invoiceData: PostPaymentInvoice | Omit<PostPaymentInvoice, 'id' | 'created_at' | 'updated_at'>;
-      items: Array<{ description: string; amount: number }>;
-      evidenceFile?: File;
+      items: Array<{ 
+        item_name: string; 
+        description?: string; 
+        amount: number; 
+        evidenceFile?: File;
+      }>;
     }) => {
       let invoiceId = ('id' in invoiceData) ? invoiceData.id : undefined;
 
@@ -174,36 +180,45 @@ export const useInvoiceMutation = () => {
           .eq('invoice_id', invoiceId);
       }
 
-      // Insert new items
-      if (items.length > 0) {
-        const { error } = await supabase
-          .from('post_payment_items')
-          .insert(items.map(item => ({ ...item, invoice_id: invoiceId })));
-        
-        if (error) throw error;
+      // Process and insert new items
+      const itemsToInsert = [];
+      for (const item of items) {
+        let evidenceUrl = null;
+
+        // Upload evidence file if provided
+        if (item.evidenceFile) {
+          const fileName = `${invoiceId}_${Date.now()}_${item.evidenceFile.name}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('service-gallery')
+            .upload(`invoices/${fileName}`, item.evidenceFile);
+
+          if (uploadError) {
+            console.error('Error uploading evidence file:', uploadError);
+          } else {
+            const { data: urlData } = supabase.storage
+              .from('service-gallery')
+              .getPublicUrl(`invoices/${fileName}`);
+            evidenceUrl = urlData.publicUrl;
+          }
+        }
+
+        itemsToInsert.push({
+          invoice_id: invoiceId,
+          item_name: item.item_name,
+          description: item.description || null,
+          amount: item.amount,
+          evidence_file_url: evidenceUrl
+        });
       }
 
-      // Upload evidence file if provided
-      if (evidenceFile) {
-        const fileName = `${invoiceId}_${Date.now()}_${evidenceFile.name}`;
+      // Insert new items
+      if (itemsToInsert.length > 0) {
+        const { error } = await supabase
+          .from('post_payment_items')
+          .insert(itemsToInsert);
         
-        const { error: uploadError } = await supabase.storage
-          .from('service-gallery')
-          .upload(`invoices/${fileName}`, evidenceFile);
-
-        if (uploadError) {
-          console.error('Error uploading evidence file:', uploadError);
-        } else {
-          // Get public URL and update invoice
-          const { data: urlData } = supabase.storage
-            .from('service-gallery')
-            .getPublicUrl(`invoices/${fileName}`);
-
-          await supabase
-            .from('post_payment_invoices')
-            .update({ evidence_file_url: urlData.publicUrl })
-            .eq('id', invoiceId);
-        }
+        if (error) throw error;
       }
 
       return invoiceId;

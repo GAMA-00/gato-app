@@ -450,23 +450,29 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
-          description: string
+          description: string | null
+          evidence_file_url: string | null
           id: string
           invoice_id: string
+          item_name: string
         }
         Insert: {
           amount: number
           created_at?: string
-          description: string
+          description?: string | null
+          evidence_file_url?: string | null
           id?: string
           invoice_id: string
+          item_name?: string
         }
         Update: {
           amount?: number
           created_at?: string
-          description?: string
+          description?: string | null
+          evidence_file_url?: string | null
           id?: string
           invoice_id?: string
+          item_name?: string
         }
         Relationships: [
           {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,17 +10,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Upload, FileImage, Clock, DollarSign } from 'lucide-react';
+import { Plus, Minus, Upload, FileImage, Clock, DollarSign, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useInvoiceMutation, useSubmitInvoiceMutation, useInvoiceItems } from '@/hooks/usePostPaymentInvoices';
 
 const invoiceItemSchema = z.object({
-  description: z.string().min(1, 'La descripción es requerida'),
-  amount: z.number().min(0, 'El monto debe ser positivo')
+  item_name: z.string().min(1, 'El nombre del gasto es requerido'),
+  description: z.string().optional(),
+  amount: z.number().min(0, 'El monto debe ser positivo'),
+  evidenceFile: z.any().optional()
 });
 
 const invoiceSchema = z.object({
-  items: z.array(invoiceItemSchema).min(0),
+  items: z.array(invoiceItemSchema).min(1, 'Debe agregar al menos un ítem'),
   notes: z.string().optional()
 });
 
@@ -28,7 +31,7 @@ type InvoiceFormData = z.infer<typeof invoiceSchema>;
 interface PostPaymentInvoicingProps {
   isOpen: boolean;
   onClose: () => void;
-  invoice: any; // From pending invoices query
+  invoice: any;
   onSuccess: () => void;
 }
 
@@ -38,8 +41,8 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
   invoice,
   onSuccess
 }) => {
-  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [itemFiles, setItemFiles] = useState<{ [key: number]: File | null }>({});
   
   const { data: existingItems = [] } = useInvoiceItems(invoice?.id);
   const invoiceMutation = useInvoiceMutation();
@@ -48,7 +51,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      items: [],
+      items: [{ item_name: '', description: '', amount: 0 }],
       notes: ''
     }
   });
@@ -62,35 +65,27 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
   useEffect(() => {
     if (existingItems.length > 0) {
       form.setValue('items', existingItems.map(item => ({
-        description: item.description,
-        amount: item.amount
+        item_name: item.item_name || '',
+        description: item.description || '',
+        amount: item.amount,
+        evidenceFile: undefined
       })));
     } else if (fields.length === 0) {
       // Add one empty item by default
-      append({ description: '', amount: 0 });
+      append({ item_name: '', description: '', amount: 0 });
     }
   }, [existingItems, form, append, fields.length]);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const validFiles = files.filter(file => 
-      file.type.startsWith('image/') || file.type === 'application/pdf'
-    );
-    
-    if (validFiles.length !== files.length) {
-      toast.error('Solo se permiten imágenes y archivos PDF');
-    }
-    
-    setEvidenceFiles(prev => [...prev, ...validFiles].slice(0, 5));
-  };
-
-  const removeFile = (index: number) => {
-    setEvidenceFiles(prev => prev.filter((_, i) => i !== index));
+  const handleFileUpload = (index: number, file: File | null) => {
+    setItemFiles(prev => ({
+      ...prev,
+      [index]: file
+    }));
   };
 
   const calculateTotal = () => {
     const itemsTotal = form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0);
-    return invoice?.appointments?.listings?.base_price || 0 + itemsTotal;
+    return (invoice?.appointments?.listings?.base_price || 0) + itemsTotal;
   };
 
   const onSubmit = async (data: InvoiceFormData, submitForApproval = false) => {
@@ -100,7 +95,15 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
     try {
       const appointment = invoice.appointments;
       const basePrice = appointment?.listings?.base_price || 0;
-      const totalPrice = basePrice + data.items.reduce((sum, item) => sum + item.amount, 0);
+      const totalPrice = basePrice + data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+      // Prepare items with evidence files
+      const itemsWithEvidence = data.items.map((item, index) => ({
+        item_name: item.item_name,
+        description: item.description || undefined,
+        amount: item.amount,
+        evidenceFile: itemFiles[index] || undefined
+      }));
 
       const invoiceData = {
         id: invoice.id,
@@ -115,10 +118,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
       const invoiceId = await invoiceMutation.mutateAsync({
         invoiceData,
-        items: data.items.filter((item): item is { description: string; amount: number } => 
-          Boolean(item.description?.trim()) && typeof item.amount === 'number' && item.amount >= 0
-        ),
-        evidenceFile: evidenceFiles[0] // Take first file as evidence
+        items: itemsWithEvidence
       });
 
       if (submitForApproval) {
@@ -151,11 +151,11 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
-            Facturación Post-Pago
+            Desglose de Gastos - Post Pago
           </DialogTitle>
         </DialogHeader>
 
@@ -192,8 +192,8 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                 <div className="flex items-start gap-2">
                   <Clock className="w-4 h-4 text-red-600 mt-1" />
                   <div>
-                    <p className="font-medium text-red-800">Factura rechazada</p>
-                    <p className="text-sm text-red-700">{invoice.rejection_reason}</p>
+                    <p className="font-medium text-red-800">Factura rechazada por el cliente</p>
+                    <p className="text-sm text-red-700 mt-1">{invoice.rejection_reason}</p>
                   </div>
                 </div>
               </CardContent>
@@ -204,109 +204,106 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
             {/* Cost Items */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Costos Adicionales</CardTitle>
+                <CardTitle className="text-sm font-medium">Gastos Adicionales</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Detalle todos los gastos adicionales incurridos durante el servicio
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Label className="text-xs">Descripción</Label>
-                      <Input
+                  <div key={field.id} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium text-sm">Ítem #{index + 1}</h4>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => remove(index)}
+                        disabled={fields.length === 1}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs font-medium">Nombre del gasto *</Label>
+                        <Input
+                          {...form.register(`items.${index}.item_name`)}
+                          placeholder="Ej: Materiales extra"
+                          className="text-sm"
+                        />
+                        {form.formState.errors.items?.[index]?.item_name && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {form.formState.errors.items[index]?.item_name?.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-medium">Monto (₡) *</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...form.register(`items.${index}.amount`, { valueAsNumber: true })}
+                          placeholder="0.00"
+                          className="text-sm"
+                        />
+                        {form.formState.errors.items?.[index]?.amount && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {form.formState.errors.items[index]?.amount?.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-medium">Descripción (opcional)</Label>
+                      <Textarea
                         {...form.register(`items.${index}.description`)}
-                        placeholder="Ej: Materiales adicionales"
-                        className="text-sm"
+                        placeholder="Detalles adicionales sobre este gasto..."
+                        className="text-sm h-20"
                       />
                     </div>
-                    <div className="w-32">
-                      <Label className="text-xs">Monto (₡)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...form.register(`items.${index}.amount`, { valueAsNumber: true })}
-                        placeholder="0.00"
-                        className="text-sm"
-                      />
+
+                    <div>
+                      <Label className="text-xs font-medium">Evidencia (opcional)</Label>
+                      <div className="flex items-center gap-3 mt-1">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(index, e.target.files?.[0] || null)}
+                          className="text-sm"
+                        />
+                        {itemFiles[index] && (
+                          <div className="flex items-center gap-2 text-xs text-green-600">
+                            <FileImage className="w-3 h-3" />
+                            {itemFiles[index]?.name}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => remove(index)}
-                      disabled={fields.length === 1}
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
                   </div>
                 ))}
 
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  onClick={() => append({ description: '', amount: 0 })}
+                  onClick={() => append({ item_name: '', description: '', amount: 0 })}
                   className="w-full"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Agregar ítem
+                  Agregar otro gasto
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Evidence Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Comprobantes (Opcional)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      onChange={handleFileUpload}
-                      accept="image/*,application/pdf"
-                      multiple
-                      className="hidden"
-                      id="evidence-upload"
-                    />
-                    <Label
-                      htmlFor="evidence-upload"
-                      className="flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 text-sm"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Subir Comprobante
-                    </Label>
-                  </div>
-                  
-                  {evidenceFiles.length > 0 && (
-                    <div className="space-y-2">
-                      {evidenceFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
-                          <div className="flex items-center gap-2">
-                            <FileImage className="w-4 h-4" />
-                            <span>{file.name}</span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(index)}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </CardContent>
             </Card>
 
             {/* Notes */}
             <div>
-              <Label className="text-sm font-medium">Notas Adicionales</Label>
+              <Label className="text-sm font-medium">Observaciones Generales</Label>
               <Textarea
                 {...form.register('notes')}
-                placeholder="Observaciones sobre el servicio prestado..."
+                placeholder="Comentarios adicionales sobre el servicio..."
                 className="mt-1 text-sm"
               />
             </div>
@@ -320,7 +317,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                     <span>₡{basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Costos Adicionales:</span>
+                    <span>Gastos Adicionales:</span>
                     <span>₡{form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
                   </div>
                   <Separator />

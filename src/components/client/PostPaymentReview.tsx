@@ -1,18 +1,19 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, DollarSign, FileText, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, FileImage, Calendar, User, DollarSign, AlertTriangle } from 'lucide-react';
 import { useInvoiceApprovalMutation, useInvoiceItems } from '@/hooks/usePostPaymentInvoices';
 import { toast } from 'sonner';
 
 interface PostPaymentReviewProps {
   isOpen: boolean;
   onClose: () => void;
-  invoice: any; // From client invoices query
+  invoice: any;
   onSuccess: () => void;
 }
 
@@ -23,14 +24,15 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
   onSuccess
 }) => {
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectionForm, setShowRejectionForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  const { data: invoiceItems = [] } = useInvoiceItems(invoice?.id);
+
+  const { data: items = [] } = useInvoiceItems(invoice?.id);
   const approvalMutation = useInvoiceApprovalMutation();
 
   const handleApproval = async (approved: boolean) => {
     if (!approved && !rejectionReason.trim()) {
-      toast.error('Por favor, proporciona una razón para el rechazo');
+      toast.error('Debe proporcionar un motivo para rechazar la factura');
       return;
     }
 
@@ -64,144 +66,192 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
   if (!invoice) return null;
 
   const appointment = invoice.appointments;
-  const additionalTotal = invoiceItems.reduce((sum, item) => sum + item.amount, 0);
+  const totalItems = items.reduce((sum, item) => sum + item.amount, 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
-            Revisión de Factura
+            Revisar Factura Post-Pago
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Service Info */}
+        <div className="space-y-6">
+          {/* Service Information */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Servicio Realizado</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Servicio:</span>
-                <span className="font-medium">{appointment?.listings?.title}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Proveedor:</span>
-                <span className="font-medium">{appointment?.provider_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Fecha:</span>
-                <span className="font-medium">{formatDate(appointment?.start_time)}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Cost Breakdown */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Desglose de Costos</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Información del Servicio
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>Tarifa Base:</span>
-                <span className="font-medium">₡{invoice.base_price.toLocaleString()}</span>
-              </div>
-              
-              {invoiceItems.length > 0 && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Costos Adicionales:</p>
-                    {invoiceItems.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm pl-4">
-                        <span className="text-muted-foreground">{item.description}:</span>
-                        <span>₡{item.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-              
-              <Separator />
-              <div className="flex justify-between font-semibold text-primary">
-                <span>Total:</span>
-                <span>₡{invoice.total_price.toLocaleString()}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Servicio:</span>
+                  <p className="font-medium">{appointment?.listings?.title}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Proveedor:</span>
+                  <p className="font-medium">{appointment?.provider_name}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Fecha:</span>
+                  <p className="font-medium">{formatDate(appointment?.start_time)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Tarifa Base:</span>
+                  <p className="font-semibold text-primary">₡{invoice.base_price.toLocaleString()}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Evidence */}
-          {invoice.evidence_file_url && (
-            <Card>
+          {/* Items Breakdown */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Desglose de Gastos Adicionales</CardTitle>
+              {items.length === 0 && (
+                <p className="text-xs text-muted-foreground">No se reportaron gastos adicionales</p>
+              )}
+            </CardHeader>
+            {items.length > 0 && (
+              <CardContent className="space-y-4">
+                {items.map((item, index) => (
+                  <div key={item.id} className="p-4 border rounded-lg space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{item.item_name}</h4>
+                        {item.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">₡{item.amount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    
+                    {item.evidence_file_url && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <FileImage className="w-3 h-3" />
+                        <a 
+                          href={item.evidence_file_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:text-primary hover:underline"
+                        >
+                          Ver evidencia
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Total Summary */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="pt-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Tarifa Base:</span>
+                  <span>₡{invoice.base_price.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Gastos Adicionales:</span>
+                  <span>₡{totalItems.toLocaleString()}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>Total a Pagar:</span>
+                  <span className="text-primary">₡{invoice.total_price.toLocaleString()}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Rejection Form */}
+          {showRejectionForm && (
+            <Card className="border-orange-200 bg-orange-50/30">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Comprobante
+                <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-800">
+                  <AlertTriangle className="w-4 h-4" />
+                  Motivo del Rechazo
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <a
-                  href={invoice.evidence_file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline"
-                >
-                  Ver comprobante de gastos
-                </a>
+                <div className="space-y-3">
+                  <Label className="text-sm">
+                    Explique por qué rechaza esta factura (requerido)
+                  </Label>
+                  <Textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Ej: Los materiales parecen muy caros, necesito más detalles sobre..."
+                    className="min-h-[100px]"
+                  />
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Rejection Reason Input */}
-          <Card className="border-amber-200 bg-amber-50">
-            <CardContent className="pt-4">
-              <Label htmlFor="rejection-reason" className="text-sm font-medium mb-2 block">
-                Razón del rechazo (si aplica):
-              </Label>
-              <Textarea
-                id="rejection-reason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Si rechazas esta factura, explica el motivo para que el proveedor pueda hacer los ajustes necesarios..."
-                className="text-sm"
-                rows={3}
-              />
-              <div className="flex items-start gap-2 mt-3 text-xs text-amber-700">
-                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p>
-                  Si rechazas esta factura, será devuelta al proveedor para que realice los ajustes necesarios.
-                  Solo podrás proceder con el pago una vez que apruebes una factura.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => handleApproval(false)}
-              disabled={isProcessing || !rejectionReason.trim()}
-              className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={isProcessing}
             >
-              <XCircle className="w-4 h-4 mr-2" />
-              {isProcessing ? 'Rechazando...' : 'Rechazar'}
+              Cancelar
             </Button>
             
-            <Button
-              onClick={() => handleApproval(true)}
-              disabled={isProcessing}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              {isProcessing ? 'Aprobando...' : 'Aprobar y Pagar'}
-            </Button>
-          </div>
-
-          <div className="text-xs text-muted-foreground text-center pt-2">
-            Al aprobar, autorizas el cobro del monto total mostrado
+            {!showRejectionForm ? (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRejectionForm(true)}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Rechazar
+                </Button>
+                <Button
+                  onClick={() => handleApproval(true)}
+                  disabled={isProcessing}
+                  className="flex-1 flex items-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  {isProcessing ? 'Procesando...' : 'Aprobar y Proceder al Pago'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowRejectionForm(false);
+                    setRejectionReason('');
+                  }}
+                  disabled={isProcessing}
+                >
+                  Cancelar Rechazo
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleApproval(false)}
+                  disabled={isProcessing || !rejectionReason.trim()}
+                  className="flex-1 flex items-center gap-2"
+                >
+                  <XCircle className="w-4 h-4" />
+                  {isProcessing ? 'Procesando...' : 'Confirmar Rechazo'}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </DialogContent>
