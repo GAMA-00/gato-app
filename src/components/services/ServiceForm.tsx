@@ -46,11 +46,15 @@ const serviceSchema = z.object({
     maxPersons: z.union([z.string(), z.coerce.number()]).optional()
   })).min(1, 'Debe tener al menos una variante'),
   residenciaIds: z.array(z.string()).min(1, 'Debe seleccionar al menos una residencia'),
-  galleryImages: z.array(z.string()).optional().default([]),
+  galleryImages: z.array(z.union([z.string(), z.instanceof(File)])).optional().default([]),
   customVariableGroups: z.array(z.any()).optional().default([]),
   useCustomVariables: z.boolean().optional().default(false),
   availability: z.any().optional(),
   slotPreferences: z.any().optional(),
+  aboutMe: z.string().optional(),
+  experienceYears: z.union([z.string(), z.coerce.number()]).optional(),
+  hasCertifications: z.boolean().optional(),
+  certificationFiles: z.array(z.any()).optional().default([]),
 });
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
