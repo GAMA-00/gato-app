@@ -155,12 +155,12 @@ const ProviderProfile = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 <ProviderAbout provider={transformedProvider} />
+                <ProviderReviews provider={transformedProvider} />
                 <ProviderServices 
                   categories={categories} 
                   isLoading={categoriesLoading}
                   onServiceSelect={() => {}}
                 />
-                <ProviderReviews provider={transformedProvider} />
               </div>
               <div className="space-y-6">
                 <ProviderInfo provider={transformedProvider} />
