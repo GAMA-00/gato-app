@@ -239,7 +239,12 @@ const ClientProviderServiceDetail = () => {
             />
           </div>
 
-          {/* 6. Servicios Disponibles */}
+          {/* 6. Comentarios de clientes */}
+          <div className="w-full">
+            <ProviderReviews provider={transformedProvider} />
+          </div>
+
+          {/* 7. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
             <div className="space-y-6 w-full">
               <div>
@@ -250,11 +255,6 @@ const ClientProviderServiceDetail = () => {
               </div>
             </div>
           )}
-
-          {/* 7. Comentarios de clientes */}
-          <div className="w-full">
-            <ProviderReviews provider={transformedProvider} />
-          </div>
 
           {/* 8. Botón "Agendar Servicio" */}
           <div className="flex justify-center pt-6 pb-8 sm:pt-8 sm:pb-12 w-full">
