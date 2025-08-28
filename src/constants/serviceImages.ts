@@ -1,7 +1,8 @@
 
 // Map of custom images for home category services
 export const homeServiceImages: Record<string, string> = {
-  'limpieza': '/lovable-uploads/567579a7-a7de-4761-acfd-31b8ca0809b1.png',
+  'fumigacion': '/src/assets/fumigacion-icon.png',
+  'fumigación': '/src/assets/fumigacion-icon.png',
   'planchado': '/lovable-uploads/cb20f484-db92-4a96-9734-e3c343529266.png',
   'jardin': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
   'jardinero': '/lovable-uploads/13aebed9-88aa-427c-a235-0e9d57e92bef.png',
