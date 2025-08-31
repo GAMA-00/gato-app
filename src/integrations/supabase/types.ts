@@ -285,6 +285,334 @@ export type Database = {
           },
         ]
       }
+      onvopay_payments: {
+        Row: {
+          amount: number
+          appointment_id: string
+          authorized_at: string | null
+          billing_info: Json
+          cancelled_at: string | null
+          captured_at: string | null
+          card_info: Json | null
+          client_id: string
+          commission_amount: number
+          created_at: string
+          currency: string
+          error_details: Json | null
+          external_reference: string | null
+          failed_at: string | null
+          id: string
+          iva_amount: number
+          legacy_stripe_payment_intent_id: string | null
+          migration_notes: Json | null
+          onvopay_payment_id: string | null
+          onvopay_response: Json | null
+          onvopay_transaction_id: string | null
+          payment_method: string
+          payment_type: string
+          provider_id: string
+          retry_count: number | null
+          status: string
+          subtotal: number
+        }
+        Insert: {
+          amount: number
+          appointment_id: string
+          authorized_at?: string | null
+          billing_info?: Json
+          cancelled_at?: string | null
+          captured_at?: string | null
+          card_info?: Json | null
+          client_id: string
+          commission_amount?: number
+          created_at?: string
+          currency?: string
+          error_details?: Json | null
+          external_reference?: string | null
+          failed_at?: string | null
+          id?: string
+          iva_amount: number
+          legacy_stripe_payment_intent_id?: string | null
+          migration_notes?: Json | null
+          onvopay_payment_id?: string | null
+          onvopay_response?: Json | null
+          onvopay_transaction_id?: string | null
+          payment_method?: string
+          payment_type: string
+          provider_id: string
+          retry_count?: number | null
+          status?: string
+          subtotal: number
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string
+          authorized_at?: string | null
+          billing_info?: Json
+          cancelled_at?: string | null
+          captured_at?: string | null
+          card_info?: Json | null
+          client_id?: string
+          commission_amount?: number
+          created_at?: string
+          currency?: string
+          error_details?: Json | null
+          external_reference?: string | null
+          failed_at?: string | null
+          id?: string
+          iva_amount?: number
+          legacy_stripe_payment_intent_id?: string | null
+          migration_notes?: Json | null
+          onvopay_payment_id?: string | null
+          onvopay_response?: Json | null
+          onvopay_transaction_id?: string | null
+          payment_method?: string
+          payment_type?: string
+          provider_id?: string
+          retry_count?: number | null
+          status?: string
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onvopay_payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onvopay_subscriptions: {
+        Row: {
+          amount: number
+          cancelled_at: string | null
+          client_id: string
+          created_at: string
+          external_reference: string | null
+          failed_attempts: number | null
+          id: string
+          inherit_original_data: boolean
+          interval_count: number
+          interval_type: string
+          last_charge_date: string | null
+          last_failure_reason: string | null
+          max_retry_attempts: number | null
+          next_charge_date: string
+          onvopay_subscription_id: string | null
+          original_appointment_template: Json | null
+          provider_id: string
+          recurring_rule_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          cancelled_at?: string | null
+          client_id: string
+          created_at?: string
+          external_reference?: string | null
+          failed_attempts?: number | null
+          id?: string
+          inherit_original_data?: boolean
+          interval_count?: number
+          interval_type: string
+          last_charge_date?: string | null
+          last_failure_reason?: string | null
+          max_retry_attempts?: number | null
+          next_charge_date: string
+          onvopay_subscription_id?: string | null
+          original_appointment_template?: Json | null
+          provider_id: string
+          recurring_rule_id?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          cancelled_at?: string | null
+          client_id?: string
+          created_at?: string
+          external_reference?: string | null
+          failed_attempts?: number | null
+          id?: string
+          inherit_original_data?: boolean
+          interval_count?: number
+          interval_type?: string
+          last_charge_date?: string | null
+          last_failure_reason?: string | null
+          max_retry_attempts?: number | null
+          next_charge_date?: string
+          onvopay_subscription_id?: string | null
+          original_appointment_template?: Json | null
+          provider_id?: string
+          recurring_rule_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onvopay_subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_recurring_rule_id_fkey"
+            columns: ["recurring_rule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onvopay_webhooks: {
+        Row: {
+          error_details: Json | null
+          event_type: string
+          id: string
+          is_duplicate: boolean
+          is_unexpected_event: boolean
+          onvopay_event_id: string
+          payment_id: string | null
+          processed: boolean
+          processed_at: string | null
+          processing_result: Json | null
+          received_at: string
+          retry_count: number | null
+          subscription_id: string | null
+          webhook_data: Json
+        }
+        Insert: {
+          error_details?: Json | null
+          event_type: string
+          id?: string
+          is_duplicate?: boolean
+          is_unexpected_event?: boolean
+          onvopay_event_id: string
+          payment_id?: string | null
+          processed?: boolean
+          processed_at?: string | null
+          processing_result?: Json | null
+          received_at?: string
+          retry_count?: number | null
+          subscription_id?: string | null
+          webhook_data?: Json
+        }
+        Update: {
+          error_details?: Json | null
+          event_type?: string
+          id?: string
+          is_duplicate?: boolean
+          is_unexpected_event?: boolean
+          onvopay_event_id?: string
+          payment_id?: string | null
+          processed?: boolean
+          processed_at?: string | null
+          processing_result?: Json | null
+          received_at?: string
+          retry_count?: number | null
+          subscription_id?: string | null
+          webhook_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onvopay_webhooks_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "onvopay_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_webhooks_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "onvopay_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_methods: {
         Row: {
           account_holder: string | null
@@ -1506,6 +1834,15 @@ export type Database = {
       get_provider_listing: {
         Args: { p_provider_id: string }
         Returns: string
+      }
+      get_provider_payments_stats: {
+        Args: { p_provider_id: string }
+        Returns: {
+          active_subscriptions: number
+          commission_owed: number
+          monthly_total: number
+          pending_count: number
+        }[]
       }
       get_rated_appointments: {
         Args: { appointment_ids: string[] }
