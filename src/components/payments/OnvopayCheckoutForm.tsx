@@ -76,6 +76,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
     address: ''
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const { subtotal, iva, total } = calculateIVA(amount);
@@ -117,12 +118,35 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm() || hasSubmitted) return;
 
+    setHasSubmitted(true); // Prevent double submission
     setIsProcessing(true);
     console.log('Iniciando proceso de reserva y pago...');
 
     try {
+      // PASO 0: Validar que el slot esté disponible antes de crear appointment
+      console.log('🔍 Validando disponibilidad del slot...');
+      const { data: existingAppointments, error: validationError } = await supabase
+        .from('appointments')
+        .select('id, status')
+        .eq('provider_id', appointmentData.providerId)
+        .eq('start_time', appointmentData.startTime)
+        .eq('end_time', appointmentData.endTime)
+        .not('status', 'in', ['cancelled', 'rejected']);
+
+      if (validationError) {
+        console.error('❌ Error validating slot:', validationError);
+        throw new Error('Error al validar disponibilidad del slot');
+      }
+
+      if (existingAppointments && existingAppointments.length > 0) {
+        console.error('❌ Slot ya ocupado:', existingAppointments);
+        throw new Error('Este horario ya no está disponible. Por favor selecciona otro horario.');
+      }
+
+      console.log('✅ Slot disponible, procediendo con creación...');
+
       // PASO 1: Crear appointment PRIMERO
       console.log('📝 Creando appointment en base de datos...');
       console.log('📋 appointmentData recibido:', appointmentData);
@@ -261,6 +285,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
       });
       onError(error);
     } finally {
+      setHasSubmitted(false); // Reset on completion
       setIsProcessing(false);
       console.log('Proceso finalizado');
     }
