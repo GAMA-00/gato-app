@@ -202,8 +202,8 @@ const BookingSummaryCard = ({
           <div>
             <h4 className="font-semibold text-blue-900 mb-1">Política de cancelación</h4>
             <ul className="text-blue-800 text-sm space-y-1">
-              <li>• Entre 3 y 24 horas antes del servicio: multa del 20%.</li>
-              <li>• Menos de 3 horas antes del servicio: multa del 50%.</li>
+              <li>• Entre 2 y 24 horas antes del servicio: multa del 20%.</li>
+              <li>• Menos de 2 horas antes del servicio: multa del 50%.</li>
             </ul>
           </div>
         </div>
