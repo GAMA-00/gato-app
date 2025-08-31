@@ -247,8 +247,8 @@ const BookingSummaryCard = ({
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span>Confirmar Reserva</span>
-                <span className="text-xs opacity-80">✓</span>
+                <span>Continuar al Pago</span>
+                <span className="text-xs opacity-80">→</span>
               </div>
             )}
           </Button>

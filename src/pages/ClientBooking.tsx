@@ -115,9 +115,9 @@ const ClientBooking = () => {
   }
 
   const handleBooking = async () => {
-    console.log('=== INICIANDO PROCESO DE RESERVA ROBUSTO ===');
+    console.log('=== INICIANDO PROCESO DE CHECKOUT ===');
     
-    // ROBUST VALIDATION - Allow booking even with minimal data
+    // VALIDATION
     if (!user) {
       toast.error('Debes iniciar sesión para realizar una reserva');
       return;
@@ -133,9 +133,6 @@ const ClientBooking = () => {
       return;
     }
 
-    // Show immediate feedback
-    toast.info('Iniciando reserva...', { duration: 1500 });
-
     try {
       // Create start and end times
       const [hours, minutes] = selectedTime.split(':').map(Number);
@@ -146,62 +143,27 @@ const ClientBooking = () => {
       const duration = totalDuration > 0 ? totalDuration : selectedVariant.duration;
       endDateTime.setMinutes(endDateTime.getMinutes() + duration);
 
-      console.log('Horario seleccionado:', {
-        startDateTime: startDateTime.toISOString(),
-        endDateTime: endDateTime.toISOString(),
-        frequency: selectedFrequency
-      });
-
-      // ROBUST VALIDATION - with smart fallback
-      let isValid = true;
-      
-      try {
-        toast.info('Verificando disponibilidad...', { duration: 1500 });
-        
-        // Ultra-fast validation with aggressive timeout
-        const validationPromise = validateBookingSlot(
-          providerId,
-          startDateTime,
-          endDateTime,
-          selectedFrequency
-        );
-
-        const timeoutPromise = new Promise<boolean>((_, reject) =>
-          setTimeout(() => reject(new Error('Validation timeout')), 2000) // 2s max
-        );
-
-        isValid = await Promise.race([validationPromise, timeoutPromise]);
-        
-        if (isValid) {
-          toast.success('Horario disponible ✓', { duration: 1000 });
-        }
-      } catch (error) {
-        console.warn('Validation failed or timed out, proceeding optimistically:', error);
-        // OPTIMISTIC APPROACH: If validation fails/times out, continue booking
-        // The booking creation will do final server-side validation
-        toast.info('Procesando reserva...', { duration: 1000 });
-        isValid = true; // Proceed optimistically
-      }
-
-      // ROBUST USER DATA HANDLING - Continue even if incomplete
+      // ROBUST USER DATA HANDLING
       let clientAddress = '';
-      let userDataAvailable = false;
 
       if (completeUserData?.condominium_text && completeUserData?.house_number) {
         clientAddress = `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`;
-        userDataAvailable = true;
       } else if (user.phone) {
-        // Fallback: Use user phone as temporary address identifier
         clientAddress = `Dirección temporal - Tel: ${user.phone}`;
-        console.warn('Using fallback address due to incomplete user data');
       } else {
         clientAddress = 'Dirección a confirmar por cliente';
-        console.warn('Using minimal address fallback');
       }
 
-      toast.info('Creando tu reserva...', { duration: 1000 });
+      // Calculate total price
+      const totalPrice = selectedVariants.reduce((sum, variant) => {
+        const basePrice = Number(variant.price) * variant.quantity;
+        const additionalPersonPrice = variant.personQuantity && variant.additionalPersonPrice 
+          ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+          : 0;
+        return sum + basePrice + additionalPersonPrice;
+      }, 0) + customVariablesTotalPrice;
 
-      // ROBUST BOOKING DATA - with fallbacks
+      // BOOKING DATA for payment
       const bookingData = {
         listingId: serviceId!,
         startTime: startDateTime.toISOString(),
@@ -214,59 +176,28 @@ const ClientBooking = () => {
         customVariableSelections: Object.keys(customVariableSelections).length > 0 ? customVariableSelections : undefined,
         customVariablesTotalPrice: customVariablesTotalPrice,
         selectedSlotIds: selectedSlotIds.length > 0 ? selectedSlotIds : undefined,
-        totalDuration: totalDuration > 0 ? totalDuration : undefined
+        totalDuration: totalDuration > 0 ? totalDuration : undefined,
+        providerId
       };
 
-      console.log('Datos de reserva preparados:', bookingData);
-
-      // ULTRA-ROBUST BOOKING CREATION with Enhanced Error Handling
-      toast.info('Creando tu reserva...', { duration: 2000 });
-      
-      const bookingResult = await RobustBookingSystem.createBooking(
-        () => createRecurringBooking(bookingData),
-        {
-          maxAttempts: 3,
-          showProgress: true,
-          optimisticValidation: true
+      // Navigate to checkout with all data
+      navigate('/checkout', {
+        state: {
+          serviceTitle: serviceDetails.title,
+          providerName: serviceDetails.provider?.name,
+          selectedVariants,
+          selectedDate,
+          selectedTime,
+          clientLocation,
+          bookingData,
+          totalPrice
         }
-      );
-
-      if (bookingResult.success && bookingResult.appointmentId) {
-        console.log('✅ Reserva creada exitosamente:', bookingResult.appointmentId);
-        toast.success('¡Reserva confirmada! Redirigiendo...', { 
-          duration: 2000,
-          description: `ID: ${bookingResult.appointmentId.slice(-8)}`
-        });
-        
-        // Navigate to bookings with success state
-        setTimeout(() => {
-          navigate('/client/bookings', { 
-            replace: true,
-            state: { newBookingId: bookingResult.appointmentId }
-          });
-        }, 1500);
-      } else {
-        // Booking failed after all attempts
-        const errorMessage = bookingResult.error || 'Error desconocido al crear la reserva';
-        console.error('💥 Booking failed completely:', errorMessage);
-        
-        toast.error(errorMessage, {
-          duration: 6000,
-          action: {
-            label: 'Ver mis citas',
-            onClick: () => navigate('/client/bookings')
-          }
-        });
-      }
+      });
 
     } catch (error) {
-      console.error('Error crítico en handleBooking:', error);
-      toast.error('Error inesperado al crear la reserva. Intenta de nuevo.', {
-        duration: 4000,
-        action: {
-          label: 'Reintentar',
-          onClick: handleBooking
-        }
+      console.error('Error al procesar checkout:', error);
+      toast.error('Error inesperado. Intenta de nuevo.', {
+        duration: 4000
       });
     }
   };

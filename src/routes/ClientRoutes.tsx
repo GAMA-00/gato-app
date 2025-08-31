@@ -11,6 +11,8 @@ import ClientBooking from '@/pages/ClientBooking';
 import BookingSummary from '@/pages/BookingSummary';
 import Profile from '@/pages/Profile';
 import ClientInvoices from '@/pages/ClientInvoices';
+import { Checkout } from '@/pages/Checkout';
+import { PaymentStatus } from '@/pages/PaymentStatus';
 
 const ClientRoutes = () => {
   return [
@@ -83,6 +85,24 @@ const ClientRoutes = () => {
       element={
         <RoleGuard allowedRole="client">
           <ClientInvoices />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="checkout"
+      path="/checkout"
+      element={
+        <RoleGuard allowedRole="client">
+          <Checkout />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="payment-status"
+      path="/payment-status/:paymentId"
+      element={
+        <RoleGuard allowedRole="client">
+          <PaymentStatus />
         </RoleGuard>
       }
     />
