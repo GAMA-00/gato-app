@@ -17,6 +17,7 @@ export type Database = {
       appointments: {
         Row: {
           admin_notes: string | null
+          cancellation_reason: string | null
           cancellation_time: string | null
           client_address: string | null
           client_email: string | null
@@ -49,6 +50,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          cancellation_reason?: string | null
           cancellation_time?: string | null
           client_address?: string | null
           client_email?: string | null
@@ -81,6 +83,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          cancellation_reason?: string | null
           cancellation_time?: string | null
           client_address?: string | null
           client_email?: string | null
