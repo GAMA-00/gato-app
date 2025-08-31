@@ -121,6 +121,20 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
     console.log('Iniciando proceso de pago...');
 
     try {
+      // Validar que appointmentData tenga ID antes del envío
+      if (!appointmentData?.id) {
+        throw new Error('Datos de la cita requeridos para procesar el pago');
+      }
+
+      console.log('📋 Enviando datos de pago:', {
+        appointmentId: appointmentData.id,
+        amount: total,
+        paymentType,
+        hasPhone: !!formData.phone,
+        hasAddress: !!formData.address,
+        hasCardData: !!formData.cardNumber
+      });
+
       const response = await supabase.functions.invoke('onvopay-authorize', {
         body: {
           appointmentId: appointmentData.id,
