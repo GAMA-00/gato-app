@@ -47,8 +47,8 @@ const validateAddressCR = (address: string): boolean => {
 };
 
 const calculateIVA = (amount: number) => {
-  const subtotal = Math.round(amount / 1.13);
-  const iva = amount - subtotal;
+  const subtotal = Math.round((amount / 1.13) * 100) / 100;
+  const iva = Math.round((amount - subtotal) * 100) / 100;
   return { subtotal, iva, total: amount };
 };
 
@@ -56,7 +56,7 @@ const formatCurrencyUSD = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
-  }).format(amount / 100);
+  }).format(amount);
 };
 
 export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
