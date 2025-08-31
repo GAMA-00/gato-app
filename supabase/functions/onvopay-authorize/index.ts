@@ -88,14 +88,15 @@ serve(async (req) => {
     const iva_amount = Math.round((amount - subtotal) * 100) / 100;
     const commission_amount = Math.round(amount * 0.05 * 100) / 100;
 
-    // Get appointment details
+    // Get appointment details (appointment ya existe)
     const { data: appointment, error: aptError } = await supabaseAdmin
       .from('appointments')
-      .select('*, listings(title), users!client_id(name, email)')
+      .select('*, listings(title)')
       .eq('id', appointmentId)
       .single();
 
     if (aptError || !appointment) {
+      console.error('❌ Error fetching appointment:', aptError);
       throw new Error('Cita no encontrada');
     }
 
@@ -134,8 +135,8 @@ serve(async (req) => {
       currency: 'USD',
       description: `Pago por ${appointment.listings?.title || 'Servicio'}`,
       customer: {
-        name: billing_info.name || appointment.users?.name,
-        email: appointment.users?.email,
+        name: billing_info.name || appointment.client_name,
+        email: appointment.client_email,
         phone: billing_info.phone,
         address: billing_info.address
       },

@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, MapPin, Shield, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
 interface OnvopayCheckoutFormProps {
@@ -65,6 +66,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
   onSuccess,
   onError
 }) => {
+  const { user, profile } = useAuth();
   const [formData, setFormData] = useState({
     cardNumber: '',
     expiryDate: '',
@@ -118,31 +120,48 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
     if (!validateForm()) return;
 
     setIsProcessing(true);
-    console.log('Iniciando proceso de pago...');
+    console.log('Iniciando proceso de reserva y pago...');
 
     try {
-      // Logging para debugging - ver qué datos tenemos
+      // PASO 1: Crear appointment PRIMERO
+      console.log('📝 Creando appointment en base de datos...');
       console.log('📋 appointmentData recibido:', appointmentData);
-      console.log('📋 appointmentData.id:', appointmentData?.id);
-      
-      // Validar que appointmentData tenga ID antes del envío
-      if (!appointmentData?.id) {
-        console.error('❌ appointmentData faltante o sin ID:', appointmentData);
-        throw new Error('Error interno: ID de cita no disponible. Por favor, vuelve a crear la reserva.');
+
+      const { data: newAppointment, error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          listing_id: appointmentData.listingId,
+          client_id: appointmentData.clientId || user?.id,
+          provider_id: appointmentData.providerId,
+          start_time: appointmentData.startTime,
+          end_time: appointmentData.endTime,
+          status: 'pending',
+          client_name: appointmentData.clientName || user?.name,
+          client_email: appointmentData.clientEmail || user?.email,
+          client_phone: formatPhoneCR(formData.phone),
+          client_address: formData.address,
+          notes: appointmentData.notes || '',
+          recurrence: appointmentData.recurrenceType === 'once' ? null : appointmentData.recurrenceType,
+          custom_variable_selections: appointmentData.customVariableSelections || null,
+          custom_variables_total_price: appointmentData.customVariablesTotalPrice || 0,
+          residencia_id: appointmentData.residenciaId || profile?.residencia_id
+        })
+        .select()
+        .single();
+
+      if (appointmentError) {
+        console.error('❌ Error creando appointment:', appointmentError);
+        throw new Error('No se pudo crear la reserva. Intenta nuevamente.');
       }
 
-      console.log('📋 Enviando datos de pago:', {
-        appointmentId: appointmentData.id,
-        amount: total,
-        paymentType,
-        hasPhone: !!formData.phone,
-        hasAddress: !!formData.address,
-        hasCardData: !!formData.cardNumber
-      });
+      console.log('✅ Appointment creado exitosamente:', newAppointment.id);
+
+      // PASO 2: Procesar pago CON el appointment.id
+      console.log('💳 Procesando pago...');
 
       const response = await supabase.functions.invoke('onvopay-authorize', {
         body: {
-          appointmentId: appointmentData.id,
+          appointmentId: newAppointment.id, // ✅ AHORA SÍ TIENE ID
           amount: total,
           payment_type: paymentType,
           payment_method: 'card',
@@ -162,56 +181,88 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
       console.log('Respuesta completa de la edge function:', response);
 
-      const { data, error } = response;
+      const { data: paymentData, error: paymentError } = response;
 
-      if (error) {
-        console.error('Error de Supabase:', error);
-        console.error('Error completo:', JSON.stringify(error, null, 2));
-        
-        // Intenta obtener el error específico de la función
-        if (error.message.includes('Edge Function returned a non-2xx status code')) {
-          // Probablemente hay un error específico en el data
-          console.error('Data en caso de error:', data);
-          if (data && data.error) {
-            throw new Error(data.error);
+      if (paymentError) {
+        console.error('❌ Error de pago:', paymentError);
+
+        // PASO 3: Si el pago falla, ELIMINAR el appointment creado
+        await supabase
+          .from('appointments')
+          .delete()
+          .eq('id', newAppointment.id);
+
+        console.log('🗑️ Appointment eliminado por fallo en pago');
+
+        if (paymentError.message.includes('Edge Function returned a non-2xx status code')) {
+          if (paymentData && paymentData.error) {
+            throw new Error(paymentData.error);
           }
         }
-        throw error;
+        throw paymentError;
       }
 
       // Check if the response indicates an error
-      if (data && !data.success) {
-        console.error('Error en la respuesta:', data.error);
-        throw new Error(data.error || 'Error desconocido en el pago');
+      if (paymentData && !paymentData.success) {
+        console.error('❌ Error en la respuesta:', paymentData.error);
+        
+        // Eliminar appointment si hay error
+        await supabase
+          .from('appointments')
+          .delete()
+          .eq('id', newAppointment.id);
+
+        console.log('🗑️ Appointment eliminado por error en respuesta');
+        throw new Error(paymentData.error || 'Error desconocido en el pago');
       }
 
-      console.log('Pago exitoso:', data);
+      // PASO 4: Si el pago es exitoso, actualizar appointment status
+      if (paymentData && paymentData.success) {
+        const newStatus = paymentType === 'cash' ? 'confirmed' : 'confirmed';
+
+        await supabase
+          .from('appointments')
+          .update({
+            status: newStatus,
+            onvopay_payment_id: paymentData.payment_id
+          })
+          .eq('id', newAppointment.id);
+
+        console.log('✅ Appointment actualizado con pago exitoso');
+      }
+
+      console.log('🎉 Proceso completo exitoso');
       toast({
-        title: "Pago procesado",
-        description: data?.message || "Pago completado exitosamente",
+        title: "Reserva y pago completados",
+        description: paymentData?.message || "Reserva creada y pago procesado exitosamente",
       });
 
-      onSuccess(data);
+      // Pasar tanto appointment como payment data
+      onSuccess({
+        ...paymentData,
+        appointmentId: newAppointment.id,
+        appointment: newAppointment
+      });
 
     } catch (error: any) {
-      console.error('Payment error:', error);
-      
-      let errorMessage = 'Error desconocido en el pago';
+      console.error('❌ Error en proceso completo:', error);
+
+      let errorMessage = 'Error al procesar la reserva y pago';
       if (error.message) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
-      
+
       toast({
-        title: "Error en el pago",
+        title: "Error en el proceso",
         description: errorMessage,
         variant: "destructive",
       });
       onError(error);
     } finally {
       setIsProcessing(false);
-      console.log('Proceso de pago finalizado');
+      console.log('Proceso finalizado');
     }
   };
 

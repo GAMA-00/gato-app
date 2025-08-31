@@ -36,6 +36,7 @@ export type Database = {
           last_modified_by: string | null
           listing_id: string
           notes: string | null
+          onvopay_payment_id: string | null
           price_finalized: boolean | null
           provider_id: string
           provider_name: string | null
@@ -69,6 +70,7 @@ export type Database = {
           last_modified_by?: string | null
           listing_id: string
           notes?: string | null
+          onvopay_payment_id?: string | null
           price_finalized?: boolean | null
           provider_id: string
           provider_name?: string | null
@@ -102,6 +104,7 @@ export type Database = {
           last_modified_by?: string | null
           listing_id?: string
           notes?: string | null
+          onvopay_payment_id?: string | null
           price_finalized?: boolean | null
           provider_id?: string
           provider_name?: string | null
@@ -120,6 +123,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_onvopay_payment_id_fkey"
+            columns: ["onvopay_payment_id"]
+            isOneToOne: false
+            referencedRelation: "onvopay_payments"
             referencedColumns: ["id"]
           },
           {
