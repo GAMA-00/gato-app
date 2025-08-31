@@ -21,7 +21,12 @@ interface OnvopayCheckoutFormProps {
 // Utility functions for Costa Rica
 const validatePhoneCR = (phone: string): boolean => {
   const cleanPhone = phone.replace(/\D/g, '');
-  return cleanPhone.startsWith('506') && cleanPhone.length === 11;
+  // Si empieza con 506, debe tener 11 dígitos total
+  if (cleanPhone.startsWith('506')) {
+    return cleanPhone.length === 11;
+  }
+  // Si no empieza con 506, debe tener 8 dígitos (se agregará 506 automáticamente)
+  return cleanPhone.length === 8;
 };
 
 const formatPhoneCR = (phone: string): string => {
@@ -29,11 +34,15 @@ const formatPhoneCR = (phone: string): string => {
   if (cleanPhone.startsWith('506')) {
     return `+${cleanPhone.slice(0, 3)}-${cleanPhone.slice(3, 7)}-${cleanPhone.slice(7)}`;
   }
+  // Si no tiene 506, lo agregamos
+  if (cleanPhone.length === 8) {
+    return `+506-${cleanPhone.slice(0, 4)}-${cleanPhone.slice(4)}`;
+  }
   return phone;
 };
 
 const validateAddressCR = (address: string): boolean => {
-  return address.trim().length >= 10; // Solo requiere que tenga al menos 10 caracteres
+  return address.trim().length > 0; // Solo requiere que no esté vacío
 };
 
 const calculateIVA = (amount: number) => {
@@ -74,12 +83,12 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
     // Validar teléfono Costa Rica
     if (!validatePhoneCR(formData.phone)) {
-      errors.phone = 'Formato requerido: +506-XXXX-XXXX';
+      errors.phone = 'Ingresa un número válido de 8 dígitos';
     }
 
     // Validar dirección CR
     if (!validateAddressCR(formData.address)) {
-      errors.address = 'Por favor ingresa una dirección válida';
+      errors.address = 'La dirección es requerida';
     }
 
     // Validar tarjeta (básico)
