@@ -130,12 +130,12 @@ const BookingSummaryCard = ({
                       {/* 6. Subtotal */}
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
-                        <span>{subtotal}</span>
+                        <span>{formatPrice(subtotal)}</span>
                       </div>
                       {/* 7. Cálculo de IVA (13%) */}
                       <div className="flex justify-between text-sm">
                         <span>IVA (13%):</span>
-                        <span>{iva.toFixed(2)}</span>
+                        <span>{formatPrice(iva)}</span>
                       </div>
                       {/* 8. Precio TOTAL */}
                       <div className="flex justify-between text-sm font-semibold">
@@ -171,12 +171,12 @@ const BookingSummaryCard = ({
                 {/* 6. Subtotal */}
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
-                  <span>{totalPrice}</span>
+                  <span>{formatPrice(totalPrice)}</span>
                 </div>
                 {/* 7. Cálculo de IVA (13%) */}
                 <div className="flex justify-between text-sm">
                   <span>IVA (13%):</span>
-                  <span>{(totalPrice * 0.13).toFixed(2)}</span>
+                  <span>{formatPrice(totalPrice * 0.13)}</span>
                 </div>
                 {customVariablesTotalPrice > 0 && (
                   <div className="flex justify-between text-sm">
