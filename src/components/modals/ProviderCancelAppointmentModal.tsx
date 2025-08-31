@@ -151,12 +151,7 @@ Fecha de documentación: ${new Date().toLocaleString()}
           {/* Nota sobre reembolso */}
           <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
             <div className="text-sm text-blue-800">
-              <div className="font-medium mb-1">Proceso de reembolso:</div>
-              <ul className="text-xs space-y-1">
-                <li>• Se creará automáticamente la documentación del reembolso</li>
-                <li>• El reembolso será procesado a través de OnvoPay</li>
-                <li>• El cliente será notificado sobre el proceso</li>
-              </ul>
+              <div className="font-medium">El cliente recibirá el 100% del reembolso.</div>
             </div>
           </div>
         </div>
