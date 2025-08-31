@@ -121,7 +121,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
     console.log('Iniciando proceso de pago...');
 
     try {
-      const { data, error } = await supabase.functions.invoke('onvopay-authorize', {
+      const response = await supabase.functions.invoke('onvopay-authorize', {
         body: {
           appointmentId: appointmentData.id,
           amount: total,
@@ -141,10 +141,22 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         }
       });
 
-      console.log('Respuesta de la edge function:', { data, error });
+      console.log('Respuesta completa de la edge function:', response);
+
+      const { data, error } = response;
 
       if (error) {
         console.error('Error de Supabase:', error);
+        console.error('Error completo:', JSON.stringify(error, null, 2));
+        
+        // Intenta obtener el error específico de la función
+        if (error.message.includes('Edge Function returned a non-2xx status code')) {
+          // Probablemente hay un error específico en el data
+          console.error('Data en caso de error:', data);
+          if (data && data.error) {
+            throw new Error(data.error);
+          }
+        }
         throw error;
       }
 
