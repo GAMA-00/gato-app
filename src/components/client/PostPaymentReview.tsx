@@ -99,7 +99,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto mx-2 md:mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
@@ -107,7 +107,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Service Information */}
           <Card>
             <CardHeader className="pb-3">
@@ -117,7 +117,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 gap-3 text-sm">
                 <div>
                   <span className="text-muted-foreground">Servicio:</span>
                   <p className="font-medium">{appointment?.listings?.title}</p>
@@ -128,7 +128,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 </div>
                 <div>
                   <span className="text-muted-foreground">Fecha:</span>
-                  <p className="font-medium">{formatDate(appointment?.start_time)}</p>
+                  <p className="font-medium text-xs md:text-sm">{formatDate(appointment?.start_time)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Tarifa Base:</span>
@@ -147,17 +147,17 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
               )}
             </CardHeader>
             {items.length > 0 && (
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 md:space-y-4">
                 {items.map((item, index) => (
-                  <div key={item.id} className="p-4 border rounded-lg space-y-2">
-                    <div className="flex justify-between items-start">
+                  <div key={item.id} className="p-3 md:p-4 border rounded-lg space-y-2">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                       <div className="flex-1">
                         <h4 className="font-medium text-sm">{item.item_name}</h4>
                         {item.description && (
                           <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-left md:text-right">
                         <p className="font-semibold">{formatCurrency(item.amount)}</p>
                       </div>
                     </div>
@@ -228,12 +228,13 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col md:flex-row gap-3 pt-4">
             <Button 
               type="button" 
               variant="outline" 
               onClick={onClose}
               disabled={isProcessing}
+              className="order-1 md:order-none"
             >
               Cancelar
             </Button>
@@ -244,7 +245,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                   variant="destructive"
                   onClick={() => setShowRejectionForm(true)}
                   disabled={isProcessing}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2 order-3 md:order-none"
                 >
                   <XCircle className="w-4 h-4" />
                   Rechazar
@@ -252,7 +253,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 <Button
                   onClick={() => handleApproval(true)}
                   disabled={isProcessing}
-                  className="flex-1 flex items-center gap-2"
+                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none"
                 >
                   <CheckCircle className="w-4 h-4" />
                   {isProcessing ? 'Procesando...' : 'Aprobar y Proceder al Pago'}
@@ -267,6 +268,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                     setRejectionReason('');
                   }}
                   disabled={isProcessing}
+                  className="order-3 md:order-none"
                 >
                   Cancelar Rechazo
                 </Button>
@@ -274,7 +276,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                   variant="destructive"
                   onClick={() => handleApproval(false)}
                   disabled={isProcessing || !rejectionReason.trim()}
-                  className="flex-1 flex items-center gap-2"
+                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none"
                 >
                   <XCircle className="w-4 h-4" />
                   {isProcessing ? 'Procesando...' : 'Confirmar Rechazo'}
