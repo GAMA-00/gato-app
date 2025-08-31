@@ -84,46 +84,48 @@ const ProviderInvoices: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {pendingInvoices.map((invoice) => {
                 const appointment = invoice.appointments;
                 return (
                   <Card key={invoice.id} className="border-l-4 border-l-primary">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-3 flex-1">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-semibold text-lg">
-                                {appointment?.listings?.title}
-                              </h3>
-                              <p className="text-muted-foreground">
-                                Cliente: {appointment?.client_name}
-                              </p>
+                    <CardContent className="p-4 md:p-6">
+                      <div className="space-y-3">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-base md:text-lg">
+                                  {appointment?.listings?.title}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Cliente: {appointment?.client_name}
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => setSelectedInvoice(invoice)}
+                                variant={invoice.status === 'rejected' ? 'destructive' : 'default'}
+                                size="sm"
+                                className="ml-2"
+                              >
+                                <DollarSign className="w-4 h-4 mr-2" />
+                                {invoice.status === 'rejected' ? 'Corregir' : 'Gestionar'}
+                              </Button>
                             </div>
                             {getStatusBadge(invoice.status, invoice.rejection_reason)}
                           </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {formatDate(appointment?.start_time)}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" />
-                              Total: {formatCurrency(invoice.total_price || 0)}
-                            </div>
-                          </div>
                         </div>
                         
-                        <Button
-                          onClick={() => setSelectedInvoice(invoice)}
-                          variant={invoice.status === 'rejected' ? 'destructive' : 'default'}
-                          className="ml-4"
-                        >
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          {invoice.status === 'rejected' ? 'Corregir' : 'Gestionar'}
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs md:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            <span>{formatDate(appointment?.start_time)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-4 h-4" />
+                            <span>Total: {formatCurrency(invoice.total_price || 0)}</span>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

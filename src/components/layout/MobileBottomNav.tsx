@@ -30,7 +30,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/team', icon: Users, label: 'Equipo' },
+    { to: '/provider/invoices', icon: FileText, label: 'Facturas' },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
