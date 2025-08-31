@@ -28,3 +28,12 @@ redirect_url = "http://localhost:3000/payment-setup"
 
 [functions.create-payment]
 verify_jwt = true
+
+[functions.onvopay-authorize]
+verify_jwt = true
+
+[functions.onvopay-capture]
+verify_jwt = true
+
+[functions.onvopay-webhook]
+verify_jwt = false
