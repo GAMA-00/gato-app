@@ -46,10 +46,37 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
         rejectionReason: approved ? undefined : rejectionReason
       });
       
+      if (approved) {
+        // Procesar pago con Stripe
+        try {
+          const { data, error } = await supabase.functions.invoke('create-payment', {
+            body: {
+              invoice_id: invoice.id,
+              amount: invoice.total_price,
+              description: `Pago de factura - ${invoice.appointments?.listings?.title}`
+            }
+          });
+
+          if (error) throw error;
+
+          if (data.url) {
+            // Abrir Stripe checkout en nueva pestaña
+            window.open(data.url, '_blank');
+            toast.success('Factura aprobada. Redirigiendo al pago...');
+          }
+        } catch (paymentError) {
+          console.error('Error processing payment:', paymentError);
+          toast.error('Error al procesar el pago. Intente nuevamente.');
+        }
+        } else {
+          toast.success('Factura rechazada. El proveedor recibirá tu comentario y podrá corregirla.');
+        }
+      
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error processing approval:', error);
+      toast.error('Error al procesar la respuesta. Intente nuevamente.');
     } finally {
       setIsProcessing(false);
     }

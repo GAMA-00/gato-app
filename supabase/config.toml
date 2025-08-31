@@ -25,3 +25,6 @@ file_size_limit = "50MiB"
 enabled_providers = ["google"]
 # Redirect URL for OAuth signups
 redirect_url = "http://localhost:3000/payment-setup"
+
+[functions.create-payment]
+verify_jwt = true
