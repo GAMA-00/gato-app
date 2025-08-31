@@ -33,9 +33,7 @@ const formatPhoneCR = (phone: string): string => {
 };
 
 const validateAddressCR = (address: string): boolean => {
-  const provinces = ['san josé', 'alajuela', 'cartago', 'heredia', 'guanacaste', 'puntarenas', 'limón'];
-  const lowerAddress = address.toLowerCase();
-  return provinces.some(province => lowerAddress.includes(province)) && address.length >= 20;
+  return address.trim().length >= 10; // Solo requiere que tenga al menos 10 caracteres
 };
 
 const calculateIVA = (amount: number) => {
@@ -81,7 +79,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
     // Validar dirección CR
     if (!validateAddressCR(formData.address)) {
-      errors.address = 'Dirección debe incluir provincia, cantón, distrito';
+      errors.address = 'Por favor ingresa una dirección válida';
     }
 
     // Validar tarjeta (básico)
