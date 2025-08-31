@@ -83,10 +83,23 @@ const BookingSummaryCard = ({
         <CardTitle>Resumen de Reserva</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* 1. Nombre del servicio */}
         <div>
           <p className="font-medium">{serviceTitle}</p>
+        </div>
+
+        {/* 2. Nombre del proveedor */}
+        <div>
           <p className="text-sm text-muted-foreground">
             {providerName}
+          </p>
+        </div>
+
+        {/* 3. Ubicación */}
+        <div>
+          <p className="font-medium text-sm mb-1">Ubicación:</p>
+          <p className="text-sm">
+            {isLoadingLocation ? 'Cargando ubicación...' : clientLocation}
           </p>
         </div>
 
@@ -100,30 +113,39 @@ const BookingSummaryCard = ({
                   const persons = variant.personQuantity && variant.additionalPersonPrice
                     ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
                     : 0;
-                  const total = base + persons;
+                  const subtotal = base + persons;
+                  const iva = subtotal * 0.13;
+                  const total = subtotal + iva;
                   return (
                     <div key={variant.id || index} className="pb-2 border-b last:border-b-0">
+                      {/* 4. Nombre específico del servicio */}
                       <p className="font-medium">
                         {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                       </p>
+                      {/* 5. Duración */}
                       <div className="flex justify-between text-sm">
                         <span>Duración:</span>
                         <span>{Number(variant.duration) * variant.quantity} min</span>
                       </div>
+                      {/* 6. Subtotal */}
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
-                        <span className="font-medium">{formatPrice(total)}</span>
+                        <span>{subtotal}</span>
+                      </div>
+                      {/* 7. Cálculo de IVA (13%) */}
+                      <div className="flex justify-between text-sm">
+                        <span>IVA (13%):</span>
+                        <span>{iva.toFixed(2)}</span>
+                      </div>
+                      {/* 8. Precio TOTAL */}
+                      <div className="flex justify-between text-sm font-semibold">
+                        <span>TOTAL:</span>
+                        <span>{formatPrice(total)}</span>
                       </div>
                       {variant.personQuantity && variant.personQuantity > 1 && (
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Desglose:</span>
-                          <span>Base {formatPrice(base)} + Personas extra {formatPrice(persons)}</span>
-                        </div>
-                      )}
-                      {variant.quantity > 1 && (
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Precio unitario:</span>
-                          <span>{formatPrice(Number(variant.price))} c/u</span>
+                          <span>Base {base} + Personas extra {persons}</span>
                         </div>
                       )}
                     </div>
@@ -135,26 +157,26 @@ const BookingSummaryCard = ({
                     <span className="font-medium">+{formatPrice(customVariablesTotalPrice)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm font-semibold border-t pt-2 mt-2">
-                  <span>Total ({totalServices} servicio{totalServices !== 1 ? 's' : ''}):</span>
-                  <span>{formatPrice(totalPrice)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Duración total:</span>
-                  <span>{totalDuration} min</span>
-                </div>
               </div>
             ) : (
               // Single variant display
               <div>
+                {/* 4. Nombre específico del servicio */}
                 <p className="font-medium">{selectedVariant?.name}</p>
+                {/* 5. Duración */}
                 <div className="flex justify-between text-sm">
                   <span>Duración:</span>
                   <span>{selectedVariant?.duration} min</span>
                 </div>
+                {/* 6. Subtotal */}
                 <div className="flex justify-between text-sm">
-                  <span>Precio base:</span>
-                  <span className="font-medium">{formatPrice(selectedVariant?.price || 0)}</span>
+                  <span>Subtotal:</span>
+                  <span>{totalPrice}</span>
+                </div>
+                {/* 7. Cálculo de IVA (13%) */}
+                <div className="flex justify-between text-sm">
+                  <span>IVA (13%):</span>
+                  <span>{(totalPrice * 0.13).toFixed(2)}</span>
                 </div>
                 {customVariablesTotalPrice > 0 && (
                   <div className="flex justify-between text-sm">
@@ -162,9 +184,10 @@ const BookingSummaryCard = ({
                     <span className="font-medium">+{formatPrice(customVariablesTotalPrice)}</span>
                   </div>
                 )}
+                {/* 8. Precio TOTAL */}
                 <div className="flex justify-between text-sm font-semibold border-t pt-2 mt-2">
-                  <span>Total:</span>
-                  <span>{formatPrice(totalPrice)}</span>
+                  <span>TOTAL:</span>
+                  <span>{formatPrice(totalPrice + (totalPrice * 0.13))}</span>
                 </div>
               </div>
             )}
@@ -182,13 +205,6 @@ const BookingSummaryCard = ({
             </p>
           </div>
         )}
-
-        <div>
-          <p className="font-medium text-sm mb-1">Ubicación:</p>
-          <p className="text-sm">
-            {isLoadingLocation ? 'Cargando ubicación...' : clientLocation}
-          </p>
-        </div>
 
         {/* Information box with materials and cancellation policy */}
         <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg space-y-3">
