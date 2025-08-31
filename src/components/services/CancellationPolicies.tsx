@@ -18,10 +18,9 @@ import {
 import { Info } from 'lucide-react';
 
 const cancellationPolicies = [
-  { timeFrame: 'Hasta 24 horas', refund: 'Cancelación gratuita' },
-  { timeFrame: 'De 24h a 4h', refund: '75% del importe' },
-  { timeFrame: 'De 4h a 45min', refund: '50% del importe' },
-  { timeFrame: 'De 45min a inicio', refund: '35% del importe' },
+  { timeFrame: 'Más de 24 horas', refund: 'Cancelación gratuita' },
+  { timeFrame: 'Entre 2 y 24 horas', refund: 'Multa del 20%' },
+  { timeFrame: 'Menos de 2 horas', refund: 'Multa del 50%' },
 ];
 
 const CancellationPolicies: React.FC = () => {
