@@ -43,12 +43,12 @@ serve(async (req) => {
     console.log('Onvopay Authorization Request:', { appointmentId, amount, payment_type });
 
     // Validate Costa Rica specific data
-    if (!billing_info?.phone?.startsWith('+506')) {
-      throw new Error('Teléfono debe ser de Costa Rica (+506)');
+    if (!billing_info?.phone?.includes('506')) {
+      throw new Error('Teléfono debe ser de Costa Rica');
     }
 
-    if (!billing_info?.address || billing_info.address.length < 20) {
-      throw new Error('Dirección debe incluir provincia, cantón y distrito');
+    if (!billing_info?.address || billing_info.address.trim().length === 0) {
+      throw new Error('Dirección es requerida');
     }
 
     // Calculate IVA (13% Costa Rica)
