@@ -125,10 +125,10 @@ serve(async (req) => {
 
     console.log('✅ Basic validations passed');
 
-    // Calculate IVA (13% Costa Rica)
-    const subtotal = Math.round((amount / 1.13) * 100) / 100;
-    const iva_amount = Math.round((amount - subtotal) * 100) / 100;
-    const commission_amount = Math.round((amount * 0.05) * 100) / 100;
+    // Calculate IVA (13% Costa Rica) - Convert to integers (cents)
+    const subtotal = Math.round((amount / 1.13) * 100);
+    const iva_amount = Math.round((amount - (subtotal / 100)) * 100);
+    const commission_amount = Math.round((amount * 0.05) * 100);
 
     console.log('💰 Price breakdown:', {
       amount,
@@ -167,7 +167,7 @@ serve(async (req) => {
       appointment_id: appointmentId,
       client_id: user.id,
       provider_id: appointment.provider_id,
-      amount: amount,
+      amount: Math.round(amount * 100), // Convert to cents
       subtotal: subtotal,
       iva_amount: iva_amount,
       commission_amount: commission_amount,
