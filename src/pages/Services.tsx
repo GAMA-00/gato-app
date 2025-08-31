@@ -6,6 +6,7 @@ import Navbar from '@/components/layout/Navbar';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
+import TeamSection from '@/components/team/TeamSection';
 import { Service, ServiceVariant, WeeklyAvailability, CustomVariableGroup } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -146,6 +147,13 @@ const Services = () => {
         ) : (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No tienes anuncios creados.</p>
+          </div>
+        )}
+
+        {/* Sección de Equipo - Solo mostrar si hay servicios */}
+        {services && services.length > 0 && (
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <TeamSection />
           </div>
         )}
 
