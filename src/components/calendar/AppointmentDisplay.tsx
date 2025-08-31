@@ -225,30 +225,30 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
             )}
           </div>
           <div className="mt-1 pt-1 border-t text-[9px]">
-            <div className="flex items-center justify-between">
-              <span className={cn(
-                "px-1 py-0.5 rounded-full text-[8px]",
-                appointmentStatus === 'pending' ? "bg-amber-50 text-amber-800" :
-                appointmentStatus === 'confirmed' ? "bg-green-50 text-green-800" :
-                appointmentStatus === 'scheduled' ? "bg-blue-50 text-blue-800" :
-                "bg-gray-50 text-gray-700"
-              )}>
-                {getStatusLabel()}
-              </span>
-              
-              {/* Botón de cancelar para proveedores */}
-              {canCancelAppointment() && (
+            <span className={cn(
+              "px-1 py-0.5 rounded-full text-[8px]",
+              appointmentStatus === 'pending' ? "bg-amber-50 text-amber-800" :
+              appointmentStatus === 'confirmed' ? "bg-green-50 text-green-800" :
+              appointmentStatus === 'scheduled' ? "bg-blue-50 text-blue-800" :
+              "bg-gray-50 text-gray-700"
+            )}>
+              {getStatusLabel()}
+            </span>
+            
+            {/* Botón de cancelar para proveedores - debajo del estado */}
+            {canCancelAppointment() && (
+              <div className="mt-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCancelClick}
-                  className="h-6 px-2 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="h-6 px-2 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 w-full"
                 >
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
             
             {appointment.reschedule_notes && (
               <div className="mt-1 text-[8px] text-gray-600 bg-gray-50 p-1 rounded">
