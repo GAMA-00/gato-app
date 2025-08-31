@@ -60,12 +60,6 @@ export const navItems: NavItem[] = [
     href: '/achievements',
     icon: Star,
     roles: ['provider']
-  },
-  {
-    title: 'Perfil',
-    href: '/profile',
-    icon: Settings,
-    roles: ['client', 'provider'] // Disponible para ambos roles
   }
 ];
 
