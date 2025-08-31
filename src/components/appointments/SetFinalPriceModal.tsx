@@ -138,7 +138,7 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
           {lastPrice && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>Referencia:</strong> La última vez cobraste ${lastPrice.toFixed(2)} por este servicio.
+                <strong>Referencia:</strong> La última vez cobraste ${lastPrice} por este servicio.
               </p>
             </div>
           )}

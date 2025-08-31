@@ -15,11 +15,13 @@ export const formatCurrency = (price: number | string | null | undefined): strin
   
   if (isNaN(numericPrice) || numericPrice < 0) return '$0';
   
-  // Format with 2 decimal places if needed, otherwise as integer
-  if (numericPrice % 1 !== 0) {
-    return `$${numericPrice.toFixed(2)}`;
-  }
-  return `$${Math.floor(numericPrice).toLocaleString('en-US')}`;
+  // Always format as USD with proper formatting
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(numericPrice);
 };
 
 /**

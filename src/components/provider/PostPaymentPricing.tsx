@@ -325,16 +325,16 @@ const PostPaymentPricing: React.FC<PostPaymentPricingProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Costo base:</span>
-                    <span>${baseCost.toFixed(2)}</span>
+                    <span>${baseCost}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Gastos adicionales:</span>
-                    <span>${costItems.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
+                    <span>${costItems.reduce((sum, item) => sum + item.amount, 0)}</span>
                   </div>
                   <div className="border-t pt-2">
                     <div className="flex justify-between font-semibold text-lg">
                       <span>Total final:</span>
-                      <span>${totalAmount.toFixed(2)}</span>
+                      <span>${totalAmount}</span>
                     </div>
                   </div>
                 </div>

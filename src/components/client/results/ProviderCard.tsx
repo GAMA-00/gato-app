@@ -135,7 +135,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
             </div>
             
             <div className="flex items-center flex-shrink-0">
-              <span className={cn("font-medium mr-2 text-luxury-navy", isMobile ? "text-sm" : "text-base")}>${provider.price.toFixed(2)}</span>
+              <span className={cn("font-medium mr-2 text-luxury-navy", isMobile ? "text-sm" : "text-base")}>${provider.price}</span>
               <ChevronRight className="h-4 w-4 text-luxury-gray-dark" />
             </div>
           </div>

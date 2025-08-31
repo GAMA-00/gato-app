@@ -60,12 +60,17 @@ export function formatTo24Hour(time12: string): string {
 }
 
 /**
- * Formats a price value to USD currency format (without $ symbol)
+ * Formats a price value as USD currency (with $ symbol)
  * @param amount - The amount to format
  * @param decimals - Number of decimal places (default: 2)
  */
 export function formatCurrency(amount: number, decimals: number = 2): string {
-  return amount.toFixed(decimals);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(amount);
 }
 
 /**

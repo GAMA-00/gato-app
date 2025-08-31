@@ -147,7 +147,7 @@ const ClientServiceDetail = () => {
                 <h2 className="text-2xl font-bold mb-4">{service.title}</h2>
                 <p className="text-muted-foreground mb-4">{service.description}</p>
                 <div className="space-y-2">
-                  <p><strong>Precio:</strong> ₡{service.base_price}</p>
+                  <p><strong>Precio:</strong> ${service.base_price}</p>
                   <p><strong>Duración:</strong> {service.duration} minutos</p>
                 </div>
               </div>

@@ -180,7 +180,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tarifa Base:</span>
-                <span className="font-semibold text-primary">₡{basePrice.toLocaleString()}</span>
+                <span className="font-semibold text-primary">${basePrice.toLocaleString()}</span>
               </div>
             </CardContent>
           </Card>
@@ -241,7 +241,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                       </div>
 
                       <div>
-                        <Label className="text-xs font-medium">Monto (₡) *</Label>
+                        <Label className="text-xs font-medium">Monto ($) *</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -314,16 +314,16 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Tarifa Base:</span>
-                    <span>₡{basePrice.toLocaleString()}</span>
+                    <span>${basePrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Gastos Adicionales:</span>
-                    <span>₡{form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
+                    <span>${form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total:</span>
-                    <span className="text-primary">₡{calculateTotal().toLocaleString()}</span>
+                    <span className="text-primary">${calculateTotal().toLocaleString()}</span>
                   </div>
                 </div>
               </CardContent>

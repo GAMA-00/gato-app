@@ -160,7 +160,7 @@ const ClientProvidersList = () => {
                   <h4 className="font-medium mb-2">{listing.title}</h4>
                   <p className="text-muted-foreground text-sm mb-3">{listing.description}</p>
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">₡{listing.base_price}</span>
+                    <span className="text-lg font-semibold">${listing.base_price}</span>
                   </div>
                 </Card>
               );

@@ -101,7 +101,7 @@ const ProviderServices = ({
                             </div>
                             
                             <div className="flex items-center gap-3">
-                              <span className="text-lg font-semibold">${option.price.toFixed(2)}</span>
+                              <span className="text-lg font-semibold">${option.price}</span>
                               
                               {bookingMode && (
                                 <Button 

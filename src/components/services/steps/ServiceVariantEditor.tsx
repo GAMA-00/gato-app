@@ -167,7 +167,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₡</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                               <Input 
                                 type="number" 
                                 min="1" 
@@ -199,7 +199,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                           <FormLabel className="text-xs">Precio</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₡</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                               <Input 
                                 type="number" 
                                 min="1" 
@@ -272,7 +272,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                     <div>
                       <p className="text-sm font-medium text-orange-800">Modalidad Post-pago</p>
                       <p className="text-xs text-orange-700">
-                        Tarifa base: ₡{variant.price || 0} + costos adicionales al finalizar
+                        Tarifa base: ${variant.price || 0} + costos adicionales al finalizar
                       </p>
                     </div>
                     <div className="bg-orange-100 px-2 py-1 rounded text-xs font-medium text-orange-800">

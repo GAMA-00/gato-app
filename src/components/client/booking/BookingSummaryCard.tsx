@@ -112,18 +112,18 @@ const BookingSummaryCard = ({
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
-                        <span className="font-medium">${formatPrice(total)}</span>
+                        <span className="font-medium">{formatPrice(total)}</span>
                       </div>
                       {variant.personQuantity && variant.personQuantity > 1 && (
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Desglose:</span>
-                          <span>Base ${formatPrice(base)} + Personas extra ${formatPrice(persons)}</span>
+                          <span>Base {formatPrice(base)} + Personas extra {formatPrice(persons)}</span>
                         </div>
                       )}
                       {variant.quantity > 1 && (
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Precio unitario:</span>
-                          <span>${formatPrice(Number(variant.price))} c/u</span>
+                          <span>{formatPrice(Number(variant.price))} c/u</span>
                         </div>
                       )}
                     </div>
@@ -132,12 +132,12 @@ const BookingSummaryCard = ({
                 {customVariablesTotalPrice > 0 && (
                   <div className="flex justify-between text-sm">
                     <span>Variables adicionales:</span>
-                    <span className="font-medium">+${formatPrice(customVariablesTotalPrice)}</span>
+                    <span className="font-medium">+{formatPrice(customVariablesTotalPrice)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-semibold border-t pt-2 mt-2">
                   <span>Total ({totalServices} servicio{totalServices !== 1 ? 's' : ''}):</span>
-                  <span>${formatPrice(totalPrice)}</span>
+                  <span>{formatPrice(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Duración total:</span>
@@ -154,17 +154,17 @@ const BookingSummaryCard = ({
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Precio base:</span>
-                  <span className="font-medium">${formatPrice(selectedVariant?.price || 0)}</span>
+                  <span className="font-medium">{formatPrice(selectedVariant?.price || 0)}</span>
                 </div>
                 {customVariablesTotalPrice > 0 && (
                   <div className="flex justify-between text-sm">
                     <span>Variables adicionales:</span>
-                    <span className="font-medium">+${formatPrice(customVariablesTotalPrice)}</span>
+                    <span className="font-medium">+{formatPrice(customVariablesTotalPrice)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-semibold border-t pt-2 mt-2">
                   <span>Total:</span>
-                  <span>${formatPrice(totalPrice)}</span>
+                  <span>{formatPrice(totalPrice)}</span>
                 </div>
               </div>
             )}
