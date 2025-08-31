@@ -95,27 +95,28 @@ const ClientInvoices: React.FC = () => {
                     <CardContent className="p-4 md:p-6">
                       <div className="space-y-3">
                         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                          <div className="space-y-2">
-                            <div>
-                              <h3 className="font-semibold text-base md:text-lg">
-                                {appointment?.listings?.title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                Proveedor: {appointment?.provider_name}
-                              </p>
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-base md:text-lg">
+                                  {appointment?.listings?.title}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Proveedor: {appointment?.provider_name}
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => setSelectedInvoice(invoice)}
+                                variant={invoice.status === 'submitted' ? 'default' : 'outline'}
+                                size="sm"
+                                className="ml-2"
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                {invoice.status === 'submitted' ? 'Revisar' : 'Ver Detalles'}
+                              </Button>
                             </div>
                             {getStatusBadge(invoice.status, invoice.rejection_reason)}
                           </div>
-                          
-                          <Button
-                            onClick={() => setSelectedInvoice(invoice)}
-                            variant={invoice.status === 'submitted' ? 'default' : 'outline'}
-                            size="sm"
-                            className="w-full md:w-auto"
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            {invoice.status === 'submitted' ? 'Revisar' : 'Ver Detalles'}
-                          </Button>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs md:text-sm text-muted-foreground">
@@ -128,13 +129,6 @@ const ClientInvoices: React.FC = () => {
                             <span>Total: {formatCurrency(invoice.total_price || 0)}</span>
                           </div>
                         </div>
-
-                        {invoice.status === 'submitted' && (
-                          <div className="text-xs md:text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
-                            <p className="font-medium">Factura lista para revisión</p>
-                            <p className="text-xs md:text-sm">Revisa el desglose de gastos y decide si aprobar o rechazar.</p>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
