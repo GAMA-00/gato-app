@@ -121,9 +121,14 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
     console.log('Iniciando proceso de pago...');
 
     try {
+      // Logging para debugging - ver qué datos tenemos
+      console.log('📋 appointmentData recibido:', appointmentData);
+      console.log('📋 appointmentData.id:', appointmentData?.id);
+      
       // Validar que appointmentData tenga ID antes del envío
       if (!appointmentData?.id) {
-        throw new Error('Datos de la cita requeridos para procesar el pago');
+        console.error('❌ appointmentData faltante o sin ID:', appointmentData);
+        throw new Error('Error interno: ID de cita no disponible. Por favor, vuelve a crear la reserva.');
       }
 
       console.log('📋 Enviando datos de pago:', {
