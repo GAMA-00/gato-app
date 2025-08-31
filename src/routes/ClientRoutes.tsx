@@ -10,6 +10,7 @@ import ClientProviderServiceDetail from '@/pages/ClientProviderServiceDetail';
 import ClientBooking from '@/pages/ClientBooking';
 import BookingSummary from '@/pages/BookingSummary';
 import Profile from '@/pages/Profile';
+import ClientInvoices from '@/pages/ClientInvoices';
 
 const ClientRoutes = () => {
   return [
@@ -76,6 +77,15 @@ const ClientRoutes = () => {
         </RoleGuard>
       }
     />,
+    <Route
+      key="client-invoices"
+      path="/client/invoices"
+      element={
+        <RoleGuard allowedRole="client">
+          <ClientInvoices />
+        </RoleGuard>
+      }
+    />
   ];
 };
 

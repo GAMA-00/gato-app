@@ -6,7 +6,7 @@ import DashboardStats from '@/components/dashboard/DashboardStats';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import PendingInvoicesSection from '@/components/client/PendingInvoicesSection';
+
 
 interface DashboardContentProps {
   user: any;
@@ -80,8 +80,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
     if (user?.role === 'client') {
       return (
         <div className="space-y-6">
-          <PendingInvoicesSection />
-          
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Mis Citas de Hoy"

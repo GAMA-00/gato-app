@@ -9,6 +9,7 @@ import ServiceEdit from '@/pages/ServiceEdit';
 import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
 import Team from '@/pages/Team';
+import ProviderInvoices from '@/pages/ProviderInvoices';
 
 const ProviderRoutes = () => {
   return [
@@ -72,6 +73,15 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <Team />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="provider-invoices"
+      path="/provider/invoices"
+      element={
+        <RoleGuard allowedRole="provider">
+          <ProviderInvoices />
         </RoleGuard>
       }
     />

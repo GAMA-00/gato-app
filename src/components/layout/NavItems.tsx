@@ -3,7 +3,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import NavItem from './NavItem';
-import { Home, Calendar, Users, Star, Settings, Briefcase } from 'lucide-react';
+import { Home, Calendar, Users, Star, Settings, Briefcase, FileText } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -32,6 +32,12 @@ export const navItems: NavItem[] = [
     roles: ['client']
   },
   {
+    title: 'Facturas',
+    href: '/client/invoices',
+    icon: FileText,
+    roles: ['client']
+  },
+  {
     title: 'Calendario',
     href: '/calendar',
     icon: Calendar,
@@ -41,6 +47,12 @@ export const navItems: NavItem[] = [
     title: 'Mis Servicios',
     href: '/services',
     icon: Briefcase,
+    roles: ['provider']
+  },
+  {
+    title: 'Facturas',
+    href: '/provider/invoices',
+    icon: FileText,
     roles: ['provider']
   },
   {
