@@ -98,11 +98,11 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                       {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
                     </span>
                     <span className="mx-2">•</span>
-                    <span>${formatCurrency(Number(variant.price))}</span>
+                    <span>{formatCurrency(Number(variant.price))}</span>
                     {hasPersonPricing && (
                       <>
                         <span className="mx-2">•</span>
-                        <span>+${formatCurrency(Number(variant.additionalPersonPrice))} por persona</span>
+                        <span>+{formatCurrency(Number(variant.additionalPersonPrice))} por persona</span>
                       </>
                     )}
                   </div>
