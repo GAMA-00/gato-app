@@ -95,7 +95,20 @@ const BookingSummaryCard = ({
           </p>
         </div>
 
-        {/* 3. Ubicación */}
+        {/* 3. Fecha y hora */}
+        {selectedDate && selectedTime && (
+          <div>
+            <p className="font-medium text-sm mb-1">Fecha y hora:</p>
+            <p className="text-sm">
+              {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+            </p>
+            <p className="text-sm">
+              {selectedTime} ({getRecurrenceText(selectedFrequency)})
+            </p>
+          </div>
+        )}
+
+        {/* 4. Ubicación */}
         <div>
           <p className="font-medium text-sm mb-1">Ubicación:</p>
           <p className="text-sm">
@@ -118,34 +131,34 @@ const BookingSummaryCard = ({
                   const total = subtotal + iva;
                   return (
                     <div key={variant.id || index} className="pb-2 border-b last:border-b-0">
-                      {/* 4. Nombre específico del servicio */}
+                      {/* 5. Nombre específico del servicio */}
                       <p className="font-medium">
                         {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                       </p>
-                      {/* 5. Duración */}
+                      {/* 6. Duración */}
                       <div className="flex justify-between text-sm">
                         <span>Duración:</span>
                         <span>{Number(variant.duration) * variant.quantity} min</span>
                       </div>
-                      {/* 6. Subtotal */}
+                      {/* 7. Subtotal */}
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
-                        <span>{formatPrice(subtotal)}</span>
+                        <span>${subtotal}</span>
                       </div>
-                      {/* 7. Cálculo de IVA (13%) */}
+                      {/* 8. Cálculo de IVA (13%) */}
                       <div className="flex justify-between text-sm">
                         <span>IVA (13%):</span>
-                        <span>{formatPrice(iva)}</span>
+                        <span>${iva.toFixed(2)}</span>
                       </div>
-                      {/* 8. Precio TOTAL */}
+                      {/* 9. Precio TOTAL */}
                       <div className="flex justify-between text-sm font-semibold">
                         <span>TOTAL:</span>
-                        <span>{formatPrice(total)}</span>
+                        <span>${total.toFixed(2)}</span>
                       </div>
                       {variant.personQuantity && variant.personQuantity > 1 && (
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Desglose:</span>
-                          <span>Base {base} + Personas extra {persons}</span>
+                          <span>Base ${base} + Personas extra ${persons}</span>
                         </div>
                       )}
                     </div>
@@ -161,22 +174,22 @@ const BookingSummaryCard = ({
             ) : (
               // Single variant display
               <div>
-                {/* 4. Nombre específico del servicio */}
+                {/* 5. Nombre específico del servicio */}
                 <p className="font-medium">{selectedVariant?.name}</p>
-                {/* 5. Duración */}
+                {/* 6. Duración */}
                 <div className="flex justify-between text-sm">
                   <span>Duración:</span>
                   <span>{selectedVariant?.duration} min</span>
                 </div>
-                {/* 6. Subtotal */}
+                {/* 7. Subtotal */}
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
-                  <span>{formatPrice(totalPrice)}</span>
+                  <span>${totalPrice}</span>
                 </div>
-                {/* 7. Cálculo de IVA (13%) */}
+                {/* 8. Cálculo de IVA (13%) */}
                 <div className="flex justify-between text-sm">
                   <span>IVA (13%):</span>
-                  <span>{formatPrice(totalPrice * 0.13)}</span>
+                  <span>${(totalPrice * 0.13).toFixed(2)}</span>
                 </div>
                 {customVariablesTotalPrice > 0 && (
                   <div className="flex justify-between text-sm">
@@ -184,25 +197,13 @@ const BookingSummaryCard = ({
                     <span className="font-medium">+{formatPrice(customVariablesTotalPrice)}</span>
                   </div>
                 )}
-                {/* 8. Precio TOTAL */}
+                {/* 9. Precio TOTAL */}
                 <div className="flex justify-between text-sm font-semibold border-t pt-2 mt-2">
                   <span>TOTAL:</span>
-                  <span>{formatPrice(totalPrice + (totalPrice * 0.13))}</span>
+                  <span>${(totalPrice + (totalPrice * 0.13)).toFixed(2)}</span>
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {selectedDate && selectedTime && (
-          <div>
-            <p className="font-medium text-sm mb-1">Fecha y hora:</p>
-            <p className="text-sm">
-              {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-            </p>
-            <p className="text-sm">
-              {selectedTime} ({getRecurrenceText(selectedFrequency)})
-            </p>
           </div>
         )}
 
