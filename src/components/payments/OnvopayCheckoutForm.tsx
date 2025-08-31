@@ -133,7 +133,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         .eq('provider_id', appointmentData.providerId)
         .eq('start_time', appointmentData.startTime)
         .eq('end_time', appointmentData.endTime)
-        .not('status', 'in', ['cancelled', 'rejected']);
+        .not('status', 'in', '(cancelled,rejected)');
 
       if (validationError) {
         console.error('❌ Error validating slot:', validationError);
