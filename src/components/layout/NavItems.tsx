@@ -56,12 +56,6 @@ export const navItems: NavItem[] = [
     roles: ['provider']
   },
   {
-    title: 'Equipo',
-    href: '/team',
-    icon: Users,
-    roles: ['provider']
-  },
-  {
     title: 'Logros',
     href: '/achievements',
     icon: Star,
