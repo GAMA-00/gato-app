@@ -118,6 +118,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
     if (!validateForm()) return;
 
     setIsProcessing(true);
+    console.log('Iniciando proceso de pago...');
 
     try {
       const { data, error } = await supabase.functions.invoke('onvopay-authorize', {
@@ -140,26 +141,127 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         }
       });
 
-      if (error) throw error;
+      console.log('Respuesta de la edge function:', { data, error });
 
+      if (error) {
+        console.error('Error de Supabase:', error);
+        throw error;
+      }
+
+      // Check if the response indicates an error
+      if (data && !data.success) {
+        console.error('Error en la respuesta:', data.error);
+        throw new Error(data.error || 'Error desconocido en el pago');
+      }
+
+      console.log('Pago exitoso:', data);
       toast({
         title: "Pago procesado",
-        description: data.message,
+        description: data?.message || "Pago completado exitosamente",
       });
 
       onSuccess(data);
 
     } catch (error: any) {
       console.error('Payment error:', error);
+      
+      let errorMessage = 'Error desconocido en el pago';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       toast({
         title: "Error en el pago",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
       onError(error);
     } finally {
       setIsProcessing(false);
+      console.log('Proceso de pago finalizado');
     }
+  };
+
+  // Formateo automático para números de tarjeta
+  const formatCardNumber = (value: string) => {
+    // Remover espacios y caracteres no numéricos
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    
+    // Agregar espacios cada 4 dígitos
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  // Formateo automático para fecha de vencimiento
+  const formatExpiryDate = (value: string) => {
+    // Remover caracteres no numéricos
+    const v = value.replace(/\D/g, '');
+    
+    // Agregar "/" después de los primeros dos dígitos
+    if (v.length >= 2) {
+      return v.slice(0, 2) + '/' + v.slice(2, 4);
+    }
+    
+    return v;
+  };
+
+  // Validación en tiempo real de tarjeta
+  const validateCardNumber = (number: string) => {
+    const cleanNumber = number.replace(/\D/g, '');
+    
+    // Luhn algorithm para validar número de tarjeta
+    let sum = 0;
+    let isEven = false;
+    
+    for (let i = cleanNumber.length - 1; i >= 0; i--) {
+      let digit = parseInt(cleanNumber.charAt(i), 10);
+      
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      
+      sum += digit;
+      isEven = !isEven;
+    }
+    
+    return sum % 10 === 0 && cleanNumber.length >= 13;
+  };
+
+  // Detectar tipo de tarjeta
+  const getCardType = (number: string) => {
+    const cleanNumber = number.replace(/\D/g, '');
+    
+    if (cleanNumber.startsWith('4')) return 'Visa';
+    if (cleanNumber.startsWith('5') || cleanNumber.startsWith('2')) return 'Mastercard';
+    if (cleanNumber.startsWith('3')) return 'American Express';
+    
+    return '';
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCardNumber(e.target.value);
+    setFormData(prev => ({ ...prev, cardNumber: formatted }));
+  };
+
+  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatExpiryDate(e.target.value);
+    setFormData(prev => ({ ...prev, expiryDate: formatted }));
   };
 
   return (
@@ -206,13 +308,26 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="cardNumber">Número de Tarjeta *</Label>
-                <Input
-                  id="cardNumber"
-                  placeholder="1234 5678 9012 3456"
-                  value={formData.cardNumber}
-                  onChange={(e) => setFormData({...formData, cardNumber: e.target.value})}
-                  className={validationErrors.cardNumber ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="cardNumber"
+                    placeholder="1234 5678 9012 3456"
+                    value={formData.cardNumber}
+                    onChange={handleCardNumberChange}
+                    maxLength={19}
+                    className={validationErrors.cardNumber ? 'border-red-500' : ''}
+                  />
+                  {getCardType(formData.cardNumber) && (
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                      {getCardType(formData.cardNumber)}
+                    </span>
+                  )}
+                  {formData.cardNumber && validateCardNumber(formData.cardNumber) && (
+                    <span className="absolute right-8 top-1/2 transform -translate-y-1/2 text-green-500 text-xs">
+                      ✓
+                    </span>
+                  )}
+                </div>
                 {validationErrors.cardNumber && (
                   <p className="text-sm text-red-500 mt-1">{validationErrors.cardNumber}</p>
                 )}
@@ -225,7 +340,8 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
                     id="expiryDate"
                     placeholder="MM/AA"
                     value={formData.expiryDate}
-                    onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
+                    onChange={handleExpiryChange}
+                    maxLength={5}
                     className={validationErrors.expiryDate ? 'border-red-500' : ''}
                   />
                   {validationErrors.expiryDate && (

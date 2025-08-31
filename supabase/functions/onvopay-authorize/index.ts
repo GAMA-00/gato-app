@@ -40,7 +40,7 @@ serve(async (req) => {
       billing_info 
     } = await req.json();
 
-    console.log('Onvopay Authorization Request:', { appointmentId, amount, payment_type });
+    console.log('Onvopay Authorization Request:', { appointmentId, amount, payment_type, billing_info: billing_info?.address?.length });
 
     // Validate Costa Rica specific data
     if (!billing_info?.phone?.includes('506')) {
