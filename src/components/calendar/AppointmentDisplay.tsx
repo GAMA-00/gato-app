@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Repeat, ExternalLink, Clock } from 'lucide-react';
+import { Repeat, ExternalLink, Clock, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { getRecurrenceInfo, isRecurring } from '@/utils/recurrenceUtils';
+import { ProviderCancelAppointmentModal } from '@/components/modals/ProviderCancelAppointmentModal';
+import { Button } from '@/components/ui/button';
 
 // Status color mapping - Updated colors per requirements
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -33,6 +35,7 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
   onClick
 }) => {
   const { user } = useAuth();
+  const [showCancelModal, setShowCancelModal] = useState(false);
   
   // Convert start and end times correctly
   const startTime = new Date(appointment.start_time);
@@ -122,8 +125,30 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
   const recurrenceInfo = getRecurrenceInfo(appointment.recurrence);
   const recurrenceLabel = appointmentIsRecurring ? recurrenceInfo.label : null;
 
+  const handleCancelClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowCancelModal(true);
+  };
+
+  const canCancelAppointment = () => {
+    // Solo proveedores pueden cancelar y solo si la cita no está ya cancelada/completada
+    return user?.role === 'provider' && 
+           appointment.status !== 'cancelled' && 
+           appointment.status !== 'completed';
+  };
+
   return (
-    <div
+    <>
+      <ProviderCancelAppointmentModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        appointment={appointment}
+        onSuccess={() => {
+          // Refrescar la vista del calendario
+          window.location.reload();
+        }}
+      />
+      <div
       className={cn(
         "absolute left-1 right-1 overflow-hidden shadow-sm transition-all duration-150 cursor-pointer rounded text-xs z-10",
         expanded ? "z-20 bg-white border border-gray-200 p-2 h-fit min-h-[24px]" : "px-1 py-0.5",
@@ -200,23 +225,46 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
             )}
           </div>
           <div className="mt-1 pt-1 border-t text-[9px]">
-            <span className={cn(
-              "px-1 py-0.5 rounded-full text-[8px]",
-              appointmentStatus === 'pending' ? "bg-amber-50 text-amber-800" :
-              appointmentStatus === 'confirmed' ? "bg-green-50 text-green-800" :
-              appointmentStatus === 'scheduled' ? "bg-blue-50 text-blue-800" :
-              "bg-gray-50 text-gray-700"
-            )}>
-              {getStatusLabel()}
-            </span>
+            <div className="flex items-center justify-between">
+              <span className={cn(
+                "px-1 py-0.5 rounded-full text-[8px]",
+                appointmentStatus === 'pending' ? "bg-amber-50 text-amber-800" :
+                appointmentStatus === 'confirmed' ? "bg-green-50 text-green-800" :
+                appointmentStatus === 'scheduled' ? "bg-blue-50 text-blue-800" :
+                "bg-gray-50 text-gray-700"
+              )}>
+                {getStatusLabel()}
+              </span>
+              
+              {/* Botón de cancelar para proveedores */}
+              {canCancelAppointment() && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelClick}
+                  className="h-6 px-2 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Cancelar
+                </Button>
+              )}
+            </div>
+            
             {appointment.reschedule_notes && (
               <div className="mt-1 text-[8px] text-gray-600 bg-gray-50 p-1 rounded">
                 {appointment.reschedule_notes}
               </div>
             )}
+            
+            {appointment.cancellation_reason && (
+              <div className="mt-1 text-[8px] text-red-600 bg-red-50 p-1 rounded">
+                <span className="font-medium">Cancelada:</span> {appointment.cancellation_reason}
+              </div>
+            )}
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };

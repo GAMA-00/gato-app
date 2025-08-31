@@ -20,6 +20,10 @@ export {
   type CancelAppointmentModalProps 
 } from './CancelAppointmentModal';
 
+export { 
+  ProviderCancelAppointmentModal 
+} from './ProviderCancelAppointmentModal';
+
 // TODO: Agregar cuando esté migrado
 // export { 
 //   RescheduleAppointmentModal,
