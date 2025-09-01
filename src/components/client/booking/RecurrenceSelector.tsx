@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Repeat } from 'lucide-react';
 
 interface RecurrenceSelectorProps {
   selectedFrequency: string;
@@ -20,7 +19,7 @@ const RecurrenceSelector = ({
       <CardContent className="pt-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="inline-flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
-            <Repeat className="h-4 w-4 text-primary" />
+            <img src="/lovable-uploads/704b128d-3f43-44a6-8032-901982fc0484.png" alt="Frecuencia" className="h-4 w-4" />
           </div>
           <h2 className="text-xl font-semibold">Frecuencia del servicio</h2>
         </div>
