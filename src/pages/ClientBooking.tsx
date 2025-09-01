@@ -11,7 +11,6 @@ import { RobustBookingSystem } from '@/utils/robustBookingSystem';
 import PageLayout from '@/components/layout/PageLayout';
 import { toast } from 'sonner';
 import BookingHeader from '@/components/client/booking/BookingHeader';
-import ServiceSummaryCard from '@/components/client/booking/ServiceSummaryCard';
 import NewBookingForm from '@/components/client/booking/NewBookingForm';
 import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
 
@@ -240,16 +239,6 @@ const ClientBooking = () => {
     <PageLayout>
       {/* Back button positioned in top left corner above title */}
       <BookingHeader onBackClick={handleBackNavigation} />
-
-      {/* Service summary */}
-      <ServiceSummaryCard
-        serviceTitle={serviceDetails.title}
-        clientLocation={clientLocation}
-        isLoadingLocation={isLoadingUserData}
-        selectedVariant={selectedVariant}
-        selectedVariants={selectedVariants}
-        formatPrice={formatPrice}
-      />
 
       {/* Single Column Layout - Same for Desktop and Mobile */}
       <div className="max-w-2xl mx-auto space-y-6">
