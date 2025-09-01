@@ -112,16 +112,10 @@ export const Checkout = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Payment Method Selection - Moved to top */}
-          <PaymentMethodSelector
-            serviceType={serviceType}
-            onMethodSelect={setPaymentMethod}
-          />
-
           {/* Service and Price Breakdown */}
           <Card>
             <CardHeader>
-              <CardTitle>Detallado Completo</CardTitle>
+              <CardTitle>Resumen de Pago</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Service Info */}
@@ -186,6 +180,12 @@ export const Checkout = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Payment Method Selection */}
+          <PaymentMethodSelector
+            serviceType={serviceType}
+            onMethodSelect={setPaymentMethod}
+          />
 
           {/* Payment Form */}
           {paymentMethod && (
