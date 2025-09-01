@@ -26,6 +26,10 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   console.log('BookingCard - Booking data:', {
     id: booking.id,
     serviceName: booking.serviceName,
+    status: booking.status,
+    isCompleted: isCompleted,
+    isRated: booking.isRated,
+    shouldShowRating: isCompleted && !booking.isRated,
     recurrence: booking.recurrence,
     isRecurring: bookingIsRecurring
   });
