@@ -64,13 +64,14 @@ export const Checkout = () => {
   };
 
   // Calculate price breakdown with correct IVA (13%)
-  const calculatePriceBreakdown = (total: number) => {
-    const subtotal = total / 1.13;
-    const iva = total - subtotal;
+  const calculatePriceBreakdown = (subtotalPrice: number) => {
+    const subtotal = subtotalPrice;
+    const iva = subtotal * 0.13;
+    const total = subtotal + iva;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
       iva: Math.round(iva * 100) / 100,
-      total: total
+      total: Math.round(total * 100) / 100
     };
   };
 
@@ -185,7 +186,7 @@ export const Checkout = () => {
           {/* Payment Form */}
           {paymentMethod && (
             <OnvopayCheckoutForm
-              amount={totalPrice}
+              amount={priceBreakdown.total}
               paymentType={paymentMethod}
               appointmentData={bookingData}
               onSuccess={handlePaymentSuccess}

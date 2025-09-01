@@ -27,16 +27,16 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         {/* Opción Cash */}
         <Button
           variant="outline"
-          className="w-full h-auto p-4 justify-start"
+          className="w-full h-auto p-4 justify-start text-left"
           onClick={() => onMethodSelect('cash')}
         >
-          <div className="flex items-center gap-4">
-            <div className="bg-green-100 p-2 rounded-full">
+          <div className="flex items-center gap-4 w-full">
+            <div className="bg-green-100 p-2 rounded-full flex-shrink-0">
               <Banknote className="h-6 w-6 text-green-600" />
             </div>
-            <div className="text-left">
-              <h3 className="font-semibold">Pago Único</h3>
-              <p className="text-sm text-gray-500">
+            <div className="text-left flex-1 min-w-0">
+              <h3 className="font-semibold text-base">Pago Único</h3>
+              <p className="text-sm text-muted-foreground whitespace-normal">
                 Autorizar ahora, cobrar al completar servicio
               </p>
             </div>
@@ -47,16 +47,16 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         {serviceType === 'recurring' && (
           <Button
             variant="outline"
-            className="w-full h-auto p-4 justify-start"
+            className="w-full h-auto p-4 justify-start text-left"
             onClick={() => onMethodSelect('subscription')}
           >
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 p-2 rounded-full">
+            <div className="flex items-center gap-4 w-full">
+              <div className="bg-blue-100 p-2 rounded-full flex-shrink-0">
                 <RefreshCw className="h-6 w-6 text-blue-600" />
               </div>
-              <div className="text-left">
-                <h3 className="font-semibold">Pago Recurrente</h3>
-                <p className="text-sm text-gray-500">
+              <div className="text-left flex-1 min-w-0">
+                <h3 className="font-semibold text-base">Pago Recurrente</h3>
+                <p className="text-sm text-muted-foreground whitespace-normal">
                   Suscripción automática según frecuencia
                 </p>
               </div>
