@@ -402,12 +402,28 @@ serve(async (req) => {
     throw new Error('Onvopay API real no implementada aún. Usar modo testing.');
 
   } catch (error) {
-    // ✅ LOGGING DETALLADO QUE NECESITAMOS VER
+    // ✅ Safe variable access - no crash si variables undefined
+    let appointmentId, amount, payment_type, card_data, billing_info;
+
+    try {
+      // Try to get variables from request if available
+      const bodyText = await req.clone().text();
+      const parsedBody = JSON.parse(bodyText);
+      appointmentId = parsedBody.appointmentId;
+      amount = parsedBody.amount;
+      payment_type = parsedBody.payment_type;
+      card_data = parsedBody.card_data;
+      billing_info = parsedBody.billing_info;
+    } catch (parseError) {
+      console.error('Could not parse request body in error handler');
+    }
+
+    // ✅ Safe error details
     const errorDetails = {
-      message: error.message,
-      name: error.name,
-      code: error.code,
-      stack: error.stack?.substring(0, 500), // Truncate stack
+      message: error?.message || 'Unknown error',
+      name: error?.name || 'UnknownError',
+      code: error?.code || 'UNKNOWN',
+      stack: error?.stack?.substring(0, 500) || 'No stack trace',
       timestamp: new Date().toISOString(),
       request_data: {
         has_appointment_id: !!appointmentId,
@@ -422,21 +438,23 @@ serve(async (req) => {
 
     console.error('❌ === COMPLETE ERROR DETAILS ===');
     console.error('Error Details JSON:', JSON.stringify(errorDetails, null, 2));
-    console.error('Message:', error.message);
-    console.error('Stack:', error.stack);
+    console.error('Message:', error?.message);
+    console.error('Stack:', error?.stack);
     console.error('Error object:', error);
 
     // ✅ RETORNAR ERROR ESPECÍFICO EN RESPONSE BODY
     return new Response(JSON.stringify({
-      error: error.message || 'Error interno del servidor',
-      error_code: error.code || 'UNKNOWN',
-      error_name: error.name || 'UnknownError',
+      error: error?.message || 'Error interno del servidor',
+      error_code: error?.code || 'UNKNOWN',
+      error_name: error?.name || 'UnknownError',
       success: false,
       timestamp: new Date().toISOString(),
-      debug_info: errorDetails, // ✅ ESTO nos dirá exactamente qué está fallando
-      step_failed: 'See debug_info for details'
+      debug_info: errorDetails,
+      step_failed: 'Function crashed - see debug_info',
+      crashed_early: true,
+      appointment_id_for_cleanup: appointmentId || null
     }), {
-      status: 400,
+      status: 500, // ✅ Cambiar a 500 para crashes
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
