@@ -47,9 +47,12 @@ const validateAddressCR = (address: string): boolean => {
 };
 
 const calculateIVA = (amount: number) => {
+  // Amount already includes correct IVA calculation from Checkout
+  // This is just for display purposes
+  const total = amount;
   const subtotal = Math.round((amount / 1.13) * 100) / 100;
-  const iva = Math.round((amount - subtotal) * 100) / 100;
-  return { subtotal, iva, total: amount };
+  const iva = Math.round((total - subtotal) * 100) / 100;
+  return { subtotal, iva, total };
 };
 
 const formatCurrencyUSD = (amount: number): string => {
