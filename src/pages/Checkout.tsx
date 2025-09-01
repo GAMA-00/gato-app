@@ -83,7 +83,8 @@ export const Checkout = () => {
     return `${hours}${mins > 0 ? `h ${mins}m` : 'h'}`;
   };
 
-  const handlePaymentSuccess = (paymentId: string) => {
+  const handlePaymentSuccess = (result: any) => {
+    const paymentId = result.payment_id || result.id;
     navigate(`/payment-status/${paymentId}`);
   };
 
