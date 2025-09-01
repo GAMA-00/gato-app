@@ -125,17 +125,28 @@ serve(async (req) => {
 
     console.log('✅ Basic validations passed');
 
-    // Calculate IVA (13% Costa Rica) - Convert to integers (cents)
-    const subtotal = Math.round((amount / 1.13) * 100);
-    const iva_amount = Math.round((amount - (subtotal / 100)) * 100);
-    const commission_amount = Math.round((amount * 0.05) * 100);
+    // Calculate IVA (13% Costa Rica) with proper precision
+    const subtotal = Math.round((amount / 1.13) * 100) / 100;
+    const iva_amount = Math.round((amount - subtotal) * 100) / 100;
+    const commission_amount = Math.round((amount * 0.05) * 100) / 100;
 
-    console.log('💰 Price breakdown:', {
-      amount,
-      subtotal,
-      iva_amount,
-      commission_amount
+    console.log('💰 Price breakdown (USD):', {
+      original_amount: amount,
+      subtotal_calculated: subtotal,
+      iva_13_percent: iva_amount,
+      commission_5_percent: commission_amount,
+      total_verification: subtotal + iva_amount
     });
+
+    // Validation: Ensure calculations are correct
+    if (Math.abs((subtotal + iva_amount) - amount) > 0.01) {
+      console.error('❌ Price calculation error:', {
+        expected: amount,
+        calculated: subtotal + iva_amount,
+        difference: Math.abs((subtotal + iva_amount) - amount)
+      });
+      throw new Error('Error en cálculo de precios. Contacta soporte técnico.');
+    }
 
     // Get appointment details
     console.log('🔍 Fetching appointment:', appointmentId);
@@ -163,14 +174,34 @@ serve(async (req) => {
     // Create payment record first
     console.log('💾 Creating payment record...');
 
+    // Type validation before database insertion
+    const validatePaymentData = (data) => {
+      const requiredFields = ['appointment_id', 'client_id', 'provider_id', 'amount'];
+      const missingFields = requiredFields.filter(field => !data[field]);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Required payment fields missing: ${missingFields.join(', ')}`);
+      }
+
+      // Validate numeric fields
+      const numericFields = ['amount', 'subtotal', 'iva_amount', 'commission_amount'];
+      numericFields.forEach(field => {
+        if (typeof data[field] !== 'number' || isNaN(data[field]) || data[field] < 0) {
+          throw new Error(`Invalid numeric value for ${field}: ${data[field]}`);
+        }
+      });
+
+      return true;
+    };
+
     const paymentData = {
       appointment_id: appointmentId,
       client_id: user.id,
       provider_id: appointment.provider_id,
-      amount: Math.round(amount * 100), // Convert to cents
-      subtotal: subtotal,
-      iva_amount: iva_amount,
-      commission_amount: commission_amount,
+      amount: amount, // Keep as dollars (decimal)
+      subtotal: subtotal, // Keep as dollars (decimal)
+      iva_amount: iva_amount, // Keep as dollars (decimal) 
+      commission_amount: commission_amount, // Keep as dollars (decimal)
       payment_type: payment_type,
       payment_method: payment_method || 'card',
       billing_info: billing_info,
@@ -179,23 +210,59 @@ serve(async (req) => {
         brand: 'unknown'
       },
       status: 'pending_authorization',
-      external_reference: `APT-${appointmentId}-${Date.now()}`
+      external_reference: `APT-${appointmentId}-${Date.now()}`,
+      created_at: new Date().toISOString()
     };
 
-    console.log('💳 Payment data prepared:', {
+    console.log('💾 Payment data prepared for insertion:', {
       ...paymentData,
+      billing_info: '***HIDDEN***',
       card_info: '***HIDDEN***'
     });
 
-    const { data: payment, error: paymentError } = await supabaseAdmin
-      .from('onvopay_payments')
-      .insert(paymentData)
-      .select()
-      .single();
+    // Use validation before insertion
+    validatePaymentData(paymentData);
 
-    if (paymentError) {
-      console.error('❌ Error creating payment record:', paymentError);
-      throw new Error(`Error al crear registro de pago: ${paymentError.message}`);
+    // Enhanced error handling for database insertion
+    console.log('🔍 Pre-insertion validation:', {
+      appointment_exists: !!appointment,
+      user_authenticated: !!user.id,
+      amounts_valid: amount > 0 && subtotal > 0,
+      required_fields_present: !!(appointmentId && payment_type && card_data)
+    });
+
+    let payment;
+    try {
+      const { data: paymentResult, error: paymentError } = await supabaseAdmin
+        .from('onvopay_payments')
+        .insert(paymentData)
+        .select()
+        .single();
+
+      if (paymentError) {
+        console.error('❌ Database insertion failed:', {
+          error_code: paymentError.code,
+          error_message: paymentError.message,
+          error_details: paymentError.details,
+          payment_data_types: Object.keys(paymentData).map(key => ({
+            field: key,
+            type: typeof paymentData[key],
+            value: key.includes('info') ? '***HIDDEN***' : paymentData[key]
+          }))
+        });
+        throw new Error(`Database error: ${paymentError.message} (${paymentError.code})`);
+      }
+
+      payment = paymentResult;
+      console.log('✅ Payment record created successfully:', {
+        payment_id: payment.id,
+        status: payment.status,
+        amount: payment.amount
+      });
+
+    } catch (insertError) {
+      console.error('❌ Critical insertion error:', insertError);
+      throw insertError;
     }
 
     console.log('✅ Payment record created:', payment.id);
@@ -246,16 +313,29 @@ serve(async (req) => {
 
       console.log('🎉 === SUCCESS: TEST PAYMENT COMPLETED ===');
 
-      return new Response(JSON.stringify({
+      const successResponse = {
         success: true,
         payment_id: payment.id,
+        appointment_id: appointmentId,
         status: updateData.status,
         onvopay_payment_id: onvopayResult.id,
         amount: amount,
+        currency: 'USD',
+        breakdown: {
+          subtotal: subtotal,
+          iva: iva_amount,
+          commission: commission_amount,
+          total: amount
+        },
         message: payment_type === 'cash'
           ? 'Pago autorizado (TEST). Se cobrará al completar el servicio.'
-          : 'Pago procesado exitosamente (TEST).'
-      }), {
+          : 'Pago procesado exitosamente (TEST).',
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('🎉 Sending success response:', successResponse);
+
+      return new Response(JSON.stringify(successResponse), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
