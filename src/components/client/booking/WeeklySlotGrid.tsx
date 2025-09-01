@@ -245,8 +245,8 @@ const WeeklySlotGrid = ({
       <CardHeader className="pb-4 px-4 pt-4 md:px-6">
         <div className="text-center md:flex md:items-center md:justify-between md:text-left">
           <div>
-            <CardTitle className="text-lg md:text-xl flex items-center justify-center md:justify-start gap-2">
-              <img src="/lovable-uploads/093e198a-95d0-419b-93ad-7c094a6c79d5.png" alt="Seleccionar espacio" className="h-8 w-8" />
+            <CardTitle className="text-lg md:text-xl flex items-center justify-center md:justify-start gap-4">
+              <img src="/lovable-uploads/093e198a-95d0-419b-93ad-7c094a6c79d5.png" alt="Seleccionar espacio" className="h-10 w-10" />
               <span className="md:hidden">Seleccione su espacio</span>
               <span className="hidden md:inline">Selecciona tu horario</span>
             </CardTitle>
