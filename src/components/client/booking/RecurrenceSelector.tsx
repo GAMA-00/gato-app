@@ -15,10 +15,10 @@ const RecurrenceSelector = ({
 }: RecurrenceSelectorProps) => {
   
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-md relative">
+      <img src="/lovable-uploads/704b128d-3f43-44a6-8032-901982fc0484.png" alt="Frecuencia" className="absolute top-4 left-4 h-12 w-12 z-10" />
       <CardContent className="pt-6">
-        <div className="flex items-center gap-4 mb-4">
-          <img src="/lovable-uploads/704b128d-3f43-44a6-8032-901982fc0484.png" alt="Frecuencia" className="h-10 w-10" />
+        <div className="mb-4 pl-16">
           <h2 className="text-xl font-semibold">Frecuencia del servicio</h2>
         </div>
         
