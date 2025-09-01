@@ -5,6 +5,7 @@ import { Home, Calendar, Briefcase, CalendarClock, Award, Flame, User, Users, Fi
 import { cn } from '@/lib/utils';
 import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
+import { usePendingInvoicesCount, useClientInvoicesCount } from '@/hooks/useInvoiceCounts';
 
 interface MobileBottomNavProps {
   isClientSection: boolean;
@@ -25,12 +26,14 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const navigate = useNavigate();
   const { count: recurringServicesCount } = useRecurringServices();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
+  const { data: pendingInvoicesCount = 0 } = usePendingInvoicesCount();
+  const { data: clientInvoicesCount = 0 } = useClientInvoicesCount();
 
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/provider/invoices', icon: FileText, label: 'Facturas' },
+    { to: '/provider/invoices', icon: FileText, label: 'Facturas', counter: pendingInvoicesCount },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
   
@@ -49,7 +52,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
         </div>
       )
     },
-    { to: '/client/invoices', icon: FileText, label: 'Facturas' },
+    { to: '/client/invoices', icon: FileText, label: 'Facturas', counter: clientInvoicesCount },
     { to: '/profile', icon: User, label: 'Perfil' }
   ];
 

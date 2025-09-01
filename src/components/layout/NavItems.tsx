@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import NavItem from './NavItem';
 import { Home, Calendar, Users, Star, Settings, Briefcase, FileText } from 'lucide-react';
+import { usePendingInvoicesCount, useClientInvoicesCount } from '@/hooks/useInvoiceCounts';
 
 export interface NavItem {
   title: string;
@@ -71,6 +72,8 @@ interface NavItemsProps {
 export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchView }) => {
   const location = useLocation();
   const { user } = useAuth();
+  const { data: pendingInvoicesCount = 0 } = usePendingInvoicesCount();
+  const { data: clientInvoicesCount = 0 } = useClientInvoicesCount();
 
   if (!user) return null;
 
@@ -82,6 +85,16 @@ export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchVie
     }
   });
 
+  const getItemCounter = (href: string) => {
+    if (href === '/provider/invoices' && user.role === 'provider') {
+      return pendingInvoicesCount;
+    }
+    if (href === '/client/invoices' && user.role === 'client') {
+      return clientInvoicesCount;
+    }
+    return undefined;
+  };
+
   return (
     <nav className="space-y-1 px-3">
       {filteredItems.map((item) => (
@@ -91,6 +104,7 @@ export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchVie
           label={item.title}
           icon={item.icon}
           isActive={location.pathname === item.href}
+          counter={getItemCounter(item.href)}
         />
       ))}
     </nav>
