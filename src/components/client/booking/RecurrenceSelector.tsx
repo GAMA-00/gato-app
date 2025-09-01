@@ -18,9 +18,7 @@ const RecurrenceSelector = ({
     <Card className="shadow-md">
       <CardContent className="pt-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="inline-flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
-            <img src="/lovable-uploads/704b128d-3f43-44a6-8032-901982fc0484.png" alt="Frecuencia" className="h-4 w-4" />
-          </div>
+          <img src="/lovable-uploads/704b128d-3f43-44a6-8032-901982fc0484.png" alt="Frecuencia" className="h-8 w-8" />
           <h2 className="text-xl font-semibold">Frecuencia del servicio</h2>
         </div>
         
