@@ -130,10 +130,6 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                   <span className="text-muted-foreground">Fecha:</span>
                   <p className="font-medium text-xs md:text-sm">{formatDate(appointment?.start_time)}</p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Tarifa Base:</span>
-                  <p className="font-semibold text-primary">{formatCurrency(invoice.base_price)}</p>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -186,17 +182,13 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
             <CardContent className="pt-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Tarifa Base:</span>
-                  <span>{formatCurrency(invoice.base_price)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
                   <span>Gastos Adicionales:</span>
                   <span>{formatCurrency(totalItems)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total a Pagar:</span>
-                  <span className="text-primary">{formatCurrency(invoice.total_price)}</span>
+                  <span className="text-primary">{formatCurrency(totalItems)}</span>
                 </div>
               </div>
             </CardContent>

@@ -85,7 +85,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
   const calculateTotal = () => {
     const itemsTotal = form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0);
-    return (invoice?.appointments?.listings?.base_price || 0) + itemsTotal;
+    return itemsTotal; // Only additional costs, base price is charged at booking
   };
 
   const onSubmit = async (data: InvoiceFormData, submitForApproval = false) => {
@@ -94,8 +94,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
     setIsSubmitting(true);
     try {
       const appointment = invoice.appointments;
-      const basePrice = appointment?.listings?.base_price || 0;
-      const totalPrice = basePrice + data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+      const totalPrice = data.items.reduce((sum, item) => sum + (item.amount || 0), 0); // Only additional costs
 
       // Prepare items with evidence files
       const itemsWithEvidence = data.items.map((item, index) => ({
@@ -110,7 +109,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
         appointment_id: appointment.id,
         provider_id: invoice.provider_id,
         client_id: invoice.client_id,
-        base_price: basePrice,
+        base_price: 0, // Base price is charged at booking, not in post-payment
         total_price: totalPrice,
         status: submitForApproval ? 'submitted' as const : 'draft' as const,
         ...(submitForApproval && { submitted_at: new Date().toISOString() })
@@ -177,10 +176,6 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Fecha:</span>
                 <span className="font-medium">{formatDate(appointment?.start_time)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tarifa Base:</span>
-                <span className="font-semibold text-primary">${basePrice.toLocaleString()}</span>
               </div>
             </CardContent>
           </Card>
@@ -313,17 +308,13 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
               <CardContent className="pt-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Tarifa Base:</span>
-                    <span>${basePrice.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
                     <span>Gastos Adicionales:</span>
                     <span>${form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total:</span>
-                    <span className="text-primary">${calculateTotal().toLocaleString()}</span>
+                    <span className="text-primary">${form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
                   </div>
                 </div>
               </CardContent>
