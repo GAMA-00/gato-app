@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+
 import { CreditCard, MapPin, Shield, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -376,35 +376,6 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Resumen de Pago */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Resumen de Pago</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between text-sm">
-            <span>Subtotal:</span>
-            <span>{formatCurrencyUSD(subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>IVA (13%):</span>
-            <span>{formatCurrencyUSD(iva)}</span>
-          </div>
-          <Separator />
-          <div className="flex justify-between font-semibold">
-            <span>Total:</span>
-            <span className="text-lg">{formatCurrencyUSD(total)}</span>
-          </div>
-
-          {paymentType === 'subscription' && (
-            <Badge variant="outline" className="w-full justify-center">
-              🔄 Pago recurrente cada {appointmentData.recurrence || 'semana'}
-            </Badge>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Formulario de Pago */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

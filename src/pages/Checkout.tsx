@@ -75,7 +75,11 @@ export const Checkout = () => {
     };
   };
 
-  const priceBreakdown = calculatePriceBreakdown(totalPrice);
+  const serviceSubtotal = selectedVariants.reduce((sum, variant) => 
+    sum + (Number(variant.price) * variant.quantity), 0
+  );
+
+  const priceBreakdown = calculatePriceBreakdown(serviceSubtotal);
 
   const handlePaymentSuccess = (result: any) => {
     const paymentId = result.payment_id || result.id;
