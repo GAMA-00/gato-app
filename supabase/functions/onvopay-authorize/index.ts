@@ -130,12 +130,21 @@ serve(async (req) => {
     const iva_amount = Math.round((amount - subtotal) * 100) / 100;
     const commission_amount = Math.round((amount * 0.05) * 100) / 100;
 
-    console.log('💰 Price breakdown (USD):', {
-      original_amount: amount,
-      subtotal_calculated: subtotal,
-      iva_13_percent: iva_amount,
-      commission_5_percent: commission_amount,
-      total_verification: subtotal + iva_amount
+    console.log('💰 Price breakdown (USD → Centavos para DB):', {
+      // Valores en USD (para cálculos)
+      original_amount_usd: amount,
+      subtotal_usd: subtotal,
+      iva_13_percent_usd: iva_amount,
+      commission_5_percent_usd: commission_amount,
+      total_verification_usd: subtotal + iva_amount,
+      // Conversión a centavos (para inserción en DB)
+      amount_cents: Math.round(amount * 100),
+      subtotal_cents: Math.round(subtotal * 100),
+      iva_cents: Math.round(iva_amount * 100),
+      commission_cents: Math.round(commission_amount * 100),
+      // Verificación de schema constraints
+      meets_min_constraint: Math.round(amount * 100) >= 100,
+      meets_max_constraint: Math.round(amount * 100) <= 5000000
     });
 
     // Validation: Ensure calculations are correct
@@ -198,10 +207,10 @@ serve(async (req) => {
       appointment_id: appointmentId,
       client_id: user.id,
       provider_id: appointment.provider_id,
-      amount: amount, // Keep as dollars (decimal)
-      subtotal: subtotal, // Keep as dollars (decimal)
-      iva_amount: iva_amount, // Keep as dollars (decimal) 
-      commission_amount: commission_amount, // Keep as dollars (decimal)
+      amount: Math.round(amount * 100), // ✅ Convert to cents (INTEGER) for DB
+      subtotal: Math.round(subtotal * 100), // ✅ Convert to cents (INTEGER) for DB
+      iva_amount: Math.round(iva_amount * 100), // ✅ Convert to cents (INTEGER) for DB
+      commission_amount: Math.round(commission_amount * 100), // ✅ Convert to cents (INTEGER) for DB
       payment_type: payment_type,
       payment_method: payment_method || 'card',
       billing_info: billing_info,
@@ -214,8 +223,16 @@ serve(async (req) => {
       created_at: new Date().toISOString()
     };
 
-    console.log('💾 Payment data prepared for insertion:', {
-      ...paymentData,
+    console.log('💾 Payment data prepared for insertion (CENTAVOS):', {
+      appointment_id: paymentData.appointment_id,
+      client_id: paymentData.client_id,
+      provider_id: paymentData.provider_id,
+      amount_cents: paymentData.amount,
+      subtotal_cents: paymentData.subtotal,
+      iva_amount_cents: paymentData.iva_amount,
+      commission_amount_cents: paymentData.commission_amount,
+      payment_type: paymentData.payment_type,
+      status: paymentData.status,
       billing_info: '***HIDDEN***',
       card_info: '***HIDDEN***'
     });
