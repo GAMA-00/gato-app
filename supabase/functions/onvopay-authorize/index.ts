@@ -16,6 +16,7 @@ serve(async (req) => {
   }
 
   console.log('🚀 === INICIANDO ONVOPAY AUTHORIZE ===');
+  console.log('🚀 STEP 1: Function started');
 
   try {
     console.log('🔧 Environment check:', {
@@ -81,6 +82,40 @@ serve(async (req) => {
       billing_info
     } = requestBody;
 
+    console.log('📋 DETAILED INPUT VALIDATION:', {
+      // Appointment data
+      appointmentId_valid: appointmentId && typeof appointmentId === 'string',
+      appointmentId_length: appointmentId?.length,
+      appointmentId_value: appointmentId,
+
+      // Amount validation  
+      amount_type: typeof amount,
+      amount_value: amount,
+      amount_valid: typeof amount === 'number' && amount > 0,
+
+      // Payment type
+      payment_type_valid: ['cash', 'subscription'].includes(payment_type),
+      payment_type_value: payment_type,
+
+      // Card data structure
+      card_data_structure: {
+        has_number: !!card_data?.number,
+        has_expiry: !!card_data?.expiry,
+        has_cvv: !!card_data?.cvv,
+        has_name: !!card_data?.name,
+        number_length: card_data?.number?.length,
+      },
+
+      // Billing info structure
+      billing_info_structure: {
+        has_phone: !!billing_info?.phone,
+        has_address: !!billing_info?.address,
+        has_name: !!billing_info?.name,
+        phone_value: billing_info?.phone,
+        address_length: billing_info?.address?.length
+      }
+    });
+
     // Validate required fields
     const missingFields = [];
     if (!appointmentId) missingFields.push('appointmentId');
@@ -124,6 +159,7 @@ serve(async (req) => {
     }
 
     console.log('✅ Basic validations passed');
+    console.log('🚀 STEP 2: Basic validations completed');
 
     // Calculate IVA (13% Costa Rica) with proper precision
     const subtotal = Math.round((amount / 1.13) * 100) / 100;
@@ -179,6 +215,7 @@ serve(async (req) => {
     }
 
     console.log('✅ Appointment found successfully');
+    console.log('🚀 STEP 3: Appointment fetched successfully');
 
     // Create payment record first
     console.log('💾 Creating payment record...');
@@ -247,8 +284,10 @@ serve(async (req) => {
       amounts_valid: amount > 0 && subtotal > 0,
       required_fields_present: !!(appointmentId && payment_type && card_data)
     });
+    console.log('🚀 STEP 4: Pre-insertion validation completed');
 
     let payment;
+    console.log('🚀 STEP 5: About to insert payment record');
     try {
       const { data: paymentResult, error: paymentError } = await supabaseAdmin
         .from('onvopay_payments')
@@ -276,6 +315,7 @@ serve(async (req) => {
         status: payment.status,
         amount: payment.amount
       });
+      console.log('🚀 STEP 6: Payment record created successfully');
 
     } catch (insertError) {
       console.error('❌ Critical insertion error:', insertError);
@@ -362,16 +402,39 @@ serve(async (req) => {
     throw new Error('Onvopay API real no implementada aún. Usar modo testing.');
 
   } catch (error) {
+    // ✅ LOGGING DETALLADO QUE NECESITAMOS VER
+    const errorDetails = {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      stack: error.stack?.substring(0, 500), // Truncate stack
+      timestamp: new Date().toISOString(),
+      request_data: {
+        has_appointment_id: !!appointmentId,
+        has_amount: !!amount && typeof amount === 'number',
+        has_payment_type: !!payment_type,
+        has_card_data: !!card_data,
+        has_billing_info: !!billing_info,
+        phone_validation: billing_info?.phone ? 'provided' : 'missing',
+        address_validation: billing_info?.address ? 'provided' : 'missing'
+      }
+    };
+
     console.error('❌ === COMPLETE ERROR DETAILS ===');
+    console.error('Error Details JSON:', JSON.stringify(errorDetails, null, 2));
     console.error('Message:', error.message);
     console.error('Stack:', error.stack);
     console.error('Error object:', error);
 
+    // ✅ RETORNAR ERROR ESPECÍFICO EN RESPONSE BODY
     return new Response(JSON.stringify({
       error: error.message || 'Error interno del servidor',
+      error_code: error.code || 'UNKNOWN',
+      error_name: error.name || 'UnknownError',
       success: false,
       timestamp: new Date().toISOString(),
-      details: error.stack
+      debug_info: errorDetails, // ✅ ESTO nos dirá exactamente qué está fallando
+      step_failed: 'See debug_info for details'
     }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
