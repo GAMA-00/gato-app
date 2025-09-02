@@ -98,7 +98,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
                      {format(new Date(request.start_time), 'EEEE', { locale: es }).charAt(0).toUpperCase() + format(new Date(request.start_time), 'EEEE', { locale: es }).slice(1)}
                    </span>
                    <span className="ml-1">
-                     {isGroup ? 'Inicia: ' : ''}{format(new Date(request.start_time), 'PPP', { locale: es })}
+                     {isGroup ? 'Inicia: ' : ''}{format(new Date(request.start_time), 'd MMMM', { locale: es })}
                    </span>
                  </div>
                 <div className="text-muted-foreground">
