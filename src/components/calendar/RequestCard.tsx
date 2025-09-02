@@ -95,7 +95,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
                <TableCell className="p-1 text-sm">
                  <div>
                    <span className="font-bold">
-                     {format(new Date(request.start_time), 'EEEE', { locale: es })}
+                     {format(new Date(request.start_time), 'EEEE', { locale: es }).charAt(0).toUpperCase() + format(new Date(request.start_time), 'EEEE', { locale: es }).slice(1)}
                    </span>
                    <span className="ml-1">
                      {isGroup ? 'Inicia: ' : ''}{format(new Date(request.start_time), 'PPP', { locale: es })}
