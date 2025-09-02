@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Clock, MapPin, ExternalLink, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
 import { getServiceSummary } from '@/utils/serviceDetailsFormatter';
 import RequestActions from './RequestActions';
@@ -91,10 +92,15 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
               <TableCell className="p-1 pl-0 pr-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </TableCell>
-              <TableCell className="p-1 text-sm">
-                <div>
-                  {isGroup ? 'Inicia: ' : ''}{format(new Date(request.start_time), 'PPP')}
-                </div>
+               <TableCell className="p-1 text-sm">
+                 <div>
+                   <span className="font-bold">
+                     {format(new Date(request.start_time), 'EEEE', { locale: es })}
+                   </span>
+                   <span className="ml-1">
+                     {isGroup ? 'Inicia: ' : ''}{format(new Date(request.start_time), 'PPP', { locale: es })}
+                   </span>
+                 </div>
                 <div className="text-muted-foreground">
                   {format(new Date(request.start_time), 'h:mm a')} - {format(new Date(request.end_time), 'h:mm a')}
                   {isGroup && (
