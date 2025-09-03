@@ -248,10 +248,10 @@ const WeeklySlotGrid = ({
           <div>
             <CardTitle className="text-lg md:text-xl text-center md:text-left">
               <span className="md:hidden">Seleccione su espacio</span>
-              <span className="hidden md:inline">Selecciona tu horario</span>
+              <span className="hidden md:inline md:ml-16">Selecciona tu horario</span>
             </CardTitle>
-            <CardDescription className="hidden md:block mt-2">
-              Horarios disponibles del proveedor
+            <CardDescription className="hidden md:block mt-2 md:ml-16">
+              <span className="font-bold">Horarios disponibles del proveedor</span>
               {requiredSlots > 1 && (
                 <div className="mt-2 space-y-1">
                   <span className="block text-xs text-orange-600">
