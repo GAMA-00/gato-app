@@ -140,9 +140,6 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                   <div className="flex items-center justify-between pt-3">
                     <div className="flex-1">
                       <p className="font-medium text-sm">Cantidad de personas</p>
-                      <p className="text-xs text-muted-foreground">
-                        Se cobra por cada persona
-                      </p>
                     </div>
                     
                     <div className="flex items-center gap-3">
