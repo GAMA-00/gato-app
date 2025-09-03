@@ -118,7 +118,15 @@ const BookingSummaryCard = ({
           </div>
         )}
 
-        {/* 4. Ubicación */}
+        {/* 4. Duración */}
+        {(selectedVariants.length > 0 || selectedVariant) && (
+          <div>
+            <p className="font-medium text-sm mb-1">Duración:</p>
+            <p className="text-sm">{totalDuration} min</p>
+          </div>
+        )}
+
+        {/* 5. Ubicación */}
         <div>
           <p className="font-medium text-sm mb-1">Ubicación:</p>
           <p className="text-sm">
@@ -144,11 +152,6 @@ const BookingSummaryCard = ({
                       <p className="font-medium">
                         {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                       </p>
-                      {/* 6. Duración */}
-                      <div className="flex justify-between text-sm">
-                        <span>Duración:</span>
-                        <span>{Number(variant.duration) * variant.quantity} min</span>
-                      </div>
                       {/* Desglose de precios línea por línea */}
                       <div className="flex justify-between text-sm">
                         <span>Precio base:</span>
@@ -190,10 +193,10 @@ const BookingSummaryCard = ({
               <div>
                 {/* 5. Nombre específico del servicio */}
                 <p className="font-medium">{selectedVariant?.name}</p>
-                {/* 6. Duración */}
+                {/* Desglose de precios línea por línea */}
                 <div className="flex justify-between text-sm">
-                  <span>Duración:</span>
-                  <span>{selectedVariant?.duration} min</span>
+                  <span>Precio base:</span>
+                  <span>${totalPrice}</span>
                 </div>
                 {/* 7. Subtotal */}
                 <div className="flex justify-between text-sm">
