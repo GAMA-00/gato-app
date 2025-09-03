@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ProviderReviews from '@/components/providers/ProviderReviews';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
 import EnhancedAvatar from '@/components/ui/enhanced-avatar';
+import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 
 const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
@@ -222,29 +223,7 @@ const ClientProviderServiceDetail = () => {
             </div>
           </div>
 
-          {/* 3. Galería de trabajos */}
-          <div className="w-full">
-            <ProviderGallery provider={transformedProvider} />
-          </div>
-
-          {/* 4. Sobre Mí */}
-          <div className="w-full">
-            <ProviderAbout provider={transformedProvider} />
-          </div>
-
-          {/* 5. Certificación Profesional */}
-          <div className="w-full">
-            <ProviderCertifications 
-              certifications={transformedProvider.certificationFiles}
-            />
-          </div>
-
-          {/* 6. Comentarios de clientes */}
-          <div className="w-full">
-            <ProviderReviews provider={transformedProvider} />
-          </div>
-
-          {/* 7. Servicios Disponibles */}
+          {/* 3. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
             <div className="space-y-6 w-full">
               <div>
@@ -253,20 +232,47 @@ const ClientProviderServiceDetail = () => {
                   onSelectVariant={setSelectedVariants}
                 />
               </div>
+              
+              {/* Botón "Agendar Servicio" dentro de servicios */}
+              <div className="flex justify-center w-full">
+                <Button 
+                  onClick={handleBookService}
+                  size="lg"
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
+                  disabled={selectedVariants.length === 0}
+                >
+                  <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
+                  Agendar Servicio
+                </Button>
+              </div>
             </div>
           )}
 
-          {/* 8. Botón "Agendar Servicio" */}
-          <div className="flex justify-center pt-6 pb-8 sm:pt-8 sm:pb-12 w-full">
-            <Button 
-              onClick={handleBookService}
-              size="lg"
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
-              disabled={!serviceDetails?.serviceVariants || serviceDetails.serviceVariants.length === 0 || selectedVariants.length === 0}
-            >
-              <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
-              Agendar Servicio
-            </Button>
+          {/* 4. Galería de trabajos */}
+          <div className="w-full">
+            <ProviderGallery provider={transformedProvider} />
+          </div>
+
+          {/* 5. Sobre Mí */}
+          <div className="w-full">
+            <ProviderAbout provider={transformedProvider} />
+          </div>
+
+          {/* 6. Certificación Profesional */}
+          <div className="w-full">
+            <ProviderCertifications 
+              certifications={transformedProvider.certificationFiles}
+            />
+          </div>
+
+          {/* 7. Equipo */}
+          <div className="w-full">
+            <TeamPhotoSection providerId={providerId!} />
+          </div>
+
+          {/* 8. Comentarios de clientes */}
+          <div className="w-full">
+            <ProviderReviews provider={transformedProvider} />
           </div>
         </div>
       </PageContainer>
