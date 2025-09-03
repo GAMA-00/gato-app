@@ -62,7 +62,7 @@ const ProviderServices = ({
           <CardTitle>Servicios disponibles</CardTitle>
           {showBookingButton && categories.length > 0 && (
             <Button 
-              className="bg-primary hover:bg-primary/90"
+              className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => {
                 // Scroll to first service or implement booking logic
                 const firstService = categories[0]?.services[0];

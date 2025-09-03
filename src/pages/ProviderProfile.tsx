@@ -153,17 +153,20 @@ const ProviderProfile = () => {
         <PageContainer title="Perfil del Proveedor" subtitle="">
           <div className="space-y-8">
             <ProviderHeader provider={transformedProvider} />
+            
+            {/* Servicios disponibles - Primera sección */}
+            <ProviderServices 
+              categories={categories} 
+              isLoading={categoriesLoading}
+              onServiceSelect={() => {}}
+              showBookingButton={true}
+            />
+            
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <ProviderServices 
-                categories={categories} 
-                isLoading={categoriesLoading}
-                onServiceSelect={() => {}}
-                showBookingButton={true}
-              />
-              <ProviderAbout provider={transformedProvider} />
-              <ProviderReviews provider={transformedProvider} />
-            </div>
+              <div className="lg:col-span-2 space-y-8">
+                <ProviderAbout provider={transformedProvider} />
+                <ProviderReviews provider={transformedProvider} />
+              </div>
               <div className="space-y-6">
                 <ProviderInfo provider={transformedProvider} />
                 <ProviderCertifications provider={transformedProvider} />
