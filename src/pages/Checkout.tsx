@@ -37,6 +37,11 @@ export const Checkout = () => {
     }
   }, [checkoutData, user, navigate]);
 
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   if (!checkoutData || !user) {
     return null;
   }
