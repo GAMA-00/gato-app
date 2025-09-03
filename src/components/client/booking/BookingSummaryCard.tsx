@@ -69,7 +69,7 @@ const BookingSummaryCard = ({
     ? selectedVariants.reduce((sum, variant) => {
         const base = Number(variant.price) * variant.quantity;
         const persons = variant.personQuantity && variant.additionalPersonPrice
-          ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+          ? Number(variant.additionalPersonPrice) * variant.personQuantity * variant.quantity
           : 0;
         return sum + base + persons;
       }, 0) + customVariablesTotalPrice
@@ -134,7 +134,7 @@ const BookingSummaryCard = ({
                 {selectedVariants.map((variant, index) => {
                   const base = Number(variant.price) * variant.quantity;
                   const persons = variant.personQuantity && variant.additionalPersonPrice
-                    ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
+                    ? Number(variant.additionalPersonPrice) * variant.personQuantity * variant.quantity
                     : 0;
                   const subtotal = base + persons;
                   const iva = subtotal * 0.13;
@@ -165,10 +165,10 @@ const BookingSummaryCard = ({
                         <span>TOTAL:</span>
                         <span>${total.toFixed(2)}</span>
                       </div>
-                      {variant.personQuantity && variant.personQuantity > 1 && (
+                      {variant.personQuantity && variant.personQuantity > 0 && (
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Desglose:</span>
-                          <span>Base ${base} + Personas extra ${persons}</span>
+                          <span>Base ${base} + Personas ${persons}</span>
                         </div>
                       )}
                     </div>
