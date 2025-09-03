@@ -210,7 +210,14 @@ const ClientProviderServiceDetail = () => {
             </div>
           </div>
 
-          {/* 2. Servicios Disponibles */}
+          {/* 2. Título del Servicio */}
+          <div className="w-full">
+            <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy mb-4">
+              {serviceDetails.title}
+            </h2>
+          </div>
+
+          {/* 3. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
             <div className="space-y-6 w-full">
               <div>
@@ -235,11 +242,8 @@ const ClientProviderServiceDetail = () => {
             </div>
           )}
 
-          {/* 3. Descripción del servicio */}
+          {/* 4. Descripción del servicio */}
           <div className="space-y-4 w-full">
-            <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
-              {serviceDetails.title}
-            </h2>
             <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
               <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
@@ -274,6 +278,21 @@ const ClientProviderServiceDetail = () => {
           <div className="w-full">
             <ProviderReviews provider={transformedProvider} />
           </div>
+
+          {/* Botón "Agendar Servicio" final */}
+          {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
+            <div className="flex justify-center w-full py-6">
+              <Button 
+                onClick={handleBookService}
+                size="lg"
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
+                disabled={selectedVariants.length === 0}
+              >
+                <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
+                Agendar Servicio
+              </Button>
+            </div>
+          )}
         </div>
       </PageContainer>
     </div>
