@@ -210,20 +210,7 @@ const ClientProviderServiceDetail = () => {
             </div>
           </div>
 
-          {/* 2. Descripción del servicio */}
-          <div className="space-y-4 w-full">
-            <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
-              {serviceDetails.title}
-            </h2>
-            <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
-              <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
-                {serviceDetails.description}
-              </p>
-            </div>
-          </div>
-
-          {/* 3. Servicios Disponibles */}
+          {/* 2. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
             <div className="space-y-6 w-full">
               <div>
@@ -247,6 +234,19 @@ const ClientProviderServiceDetail = () => {
               </div>
             </div>
           )}
+
+          {/* 3. Descripción del servicio */}
+          <div className="space-y-4 w-full">
+            <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy">
+              {serviceDetails.title}
+            </h2>
+            <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
+              <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
+                {serviceDetails.description}
+              </p>
+            </div>
+          </div>
 
           {/* 4. Galería de trabajos */}
           <div className="w-full">
