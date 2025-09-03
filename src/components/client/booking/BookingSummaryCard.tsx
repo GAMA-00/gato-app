@@ -41,6 +41,7 @@ interface BookingSummaryCardProps {
     customVariablesTotalPrice?: number;
   };
   onBookingSuccess?: (appointment: any) => void;
+  hasPostPaymentCosts?: boolean;
 }
 
 const BookingSummaryCard = ({
@@ -62,7 +63,8 @@ const BookingSummaryCard = ({
   selectedSlotIds = [],
   requiredSlots = 1,
   bookingData,
-  onBookingSuccess
+  onBookingSuccess,
+  hasPostPaymentCosts = false
 }: BookingSummaryCardProps) => {
   // Calculate totals for multiple variants (including per-person pricing if present)
   const totalPrice = selectedVariants.length > 0 
@@ -221,6 +223,16 @@ const BookingSummaryCard = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Post payment costs information box */}
+        {hasPostPaymentCosts && (
+          <div className="p-4 bg-orange-50 border-l-4 border-orange-500 rounded-r-lg">
+            <h4 className="font-semibold text-orange-900 mb-1">Costos Adicionales Post Pago</h4>
+            <p className="text-orange-800 text-sm">
+              Este servicio puede incluir costos adicionales que se facturarán después de completar el trabajo, tales como ingredientes específicos, materiales especializados o gastos adicionales según las necesidades del servicio.
+            </p>
           </div>
         )}
 
