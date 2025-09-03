@@ -24,6 +24,9 @@ interface BookingSummaryCardProps {
   getRecurrenceText: (frequency: string) => string;
   selectedFrequency: string;
   customVariablesTotalPrice?: number;
+  // New props for slot validation
+  selectedSlotIds?: string[];
+  requiredSlots?: number;
   // New props for robust booking
   bookingData?: {
     listingId: string;
@@ -56,6 +59,8 @@ const BookingSummaryCard = ({
   getRecurrenceText,
   selectedFrequency,
   customVariablesTotalPrice = 0,
+  selectedSlotIds = [],
+  requiredSlots = 1,
   bookingData,
   onBookingSuccess
 }: BookingSummaryCardProps) => {
@@ -77,6 +82,11 @@ const BookingSummaryCard = ({
   const totalServices = selectedVariants.length > 0 
     ? selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)
     : (selectedVariant ? 1 : 0);
+
+  // Check if enough slots are selected for multiple services
+  const hasEnoughSlots = totalServices <= 1 || selectedSlotIds.length === requiredSlots;
+  const slotsValidation = !hasEnoughSlots && totalServices > 1;
+  
   return (
     <Card className="w-full">{/* Removed sticky positioning */}
       <CardHeader>
@@ -230,13 +240,13 @@ const BookingSummaryCard = ({
           <RobustBookingButton
             bookingData={bookingData}
             onSuccess={onBookingSuccess}
-            disabled={!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0)}
+            disabled={!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0) || !hasEnoughSlots}
             className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
           />
         ) : (
           <Button
             onClick={onBooking}
-            disabled={isLoading || !selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0)}
+            disabled={isLoading || !selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0) || !hasEnoughSlots}
             className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
             size="lg"
           >
@@ -255,7 +265,7 @@ const BookingSummaryCard = ({
         )}
 
         {/* ENHANCED validation feedback with better UX */}
-        {(!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0)) && !isLoading && (
+        {(!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0) || slotsValidation) && !isLoading && (
           <div className="text-sm text-muted-foreground text-center space-y-1">
             <div className="bg-muted/50 p-2 rounded-md">
               <p className="font-medium">Para continuar:</p>
@@ -263,13 +273,16 @@ const BookingSummaryCard = ({
                 {!selectedDate && <li>• Selecciona una fecha</li>}
                 {!selectedTime && <li>• Selecciona una hora</li>}
                 {(!selectedVariant && selectedVariants.length === 0) && <li>• Selecciona un servicio</li>}
+                {slotsValidation && (
+                  <li>• Selecciona {requiredSlots} horarios consecutivos (tienes {totalServices} servicios contratados)</li>
+                )}
               </ul>
             </div>
           </div>
         )}
         
         {/* SUCCESS feedback when all requirements are met */}
-        {selectedDate && selectedTime && (selectedVariant || selectedVariants.length > 0) && !isLoading && (
+        {selectedDate && selectedTime && (selectedVariant || selectedVariants.length > 0) && hasEnoughSlots && !isLoading && (
           <div className="text-sm text-green-600 text-center flex items-center justify-center gap-1">
             <span className="text-green-600">✓</span>
             <span>Listo para confirmar tu reserva</span>

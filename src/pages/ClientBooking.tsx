@@ -285,6 +285,8 @@ const ClientBooking = () => {
           getRecurrenceText={getRecurrenceText}
           selectedFrequency={selectedFrequency}
           customVariablesTotalPrice={customVariablesTotalPrice}
+          selectedSlotIds={selectedSlotIds}
+          requiredSlots={selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)}
         />
       </div>
     </PageLayout>
