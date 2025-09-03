@@ -141,7 +141,6 @@ const BookingSummaryCard = ({
                   const total = subtotal + iva;
                   return (
                     <div key={variant.id || index} className="pb-2 border-b last:border-b-0">
-                      {/* 5. Nombre específico del servicio */}
                       <p className="font-medium">
                         {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                       </p>
@@ -150,6 +149,17 @@ const BookingSummaryCard = ({
                         <span>Duración:</span>
                         <span>{Number(variant.duration) * variant.quantity} min</span>
                       </div>
+                      {/* Desglose de precios línea por línea */}
+                      <div className="flex justify-between text-sm">
+                        <span>Precio base:</span>
+                        <span>${base}</span>
+                      </div>
+                      {variant.personQuantity && variant.personQuantity > 0 && persons > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span>Precio por persona ({variant.personQuantity} personas):</span>
+                          <span>${persons}</span>
+                        </div>
+                      )}
                       {/* 7. Subtotal */}
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
@@ -165,12 +175,6 @@ const BookingSummaryCard = ({
                         <span>TOTAL:</span>
                         <span>${total.toFixed(2)}</span>
                       </div>
-                      {variant.personQuantity && variant.personQuantity > 0 && (
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Desglose:</span>
-                          <span>Base ${base} + Personas ${persons}</span>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
