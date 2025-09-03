@@ -58,6 +58,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(1); // Para manejar los pasos del formulario
   
   // Refinamos el esquema según el rol del usuario
   const formSchema = z.object({
@@ -70,9 +71,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
     profileImage: z.any().optional(),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    passwordConfirm: z.string().min(1, 'Por favor confirme su contraseña')
+    passwordConfirm: userRole === 'provider' ? z.string().min(1, 'Por favor confirme su contraseña') : z.string().optional()
   }).refine(
-    (data) => data.password === data.passwordConfirm,
+    (data) => userRole === 'provider' ? data.password === data.passwordConfirm : true,
     {
       message: "Las contraseñas no coinciden. Por favor, inténtelo de nuevo.",
       path: ["passwordConfirm"],
@@ -94,6 +95,27 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       passwordConfirm: ''
     }
   });
+
+  // Función para validar y avanzar al siguiente paso (solo para clientes)
+  const handleNextStep = async () => {
+    if (userRole !== 'client') return;
+    
+    setRegistrationError(null);
+    
+    // Validar campos del paso 1
+    const step1Fields = ['name', 'email', 'password'] as const;
+    const step1Valid = await form.trigger(step1Fields);
+    
+    if (step1Valid) {
+      setCurrentStep(2);
+    }
+  };
+
+  // Función para ir al paso anterior
+  const handlePreviousStep = () => {
+    setCurrentStep(1);
+    setRegistrationError(null);
+  };
 
   const onSubmit = async (values: RegisterFormValues) => {
     if (isSubmitting) {
@@ -206,118 +228,299 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           </Alert>
         )}
         
-        {onGoogleSignIn && (
-          <div className="space-y-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full flex items-center justify-center gap-2" 
-              onClick={onGoogleSignIn}
-              disabled={isSubmitting || loading}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
-                <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
-                <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
-                <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
-                <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
-              </svg>
-              Continuar con Google
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-300"></span>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">O registrarse con email</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-medium">Nombre Completo</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Tu nombre completo"
-                    className="pl-10 h-12 text-base"
-                    {...field}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-medium">Correo Electrónico</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="correo@ejemplo.com"
-                    className="pl-10 h-12 text-base"
-                    {...field}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </FormControl>
-              {registrationError?.includes('Email rate limit exceeded') && (
-                <p className="text-xs text-blue-600 mt-1">
-                  Sugerencia: Intenta usar otro correo o agrega números al final. Ejemplo: {field.value.split('@')[0]}123@{field.value.split('@')[1]}
-                </p>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="+52 1234567890"
-                    className="pl-10 h-12 text-base"
-                    {...field}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Mostramos campos específicos según el rol */}
-        {userRole === 'client' && (
-          <ClientResidenceField 
-            residencias={residencias} 
-            isSubmitting={isSubmitting} 
-            loadingResidencias={loadingResidencias} 
-            form={form} 
-          />
-        )}
-        
-        {userRole === 'provider' && (
+        {/* Sistema de dos pasos solo para clientes */}
+        {userRole === 'client' ? (
           <>
+            {/* Paso 1: Información básica */}
+            {currentStep === 1 && (
+              <>
+                {onGoogleSignIn && (
+                  <div className="space-y-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full flex items-center justify-center gap-2" 
+                      onClick={onGoogleSignIn}
+                      disabled={isSubmitting || loading}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
+                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+                      </svg>
+                      Continuar con Google
+                    </Button>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-gray-300"></span>
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">O registrarse con email</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Nombre Completo</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Tu nombre completo"
+                            className="pl-10 h-12 text-base"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Correo Electrónico</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="correo@ejemplo.com"
+                            className="pl-10 h-12 text-base"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </FormControl>
+                      {registrationError?.includes('Email rate limit exceeded') && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Sugerencia: Intenta usar otro correo o agrega números al final. Ejemplo: {field.value.split('@')[0]}123@{field.value.split('@')[1]}
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Contraseña</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="text"
+                            placeholder="Tu contraseña"
+                            className="pl-10 h-12 text-base"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button 
+                  type="button" 
+                  onClick={handleNextStep}
+                  className="w-full bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
+                  disabled={isSubmitting || loading}
+                >
+                  Siguiente
+                </Button>
+              </>
+            )}
+
+            {/* Paso 2: Información de ubicación */}
+            {currentStep === 2 && (
+              <>
+                <ClientResidenceField 
+                  residencias={residencias} 
+                  isSubmitting={isSubmitting} 
+                  loadingResidencias={loadingResidencias} 
+                  form={form} 
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="+52 1234567890"
+                            className="pl-10 h-12 text-base"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex gap-3">
+                  <Button 
+                    type="button" 
+                    onClick={handlePreviousStep}
+                    variant="outline"
+                    className="flex-1 h-12 text-base font-medium"
+                    disabled={isSubmitting || loading}
+                  >
+                    Atrás
+                  </Button>
+                  
+                  <Button 
+                    type="submit" 
+                    className="flex-1 bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
+                    disabled={isSubmitting || loading}
+                  >
+                    {isSubmitting || loading ? (
+                      <div className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creando cuenta...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Crear Cuenta
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            <div className="text-center">
+              <p className="text-base">¿Ya tienes una cuenta? {' '}
+                <Link to="/login" className="text-navy hover:underline font-medium">
+                  Inicia sesión
+                </Link>
+              </p>
+            </div>
+          </>
+        ) : (
+          /* Formulario completo para proveedores (mantener el actual) */
+          <>
+            {onGoogleSignIn && (
+              <div className="space-y-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full flex items-center justify-center gap-2" 
+                  onClick={onGoogleSignIn}
+                  disabled={isSubmitting || loading}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
+                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+                    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+                    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+                    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+                  </svg>
+                  Continuar con Google
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300"></span>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">O registrarse con email</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">Nombre Completo</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Tu nombre completo"
+                        className="pl-10 h-12 text-base"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">Correo Electrónico</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="correo@ejemplo.com"
+                        className="pl-10 h-12 text-base"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  {registrationError?.includes('Email rate limit exceeded') && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Sugerencia: Intenta usar otro correo o agrega números al final. Ejemplo: {field.value.split('@')[0]}123@{field.value.split('@')[1]}
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="+52 1234567890"
+                        className="pl-10 h-12 text-base"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <ProviderResidencesField 
               residencias={residencias} 
               isSubmitting={isSubmitting} 
@@ -372,81 +575,80 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">Contraseña</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="password"
+                        placeholder="••••••"
+                        className="pl-10 h-12 text-base"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="passwordConfirm"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">Confirmar Contraseña</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="password"
+                        placeholder="••••••"
+                        className="pl-10 h-12 text-base"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button 
+              type="submit" 
+              className="w-full bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
+              disabled={isSubmitting || loading}
+            >
+              {isSubmitting || loading ? (
+                <div className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creando cuenta...
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Crear Cuenta
+                </div>
+              )}
+            </Button>
+
+            <div className="text-center">
+              <p className="text-base">¿Ya tienes una cuenta? {' '}
+                <Link to="/login" className="text-navy hover:underline font-medium">
+                  Inicia sesión
+                </Link>
+              </p>
+            </div>
           </>
         )}
-
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-medium">Contraseña</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="password"
-                    placeholder="••••••"
-                    className="pl-10 h-12 text-base"
-                    {...field}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Nuevo campo para confirmar contraseña */}
-        <FormField
-          control={form.control}
-          name="passwordConfirm"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-medium">Confirmar Contraseña</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="password"
-                    placeholder="••••••"
-                    className="pl-10 h-12 text-base"
-                    {...field}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button 
-          type="submit" 
-          className="w-full bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
-          disabled={isSubmitting || loading}
-        >
-          {isSubmitting || loading ? (
-            <div className="flex items-center">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creando cuenta...
-            </div>
-          ) : (
-            <div className="flex items-center">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Crear Cuenta
-            </div>
-          )}
-        </Button>
-
-        <div className="text-center">
-          <p className="text-base">¿Ya tienes una cuenta? {' '}
-            <Link to="/login" className="text-navy hover:underline font-medium">
-              Inicia sesión
-            </Link>
-          </p>
-        </div>
       </form>
     </Form>
   );
