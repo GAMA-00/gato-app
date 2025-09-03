@@ -17,7 +17,7 @@ import ProviderResidencesField from './ProviderResidencesField';
 import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { supabase } from '@/integrations/supabase/client';
 
-// Esquema modificado para incluir confirmación de contraseña
+// Esquema simplificado sin confirmación de contraseña
 export const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
@@ -27,15 +27,8 @@ export const registerSchema = z.object({
   condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
   profileImage: z.any().optional(),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  passwordConfirm: z.string().min(6, 'La confirmación debe tener al menos 6 caracteres')
-}).refine(
-  (data) => data.password === data.passwordConfirm,
-  {
-    message: "Las contraseñas no coinciden. Por favor, inténtelo de nuevo.",
-    path: ["passwordConfirm"],
-  }
-);
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+});
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -70,15 +63,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
     houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
     profileImage: z.any().optional(),
-    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    passwordConfirm: userRole === 'provider' ? z.string().min(1, 'Por favor confirme su contraseña') : z.string().optional()
-  }).refine(
-    (data) => userRole === 'provider' ? data.password === data.passwordConfirm : true,
-    {
-      message: "Las contraseñas no coinciden. Por favor, inténtelo de nuevo.",
-      path: ["passwordConfirm"],
-    }
-  );
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+  });
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(formSchema),
@@ -91,8 +77,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       condominiumId: '',
       houseNumber: '',
       profileImage: null,
-      password: '',
-      passwordConfirm: ''
+      password: ''
     }
   });
 
@@ -151,12 +136,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       
       if (userRole === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
         setRegistrationError('Debes seleccionar al menos una residencia');
-        return;
-      }
-
-      // Verifica que las contraseñas coincidan
-      if (values.password !== values.passwordConfirm) {
-        setRegistrationError('Las contraseñas no coinciden. Por favor, inténtelo de nuevo.');
         return;
       }
 
@@ -582,29 +561,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base font-medium">Contraseña</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="password"
-                        placeholder="••••••"
-                        className="pl-10 h-12 text-base"
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="passwordConfirm"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-medium">Confirmar Contraseña</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
