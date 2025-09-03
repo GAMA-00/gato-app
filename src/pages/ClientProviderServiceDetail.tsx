@@ -217,7 +217,17 @@ const ClientProviderServiceDetail = () => {
             </h2>
           </div>
 
-          {/* 3. Servicios Disponibles */}
+          {/* 3. Descripción del servicio */}
+          <div className="space-y-4 w-full">
+            <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
+              <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
+                {serviceDetails.description}
+              </p>
+            </div>
+          </div>
+
+          {/* 4. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
             <div className="space-y-6 w-full">
               <div>
@@ -242,39 +252,29 @@ const ClientProviderServiceDetail = () => {
             </div>
           )}
 
-          {/* 4. Descripción del servicio */}
-          <div className="space-y-4 w-full">
-            <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
-              <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
-                {serviceDetails.description}
-              </p>
-            </div>
-          </div>
-
-          {/* 4. Galería de trabajos */}
+          {/* 5. Galería de trabajos */}
           <div className="w-full">
             <ProviderGallery provider={transformedProvider} />
           </div>
 
-          {/* 5. Sobre Mí */}
+          {/* 6. Sobre Mí */}
           <div className="w-full">
             <ProviderAbout provider={transformedProvider} />
           </div>
 
-          {/* 6. Certificación Profesional */}
+          {/* 7. Certificación Profesional */}
           <div className="w-full">
             <ProviderCertifications 
               certifications={transformedProvider.certificationFiles}
             />
           </div>
 
-          {/* 7. Equipo */}
+          {/* 8. Equipo */}
           <div className="w-full">
             <TeamPhotoSection providerId={providerId!} />
           </div>
 
-          {/* 8. Comentarios de clientes */}
+          {/* 9. Comentarios de clientes */}
           <div className="w-full">
             <ProviderReviews provider={transformedProvider} />
           </div>
