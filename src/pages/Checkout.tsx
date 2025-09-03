@@ -37,9 +37,22 @@ export const Checkout = () => {
     }
   }, [checkoutData, user, navigate]);
 
-  // Scroll to top when page loads
+  // Scroll to top when page loads - enhanced implementation
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use setTimeout to ensure DOM is fully rendered
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    
+    // Execute immediately
+    scrollToTop();
+    
+    // Also execute after a small delay to ensure it works
+    const timeoutId = setTimeout(scrollToTop, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   if (!checkoutData || !user) {
