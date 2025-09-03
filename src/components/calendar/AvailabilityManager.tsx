@@ -76,21 +76,19 @@ export const AvailabilityManager: React.FC = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          {activeTab === 'preview' && (
-            <Button 
-              onClick={saveAvailability}
-              disabled={isSaving}
-              size="sm"
-              className="flex items-center gap-2 h-9 text-sm px-4 ml-4"
-            >
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {isSaving ? 'Guardando...' : 'Guardar'}
-            </Button>
-          )}
+          <Button 
+            onClick={saveAvailability}
+            disabled={isSaving}
+            size="sm"
+            className="flex items-center gap-2 h-9 text-sm px-4 ml-4"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {isSaving ? 'Guardando...' : 'Guardar'}
+          </Button>
         </div>
       </div>
 
@@ -109,21 +107,19 @@ export const AvailabilityManager: React.FC = () => {
             </span>
           </div>
 
-          {activeTab === 'preview' && (
-            <Button 
-              onClick={saveAvailability}
-              disabled={isSaving}
-              size="sm"
-              className="flex items-center gap-2 h-10 text-sm px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {isSaving ? 'Guardando...' : 'Guardar'}
-            </Button>
-          )}
+          <Button 
+            onClick={saveAvailability}
+            disabled={isSaving}
+            size="sm"
+            className="flex items-center gap-2 h-10 text-sm px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {isSaving ? 'Guardando...' : 'Guardar'}
+          </Button>
         </div>
 
         {/* Row 2: Segmented Control */}
