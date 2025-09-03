@@ -8,6 +8,7 @@ import ProviderReviews from '@/components/providers/ProviderReviews';
 import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAchievements from '@/components/providers/ProviderAchievements';
 import ProviderAbout from '@/components/providers/ProviderAbout';
+import ProviderCertifications from '@/components/providers/ProviderCertifications';
 import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -153,18 +154,23 @@ const ProviderProfile = () => {
           <div className="space-y-8">
             <ProviderHeader provider={transformedProvider} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-8">
-                <ProviderAbout provider={transformedProvider} />
-                <ProviderReviews provider={transformedProvider} />
-                <ProviderServices 
-                  categories={categories} 
-                  isLoading={categoriesLoading}
-                  onServiceSelect={() => {}}
-                />
-              </div>
+            <div className="lg:col-span-2 space-y-8">
+              <ProviderServices 
+                categories={categories} 
+                isLoading={categoriesLoading}
+                onServiceSelect={() => {}}
+                showBookingButton={true}
+              />
+              <ProviderAbout provider={transformedProvider} />
+              <ProviderReviews provider={transformedProvider} />
+            </div>
               <div className="space-y-6">
                 <ProviderInfo provider={transformedProvider} />
-                <TeamPhotoSection providerId={providerId!} />
+                <ProviderCertifications provider={transformedProvider} />
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Equipo</h3>
+                  <TeamPhotoSection providerId={providerId!} />
+                </div>
                 <ProviderAchievements provider={transformedProvider} />
                 <ProviderGallery provider={transformedProvider} />
               </div>

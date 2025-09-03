@@ -14,13 +14,15 @@ interface ProviderServicesProps {
   isLoading: boolean;
   onServiceSelect: (serviceId: string, optionId: string) => void;
   bookingMode?: boolean;
+  showBookingButton?: boolean;
 }
 
 const ProviderServices = ({ 
   categories, 
   isLoading, 
   onServiceSelect,
-  bookingMode = false
+  bookingMode = false,
+  showBookingButton = false
 }: ProviderServicesProps) => {
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   
@@ -56,7 +58,23 @@ const ProviderServices = ({
   return (
     <Card id="provider-services">
       <CardHeader className="pb-3">
-        <CardTitle>Mis servicios</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Servicios disponibles</CardTitle>
+          {showBookingButton && categories.length > 0 && (
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => {
+                // Scroll to first service or implement booking logic
+                const firstService = categories[0]?.services[0];
+                if (firstService) {
+                  onServiceSelect(firstService.id, firstService.options[0]?.id);
+                }
+              }}
+            >
+              Agendar servicio
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {categories.length === 0 ? (
