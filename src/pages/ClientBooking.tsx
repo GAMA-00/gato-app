@@ -179,6 +179,9 @@ const ClientBooking = () => {
         providerId
       };
 
+      // Scroll to top before navigating to checkout
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      
       // Navigate to checkout with all data
       navigate('/checkout', {
         state: {
