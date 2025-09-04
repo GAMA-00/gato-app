@@ -32,19 +32,28 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
       console.log('TeamPhotoSection - Raw data from database:', data);
       
       // Transform database fields to match TeamMember interface
-      const transformedMembers = data.map(member => ({
-        id: member.id,
-        providerId: member.provider_id,
-        name: member.name,
-        cedula: member.cedula,
-        phone: member.phone,
-        photoUrl: member.photo_url,
-        criminalRecordFileUrl: member.criminal_record_file_url,
-        role: member.role,
-        positionOrder: member.position_order,
-        createdAt: member.created_at,
-        updatedAt: member.updated_at
-      })) as TeamMember[];
+      const transformedMembers = data.map(member => {
+        console.log('TeamPhotoSection - Processing member:', {
+          id: member.id,
+          name: member.name,
+          photo_url_raw: member.photo_url,
+          photo_url_type: typeof member.photo_url
+        });
+        
+        return {
+          id: member.id,
+          providerId: member.provider_id,
+          name: member.name,
+          cedula: member.cedula,
+          phone: member.phone,
+          photoUrl: member.photo_url,
+          criminalRecordFileUrl: member.criminal_record_file_url,
+          role: member.role,
+          positionOrder: member.position_order,
+          createdAt: member.created_at,
+          updatedAt: member.updated_at
+        };
+      }) as TeamMember[];
       
       console.log('TeamPhotoSection - Transformed members:', transformedMembers);
       return transformedMembers;
@@ -148,24 +157,33 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
               {allMembers.length} {allMembers.length === 1 ? 'auxiliar' : 'auxiliares'} en el equipo
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {allMembers.map((member) => (
-                <div key={member.id} className="text-center">
-                  <EnhancedAvatar
-                    src={member.photoUrl}
-                    alt={member.name}
-                    fallback={member.name ? member.name.substring(0, 2).toUpperCase() : 'AU'}
-                    className="w-16 h-16 mx-auto mb-2"
-                    onError={() => console.log('TeamPhotoSection - Avatar error for:', member.name)}
-                    onLoad={() => console.log('TeamPhotoSection - Avatar loaded for:', member.name)}
-                  />
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {member.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Auxiliar
-                  </p>
-                </div>
-              ))}
+              {allMembers.map((member) => {
+                console.log('TeamPhotoSection - Rendering member:', {
+                  id: member.id,
+                  name: member.name,
+                  photoUrl: member.photoUrl,
+                  hasPhoto: !!member.photoUrl
+                });
+                
+                return (
+                  <div key={member.id} className="text-center">
+                    <EnhancedAvatar
+                      src={member.photoUrl}
+                      alt={member.name}
+                      fallback={member.name ? member.name.substring(0, 2).toUpperCase() : 'AU'}
+                      className="w-16 h-16 mx-auto mb-2"
+                      onError={() => console.error('TeamPhotoSection - Avatar error for:', member.name, 'URL:', member.photoUrl)}
+                      onLoad={() => console.log('TeamPhotoSection - Avatar loaded for:', member.name, 'URL:', member.photoUrl)}
+                    />
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {member.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Auxiliar
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
