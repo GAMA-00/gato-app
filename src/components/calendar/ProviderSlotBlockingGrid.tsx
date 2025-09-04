@@ -286,24 +286,24 @@ const ProviderSlotBlockingGrid = ({
           </div>
           
           {/* Stats badges */}
-          <div className="flex items-center justify-center gap-2">
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-2">
+          <div className="flex items-center justify-center gap-1.5">
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-2 py-1">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-xs font-medium">{availableSlots} disponibles</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-xs font-medium">{availableSlots}</span>
               </div>
             </Badge>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-2">
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-2 py-1">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-red-500" />
-                <span className="text-xs font-medium">{blockedSlots} bloqueados</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                <span className="text-xs font-medium">{blockedSlots}</span>
               </div>
             </Badge>
             {recurringSlots > 0 && (
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-3 py-2">
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-2 py-1">
                 <div className="flex items-center gap-1">
-                  <Repeat2 className="w-3 h-3 text-amber-600" />
-                  <span className="text-xs font-medium">{recurringSlots} recurrentes</span>
+                  <Repeat2 className="w-2.5 h-2.5 text-amber-600" />
+                  <span className="text-xs font-medium">{recurringSlots}</span>
                 </div>
               </Badge>
             )}
@@ -326,25 +326,25 @@ const ProviderSlotBlockingGrid = ({
             </div>
             
             {/* Stats badges - Desktop */}
-            <div className="flex items-center justify-center gap-2 md:gap-3">
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1">
+            <div className="flex items-center justify-center gap-1.5 md:gap-2">
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-2 py-0.5">
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   <span className="text-xs font-medium">{availableSlots}</span>
                   <span className="hidden md:inline text-xs">disponibles</span>
                 </div>
               </Badge>
-              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-1">
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-2 py-0.5">
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
                   <span className="text-xs font-medium">{blockedSlots}</span>
                   <span className="hidden md:inline text-xs">bloqueados</span>
                 </div>
               </Badge>
               {recurringSlots > 0 && (
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-3 py-1">
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-2 py-0.5">
                   <div className="flex items-center gap-1">
-                    <Repeat2 className="w-3 h-3 text-amber-600" />
+                    <Repeat2 className="w-2.5 h-2.5 text-amber-600" />
                     <span className="text-xs font-medium">{recurringSlots}</span>
                     <span className="hidden md:inline text-xs">recurrentes</span>
                   </div>
