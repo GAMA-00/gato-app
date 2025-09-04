@@ -99,9 +99,9 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
               <div key={variant.id} className="space-y-3">
                 {/* Mobile layout */}
                 <div className="md:hidden">
-                  <div className="flex items-center justify-between py-3">
-                    {/* Left side - Service info */}
-                    <div className="flex-1">
+                  <div className="space-y-2 py-3">
+                    {/* Service name and duration */}
+                    <div>
                       <h4 className="font-medium text-base">{variant.name}</h4>
                       <div className="flex items-center text-sm text-muted-foreground mt-1">
                         <Clock className="h-3 w-3 mr-1" />
@@ -112,40 +112,43 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                       </div>
                     </div>
                     
-                    {/* Center - Price */}
-                    <div className="flex flex-col items-center mx-4">
-                      <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
-                      {hasPersonPricing && (
-                        <div className="text-xs text-muted-foreground text-center mt-1">
-                          +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} pp
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Right side - Quantity controls */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuantityChange(variant, -1)}
-                        disabled={quantity === 0}
-                        className="h-8 w-8 p-0 shrink-0 rounded-full"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
+                    {/* Price and quantity aligned with service name */}
+                    <div className="flex items-center justify-between">
+                      {/* Price */}
+                      <div className="flex flex-col">
+                        <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
+                        {hasPersonPricing && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} pp
+                          </div>
+                        )}
+                      </div>
                       
-                      <span className="min-w-[2rem] text-center font-medium text-base">
-                        {quantity}
-                      </span>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuantityChange(variant, 1)}
-                        className="h-8 w-8 p-0 shrink-0 rounded-full"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
+                      {/* Quantity controls */}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleQuantityChange(variant, -1)}
+                          disabled={quantity === 0}
+                          className="h-8 w-8 p-0 shrink-0 rounded-full"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        
+                        <span className="min-w-[2rem] text-center font-medium text-base">
+                          {quantity}
+                        </span>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleQuantityChange(variant, 1)}
+                          className="h-8 w-8 p-0 shrink-0 rounded-full"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
