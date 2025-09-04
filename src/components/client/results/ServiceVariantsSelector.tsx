@@ -79,7 +79,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
       </CardHeader>
       <CardContent>
         {/* Header columns */}
-        <div className="grid grid-cols-12 gap-4 pb-2 mb-4 border-b text-sm font-medium text-muted-foreground">
+        <div className="grid grid-cols-12 gap-2 pb-2 mb-4 border-b text-sm font-medium text-muted-foreground">
           <div className="col-span-6"></div>
           <div className="col-span-3 text-center">Precio</div>
           <div className="col-span-3 text-center">Cantidad</div>
@@ -91,11 +91,15 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
             const personQuantity = personQuantities[variant.id] || 1;
             const hasPersonPricing = variant.additionalPersonPrice && Number(variant.additionalPersonPrice) > 0;
             
+            const formatPriceWithoutDecimals = (price: number) => {
+              return price % 1 === 0 ? `$${price}` : formatCurrency(price);
+            };
+            
             return (
               <div key={variant.id} className="space-y-3">
                 {/* Main service row */}
-                <div className="grid grid-cols-12 gap-4 items-center py-2">
-                  <div className="col-span-6">
+                <div className="grid grid-cols-12 gap-2 items-center py-3">
+                  <div className="col-span-6 pr-2">
                     <h4 className="font-medium text-base">{variant.name}</h4>
                     <div className="flex items-center text-sm text-muted-foreground mt-1">
                       <Clock className="h-3 w-3 mr-1" />
@@ -106,27 +110,27 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                     </div>
                   </div>
                   
-                  <div className="col-span-3 text-center">
-                    <div className="font-medium">{formatCurrency(Number(variant.price))}</div>
+                  <div className="col-span-3 text-center px-1">
+                    <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
                     {hasPersonPricing && (
                       <div className="text-xs text-muted-foreground mt-1">
-                        +{formatCurrency(Number(variant.additionalPersonPrice))} por persona
+                        +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} por persona
                       </div>
                     )}
                   </div>
                   
-                  <div className="col-span-3 flex items-center justify-center gap-1">
+                  <div className="col-span-3 flex items-center justify-center gap-1 pl-1">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleQuantityChange(variant, -1)}
                       disabled={quantity === 0}
-                      className="h-8 w-8 p-0 shrink-0"
+                      className="h-8 w-8 p-0 shrink-0 rounded-full"
                     >
                       <Minus className="h-3 w-3" />
                     </Button>
                     
-                    <span className="min-w-[2rem] text-center font-medium">
+                    <span className="min-w-[2rem] text-center font-medium text-lg">
                       {quantity}
                     </span>
                     
@@ -134,7 +138,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                       variant="outline"
                       size="sm"
                       onClick={() => handleQuantityChange(variant, 1)}
-                      className="h-8 w-8 p-0 shrink-0"
+                      className="h-8 w-8 p-0 shrink-0 rounded-full"
                     >
                       <Plus className="h-3 w-3" />
                     </Button>
@@ -143,8 +147,8 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
 
                 {/* Person quantity row - only show when service is selected and has per-person pricing */}
                 {quantity > 0 && hasPersonPricing && (
-                  <div className="grid grid-cols-12 gap-4 items-center py-2 pl-4 bg-muted/30 rounded-lg">
-                    <div className="col-span-6">
+                  <div className="grid grid-cols-12 gap-2 items-center py-2 pl-4 bg-muted/30 rounded-lg">
+                    <div className="col-span-6 pr-2">
                       <p className="text-sm font-medium">Cantidad de personas</p>
                       {variant.maxPersons && (
                         <p className="text-xs text-muted-foreground">
@@ -155,18 +159,18 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                     
                     <div className="col-span-3"></div>
                     
-                    <div className="col-span-3 flex items-center justify-center gap-1">
+                    <div className="col-span-3 flex items-center justify-center gap-1 pl-1">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handlePersonQuantityChange(variant, -1)}
                         disabled={personQuantity <= 1}
-                        className="h-8 w-8 p-0 shrink-0"
+                        className="h-8 w-8 p-0 shrink-0 rounded-full"
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
                       
-                      <span className="min-w-[2rem] text-center font-medium">
+                      <span className="min-w-[2rem] text-center font-medium text-lg">
                         {personQuantity}
                       </span>
                       
@@ -175,7 +179,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                         size="sm"
                         onClick={() => handlePersonQuantityChange(variant, 1)}
                         disabled={variant.maxPersons ? personQuantity >= Number(variant.maxPersons) : false}
-                        className="h-8 w-8 p-0 shrink-0"
+                        className="h-8 w-8 p-0 shrink-0 rounded-full"
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
