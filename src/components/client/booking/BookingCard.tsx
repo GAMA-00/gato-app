@@ -11,6 +11,7 @@ import { RescheduleAppointmentModal } from '@/components/client/booking/Reschedu
 import { RatingStars } from '@/components/client/booking/RatingStars';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
 import { isRecurring } from '@/utils/recurrenceUtils';
+import { getServiceTypeIcon } from '@/utils/serviceIconUtils';
 
 interface BookingCardProps {
   booking: ClientBooking;
@@ -31,7 +32,8 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     isRated: booking.isRated,
     shouldShowRating: isCompleted && !booking.isRated,
     recurrence: booking.recurrence,
-    isRecurring: bookingIsRecurring
+    isRecurring: bookingIsRecurring,
+    categoryId: booking.categoryId
   });
   
   const handleReschedule = () => {
@@ -48,24 +50,43 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     }
     return 'Proveedor';
   };
+
+  // Get service icon
+  const serviceIcon = getServiceTypeIcon(booking.serviceName, booking.categoryId);
   
   return (
     <Card className="overflow-hidden animate-scale-in">
-      <CardContent className="p-4">
-        <div className="flex flex-col space-y-3">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center max-w-[70%]">
-              <h3 className="font-medium text-base truncate">{booking.serviceName}</h3>
+      <CardContent className="p-3">
+        <div className="flex flex-col space-y-2">
+          {/* Header Row with Icon, Title, Recurrence & Status */}
+          <div className="flex items-start justify-between">
+            {/* Left: Service Icon & Title */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-muted">
+                {serviceIcon.type === 'icon' && serviceIcon.component && (
+                  <serviceIcon.component className="h-5 w-5 text-muted-foreground" />
+                )}
+                {serviceIcon.type === 'image' && serviceIcon.src && (
+                  <img 
+                    src={serviceIcon.src} 
+                    alt="Service icon" 
+                    className="h-5 w-5 object-cover rounded-sm"
+                  />
+                )}
+              </div>
+              <h3 className="font-medium text-sm truncate">{booking.serviceName}</h3>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Always show RecurrenceIndicator for debugging, let it decide whether to render or not */}
+            
+            {/* Right: Recurrence & Status Stack */}
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
               <RecurrenceIndicator 
                 recurrence={booking.recurrence} 
                 isRecurringInstance={booking.isRecurringInstance}
                 size="sm"
+                showText={false}
               />
               <div className={cn(
-                "px-2 py-1 rounded-full text-xs font-medium",
+                "px-2 py-0.5 rounded-full text-xs font-medium",
                 booking.status === 'pending' ? "bg-yellow-100 text-yellow-800" : 
                 booking.status === 'confirmed' ? "bg-green-100 text-green-800" : 
                 booking.status === 'completed' ? "bg-blue-100 text-blue-800" : 
@@ -80,11 +101,13 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             </div>
           </div>
           
-          <p className="text-sm text-muted-foreground truncate">{booking.subcategory}</p>
+          {/* Service Type */}
+          <p className="text-xs text-muted-foreground truncate">{booking.subcategory}</p>
           
+          {/* Rescheduled Notice */}
           {booking.isRescheduled && (
-            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md border border-blue-200">
-              <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
+            <div className="flex items-center gap-2 p-1.5 bg-blue-50 rounded-md border border-blue-200">
+              <RotateCcw className="h-3 w-3 text-blue-600 flex-shrink-0" />
               <span className="text-xs text-blue-700">
                 {bookingIsRecurring 
                   ? 'La próxima fecha ha sido reagendada. Tu plan recurrente se mantiene sin cambios.'
@@ -94,8 +117,9 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             </div>
           )}
           
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+          {/* Date & Time */}
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
             <span className="truncate">
               {bookingIsRecurring && !booking.isRecurringInstance ? (
                 `${format(booking.date, 'EEEE', { locale: es }).charAt(0).toUpperCase() + format(booking.date, 'EEEE', { locale: es }).slice(1)} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
@@ -105,18 +129,21 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             </span>
           </div>
           
-          <div className="flex items-start text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+          {/* Location */}
+          <div className="flex items-start text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3 mr-1.5 flex-shrink-0 mt-0.5" />
             <span className="break-words leading-relaxed">
               {booking.location}
             </span>
           </div>
           
-          <div className="text-sm">
+          {/* Provider */}
+          <div className="text-xs">
             <span className="text-muted-foreground">Proveedor:</span>{' '}
             <span className="font-medium truncate block">{getProviderName()}</span>
           </div>
           
+          {/* Rating Section */}
           {isCompleted && !booking.isRated && (
             <RatingStars 
               appointmentId={booking.id} 
@@ -125,24 +152,25 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             />
           )}
           
+          {/* Action Buttons */}
           {(booking.status === 'pending' || booking.status === 'confirmed') && (
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-1">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                className="flex-1 h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 onClick={handleReschedule}
               >
-                <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
+                <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
                 <span className="truncate">Reagendar</span>
               </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                className="flex-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 onClick={handleCancel}
               >
-                <X className="h-4 w-4 mr-1 flex-shrink-0" />
+                <X className="h-3 w-3 mr-1 flex-shrink-0" />
                 <span className="truncate">Cancelar</span>
               </Button>
             </div>

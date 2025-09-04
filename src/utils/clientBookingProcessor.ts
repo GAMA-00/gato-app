@@ -35,6 +35,7 @@ export function processClientBooking({
     id: appointment.id,
     serviceName: service?.title || 'Servicio',
     subcategory: service?.service_types?.name || 'Servicio',
+    categoryId: service?.service_types?.service_categories?.name || 'other',
     date: nextOccurrenceDate,
     status: appointment.status as ClientBooking['status'],
     recurrence: appointment.recurrence || 'none',

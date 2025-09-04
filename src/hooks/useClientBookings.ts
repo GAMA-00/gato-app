@@ -8,6 +8,7 @@ export interface ClientBooking {
   id: string;
   serviceName: string;
   subcategory: string;
+  categoryId: string;
   date: Date;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rescheduled';
   recurrence: string;
@@ -83,7 +84,11 @@ export const useClientBookings = () => {
                 id,
                 title,
                 service_type_id,
-                service_types(name)
+                service_types(
+                  name,
+                  category_id,
+                  service_categories(id, name)
+                )
               `)
               .in('id', listingIds);
 
