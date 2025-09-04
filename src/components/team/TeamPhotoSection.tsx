@@ -153,9 +153,6 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              {allMembers.length} {allMembers.length === 1 ? 'auxiliar' : 'auxiliares'} en el equipo
-            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {allMembers.map((member) => {
                 console.log('TeamPhotoSection - Rendering member:', {

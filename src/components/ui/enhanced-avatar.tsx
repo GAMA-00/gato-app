@@ -64,9 +64,11 @@ const EnhancedAvatar = ({
           onError={handleImageError}
           onLoad={handleImageLoad}
           className="object-cover"
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
         />
       )}
-      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+      <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
         {fallback || (alt ? alt.substring(0, 2).toUpperCase() : '??')}
       </AvatarFallback>
     </Avatar>
