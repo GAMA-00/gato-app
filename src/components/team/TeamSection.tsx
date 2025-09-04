@@ -36,22 +36,8 @@ const TeamSection: React.FC = () => {
   console.log("TeamSection - Loading:", isLoading);
   console.log("TeamSection - Error:", error);
 
-  // Create team leader based on user profile
-  const teamLeader: TeamMember = {
-    id: user?.id || '',
-    providerId: user?.id || '',
-    name: profile?.name || 'Proveedor',
-    cedula: '',
-    phone: profile?.phone || '',
-    photoUrl: profile?.avatar_url,
-    criminalRecordFileUrl: '',
-    role: 'lider',
-    positionOrder: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-
-  const allMembers = [teamLeader, ...teamMembers];
+  // Only show auxiliary team members, not the leader
+  const allMembers = teamMembers;
 
   const handleCreateMember = () => {
     console.log("TeamSection - Creating new member");
@@ -151,7 +137,7 @@ const TeamSection: React.FC = () => {
           <CardTitle className={`flex items-center gap-2 ${isMobile ? "text-lg" : ""}`}>
             <Users className="w-5 h-5" />
             <span className={isMobile ? "leading-tight" : ""}>
-              Equipo ({allMembers.length} {allMembers.length === 1 ? 'miembro' : 'miembros'})
+              Equipo ({allMembers.length} {allMembers.length === 1 ? 'auxiliar' : 'auxiliares'})
             </span>
           </CardTitle>
           <Button onClick={handleCreateMember} size={isMobile ? "sm" : "sm"} className={isMobile ? "flex-shrink-0" : ""}>
@@ -162,11 +148,11 @@ const TeamSection: React.FC = () => {
         </CardHeader>
         
         <CardContent className={isMobile ? "px-4 pb-4" : ""}>
-          {allMembers.length === 1 ? (
+          {allMembers.length === 0 ? (
             <div className={`text-center ${isMobile ? "py-6" : "py-8"}`}>
               <Users className={`mx-auto text-muted-foreground ${isMobile ? "w-10 h-10 mb-3" : "w-12 h-12 mb-4"}`} />
               <p className={`text-muted-foreground ${isMobile ? "mb-3 text-sm px-2" : "mb-4"}`}>
-                Solo tienes el líder del equipo. Agrega miembros auxiliares.
+                Aún no tienes auxiliares en tu equipo. Agrega miembros auxiliares.
               </p>
               <Button onClick={handleCreateMember} className={isMobile ? "text-sm" : ""}>
                 <Plus className="w-4 h-4 mr-2" />

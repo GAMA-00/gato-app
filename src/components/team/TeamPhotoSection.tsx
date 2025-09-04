@@ -68,7 +68,8 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
     role: 'lider' as const
   } : null;
 
-  const allMembers = teamLeader ? [teamLeader, ...teamMembers] : teamMembers;
+  // Only show auxiliary team members for clients, not the leader
+  const allMembers = teamMembers;
 
   return (
     <Card>
@@ -79,29 +80,11 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {allMembers.length <= 1 ? (
+        {allMembers.length === 0 ? (
           <div className="text-center py-4">
-            {teamLeader ? (
-              <div className="space-y-3">
-                <EnhancedAvatar
-                  src={teamLeader.photoUrl}
-                  alt={teamLeader.name}
-                  className="w-16 h-16 mx-auto"
-                />
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {teamLeader.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Trabaja de forma individual
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Información del equipo no disponible
-              </p>
-            )}
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Proveedor individual - trabaja solo
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -110,13 +93,14 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
                 <EnhancedAvatar
                   src={member.photoUrl}
                   alt={member.name}
+                  fallback={member.name ? member.name.substring(0, 2).toUpperCase() : 'AU'}
                   className="w-16 h-16 mx-auto mb-2"
                 />
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {member.name}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {member.role === 'lider' ? 'Líder' : 'Auxiliar'}
+                  Auxiliar
                 </p>
               </div>
             ))}
