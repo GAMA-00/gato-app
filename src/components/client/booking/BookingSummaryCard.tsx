@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import { ServiceVariant } from '@/components/client/service/types';
 import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import { RobustBookingButton } from './RobustBookingButton';
+import ServiceInfo from '@/components/client/service/PostPaymentInfo';
 
 interface BookingSummaryCardProps {
   serviceTitle: string;
@@ -42,6 +43,7 @@ interface BookingSummaryCardProps {
   };
   onBookingSuccess?: (appointment: any) => void;
   hasPostPaymentCosts?: boolean;
+  isPostPayment?: boolean;
 }
 
 const BookingSummaryCard = ({
@@ -64,7 +66,8 @@ const BookingSummaryCard = ({
   requiredSlots = 1,
   bookingData,
   onBookingSuccess,
-  hasPostPaymentCosts = false
+  hasPostPaymentCosts = false,
+  isPostPayment = false
 }: BookingSummaryCardProps) => {
   // Calculate totals for multiple variants (including per-person pricing if present)
   const totalPrice = selectedVariants.length > 0 
@@ -226,33 +229,8 @@ const BookingSummaryCard = ({
           </div>
         )}
 
-        {/* Post payment costs information box */}
-        {hasPostPaymentCosts && (
-          <div className="p-4 bg-orange-50 border-l-4 border-orange-500 rounded-r-lg">
-            <h4 className="font-semibold text-orange-900 mb-1">Costos Adicionales Post Pago</h4>
-            <p className="text-orange-800 text-sm">
-              Este servicio puede incluir costos adicionales que se facturarán después de completar el trabajo, tales como ingredientes específicos, materiales especializados o gastos adicionales según las necesidades del servicio.
-            </p>
-          </div>
-        )}
-
-        {/* Information box with materials and cancellation policy */}
-        <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg space-y-3">
-          <div>
-            <h4 className="font-semibold text-blue-900 mb-1">Materiales incluidos</h4>
-            <p className="text-blue-800 text-sm">
-              El proveedor llevará todos los materiales e insumos necesarios para realizar el servicio.
-            </p>
-          </div>
-          
-          <div>
-            <h4 className="font-semibold text-blue-900 mb-1">Política de cancelación</h4>
-            <ul className="text-blue-800 text-sm space-y-1">
-              <li>• Entre 2 y 24 horas antes del servicio: multa del 20%.</li>
-              <li>• Menos de 2 horas antes del servicio: multa del 50%.</li>
-            </ul>
-          </div>
-        </div>
+        {/* Service Information - For both prepago and postpago */}
+        <ServiceInfo isPostPayment={isPostPayment} />
 
         {/* ROBUST Booking Button with Enhanced Error Handling */}
         {bookingData ? (

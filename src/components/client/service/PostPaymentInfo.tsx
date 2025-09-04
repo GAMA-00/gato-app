@@ -1,17 +1,12 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, CheckCircle2, Clock } from 'lucide-react';
 
-interface PostPaymentInfoProps {
+interface ServiceInfoProps {
   isPostPayment: boolean;
 }
 
-const PostPaymentInfo = ({ isPostPayment }: PostPaymentInfoProps) => {
-  if (!isPostPayment) {
-    return null;
-  }
-
+const ServiceInfo = ({ isPostPayment }: ServiceInfoProps) => {
   return (
     <Alert className="border-l-4 border-l-blue-500 bg-blue-50/50 border-blue-200">
       <Info className="h-5 w-5 text-blue-600" />
@@ -20,14 +15,20 @@ const PostPaymentInfo = ({ isPostPayment }: PostPaymentInfoProps) => {
           <h4 className="font-semibold text-blue-900 mb-2">Información importante del servicio</h4>
           
           <div className="space-y-2 text-sm">
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 flex-shrink-0"></div>
-              <div>
-                <span className="font-medium text-blue-900">Insumos o gastos adicionales:</span>
-                <span className="text-blue-800"> se generarán como una factura al completar el servicio y aparecerán en la sección "Facturas" para ser aprobadas.</span>
+            {/* Solo para servicios postpago */}
+            {isPostPayment && (
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 flex-shrink-0"></div>
+                <div>
+                  <span className="font-medium text-blue-900">Insumos o gastos adicionales:</span>
+                  <span className="text-blue-800"> se generarán como una factura </span>
+                  <span className="bg-orange-100 text-orange-700 px-1 py-0.5 rounded text-xs font-medium">Post Pago</span>
+                  <span className="text-blue-800"> al completar el servicio y aparecerán en la sección "Facturas" para ser aprobadas.</span>
+                </div>
               </div>
-            </div>
+            )}
             
+            {/* Para ambos tipos de servicio */}
             <div className="flex items-start gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 flex-shrink-0"></div>
               <div>
@@ -64,4 +65,4 @@ const PostPaymentInfo = ({ isPostPayment }: PostPaymentInfoProps) => {
   );
 };
 
-export default PostPaymentInfo;
+export default ServiceInfo;

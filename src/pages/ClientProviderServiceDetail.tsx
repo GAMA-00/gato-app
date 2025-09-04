@@ -24,7 +24,7 @@ import ProviderReviews from '@/components/providers/ProviderReviews';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
 import EnhancedAvatar from '@/components/ui/enhanced-avatar';
 import TeamPhotoSection from '@/components/team/TeamPhotoSection';
-import PostPaymentInfo from '@/components/client/service/PostPaymentInfo';
+
 
 const ClientProviderServiceDetail = () => {
   const { providerId, serviceId } = useParams();
@@ -228,10 +228,6 @@ const ClientProviderServiceDetail = () => {
             </div>
           </div>
 
-          {/* 3.5. Información de servicio postpago */}
-          <div className="w-full">
-            <PostPaymentInfo isPostPayment={serviceDetails.is_post_payment} />
-          </div>
 
           {/* 4. Servicios Disponibles */}
           {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
