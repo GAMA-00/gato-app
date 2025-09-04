@@ -14,6 +14,7 @@ export interface ServiceDetailData {
   provider_id: string;
   service_type_id: string;
   is_active: boolean;
+  is_post_payment: boolean;
   gallery_images?: string[];
   galleryImages?: string[];
   service_type?: {
