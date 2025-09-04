@@ -12,6 +12,7 @@ import { RatingStars } from '@/components/client/booking/RatingStars';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
 import { isRecurring } from '@/utils/recurrenceUtils';
 import { getServiceTypeIcon } from '@/utils/serviceIconUtils';
+import { getRecurrenceInfo } from '@/utils/recurrenceUtils';
 
 interface BookingCardProps {
   booking: ClientBooking;
@@ -54,6 +55,9 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   // Get service icon
   const serviceIcon = getServiceTypeIcon(booking.serviceName, booking.categoryId);
   
+  // Get recurrence label
+  const recurrenceInfo = getRecurrenceInfo(booking.recurrence);
+  
   return (
     <Card className="overflow-hidden animate-scale-in">
       <CardContent className="p-3">
@@ -77,14 +81,11 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
               <h3 className="font-medium text-sm truncate">{booking.serviceName}</h3>
             </div>
             
-            {/* Right: Recurrence & Status Stack */}
+            {/* Right: Recurrence Text & Status Stack */}
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
-              <RecurrenceIndicator 
-                recurrence={booking.recurrence} 
-                isRecurringInstance={booking.isRecurringInstance}
-                size="sm"
-                showText={false}
-              />
+              <span className="text-xs font-medium text-muted-foreground">
+                {recurrenceInfo.label}
+              </span>
               <div className={cn(
                 "px-2 py-0.5 rounded-full text-xs font-medium",
                 booking.status === 'pending' ? "bg-yellow-100 text-yellow-800" : 
