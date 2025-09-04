@@ -150,32 +150,34 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-full md:max-w-3xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto mx-2 md:mx-auto">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="flex items-center gap-2 text-base md:text-lg">
             <DollarSign className="w-5 h-5" />
             Desglose de Gastos - Post Pago
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Service Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Información del Servicio</CardTitle>
+          <Card className="bg-muted/30">
+            <CardHeader className="pb-2 md:pb-3">
+              <CardTitle className="text-sm md:text-base font-medium">Información del Servicio</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Servicio:</span>
-                <span className="font-medium">{appointment?.listings?.title}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cliente:</span>
-                <span className="font-medium">{appointment?.client_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Fecha:</span>
-                <span className="font-medium">{formatDate(appointment?.start_time)}</span>
+            <CardContent className="space-y-3 text-sm">
+              <div className="space-y-2">
+                <div>
+                  <span className="text-muted-foreground block mb-1">Servicio:</span>
+                  <span className="font-medium">{appointment?.listings?.title}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Cliente:</span>
+                  <span className="font-medium">{appointment?.client_name}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Fecha:</span>
+                  <span className="font-medium">{formatDate(appointment?.start_time)}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -198,35 +200,36 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
           <form onSubmit={form.handleSubmit((data) => onSubmit(data, false))}>
             {/* Cost Items */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Gastos Adicionales</CardTitle>
-                <p className="text-xs text-muted-foreground">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm md:text-base font-medium">Gastos Adicionales</CardTitle>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   Detalle todos los gastos adicionales incurridos durante el servicio
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="p-4 border rounded-lg space-y-3">
+                  <div key={field.id} className="p-3 md:p-4 border rounded-lg space-y-4 bg-background/50">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-medium text-sm">Ítem #{index + 1}</h4>
+                      <h4 className="font-medium text-sm md:text-base">Ítem #{index + 1}</h4>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => remove(index)}
                         disabled={fields.length === 1}
+                        className="h-8 w-8 p-0"
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-4">
                       <div>
-                        <Label className="text-xs font-medium">Nombre del gasto *</Label>
+                        <Label className="text-sm font-medium mb-2 block">Nombre del gasto *</Label>
                         <Input
                           {...form.register(`items.${index}.item_name`)}
                           placeholder="Ej: Materiales extra"
-                          className="text-sm"
+                          className="text-sm h-11"
                         />
                         {form.formState.errors.items?.[index]?.item_name && (
                           <p className="text-xs text-red-600 mt-1">
@@ -236,13 +239,13 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                       </div>
 
                       <div>
-                        <Label className="text-xs font-medium">Monto ($) *</Label>
+                        <Label className="text-sm font-medium mb-2 block">Monto ($) *</Label>
                         <Input
                           type="number"
                           step="0.01"
                           {...form.register(`items.${index}.amount`, { valueAsNumber: true })}
-                          placeholder="0.00"
-                          className="text-sm"
+                          placeholder="0"
+                          className="text-sm h-11"
                         />
                         {form.formState.errors.items?.[index]?.amount && (
                           <p className="text-xs text-red-600 mt-1">
@@ -250,30 +253,28 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                           </p>
                         )}
                       </div>
-                    </div>
 
-                    <div>
-                      <Label className="text-xs font-medium">Descripción (opcional)</Label>
-                      <Textarea
-                        {...form.register(`items.${index}.description`)}
-                        placeholder="Detalles adicionales sobre este gasto..."
-                        className="text-sm h-20"
-                      />
-                    </div>
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Descripción (opcional)</Label>
+                        <Textarea
+                          {...form.register(`items.${index}.description`)}
+                          placeholder="Detalles adicionales sobre este gasto..."
+                          className="text-sm min-h-[80px] resize-none"
+                        />
+                      </div>
 
-                    <div>
-                      <Label className="text-xs font-medium">Evidencia (opcional)</Label>
-                      <div className="flex items-center gap-3 mt-1">
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Evidencia (opcional)</Label>
                         <Input
                           type="file"
                           accept="image/*"
                           onChange={(e) => handleFileUpload(index, e.target.files?.[0] || null)}
-                          className="text-sm"
+                          className="text-sm h-11"
                         />
                         {itemFiles[index] && (
-                          <div className="flex items-center gap-2 text-xs text-green-600">
+                          <div className="flex items-center gap-2 text-xs text-green-600 mt-2 p-2 bg-green-50 rounded">
                             <FileImage className="w-3 h-3" />
-                            {itemFiles[index]?.name}
+                            <span className="truncate">{itemFiles[index]?.name}</span>
                           </div>
                         )}
                       </div>
@@ -285,7 +286,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                   type="button"
                   variant="outline"
                   onClick={() => append({ item_name: '', description: '', amount: 0 })}
-                  className="w-full"
+                  className="w-full h-11"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Agregar otro gasto
@@ -294,25 +295,25 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
             </Card>
 
             {/* Notes */}
-            <div>
+            <div className="space-y-2">
               <Label className="text-sm font-medium">Observaciones Generales</Label>
               <Textarea
                 {...form.register('notes')}
                 placeholder="Comentarios adicionales sobre el servicio..."
-                className="mt-1 text-sm"
+                className="text-sm min-h-[80px] resize-none"
               />
             </div>
 
             {/* Total */}
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm md:text-base">
                     <span>Gastos Adicionales:</span>
-                    <span>${form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
+                    <span className="font-medium">${form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between font-semibold text-base md:text-lg">
                     <span>Total:</span>
                     <span className="text-primary">${form.watch('items').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
                   </div>
@@ -321,18 +322,28 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
             </Card>
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+            <div className="flex flex-col md:flex-row gap-3 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="w-full md:w-auto order-3 md:order-1"
+              >
                 Cancelar
               </Button>
-              <Button type="submit" variant="secondary" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                variant="secondary" 
+                disabled={isSubmitting}
+                className="w-full md:w-auto order-2"
+              >
                 Guardar Borrador
               </Button>
               <Button
                 type="button"
                 onClick={form.handleSubmit((data) => onSubmit(data, true))}
                 disabled={isSubmitting}
-                className="flex-1"
+                className="w-full md:flex-1 order-1 md:order-3"
               >
                 {isSubmitting ? 'Enviando...' : 'Enviar al Cliente'}
               </Button>
