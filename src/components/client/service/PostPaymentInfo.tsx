@@ -20,10 +20,9 @@ const ServiceInfo = ({ isPostPayment }: ServiceInfoProps) => {
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 flex-shrink-0"></div>
                 <div>
-                  <span className="font-medium text-blue-900">Insumos o gastos adicionales:</span>
-                  <span className="text-blue-800"> se generarán como una factura </span>
+                  <span className="font-medium text-blue-900">Post pago: Insumos o gastos adicionales </span>
                   <span className="bg-orange-100 text-orange-700 px-1 py-0.5 rounded text-xs font-medium">Post Pago</span>
-                  <span className="text-blue-800"> al completar el servicio y aparecerán en la sección "Facturas" para ser aprobadas.</span>
+                  <span className="text-blue-800"> se generarán como una factura al completar el servicio y aparecerán en la sección "Facturas" para ser aprobadas.</span>
                 </div>
               </div>
             )}

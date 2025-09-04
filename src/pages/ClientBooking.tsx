@@ -290,6 +290,7 @@ const ClientBooking = () => {
           customVariablesTotalPrice={customVariablesTotalPrice}
           selectedSlotIds={selectedSlotIds}
           requiredSlots={selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)}
+          isPostPayment={serviceDetails?.is_post_payment || false}
         />
       </div>
     </PageLayout>
