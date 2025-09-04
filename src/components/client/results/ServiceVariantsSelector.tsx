@@ -99,26 +99,19 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
               <div key={variant.id} className="space-y-3">
                 {/* Mobile layout */}
                 <div className="md:hidden">
-                  <div className="space-y-2 py-3">
-                    {/* Service name and duration */}
-                    <div>
-                      <h4 className="font-medium text-base">{variant.name}</h4>
-                      <div className="flex items-center text-sm text-muted-foreground mt-1">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>
-                          {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
-                          {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Price and quantity aligned with service name */}
+                  <div className="py-3">
+                    {/* Service name, price, and quantity on same line */}
                     <div className="flex items-center justify-between">
+                      {/* Service name */}
+                      <div className="flex-1">
+                        <h4 className="font-medium text-base">{variant.name}</h4>
+                      </div>
+                      
                       {/* Price */}
-                      <div className="flex flex-col">
+                      <div className="flex flex-col items-center mx-4">
                         <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
                         {hasPersonPricing && (
-                          <div className="text-xs text-muted-foreground mt-1">
+                          <div className="text-xs text-muted-foreground text-center mt-1">
                             +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} pp
                           </div>
                         )}
@@ -149,6 +142,15 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
+                    </div>
+                    
+                    {/* Duration below service name */}
+                    <div className="flex items-center text-sm text-muted-foreground mt-1">
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>
+                        {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
+                        {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
+                      </span>
                     </div>
                   </div>
                 </div>
