@@ -70,10 +70,6 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
 
   const allMembers = teamLeader ? [teamLeader, ...teamMembers] : teamMembers;
 
-  if (allMembers.length <= 1) {
-    return null; // Don't show section if only leader or empty
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -83,23 +79,49 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {allMembers.map((member) => (
-            <div key={member.id} className="text-center">
-              <EnhancedAvatar
-                src={member.photoUrl}
-                alt={member.name}
-                className="w-16 h-16 mx-auto mb-2"
-              />
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {member.name}
+        {allMembers.length <= 1 ? (
+          <div className="text-center py-4">
+            {teamLeader ? (
+              <div className="space-y-3">
+                <EnhancedAvatar
+                  src={teamLeader.photoUrl}
+                  alt={teamLeader.name}
+                  className="w-16 h-16 mx-auto"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {teamLeader.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Trabaja de forma individual
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Información del equipo no disponible
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {member.role === 'lider' ? 'Líder' : 'Auxiliar'}
-              </p>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {allMembers.map((member) => (
+              <div key={member.id} className="text-center">
+                <EnhancedAvatar
+                  src={member.photoUrl}
+                  alt={member.name}
+                  className="w-16 h-16 mx-auto mb-2"
+                />
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {member.name}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {member.role === 'lider' ? 'Líder' : 'Auxiliar'}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
