@@ -62,27 +62,16 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     <Card className="overflow-hidden animate-scale-in">
       <CardContent className="p-3">
         <div className="flex flex-col space-y-2">
-          {/* Header Row with Icon, Title, Recurrence & Status */}
+          {/* Header Row with Title, Recurrence & Status */}
           <div className="flex items-start justify-between">
-            {/* Left: Service Icon & Title */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-muted">
-                {serviceIcon.type === 'icon' && serviceIcon.component && (
-                  <serviceIcon.component className="h-5 w-5 text-muted-foreground" />
-                )}
-                {serviceIcon.type === 'image' && serviceIcon.src && (
-                  <img 
-                    src={serviceIcon.src} 
-                    alt="Service icon" 
-                    className="h-5 w-5 object-cover rounded-sm"
-                  />
-                )}
-              </div>
-              <h3 className="font-medium text-sm truncate">{booking.serviceName}</h3>
+            {/* Left: Service Title & Provider */}
+            <div className="flex flex-col flex-1 min-w-0">
+              <h3 className="font-semibold text-base truncate">{booking.serviceName}</h3>
+              <p className="text-sm text-muted-foreground truncate">{getProviderName()}</p>
             </div>
             
             {/* Right: Recurrence Text & Status Stack */}
-            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
               <span className="text-xs font-medium text-muted-foreground">
                 {recurrenceInfo.label}
               </span>
@@ -138,11 +127,6 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             </span>
           </div>
           
-          {/* Provider */}
-          <div className="text-xs">
-            <span className="text-muted-foreground">Proveedor:</span>{' '}
-            <span className="font-medium truncate block">{getProviderName()}</span>
-          </div>
           
           {/* Rating Section */}
           {isCompleted && !booking.isRated && (
