@@ -256,35 +256,24 @@ const ProviderSlotBlockingGrid = ({
     acc + group.slots.filter(slot => slot.conflictReason === 'Bloqueado por cita recurrente').length, 0);
 
   return (
-    <div className="w-full space-y-4">
-      {/* Header with centered save button */}
-      <div className="flex items-center justify-center mb-6">
-        <Button
-          onClick={handleSave}
-          disabled={isLoading}
-          className="bg-app-text text-white hover:bg-app-text/90 px-8 py-2 rounded-lg font-medium"
-        >
-          {isLoading ? 'Guardando...' : 'Guardar'}
-        </Button>
-      </div>
-
+    <div className="w-full space-y-3">
       {/* Mobile Layout */}
       <div className="md:hidden">
         {/* Week display above navigation */}
-        <div className="text-center mb-4">
-          <div className="font-semibold text-gray-900 text-lg">Esta semana</div>
+        <div className="text-center mb-3">
+          <div className="font-medium text-gray-900 text-base">Esta semana</div>
           <div className="text-gray-600 text-sm">
             {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
           </div>
         </div>
         
         {/* Week navigation */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <Button
             variant="outline"
             onClick={goToPreviousWeek}
             disabled={currentWeek === 0}
-            className="px-3 py-2"
+            className="px-3 py-2 text-sm"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Anterior
@@ -293,40 +282,40 @@ const ProviderSlotBlockingGrid = ({
           <Button
             variant="outline"
             onClick={goToNextWeek}
-            className="px-3 py-2"
+            className="px-3 py-2 text-sm"
           >
             Siguiente
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
         
-        {/* Stats badges - Larger with titles */}
-        <div className="flex items-center justify-center gap-4 mb-6">
+        {/* Stats badges - Smaller and compact */}
+        <div className="flex items-center justify-center gap-3 mb-4">
           <div className="text-center">
             <div className="text-xs text-gray-600 mb-1">Disponibles</div>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-4 py-3">
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-2">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-lg font-bold">{availableSlots}</span>
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-sm font-semibold">{availableSlots}</span>
               </div>
             </Badge>
           </div>
           <div className="text-center">
             <div className="text-xs text-gray-600 mb-1">Bloqueados</div>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-4 py-3">
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-2">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-lg font-bold">{blockedSlots}</span>
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-sm font-semibold">{blockedSlots}</span>
               </div>
             </Badge>
           </div>
           {recurringSlots > 0 && (
             <div className="text-center">
               <div className="text-xs text-gray-600 mb-1">Recurrentes</div>
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-4 py-3">
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <Repeat2 className="w-4 h-4 text-amber-600" />
-                  <span className="text-lg font-bold">{recurringSlots}</span>
+                  <Repeat2 className="w-3 h-3 text-amber-600" />
+                  <span className="text-sm font-semibold">{recurringSlots}</span>
                 </div>
               </Badge>
             </div>
@@ -334,21 +323,21 @@ const ProviderSlotBlockingGrid = ({
         </div>
 
         {/* Mobile Slots Grid */}
-        <div className="space-y-4 px-1 pb-4">
+        <div className="space-y-3 px-1 pb-4">
           {slotGroups.map(group => (
-            <div key={format(group.date, 'yyyy-MM-dd')} className="bg-white rounded-xl border shadow-sm p-3">
+            <div key={format(group.date, 'yyyy-MM-dd')} className="bg-white rounded-lg border shadow-sm p-3">
               {/* Day Header */}
-              <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
                 <div className="flex flex-col">
-                  <div className="text-base font-semibold text-gray-900">
+                  <div className="text-sm font-medium text-gray-900">
                     {format(group.date, 'EEEE', { locale: es })}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-xs text-gray-500">
                     {group.dayNumber} {group.dayMonth}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-gray-600 font-medium">
+                  <div className="text-xs text-gray-600 font-medium">
                     {group.slots.filter(s => s.isAvailable).length} de {group.slots.length}
                   </div>
                   <div className="text-xs text-gray-500">
@@ -357,9 +346,9 @@ const ProviderSlotBlockingGrid = ({
                 </div>
               </div>
 
-              {/* Day Slots - Lista horizontal con scroll independiente */}
+              {/* Day Slots */}
               <div className="relative">
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 snap-x snap-mandatory">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 snap-x snap-mandatory">
                   {group.slots.map(slot => {
                     const isBlocking = blockingSlots.has(slot.id);
                     const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
@@ -370,7 +359,7 @@ const ProviderSlotBlockingGrid = ({
                         disabled={isBlocking || isRecurring}
                         className={cn(
                           'flex-shrink-0 flex flex-col items-center justify-center gap-1',
-                          'w-20 h-16 rounded-xl text-sm font-medium transition-all duration-200',
+                          'w-16 h-12 rounded-lg text-xs font-medium transition-all duration-200',
                           'border-2 shadow-sm touch-manipulation snap-center relative',
                           'disabled:opacity-50 disabled:cursor-not-allowed',
                           slot.isAvailable 
@@ -382,10 +371,10 @@ const ProviderSlotBlockingGrid = ({
                         )}
                         title={isRecurring ? 'Horario bloqueado por plan recurrente' : undefined}
                       >
-                        <span className="text-base font-bold leading-none">{slot.displayTime}</span>
+                        <span className="text-xs font-bold leading-none">{slot.displayTime}</span>
                         <span className="text-xs opacity-75 leading-none">{slot.period}</span>
                         <div className={cn(
-                          'w-3 h-3 rounded-full',
+                          'w-2 h-2 rounded-full',
                           slot.isAvailable 
                             ? 'bg-emerald-500' 
                             : isRecurring 
@@ -405,8 +394,8 @@ const ProviderSlotBlockingGrid = ({
                 </div>
                 
                 {/* Scroll indicator shadows */}
-                <div className="absolute left-0 top-0 bottom-2 w-6 bg-gradient-to-r from-white to-transparent pointer-events-none" />
-                <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+                <div className="absolute left-0 top-0 bottom-2 w-4 bg-gradient-to-r from-white to-transparent pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-2 w-4 bg-gradient-to-l from-white to-transparent pointer-events-none" />
               </div>
             </div>
           ))}
@@ -416,20 +405,20 @@ const ProviderSlotBlockingGrid = ({
       {/* Desktop Layout */}
       <div className="hidden md:block">
         {/* Week display above navigation */}
-        <div className="text-center mb-4">
-          <div className="font-semibold text-gray-900 text-xl">Esta semana</div>
-          <div className="text-gray-600 text-base">
+        <div className="text-center mb-3">
+          <div className="font-medium text-gray-900 text-lg">Esta semana</div>
+          <div className="text-gray-600 text-sm">
             {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
           </div>
         </div>
         
         {/* Week navigation */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <Button
             variant="outline"
             onClick={goToPreviousWeek}
             disabled={currentWeek === 0}
-            className="px-4 py-2"
+            className="px-4 py-2 text-sm"
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
             Anterior
@@ -438,40 +427,40 @@ const ProviderSlotBlockingGrid = ({
           <Button
             variant="outline"
             onClick={goToNextWeek}
-            className="px-4 py-2"
+            className="px-4 py-2 text-sm"
           >
             Siguiente
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
         
-        {/* Stats badges - Larger with titles */}
-        <div className="flex items-center justify-center gap-8 mb-6">
+        {/* Stats badges - Smaller and compact */}
+        <div className="flex items-center justify-center gap-6 mb-4">
           <div className="text-center">
-            <div className="text-sm text-gray-600 mb-2">Disponibles</div>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-emerald-500" />
-                <span className="text-2xl font-bold">{availableSlots}</span>
+            <div className="text-xs text-gray-600 mb-1">Disponibles</div>
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-4 py-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="text-lg font-semibold">{availableSlots}</span>
               </div>
             </Badge>
           </div>
           <div className="text-center">
-            <div className="text-sm text-gray-600 mb-2">Bloqueados</div>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-red-500" />
-                <span className="text-2xl font-bold">{blockedSlots}</span>
+            <div className="text-xs text-gray-600 mb-1">Bloqueados</div>
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-4 py-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-lg font-semibold">{blockedSlots}</span>
               </div>
             </Badge>
           </div>
           {recurringSlots > 0 && (
             <div className="text-center">
-              <div className="text-sm text-gray-600 mb-2">Recurrentes</div>
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <Repeat2 className="w-5 h-5 text-amber-600" />
-                  <span className="text-2xl font-bold">{recurringSlots}</span>
+              <div className="text-xs text-gray-600 mb-1">Recurrentes</div>
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <Repeat2 className="w-4 h-4 text-amber-600" />
+                  <span className="text-lg font-semibold">{recurringSlots}</span>
                 </div>
               </Badge>
             </div>
@@ -479,8 +468,8 @@ const ProviderSlotBlockingGrid = ({
         </div>
 
         {/* Stats and Refresh */}
-        <div className="flex justify-between items-center py-2 px-1 mb-4">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+        <div className="flex justify-between items-center py-2 px-1 mb-3">
+          <div className="flex items-center gap-4 text-xs text-gray-600">
             <span>{slotGroups.length} días con horarios</span>
             <span>•</span>
             <span>Total: {totalSlots} horarios</span>
@@ -490,20 +479,20 @@ const ProviderSlotBlockingGrid = ({
             size="sm"
             onClick={refreshSlots}
             disabled={isLoading}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-xs"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
         </div>
 
         {/* Desktop Slots Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
           {slotGroups.map(group => (
-            <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-3">
+            <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-2">
               {/* Day Header */}
               <div className="text-center">
-                <div className="text-sm font-semibold text-gray-900">
+                <div className="text-xs font-medium text-gray-900">
                   {format(group.date, 'EEEE', { locale: es })}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -515,7 +504,7 @@ const ProviderSlotBlockingGrid = ({
               </div>
 
               {/* Day Slots */}
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-1 max-h-56 overflow-y-auto">
                 {group.slots.map(slot => {
                   const isBlocking = blockingSlots.has(slot.id);
                   const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
@@ -525,7 +514,7 @@ const ProviderSlotBlockingGrid = ({
                       onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
                       disabled={isBlocking || isRecurring}
                       className={cn(
-                        'w-full flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed relative',
+                        'w-full flex flex-col items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-200 border-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed relative',
                         slot.isAvailable 
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md' 
                           : isRecurring
@@ -535,12 +524,12 @@ const ProviderSlotBlockingGrid = ({
                       )}
                       title={isRecurring ? 'Horario bloqueado por plan recurrente' : undefined}
                     >
-                      <span className="font-bold">{slot.displayTime}</span>
+                      <span className="font-semibold text-xs">{slot.displayTime}</span>
                       <span className="text-xs opacity-75">{slot.period}</span>
                       {isRecurring && (
-                        <div className="absolute -top-1 -right-1">
+                        <div className="absolute -top-0.5 -right-0.5">
                           <div className="bg-amber-400 rounded-full p-0.5 shadow-sm">
-                            <Repeat2 className="w-2.5 h-2.5 text-amber-800" />
+                            <Repeat2 className="w-2 h-2 text-amber-800" />
                           </div>
                         </div>
                       )}
@@ -554,24 +543,24 @@ const ProviderSlotBlockingGrid = ({
       </div>
 
       {/* Instructions - Mobile */}
-      <div className="md:hidden mt-4 mx-1">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3">
+      <div className="md:hidden mt-3 mx-1">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-2">¿Cómo gestionar tus horarios?</p>
+            <div className="text-xs text-blue-800">
+              <p className="font-medium mb-2">¿Cómo gestionar tus horarios?</p>
                <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-emerald-500" />
+                  <div className="w-2 h-2 rounded bg-emerald-500" />
                   <span>Verde: Disponible para clientes</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-red-500" />
+                  <div className="w-2 h-2 rounded bg-red-500" />
                   <span>Rojo: Bloqueado (no visible)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-amber-500 relative">
-                    <Repeat2 className="w-2 h-2 text-amber-800 absolute inset-0 m-auto" />
+                  <div className="w-2 h-2 rounded bg-amber-500 relative">
+                    <Repeat2 className="w-1.5 h-1.5 text-amber-800 absolute inset-0 m-auto" />
                   </div>
                   <span>Amarillo: Plan recurrente (protegido)</span>
                 </div>
@@ -586,23 +575,23 @@ const ProviderSlotBlockingGrid = ({
 
       {/* Instructions - Desktop */}
       <div className="hidden md:block">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mt-4">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mt-3">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-2">¿Cómo gestionar tus horarios?</p>
+            <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-blue-800">
+              <p className="font-medium mb-2">¿Cómo gestionar tus horarios?</p>
                <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-emerald-500" />
+                  <div className="w-2 h-2 rounded bg-emerald-500" />
                   <span>Disponible para clientes</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-red-500" />
+                  <div className="w-2 h-2 rounded bg-red-500" />
                   <span>Bloqueado (no visible)</span>
                 </div>
                 <div className="flex items-center gap-2 col-span-2">
-                  <div className="w-3 h-3 rounded bg-amber-500 relative flex items-center justify-center">
-                    <Repeat2 className="w-2 h-2 text-amber-800" />
+                  <div className="w-2 h-2 rounded bg-amber-500 relative flex items-center justify-center">
+                    <Repeat2 className="w-1.5 h-1.5 text-amber-800" />
                   </div>
                   <span>Plan recurrente (protegido)</span>
                 </div>
@@ -615,7 +604,7 @@ const ProviderSlotBlockingGrid = ({
         </div>
         
         {lastUpdated && (
-          <div className="text-center text-xs text-gray-500 mt-4">
+          <div className="text-center text-xs text-gray-500 mt-2">
             Actualizado: {format(lastUpdated, 'HH:mm')}
           </div>
         )}
