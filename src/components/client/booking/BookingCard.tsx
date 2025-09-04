@@ -72,7 +72,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             
             {/* Right: Recurrence Text & Status Stack */}
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground text-right">
                 {recurrenceInfo.label}
               </span>
               <div className={cn(
