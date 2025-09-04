@@ -108,7 +108,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -119,7 +119,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                     <Minus className="h-5 w-5" />
                   </Button>
                   
-                  <span className="min-w-[3rem] text-center font-medium text-lg">
+                  <span className="min-w-[2rem] md:min-w-[3rem] text-center font-medium text-lg">
                     {quantity}
                   </span>
                   
@@ -142,7 +142,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                       <p className="font-medium text-sm">Cantidad de personas</p>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 md:gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -153,7 +153,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                         <Minus className="h-5 w-5" />
                       </Button>
                       
-                      <span className="min-w-[3rem] text-center font-medium text-lg">
+                      <span className="min-w-[2rem] md:min-w-[3rem] text-center font-medium text-lg">
                         {personQuantity}
                       </span>
                       
