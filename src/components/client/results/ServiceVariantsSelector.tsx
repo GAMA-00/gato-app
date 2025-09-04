@@ -81,7 +81,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
         {/* Header columns */}
         <div className="grid grid-cols-12 gap-3 pb-2 mb-4 border-b text-sm font-medium text-muted-foreground">
           <div className="col-span-5"></div>
-          <div className="col-span-3 text-center">Precio</div>
+          <div className="col-span-3 text-left">Precio</div>
           <div className="col-span-4 text-center">Cantidad</div>
         </div>
         
@@ -98,50 +98,56 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
             return (
               <div key={variant.id} className="space-y-3">
                 {/* Main service row */}
-                <div className="grid grid-cols-12 gap-3 items-center py-3">
-                  <div className="col-span-5">
-                    <h4 className="font-medium text-base">{variant.name}</h4>
-                    <div className="flex items-center text-sm text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      <span>
-                        {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
-                        {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
+                <div className="relative py-3">
+                  <div className="grid grid-cols-12 gap-3 items-start">
+                    <div className="col-span-5">
+                      <h4 className="font-medium text-base">{variant.name}</h4>
+                      <div className="flex items-center text-sm text-muted-foreground mt-1">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>
+                          {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
+                          {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="col-span-4 flex items-center justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuantityChange(variant, -1)}
+                        disabled={quantity === 0}
+                        className="h-8 w-8 p-0 shrink-0 rounded-full"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      
+                      <span className="min-w-[2rem] text-center font-medium text-lg">
+                        {quantity}
                       </span>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuantityChange(variant, 1)}
+                        className="h-8 w-8 p-0 shrink-0 rounded-full"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                   
-                  <div className="col-span-3 text-center">
-                    <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
-                    {hasPersonPricing && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} por persona
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="col-span-4 flex items-center justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuantityChange(variant, -1)}
-                      disabled={quantity === 0}
-                      className="h-8 w-8 p-0 shrink-0 rounded-full"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    
-                    <span className="min-w-[2rem] text-center font-medium text-lg">
-                      {quantity}
-                    </span>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuantityChange(variant, 1)}
-                      className="h-8 w-8 p-0 shrink-0 rounded-full"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
+                  {/* Price positioned between service name and quantity controls */}
+                  <div className="absolute top-1/2 left-0 transform -translate-y-1/2 grid grid-cols-12 gap-3 w-full pointer-events-none">
+                    <div className="col-span-5"></div>
+                    <div className="col-span-3">
+                      <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
+                      {hasPersonPricing && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} por persona
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
