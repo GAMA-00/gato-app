@@ -70,21 +70,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
           
-          // Cargar perfil en segundo plano de manera no bloqueante
+          // Cargar perfil y asegurar rol desde el servidor antes de liberar la UI
           setTimeout(() => {
-            fetchUserProfile(currentSession.user.id).then(userProfile => {
-              if (userProfile && !isLoggingOutRef.current) {
-                setProfile(userProfile);
-              }
-            }).catch(error => {
-              console.log('AuthContext: Non-blocking profile fetch failed:', error);
-            });
+            fetchUserProfile(currentSession.user.id)
+              .then(userProfile => {
+                if (!isLoggingOutRef.current) {
+                  if (userProfile) {
+                    setProfile(userProfile);
+                    // Forzar rol desde base de datos para evitar cambios de perspectiva
+                    if (userProfile.role && userProfile.role !== userData.role) {
+                      setUser(prev => prev ? { ...prev, role: userProfile.role } : prev);
+                    }
+                  }
+                }
+              })
+              .catch(error => {
+                console.log('AuthContext: Profile fetch failed:', error);
+              })
+              .finally(() => {
+                if (!isLoggingOutRef.current) {
+                  setIsLoading(false);
+                }
+              });
           }, 0);
           
           console.log('AuthContext: User set successfully:', userData.role);
         }
-        
-        setIsLoading(false);
       }
     );
 
@@ -104,15 +115,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
           
-          // Cargar perfil de manera no bloqueante
+          // Cargar perfil y asegurar rol desde servidor
           setTimeout(() => {
-            fetchUserProfile(currentSession.user.id).then(userProfile => {
-              if (userProfile && !isLoggingOutRef.current) {
-                setProfile(userProfile);
-              }
-            }).catch(error => {
-              console.log('AuthContext: Non-blocking initial profile fetch failed:', error);
-            });
+            fetchUserProfile(currentSession.user.id)
+              .then(userProfile => {
+                if (!isLoggingOutRef.current) {
+                  if (userProfile) {
+                    setProfile(userProfile);
+                    if (userProfile.role && userProfile.role !== userData.role) {
+                      setUser(prev => prev ? { ...prev, role: userProfile.role } : prev);
+                    }
+                  }
+                }
+              })
+              .catch(error => {
+                console.log('AuthContext: Initial profile fetch failed:', error);
+              })
+              .finally(() => {
+                if (!isLoggingOutRef.current) {
+                  setIsLoading(false);
+                }
+              });
           }, 0);
           
           console.log('AuthContext: Initial user set:', userData.role);
@@ -120,10 +143,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setProfile(null);
+          setIsLoading(false);
         }
       }
       
-      setIsLoading(false);
     }).catch(error => {
       console.error('AuthContext: Error getting initial session:', error);
       setIsLoading(false);
