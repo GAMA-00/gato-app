@@ -147,9 +147,37 @@ export const useProviderSlotManagement = ({
         fechasDistintas: [...new Set(uiSlots.map(s => s.slot_date))]
       });
 
-      // Process ALL slots (DB + virtual)
+      // Buscar citas recurrentes que se traslapen con la ventana actual
+      let recurringIntervals: Array<{ start: Date; end: Date }> = [];
+      try {
+        const endDateFull = endOfDay(endDate);
+        const { data: recurringAppointments, error: recurringError } = await supabase
+          .from('appointments')
+          .select('start_time, end_time, recurrence, recurring_rule_id, is_recurring_instance, status')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .in('status', ['pending', 'confirmed'])
+          .gte('start_time', baseDate.toISOString())
+          .lte('start_time', endDateFull.toISOString())
+          .or('recurrence.neq.none,recurring_rule_id.not.is.null,is_recurring_instance.eq.true');
+
+        if (recurringError) {
+          console.warn('⚠️ No se pudieron cargar citas recurrentes:', recurringError);
+        } else {
+          recurringIntervals = (recurringAppointments || []).map(app => ({
+            start: new Date(app.start_time),
+            end: new Date(app.end_time)
+          }));
+          console.log(`🔁 Intervalos recurrentes detectados: ${recurringIntervals.length}`);
+        }
+      } catch (e) {
+        console.warn('⚠️ Error preparando intervalos recurrentes', e);
+      }
+
+      // Procesar TODOS los slots y etiquetar correctamente el tipo de bloqueo
       const providerSlots: WeeklySlot[] = (uiSlots || []).map((slot: any) => {
         const slotStart = new Date(slot.slot_datetime_start);
+        const slotEnd = new Date(slot.slot_datetime_end);
         const slotDate = new Date(slotStart);
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
@@ -157,12 +185,15 @@ export const useProviderSlotManagement = ({
         // Determinar el motivo del bloqueo de manera más precisa
         let conflictReason: string | undefined;
         if (!slot.is_available) {
-          if (slot.is_reserved && slot.slot_type === 'reserved') {
+          const isRecurringDB = Boolean(slot.recurring_blocked) || Boolean(slot.recurring_rule_id);
+          const overlapsRecurring = recurringIntervals.some(({ start, end }) => slotStart < end && slotEnd > start);
+
+          if (isRecurringDB || overlapsRecurring) {
+            conflictReason = 'Bloqueado por cita recurrente';
+          } else if (slot.is_reserved && slot.slot_type === 'reserved') {
             conflictReason = 'Reservado por cliente';
           } else if (slot.slot_type === 'manually_blocked') {
             conflictReason = 'Bloqueado manualmente';
-          } else if (slot.recurring_blocked) {
-            conflictReason = 'Bloqueado por cita recurrente';
           } else {
             conflictReason = 'No disponible';
           }
