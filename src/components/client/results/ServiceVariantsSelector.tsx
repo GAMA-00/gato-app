@@ -77,83 +77,96 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Servicios disponibles</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {variants.map((variant) => {
-          const quantity = variantQuantities[variant.id] || 0;
-          const personQuantity = personQuantities[variant.id] || 1;
-          const hasPersonPricing = variant.additionalPersonPrice && Number(variant.additionalPersonPrice) > 0;
-          
-          return (
-            <div 
-              key={variant.id}
-              className="border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center justify-between p-4">
-                <div className="flex-1">
-                  <h4 className="font-medium">{variant.name}</h4>
-                  <div className="flex items-center text-sm text-muted-foreground mt-1">
-                    <Clock className="h-4 w-4 mr-1" />
-                    <span>
-                      {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
-                      {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
-                    </span>
-                    <span className="mx-2">•</span>
-                    <span>{formatCurrency(Number(variant.price))}</span>
+      <CardContent>
+        {/* Header columns */}
+        <div className="grid grid-cols-12 gap-4 pb-2 mb-4 border-b text-sm font-medium text-muted-foreground">
+          <div className="col-span-6"></div>
+          <div className="col-span-3 text-center">Precio</div>
+          <div className="col-span-3 text-center">Cantidad</div>
+        </div>
+        
+        <div className="space-y-4">
+          {variants.map((variant) => {
+            const quantity = variantQuantities[variant.id] || 0;
+            const personQuantity = personQuantities[variant.id] || 1;
+            const hasPersonPricing = variant.additionalPersonPrice && Number(variant.additionalPersonPrice) > 0;
+            
+            return (
+              <div key={variant.id} className="space-y-3">
+                {/* Main service row */}
+                <div className="grid grid-cols-12 gap-4 items-center py-2">
+                  <div className="col-span-6">
+                    <h4 className="font-medium text-base">{variant.name}</h4>
+                    <div className="flex items-center text-sm text-muted-foreground mt-1">
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>
+                        {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
+                        {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="col-span-3 text-center">
+                    <div className="font-medium">{formatCurrency(Number(variant.price))}</div>
                     {hasPersonPricing && (
-                      <>
-                        <span className="mx-2">•</span>
-                        <span>+{formatCurrency(Number(variant.additionalPersonPrice))} por persona</span>
-                      </>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        +{formatCurrency(Number(variant.additionalPersonPrice))} por persona
+                      </div>
                     )}
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-1 md:gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuantityChange(variant, -1)}
-                    disabled={quantity === 0}
-                    className="h-10 w-10 p-0 shrink-0"
-                  >
-                    <Minus className="h-5 w-5" />
-                  </Button>
                   
-                  <span className="min-w-[2rem] md:min-w-[3rem] text-center font-medium text-lg">
-                    {quantity}
-                  </span>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuantityChange(variant, 1)}
-                    className="h-10 w-10 p-0 shrink-0"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
+                  <div className="col-span-3 flex items-center justify-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQuantityChange(variant, -1)}
+                      disabled={quantity === 0}
+                      className="h-8 w-8 p-0 shrink-0"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    
+                    <span className="min-w-[2rem] text-center font-medium">
+                      {quantity}
+                    </span>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQuantityChange(variant, 1)}
+                      className="h-8 w-8 p-0 shrink-0"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Person quantity selector - only show when service is selected and has per-person pricing */}
-              {quantity > 0 && hasPersonPricing && (
-                <div className="px-4 pb-4 border-t bg-muted/30">
-                  <div className="flex items-center justify-between pt-3">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">Cantidad de personas</p>
+                {/* Person quantity row - only show when service is selected and has per-person pricing */}
+                {quantity > 0 && hasPersonPricing && (
+                  <div className="grid grid-cols-12 gap-4 items-center py-2 pl-4 bg-muted/30 rounded-lg">
+                    <div className="col-span-6">
+                      <p className="text-sm font-medium">Cantidad de personas</p>
+                      {variant.maxPersons && (
+                        <p className="text-xs text-muted-foreground">
+                          Máximo: {variant.maxPersons} personas
+                        </p>
+                      )}
                     </div>
                     
-                    <div className="flex items-center gap-1 md:gap-2">
+                    <div className="col-span-3"></div>
+                    
+                    <div className="col-span-3 flex items-center justify-center gap-1">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handlePersonQuantityChange(variant, -1)}
                         disabled={personQuantity <= 1}
-                        className="h-10 w-10 p-0 shrink-0"
+                        className="h-8 w-8 p-0 shrink-0"
                       >
-                        <Minus className="h-5 w-5" />
+                        <Minus className="h-3 w-3" />
                       </Button>
                       
-                      <span className="min-w-[2rem] md:min-w-[3rem] text-center font-medium text-lg">
+                      <span className="min-w-[2rem] text-center font-medium">
                         {personQuantity}
                       </span>
                       
@@ -162,23 +175,17 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                         size="sm"
                         onClick={() => handlePersonQuantityChange(variant, 1)}
                         disabled={variant.maxPersons ? personQuantity >= Number(variant.maxPersons) : false}
-                        className="h-10 w-10 p-0 shrink-0"
+                        className="h-8 w-8 p-0 shrink-0"
                       >
-                        <Plus className="h-5 w-5" />
+                        <Plus className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
-                  
-                  {variant.maxPersons && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Máximo: {variant.maxPersons} personas
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                )}
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
