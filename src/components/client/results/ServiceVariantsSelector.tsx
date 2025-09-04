@@ -1,10 +1,8 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Clock, Plus, Minus } from 'lucide-react';
 import { ServiceVariant } from '@/components/client/service/types';
-import { formatCurrency } from '@/lib/utils';
+import ServiceVariantItem from './ServiceVariantItem';
 
 export interface ServiceVariantWithQuantity extends ServiceVariant {
   quantity: number;
@@ -20,31 +18,31 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   const [variantQuantities, setVariantQuantities] = React.useState<{ [key: string]: number }>({});
   const [personQuantities, setPersonQuantities] = React.useState<{ [key: string]: number }>({});
   
-  const handleQuantityChange = (variant: ServiceVariant, change: number) => {
-    const currentQuantity = variantQuantities[variant.id] || 0;
+  const handleQuantityChange = (variantId: string, change: number) => {
+    const currentQuantity = variantQuantities[variantId] || 0;
     const newQuantity = Math.max(0, currentQuantity + change);
     
     const newQuantities = {
       ...variantQuantities,
-      [variant.id]: newQuantity
+      [variantId]: newQuantity
     };
     
     // Remove variants with 0 quantity
     if (newQuantity === 0) {
-      delete newQuantities[variant.id];
+      delete newQuantities[variantId];
     }
     
     setVariantQuantities(newQuantities);
     updateSelectedVariants(newQuantities, personQuantities);
   };
 
-  const handlePersonQuantityChange = (variant: ServiceVariant, change: number) => {
-    const currentPersonQuantity = personQuantities[variant.id] || 1;
+  const handlePersonQuantityChange = (variantId: string, change: number) => {
+    const currentPersonQuantity = personQuantities[variantId] || 1;
     const newPersonQuantity = Math.max(1, currentPersonQuantity + change);
     
     const newPersonQuantities = {
       ...personQuantities,
-      [variant.id]: newPersonQuantity
+      [variantId]: newPersonQuantity
     };
     
     setPersonQuantities(newPersonQuantities);
@@ -89,209 +87,16 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
           {variants.map((variant) => {
             const quantity = variantQuantities[variant.id] || 0;
             const personQuantity = personQuantities[variant.id] || 1;
-            const hasPersonPricing = variant.additionalPersonPrice && Number(variant.additionalPersonPrice) > 0;
-            
-            const formatPriceWithoutDecimals = (price: number) => {
-              return price % 1 === 0 ? `$${price}` : formatCurrency(price);
-            };
             
             return (
-              <div key={variant.id} className="space-y-3">
-                {/* Mobile layout */}
-                <div className="md:hidden">
-                  <div className="py-3">
-                    {/* Service name, price, and quantity on same line */}
-                    <div className="flex items-center justify-between">
-                      {/* Service name */}
-                      <div className="flex-1">
-                        <h4 className="font-medium text-base">{variant.name}</h4>
-                      </div>
-                      
-                      {/* Price */}
-                      <div className="flex flex-col items-center mx-4">
-                        <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
-                        {hasPersonPricing && (
-                          <div className="text-xs text-muted-foreground text-center mt-1">
-                            +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} pp
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Quantity controls */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuantityChange(variant, -1)}
-                          disabled={quantity === 0}
-                          className="h-8 w-8 p-0 shrink-0 rounded-full"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        
-                        <span className="min-w-[2rem] text-center font-medium text-base">
-                          {quantity}
-                        </span>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuantityChange(variant, 1)}
-                          className="h-8 w-8 p-0 shrink-0 rounded-full"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Duration below service name */}
-                    <div className="flex items-center text-sm text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      <span>
-                        {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
-                        {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Desktop layout */}
-                <div className="hidden md:block relative py-3">
-                  <div className="grid grid-cols-12 gap-3 items-start">
-                    <div className="col-span-5">
-                      <h4 className="font-medium text-base">{variant.name}</h4>
-                      <div className="flex items-center text-sm text-muted-foreground mt-1">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>
-                          {Math.floor(variant.duration / 60) > 0 ? `${Math.floor(variant.duration / 60)}h ` : ''}
-                          {variant.duration % 60 > 0 ? `${variant.duration % 60}min` : ''}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="col-span-4 flex items-center justify-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuantityChange(variant, -1)}
-                        disabled={quantity === 0}
-                        className="h-8 w-8 p-0 shrink-0 rounded-full"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      
-                      <span className="min-w-[2rem] text-center font-medium text-lg">
-                        {quantity}
-                      </span>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuantityChange(variant, 1)}
-                        className="h-8 w-8 p-0 shrink-0 rounded-full"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Price positioned between service name and quantity controls */}
-                  <div className="absolute top-1/2 left-0 transform -translate-y-1/2 grid grid-cols-12 gap-3 w-full pointer-events-none">
-                    <div className="col-span-5"></div>
-                    <div className="col-span-3">
-                      <div className="font-medium">{formatPriceWithoutDecimals(Number(variant.price))}</div>
-                      {hasPersonPricing && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          +{formatPriceWithoutDecimals(Number(variant.additionalPersonPrice))} por persona
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Person quantity row - only show when service is selected and has per-person pricing */}
-                {quantity > 0 && hasPersonPricing && (
-                  <div className="py-2 pl-4 bg-muted/30 rounded-lg">
-                    {/* Mobile person quantity */}
-                    <div className="md:hidden flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Cantidad de personas</p>
-                        {variant.maxPersons && (
-                          <p className="text-xs text-muted-foreground">
-                            Máximo: {variant.maxPersons} personas
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePersonQuantityChange(variant, -1)}
-                          disabled={personQuantity <= 1}
-                          className="h-8 w-8 p-0 shrink-0 rounded-full"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        
-                        <span className="min-w-[2rem] text-center font-medium text-base">
-                          {personQuantity}
-                        </span>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePersonQuantityChange(variant, 1)}
-                          disabled={variant.maxPersons ? personQuantity >= Number(variant.maxPersons) : false}
-                          className="h-8 w-8 p-0 shrink-0 rounded-full"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Desktop person quantity */}
-                    <div className="hidden md:grid grid-cols-12 gap-3 items-center">
-                      <div className="col-span-5">
-                        <p className="text-sm font-medium">Cantidad de personas</p>
-                        {variant.maxPersons && (
-                          <p className="text-xs text-muted-foreground">
-                            Máximo: {variant.maxPersons} personas
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="col-span-3"></div>
-                      
-                      <div className="col-span-4 flex items-center justify-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePersonQuantityChange(variant, -1)}
-                          disabled={personQuantity <= 1}
-                          className="h-8 w-8 p-0 shrink-0 rounded-full"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        
-                        <span className="min-w-[2rem] text-center font-medium text-lg">
-                          {personQuantity}
-                        </span>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePersonQuantityChange(variant, 1)}
-                          disabled={variant.maxPersons ? personQuantity >= Number(variant.maxPersons) : false}
-                          className="h-8 w-8 p-0 shrink-0 rounded-full"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ServiceVariantItem
+                key={variant.id}
+                variant={variant}
+                quantity={quantity}
+                personQuantity={personQuantity}
+                onQuantityChange={(change) => handleQuantityChange(variant.id, change)}
+                onPersonQuantityChange={(change) => handlePersonQuantityChange(variant.id, change)}
+              />
             );
           })}
         </div>
