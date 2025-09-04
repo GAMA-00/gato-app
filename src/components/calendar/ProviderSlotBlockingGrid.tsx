@@ -15,7 +15,9 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Shield
+  Shield,
+  RotateCcw,
+  Repeat2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -73,6 +75,16 @@ const ProviderSlotBlockingGrid = ({
       .find(s => s.id === slotId);
     
     if (!slot) return;
+
+    // Prevenir edición de slots recurrentes
+    if (slot.conflictReason === 'Bloqueado por cita recurrente') {
+      toast({
+        title: 'Horario protegido',
+        description: 'Este horario está bloqueado por un plan recurrente y no puede modificarse manualmente.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const isCurrentlyAvailable = slot.isAvailable;
     const action = isCurrentlyAvailable ? 'bloquear' : 'desbloquear';
@@ -230,7 +242,10 @@ const ProviderSlotBlockingGrid = ({
   const totalSlots = slotGroups.reduce((acc, group) => acc + group.slots.length, 0);
   const availableSlots = slotGroups.reduce((acc, group) => 
     acc + group.slots.filter(slot => slot.isAvailable).length, 0);
-  const blockedSlots = totalSlots - availableSlots;
+  const blockedSlots = slotGroups.reduce((acc, group) => 
+    acc + group.slots.filter(slot => !slot.isAvailable && slot.conflictReason !== 'Bloqueado por cita recurrente').length, 0);
+  const recurringSlots = slotGroups.reduce((acc, group) => 
+    acc + group.slots.filter(slot => slot.conflictReason === 'Bloqueado por cita recurrente').length, 0);
 
   return (
     <div className="flex flex-col h-full">
@@ -284,6 +299,14 @@ const ProviderSlotBlockingGrid = ({
                 <span className="text-xs font-medium">{blockedSlots} bloqueados</span>
               </div>
             </Badge>
+            {recurringSlots > 0 && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-3 py-2">
+                <div className="flex items-center gap-1">
+                  <Repeat2 className="w-3 h-3 text-amber-600" />
+                  <span className="text-xs font-medium">{recurringSlots} recurrentes</span>
+                </div>
+              </Badge>
+            )}
           </div>
         </div>
       </div>
@@ -318,6 +341,15 @@ const ProviderSlotBlockingGrid = ({
                   <span className="hidden md:inline text-xs">bloqueados</span>
                 </div>
               </Badge>
+              {recurringSlots > 0 && (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-3 py-1">
+                  <div className="flex items-center gap-1">
+                    <Repeat2 className="w-3 h-3 text-amber-600" />
+                    <span className="text-xs font-medium">{recurringSlots}</span>
+                    <span className="hidden md:inline text-xs">recurrentes</span>
+                  </div>
+                </Badge>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -399,21 +431,32 @@ const ProviderSlotBlockingGrid = ({
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {group.slots.map(slot => {
                       const isBlocking = blockingSlots.has(slot.id);
+                      const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
                       return (
                         <button
                           key={slot.id}
                           onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
-                          disabled={isBlocking}
+                          disabled={isBlocking || isRecurring}
                           className={cn(
-                            'w-full flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed',
+                            'w-full flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed relative',
                             slot.isAvailable 
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md' 
-                              : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md',
-                            isBlocking ? 'animate-pulse' : ''
+                              : isRecurring
+                                ? 'bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-800 border-amber-300 shadow-amber-100/50 cursor-not-allowed'
+                                : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md',
+                            isBlocking && !isRecurring ? 'animate-pulse' : ''
                           )}
+                          title={isRecurring ? 'Horario bloqueado por plan recurrente' : undefined}
                         >
                           <span className="font-bold">{slot.displayTime}</span>
                           <span className="text-xs opacity-75">{slot.period}</span>
+                          {isRecurring && (
+                            <div className="absolute -top-1 -right-1">
+                              <div className="bg-amber-400 rounded-full p-0.5 shadow-sm">
+                                <Repeat2 className="w-2.5 h-2.5 text-amber-800" />
+                              </div>
+                            </div>
+                          )}
                         </button>
                       );
                     })}
@@ -456,28 +499,43 @@ const ProviderSlotBlockingGrid = ({
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 snap-x snap-mandatory">
                   {group.slots.map(slot => {
                     const isBlocking = blockingSlots.has(slot.id);
+                    const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
                     return (
                       <button
                         key={slot.id}
                         onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
-                        disabled={isBlocking}
+                        disabled={isBlocking || isRecurring}
                         className={cn(
                           'flex-shrink-0 flex flex-col items-center justify-center gap-1',
                           'w-20 h-16 rounded-xl text-sm font-medium transition-all duration-200',
-                          'border-2 shadow-sm touch-manipulation snap-center',
+                          'border-2 shadow-sm touch-manipulation snap-center relative',
                           'disabled:opacity-50 disabled:cursor-not-allowed',
                           slot.isAvailable 
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md active:scale-95' 
-                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md active:scale-95',
-                          isBlocking ? 'animate-pulse' : ''
+                            : isRecurring
+                              ? 'bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-800 border-amber-300 shadow-amber-100/50 cursor-not-allowed'
+                              : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md active:scale-95',
+                          isBlocking && !isRecurring ? 'animate-pulse' : ''
                         )}
+                        title={isRecurring ? 'Horario bloqueado por plan recurrente' : undefined}
                       >
                         <span className="text-base font-bold leading-none">{slot.displayTime}</span>
                         <span className="text-xs opacity-75 leading-none">{slot.period}</span>
                         <div className={cn(
                           'w-3 h-3 rounded-full',
-                          slot.isAvailable ? 'bg-emerald-500' : 'bg-red-500'
+                          slot.isAvailable 
+                            ? 'bg-emerald-500' 
+                            : isRecurring 
+                              ? 'bg-amber-500' 
+                              : 'bg-red-500'
                         )} />
+                        {isRecurring && (
+                          <div className="absolute -top-1 -right-1">
+                            <div className="bg-amber-400 rounded-full p-0.5 shadow-sm">
+                              <Repeat2 className="w-2 h-2 text-amber-800" />
+                            </div>
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -499,7 +557,7 @@ const ProviderSlotBlockingGrid = ({
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800">
               <p className="font-semibold mb-2">¿Cómo gestionar tus horarios?</p>
-              <div className="space-y-1 text-xs">
+               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded bg-emerald-500" />
                   <span>Verde: Disponible para clientes</span>
@@ -507,6 +565,12 @@ const ProviderSlotBlockingGrid = ({
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded bg-red-500" />
                   <span>Rojo: Bloqueado (no visible)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-amber-500 relative">
+                    <Repeat2 className="w-2 h-2 text-amber-800 absolute inset-0 m-auto" />
+                  </div>
+                  <span>Amarillo: Plan recurrente (protegido)</span>
                 </div>
               </div>
               <p className="mt-2 text-xs opacity-90">
@@ -526,7 +590,7 @@ const ProviderSlotBlockingGrid = ({
                 <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-blue-800">
                   <p className="font-semibold mb-2">¿Cómo gestionar tus horarios?</p>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-emerald-500" />
                       <span>Disponible para clientes</span>
@@ -534,6 +598,12 @@ const ProviderSlotBlockingGrid = ({
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-red-500" />
                       <span>Bloqueado (no visible)</span>
+                    </div>
+                    <div className="flex items-center gap-2 col-span-2">
+                      <div className="w-3 h-3 rounded bg-amber-500 relative flex items-center justify-center">
+                        <Repeat2 className="w-2 h-2 text-amber-800" />
+                      </div>
+                      <span>Plan recurrente (protegido)</span>
                     </div>
                   </div>
                   <p className="mt-2 text-xs opacity-90">
