@@ -108,18 +108,18 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleQuantityChange(variant, -1)}
                     disabled={quantity === 0}
-                    className="h-8 w-8 p-0"
+                    className="h-10 w-10 p-0 shrink-0"
                   >
-                    <Minus className="h-4 w-4" />
+                    <Minus className="h-5 w-5" />
                   </Button>
                   
-                  <span className="min-w-[2rem] text-center font-medium">
+                  <span className="min-w-[3rem] text-center font-medium text-lg">
                     {quantity}
                   </span>
                   
@@ -127,9 +127,9 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                     variant="outline"
                     size="sm"
                     onClick={() => handleQuantityChange(variant, 1)}
-                    className="h-8 w-8 p-0"
+                    className="h-10 w-10 p-0 shrink-0"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -142,18 +142,18 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                       <p className="font-medium text-sm">Cantidad de personas</p>
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handlePersonQuantityChange(variant, -1)}
                         disabled={personQuantity <= 1}
-                        className="h-8 w-8 p-0"
+                        className="h-10 w-10 p-0 shrink-0"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="h-5 w-5" />
                       </Button>
                       
-                      <span className="min-w-[2rem] text-center font-medium">
+                      <span className="min-w-[3rem] text-center font-medium text-lg">
                         {personQuantity}
                       </span>
                       
@@ -162,9 +162,9 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
                         size="sm"
                         onClick={() => handlePersonQuantityChange(variant, 1)}
                         disabled={variant.maxPersons ? personQuantity >= Number(variant.maxPersons) : false}
-                        className="h-8 w-8 p-0"
+                        className="h-10 w-10 p-0 shrink-0"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-5 w-5" />
                       </Button>
                     </div>
                   </div>
