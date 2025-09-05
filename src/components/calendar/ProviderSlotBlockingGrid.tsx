@@ -261,14 +261,14 @@ const ProviderSlotBlockingGrid = ({
       <div className="md:hidden">
         {/* Week display above navigation */}
         <div className="text-center mb-3">
-          <div className="font-medium text-gray-900 text-base">Esta semana</div>
+          <div className="font-semibold text-gray-900 text-lg">Semana {currentWeek + 1}</div>
           <div className="text-gray-600 text-sm">
             {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
           </div>
         </div>
         
         {/* Week navigation */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-center gap-4 mb-4">
           <Button
             variant="outline"
             onClick={goToPreviousWeek}
@@ -406,14 +406,14 @@ const ProviderSlotBlockingGrid = ({
       <div className="hidden md:block">
         {/* Week display above navigation */}
         <div className="text-center mb-3">
-          <div className="font-medium text-gray-900 text-lg">Esta semana</div>
+          <div className="font-semibold text-gray-900 text-xl">Semana {currentWeek + 1}</div>
           <div className="text-gray-600 text-sm">
             {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
           </div>
         </div>
         
         {/* Week navigation */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-center gap-6 mb-4">
           <Button
             variant="outline"
             onClick={goToPreviousWeek}
