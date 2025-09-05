@@ -40,7 +40,7 @@ const ClientCategoryDetails = () => {
       // Orden personalizado para la categoría "Hogar"
       const customOrder = [
         'Lavacar',
-        'Chef privado', 
+        'Chef privado',
         'Hidrolavado (ventanas, fachadas, aceras)',
         'Fumigación',
         'Mantenimiento',
