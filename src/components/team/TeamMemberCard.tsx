@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,12 +43,14 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
     <>
       <Card className="h-full">
         <CardHeader className={`text-center ${isMobile ? "pb-3 px-3 pt-4" : "pb-2"}`}>
-          <Avatar className={`mx-auto ${isMobile ? "w-14 h-14 mb-2" : "w-16 h-16 mb-2"}`}>
-            <AvatarImage src={member.photoUrl} alt={member.name} />
-            <AvatarFallback className="bg-blue-100 text-blue-600">
-              {getInitials(member.name)}
-            </AvatarFallback>
-          </Avatar>
+          <UnifiedAvatar 
+            src={member.photoUrl} 
+            name={member.name}
+            size={isMobile ? "md" : "lg"}
+            className={`mx-auto ${isMobile ? "mb-2" : "mb-2"}`}
+            onError={() => console.error('TeamMemberCard: Failed to load photo for:', member.name)}
+            onLoad={() => console.log('TeamMemberCard: Successfully loaded photo for:', member.name)}
+          />
           <h3 className={`font-medium ${isMobile ? "text-sm leading-tight px-1" : "text-sm"}`}>
             {member.name}
           </h3>

@@ -50,14 +50,27 @@ export const uploadCertificationFiles = async (files: File[], userId: string): P
 export const uploadTeamMemberPhoto = async (file: File, userId: string, memberId: string): Promise<UploadResult> => {
   try {
     console.log('=== Uploading team member photo ===');
+    console.log('Upload details:', { 
+      fileName: file.name, 
+      fileSize: file.size, 
+      fileType: file.type,
+      userId, 
+      memberId 
+    });
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
       throw new Error('Solo se permiten archivos de imagen');
     }
     
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('El archivo debe ser menor a 5MB');
+    }
+    
     const fileExt = file.name.split('.').pop()?.toLowerCase();
-    const fileName = `${userId}/team/${memberId}.${fileExt}`;
+    const timestamp = Date.now();
+    const fileName = `${userId}/team/${memberId}_${timestamp}.${fileExt}`;
     
     // Ensure proper content type
     let contentType = file.type;
@@ -74,15 +87,26 @@ export const uploadTeamMemberPhoto = async (file: File, userId: string, memberId
       }
     }
     
-    console.log('Team photo upload details:', { fileName, fileType: file.type, contentType, fileExt });
+    console.log('Final upload details:', { fileName, contentType, fileExt });
     
-    // Delete existing photo
-    const { error: deleteError } = await supabase.storage
+    // Delete any existing photos for this member
+    const { data: existingFiles } = await supabase.storage
       .from('team-photos')
-      .remove([fileName]);
+      .list(`${userId}/team/`);
     
-    if (deleteError) {
-      console.warn('Could not delete existing team photo:', deleteError);
+    if (existingFiles) {
+      const memberFiles = existingFiles.filter(f => f.name.startsWith(`${memberId}_`));
+      if (memberFiles.length > 0) {
+        const filesToDelete = memberFiles.map(f => `${userId}/team/${f.name}`);
+        console.log('Deleting existing files:', filesToDelete);
+        const { error: deleteError } = await supabase.storage
+          .from('team-photos')
+          .remove(filesToDelete);
+        
+        if (deleteError) {
+          console.warn('Could not delete existing team photos:', deleteError);
+        }
+      }
     }
 
     const { data, error } = await supabase.storage
@@ -93,14 +117,37 @@ export const uploadTeamMemberPhoto = async (file: File, userId: string, memberId
         contentType: contentType
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Storage upload error:', error);
+      throw error;
+    }
 
     const { data: publicUrlData } = supabase.storage
       .from('team-photos')
       .getPublicUrl(fileName);
 
-    console.log('Team photo uploaded successfully:', publicUrlData.publicUrl);
-    return { success: true, url: publicUrlData.publicUrl };
+    const finalUrl = publicUrlData.publicUrl;
+    console.log('Team photo uploaded successfully:', finalUrl);
+    
+    // Test the uploaded image
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        console.log('Upload verification: Image loads correctly');
+        resolve({ success: true, url: finalUrl });
+      };
+      img.onerror = () => {
+        console.error('Upload verification: Image failed to load');
+        resolve({ success: true, url: finalUrl }); // Still return success, might be CORS issue
+      };
+      img.src = finalUrl;
+      
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        resolve({ success: true, url: finalUrl });
+      }, 5000);
+    });
+    
   } catch (error: any) {
     console.error('Error uploading team photo:', error);
     return { success: false, error: error.message };

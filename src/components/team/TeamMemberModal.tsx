@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 import { Badge } from '@/components/ui/badge';
 import { TeamMember, TeamMemberFormData } from '@/lib/teamTypes';
 import { useState, useEffect, useRef } from 'react';
@@ -150,15 +150,14 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         <div className="space-y-4">
           {/* Photo Section */}
           <div className="text-center mb-4">
-            <Avatar className="w-20 h-20 mx-auto mb-2">
-              <AvatarImage 
-                src={photoPreview || member?.photoUrl} 
-                alt={formData.name || 'Foto del miembro'} 
-              />
-              <AvatarFallback className="bg-blue-100 text-blue-600 text-lg">
-                {formData.name ? getInitials(formData.name) : '??'}
-              </AvatarFallback>
-            </Avatar>
+            <UnifiedAvatar 
+              src={photoPreview || member?.photoUrl} 
+              name={formData.name || 'Miembro del equipo'}
+              size="xl"
+              className="mx-auto mb-2"
+              onError={() => console.error('TeamMemberModal: Failed to load photo')}
+              onLoad={() => console.log('TeamMemberModal: Photo loaded successfully')}
+            />
             
             {mode === 'view' && member && (
               <Badge variant={member.role === 'lider' ? 'default' : 'secondary'}>

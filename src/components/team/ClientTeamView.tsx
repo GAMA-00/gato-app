@@ -23,27 +23,44 @@ const ClientTeamView: React.FC<ClientTeamViewProps> = ({
   const { data: teamMembers = [], isLoading } = useQuery({
     queryKey: ['client-team-view', providerId],
     queryFn: async (): Promise<TeamMember[]> => {
+      console.log('ClientTeamView: Fetching team members for provider:', providerId);
+      
       const { data, error } = await supabase
         .from('team_members')
         .select('*')
         .eq('provider_id', providerId)
         .order('position_order', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('ClientTeamView: Error fetching team members:', error);
+        throw error;
+      }
 
-      return data.map(member => ({
-        id: member.id,
-        providerId: member.provider_id,
-        name: member.name,
-        cedula: member.cedula,
-        phone: member.phone,
-        photoUrl: member.photo_url,
-        criminalRecordFileUrl: member.criminal_record_file_url,
-        role: member.role as 'lider' | 'auxiliar',
-        positionOrder: member.position_order,
-        createdAt: member.created_at,
-        updatedAt: member.updated_at
-      }));
+      console.log('ClientTeamView: Raw data received:', data);
+
+      return data.map(member => {
+        console.log('ClientTeamView: Processing member:', {
+          id: member.id,
+          name: member.name,
+          photo_url: member.photo_url,
+          photo_url_type: typeof member.photo_url,
+          has_photo: !!member.photo_url
+        });
+
+        return {
+          id: member.id,
+          providerId: member.provider_id,
+          name: member.name,
+          cedula: member.cedula,
+          phone: member.phone,
+          photoUrl: member.photo_url,
+          criminalRecordFileUrl: member.criminal_record_file_url,
+          role: member.role as 'lider' | 'auxiliar',
+          positionOrder: member.position_order,
+          createdAt: member.created_at,
+          updatedAt: member.updated_at
+        };
+      });
     }
   });
 

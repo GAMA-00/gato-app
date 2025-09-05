@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import EnhancedAvatar from '@/components/ui/enhanced-avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users } from 'lucide-react';
 import { TeamMember } from '@/lib/teamTypes';
@@ -164,10 +164,10 @@ const TeamPhotoSection: React.FC<TeamPhotoSectionProps> = ({ providerId }) => {
                 
                 return (
                   <div key={member.id} className="text-center">
-                    <EnhancedAvatar
+                    <UnifiedAvatar
                       src={member.photoUrl}
-                      alt={member.name}
-                      fallback={member.name ? member.name.substring(0, 2).toUpperCase() : 'AU'}
+                      name={member.name}
+                      size="lg"
                       className="w-16 h-16 mx-auto mb-2"
                       onError={() => console.error('TeamPhotoSection - Avatar error for:', member.name, 'URL:', member.photoUrl)}
                       onLoad={() => console.log('TeamPhotoSection - Avatar loaded for:', member.name, 'URL:', member.photoUrl)}
