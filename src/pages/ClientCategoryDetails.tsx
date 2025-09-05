@@ -39,13 +39,14 @@ const ClientCategoryDetails = () => {
       
       // Orden personalizado para la categoría "Hogar"
       const customOrder = [
-        'Floristería',
-        'Lavacar', 
+        'Lavacar',
+        'Chef Privado', 
+        'Hidrolavado',
+        'Fumigación',
         'Mantenimiento',
         'Jardinero',
-        'Chef Privado',
-        'Limpieza Profunda',
-        'Planchado'
+        'Planchado',
+        'Floristería'
       ];
       
       const sortedData = (data || []).sort((a, b) => {

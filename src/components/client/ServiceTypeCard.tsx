@@ -46,7 +46,9 @@ const ServiceTypeCard = ({ serviceType, categoryId, categoryLabel }: ServiceType
           )}
         </div>
         <div>
-          <h3 className="font-medium text-sm text-gray-900 mb-1">{serviceType.name}</h3>
+          <h3 className="font-medium text-sm text-gray-900 mb-1">
+            {serviceType.name === 'Floristería' ? 'Flores' : serviceType.name}
+          </h3>
         </div>
       </div>
     </Card>
