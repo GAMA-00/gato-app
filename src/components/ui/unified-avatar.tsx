@@ -48,20 +48,18 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
 
     let fullUrl = url;
     
-    // URL completa - solo agregar cache busting si no lo tiene
+    // URL completa - no modificar ni agregar cache busting automáticamente
     if (url.startsWith('https://') || url.startsWith('http://')) {
-      const hasTimestamp = url.includes('?t=') || url.includes('&t=');
-      return hasTimestamp ? url : `${url}?t=${Date.now()}`;
+      return url;
     }
     
-    // URL relativa - construir URL completa con base de Supabase
-    if (url.startsWith('avatars/') || url.includes('/avatars/')) {
+    // URL relativa - construir URL completa con base de Supabase (soportando distintos buckets)
+    if (
+      url.startsWith('avatars/') || url.includes('/avatars/') ||
+      url.startsWith('team-photos/') || url.includes('/team-photos/') ||
+      url.startsWith('service-gallery/') || url.includes('/service-gallery/')
+    ) {
       fullUrl = `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/${url}`;
-    }
-    
-    // Cache busting para URLs relativas
-    if (!fullUrl.includes('?t=')) {
-      fullUrl += `?t=${Date.now()}`;
     }
     
     return fullUrl;
