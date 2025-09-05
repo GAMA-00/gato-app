@@ -261,7 +261,7 @@ const ProviderSlotBlockingGrid = ({
       <div className="md:hidden">
         {/* Week display above navigation */}
         <div className="text-center mb-3">
-          <div className="font-semibold text-gray-900 text-lg">Semana {currentWeek + 1}</div>
+          <div className="font-semibold text-gray-900 text-lg">{currentWeek === 0 ? 'Semana actual' : `Semana ${currentWeek + 1}`}</div>
           <div className="text-gray-600 text-sm">
             {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
           </div>
@@ -406,7 +406,7 @@ const ProviderSlotBlockingGrid = ({
       <div className="hidden md:block">
         {/* Week display above navigation */}
         <div className="text-center mb-3">
-          <div className="font-semibold text-gray-900 text-xl">Semana {currentWeek + 1}</div>
+          <div className="font-semibold text-gray-900 text-xl">{currentWeek === 0 ? 'Semana actual' : `Semana ${currentWeek + 1}`}</div>
           <div className="text-gray-600 text-sm">
             {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
           </div>
