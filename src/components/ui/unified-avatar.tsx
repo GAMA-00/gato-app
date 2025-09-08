@@ -46,23 +46,21 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
       return null;
     }
 
-    let fullUrl = url;
-    
-    // URL completa - no modificar ni agregar cache busting automáticamente
+    // URL completa - usar tal como está
     if (url.startsWith('https://') || url.startsWith('http://')) {
       return url;
     }
     
-    // URL relativa - construir URL completa con base de Supabase (soportando distintos buckets)
+    // URL relativa - construir URL completa con base de Supabase
     if (
       url.startsWith('avatars/') || url.includes('/avatars/') ||
       url.startsWith('team-photos/') || url.includes('/team-photos/') ||
       url.startsWith('service-gallery/') || url.includes('/service-gallery/')
     ) {
-      fullUrl = `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/${url}`;
+      return `https://jckynopecuexfamepmoh.supabase.co/storage/v1/object/public/${url}`;
     }
     
-    return fullUrl;
+    return url;
   };
 
   // Actualizar src cuando cambie la prop

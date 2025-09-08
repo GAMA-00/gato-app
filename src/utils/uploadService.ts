@@ -49,107 +49,68 @@ export const uploadCertificationFiles = async (files: File[], userId: string): P
 
 export const uploadTeamMemberPhoto = async (file: File, userId: string, memberId: string): Promise<UploadResult> => {
   try {
-    console.log('=== Uploading team member photo ===');
-    console.log('Upload details:', { 
+    console.log('🔵 Team Member Photo Upload Started:', { 
       fileName: file.name, 
-      fileSize: file.size, 
-      fileType: file.type,
-      userId, 
-      memberId 
+      fileType: file.type, 
+      fileSize: file.size,
+      userId,
+      memberId
     });
-    
-    // Validate file type
+
+    // Validaciones básicas
     if (!file.type.startsWith('image/')) {
-      throw new Error('Solo se permiten archivos de imagen');
-    }
-    
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error('El archivo debe ser menor a 5MB');
-    }
-    
-    const fileExt = file.name.split('.').pop()?.toLowerCase();
-    const timestamp = Date.now();
-    const fileName = `${userId}/team/${memberId}_${timestamp}.${fileExt}`;
-    
-    // Ensure proper content type
-    let contentType = file.type;
-    if (!contentType || contentType === 'application/json') {
-      // Fallback based on extension
-      if (fileExt === 'jpg' || fileExt === 'jpeg') {
-        contentType = 'image/jpeg';
-      } else if (fileExt === 'png') {
-        contentType = 'image/png';
-      } else if (fileExt === 'webp') {
-        contentType = 'image/webp';
-      } else {
-        contentType = 'image/jpeg'; // default
-      }
-    }
-    
-    console.log('Final upload details:', { fileName, contentType, fileExt });
-    
-    // Delete any existing photos for this member
-    const { data: existingFiles } = await supabase.storage
-      .from('team-photos')
-      .list(`${userId}/team/`);
-    
-    if (existingFiles) {
-      const memberFiles = existingFiles.filter(f => f.name.startsWith(`${memberId}_`));
-      if (memberFiles.length > 0) {
-        const filesToDelete = memberFiles.map(f => `${userId}/team/${f.name}`);
-        console.log('Deleting existing files:', filesToDelete);
-        const { error: deleteError } = await supabase.storage
-          .from('team-photos')
-          .remove(filesToDelete);
-        
-        if (deleteError) {
-          console.warn('Could not delete existing team photos:', deleteError);
-        }
-      }
+      throw new Error('Debe ser una imagen');
     }
 
-    const { data, error } = await supabase.storage
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('Imagen debe ser menor a 5MB');
+    }
+
+    // Convertir a ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    console.log('🔄 ArrayBuffer conversion successful, size:', arrayBuffer.byteLength);
+
+    // Nombre consistente: userId/team/memberId.jpg
+    const fileName = `${userId}/team/${memberId}.jpg`;
+    
+    // 1. Borrar foto anterior si existe
+    const { error: deleteError } = await supabase.storage
       .from('team-photos')
-      .upload(fileName, file, {
+      .remove([fileName]);
+    
+    if (deleteError) {
+      console.log('⚠️ No se pudo borrar foto anterior:', deleteError.message);
+    }
+
+    // 2. Subir usando ArrayBuffer
+    const { data, error: uploadError } = await supabase.storage
+      .from('team-photos')
+      .upload(fileName, arrayBuffer, {
         cacheControl: '3600',
         upsert: true,
-        contentType: contentType
+        contentType: 'image/jpeg' // Forzar JPEG
       });
 
-    if (error) {
-      console.error('Storage upload error:', error);
-      throw error;
+    if (uploadError) {
+      console.error('❌ Error upload:', uploadError);
+      throw new Error(`Error subiendo imagen: ${uploadError.message}`);
     }
 
-    const { data: publicUrlData } = supabase.storage
+    console.log('✅ Upload exitoso:', data);
+
+    // 3. Obtener URL pública con cache busting
+    const { data: urlData } = supabase.storage
       .from('team-photos')
       .getPublicUrl(fileName);
 
-    const finalUrl = publicUrlData.publicUrl;
-    console.log('Team photo uploaded successfully:', finalUrl);
-    
-    // Test the uploaded image
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        console.log('Upload verification: Image loads correctly');
-        resolve({ success: true, url: finalUrl });
-      };
-      img.onerror = () => {
-        console.error('Upload verification: Image failed to load');
-        resolve({ success: true, url: finalUrl }); // Still return success, might be CORS issue
-      };
-      img.src = finalUrl;
-      
-      // Timeout after 5 seconds
-      setTimeout(() => {
-        resolve({ success: true, url: finalUrl });
-      }, 5000);
-    });
+    const photoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    console.log('🔗 URL generada con cache busting:', photoUrl);
+
+    console.log('✅ Team member photo upload completo exitoso');
+    return { success: true, url: photoUrl };
     
   } catch (error: any) {
-    console.error('Error uploading team photo:', error);
+    console.error('💥 Error general en team photo upload:', error);
     return { success: false, error: error.message };
   }
 };

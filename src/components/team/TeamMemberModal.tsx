@@ -86,18 +86,22 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
       
       // Upload photo if there's a new file
       if (photoFile) {
+        console.log('🔵 Uploading new team member photo...');
         // Generate a unique ID for the photo (using current timestamp + random)
         const memberId = member?.id || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const uploadResult = await uploadTeamMemberPhoto(photoFile, providerId, memberId);
         
         if (uploadResult.success && uploadResult.url) {
           finalFormData.photoUrl = uploadResult.url;
+          console.log('✅ Photo uploaded successfully:', uploadResult.url);
         } else {
+          console.error('❌ Photo upload failed:', uploadResult.error);
           toast.error('Error al subir la foto: ' + uploadResult.error);
           return;
         }
       }
       
+      console.log('💾 Saving team member with data:', finalFormData);
       onSave(finalFormData);
       onClose();
     } catch (error) {
