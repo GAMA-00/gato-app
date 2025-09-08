@@ -178,6 +178,20 @@ export function useRecurringBooking() {
 
       console.log('RPC creada con éxito. ID:', createdId, 'status:', rpcStatus);
 
+      // PASO CRÍTICO: Para citas recurrentes, bloquear slots futuros inmediatamente
+      if (data.recurrenceType && data.recurrenceType !== 'once') {
+        console.log('🔒 Bloqueando slots recurrentes para cita:', createdId);
+        try {
+          await supabase.rpc('block_recurring_slots_for_appointment', {
+            p_appointment_id: createdId,
+            p_months_ahead: 3
+          });
+          console.log('✅ Slots recurrentes bloqueados exitosamente');
+        } catch (slotError) {
+          console.warn('⚠️ Error bloqueando slots recurrentes (no crítico):', slotError);
+        }
+      }
+
       // Obtener la cita completa para mantener compatibilidad con el resto del flujo
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')

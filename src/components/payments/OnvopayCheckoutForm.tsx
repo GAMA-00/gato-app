@@ -256,6 +256,20 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
           .eq('id', newAppointment.id);
 
         console.log('✅ Appointment actualizado con pago exitoso');
+
+        // PASO 5: Para citas recurrentes, bloquear slots futuros
+        if (appointmentData.recurrenceType && appointmentData.recurrenceType !== 'once') {
+          console.log('🔒 Bloqueando slots recurrentes para:', newAppointment.id);
+          try {
+            await supabase.rpc('block_recurring_slots_for_appointment', {
+              p_appointment_id: newAppointment.id,
+              p_months_ahead: 3
+            });
+            console.log('✅ Slots recurrentes bloqueados exitosamente');
+          } catch (slotError) {
+            console.warn('⚠️ Error bloqueando slots recurrentes (no crítico):', slotError);
+          }
+        }
       }
 
       console.log('🎉 Proceso completo exitoso');

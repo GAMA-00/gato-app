@@ -3,6 +3,7 @@ import React from 'react';
 import { ClientBooking } from '@/hooks/useClientBookings';
 import { BookingCard } from '@/components/client/booking/BookingCard';
 import { BookingSkeleton } from '@/components/client/booking/BookingSkeleton';
+import { RecurringAppointmentAdvancer } from '@/components/client/booking/RecurringAppointmentAdvancer';
 
 interface BookingsListProps {
   bookings: ClientBooking[];
@@ -39,7 +40,18 @@ export const BookingsList = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-4 lg:gap-3 xl:gap-4">
       {bookings.map(booking => (
-        <BookingCard key={booking.id} booking={booking} onRated={onRated} />
+        <div key={booking.id}>
+          <BookingCard booking={booking} onRated={onRated} />
+          {/* Auto-advance recurring appointments when completed */}
+          {booking.recurrence && booking.recurrence !== 'none' && (
+            <RecurringAppointmentAdvancer
+              appointmentId={booking.id}
+              isCompleted={booking.status === 'completed'}
+              recurrence={booking.recurrence}
+              onAdvanced={onRated}
+            />
+          )}
+        </div>
       ))}
     </div>
   );

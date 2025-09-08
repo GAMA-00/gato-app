@@ -10,6 +10,64 @@ interface ProcessBookingParams {
   userData: any;
 }
 
+// Enhanced function to calculate next occurrence for recurring appointments
+function calculateNextOccurrenceForRecurring(
+  startTime: string,
+  recurrence: string,
+  status: string
+): Date {
+  const originalDate = new Date(startTime);
+  
+  // For non-recurring or pending/confirmed appointments, use original date
+  if (!recurrence || recurrence === 'none' || status === 'pending' || status === 'confirmed') {
+    return originalDate;
+  }
+  
+  // For completed recurring appointments, calculate actual next occurrence
+  if (status === 'completed' && recurrence !== 'none') {
+    const now = new Date();
+    
+    // If original date hasn't passed yet, return original date
+    if (originalDate > now) {
+      return originalDate;
+    }
+    
+    // Calculate next occurrence based on recurrence type
+    let nextDate = new Date(originalDate);
+    
+    switch (recurrence) {
+      case 'weekly':
+        while (nextDate <= now) {
+          nextDate.setDate(nextDate.getDate() + 7);
+        }
+        break;
+      case 'biweekly':
+        while (nextDate <= now) {
+          nextDate.setDate(nextDate.getDate() + 14);
+        }
+        break;
+      case 'triweekly':
+        while (nextDate <= now) {
+          nextDate.setDate(nextDate.getDate() + 21);
+        }
+        break;
+      case 'monthly':
+        while (nextDate <= now) {
+          nextDate.setMonth(nextDate.getMonth() + 1);
+        }
+        break;
+      default:
+        return originalDate;
+    }
+    
+    console.log(`🔄 Next occurrence calculated for ${recurrence} appointment: ${nextDate.toISOString()}`);
+    return nextDate;
+  }
+  
+  // Fallback to original calculation
+  return calculateNextOccurrence(startTime, recurrence);
+}
+
 export function processClientBooking({
   appointment,
   servicesMap,
@@ -25,10 +83,11 @@ export function processClientBooking({
   // Construir ubicación
   const location = buildAppointmentLocation(appointment, userData);
   
-  // Calcular próxima fecha de ocurrencia real
-  const nextOccurrenceDate = calculateNextOccurrence(
+  // Calcular próxima fecha de ocurrencia real con lógica mejorada para recurrencias
+  const nextOccurrenceDate = calculateNextOccurrenceForRecurring(
     appointment.start_time,
-    appointment.recurrence
+    appointment.recurrence,
+    appointment.status
   );
 
   return {
