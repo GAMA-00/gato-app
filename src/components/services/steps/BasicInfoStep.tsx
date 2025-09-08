@@ -106,6 +106,30 @@ const BasicInfoStep = () => {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={control}
+            name="slotPreferences.serviceRequirements"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base sm:text-lg font-medium text-stone-900">
+                  Requerimientos para el servicio (opcional)
+                </FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Ej: Área techada, acceso a luz, electricidad, agua corriente..." 
+                    className="resize-none text-base sm:text-lg min-h-[100px] sm:min-h-[120px] border-stone-300 focus:border-primary" 
+                    {...field} 
+                    value={field.value || ''}
+                  />
+                </FormControl>
+                <FormDescription className="text-sm sm:text-base text-stone-600 mt-2">
+                  Especifica las condiciones necesarias para realizar el servicio.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </CardContent>
       </Card>
     </div>

@@ -2,10 +2,12 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DayAvailabilityEditor from './DayAvailabilityEditor';
 
 const AvailabilityStep = () => {
-  const { watch } = useFormContext();
+  const { control, watch } = useFormContext();
   const availability = watch('availability') || {};
 
   const daysOfWeek = [
@@ -28,6 +30,53 @@ const AvailabilityStep = () => {
           Define cuándo estás disponible para brindar tus servicios. Los clientes solo podrán agendar citas en los horarios que configures aquí.
         </p>
       </div>
+
+      <Card className="border-stone-200 shadow-sm">
+        <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
+          <CardTitle className="text-base sm:text-lg">Antelación para reservar</CardTitle>
+          <CardDescription className="text-sm">
+            Define cuántas horas de antelación mínima se requiere para reservar tu servicio.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 sm:px-6 pb-6">
+          <FormField
+            control={control}
+            name="slotPreferences.minNoticeHours"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-stone-900">
+                  Horas de antelación mínima
+                </FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(Number(value))} 
+                  value={String(field.value || 0)}
+                >
+                  <FormControl>
+                    <SelectTrigger className="text-sm border-stone-300 focus:border-primary">
+                      <SelectValue placeholder="Selecciona las horas de antelación" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="0">Sin antelación</SelectItem>
+                    <SelectItem value="2">2 horas</SelectItem>
+                    <SelectItem value="4">4 horas</SelectItem>
+                    <SelectItem value="8">8 horas</SelectItem>
+                    <SelectItem value="12">12 horas</SelectItem>
+                    <SelectItem value="24">24 horas (1 día)</SelectItem>
+                    <SelectItem value="48">48 horas (2 días)</SelectItem>
+                    <SelectItem value="72">72 horas (3 días)</SelectItem>
+                    <SelectItem value="168">168 horas (1 semana)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription className="text-xs text-stone-600">
+                  Los clientes no podrán reservar con menos antelación que la especificada.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
 
       <Card className="border-stone-200 shadow-sm">
         <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">

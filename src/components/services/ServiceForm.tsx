@@ -50,7 +50,10 @@ const serviceSchema = z.object({
   customVariableGroups: z.array(z.any()).optional().default([]),
   useCustomVariables: z.boolean().optional().default(false),
   availability: z.any().optional(),
-  slotPreferences: z.any().optional(),
+  slotPreferences: z.object({
+    minNoticeHours: z.coerce.number().min(0).max(168).default(0).optional(),
+    serviceRequirements: z.string().max(1000).optional(),
+  }).optional(),
   aboutMe: z.string().optional(),
   experienceYears: z.union([z.string(), z.coerce.number()]).optional(),
   hasCertifications: z.boolean().optional(),
@@ -103,7 +106,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         saturday: { enabled: false, timeSlots: [] },
         sunday: { enabled: false, timeSlots: [] }
       },
-      slotPreferences: {},
+      slotPreferences: {
+        minNoticeHours: 0,
+        serviceRequirements: ''
+      },
     }
   });
 
@@ -157,7 +163,11 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
           saturday: { enabled: false, timeSlots: [] },
           sunday: { enabled: false, timeSlots: [] }
         },
-        slotPreferences: initialData.slotPreferences || {},
+        slotPreferences: {
+          minNoticeHours: initialData.slotPreferences?.minNoticeHours ?? 0,
+          serviceRequirements: initialData.slotPreferences?.serviceRequirements ?? '',
+          ...initialData.slotPreferences
+        },
         
         // Campos del perfil profesional
         aboutMe: initialData.aboutMe || '',

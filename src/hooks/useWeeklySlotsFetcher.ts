@@ -82,8 +82,8 @@ export const useWeeklySlotsFetcher = ({
     });
     
     try {
-      // Consultar slots con datetime y legacy en paralelo y fusionar resultados
-      const [dtRes, legacyRes, apptAllRes, apptDirectRes, apptRecurringBaseRes] = await Promise.all([
+      // Consultar slots con datetime y legacy en paralelo y fusionar resultados, incluyendo slot_preferences
+      const [dtRes, legacyRes, apptAllRes, apptDirectRes, apptRecurringBaseRes, listingRes] = await Promise.all([
         supabase
           .from('provider_time_slots')
           .select('*')
@@ -128,7 +128,13 @@ export const useWeeklySlotsFetcher = ({
             .eq('listing_id', listingId)
             .in('status', ['confirmed', 'pending'])
             .not('recurrence', 'in', '("none","once")')
-            .lte('start_time', endOfDay(endDate).toISOString())
+            .lte('start_time', endOfDay(endDate).toISOString()),
+        // obtener configuraciones del listing
+        supabase
+          .from('listings')
+          .select('slot_preferences')
+          .eq('id', listingId)
+          .single()
       ]);
 
       if (dtRes.error) throw dtRes.error;
@@ -136,6 +142,7 @@ export const useWeeklySlotsFetcher = ({
       if (apptAllRes.error) throw apptAllRes.error;
       if (apptDirectRes && 'error' in apptDirectRes && apptDirectRes.error) throw apptDirectRes.error;
       if (apptRecurringBaseRes && 'error' in apptRecurringBaseRes && apptRecurringBaseRes.error) throw apptRecurringBaseRes.error;
+      if (listingRes.error) throw listingRes.error;
 
       const timeSlotsDt = dtRes.data || [];
       const timeSlotsLegacy = legacyRes.data || [];
@@ -334,8 +341,32 @@ export const useWeeklySlotsFetcher = ({
         };
       }).filter(Boolean) as WeeklySlot[]; // Filtrar slots nulos (bloqueados manualmente)
 
-      // Solo usar slots de base de datos (ya regenerados arriba)
-      const finalWeeklySlots: WeeklySlot[] = weeklySlots;
+      // PASO 3: Filtrar slots según antelación mínima
+      const slotPreferences = (listingRes.data?.slot_preferences as any) || {};
+      const minNoticeHours = Number(slotPreferences.minNoticeHours || 0);
+      
+      let filteredByNotice: WeeklySlot[] = weeklySlots;
+      if (minNoticeHours > 0) {
+        const threshold = new Date(Date.now() + minNoticeHours * 3600_000);
+        console.log(`⏰ Aplicando filtro de antelación mínima: ${minNoticeHours}h (umbral: ${threshold.toISOString()})`);
+        
+        filteredByNotice = weeklySlots.filter(slot => {
+          const slotStart = new Date(slot.date.getFullYear(), slot.date.getMonth(), slot.date.getDate(), 
+            parseInt(slot.time.split(':')[0]), parseInt(slot.time.split(':')[1]));
+          const isWithinNotice = slotStart >= threshold;
+          
+          if (!isWithinNotice) {
+            console.log(`🚫 Slot filtrado por antelación: ${format(slot.date, 'yyyy-MM-dd')} ${slot.time}`);
+          }
+          
+          return isWithinNotice;
+        });
+        
+        console.log(`📊 Slots después de filtro de antelación: ${filteredByNotice.length}/${weeklySlots.length}`);
+      }
+
+      // Solo usar slots filtrados por antelación
+      const finalWeeklySlots: WeeklySlot[] = filteredByNotice;
 
       // Calcular recomendación basada en adyacencia respecto a TODAS las reservas (puntuales y recurrentes)
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
