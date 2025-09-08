@@ -43,7 +43,7 @@ export const BookingsList = ({
         <div key={booking.id}>
           <BookingCard booking={booking} onRated={onRated} />
           {/* Auto-advance recurring appointments when completed */}
-          {booking.recurrence && booking.recurrence !== 'none' && (
+          {['weekly','biweekly','triweekly','monthly'].includes(booking.recurrence || 'none') && (
             <RecurringAppointmentAdvancer
               appointmentId={booking.id}
               isCompleted={booking.status === 'completed'}

@@ -28,13 +28,13 @@ const ClientBookings = () => {
   
   // Filtrar citas activas con lógica especial para recurrencias
   const now = new Date();
+  const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
   const activeBookings = bookings?.filter(booking => {
-    // Para citas recurrentes, mostrar SIEMPRE que no estén cancelled o rejected
-    // (las citas recurrentes se mantienen activas aunque sus instancias pasadas estén completed)
-    if (booking.recurrence && booking.recurrence !== 'none') {
+    // Para recurrencias válidas, mantener activas salvo cancel/reject
+    if (booking.recurrence && validRecurrences.has(booking.recurrence)) {
       return booking.status !== 'cancelled' && booking.status !== 'rejected';
     }
-    // Para citas únicas, mostrar solo las futuras que están pending o confirmed
+    // Para citas únicas o 'once', solo futuras pending/confirmed
     return (booking.status === 'pending' || booking.status === 'confirmed') && booking.date > now;
   }) || [];
   
@@ -45,11 +45,11 @@ const ClientBookings = () => {
   
   // Separar citas recurrentes y únicas para mejor organización
   const activeRecurring = activeBookings.filter(booking => 
-    booking.recurrence && booking.recurrence !== 'none'
+    booking.recurrence && validRecurrences.has(booking.recurrence)
   );
   
   const activeSingle = activeBookings.filter(booking => 
-    !booking.recurrence || booking.recurrence === 'none'
+    !booking.recurrence || !validRecurrences.has(booking.recurrence)
   );
   
   const handleRated = () => {
