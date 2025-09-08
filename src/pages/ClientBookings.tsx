@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingsList } from '@/components/client/booking/BookingsList';
+import PendingInvoicesSection from '@/components/client/PendingInvoicesSection';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
 
 const ClientBookings = () => {
@@ -38,10 +39,17 @@ const ClientBookings = () => {
     return (booking.status === 'pending' || booking.status === 'confirmed') && booking.date > now;
   }) || [];
   
-  // Mostrar solo las últimas 3 citas completadas para calificar (no mostrar canceladas)
+  // Mostrar TODAS las citas completadas pendientes de calificar
   const completedBookings = bookings?.filter(booking => 
-    booking.status === 'completed'
-  ).slice(0, 3) || [];
+    booking.status === 'completed' && !booking.isRated
+  ) || [];
+
+  // Separar citas post-pago pendientes de factura vs listas para calificar
+  const pendingInvoiceBookings = completedBookings.filter(booking => 
+    booking.isPostPayment && !booking.canRate
+  );
+  
+  const readyToRateBookings = completedBookings.filter(booking => booking.canRate);
   
   // Separar citas recurrentes y únicas para mejor organización
   const activeRecurring = activeBookings.filter(booking => 
@@ -111,6 +119,13 @@ const ClientBookings = () => {
       )}
       
       <div className="space-y-8 px-1 md:px-2 lg:px-4 xl:px-6">
+        {/* Facturas Pendientes de Post-Pago */}
+        {pendingInvoiceBookings.length > 0 && (
+          <section>
+            <PendingInvoicesSection />
+          </section>
+        )}
+
         {/* Citas Recurrentes Activas */}
         {activeRecurring.length > 0 && (
           <section>
@@ -151,20 +166,20 @@ const ClientBookings = () => {
           </div>
         )}
         
-        {/* Últimas 3 Citas Completadas para Calificar */}
-        {completedBookings.length > 0 && (
+        {/* Todas las Citas Completadas para Calificar */}
+        {readyToRateBookings.length > 0 && (
           <section>
             <h2 className="text-lg font-medium mb-4">
               Calificar Servicios
               <span className="text-sm text-muted-foreground ml-2">
-                (Últimas {completedBookings.length} cita{completedBookings.length > 1 ? 's' : ''} para calificar)
+                ({readyToRateBookings.length} servicio{readyToRateBookings.length > 1 ? 's' : ''} para calificar)
               </span>
             </h2>
             <BookingsList
-              bookings={completedBookings}
+              bookings={readyToRateBookings}
               isLoading={isLoading}
               onRated={handleRated}
-              emptyMessage="No hay citas completadas para calificar"
+              emptyMessage="No hay servicios completados para calificar"
             />
           </section>
         )}

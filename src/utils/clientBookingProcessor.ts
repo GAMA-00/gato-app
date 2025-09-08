@@ -8,6 +8,7 @@ interface ProcessBookingParams {
   providersMap: Map<string, any>;
   ratedIds: Set<string>;
   userData: any;
+  approvedInvoices: Set<string>;
 }
 
 // Enhanced function to calculate next occurrence for recurring appointments
@@ -73,7 +74,8 @@ export function processClientBooking({
   servicesMap,
   providersMap,
   ratedIds,
-  userData
+  userData,
+  approvedInvoices
 }: ProcessBookingParams): ClientBooking {
   const service = servicesMap.get(appointment.listing_id);
   const provider = providersMap.get(appointment.provider_id);
@@ -89,6 +91,11 @@ export function processClientBooking({
     appointment.recurrence,
     appointment.status
   );
+
+  // Determinar si es post-pago y si puede ser calificado
+  const isPostPayment = service?.is_post_payment || false;
+  const canRate = appointment.status === 'completed' && 
+    (!isPostPayment || approvedInvoices.has(appointment.id));
 
   return {
     id: appointment.id,
@@ -109,7 +116,9 @@ export function processClientBooking({
     isRecurringInstance: appointment.is_recurring_instance || false,
     originalAppointmentId: appointment.is_recurring_instance 
       ? appointment.id.split('-recurring-')[0] 
-      : undefined
+      : undefined,
+    isPostPayment,
+    canRate
   };
 }
 

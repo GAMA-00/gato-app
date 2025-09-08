@@ -1672,6 +1672,10 @@ export type Database = {
         Args: { p_appointment_id: string }
         Returns: undefined
       }
+      auto_rate_old_appointments: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       block_recurring_slots: {
         Args: { p_months_ahead?: number; p_recurring_rule_id: string }
         Returns: number

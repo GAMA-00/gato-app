@@ -22,6 +22,8 @@ export interface ClientBooking {
   recurrenceGroupId?: string;
   isRecurringInstance?: boolean;
   originalAppointmentId?: string;
+  isPostPayment: boolean;
+  canRate: boolean;
 }
 
 export const useClientBookings = () => {
@@ -36,6 +38,12 @@ export const useClientBookings = () => {
       console.log('👤 Obteniendo reservas para usuario:', user.id);
 
       try {
+        // Auto-rate old appointments first
+        try {
+          await supabase.rpc('auto_rate_old_appointments');
+        } catch (error) {
+          console.error('❌ Error en auto-rating:', error);
+        }
         // Obtener citas básicas
         const { data: appointments, error } = await supabase
           .from('appointments')
@@ -72,7 +80,7 @@ export const useClientBookings = () => {
 
         console.log(`📊 Encontradas ${appointments.length} citas`);
 
-        // Obtener información de servicios
+        // Obtener información de servicios incluyendo is_post_payment
         const listingIds = [...new Set(appointments.map(a => a.listing_id).filter(Boolean))];
         let servicesMap = new Map();
 
@@ -83,6 +91,7 @@ export const useClientBookings = () => {
               .select(`
                 id,
                 title,
+                is_post_payment,
                 service_type_id,
                 service_types(
                   name,
@@ -134,6 +143,29 @@ export const useClientBookings = () => {
           console.error('❌ Error obteniendo calificaciones:', error);
         }
 
+        // Obtener facturas aprobadas para citas post-pago
+        let approvedInvoices: Set<string> = new Set();
+        const completedPostPaymentAppointments = appointments.filter(a => {
+          const listing = servicesMap.get(a.listing_id);
+          return a.status === 'completed' && listing?.is_post_payment;
+        });
+
+        if (completedPostPaymentAppointments.length > 0) {
+          try {
+            const { data: invoices } = await supabase
+              .from('post_payment_invoices')
+              .select('appointment_id')
+              .in('appointment_id', completedPostPaymentAppointments.map(a => a.id))
+              .eq('status', 'approved');
+
+            if (invoices) {
+              approvedInvoices = new Set(invoices.map(i => i.appointment_id));
+            }
+          } catch (error) {
+            console.error('❌ Error obteniendo facturas aprobadas:', error);
+          }
+        }
+
         // *** PUNTO CRÍTICO: Obtener datos COMPLETOS del usuario ***
         console.log('🏠 === OBTENIENDO DATOS COMPLETOS DE UBICACIÓN DEL USUARIO ===');
         const { data: userData, error: userError } = await supabase
@@ -170,7 +202,8 @@ export const useClientBookings = () => {
             servicesMap,
             providersMap,
             ratedIds,
-            userData
+            userData,
+            approvedInvoices
           });
         });
 

@@ -127,14 +127,22 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             </span>
           </div>
           
-          
-          {/* Rating Section */}
-          {isCompleted && !booking.isRated && (
+          {/* Rating Section - Solo mostrar si canRate es true */}
+          {isCompleted && !booking.isRated && booking.canRate && (
             <RatingStars 
               appointmentId={booking.id} 
               providerId={booking.providerId} 
               onRated={onRated}
             />
+          )}
+
+          {/* Mensaje para citas post-pago pendientes de factura */}
+          {isCompleted && !booking.isRated && booking.isPostPayment && !booking.canRate && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-sm text-amber-800">
+                📋 Este servicio está pendiente de facturación. Podrás calificarlo una vez que se apruebe la factura.
+              </p>
+            </div>
           )}
           
           {/* Action Buttons */}
