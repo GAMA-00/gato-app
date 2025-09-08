@@ -48,8 +48,8 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             name={member.name}
             size={isMobile ? "md" : "lg"}
             className={`mx-auto ${isMobile ? "mb-2" : "mb-2"}`}
-            onError={() => console.error('TeamMemberCard: Failed to load photo for:', member.name)}
-            onLoad={() => console.log('TeamMemberCard: Successfully loaded photo for:', member.name)}
+            onError={() => console.error('TeamMemberCard: Failed to load photo for:', member.name, 'URL:', member.photoUrl)}
+            onLoad={() => console.log('TeamMemberCard: Successfully loaded photo for:', member.name, 'URL:', member.photoUrl)}
           />
           <h3 className={`font-medium ${isMobile ? "text-sm leading-tight px-1" : "text-sm"}`}>
             {member.name}

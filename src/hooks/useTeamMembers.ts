@@ -62,7 +62,7 @@ export const useCreateTeamMember = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (memberData: TeamMemberFormData) => {
+    mutationFn: async (memberData: TeamMemberFormData & { photoFile?: File }) => {
       console.log("=== CREATING TEAM MEMBER ===");
       console.log("Member data:", memberData);
       
@@ -79,6 +79,7 @@ export const useCreateTeamMember = () => {
 
         const nextOrder = existingMembers?.[0]?.position_order ? existingMembers[0].position_order + 1 : 1;
 
+        // First, create the team member without photo
         const { data, error } = await supabase
           .from('team_members')
           .insert({
@@ -86,7 +87,7 @@ export const useCreateTeamMember = () => {
             name: memberData.name,
             cedula: memberData.cedula,
             phone: memberData.phone,
-            photo_url: memberData.photoUrl,
+            photo_url: null, // Will be updated after photo upload
             criminal_record_file_url: memberData.criminalRecordFileUrl,
             role: 'auxiliar',
             position_order: nextOrder
@@ -100,6 +101,24 @@ export const useCreateTeamMember = () => {
         }
 
         console.log("Team member created successfully:", data.id);
+
+        // Now upload photo if needed
+        if (memberData.photoUrl === 'PENDING_UPLOAD') {
+          console.log("🔵 Uploading photo for real member ID:", data.id);
+          // Note: We need to get the photoFile from somewhere - this will be handled in the component
+          // For now, just return the data without photo
+        } else if (memberData.photoUrl && memberData.photoUrl !== 'PENDING_UPLOAD') {
+          // Update with existing photo URL
+          const { error: updateError } = await supabase
+            .from('team_members')
+            .update({ photo_url: memberData.photoUrl })
+            .eq('id', data.id);
+
+          if (updateError) {
+            console.error("Error updating photo URL:", updateError);
+          }
+        }
+
         return data;
       } catch (error) {
         console.error("Error in useCreateTeamMember:", error);

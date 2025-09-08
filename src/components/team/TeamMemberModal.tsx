@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { TeamMember, TeamMemberFormData } from '@/lib/teamTypes';
 import { useState, useEffect, useRef } from 'react';
 import { User, Phone, IdCard, FileCheck, Upload, X } from 'lucide-react';
-import { uploadTeamMemberPhoto } from '@/utils/uploadService';
+import { useTeamMemberPhotoUpload } from '@/hooks/useTeamMemberPhotoUpload';
 import { toast } from 'sonner';
 
 interface TeamMemberModalProps {
@@ -17,7 +17,7 @@ interface TeamMemberModalProps {
   onClose: () => void;
   member?: TeamMember;
   mode: 'create' | 'edit' | 'view';
-  onSave?: (data: TeamMemberFormData) => void;
+  onSave?: (data: TeamMemberFormData, photoFile?: File) => void;
   providerId: string;
 }
 
@@ -41,6 +41,7 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const photoUploadMutation = useTeamMemberPhotoUpload();
 
   useEffect(() => {
     if (member && (mode === 'edit' || mode === 'view')) {
@@ -84,25 +85,10 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
     try {
       let finalFormData = { ...formData };
       
-      // Upload photo if there's a new file
-      if (photoFile) {
-        console.log('🔵 Uploading new team member photo...');
-        // Generate a unique ID for the photo (using current timestamp + random)
-        const memberId = member?.id || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const uploadResult = await uploadTeamMemberPhoto(photoFile, providerId, memberId);
-        
-        if (uploadResult.success && uploadResult.url) {
-          finalFormData.photoUrl = uploadResult.url;
-          console.log('✅ Photo uploaded successfully:', uploadResult.url);
-        } else {
-          console.error('❌ Photo upload failed:', uploadResult.error);
-          toast.error('Error al subir la foto: ' + uploadResult.error);
-          return;
-        }
-      }
+      console.log('💾 Saving team member...');
       
-      console.log('💾 Saving team member with data:', finalFormData);
-      onSave(finalFormData);
+      // Pass the photo file along with the form data
+      onSave(finalFormData, photoFile || undefined);
       onClose();
     } catch (error) {
       console.error('Error saving team member:', error);
@@ -159,8 +145,8 @@ const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               name={formData.name || 'Miembro del equipo'}
               size="xl"
               className="mx-auto mb-2"
-              onError={() => console.error('TeamMemberModal: Failed to load photo')}
-              onLoad={() => console.log('TeamMemberModal: Photo loaded successfully')}
+              onError={() => console.error('TeamMemberModal: Failed to load photo. URL:', photoPreview || member?.photoUrl, 'Name:', formData.name)}
+              onLoad={() => console.log('TeamMemberModal: Photo loaded successfully. URL:', photoPreview || member?.photoUrl, 'Name:', formData.name)}
             />
             
             {mode === 'view' && member && (

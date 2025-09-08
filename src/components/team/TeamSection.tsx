@@ -11,6 +11,7 @@ import {
   useUpdateTeamMember,
   useDeleteTeamMember
 } from '@/hooks/useTeamMembers';
+import { useTeamMemberPhotoUpload } from '@/hooks/useTeamMemberPhotoUpload';
 import { TeamMember, TeamMemberFormData } from '@/lib/teamTypes';
 import TeamMemberCard from './TeamMemberCard';
 import TeamMemberModal from './TeamMemberModal';
@@ -24,6 +25,7 @@ const TeamSection: React.FC = () => {
   const createMember = useCreateTeamMember();
   const updateMember = useUpdateTeamMember();
   const deleteMember = useDeleteTeamMember();
+  const photoUploadMutation = useTeamMemberPhotoUpload();
   const isMobile = useIsMobile();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -60,14 +62,55 @@ const TeamSection: React.FC = () => {
     }
   };
 
-  const handleSaveMember = (data: TeamMemberFormData) => {
-    console.log("TeamSection - Saving member:", data);
-    if (modalMode === 'create') {
-      createMember.mutate(data);
-    } else if (modalMode === 'edit' && editingMember) {
-      updateMember.mutate({ id: editingMember.id, ...data });
+  const handleSaveMember = async (data: TeamMemberFormData, photoFile?: File) => {
+    console.log("=== HANDLING SAVE MEMBER ===");
+    console.log("Mode:", modalMode);
+    console.log("Member data:", data);
+    console.log("Has photo file:", !!photoFile);
+
+    try {
+      if (modalMode === 'create') {
+        console.log("🔵 Creating new team member...");
+        
+        // First create the member without photo
+        const result = await createMember.mutateAsync(data);
+        console.log("✅ Member created with ID:", result.id);
+        
+        // If there's a photo, upload it now with the real member ID
+        if (photoFile && user?.id) {
+          console.log("🔵 Uploading photo for member:", result.id);
+          await photoUploadMutation.mutateAsync({
+            memberId: result.id,
+            photoFile: photoFile,
+            providerId: user.id
+          });
+          console.log("✅ Photo uploaded successfully");
+        }
+        
+      } else if (modalMode === 'edit' && editingMember) {
+        console.log("🔵 Updating existing team member...");
+        
+        await updateMember.mutateAsync({
+          id: editingMember.id,
+          ...data
+        });
+        
+        // If there's a new photo, upload it
+        if (photoFile && user?.id) {
+          console.log("🔵 Uploading new photo for member:", editingMember.id);
+          await photoUploadMutation.mutateAsync({
+            memberId: editingMember.id,
+            photoFile: photoFile,
+            providerId: user.id
+          });
+          console.log("✅ Photo updated successfully");
+        }
+      }
+      
+      setModalOpen(false);
+    } catch (error) {
+      console.error("Error in handleSaveMember:", error);
     }
-    setModalOpen(false);
   };
 
   // Error state
