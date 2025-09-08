@@ -111,11 +111,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           <div className="flex items-center text-xs text-muted-foreground">
             <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
             <span className="truncate">
-              {bookingIsRecurring && !booking.isRecurringInstance ? (
-                `${format(booking.date, 'EEEE', { locale: es }).charAt(0).toUpperCase() + format(booking.date, 'EEEE', { locale: es }).slice(1)} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
-              ) : (
-                `${format(booking.date, 'PPP', { locale: es })} - ${formatTo12Hour(format(booking.date, 'HH:mm'))}`
-              )}
+              {`${format(booking.date, 'EEEE d', { locale: es }).split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} de ${format(booking.date, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(booking.date, 'MMMM', { locale: es }).slice(1)} – ${formatTo12Hour(format(booking.date, 'HH:mm'))}`}
             </span>
           </div>
           
