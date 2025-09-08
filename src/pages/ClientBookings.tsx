@@ -30,15 +30,16 @@ const ClientBookings = () => {
   // Filtrar citas activas con lógica especial para recurrencias
   const now = new Date();
   const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
+  // Solo mostrar citas CONFIRMADAS en "Mis reservas"
   const activeBookings = bookings?.filter(booking => {
-    // Para recurrencias válidas, mantener activas salvo cancel/reject
     if (booking.recurrence && validRecurrences.has(booking.recurrence)) {
-      return booking.status !== 'cancelled' && booking.status !== 'rejected';
+      // Recurrentes: solo confirmadas
+      return booking.status === 'confirmed';
     }
-    // Para citas únicas o 'once', solo futuras pending/confirmed
-    return (booking.status === 'pending' || booking.status === 'confirmed') && booking.date > now;
+    // Únicas: solo confirmadas y futuras
+    return booking.status === 'confirmed' && booking.date > now;
   }) || [];
-  
+
   // Mostrar TODAS las citas completadas pendientes de calificar
   const completedBookings = bookings?.filter(booking => 
     booking.status === 'completed' && !booking.isRated
@@ -76,7 +77,7 @@ const ClientBookings = () => {
       return 'No hay citas activas';
     }
     
-    const parts = [];
+    const parts = [] as string[];
     if (activeRecurring.length > 0) {
       parts.push(`${activeRecurring.length} servicio${activeRecurring.length > 1 ? 's' : ''} recurrente${activeRecurring.length > 1 ? 's' : ''}`);
     }
@@ -167,16 +168,16 @@ const ClientBookings = () => {
         )}
         
         {/* Todas las Citas Completadas para Calificar */}
-        {readyToRateBookings.length > 0 && (
+        {completedBookings.length > 0 && (
           <section>
             <h2 className="text-lg font-medium mb-4">
               Calificar Servicios
               <span className="text-sm text-muted-foreground ml-2">
-                ({readyToRateBookings.length} servicio{readyToRateBookings.length > 1 ? 's' : ''} para calificar)
+                ({completedBookings.length} servicio{completedBookings.length > 1 ? 's' : ''} para calificar)
               </span>
             </h2>
             <BookingsList
-              bookings={readyToRateBookings}
+              bookings={completedBookings}
               isLoading={isLoading}
               onRated={handleRated}
               emptyMessage="No hay servicios completados para calificar"
