@@ -70,16 +70,23 @@ export const uploadTeamMemberPhoto = async (file: File, userId: string, memberId
     const arrayBuffer = await file.arrayBuffer();
     console.log('🔄 ArrayBuffer conversion successful, size:', arrayBuffer.byteLength);
 
-    // Nombre consistente: userId/team/memberId.jpg
+    // Nombre consistente: userId/team/memberId.jpg 
     const fileName = `${userId}/team/${memberId}.jpg`;
     
-    // 1. Borrar foto anterior si existe
-    const { error: deleteError } = await supabase.storage
+    // 1. Borrar fotos anteriores (incluyendo temporales)
+    const { data: existingFiles } = await supabase.storage
       .from('team-photos')
-      .remove([fileName]);
-    
-    if (deleteError) {
-      console.log('⚠️ No se pudo borrar foto anterior:', deleteError.message);
+      .list(`${userId}/team`);
+      
+    if (existingFiles) {
+      const filesToDelete = existingFiles
+        .filter(file => file.name.includes(memberId))
+        .map(file => `${userId}/team/${file.name}`);
+        
+      if (filesToDelete.length > 0) {
+        await supabase.storage.from('team-photos').remove(filesToDelete);
+        console.log('🗑️ Deleted previous photos:', filesToDelete);
+      }
     }
 
     // 2. Subir usando ArrayBuffer
@@ -98,13 +105,9 @@ export const uploadTeamMemberPhoto = async (file: File, userId: string, memberId
 
     console.log('✅ Upload exitoso:', data);
 
-    // 3. Obtener URL pública con cache busting
-    const { data: urlData } = supabase.storage
-      .from('team-photos')
-      .getPublicUrl(fileName);
-
-    const photoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-    console.log('🔗 URL generada con cache busting:', photoUrl);
+    // 3. Generar URL consistente como los avatares (sin URLs completas)
+    const photoUrl = `team-photos/${fileName}`;
+    console.log('🔗 URL relativa generada:', photoUrl);
 
     console.log('✅ Team member photo upload completo exitoso');
     return { success: true, url: photoUrl };
