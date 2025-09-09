@@ -75,6 +75,8 @@ const ServiceVariantItem = ({
             </div>
           </div>
           
+          <div className="col-span-3"></div>
+          
           <div className="col-span-4 flex items-center justify-center">
             <QuantityControls
               quantity={quantity}
@@ -92,7 +94,7 @@ const ServiceVariantItem = ({
               price={Number(variant.price)}
               additionalPersonPrice={variant.additionalPersonPrice ? Number(variant.additionalPersonPrice) : undefined}
               layout="desktop"
-              alignment="left"
+              alignment="center"
             />
           </div>
         </div>
