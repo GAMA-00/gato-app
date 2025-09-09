@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
-import { OnvopayCheckoutForm } from '@/components/payments/OnvopayCheckoutForm';
+import { SimplifiedCheckoutForm } from '@/components/payments/SimplifiedCheckoutForm';
 import PageLayout from '@/components/layout/PageLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,6 @@ export const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'subscription' | null>(null);
 
   const checkoutData = location.state as CheckoutData;
 
@@ -108,7 +106,9 @@ export const Checkout = () => {
     console.error('Payment error:', error);
   };
 
-  const serviceType = bookingData.recurrenceType === 'once' ? 'one-time' : 'recurring';
+  // Detectar automáticamente el tipo de pago según la frecuencia
+  const isRecurringService = bookingData.recurrenceType && bookingData.recurrenceType !== 'once';
+  const paymentType = isRecurringService ? 'subscription' : 'cash';
 
   return (
     <PageLayout>
@@ -189,32 +189,24 @@ export const Checkout = () => {
                 </div>
               </div>
 
-              {bookingData.recurrenceType !== 'once' && (
+              {isRecurringService && (
                 <div className="bg-blue-50 p-3 rounded-lg mt-4">
                   <p className="text-sm text-blue-700">
-                    Este es un servicio recurrente. El pago se procesará automáticamente según la frecuencia seleccionada.
+                    <strong>Servicio Recurrente:</strong> Este pago se procesará automáticamente según la frecuencia seleccionada ({bookingData.recurrenceType}).
                   </p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Payment Method Selection */}
-          <PaymentMethodSelector
-            serviceType={serviceType}
-            onMethodSelect={setPaymentMethod}
+          {/* Payment Form - Ahora siempre visible */}
+          <SimplifiedCheckoutForm
+            amount={priceBreakdown.total}
+            paymentType={paymentType}
+            appointmentData={bookingData}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
           />
-
-          {/* Payment Form */}
-          {paymentMethod && (
-            <OnvopayCheckoutForm
-              amount={priceBreakdown.total}
-              paymentType={paymentMethod}
-              appointmentData={bookingData}
-              onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
-            />
-          )}
         </div>
       </div>
     </PageLayout>
