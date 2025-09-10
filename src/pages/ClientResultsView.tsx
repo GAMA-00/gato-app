@@ -15,11 +15,25 @@ const ClientResultsView = () => {
   // If we have serviceId, show providers list
   if (serviceId) {
     return (
-      <ClientPageLayout title="Profesionales disponibles">
-        <ProvidersList 
-          categoryName={categoryName || ''} 
-          serviceId={serviceId} 
-        />
+      <ClientPageLayout>
+        <div className="space-y-6">
+          {/* Back button positioned at top left */}
+          <div className="flex justify-start">
+            <BackButton onClick={() => navigate(-1)} />
+          </div>
+          
+          {/* Centered title */}
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold text-[#2D2D2D]">
+              Profesionales disponibles
+            </h1>
+          </div>
+          
+          <ProvidersList 
+            categoryName={categoryName || ''} 
+            serviceId={serviceId} 
+          />
+        </div>
       </ClientPageLayout>
     );
   }
