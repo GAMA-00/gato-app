@@ -65,38 +65,30 @@ const ServiceVariantItem = ({
       </div>
 
       {/* Desktop layout */}
-      <div className="hidden md:block relative py-3">
-        <div className="grid grid-cols-12 gap-3 items-start">
-          <div className="col-span-5">
-            <h4 className="font-medium text-base">{variant.name}</h4>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>{formatDuration()}</span>
-            </div>
-          </div>
-          
-          <div className="col-span-3"></div>
-          
-          <div className="col-span-4 flex items-center justify-center">
-            <QuantityControls
-              quantity={quantity}
-              onQuantityChange={onQuantityChange}
-              size="desktop"
-            />
+      <div className="hidden md:grid grid-cols-12 gap-3 items-start py-3">
+        <div className="col-span-5">
+          <h4 className="font-medium text-base">{variant.name}</h4>
+          <div className="flex items-center text-sm text-muted-foreground mt-1">
+            <Clock className="h-3 w-3 mr-1" />
+            <span>{formatDuration()}</span>
           </div>
         </div>
         
-        {/* Price positioned between service name and quantity controls */}
-        <div className="absolute top-1/2 left-0 transform -translate-y-1/2 grid grid-cols-12 gap-3 w-full pointer-events-none">
-          <div className="col-span-5"></div>
-          <div className="col-span-3">
-            <ServicePrice
-              price={Number(variant.price)}
-              additionalPersonPrice={variant.additionalPersonPrice ? Number(variant.additionalPersonPrice) : undefined}
-              layout="desktop"
-              alignment="center"
-            />
-          </div>
+        <div className="col-span-3">
+          <ServicePrice
+            price={Number(variant.price)}
+            additionalPersonPrice={variant.additionalPersonPrice ? Number(variant.additionalPersonPrice) : undefined}
+            layout="desktop"
+            alignment="left"
+          />
+        </div>
+        
+        <div className="col-span-4 flex items-center justify-center">
+          <QuantityControls
+            quantity={quantity}
+            onQuantityChange={onQuantityChange}
+            size="desktop"
+          />
         </div>
       </div>
 
