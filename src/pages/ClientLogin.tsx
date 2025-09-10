@@ -34,17 +34,12 @@ const ClientLogin = () => {
     }
   });
 
-  // Redirect authenticated users - strict validation for client role
+  // Redirect authenticated users
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log('ClientLogin: User authenticated, role:', user.role);
-      if (user.role === 'client') {
-        navigate('/client/categories', { replace: true });
-      } else {
-        // Wrong role - force logout and show error
-        setLoginError('Acceso no autorizado. Esta página es solo para clientes.');
-        toast.error('Acceso no autorizado. Esta página es solo para clientes.');
-      }
+      const redirectTo = user.role === 'client' ? '/client/categories' : '/dashboard';
+      navigate(redirectTo, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -63,8 +58,9 @@ const ClientLogin = () => {
         // Additional validation will happen in useEffect
       } else {
         console.log('ClientLogin: Login failed -', result.error);
-        setLoginError(result.error || 'Error al iniciar sesión');
-        toast.error(result.error || 'Error al iniciar sesión');
+        const errorMessage = 'Usuario o contraseña incorrecto';
+        setLoginError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('ClientLogin: Submission error:', error);
@@ -93,6 +89,12 @@ const ClientLogin = () => {
           <CardTitle className="text-2xl">Portal de Cliente</CardTitle>
         </CardHeader>
         <CardContent>
+          {loginError && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
+          )}
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">

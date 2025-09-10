@@ -34,17 +34,12 @@ const ProviderLogin = () => {
     }
   });
 
-  // Redirect authenticated users - strict validation for provider role
+  // Redirect authenticated users
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log('ProviderLogin: User authenticated, role:', user.role);
-      if (user.role === 'provider') {
-        navigate('/dashboard', { replace: true });
-      } else {
-        // Wrong role - force logout and show error
-        setLoginError('Acceso no autorizado. Esta página es solo para proveedores.');
-        toast.error('Acceso no autorizado. Esta página es solo para proveedores.');
-      }
+      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
+      navigate(redirectTo, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -63,8 +58,9 @@ const ProviderLogin = () => {
         // Additional validation will happen in useEffect
       } else {
         console.log('ProviderLogin: Login failed -', result.error);
-        setLoginError(result.error || 'Error al iniciar sesión');
-        toast.error(result.error || 'Error al iniciar sesión');
+        const errorMessage = 'Usuario o contraseña incorrecto';
+        setLoginError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('ProviderLogin: Submission error:', error);
