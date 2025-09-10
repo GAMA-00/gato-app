@@ -9,6 +9,7 @@ import ProviderCard from './ProviderCard';
 import { useProvidersQuery } from './useProvidersQuery';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import BackButton from '@/components/ui/back-button';
 
 interface ProvidersListProps {
   categoryName: string;
@@ -69,6 +70,9 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   if (isLoading) {
     return (
       <div className="space-y-4">
+        <div className="mb-6">
+          <BackButton onClick={() => navigate(-1)} />
+        </div>
         <div className="text-center">
           <h2 className={`font-bold mb-2 ${isMobile ? 'text-lg' : 'text-2xl'}`}>Buscando profesionales...</h2>
           <p className={`text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>Esto puede tomar unos segundos</p>
@@ -88,26 +92,36 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   if (error) {
     console.error("Error in ProvidersList:", error);
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Error al cargar los profesionales: {error.message}
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <div className="mb-6">
+          <BackButton onClick={() => navigate(-1)} />
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error al cargar los profesionales: {error.message}
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
   
   if (!providers || providers.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="max-w-md mx-auto">
-          <h2 className={`font-semibold mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>No se encontraron profesionales</h2>
-          <p className={`text-muted-foreground mb-6 ${isMobile ? 'text-sm' : 'text-base'}`}>
-            No hay profesionales disponibles para este servicio en este momento.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Intenta con otro servicio o vuelve más tarde.
-          </p>
+      <div className="space-y-4">
+        <div className="mb-6">
+          <BackButton onClick={() => navigate(-1)} />
+        </div>
+        <div className="text-center py-12">
+          <div className="max-w-md mx-auto">
+            <h2 className={`font-semibold mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>No se encontraron profesionales</h2>
+            <p className={`text-muted-foreground mb-6 ${isMobile ? 'text-sm' : 'text-base'}`}>
+              No hay profesionales disponibles para este servicio en este momento.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Intenta con otro servicio o vuelve más tarde.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -115,10 +129,8 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   
   return (
     <div className="space-y-4">
-      <div className="text-center mb-6">
-        <p className={`text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>
-          {providers.length} profesional{providers.length !== 1 ? 'es' : ''} encontrado{providers.length !== 1 ? 's' : ''}
-        </p>
+      <div className="mb-6">
+        <BackButton onClick={() => navigate(-1)} />
       </div>
       
       {/* Single column layout with full width cards */}

@@ -16,13 +16,10 @@ const ClientResultsView = () => {
   if (serviceId) {
     return (
       <ClientPageLayout title="Profesionales disponibles">
-        <div className="space-y-6">
-          <BackButton onClick={() => navigate(-1)} />
-          <ProvidersList 
-            categoryName={categoryName || ''} 
-            serviceId={serviceId} 
-          />
-        </div>
+        <ProvidersList 
+          categoryName={categoryName || ''} 
+          serviceId={serviceId} 
+        />
       </ClientPageLayout>
     );
   }
