@@ -97,137 +97,73 @@ const BookingSummaryCard = ({
       <CardHeader>
         <CardTitle>Resumen de Reserva</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* 1. Nombre del servicio */}
-        <div>
-          <p className="font-medium">{serviceTitle}</p>
-        </div>
-
-        {/* 2. Nombre del proveedor */}
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {providerName}
-          </p>
-        </div>
-
-        {/* 3. Fecha y hora */}
-        {selectedDate && selectedTime && (
-          <div>
-            <p className="font-medium text-sm mb-1">Fecha y hora:</p>
-            <p className="text-sm">
-              {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-            </p>
-            <p className="text-sm">
-              {selectedTime} ({getRecurrenceText(selectedFrequency)})
-            </p>
+      <CardContent className="space-y-6">
+        {/* Information organized in 3 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Column 1: Service and Provider */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Servicio</p>
+              <p className="font-medium">{serviceTitle}</p>
+            </div>
+            
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Proveedor</p>
+              <p className="text-sm">{providerName}</p>
+            </div>
           </div>
-        )}
 
-        {/* 4. Duración */}
-        {(selectedVariants.length > 0 || selectedVariant) && (
-          <div>
-            <p className="font-medium text-sm mb-1">Duración:</p>
-            <p className="text-sm">{totalDuration} min</p>
-          </div>
-        )}
-
-        {/* 5. Ubicación */}
-        <div>
-          <p className="font-medium text-sm mb-1">Ubicación:</p>
-          <p className="text-sm">
-            {isLoadingLocation ? 'Cargando ubicación...' : clientLocation}
-          </p>
-        </div>
-
-        {(selectedVariants.length > 0 || selectedVariant) && (
-          <div>
-            {selectedVariants.length > 0 ? (
-              // Multiple variants display
-              <div className="space-y-3">
-                {selectedVariants.map((variant, index) => {
-                  const base = Number(variant.price) * variant.quantity;
-                  const persons = variant.personQuantity && variant.additionalPersonPrice
-                    ? Number(variant.additionalPersonPrice) * variant.personQuantity * variant.quantity
-                    : 0;
-                  const subtotal = base + persons;
-                  const iva = subtotal * 0.13;
-                  const total = subtotal + iva;
-                  return (
-                    <div key={variant.id || index} className="pb-2 border-b last:border-b-0">
-                      <p className="font-medium">
-                        {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
-                      </p>
-                      {/* Desglose de precios línea por línea */}
-                      <div className="flex justify-between text-sm">
-                        <span>Precio base:</span>
-                        <span>${base}</span>
-                      </div>
-                      {variant.personQuantity && variant.personQuantity > 0 && persons > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span>Precio por persona ({variant.personQuantity} personas):</span>
-                          <span>${persons}</span>
-                        </div>
-                      )}
-                      {/* 7. Subtotal */}
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>${subtotal}</span>
-                      </div>
-                      {/* 8. Cálculo de IVA (13%) */}
-                      <div className="flex justify-between text-sm">
-                        <span>IVA (13%):</span>
-                        <span>${iva.toFixed(2)}</span>
-                      </div>
-                      {/* 9. Precio TOTAL */}
-                      <div className="flex justify-between text-sm font-semibold">
-                        <span>TOTAL:</span>
-                        <span>${total.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {customVariablesTotalPrice > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span>Variables adicionales:</span>
-                    <span className="font-medium">+{formatPrice(customVariablesTotalPrice)}</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              // Single variant display
+          {/* Column 2: Date, Time and Duration */}
+          <div className="space-y-3">
+            {selectedDate && selectedTime && (
               <div>
-                {/* 5. Nombre específico del servicio */}
-                <p className="font-medium">{selectedVariant?.name}</p>
-                {/* Desglose de precios línea por línea */}
-                <div className="flex justify-between text-sm">
-                  <span>Precio base:</span>
-                  <span>${totalPrice}</span>
-                </div>
-                {/* 7. Subtotal */}
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>${totalPrice}</span>
-                </div>
-                {/* 8. Cálculo de IVA (13%) */}
-                <div className="flex justify-between text-sm">
-                  <span>IVA (13%):</span>
-                  <span>${(totalPrice * 0.13).toFixed(2)}</span>
-                </div>
-                {customVariablesTotalPrice > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span>Variables adicionales:</span>
-                    <span className="font-medium">+{formatPrice(customVariablesTotalPrice)}</span>
-                  </div>
-                )}
-                {/* 9. Precio TOTAL */}
-                <div className="flex justify-between text-sm font-semibold border-t pt-2 mt-2">
-                  <span>TOTAL:</span>
-                  <span>${(totalPrice + (totalPrice * 0.13)).toFixed(2)}</span>
-                </div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Fecha y hora</p>
+                <p className="text-sm">
+                  {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                </p>
+                <p className="text-sm">
+                  {selectedTime} ({getRecurrenceText(selectedFrequency)})
+                </p>
+              </div>
+            )}
+
+            {(selectedVariants.length > 0 || selectedVariant) && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Duración</p>
+                <p className="text-sm">{totalDuration} min</p>
               </div>
             )}
           </div>
-        )}
+
+          {/* Column 3: Location and Specific Service */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Ubicación</p>
+              <p className="text-sm">
+                {isLoadingLocation ? 'Cargando ubicación...' : clientLocation}
+              </p>
+            </div>
+
+            {/* Specific service name */}
+            {selectedVariants.length > 0 ? (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Servicios contratados</p>
+                <div className="space-y-1">
+                  {selectedVariants.map((variant, index) => (
+                    <p key={variant.id || index} className="text-sm">
+                      {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : selectedVariant && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Servicio específico</p>
+                <p className="text-sm">{selectedVariant.name}</p>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Service Information - For both prepago and postpago */}
         <ServiceInfo isPostPayment={isPostPayment} />
