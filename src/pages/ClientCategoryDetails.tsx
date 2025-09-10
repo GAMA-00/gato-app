@@ -85,7 +85,6 @@ const ClientCategoryDetails = () => {
         <div className="flex justify-start">
           <BackButton 
             onClick={() => navigate('/client/categories')}
-            label="Volver a categorías"
           />
         </div>
         
