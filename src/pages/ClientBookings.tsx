@@ -30,14 +30,19 @@ const ClientBookings = () => {
   // Filtrar citas activas con lógica especial para recurrencias
   const now = new Date();
   const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
-  // Solo mostrar citas CONFIRMADAS en "Mis reservas"
+  // Mostrar citas PENDIENTES y CONFIRMADAS en "Mis reservas"
   const activeBookings = bookings?.filter(booking => {
-    if (booking.recurrence && validRecurrences.has(booking.recurrence)) {
-      // Recurrentes: solo confirmadas
-      return booking.status === 'confirmed';
+    // Excluir citas rechazadas o canceladas
+    if (booking.status === 'rejected' || booking.status === 'cancelled') {
+      return false;
     }
-    // Únicas: solo confirmadas y futuras
-    return booking.status === 'confirmed' && booking.date > now;
+    
+    if (booking.recurrence && validRecurrences.has(booking.recurrence)) {
+      // Recurrentes: pendientes y confirmadas
+      return booking.status === 'pending' || booking.status === 'confirmed';
+    }
+    // Únicas: pendientes y confirmadas, y futuras
+    return (booking.status === 'pending' || booking.status === 'confirmed') && booking.date > now;
   }) || [];
 
   // Mostrar TODAS las citas completadas pendientes de calificar
