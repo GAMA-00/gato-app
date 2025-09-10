@@ -98,7 +98,8 @@ export const Checkout = () => {
   const priceBreakdown = calculatePriceBreakdown(serviceSubtotal);
 
   const handlePaymentSuccess = (result: any) => {
-    const paymentId = result.payment_id || result.id;
+    // Use the real UUID from the database (prioritize 'id' over 'payment_id')
+    const paymentId = result.id || result.payment_id;
     navigate(`/payment-status/${paymentId}`);
   };
 
