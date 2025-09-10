@@ -2,11 +2,10 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import ServiceTypeCard from '@/components/client/ServiceTypeCard';
 import CategoryDetailsLoading from '@/components/client/CategoryDetailsLoading';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
+import BackButton from '@/components/ui/back-button';
 
 const ClientCategoryDetails = () => {
   const { categoryId } = useParams();
@@ -80,18 +79,22 @@ const ClientCategoryDetails = () => {
   const categoryLabel = categoryData?.label || categoryId;
 
   return (
-    <ClientPageLayout 
-      title={categoryLabel}
-    >
+    <ClientPageLayout>
       <div className="space-y-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/client/categories')}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver a categorías
-        </Button>
+        {/* Back button positioned at top left */}
+        <div className="flex justify-start">
+          <BackButton 
+            onClick={() => navigate('/client/categories')}
+            label="Volver a categorías"
+          />
+        </div>
+        
+        {/* Centered title */}
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-[#2D2D2D]">
+            {categoryLabel}
+          </h1>
+        </div>
         
         {serviceTypes.length === 0 ? (
           <div className="text-center py-12">
