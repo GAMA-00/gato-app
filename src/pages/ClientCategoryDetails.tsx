@@ -80,7 +80,7 @@ const ClientCategoryDetails = () => {
 
   return (
     <ClientPageLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Back button positioned at top left */}
         <div className="flex justify-start">
           <BackButton 
@@ -88,9 +88,9 @@ const ClientCategoryDetails = () => {
           />
         </div>
         
-        {/* Centered title */}
+        {/* Centered title - larger and closer */}
         <div className="text-center">
-          <h1 className="text-2xl font-semibold text-[#2D2D2D]">
+          <h1 className="text-3xl font-semibold text-[#2D2D2D]">
             {categoryLabel}
           </h1>
         </div>
