@@ -30,11 +30,17 @@ export const ProviderCancelAppointmentModal: React.FC<ProviderCancelAppointmentM
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCancel = async () => {
+    console.log('🔄 handleCancel clicked');
+    console.log('🔄 cancellationReason:', cancellationReason);
+    console.log('🔄 appointment:', appointment);
+    
     if (!cancellationReason.trim()) {
+      console.log('❌ No cancellation reason provided');
       toast.error('Por favor ingresa una razón para la cancelación');
       return;
     }
 
+    console.log('▶️ Starting cancellation process...');
     setIsSubmitting(true);
     
     try {
@@ -61,6 +67,7 @@ El cliente será notificado sobre el proceso de reembolso y los tiempos estimado
 Fecha de documentación: ${new Date().toLocaleString()}
       `.trim();
 
+      console.log('🔄 Updating appointment status to cancelled...');
       const { error: updateError } = await supabase
         .from('appointments')
         .update({ 
@@ -70,7 +77,12 @@ Fecha de documentación: ${new Date().toLocaleString()}
         })
         .eq('id', appointment.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Error updating appointment:', updateError);
+        throw updateError;
+      }
+      
+      console.log('✅ Appointment successfully cancelled');
 
       toast.success('Cita cancelada y documentación de reembolso creada');
       
@@ -82,9 +94,11 @@ Fecha de documentación: ${new Date().toLocaleString()}
       onClose();
       
     } catch (error) {
-      console.error('Error al cancelar la cita:', error);
-      toast.error('Error al cancelar la cita');
+      console.error('❌ Error al cancelar la cita:', error);
+      console.error('❌ Error details:', error);
+      toast.error(`Error al cancelar la cita: ${error?.message || 'Error desconocido'}`);
     } finally {
+      console.log('🔄 Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };
@@ -166,7 +180,13 @@ Fecha de documentación: ${new Date().toLocaleString()}
             Cancelar
           </Button>
           <Button
-            onClick={handleCancel}
+            onClick={(e) => {
+              console.log('🔄 Button clicked!', e);
+              console.log('🔄 isSubmitting:', isSubmitting);
+              console.log('🔄 cancellationReason.trim():', cancellationReason.trim());
+              console.log('🔄 disabled state:', isSubmitting || !cancellationReason.trim());
+              handleCancel();
+            }}
             disabled={isSubmitting || !cancellationReason.trim()}
             className="flex-1"
           >
