@@ -107,7 +107,7 @@ export function useRecurringBooking() {
       };
 
       const { data: rpcResult, error: rpcError } = await supabase
-        .rpc('create_appointment_with_slot', rpcParams);
+        .rpc('create_appointment_with_slot_extended', rpcParams);
 
       console.log('RPC Response:', { rpcResult, rpcError });
 

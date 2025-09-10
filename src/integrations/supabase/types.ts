@@ -1722,37 +1722,43 @@ export type Database = {
         Returns: number
       }
       create_appointment_with_slot: {
-        Args:
-          | {
-              p_client_address?: string
-              p_client_email?: string
-              p_client_id: string
-              p_client_name?: string
-              p_client_phone?: string
-              p_end_time: string
-              p_listing_id: string
-              p_notes?: string
-              p_provider_id: string
-              p_recurrence?: string
-              p_residencia_id?: string
-              p_selected_slot_ids?: string[]
-              p_start_time: string
-              p_total_duration?: number
-            }
-          | {
-              p_client_address?: string
-              p_client_email?: string
-              p_client_id: string
-              p_client_name?: string
-              p_client_phone?: string
-              p_end_time: string
-              p_listing_id: string
-              p_notes?: string
-              p_provider_id: string
-              p_recurrence?: string
-              p_residencia_id?: string
-              p_start_time: string
-            }
+        Args: {
+          p_client_address?: string
+          p_client_email?: string
+          p_client_id: string
+          p_client_name?: string
+          p_client_phone?: string
+          p_end_time: string
+          p_listing_id: string
+          p_notes?: string
+          p_provider_id: string
+          p_recurrence?: string
+          p_residencia_id?: string
+          p_start_time: string
+        }
+        Returns: {
+          appointment_id: string
+          message: string
+          status: string
+        }[]
+      }
+      create_appointment_with_slot_extended: {
+        Args: {
+          p_client_address?: string
+          p_client_email?: string
+          p_client_id: string
+          p_client_name?: string
+          p_client_phone?: string
+          p_end_time: string
+          p_listing_id: string
+          p_notes?: string
+          p_provider_id: string
+          p_recurrence?: string
+          p_residencia_id?: string
+          p_selected_slot_ids?: string[]
+          p_start_time: string
+          p_total_duration?: number
+        }
         Returns: {
           appointment_id: string
           status: string
