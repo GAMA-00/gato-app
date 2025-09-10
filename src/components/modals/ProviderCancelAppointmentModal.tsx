@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AlertTriangle, DollarSign } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProviderCancelAppointmentModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const ProviderCancelAppointmentModal: React.FC<ProviderCancelAppointmentM
   appointment,
   onSuccess
 }) => {
+  const { user } = useAuth();
   const [cancellationReason, setCancellationReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -73,7 +75,10 @@ Fecha de documentación: ${new Date().toLocaleString()}
         .update({ 
           status: 'cancelled',
           cancellation_reason: cancellationReason.trim(),
-          admin_notes: refundDocumentation // Guardamos la documentación en las notas administrativas
+          cancellation_time: new Date().toISOString(),
+          admin_notes: refundDocumentation,
+          last_modified_by: user?.id,
+          last_modified_at: new Date().toISOString()
         })
         .eq('id', appointment.id);
 

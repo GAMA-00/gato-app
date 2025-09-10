@@ -150,30 +150,25 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
       console.log('✅ Slot disponible, procediendo con creación...');
 
-      // PASO 1: Crear appointment PRIMERO
-      console.log('📝 Creando appointment en base de datos...');
+      // PASO 1: Crear appointment usando RPC para asegurar estado 'pending' y reservar slot
+      console.log('📝 Creando appointment con slot reservado...');
       console.log('📋 appointmentData recibido:', appointmentData);
 
-      const { data: newAppointment, error: appointmentError } = await supabase
-        .from('appointments')
-        .insert({
-          listing_id: appointmentData.listingId,
-          client_id: appointmentData.clientId || user?.id,
-          provider_id: appointmentData.providerId,
-          start_time: appointmentData.startTime,
-          end_time: appointmentData.endTime,
-          status: 'pending',
-          client_name: appointmentData.clientName || user?.name,
-          client_email: appointmentData.clientEmail || user?.email,
-          client_phone: formatPhoneCR(formData.phone),
-          client_address: formData.address,
-          notes: appointmentData.notes || '',
-          recurrence: appointmentData.recurrenceType === 'once' ? null : appointmentData.recurrenceType,
-          custom_variable_selections: appointmentData.customVariableSelections || null,
-          custom_variables_total_price: appointmentData.customVariablesTotalPrice || 0,
-          residencia_id: appointmentData.residenciaId || profile?.residencia_id
+      const { data: appointmentResult, error: appointmentError } = await supabase
+        .rpc('create_appointment_with_slot', {
+          p_provider_id: appointmentData.providerId,
+          p_listing_id: appointmentData.listingId,
+          p_client_id: appointmentData.clientId || user?.id,
+          p_start_time: appointmentData.startTime,
+          p_end_time: appointmentData.endTime,
+          p_recurrence: appointmentData.recurrenceType === 'once' ? 'none' : appointmentData.recurrenceType,
+          p_notes: appointmentData.notes || '',
+          p_client_name: appointmentData.clientName || user?.name,
+          p_client_email: appointmentData.clientEmail || user?.email,
+          p_client_phone: formatPhoneCR(formData.phone),
+          p_client_address: formData.address,
+          p_residencia_id: appointmentData.residenciaId || profile?.residencia_id
         })
-        .select()
         .single();
 
       if (appointmentError) {
@@ -181,14 +176,24 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         throw new Error('No se pudo crear la reserva. Intenta nuevamente.');
       }
 
-      console.log('✅ Appointment creado exitosamente:', newAppointment.id);
+      const newAppointmentId = appointmentResult?.appointment_id;
+      if (!newAppointmentId) {
+        throw new Error('No se pudo obtener el ID de la reserva creada');
+      }
+
+      if (appointmentError) {
+        console.error('❌ Error creando appointment:', appointmentError);
+        throw new Error('No se pudo crear la reserva. Intenta nuevamente.');
+      }
+
+      console.log('✅ Appointment creado exitosamente:', newAppointmentId);
 
       // PASO 2: Procesar pago CON el appointment.id
       console.log('💳 Procesando pago...');
 
       const response = await supabase.functions.invoke('onvopay-authorize', {
         body: {
-          appointmentId: newAppointment.id, // ✅ AHORA SÍ TIENE ID
+          appointmentId: newAppointmentId,
           amount: total,
           payment_type: paymentType,
           payment_method: 'card',
@@ -217,7 +222,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         await supabase
           .from('appointments')
           .delete()
-          .eq('id', newAppointment.id);
+          .eq('id', newAppointmentId);
 
         console.log('🗑️ Appointment eliminado por fallo en pago');
 
@@ -237,52 +242,35 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         await supabase
           .from('appointments')
           .delete()
-          .eq('id', newAppointment.id);
+          .eq('id', newAppointmentId);
 
         console.log('🗑️ Appointment eliminado por error en respuesta');
         throw new Error(paymentData.error || 'Error desconocido en el pago');
       }
 
-      // PASO 4: Si el pago es exitoso, actualizar appointment status
+      // PASO 4: Solo guardar referencia del pago (mantener status 'pending')
       if (paymentData && paymentData.success) {
-        const newStatus = paymentType === 'cash' ? 'confirmed' : 'confirmed';
-
         await supabase
           .from('appointments')
           .update({
-            status: newStatus,
             onvopay_payment_id: paymentData.payment_id
           })
-          .eq('id', newAppointment.id);
+          .eq('id', newAppointmentId);
 
-        console.log('✅ Appointment actualizado con pago exitoso');
-
-        // PASO 5: Para citas recurrentes, bloquear slots futuros
-        if (appointmentData.recurrenceType && appointmentData.recurrenceType !== 'once') {
-          console.log('🔒 Bloqueando slots recurrentes para:', newAppointment.id);
-          try {
-            await supabase.rpc('block_recurring_slots_for_appointment', {
-              p_appointment_id: newAppointment.id,
-              p_months_ahead: 3
-            });
-            console.log('✅ Slots recurrentes bloqueados exitosamente');
-          } catch (slotError) {
-            console.warn('⚠️ Error bloqueando slots recurrentes (no crítico):', slotError);
-          }
-        }
+        console.log('✅ Appointment actualizado con pago exitoso - permanece pendiente por aprobación');
       }
 
       console.log('🎉 Proceso completo exitoso');
       toast({
-        title: "Reserva y pago completados",
-        description: paymentData?.message || "Reserva creada y pago procesado exitosamente",
+        title: "Solicitud enviada",
+        description: "Solicitud enviada. Pendiente por aprobación del proveedor.",
       });
 
       // Pasar tanto appointment como payment data
       onSuccess({
         ...paymentData,
-        appointmentId: newAppointment.id,
-        appointment: newAppointment
+        appointmentId: newAppointmentId,
+        status: 'pending'
       });
 
     } catch (error: any) {
