@@ -38,12 +38,7 @@ export const useClientBookings = () => {
       console.log('👤 Obteniendo reservas para usuario:', user.id);
 
       try {
-        // Auto-rate old appointments first
-        try {
-          await supabase.rpc('auto_rate_old_appointments');
-        } catch (error) {
-          console.error('❌ Error en auto-rating:', error);
-        }
+        // Removed auto-rating to prevent active bookings from disappearing
         // Obtener citas básicas
         const { data: appointments, error } = await supabase
           .from('appointments')

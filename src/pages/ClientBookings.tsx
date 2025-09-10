@@ -17,8 +17,8 @@ const ClientBookings = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Ensure past appointments are marked as completed
-  useAppointmentCompletion();
+  // Disabled to prevent active bookings from disappearing
+  // useAppointmentCompletion();
   
   const { summary: recurringServicesSummary } = useRecurringServices();
   const { data: bookings, isLoading, error, refetch } = useClientBookings();
@@ -30,19 +30,25 @@ const ClientBookings = () => {
   // Filtrar citas activas con lógica especial para recurrencias
   const now = new Date();
   const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
-  // Mostrar citas PENDIENTES y CONFIRMADAS en "Mis reservas"
+  // Mostrar citas PENDIENTES y CONFIRMADAS en "Mis reservas" - NUNCA eliminar automáticamente
   const activeBookings = bookings?.filter(booking => {
-    // Excluir citas rechazadas o canceladas
+    // Excluir SOLO citas rechazadas o canceladas
     if (booking.status === 'rejected' || booking.status === 'cancelled') {
       return false;
     }
     
+    // Para recurrentes: mostrar siempre si están pendientes o confirmadas
     if (booking.recurrence && validRecurrences.has(booking.recurrence)) {
-      // Recurrentes: pendientes y confirmadas
       return booking.status === 'pending' || booking.status === 'confirmed';
     }
-    // Únicas: pendientes y confirmadas, y futuras
-    return (booking.status === 'pending' || booking.status === 'confirmed') && booking.date > now;
+    
+    // Para únicas: mostrar si están pendientes/confirmadas y son futuras
+    // ALSO include completed future appointments as safeguard
+    const isFuture = booking.date > now;
+    const isActiveStatus = booking.status === 'pending' || booking.status === 'confirmed';
+    const isCompletedFuture = booking.status === 'completed' && isFuture;
+    
+    return (isActiveStatus && isFuture) || isCompletedFuture;
   }) || [];
 
   // Mostrar TODAS las citas completadas pendientes de calificar

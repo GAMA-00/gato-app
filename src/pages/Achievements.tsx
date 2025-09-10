@@ -15,8 +15,8 @@ const Achievements = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   
-  // Ensure past appointments are marked as completed
-  useAppointmentCompletion();
+  // Disabled to prevent active bookings from disappearing
+  // useAppointmentCompletion();
   
   const { data: achievements, isLoading } = useProviderAchievements();
 
