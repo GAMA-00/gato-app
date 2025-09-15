@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // OnvoPay API configuration
 const ONVOPAY_API_BASE = 'https://api.onvopay.com';
-const ONVOPAY_TEST_KEY = 'onvo_test_publishable_key_sywfkgKP1FcxiEOKQgs_s-4stxGD_IL0QnHTEyxAY5VtcdF4S2cC4Q9vu203IlESeMhCWT4RkdZhQWv4COUTTw';
+const ONVOPAY_PUBLISHABLE_KEY = 'onvo_test_publishable_key_sywfkgKP1FcxiEOKQgs_s-4stxGD_IL0QnHTEyxAY5VtcdF4S2cC4Q9vu203IlESeMhCWT4RkdZhQWv4COUTTw';
 
 serve(async (req) => {
   console.log('🚀 ONVOPAY AUTHORIZE - Function started');
@@ -19,6 +19,16 @@ serve(async (req) => {
       console.log('✅ CORS preflight handled');
       return new Response(null, { headers: corsHeaders });
     }
+
+    // Get the secret key from environment
+    const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
+    
+    if (!ONVOPAY_SECRET_KEY) {
+      console.error('❌ Missing ONVOPAY_SECRET_KEY environment variable');
+      throw new Error('Configuración de OnvoPay incompleta - falta secret key');
+    }
+
+    console.log('🔑 Using OnvoPay secret key:', ONVOPAY_SECRET_KEY ? '***' + ONVOPAY_SECRET_KEY.slice(-4) : 'NOT_SET');
 
     // Create Supabase admin client
     const supabase = createClient(
@@ -107,7 +117,7 @@ serve(async (req) => {
     const onvoResponse = await fetch(`${ONVOPAY_API_BASE}/v1/payment_intents`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${ONVOPAY_TEST_KEY}`,
+        'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(onvoPayData)
@@ -126,10 +136,17 @@ serve(async (req) => {
     if (!onvoResponse.ok || onvoResult.error) {
       console.error('❌ OnvoPay API error:', {
         status: onvoResponse.status,
+        statusText: onvoResponse.statusText,
         error: onvoResult.error || onvoResult,
-        message: onvoResult.message
+        message: onvoResult.message,
+        fullResponse: onvoResult
       });
-      throw new Error(`OnvoPay API error: ${onvoResult.error?.message || onvoResult.message || 'Unknown error'}`);
+      
+      // Log the raw response for debugging
+      const errorText = await onvoResponse.text();
+      console.error('❌ Raw OnvoPay response:', errorText);
+      
+      throw new Error(`OnvoPay API error (${onvoResponse.status}): ${onvoResult.error?.message || onvoResult.message || onvoResponse.statusText || 'Unknown error'}`);
     }
 
     // Determine status based on OnvoPay response
