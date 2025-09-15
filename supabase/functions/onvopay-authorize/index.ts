@@ -129,20 +129,33 @@ serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Get appointment details with listing info to check if post-payment
+    // Get appointment details
     currentPhase = 'fetch-appointment';
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
-      .select(`
-        client_id, 
-        provider_id, 
-        listing_id,
-        listings (
-          is_post_payment
-        )
-      `)
+      .select('client_id, provider_id, listing_id')
       .eq('id', body.appointmentId)
       .single();
+
+    if (appointmentError || !appointment) {
+      console.error('❌ Appointment not found:', appointmentError);
+      return new Response(JSON.stringify({
+        error: 'APPOINTMENT_NOT_FOUND',
+        message: 'No se encontró la cita especificada',
+      }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Get listing to determine if post-payment (avoid joins due to missing FK)
+    currentPhase = 'fetch-listing';
+    const { data: listing, error: listingError } = await supabase
+      .from('listings')
+      .select('is_post_payment')
+      .eq('id', appointment.listing_id)
+      .single();
+
+    if (listingError) {
+      console.warn('⚠️ Could not fetch listing.is_post_payment, defaulting to false:', listingError);
+    }
 
     if (appointmentError || !appointment) {
       console.error('❌ Appointment not found:', appointmentError);
@@ -166,7 +179,7 @@ serve(async (req) => {
     });
 
     // Check if service is post-payment
-    const isPostPayment = appointment.listings?.is_post_payment || false;
+    const isPostPayment = (listing && typeof listing.is_post_payment === 'boolean') ? listing.is_post_payment : false;
     
     console.log('📋 Service payment type:', {
       isPostPayment,
