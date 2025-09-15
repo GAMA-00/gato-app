@@ -23,7 +23,10 @@ const getOnvoConfig = () => {
 };
 
 serve(async (req) => {
+  // Diagnostics
+  let currentPhase = 'start';
   console.log('🚀 ONVOPAY AUTHORIZE - Function started');
+  console.log('🔎 Request info:', { method: req.method, url: req.url });
 
   try {
     // Handle CORS
@@ -35,7 +38,19 @@ serve(async (req) => {
     // Get configuration
     const onvoConfig = getOnvoConfig();
     const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
-    
+
+    // Early diagnostics
+    console.log('🧪 Env diagnostics:', {
+      hasSecret: !!ONVOPAY_SECRET_KEY,
+      onvoConfig: {
+        baseUrl: onvoConfig.baseUrl,
+        version: onvoConfig.version,
+        path: onvoConfig.path,
+        fullUrl: onvoConfig.fullUrl,
+        debug: onvoConfig.debug,
+      }
+    });
+
     if (!ONVOPAY_SECRET_KEY) {
       console.error('❌ Missing ONVOPAY_SECRET_KEY environment variable');
       return new Response(JSON.stringify({
@@ -60,8 +75,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
+    currentPhase = 'parse-body';
     console.log('📦 Parsing request body...');
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('❌ Invalid JSON body:', e);
+      return new Response(JSON.stringify({
+        error: 'INVALID_JSON',
+        message: 'El cuerpo del request no es JSON válido',
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     console.log('📋 Request data received:', {
       hasAppointmentId: !!body.appointmentId,
@@ -78,7 +103,34 @@ serve(async (req) => {
       } : null
     });
 
+    // Input validation
+    currentPhase = 'validate-input';
+    const missing: string[] = [];
+    if (!body.appointmentId) missing.push('appointmentId');
+    if (typeof body.amount !== 'number') missing.push('amount');
+    if (!body.card_data) missing.push('card_data');
+    else {
+      if (!body.card_data.number) missing.push('card_data.number');
+      if (!body.card_data.expiry) missing.push('card_data.expiry');
+      if (!body.card_data.cvv) missing.push('card_data.cvv');
+      if (!body.card_data.name) missing.push('card_data.name');
+    }
+    if (!body.billing_info) missing.push('billing_info');
+    else {
+      if (!body.billing_info.phone) missing.push('billing_info.phone');
+      if (!body.billing_info.address) missing.push('billing_info.address');
+    }
+    if (missing.length > 0) {
+      console.error('❌ Validation failed. Missing fields:', missing);
+      return new Response(JSON.stringify({
+        error: 'VALIDATION_ERROR',
+        message: 'Campos requeridos faltantes o inválidos',
+        missing,
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     // Get appointment details
+    currentPhase = 'fetch-appointment';
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
       .select('client_id, provider_id, listing_id')
@@ -87,7 +139,10 @@ serve(async (req) => {
 
     if (appointmentError || !appointment) {
       console.error('❌ Appointment not found:', appointmentError);
-      throw new Error('Appointment not found');
+      return new Response(JSON.stringify({
+        error: 'APPOINTMENT_NOT_FOUND',
+        message: 'No se encontró la cita especificada',
+      }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Calculate amounts in cents
@@ -103,9 +158,9 @@ serve(async (req) => {
       paymentType: body.payment_type
     });
 
-    // Call OnvoPay API for real payment processing
-    console.log('🚀 Calling OnvoPay API...');
-    
+    // Prepare OnvoPay API request
+    currentPhase = 'prepare-onvopay-request';
+
     const onvoPayData = {
       amount: amountCents,
       currency: 'USD',
@@ -138,6 +193,7 @@ serve(async (req) => {
     });
 
     // Make the actual API call to OnvoPay
+    currentPhase = 'call-onvopay';
     console.log('🚀 Calling OnvoPay API...');
     
     const onvoResponse = await fetch(onvoConfig.fullUrl, {
@@ -167,7 +223,7 @@ serve(async (req) => {
         url: onvoConfig.fullUrl,
         hint: onvoResponse.status === 404 ? 'Posible endpoint incorrecto (sandbox/prod o versión de API)' : undefined
       }), { 
-        status: 500, 
+        status: onvoResponse.status || 502, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
@@ -206,7 +262,7 @@ serve(async (req) => {
         hint: onvoResponse.status === 404 ? 'Posible endpoint incorrecto (sandbox/prod o /v1 vs sin /v1; guiones vs guiones bajos)' : undefined,
         onvoPayError: onvoResult.error
       }), { 
-        status: 400, 
+        status: onvoResponse.status || 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
@@ -218,7 +274,8 @@ serve(async (req) => {
     const capturedAt = status === 'captured' ? now : null;
 
     console.log('💾 Creating payment record with OnvoPay data...');
-
+    currentPhase = 'create-payment-record';
+    
     // Create payment record
     const { data: payment, error: paymentError } = await supabase
       .from('onvopay_payments')
@@ -263,6 +320,7 @@ serve(async (req) => {
     });
 
     // Update appointment with payment ID
+    currentPhase = 'update-appointment';
     const { error: updateError } = await supabase
       .from('appointments')
       .update({ onvopay_payment_id: payment.id })
@@ -306,23 +364,28 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Function error:', {
+      phase: typeof currentPhase !== 'undefined' ? currentPhase : 'unknown',
       message: error.message,
       name: error.name,
       stack: error.stack?.substring(0, 300)
     });
 
+    const status = error.statusCode && Number.isInteger(error.statusCode) ? error.statusCode : 500;
+
     return new Response(JSON.stringify({
-      error: error.message || 'Function error',
+      error: 'FUNCTION_ERROR',
+      message: error.message || 'Error procesando la autorización de pago',
       success: false,
       timestamp: new Date().toISOString(),
+      phase: typeof currentPhase !== 'undefined' ? currentPhase : 'unknown',
       debug: {
         error_type: error.name,
         has_stack: !!error.stack
       }
     }), {
-      status: 400,
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
