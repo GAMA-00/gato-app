@@ -250,13 +250,43 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       if (paymentError) {
         console.error('❌ Error de pago:', paymentError);
         
+        setIsProcessing(false);
+        
+        // Try to parse structured error from edge function
+        let errorMessage = 'Error en el procesamiento del pago';
+        let errorDetails = '';
+        
+        if (paymentError.message) {
+          try {
+            // If it's a structured error from our edge function
+            if (paymentError.message.includes('ONVOPAY_API_ERROR') || paymentError.message.includes('CONFIGURATION_ERROR')) {
+              errorMessage = 'Error de configuración de OnvoPay';
+              errorDetails = 'Por favor contacta al administrador del sistema';
+            } else {
+              errorMessage = paymentError.message;
+            }
+          } catch (e) {
+            errorMessage = paymentError.message;
+          }
+        }
+        
         // Eliminar appointment si el pago falla
         await supabase
           .from('appointments')
           .delete()
           .eq('id', newAppointmentId);
 
-        throw paymentError;
+        if (onError) {
+          onError(new Error(errorMessage));
+        }
+        
+        toast({
+          variant: "destructive",
+          title: "Error en el pago",
+          description: errorMessage + (errorDetails ? ` - ${errorDetails}` : ''),
+        });
+        
+        return;
       }
 
       if (paymentData && !paymentData.success) {

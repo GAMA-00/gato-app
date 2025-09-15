@@ -6,9 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// OnvoPay API configuration
-const ONVOPAY_API_BASE = 'https://api.onvopay.com';
-const ONVOPAY_PUBLISHABLE_KEY = 'onvo_test_publishable_key_sywfkgKP1FcxiEOKQgs_s-4stxGD_IL0QnHTEyxAY5VtcdF4S2cC4Q9vu203IlESeMhCWT4RkdZhQWv4COUTTw';
+// OnvoPay API configuration - Environment based
+const getOnvoConfig = () => {
+  const ONVOPAY_API_BASE = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com'; // Default to sandbox
+  const ONVOPAY_API_VERSION = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
+  const ONVOPAY_API_PATH = Deno.env.get('ONVOPAY_API_PATH') || 'payment-intents'; // Fixed: hyphens not underscores
+  const ONVOPAY_DEBUG = Deno.env.get('ONVOPAY_DEBUG') === 'true';
+  
+  return {
+    baseUrl: ONVOPAY_API_BASE,
+    version: ONVOPAY_API_VERSION,
+    path: ONVOPAY_API_PATH,
+    debug: ONVOPAY_DEBUG,
+    fullUrl: `${ONVOPAY_API_BASE}/${ONVOPAY_API_VERSION}/${ONVOPAY_API_PATH}`
+  };
+};
 
 serve(async (req) => {
   console.log('🚀 ONVOPAY AUTHORIZE - Function started');
@@ -20,15 +32,27 @@ serve(async (req) => {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Get the secret key from environment
+    // Get configuration
+    const onvoConfig = getOnvoConfig();
     const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
     
     if (!ONVOPAY_SECRET_KEY) {
       console.error('❌ Missing ONVOPAY_SECRET_KEY environment variable');
-      throw new Error('Configuración de OnvoPay incompleta - falta secret key');
+      return new Response(JSON.stringify({
+        error: 'CONFIGURATION_ERROR',
+        message: 'Configuración de OnvoPay incompleta - falta secret key',
+        hint: 'Contacta al administrador para configurar ONVOPAY_SECRET_KEY'
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    console.log('🔑 Using OnvoPay secret key:', ONVOPAY_SECRET_KEY ? '***' + ONVOPAY_SECRET_KEY.slice(-4) : 'NOT_SET');
+    console.log('🔑 Using OnvoPay secret key:', '***' + ONVOPAY_SECRET_KEY.slice(-4));
+    console.log('🌐 OnvoPay API URL:', onvoConfig.fullUrl);
+    if (onvoConfig.debug) {
+      console.log('🐛 Debug mode enabled');
+    }
 
     // Create Supabase admin client
     const supabase = createClient(
@@ -114,7 +138,9 @@ serve(async (req) => {
     });
 
     // Make the actual API call to OnvoPay
-    const onvoResponse = await fetch(`${ONVOPAY_API_BASE}/v1/payment_intents`, {
+    console.log('🚀 Calling OnvoPay API...');
+    
+    const onvoResponse = await fetch(onvoConfig.fullUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
@@ -123,30 +149,66 @@ serve(async (req) => {
       body: JSON.stringify(onvoPayData)
     });
 
-    const onvoResult = await onvoResponse.json();
+    // Read response body ONCE to avoid "Body already consumed" error
+    const responseText = await onvoResponse.text();
+    let onvoResult;
     
+    try {
+      onvoResult = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Failed to parse OnvoPay response as JSON:', parseError);
+      console.error('❌ Raw response:', onvoConfig.debug ? responseText : responseText.substring(0, 200) + '...');
+      
+      return new Response(JSON.stringify({
+        error: 'INVALID_RESPONSE',
+        message: 'OnvoPay devolvió una respuesta inválida',
+        status: onvoResponse.status,
+        statusText: onvoResponse.statusText,
+        url: onvoConfig.fullUrl,
+        hint: onvoResponse.status === 404 ? 'Posible endpoint incorrecto (sandbox/prod o versión de API)' : undefined
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
     console.log('🔍 OnvoPay API response:', {
       status: onvoResponse.status,
       ok: onvoResponse.ok,
       hasId: !!onvoResult.id,
       status_field: onvoResult.status,
-      hasError: !!onvoResult.error
+      hasError: !!onvoResult.error,
+      url: onvoConfig.fullUrl
     });
 
     if (!onvoResponse.ok || onvoResult.error) {
       console.error('❌ OnvoPay API error:', {
         status: onvoResponse.status,
         statusText: onvoResponse.statusText,
+        url: onvoConfig.fullUrl,
         error: onvoResult.error || onvoResult,
         message: onvoResult.message,
-        fullResponse: onvoResult
+        method: 'POST'
       });
       
-      // Log the raw response for debugging
-      const errorText = await onvoResponse.text();
-      console.error('❌ Raw OnvoPay response:', errorText);
+      if (onvoConfig.debug) {
+        console.error('❌ Full OnvoPay response (debug):', onvoResult);
+        console.error('❌ Raw response (debug):', 'Response body already consumed');
+      }
       
-      throw new Error(`OnvoPay API error (${onvoResponse.status}): ${onvoResult.error?.message || onvoResult.message || onvoResponse.statusText || 'Unknown error'}`);
+      // Return structured error to frontend
+      return new Response(JSON.stringify({
+        error: 'ONVOPAY_API_ERROR',
+        message: onvoResult.error?.message || onvoResult.message || 'Error en procesamiento de pago',
+        status: onvoResponse.status,
+        statusText: onvoResponse.statusText,
+        url: onvoConfig.fullUrl,
+        hint: onvoResponse.status === 404 ? 'Posible endpoint incorrecto (sandbox/prod o /v1 vs sin /v1; guiones vs guiones bajos)' : undefined,
+        onvoPayError: onvoResult.error
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
     // Determine status based on OnvoPay response
