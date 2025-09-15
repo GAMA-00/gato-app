@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// OnvoPay API configuration
+const ONVOPAY_API_BASE = 'https://api.onvopay.com';
+const ONVOPAY_TEST_KEY = 'onvo_test_publishable_key_sywfkgKP1FcxiEOKQgs_s-4stxGD_IL0QnHTEyxAY5VtcdF4S2cC4Q9vu203IlESeMhCWT4RkdZhQWv4COUTTw';
+
 serve(async (req) => {
   console.log('🚀 ONVOPAY AUTHORIZE - Function started');
 
@@ -29,7 +33,15 @@ serve(async (req) => {
       hasAppointmentId: !!body.appointmentId,
       hasAmount: !!body.amount,
       hasPaymentType: !!body.payment_type,
-      appointmentId: body.appointmentId
+      appointmentId: body.appointmentId,
+      hasCardData: !!body.card_data,
+      hasBillingInfo: !!body.billing_info,
+      cardData: body.card_data ? {
+        hasNumber: !!body.card_data.number,
+        hasExpiry: !!body.card_data.expiry,
+        hasCvv: !!body.card_data.cvv,
+        hasName: !!body.card_data.name
+      } : null
     });
 
     // Get appointment details
@@ -49,13 +61,84 @@ serve(async (req) => {
     const subtotalCents = Math.round(amountCents / 1.13); // Remove IVA (13%)
     const ivaCents = amountCents - subtotalCents;
 
-    // Determine status and timestamps
-    const status = body.payment_type === 'cash' ? 'authorized' : 'captured';
+    console.log('💰 Payment calculation:', {
+      originalAmount: body.amount,
+      amountCents,
+      subtotalCents,
+      ivaCents,
+      paymentType: body.payment_type
+    });
+
+    // Call OnvoPay API for real payment processing
+    console.log('🚀 Calling OnvoPay API...');
+    
+    const onvoPayData = {
+      amount: amountCents,
+      currency: 'USD',
+      card: {
+        number: body.card_data.number,
+        exp_month: body.card_data.expiry.split('/')[0],
+        exp_year: body.card_data.expiry.split('/')[1],
+        cvc: body.card_data.cvv
+      },
+      billing_details: {
+        name: body.card_data.name,
+        phone: body.billing_info.phone,
+        address: {
+          line1: body.billing_info.address
+        }
+      },
+      metadata: {
+        appointment_id: body.appointmentId,
+        client_id: appointment.client_id,
+        provider_id: appointment.provider_id
+      }
+    };
+
+    console.log('📡 OnvoPay request payload:', {
+      amount: onvoPayData.amount,
+      currency: onvoPayData.currency,
+      hasCard: !!onvoPayData.card,
+      hasBilling: !!onvoPayData.billing_details,
+      metadata: onvoPayData.metadata
+    });
+
+    // Make the actual API call to OnvoPay
+    const onvoResponse = await fetch(`${ONVOPAY_API_BASE}/v1/payment_intents`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ONVOPAY_TEST_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(onvoPayData)
+    });
+
+    const onvoResult = await onvoResponse.json();
+    
+    console.log('🔍 OnvoPay API response:', {
+      status: onvoResponse.status,
+      ok: onvoResponse.ok,
+      hasId: !!onvoResult.id,
+      status_field: onvoResult.status,
+      hasError: !!onvoResult.error
+    });
+
+    if (!onvoResponse.ok || onvoResult.error) {
+      console.error('❌ OnvoPay API error:', {
+        status: onvoResponse.status,
+        error: onvoResult.error || onvoResult,
+        message: onvoResult.message
+      });
+      throw new Error(`OnvoPay API error: ${onvoResult.error?.message || onvoResult.message || 'Unknown error'}`);
+    }
+
+    // Determine status based on OnvoPay response
+    const status = onvoResult.status === 'succeeded' ? 'captured' : 'pending_authorization';
     const now = new Date().toISOString();
-    const authorizedAt = status === 'authorized' ? now : null;
+    const authorizedAt = (status === 'captured' || status === 'authorized') ? now : null;
     const capturedAt = status === 'captured' ? now : null;
 
-    console.log('💾 Creating payment record...');
+    console.log('💾 Creating payment record with OnvoPay data...');
 
     // Create payment record
     const { data: payment, error: paymentError } = await supabase
@@ -73,11 +156,16 @@ serve(async (req) => {
         payment_method: 'card',
         currency: 'USD',
         billing_info: body.billing_info || {},
-        card_info: body.card_info || {},
+        card_info: {
+          last4: body.card_data.number.slice(-4),
+          brand: 'visa', // Default for now
+          exp_month: body.card_data.expiry.split('/')[0],
+          exp_year: body.card_data.expiry.split('/')[1]
+        },
         authorized_at: authorizedAt,
         captured_at: capturedAt,
-        onvopay_payment_id: `mock_onvo_${Date.now()}`,
-        onvopay_transaction_id: `txn_${Date.now()}`,
+        onvopay_payment_id: onvoResult.id,
+        onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
         external_reference: body.appointmentId,
       })
       .select()
@@ -88,7 +176,12 @@ serve(async (req) => {
       throw new Error('Failed to create payment record');
     }
 
-    console.log('✅ Payment record created:', payment.id);
+    console.log('✅ Payment record created:', {
+      paymentId: payment.id,
+      onvoPayId: payment.onvopay_payment_id,
+      status: payment.status,
+      amount: payment.amount
+    });
 
     // Update appointment with payment ID
     const { error: updateError } = await supabase
@@ -108,15 +201,26 @@ serve(async (req) => {
       appointment_id: body.appointmentId,
       status: status,
       onvopay_payment_id: payment.onvopay_payment_id,
+      onvopay_transaction_id: payment.onvopay_transaction_id,
       amount: body.amount,
       currency: 'USD',
-      message: body.payment_type === 'cash'
-        ? 'Pago autorizado. Se cobrará al completar el servicio.'
-        : 'Pago procesado exitosamente.',
-      timestamp: now
+      message: status === 'captured' 
+        ? 'Pago procesado exitosamente.'
+        : 'Pago autorizado. Pendiente de captura.',
+      timestamp: now,
+      onvopay_status: onvoResult.status,
+      onvopay_raw: {
+        id: onvoResult.id,
+        status: onvoResult.status,
+        amount: onvoResult.amount
+      }
     };
 
-    console.log('✅ Returning success response with payment ID:', payment.id);
+    console.log('✅ Returning success response:', {
+      paymentId: payment.id,
+      onvoStatus: onvoResult.status,
+      finalStatus: status
+    });
 
     return new Response(JSON.stringify(successResponse), {
       status: 200,
