@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // OnvoPay API configuration - Environment based
 const getOnvoConfig = () => {
-  const ONVOPAY_API_BASE = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com'; // Default to sandbox
+  const ONVOPAY_API_BASE = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com'; // Use production API
   const ONVOPAY_API_VERSION = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
   const ONVOPAY_API_PATH = Deno.env.get('ONVOPAY_API_PATH') || 'payment-intents'; // Fixed: hyphens not underscores
   const ONVOPAY_DEBUG = Deno.env.get('ONVOPAY_DEBUG') === 'true';
