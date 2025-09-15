@@ -188,16 +188,37 @@ serve(async (req) => {
 
     // Prepare OnvoPay API request - CREATE Payment Intent only
     currentPhase = 'prepare-onvopay-request';
+    
+    // Sanitize metadata - OnvoPay requires all values to be strings with max 500 chars
+    const sanitizeMetadata = (obj: Record<string, any>): Record<string, string> => {
+      const sanitized: Record<string, string> = {};
+      
+      for (const [key, value] of Object.entries(obj)) {
+        // Skip null/undefined values
+        if (value == null) continue;
+        
+        // Convert to string and limit length to 500 chars
+        const stringValue = String(value).substring(0, 500);
+        
+        // Only include non-empty strings and validate key length
+        if (stringValue.length > 0 && key.length <= 40) {
+          sanitized[key] = stringValue;
+        }
+      }
+      
+      return sanitized;
+    };
+
     const onvoPayData: any = {
       amount: amountCents,
       currency: 'USD',
       description: `Servicio ${body.appointmentId}`,
-      metadata: {
+      metadata: sanitizeMetadata({
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
         is_post_payment: isPostPayment
-      }
+      })
     };
 
     console.log('📡 OnvoPay request payload:', {
