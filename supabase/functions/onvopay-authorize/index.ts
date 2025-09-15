@@ -161,21 +161,23 @@ serve(async (req) => {
     // Prepare OnvoPay API request
     currentPhase = 'prepare-onvopay-request';
 
+    // Try OnvoPay structure with simple payment method data
     const onvoPayData = {
       amount: amountCents,
       currency: 'USD',
-      card: {
-        number: body.card_data.number,
-        exp_month: body.card_data.expiry.split('/')[0],
-        exp_year: body.card_data.expiry.split('/')[1],
-        cvc: body.card_data.cvv
+      payment_method: {
+        type: 'card',
+        card: {
+          number: body.card_data.number,
+          exp_month: body.card_data.expiry.split('/')[0],
+          exp_year: body.card_data.expiry.split('/')[1],
+          cvc: body.card_data.cvv
+        }
       },
-      billing_details: {
+      customer: {
         name: body.card_data.name,
         phone: body.billing_info.phone,
-        address: {
-          line1: body.billing_info.address
-        }
+        address: body.billing_info.address
       },
       metadata: {
         appointment_id: body.appointmentId,
@@ -187,10 +189,20 @@ serve(async (req) => {
     console.log('📡 OnvoPay request payload:', {
       amount: onvoPayData.amount,
       currency: onvoPayData.currency,
-      hasCard: !!onvoPayData.card,
-      hasBilling: !!onvoPayData.billing_details,
+      hasPaymentMethod: !!onvoPayData.payment_method,
+      paymentMethodType: onvoPayData.payment_method?.type,
+      hasCustomer: !!onvoPayData.customer,
       metadata: onvoPayData.metadata
     });
+    
+    // Debug: Log full payload structure (remove sensitive data)
+    console.log('🔍 Full payload structure (debug):', JSON.stringify({
+      ...onvoPayData,
+      payment_method: onvoPayData.payment_method ? {
+        type: onvoPayData.payment_method.type,
+        card: { number: '****', exp_month: onvoPayData.payment_method.card.exp_month, exp_year: onvoPayData.payment_method.card.exp_year, cvc: '***' }
+      } : undefined
+    }, null, 2));
 
     // Make the actual API call to OnvoPay
     currentPhase = 'call-onvopay';
