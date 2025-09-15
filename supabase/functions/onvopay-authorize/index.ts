@@ -191,8 +191,6 @@ serve(async (req) => {
     const onvoPayData: any = {
       amount: amountCents,
       currency: 'USD',
-      confirmation_method: 'manual',
-      capture_method: isPostPayment ? 'manual' : 'automatic',
       description: `Servicio ${body.appointmentId}`,
       metadata: {
         appointment_id: body.appointmentId,
