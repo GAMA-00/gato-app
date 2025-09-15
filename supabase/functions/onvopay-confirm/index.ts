@@ -103,26 +103,77 @@ serve(async (req) => {
       }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Prepare OnvoPay confirm request
-    const confirmData = {
-      payment_method: {
-        type: 'card',
-        card: {
-          number: body.card_data.number,
-          exp_month: body.card_data.expiry.split('/')[0],
-          exp_year: body.card_data.expiry.split('/')[1],
-          cvc: body.card_data.cvv
-        }
-      },
-      customer: {
-        name: body.card_data.name,
-        phone: body.billing_info.phone,
-        address: body.billing_info.address
+    // 1) Create Payment Method from raw card data
+    const pmCreateUrl = `${onvoConfig.fullUrl}/payment-methods`;
+    const pmPayload = {
+      type: 'card',
+      card: {
+        number: body.card_data.number,
+        exp_month: body.card_data.expiry.split('/')[0],
+        exp_year: body.card_data.expiry.split('/')[1],
+        cvc: body.card_data.cvv,
+        name: body.card_data.name
       }
     };
 
-    console.log('📡 Confirming Payment Intent with OnvoPay...');
+    console.log('📡 Creating Payment Method in OnvoPay...');
+    const pmResponse = await fetch(pmCreateUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(pmPayload)
+    });
+
+    const pmText = await pmResponse.text();
+    const pmContentType = pmResponse.headers.get('content-type') ?? '';
+
+    if (!pmContentType.includes('application/json')) {
+      console.error('❌ Non-JSON response creating Payment Method');
+      return new Response(JSON.stringify({
+        error: 'NON_JSON_RESPONSE',
+        message: 'OnvoPay returned a non-JSON response when creating payment method',
+        status: pmResponse.status
+      }), { status: pmResponse.status || 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    let pmResult: any;
+    try {
+      pmResult = JSON.parse(pmText);
+    } catch (e) {
+      console.error('❌ Invalid JSON creating Payment Method');
+      return new Response(JSON.stringify({ error: 'INVALID_JSON', message: 'Malformed JSON from payment-methods' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (!pmResponse.ok || pmResult.error) {
+      console.error('❌ OnvoPay payment-methods error:', pmResult);
+      return new Response(JSON.stringify({
+        error: 'ONVOPAY_PAYMENT_METHOD_ERROR',
+        message: pmResult.error?.message || 'Error creando método de pago',
+        status: pmResponse.status,
+        onvoPayError: pmResult.error
+      }), { status: pmResponse.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const paymentMethodId = pmResult.id;
+
+    // 2) Confirm Payment Intent with paymentMethodId (no payment_method/customer objects)
     const confirmUrl = `${onvoConfig.fullUrl}/payment-intents/${body.payment_intent_id}/confirm`;
+    const confirmData: Record<string, any> = {
+      paymentMethodId
+    };
+
+    // Optionally pass simple billing info if supported
+    if (body.billing_info?.name || body.billing_info?.phone || body.billing_info?.address) {
+      confirmData.billingInfo = {
+        name: body.billing_info?.name || body.card_data?.name,
+        phone: body.billing_info?.phone,
+        address: body.billing_info?.address
+      };
+    }
+
+    console.log('📡 Confirming Payment Intent with OnvoPay...');
     
     const onvoResponse = await fetch(confirmUrl, {
       method: 'POST',
