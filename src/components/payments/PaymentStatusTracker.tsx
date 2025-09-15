@@ -33,11 +33,12 @@ const usePaymentStatus = (paymentId: string) => {
       return data;
     },
     refetchInterval: (query) => {
-      // Keep polling if status is pending
-      if (query?.state?.data?.status === 'pending_authorization') {
+      // Keep polling for intermediate states
+      const status = query?.state?.data?.status;
+      if (status === 'pending_authorization' || status === 'requires_confirmation') {
         return 2000; // Poll every 2 seconds
       }
-      return false; // Stop polling
+      return false; // Stop polling for final states
     }
   });
 };
@@ -65,9 +66,15 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
     const statusMap = {
       'pending_authorization': {
         icon: <Clock className="h-6 w-6 text-yellow-500" />,
-        title: 'Autorizando Pago',
-        description: 'Verificando con el banco...',
+        title: 'Pago Pendiente',
+        description: 'Esperando confirmación al completar servicio...',
         color: 'yellow'
+      },
+      'requires_confirmation': {
+        icon: <Clock className="h-6 w-6 text-blue-500" />,
+        title: 'Payment Intent Creado',
+        description: 'Confirmando pago automáticamente...',
+        color: 'blue'
       },
       'authorized': {
         icon: <CheckCircle className="h-6 w-6 text-blue-500" />,

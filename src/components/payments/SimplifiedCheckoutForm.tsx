@@ -223,14 +223,15 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             name: newCardData.cardholderName
           }
         : {
-            // Para tarjetas guardadas, usamos datos simulados ya que Onvopay-authorize es mock
+            // Para tarjetas guardadas, usamos datos simulados
             number: '4111111111111111',
             expiry: '12/25',
             cvv: '123',
             name: 'Tarjeta Guardada'
           };
 
-      const response = await supabase.functions.invoke('onvopay-authorize', {
+      // STEP 1: Create Payment Intent
+      const authorizeResponse = await supabase.functions.invoke('onvopay-authorize', {
         body: {
           appointmentId: newAppointmentId,
           amount: amount,
@@ -245,10 +246,10 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         }
       });
 
-      const { data: paymentData, error: paymentError } = response;
+      const { data: authorizeData, error: authorizeError } = authorizeResponse;
 
-      if (paymentError) {
-        console.error('❌ Error de pago:', paymentError);
+      if (authorizeError) {
+        console.error('❌ Error creating Payment Intent:', authorizeError);
         
         setIsProcessing(false);
         
@@ -256,17 +257,17 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         let errorMessage = 'Error en el procesamiento del pago';
         let errorDetails = '';
         
-        if (paymentError.message) {
+        if (authorizeError.message) {
           try {
             // If it's a structured error from our edge function
-            if (paymentError.message.includes('ONVOPAY_API_ERROR') || paymentError.message.includes('CONFIGURATION_ERROR')) {
+            if (authorizeError.message.includes('ONVOPAY_API_ERROR') || authorizeError.message.includes('CONFIGURATION_ERROR')) {
               errorMessage = 'Error de configuración de OnvoPay';
               errorDetails = 'Por favor contacta al administrador del sistema';
             } else {
-              errorMessage = paymentError.message;
+              errorMessage = authorizeError.message;
             }
           } catch (e) {
-            errorMessage = paymentError.message;
+            errorMessage = authorizeError.message;
           }
         }
         
@@ -289,37 +290,85 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         return;
       }
 
-      if (paymentData && !paymentData.success) {
-        console.error('❌ Error en la respuesta:', paymentData.error);
+      if (authorizeData && !authorizeData.success) {
+        console.error('❌ Error en authorize response:', authorizeData.error);
         
         await supabase
           .from('appointments')
           .delete()
           .eq('id', newAppointmentId);
 
-        throw new Error(paymentData.error || 'Error desconocido en el pago');
+        throw new Error(authorizeData.error || 'Error creando Payment Intent');
       }
 
-      // PASO 4: Solo guardar referencia del pago (mantener status 'pending')
-      if (paymentData && paymentData.success) {
+      console.log('✅ Payment Intent created:', {
+        paymentIntentId: authorizeData.onvopay_payment_id,
+        isPostPayment: authorizeData.is_post_payment,
+        requiresConfirmation: authorizeData.requires_confirmation
+      });
+
+      let finalPaymentData = authorizeData;
+
+      // STEP 2: For normal services, confirm Payment Intent immediately
+      if (authorizeData.requires_confirmation && !authorizeData.is_post_payment) {
+        console.log('💳 Confirmando Payment Intent inmediatamente...');
+        
+        const confirmResponse = await supabase.functions.invoke('onvopay-confirm', {
+          body: {
+            payment_intent_id: authorizeData.onvopay_payment_id,
+            card_data: cardDataForPayment,
+            billing_info: {
+              name: newCardData.cardholderName || 'Cliente',
+              phone: formatPhoneCR(billingData.phone),
+              address: billingData.address
+            }
+          }
+        });
+
+        const { data: confirmData, error: confirmError } = confirmResponse;
+
+        if (confirmError || !confirmData.success) {
+          console.error('❌ Error confirmando pago:', confirmError || confirmData.error);
+          
+          await supabase
+            .from('appointments')
+            .delete()
+            .eq('id', newAppointmentId);
+
+          throw new Error(confirmError?.message || confirmData.error || 'Error confirmando el pago');
+        }
+
+        console.log('✅ Pago confirmado exitosamente');
+        finalPaymentData = { ...authorizeData, ...confirmData };
+      }
+
+      // STEP 3: Update appointment with payment reference
+      if (authorizeData && authorizeData.success) {
         await supabase
           .from('appointments')
           .update({
-            onvopay_payment_id: paymentData.payment_id
+            onvopay_payment_id: authorizeData.payment_id
           })
           .eq('id', newAppointmentId);
 
-        console.log('✅ Appointment actualizado con pago exitoso - permanece pendiente por aprobación');
+        console.log('✅ Appointment actualizado con pago');
       }
 
       console.log('🎉 Proceso completo exitoso');
+      
+      const successMessage = finalPaymentData.is_post_payment 
+        ? "Solicitud enviada. El pago se procesará al completar el servicio."
+        : finalPaymentData.status === 'captured' 
+          ? "Pago procesado exitosamente. Pendiente de aprobación del proveedor."
+          : "Pago autorizado. Pendiente de aprobación del proveedor.";
+      
       toast({
-        title: "Solicitud enviada",
-        description: "Solicitud enviada. Pendiente por aprobación del proveedor.",
+        title: "Proceso exitoso",
+        description: successMessage,
       });
 
       onSuccess({
-        ...paymentData,
+        ...finalPaymentData,
         appointmentId: newAppointmentId,
         status: 'pending'
       });

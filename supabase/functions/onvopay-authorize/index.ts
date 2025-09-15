@@ -129,11 +129,18 @@ serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Get appointment details
+    // Get appointment details with listing info to check if post-payment
     currentPhase = 'fetch-appointment';
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
-      .select('client_id, provider_id, listing_id')
+      .select(`
+        client_id, 
+        provider_id, 
+        listing_id,
+        listings (
+          is_post_payment
+        )
+      `)
       .eq('id', body.appointmentId)
       .single();
 
@@ -158,17 +165,24 @@ serve(async (req) => {
       paymentType: body.payment_type
     });
 
-    // Prepare OnvoPay API request
-    currentPhase = 'prepare-onvopay-request';
+    // Check if service is post-payment
+    const isPostPayment = appointment.listings?.is_post_payment || false;
+    
+    console.log('📋 Service payment type:', {
+      isPostPayment,
+      listingId: appointment.listing_id
+    });
 
-    // Try minimal OnvoPay structure - only essential fields
+    // Prepare OnvoPay API request - CREATE Payment Intent only
+    currentPhase = 'prepare-onvopay-request';
     const onvoPayData = {
       amount: amountCents,
       currency: 'USD',
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
-        provider_id: appointment.provider_id
+        provider_id: appointment.provider_id,
+        is_post_payment: isPostPayment
       }
     };
 
@@ -326,11 +340,16 @@ serve(async (req) => {
       });
     }
 
-    // Determine status based on OnvoPay response
-    const status = onvoResult.status === 'succeeded' ? 'captured' : 'pending_authorization';
+    // Determine status - Payment Intent created, ready for confirmation
+    const paymentIntentStatus = onvoResult.status || 'requires_payment_method';
+    const dbStatus = isPostPayment ? 'pending_authorization' : 'requires_confirmation';
     const now = new Date().toISOString();
-    const authorizedAt = (status === 'captured' || status === 'authorized') ? now : null;
-    const capturedAt = status === 'captured' ? now : null;
+    
+    console.log('💰 Payment status determination:', {
+      onvoPayStatus: paymentIntentStatus,
+      isPostPayment,
+      finalDbStatus: dbStatus
+    });
 
     console.log('💾 Creating payment record with OnvoPay data...');
     currentPhase = 'create-payment-record';
@@ -346,7 +365,7 @@ serve(async (req) => {
         subtotal: subtotalCents,
         iva_amount: ivaCents,
         commission_amount: 0,
-        status: status,
+        status: dbStatus,
         payment_type: body.payment_type,
         payment_method: 'card',
         currency: 'USD',
@@ -357,11 +376,21 @@ serve(async (req) => {
           exp_month: body.card_data.expiry.split('/')[0],
           exp_year: body.card_data.expiry.split('/')[1]
         },
-        authorized_at: authorizedAt,
-        captured_at: capturedAt,
+        authorized_at: null, // Will be set when confirmed
+        captured_at: null, // Will be set when captured
         onvopay_payment_id: onvoResult.id,
         onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
         external_reference: body.appointmentId,
+        // Store encrypted card data for later confirmation if post-payment
+        onvopay_response: isPostPayment ? {
+          card_data_encrypted: JSON.stringify({
+            last4: body.card_data.number.slice(-4),
+            exp_month: body.card_data.expiry.split('/')[0],
+            exp_year: body.card_data.expiry.split('/')[1],
+            name: body.card_data.name
+          }),
+          billing_info: body.billing_info
+        } : onvoResult,
       })
       .select()
       .single();
@@ -392,30 +421,34 @@ serve(async (req) => {
 
     const successResponse = {
       success: true,
-      id: payment.id, // The UUID that exists in the database
-      payment_id: payment.id, // For backwards compatibility
+      id: payment.id,
+      payment_id: payment.id,
       appointment_id: body.appointmentId,
-      status: status,
+      status: dbStatus,
       onvopay_payment_id: payment.onvopay_payment_id,
       onvopay_transaction_id: payment.onvopay_transaction_id,
       amount: body.amount,
       currency: 'USD',
-      message: status === 'captured' 
-        ? 'Pago procesado exitosamente.'
-        : 'Pago autorizado. Pendiente de captura.',
+      is_post_payment: isPostPayment,
+      requires_confirmation: !isPostPayment,
+      message: isPostPayment 
+        ? 'Payment Intent creado. Pago se procesará al completar el servicio.'
+        : 'Payment Intent creado. Procediendo con confirmación.',
       timestamp: now,
-      onvopay_status: onvoResult.status,
+      onvopay_status: paymentIntentStatus,
       onvopay_raw: {
         id: onvoResult.id,
-        status: onvoResult.status,
+        status: paymentIntentStatus,
         amount: onvoResult.amount
       }
     };
 
     console.log('✅ Returning success response:', {
       paymentId: payment.id,
-      onvoStatus: onvoResult.status,
-      finalStatus: status
+      onvoStatus: paymentIntentStatus,
+      finalStatus: dbStatus,
+      isPostPayment,
+      requiresConfirmation: !isPostPayment
     });
 
     return new Response(JSON.stringify(successResponse), {
