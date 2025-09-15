@@ -207,21 +207,93 @@ serve(async (req) => {
 
     // Read response body ONCE to avoid "Body already consumed" error
     const responseText = await onvoResponse.text();
+    const contentType = onvoResponse.headers.get('content-type') ?? '';
     let onvoResult;
     
+    console.log('🔍 OnvoPay response info:', {
+      status: onvoResponse.status,
+      contentType: contentType,
+      bodyLength: responseText.length,
+      isHTML: contentType.includes('text/html'),
+      isJSON: contentType.includes('application/json')
+    });
+    
+    // Check if response is JSON before parsing
+    if (!contentType.includes('application/json')) {
+      const isHTML = contentType.includes('text/html') || responseText.trim().startsWith('<');
+      const hint = onvoResponse.status === 503 
+        ? 'OnvoPay service temporarily unavailable (503). This usually means maintenance or API overload.'
+        : onvoResponse.status === 404
+        ? 'Endpoint not found. Check: 1) API base URL (sandbox vs prod), 2) API version (/v1), 3) Resource name (payment-intents with hyphens)'
+        : onvoResponse.status === 401
+        ? 'Invalid ONVOPAY_SECRET_KEY or missing Authorization header'
+        : onvoResponse.status === 500
+        ? 'OnvoPay internal server error. Try again in a few minutes.'
+        : `Non-JSON response from OnvoPay (${contentType})`;
+      
+      console.error('❌ Non-JSON response from OnvoPay:', {
+        status: onvoResponse.status,
+        contentType,
+        isHTML,
+        bodyPreview: responseText.substring(0, 300) + (responseText.length > 300 ? '...' : '')
+      });
+      
+      // Debug fallback: try alternative endpoint only in sandbox debug mode
+      if (onvoConfig.debug && onvoResponse.status === 404 && onvoConfig.baseUrl.includes('dev.onvopay.com')) {
+        const alternativeUrl = `${onvoConfig.baseUrl}/payment-intents`; // Without /v1
+        console.log('🔧 Debug: Trying alternative endpoint:', alternativeUrl);
+        
+        try {
+          const altResponse = await fetch(alternativeUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(onvoPayData)
+          });
+          
+          console.log('🔧 Alternative endpoint result:', {
+            status: altResponse.status,
+            contentType: altResponse.headers.get('content-type'),
+            url: alternativeUrl
+          });
+        } catch (altError) {
+          console.log('🔧 Alternative endpoint also failed:', altError.message);
+        }
+      }
+      
+      return new Response(JSON.stringify({
+        error: 'NON_JSON_RESPONSE',
+        message: isHTML 
+          ? 'OnvoPay returned an HTML error page instead of JSON. This usually indicates service unavailability or incorrect endpoint.'
+          : 'OnvoPay returned a non-JSON response. Check API configuration.',
+        status: onvoResponse.status,
+        statusText: onvoResponse.statusText,
+        contentType: contentType,
+        url: onvoConfig.fullUrl,
+        hint: hint,
+        bodyPreview: responseText.substring(0, 500) + (responseText.length > 500 ? '...' : '')
+      }), { 
+        status: onvoResponse.status >= 400 ? onvoResponse.status : 502, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    // Now safely parse JSON
     try {
       onvoResult = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('❌ Failed to parse OnvoPay response as JSON:', parseError);
-      console.error('❌ Raw response:', onvoConfig.debug ? responseText : responseText.substring(0, 200) + '...');
+      console.error('❌ Failed to parse JSON despite correct Content-Type:', parseError);
+      console.error('❌ Raw response:', responseText.substring(0, 500) + '...');
       
       return new Response(JSON.stringify({
-        error: 'INVALID_RESPONSE',
-        message: 'OnvoPay devolvió una respuesta inválida',
+        error: 'INVALID_JSON',
+        message: 'OnvoPay returned malformed JSON',
         status: onvoResponse.status,
         statusText: onvoResponse.statusText,
         url: onvoConfig.fullUrl,
-        hint: onvoResponse.status === 404 ? 'Posible endpoint incorrecto (sandbox/prod o versión de API)' : undefined
+        bodyPreview: responseText.substring(0, 300) + '...'
       }), { 
         status: onvoResponse.status || 502, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
