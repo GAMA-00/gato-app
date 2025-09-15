@@ -188,9 +188,12 @@ serve(async (req) => {
 
     // Prepare OnvoPay API request - CREATE Payment Intent only
     currentPhase = 'prepare-onvopay-request';
-    const onvoPayData = {
+    const onvoPayData: any = {
       amount: amountCents,
       currency: 'USD',
+      confirmation_method: 'manual',
+      capture_method: isPostPayment ? 'manual' : 'automatic',
+      description: `Servicio ${body.appointmentId}`,
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
