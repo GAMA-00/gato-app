@@ -377,7 +377,8 @@ serve(async (req) => {
 
     // Determine status - Payment Intent created, ready for confirmation
     const paymentIntentStatus = onvoResult.status || 'requires_payment_method';
-    const dbStatus = isPostPayment ? 'pending_authorization' : 'requires_confirmation';
+    // Store a valid initial DB status per CHECK constraint
+    const dbStatus = 'pending_authorization';
     const now = new Date().toISOString();
     
     console.log('💰 Payment status determination:', {
