@@ -105,18 +105,61 @@ serve(async (req) => {
 
     // 1) Create Payment Method from raw card data
     const pmCreateUrl = `${onvoConfig.fullUrl}/payment-methods`;
+
+    // Parse expiry (supports MM/YY or MM/YYYY)
+    const rawExpiry = String(body.card_data.expiry || '').trim();
+    const cleanedExpiry = rawExpiry.replace(/\s/g, '');
+    const [mmStr, yyStr] = cleanedExpiry.split('/');
+    const expMonth = Number.parseInt(mmStr, 10);
+    let expYear = Number.parseInt(yyStr, 10);
+    if (yyStr && yyStr.length === 2 && Number.isInteger(expYear)) {
+      expYear = 2000 + expYear; // normalize to 20xx
+    }
+
+    if (!Number.isInteger(expMonth) || expMonth < 1 || expMonth > 12) {
+      console.error('❌ Invalid expMonth parsed from expiry:', { rawExpiry, expMonth });
+      return new Response(JSON.stringify({
+        error: 'INVALID_EXP_MONTH',
+        message: 'El mes de expiración de la tarjeta es inválido'
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const currentYear = new Date().getFullYear();
+    if (!Number.isInteger(expYear) || expYear < currentYear || expYear > 2100) {
+      console.error('❌ Invalid expYear parsed from expiry:', { rawExpiry, expYear });
+      return new Response(JSON.stringify({
+        error: 'INVALID_EXP_YEAR',
+        message: 'El año de expiración de la tarjeta es inválido'
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const holderName = String(body.card_data.name || '').trim();
+    if (!holderName) {
+      return new Response(JSON.stringify({
+        error: 'INVALID_HOLDER_NAME',
+        message: 'El nombre del titular es requerido'
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const pmPayload = {
       type: 'card',
       card: {
-        number: body.card_data.number,
-        exp_month: body.card_data.expiry.split('/')[0],
-        exp_year: body.card_data.expiry.split('/')[1],
-        cvc: body.card_data.cvv,
-        name: body.card_data.name
+        number: String(body.card_data.number || '').replace(/\s+/g, ''),
+        expMonth,
+        expYear,
+        cvv: String(body.card_data.cvv || ''),
+        holderName
       }
     };
 
-    console.log('📡 Creating Payment Method in OnvoPay...');
+    console.log('📡 Creating Payment Method in OnvoPay (payload summary)...', {
+      hasNumber: !!pmPayload.card.number,
+      expMonth: pmPayload.card.expMonth,
+      expYear: pmPayload.card.expYear,
+      hasCVV: !!pmPayload.card.cvv,
+      hasHolderName: !!pmPayload.card.holderName
+    });
+
     const pmResponse = await fetch(pmCreateUrl, {
       method: 'POST',
       headers: {
