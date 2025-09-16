@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import { blockRejectedSlots, extractRejectedSlotData } from '@/utils/rejectedSlotUtils';
 
 export const useRequestActions = () => {
   const { user } = useAuth();
@@ -101,6 +102,20 @@ export const useRequestActions = () => {
         throw new Error("No hay citas válidas para rechazar");
       }
       
+      // First, get full appointment details before updating
+      const { data: appointmentDetails, error: fetchError } = await supabase
+        .from('appointments')
+        .select('id, provider_id, listing_id, start_time, end_time, recurrence, status, client_name, provider_name')
+        .in('id', request.appointment_ids);
+
+      if (fetchError) {
+        throw new Error(`Error obteniendo detalles de citas: ${fetchError.message}`);
+      }
+
+      if (!appointmentDetails || appointmentDetails.length === 0) {
+        throw new Error("No se encontraron las citas para rechazar");
+      }
+
       // Update all appointments in the group
       const { data, error } = await supabase
         .from('appointments')
@@ -119,20 +134,33 @@ export const useRequestActions = () => {
       if (!data || data.length === 0) {
         throw new Error("No se pudieron rechazar las citas. Verifica que existan.");
       }
+
+      // Block the corresponding time slots for rejected appointments
+      try {
+        const slotsToBlock = extractRejectedSlotData(appointmentDetails);
+        await blockRejectedSlots(slotsToBlock);
+        console.log(`🚫 Blocked slots for ${slotsToBlock.length} rejected appointments`);
+      } catch (slotError) {
+        console.error("Error blocking rejected slots:", slotError);
+        // Don't fail the entire operation if slot blocking fails
+        toast.warning("Citas rechazadas correctamente, pero hubo un problema bloqueando los horarios");
+      }
       
       const isGroup = request.appointment_count > 1;
       const successMessage = isGroup 
-        ? `Serie de reservas ${request.recurrence_label?.toLowerCase()} rechazada`
-        : "Solicitud rechazada correctamente";
+        ? `Serie de reservas ${request.recurrence_label?.toLowerCase()} rechazada - Horarios bloqueados`
+        : "Solicitud rechazada correctamente - Horario bloqueado";
       
       toast.success(successMessage);
       
-      // Invalidate queries to refresh the UI
+      // Invalidate queries to refresh the UI including time slots
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-recurring-system'] }),
         queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['pending-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-time-slots'] })
       ]);
       
       if (onDeclineRequest) {

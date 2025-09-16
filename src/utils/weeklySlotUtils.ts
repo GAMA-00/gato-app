@@ -72,6 +72,10 @@ export const shouldBlockSlot = (
   // Check if manually disabled
   const isManuallyDisabled = !slot.is_available;
   if (isManuallyDisabled) {
+    // Check if it was rejected by provider
+    if (slot.slot_type === 'provider_rejected') {
+      return { isBlocked: true, reason: 'Horario rechazado por el proveedor' };
+    }
     return { isBlocked: true, reason: 'Horario no disponible' };
   }
 
