@@ -156,22 +156,16 @@ serve(async (req) => {
       }), { status: pmResponse.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const paymentMethodId = pmResult.id;
+    const paymentMethodId = String(pmResult.id);
 
-    // 2) Confirm Payment Intent with paymentMethodId (no payment_method/customer objects)
+    // 2) Confirm Payment Intent with paymentMethodId only (per OnvoPay spec)
     const confirmUrl = `${onvoConfig.fullUrl}/payment-intents/${body.payment_intent_id}/confirm`;
-    const confirmData: Record<string, any> = {
-      paymentMethodId
-    };
+    const confirmData: Record<string, any> = { paymentMethodId };
 
-    // Optionally pass simple billing info if supported
-    if (body.billing_info?.name || body.billing_info?.phone || body.billing_info?.address) {
-      confirmData.billingInfo = {
-        name: body.billing_info?.name || body.card_data?.name,
-        phone: body.billing_info?.phone,
-        address: body.billing_info?.address
-      };
-    }
+    console.log('📦 Confirm payload summary:', {
+      hasPaymentMethodId: !!paymentMethodId,
+      confirmUrl,
+    });
 
     console.log('📡 Confirming Payment Intent with OnvoPay...');
     
