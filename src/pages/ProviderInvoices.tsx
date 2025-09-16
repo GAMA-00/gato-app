@@ -8,6 +8,7 @@ import PostPaymentInvoicing from '@/components/provider/PostPaymentInvoicing';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { CompletedServicesSection } from '@/components/invoices/CompletedServicesSection';
 
 const ProviderInvoices: React.FC = () => {
   const { user } = useAuth();
@@ -134,6 +135,9 @@ const ProviderInvoices: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Completed Services Section */}
+        <CompletedServicesSection userType="provider" />
 
         {/* Invoicing Modal */}
         <PostPaymentInvoicing

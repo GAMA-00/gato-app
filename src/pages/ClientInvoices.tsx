@@ -9,6 +9,7 @@ import PostPaymentReview from '@/components/client/PostPaymentReview';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { CompletedServicesSection } from '@/components/invoices/CompletedServicesSection';
 
 const ClientInvoices: React.FC = () => {
   const { user } = useAuth();
@@ -137,6 +138,9 @@ const ClientInvoices: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Completed Services Section */}
+        <CompletedServicesSection userType="client" />
 
         {/* Review Modal */}
         <PostPaymentReview
