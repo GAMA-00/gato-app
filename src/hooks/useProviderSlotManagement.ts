@@ -296,6 +296,52 @@ export const useProviderSlotManagement = ({
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'appointments',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          console.log('📡 Cambio detectado en appointments:', payload);
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          
+          // Check if this is a recurring appointment cancellation
+          const wasRecurring = oldRecord?.recurrence !== 'none' || oldRecord?.recurring_rule_id || oldRecord?.is_recurring_instance;
+          const isCancelled = newRecord?.status === 'cancelled';
+          const statusChanged = oldRecord?.status !== newRecord?.status;
+          
+          if (wasRecurring && isCancelled && statusChanged && newRecord?.listing_id === listingId) {
+            console.log('🔄 Cita recurrente cancelada - actualizando disponibilidad');
+            // Immediate refresh for cancelled recurring appointments
+            setTimeout(() => {
+              refreshSlots();
+            }, 100);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'recurring_rules',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          console.log('📡 Cambio detectado en recurring_rules:', payload);
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          
+          if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
+            console.log('🔄 Regla recurrente modificada - actualizando disponibilidad');
+            debouncedRefresh();
+          }
+        }
+      )
       .subscribe();
 
     subscriptionRef.current = channel;
