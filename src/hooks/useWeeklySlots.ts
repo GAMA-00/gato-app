@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   WeeklySlot, 
   WeeklySlotGroup, 
@@ -50,12 +51,30 @@ export const useWeeklySlots = ({
     onSlotsChanged: fetchWeeklySlots
   });
 
-  // Simplified validation for recurring slots - optimistic approach
+  // Database-driven validation for recurring slots
   const validateSlot = async (slot: WeeklySlot): Promise<boolean> => {
-    // For immediate booking flow, always return true to avoid blocking UX
-    // Validation will happen at booking creation time
-    console.log(`📋 Validación optimista para slot: ${slot.time} (recurrencia: ${recurrence})`);
-    return true;
+    if (!providerId || !listingId) return false;
+    
+    try {
+      // Check current slot status in database
+      const { data: currentSlot } = await supabase
+        .from('provider_time_slots')
+        .select('is_available, recurring_blocked, slot_type, is_reserved')
+        .eq('id', slot.id)
+        .single();
+      
+      if (!currentSlot) {
+        console.log(`⚠️ Slot ${slot.id} no encontrado en base de datos`);
+        return false;
+      }
+      
+      const isAvailable = currentSlot.is_available && !currentSlot.recurring_blocked && !currentSlot.is_reserved;
+      console.log(`📋 Validación de slot ${slot.time}: ${isAvailable ? 'disponible' : 'bloqueado'}`, currentSlot);
+      return isAvailable;
+    } catch (error) {
+      console.error('Error validando slot:', error);
+      return false;
+    }
   };
 
   // Group slots by date for easier rendering

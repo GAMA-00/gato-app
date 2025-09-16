@@ -5,7 +5,7 @@ import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { filterTemporalSlots, calculateWeekDateRange, filterSlotsByRecurrence } from '@/utils/temporalSlotFiltering';
-import { generateFutureInstancesFromAppointment } from '@/lib/recurrence/generator';
+// Removed virtual instance generation - relying on database state only
 import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
@@ -264,25 +264,13 @@ export const useWeeklySlotsFetcher = ({
         rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') }
       });
 
+      // Get only confirmed appointments from the database - rely on database triggers for recurring slot blocking
       const allAppointments = apptAllRes.data || [];
       
-      // Generate future recurring instances to include in conflicts
-      const recurringBaseAll = (apptRecurringBaseRes.data || []).filter((apt: any) => {
-        return apt && apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== 'once';
+      console.log('📊 Using database-only conflicts for slot availability:', {
+        regularAppointments: allAppointments.length,
+        rangeUsado: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') }
       });
-
-      const generatedInstances: any[] = [];
-      for (const base of recurringBaseAll) {
-        try {
-          const gens = generateFutureInstancesFromAppointment(base, baseDate, endOfDay(endDate), 50);
-          generatedInstances.push(...gens);
-        } catch (e) {
-          console.log('Recurrence generation error:', e);
-        }
-      }
-
-      // Include recurring instances in conflicts to block recurring slots
-      const allConflicts = [...allAppointments, ...generatedInstances];
 
       // Procesar slots con manejo correcto de TZ y compatibilidad legacy
       const weeklySlots: WeeklySlot[] = validRangeSlots.map(slot => {
@@ -310,7 +298,7 @@ export const useWeeklySlotsFetcher = ({
           slot_datetime_start: slotStart.toISOString(),
           slot_datetime_end: slotEnd.toISOString(),
         };
-        const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allConflicts);
+        const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allAppointments);
 
         // Datos para UI
         const slotDate = new Date(slotStart);
@@ -368,12 +356,12 @@ export const useWeeklySlotsFetcher = ({
       // Solo usar slots filtrados por antelación
       const finalWeeklySlots: WeeklySlot[] = filteredByNotice;
 
-      // Calcular recomendación basada en adyacencia respecto a TODAS las reservas (puntuales y recurrentes)
+      // Calcular recomendación basada en adyacencia respecto solo a las reservas confirmadas en base de datos
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
       const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
-      // Usar todas las citas del rango (pendientes/confirmadas) y las instancias generadas
-      const adjacentPool = [...allAppointments, ...generatedInstances];
+      // Usar solo las citas confirmadas de la base de datos
+      const adjacentPool = allAppointments;
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);

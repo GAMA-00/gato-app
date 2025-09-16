@@ -69,17 +69,25 @@ export const shouldBlockSlot = (
   const slotStart = new Date(slot.slot_datetime_start);
   const slotEnd = new Date(slot.slot_datetime_end);
   
-  // Check if manually disabled
-  const isManuallyDisabled = !slot.is_available;
-  if (isManuallyDisabled) {
-    // Check if it was rejected by provider
+  // PRIMARY SOURCE OF TRUTH: Database slot availability and type
+  if (!slot.is_available) {
+    // Check specific blocking reasons from database
+    if (slot.recurring_blocked) {
+      return { isBlocked: true, reason: 'Bloqueado por cita recurrente' };
+    }
     if (slot.slot_type === 'provider_rejected') {
       return { isBlocked: true, reason: 'Horario rechazado por el proveedor' };
     }
-    return { isBlocked: true, reason: 'Horario no disponible' };
+    if (slot.slot_type === 'manually_blocked') {
+      return { isBlocked: true, reason: 'Bloqueado manualmente' };
+    }
+    if (slot.is_reserved) {
+      return { isBlocked: true, reason: 'Reservado por cliente' };
+    }
+    return { isBlocked: true, reason: 'No disponible' };
   }
 
-  // Check conflicts with appointments
+  // SECONDARY CHECK: Direct appointment conflicts (as backup)
   const hasDirectConflict = conflictingAppointments?.some(apt => {
     const aptStart = new Date(apt.start_time);
     const aptEnd = new Date(apt.end_time);

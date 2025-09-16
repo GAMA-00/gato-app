@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAvailabilityContext } from '@/contexts/AvailabilityContext';
 
 interface UseWeeklySlotSubsProps {
   providerId: string;
@@ -13,53 +12,64 @@ export const useWeeklySlotsSubs = ({
   listingId,
   onSlotsChanged
 }: UseWeeklySlotSubsProps) => {
-  const { subscribeToAvailabilityChanges } = useAvailabilityContext();
-
-  // Subscribe to availability changes for this provider
-  useEffect(() => {
-    if (!providerId) return;
-    
-    console.log('WeeklySlots: Suscribiendo a cambios de disponibilidad para proveedor:', providerId);
-    
-    const unsubscribe = subscribeToAvailabilityChanges(providerId, () => {
-      console.log('WeeklySlots: Disponibilidad actualizada, refrescando slots...');
-      
-      // Add small delay to ensure database changes are propagated
-      setTimeout(() => {
-        onSlotsChanged();
-      }, 1000);
-    });
-    
-    return unsubscribe;
-  }, [providerId, subscribeToAvailabilityChanges, onSlotsChanged]);
-
-  // Subscribe to real-time changes in provider_time_slots
+  
+  // Subscribe to real-time changes for consistent slot state
   useEffect(() => {
     if (!providerId || !listingId) return;
 
-    console.log('WeeklySlots: Configurando suscripción en tiempo real para slots del proveedor:', providerId);
+    console.log('WeeklySlots: Configurando suscripción unificada en tiempo real');
 
     const channel = supabase
-      .channel('provider-time-slots-changes')
+      .channel(`unified-slots-${providerId}-${listingId}`)
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'provider_time_slots',
           filter: `provider_id=eq.${providerId}`
         },
         (payload) => {
-          console.log('WeeklySlots: Cambio detectado en provider_time_slots:', payload);
-          
-          // Only refresh if it affects the current listing
+          console.log('📡 Cambio en provider_time_slots:', payload);
           const newRecord = payload.new as any;
           const oldRecord = payload.old as any;
           if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
-            console.log('WeeklySlots: Cambio relevante para listing actual, refrescando...');
-            setTimeout(() => {
-              onSlotsChanged();
-            }, 500);
+            setTimeout(() => onSlotsChanged(), 300);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          console.log('📡 Cambio en appointments:', payload);
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
+            // Immediate refresh for appointment changes affecting slot availability
+            setTimeout(() => onSlotsChanged(), 100);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'recurring_rules',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          console.log('📡 Cambio en recurring_rules:', payload);
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
+            setTimeout(() => onSlotsChanged(), 200);
           }
         }
       )
@@ -72,38 +82,14 @@ export const useWeeklySlotsSubs = ({
           filter: `provider_id=eq.${providerId}`
         },
         (payload) => {
-          console.log('WeeklySlots: Cambio detectado en provider_availability:', payload);
-          setTimeout(() => {
-            onSlotsChanged();
-          }, 1500); // Longer delay for availability changes as they trigger slot regeneration
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'provider_slot_preferences',
-          filter: `provider_id=eq.${providerId}`
-        },
-        (payload) => {
-          console.log('WeeklySlots: Cambio detectado en provider_slot_preferences:', payload);
-          
-          // Only refresh if it affects the current listing
-          const newRecord = payload.new as any;
-          const oldRecord = payload.old as any;
-          if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
-            console.log('WeeklySlots: Cambio relevante en preferencias de slots, refrescando...');
-            setTimeout(() => {
-              onSlotsChanged();
-            }, 300);
-          }
+          console.log('📡 Cambio en provider_availability:', payload);
+          setTimeout(() => onSlotsChanged(), 800); // Longer delay for availability changes
         }
       )
       .subscribe();
 
     return () => {
-      console.log('WeeklySlots: Cancelando suscripción en tiempo real');
+      console.log('🧹 Limpiando suscripción unificada en tiempo real');
       supabase.removeChannel(channel);
     };
   }, [providerId, listingId, onSlotsChanged]);
