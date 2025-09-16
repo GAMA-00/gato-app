@@ -115,8 +115,8 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       if (!newCardData.cardNumber || newCardData.cardNumber.replace(/\D/g, '').length < 16) {
         errors.cardNumber = 'Número de tarjeta inválido';
       }
-      if (!newCardData.expiryDate || !/^\d{2}\/\d{2}$/.test(newCardData.expiryDate)) {
-        errors.expiryDate = 'Formato requerido: MM/AA';
+      if (!newCardData.expiryDate || !/^\d{2}\/\d{2,4}$/.test(newCardData.expiryDate)) {
+        errors.expiryDate = 'Formato requerido: MM/AA o MM/AAAA';
       }
       if (!newCardData.cvv || newCardData.cvv.length < 3) {
         errors.cvv = 'CVV inválido';

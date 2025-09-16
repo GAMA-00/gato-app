@@ -57,13 +57,12 @@ export const NewCardForm: React.FC<NewCardFormProps> = ({
     }
   };
 
-  // Formateo automático para fecha de vencimiento
   const formatExpiryDate = (value: string) => {
     const v = value.replace(/\D/g, '');
-    if (v.length >= 2) {
-      return v.slice(0, 2) + '/' + v.slice(2, 4);
-    }
-    return v;
+    if (v.length <= 2) return v;
+    const mm = v.slice(0, 2);
+    const yyyyOrYy = v.slice(2, 6); // admite AA o AAAA
+    return `${mm}/${yyyyOrYy}`;
   };
 
   // Validación en tiempo real de tarjeta
@@ -135,8 +134,8 @@ export const NewCardForm: React.FC<NewCardFormProps> = ({
       errors.cardNumber = 'Número de tarjeta inválido';
     }
 
-    if (!formData.expiryDate || !/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
-      errors.expiryDate = 'Formato requerido: MM/AA';
+    if (!formData.expiryDate || !/^\d{2}\/\d{2,4}$/.test(formData.expiryDate)) {
+      errors.expiryDate = 'Formato requerido: MM/AA o MM/AAAA';
     }
 
     if (!formData.cvv || formData.cvv.length < 3) {
@@ -201,10 +200,10 @@ export const NewCardForm: React.FC<NewCardFormProps> = ({
             <Label htmlFor="expiryDate">Vencimiento *</Label>
             <Input
               id="expiryDate"
-              placeholder="MM/AA"
+              placeholder="MM/AA o MM/AAAA"
               value={formData.expiryDate}
               onChange={handleExpiryChange}
-              maxLength={5}
+              maxLength={7}
               className={validationErrors.expiryDate ? 'border-red-500' : ''}
             />
             {validationErrors.expiryDate && (
