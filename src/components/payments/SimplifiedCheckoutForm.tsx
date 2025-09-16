@@ -223,9 +223,9 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             name: newCardData.cardholderName
           }
         : {
-            // Para tarjetas guardadas, usamos datos simulados
-            number: '4111111111111111',
-            expiry: '12/25',
+            // Para tarjetas guardadas, usamos tarjetas de prueba válidas de OnvoPay
+            number: '4242424242424242',
+            expiry: '12/28',
             cvv: '123',
             name: 'Tarjeta Guardada'
           };
