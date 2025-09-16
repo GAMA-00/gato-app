@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { SavedCardsSelector } from './SavedCardsSelector';
 import { NewCardForm } from './NewCardForm';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { updateUserProfile } from '@/utils/profileManagement';
 
 interface SimplifiedCheckoutFormProps {
   amount: number;
@@ -58,7 +59,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   // Formulario simplificado - solo datos esenciales
   const [billingData, setBillingData] = useState({
     phone: profile?.phone || '',
-    address: ''
+    address: profile?.address || ''
   });
   
   const [newCardData, setNewCardData] = useState({
@@ -355,6 +356,17 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       }
 
       console.log('🎉 Proceso completo exitoso');
+
+      // PASO 4: Guardar información de contacto en el perfil del usuario
+      try {
+        await updateUserProfile(user?.id, {
+          phone: formatPhoneCR(billingData.phone),
+          address: billingData.address
+        });
+        console.log('✅ Información de contacto guardada en el perfil');
+      } catch (profileError) {
+        console.warn('⚠️ No se pudo guardar la información de contacto (no crítico):', profileError);
+      }
       
       const successMessage = finalPaymentData.is_post_payment 
         ? "Solicitud enviada. El pago se procesará al completar el servicio."

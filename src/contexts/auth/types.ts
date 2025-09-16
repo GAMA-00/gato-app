@@ -20,6 +20,7 @@ export interface UserProfile {
   residencia_id?: string;
   condominium_name?: string;
   house_number?: string;
+  address?: string;
 }
 
 export interface AuthContextType {
