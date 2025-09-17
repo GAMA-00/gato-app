@@ -69,10 +69,26 @@ export const shouldBlockSlot = (
   const slotStart = new Date(slot.slot_datetime_start);
   const slotEnd = new Date(slot.slot_datetime_end);
   
-  // PRIMARY SOURCE OF TRUTH: Database slot availability and type
+  // Check for direct appointment conflicts (confirmed appointments)
+  const hasDirectConflict = conflictingAppointments?.some(apt => {
+    const aptStart = new Date(apt.start_time);
+    const aptEnd = new Date(apt.end_time);
+    return slotStart < aptEnd && slotEnd > aptStart;
+  }) || false;
+
+  if (hasDirectConflict) {
+    return { isBlocked: true, reason: 'Horario ocupado' };
+  }
+
+  // Only check database availability if there's no confirmed appointment
   if (!slot.is_available) {
-    // Check specific blocking reasons from database
+    // For recurring_blocked, only block if there's an actual confirmed appointment
     if (slot.recurring_blocked) {
+      // If recurring_blocked but no confirmed appointment, it should be available
+      if (!hasDirectConflict) {
+        console.log(`⚠️ Slot marcado como recurring_blocked pero sin cita confirmada: ${slot.slot_datetime_start}`);
+        return { isBlocked: false };
+      }
       return { isBlocked: true, reason: 'Bloqueado por cita recurrente' };
     }
     if (slot.slot_type === 'provider_rejected') {
@@ -85,17 +101,6 @@ export const shouldBlockSlot = (
       return { isBlocked: true, reason: 'Reservado por cliente' };
     }
     return { isBlocked: true, reason: 'No disponible' };
-  }
-
-  // SECONDARY CHECK: Direct appointment conflicts (as backup)
-  const hasDirectConflict = conflictingAppointments?.some(apt => {
-    const aptStart = new Date(apt.start_time);
-    const aptEnd = new Date(apt.end_time);
-    return slotStart < aptEnd && slotEnd > aptStart;
-  }) || false;
-
-  if (hasDirectConflict) {
-    return { isBlocked: true, reason: 'Horario ocupado' };
   }
 
   return { isBlocked: false };
