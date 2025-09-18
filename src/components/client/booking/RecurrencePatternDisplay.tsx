@@ -105,14 +105,9 @@ const RecurrencePatternDisplay = ({
           {/* Header */}
           <div className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4 text-primary" />
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-primary">
-                Servicio {getFrequencyText(frequency)}
-              </span>
-              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                {frequency}
-              </Badge>
-            </div>
+            <span className="font-medium text-primary">
+              Servicio {getFrequencyText(frequency)}
+            </span>
           </div>
 
           {/* Pattern Description */}
