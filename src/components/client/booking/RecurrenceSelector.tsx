@@ -52,6 +52,13 @@ const RecurrenceSelector = ({
               </div>
             </RadioGroup>
           </div>
+          
+          {/* Reminder message */}
+          <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <p className="text-sm text-primary font-medium text-center">
+              📅 Le enviaremos recordatorios cuando se aproxime la próxima fecha
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>
