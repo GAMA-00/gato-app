@@ -41,7 +41,7 @@ export const useWeeklySlotsSubs = ({
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*', // Listen to all appointment events for better tracking
           schema: 'public',
           table: 'appointments',
           filter: `provider_id=eq.${providerId}`
@@ -50,6 +50,8 @@ export const useWeeklySlotsSubs = ({
           console.log('📡 Cambio en appointments:', payload);
           const newRecord = payload.new as any;
           const oldRecord = payload.old as any;
+          
+          // Check if the appointment affects our listing
           if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
             // Immediate refresh for appointment changes affecting slot availability
             setTimeout(() => onSlotsChanged(), 100);

@@ -3,7 +3,7 @@ import { addDays, format, startOfDay, endOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
-import { createSlotSignature } from '@/utils/weeklySlotUtils';
+import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 import { generateAvailabilitySlots } from '@/utils/availabilitySlotGenerator';
 
@@ -147,34 +147,35 @@ export const useProviderSlotManagement = ({
         fechasDistintas: [...new Set(uiSlots.map(s => s.slot_date))]
       });
 
-      // Buscar citas recurrentes que se traslapen con la ventana actual
-      let recurringIntervals: Array<{ start: Date; end: Date }> = [];
+      // Fetch ALL appointments (pending and confirmed) within the date range for conflict detection
+      let allAppointments: any[] = [];
       try {
         const endDateFull = endOfDay(endDate);
-        const { data: recurringAppointments, error: recurringError } = await supabase
+        const { data: appointments, error: appointmentsError } = await supabase
           .from('appointments')
-          .select('start_time, end_time, recurrence, recurring_rule_id, is_recurring_instance, status')
+          .select('*')
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
           .in('status', ['pending', 'confirmed'])
           .gte('start_time', baseDate.toISOString())
-          .lte('start_time', endDateFull.toISOString())
-          .or('recurrence.neq.none,recurring_rule_id.not.is.null,is_recurring_instance.eq.true');
+          .lte('start_time', endDateFull.toISOString());
 
-        if (recurringError) {
-          console.warn('⚠️ No se pudieron cargar citas recurrentes:', recurringError);
+        if (appointmentsError) {
+          console.warn('⚠️ No se pudieron cargar citas:', appointmentsError);
         } else {
-          recurringIntervals = (recurringAppointments || []).map(app => ({
-            start: new Date(app.start_time),
-            end: new Date(app.end_time)
-          }));
-          console.log(`🔁 Intervalos recurrentes detectados: ${recurringIntervals.length}`);
+          allAppointments = appointments || [];
+          console.log(`📅 Citas encontradas para análisis de conflictos:`, {
+            total: allAppointments.length,
+            confirmed: allAppointments.filter(a => a.status === 'confirmed').length,
+            pending: allAppointments.filter(a => a.status === 'pending').length,
+            recurring: allAppointments.filter(a => a.recurrence && a.recurrence !== 'none').length
+          });
         }
       } catch (e) {
-        console.warn('⚠️ Error preparando intervalos recurrentes', e);
+        console.warn('⚠️ Error cargando citas para conflictos', e);
       }
 
-      // Procesar TODOS los slots y etiquetar correctamente el tipo de bloqueo
+      // Process ALL slots and determine availability based on ACTUAL appointment conflicts
       const providerSlots: WeeklySlot[] = (uiSlots || []).map((slot: any) => {
         const slotStart = new Date(slot.slot_datetime_start);
         const slotEnd = new Date(slot.slot_datetime_end);
@@ -182,21 +183,27 @@ export const useProviderSlotManagement = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
-        // Determinar el motivo del bloqueo de manera más precisa
-        let conflictReason: string | undefined;
-        if (!slot.is_available) {
-          const isRecurringDB = Boolean(slot.recurring_blocked) || Boolean(slot.recurring_rule_id);
-          const overlapsRecurring = recurringIntervals.some(({ start, end }) => slotStart < end && slotEnd > start);
-
-          if (isRecurringDB || overlapsRecurring) {
-            conflictReason = 'Bloqueado por cita recurrente';
-          } else if (slot.is_reserved && slot.slot_type === 'reserved') {
-            conflictReason = 'Reservado por cliente';
-          } else if (slot.slot_type === 'manually_blocked') {
-            conflictReason = 'Bloqueado manualmente';
-          } else {
-            conflictReason = 'No disponible';
-          }
+        // Use shouldBlockSlot utility to determine true availability and conflict reason
+        const { isBlocked, reason } = shouldBlockSlot(slot, allAppointments);
+        
+        // Calculate effective availability: slot should be available if not truly blocked
+        const effectiveAvailability = !isBlocked;
+        
+        // Log inconsistencies for debugging
+        if (slot.is_available !== effectiveAvailability) {
+          console.log(`🔍 Inconsistencia detectada en slot ${slot.slot_datetime_start}:`, {
+            dbAvailable: slot.is_available,
+            calculatedAvailable: effectiveAvailability,
+            reason,
+            slotType: slot.slot_type,
+            isReserved: slot.is_reserved,
+            recurringBlocked: slot.recurring_blocked,
+            conflictingAppointments: allAppointments.filter(apt => {
+              const aptStart = new Date(apt.start_time);
+              const aptEnd = new Date(apt.end_time);
+              return slotStart < aptEnd && slotEnd > aptStart;
+            }).length
+          });
         }
 
         return {
@@ -205,8 +212,8 @@ export const useProviderSlotManagement = ({
           time: slot.start_time,
           displayTime,
           period,
-          isAvailable: slot.is_available,
-          conflictReason
+          isAvailable: effectiveAvailability, // Use calculated availability instead of database value
+          conflictReason: isBlocked ? reason : undefined
         };
       });
       
@@ -299,7 +306,7 @@ export const useProviderSlotManagement = ({
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Listen to all appointment events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'appointments',
           filter: `provider_id=eq.${providerId}`
@@ -309,17 +316,16 @@ export const useProviderSlotManagement = ({
           const newRecord = payload.new as any;
           const oldRecord = payload.old as any;
           
-          // Check if this is a recurring appointment cancellation
-          const wasRecurring = oldRecord?.recurrence !== 'none' || oldRecord?.recurring_rule_id || oldRecord?.is_recurring_instance;
-          const isCancelled = newRecord?.status === 'cancelled';
-          const statusChanged = oldRecord?.status !== newRecord?.status;
+          // Check if this appointment affects our listing
+          const affectsOurListing = (newRecord?.listing_id === listingId) || (oldRecord?.listing_id === listingId);
           
-          if (wasRecurring && isCancelled && statusChanged && newRecord?.listing_id === listingId) {
-            console.log('🔄 Cita recurrente cancelada - actualizando disponibilidad');
-            // Immediate refresh for cancelled recurring appointments
+          if (affectsOurListing) {
+            console.log('🔄 Cambio en appointment que afecta nuestro listing - actualizando disponibilidad');
+            
+            // Shorter refresh delay for appointment changes to ensure UI is responsive
             setTimeout(() => {
               refreshSlots();
-            }, 100);
+            }, 200);
           }
         }
       )
