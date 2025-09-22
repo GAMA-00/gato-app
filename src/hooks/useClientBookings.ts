@@ -205,50 +205,37 @@ export const useClientBookings = () => {
         console.log('🎯 === RESULTADOS FINALES CLIENT BOOKINGS ===');
         console.log(`📊 Procesadas ${processedBookings.length} reservas`);
 
-        // *** DEDUPLICACIÓN CRÍTICA: Eliminar citas duplicadas ***
-        console.log('🔄 === INICIANDO PROCESO DE DEDUPLICACIÓN ===');
+        // *** DEDUPLICACIÓN MEJORADA: Solo eliminar duplicados reales ***
+        console.log('🔄 === INICIANDO PROCESO DE DEDUPLICACIÓN MEJORADA ===');
         const uniqueBookingsMap = new Map<string, ClientBooking>();
         
         processedBookings.forEach(booking => {
-          // Crear clave única: listingId + providerId + fecha ISO + hora
+          // Crear clave única incluyendo STATUS para evitar conflictos entre completed/active
           const dateKey = booking.date.toISOString().split('T')[0]; // Solo fecha YYYY-MM-DD
           const timeKey = booking.date.toISOString().split('T')[1].substring(0, 5); // Solo hora HH:MM
-          const uniqueKey = `${booking.listingId}-${booking.providerId}-${dateKey}-${timeKey}`;
+          const uniqueKey = `${booking.listingId}-${booking.providerId}-${dateKey}-${timeKey}-${booking.status}`;
           
-          console.log(`🔍 Evaluando cita ${booking.id}: clave=${uniqueKey}, servicio=${booking.serviceName}`);
+          console.log(`🔍 Evaluando cita ${booking.id}: clave=${uniqueKey}, servicio=${booking.serviceName}, status=${booking.status}`);
           
           if (uniqueBookingsMap.has(uniqueKey)) {
             const existingBooking = uniqueBookingsMap.get(uniqueKey)!;
-            console.log(`⚠️ DUPLICADO DETECTADO: ${booking.serviceName} el ${dateKey} a las ${timeKey}`);
-            console.log(`   - Existente: ID=${existingBooking.id}, Recurrencia=${existingBooking.recurrence}`);
-            console.log(`   - Nuevo: ID=${booking.id}, Recurrencia=${booking.recurrence}`);
+            console.log(`⚠️ DUPLICADO REAL DETECTADO: ${booking.serviceName} el ${dateKey} a las ${timeKey} (${booking.status})`);
+            console.log(`   - Existente: ID=${existingBooking.id}`);
+            console.log(`   - Nuevo: ID=${booking.id}`);
             
-            // Priorización: mantener la cita más reciente o con mejor criterio
-            // Criterio 1: Citas con recurrence_group_id válido tienen prioridad
-            // Criterio 2: Citas con status 'confirmed' sobre 'pending'
-            // Criterio 3: Citas más recientes (por ID o fecha de creación)
-            let shouldReplace = false;
+            // Solo reemplazar si es la misma cita exacta (mismo ID base para recurrentes)
+            const existingBaseId = existingBooking.id.split('-recurring-')[0];
+            const newBaseId = booking.id.split('-recurring-')[0];
             
-            if (booking.recurrenceGroupId && !existingBooking.recurrenceGroupId) {
-              shouldReplace = true;
-              console.log('   ✅ Reemplazando: nueva cita tiene recurrence_group_id');
-            } else if (booking.status === 'confirmed' && existingBooking.status === 'pending') {
-              shouldReplace = true;
-              console.log('   ✅ Reemplazando: nueva cita está confirmada');
-            } else if (booking.id > existingBooking.id) {
-              shouldReplace = true;
-              console.log('   ✅ Reemplazando: nueva cita tiene ID más reciente');
-            }
-            
-            if (shouldReplace) {
+            if (existingBaseId === newBaseId || booking.id > existingBooking.id) {
               uniqueBookingsMap.set(uniqueKey, booking);
-              console.log(`   🔄 Cita reemplazada: ${existingBooking.id} → ${booking.id}`);
+              console.log(`   🔄 Cita reemplazada por ser más reciente`);
             } else {
-              console.log(`   ⏭️ Cita mantenida: ${existingBooking.id} (descartando ${booking.id})`);
+              console.log(`   ⏭️ Cita mantenida (IDs diferentes)`);
             }
           } else {
             uniqueBookingsMap.set(uniqueKey, booking);
-            console.log(`   ✅ Cita única agregada: ${booking.id}`);
+            console.log(`   ✅ Cita única agregada`);
           }
         });
         

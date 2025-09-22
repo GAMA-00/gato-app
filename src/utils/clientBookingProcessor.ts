@@ -11,7 +11,7 @@ interface ProcessBookingParams {
   approvedInvoices: Set<string>;
 }
 
-// Enhanced function to calculate next occurrence for recurring appointments
+// Enhanced function to calculate next occurrence ONLY for active recurring appointments
 function calculateNextOccurrenceForRecurring(
   startTime: string,
   recurrence: string,
@@ -25,11 +25,21 @@ function calculateNextOccurrenceForRecurring(
     return originalDate;
   }
   
-  // For recurring appointments, calculate next future occurrence if original date has passed
+  // CRITICAL: Don't calculate next occurrence for completed appointments
+  // This prevents "ghost" appointments from showing up
+  if (status === 'completed') {
+    console.log(`✅ Completed appointment - using original date: ${originalDate.toISOString()}`);
+    return originalDate;
+  }
+  
+  // For active recurring appointments, calculate next future occurrence if original date has passed
   const validRecurrences = ['weekly', 'biweekly', 'triweekly', 'monthly'];
-  if (validRecurrences.includes(recurrence)) {
+  const activeStatuses = ['pending', 'confirmed'];
+  
+  if (validRecurrences.includes(recurrence) && activeStatuses.includes(status)) {
     // If original date is in the future, use it
     if (originalDate > now) {
+      console.log(`📅 Future appointment - using original date: ${originalDate.toISOString()}`);
       return originalDate;
     }
     
@@ -59,11 +69,11 @@ function calculateNextOccurrenceForRecurring(
         break;
     }
     
-    console.log(`🔄 Next occurrence calculated for ${recurrence} appointment: original=${originalDate.toISOString()}, next=${nextDate.toISOString()}`);
+    console.log(`🔄 Next occurrence calculated for ${status} ${recurrence} appointment: original=${originalDate.toISOString()}, next=${nextDate.toISOString()}`);
     return nextDate;
   }
   
-  // Fallback for any edge cases
+  // For all other cases (cancelled, rejected, etc.), use original date
   return originalDate;
 }
 
