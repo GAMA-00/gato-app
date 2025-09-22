@@ -204,20 +204,75 @@ export const useClientBookings = () => {
 
         console.log('🎯 === RESULTADOS FINALES CLIENT BOOKINGS ===');
         console.log(`📊 Procesadas ${processedBookings.length} reservas`);
+
+        // *** DEDUPLICACIÓN CRÍTICA: Eliminar citas duplicadas ***
+        console.log('🔄 === INICIANDO PROCESO DE DEDUPLICACIÓN ===');
+        const uniqueBookingsMap = new Map<string, ClientBooking>();
+        
+        processedBookings.forEach(booking => {
+          // Crear clave única: listingId + providerId + fecha ISO + hora
+          const dateKey = booking.date.toISOString().split('T')[0]; // Solo fecha YYYY-MM-DD
+          const timeKey = booking.date.toISOString().split('T')[1].substring(0, 5); // Solo hora HH:MM
+          const uniqueKey = `${booking.listingId}-${booking.providerId}-${dateKey}-${timeKey}`;
+          
+          console.log(`🔍 Evaluando cita ${booking.id}: clave=${uniqueKey}, servicio=${booking.serviceName}`);
+          
+          if (uniqueBookingsMap.has(uniqueKey)) {
+            const existingBooking = uniqueBookingsMap.get(uniqueKey)!;
+            console.log(`⚠️ DUPLICADO DETECTADO: ${booking.serviceName} el ${dateKey} a las ${timeKey}`);
+            console.log(`   - Existente: ID=${existingBooking.id}, Recurrencia=${existingBooking.recurrence}`);
+            console.log(`   - Nuevo: ID=${booking.id}, Recurrencia=${booking.recurrence}`);
+            
+            // Priorización: mantener la cita más reciente o con mejor criterio
+            // Criterio 1: Citas con recurrence_group_id válido tienen prioridad
+            // Criterio 2: Citas con status 'confirmed' sobre 'pending'
+            // Criterio 3: Citas más recientes (por ID o fecha de creación)
+            let shouldReplace = false;
+            
+            if (booking.recurrenceGroupId && !existingBooking.recurrenceGroupId) {
+              shouldReplace = true;
+              console.log('   ✅ Reemplazando: nueva cita tiene recurrence_group_id');
+            } else if (booking.status === 'confirmed' && existingBooking.status === 'pending') {
+              shouldReplace = true;
+              console.log('   ✅ Reemplazando: nueva cita está confirmada');
+            } else if (booking.id > existingBooking.id) {
+              shouldReplace = true;
+              console.log('   ✅ Reemplazando: nueva cita tiene ID más reciente');
+            }
+            
+            if (shouldReplace) {
+              uniqueBookingsMap.set(uniqueKey, booking);
+              console.log(`   🔄 Cita reemplazada: ${existingBooking.id} → ${booking.id}`);
+            } else {
+              console.log(`   ⏭️ Cita mantenida: ${existingBooking.id} (descartando ${booking.id})`);
+            }
+          } else {
+            uniqueBookingsMap.set(uniqueKey, booking);
+            console.log(`   ✅ Cita única agregada: ${booking.id}`);
+          }
+        });
+        
+        const deduplicatedBookings = Array.from(uniqueBookingsMap.values());
+        console.log(`🧹 DEDUPLICACIÓN COMPLETADA: ${processedBookings.length} → ${deduplicatedBookings.length} reservas`);
+        
+        if (processedBookings.length !== deduplicatedBookings.length) {
+          const duplicatesRemoved = processedBookings.length - deduplicatedBookings.length;
+          console.log(`🚨 SE ELIMINARON ${duplicatesRemoved} DUPLICADOS`);
+        }
         
         // ORDENAMIENTO CRONOLÓGICO CRÍTICO: Más próxima primero
-        processedBookings.sort((a, b) => {
+        deduplicatedBookings.sort((a, b) => {
           const dateA = new Date(a.date);
           const dateB = new Date(b.date);
           return dateA.getTime() - dateB.getTime();
         });
         
-        console.log('✅ Reservas ordenadas cronológicamente (más próxima primero)');
-        processedBookings.forEach((booking, index) => {
+        console.log('✅ Reservas finales ordenadas cronológicamente (más próxima primero)');
+        deduplicatedBookings.forEach((booking, index) => {
           console.log(`${index + 1}. ${booking.serviceName} - ${booking.date.toLocaleString()}`);
         });
         
-        return processedBookings;
+        return deduplicatedBookings;
 
       } catch (error) {
         console.error('❌ Error en useClientBookings:', error);
