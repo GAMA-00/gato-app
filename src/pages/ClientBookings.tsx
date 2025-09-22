@@ -17,8 +17,8 @@ const ClientBookings = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Disabled to prevent active bookings from disappearing
-  // useAppointmentCompletion();
+  // Re-enable appointment completion for proper flow
+  useAppointmentCompletion();
   
   const { summary: recurringServicesSummary } = useRecurringServices();
   const { data: bookings, isLoading, error, refetch } = useClientBookings();
@@ -27,29 +27,28 @@ const ClientBookings = () => {
   console.log(`Total bookings received: ${bookings?.length || 0}`);
   console.log('Recurring services summary:', recurringServicesSummary);
   
-  // Filtrar citas activas con lógica especial para recurrencias
+  // Filtrar SOLO citas futuras - tanto únicas como recurrentes
   const now = new Date();
   const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
-  // Mostrar citas PENDIENTES y CONFIRMADAS en "Mis reservas" - NUNCA eliminar automáticamente
+  
   const activeBookings = bookings?.filter(booking => {
-    // Excluir SOLO citas rechazadas o canceladas
-    if (booking.status === 'rejected' || booking.status === 'cancelled') {
+    // Excluir citas canceladas, rechazadas o completadas
+    if (['cancelled', 'rejected', 'completed'].includes(booking.status)) {
       return false;
     }
     
-    // Para recurrentes: mostrar siempre si están pendientes o confirmadas
-    if (booking.recurrence && validRecurrences.has(booking.recurrence)) {
-      return booking.status === 'pending' || booking.status === 'confirmed';
-    }
-    
-    // Para únicas: mostrar si están pendientes/confirmadas y son futuras
-    // ALSO include completed future appointments as safeguard
+    // Solo mostrar citas FUTURAS (pendientes o confirmadas)
     const isFuture = booking.date > now;
     const isActiveStatus = booking.status === 'pending' || booking.status === 'confirmed';
-    const isCompletedFuture = booking.status === 'completed' && isFuture;
     
-    return (isActiveStatus && isFuture) || isCompletedFuture;
+    if (!isFuture) {
+      console.log(`❌ Filtered out past appointment: ${booking.serviceName} - ${booking.date.toLocaleString()}`);
+    }
+    
+    return isActiveStatus && isFuture;
   }) || [];
+  
+  console.log(`📅 Showing ${activeBookings.length} future appointments only`);
 
   // Mostrar TODAS las citas completadas pendientes de calificar
   const completedBookings = bookings?.filter(booking => 

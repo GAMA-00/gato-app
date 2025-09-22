@@ -18,22 +18,22 @@ function calculateNextOccurrenceForRecurring(
   status: string
 ): Date {
   const originalDate = new Date(startTime);
+  const now = new Date();
   
-  // For non-recurring or pending/confirmed appointments, use original date
-  if (!recurrence || recurrence === 'none' || status === 'pending' || status === 'confirmed') {
+  // For non-recurring appointments, always use original date
+  if (!recurrence || recurrence === 'none') {
     return originalDate;
   }
   
-  // For completed recurring appointments, calculate actual next occurrence
-  if (status === 'completed' && recurrence !== 'none') {
-    const now = new Date();
-    
-    // If original date hasn't passed yet, return original date
+  // For recurring appointments, calculate next future occurrence if original date has passed
+  const validRecurrences = ['weekly', 'biweekly', 'triweekly', 'monthly'];
+  if (validRecurrences.includes(recurrence)) {
+    // If original date is in the future, use it
     if (originalDate > now) {
       return originalDate;
     }
     
-    // Calculate next occurrence based on recurrence type
+    // If original date has passed, calculate next occurrence
     let nextDate = new Date(originalDate);
     
     switch (recurrence) {
@@ -57,16 +57,14 @@ function calculateNextOccurrenceForRecurring(
           nextDate.setMonth(nextDate.getMonth() + 1);
         }
         break;
-      default:
-        return originalDate;
     }
     
-    console.log(`🔄 Next occurrence calculated for ${recurrence} appointment: ${nextDate.toISOString()}`);
+    console.log(`🔄 Next occurrence calculated for ${recurrence} appointment: original=${originalDate.toISOString()}, next=${nextDate.toISOString()}`);
     return nextDate;
   }
   
-  // Fallback to original calculation
-  return calculateNextOccurrence(startTime, recurrence);
+  // Fallback for any edge cases
+  return originalDate;
 }
 
 export function processClientBooking({
