@@ -47,37 +47,45 @@ export const CancelAppointmentModal = ({
 
   const handleCancelSingle = () => withLoading(async () => {
     if (isRecurring) {
-      // Para citas recurrentes: crear una EXCEPCIÓN para omitir SOLO esta instancia
-      console.log('Skipping recurring instance via recurring_exceptions:', { appointmentId, appointmentDate });
+      // Para citas recurrentes: usar la nueva función para saltar solo esta instancia
+      console.log('🔄 Skipping recurring instance using edge function:', appointmentId);
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('skip-recurring-instance', {
+          body: { appointmentId }
+        });
 
-      // Cancelar SOLO esta cita (no avanza la serie)
-      const { error: cancelErr } = await supabase
-        .from('appointments')
-        .update({
-          status: 'cancelled',
-          cancellation_time: new Date().toISOString(),
-          last_modified_at: new Date().toISOString()
-        })
-        .eq('id', appointmentId);
+        if (error) {
+          console.error('❌ Edge function error:', error);
+          throw new Error(error.message || 'Failed to skip recurring instance');
+        }
 
-      if (cancelErr) throw cancelErr;
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to skip recurring instance');
+        }
 
-      // Eliminarla para que no reaparezca y liberar slots vía triggers
-      await supabase
-        .from('appointments')
-        .delete()
-        .eq('id', appointmentId)
-        .eq('status', 'cancelled');
-
-      toast.success('Se saltó esta fecha. Verás la siguiente instancia de la serie.');
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
-        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
-      ]);
-      onClose();
+        console.log('✅ Successfully skipped recurring instance:', data);
+        toast.success('Se saltó esta fecha. Verás la siguiente instancia de la serie.');
+        
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+          queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+          queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+          queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
+          queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        ]);
+        
+        // Force refetch after a short delay
+        setTimeout(() => {
+          queryClient.refetchQueries({ queryKey: ['client-bookings'] });
+        }, 500);
+        
+        onClose();
+      } catch (error) {
+        console.error('❌ Error skipping recurring instance:', error);
+        toast.error(error instanceof Error ? error.message : 'Error al saltar la cita');
+        throw error;
+      }
     } else {
       // Para citas no recurrentes: cancelar normalmente
       console.log('Canceling single appointment:', appointmentId);

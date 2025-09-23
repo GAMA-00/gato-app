@@ -54,43 +54,120 @@ serve(async (req) => {
       );
     }
 
-    // Extract the specific time pattern to identify this exact recurring series
-    const appointmentTimeOfDay = new Date(appointment.start_time).toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
-    console.log(`🕐 Target recurring series time pattern: ${appointmentTimeOfDay}`);
+    // Step 1: Identify the specific recurring rule to target
+    let targetRuleId = appointment.recurring_rule_id;
+    console.log(`🔍 Looking for recurring rule. Direct rule ID: ${targetRuleId}`);
 
-    // Step 1: Cancel all future appointments in this SPECIFIC recurring series (same time pattern)
-    const { data: futureAppointments, error: futureError } = await supabaseClient
-      .from('appointments')
-      .select('id, start_time')
-      .eq('provider_id', appointment.provider_id)
-      .eq('client_id', appointment.client_id)
-      .eq('listing_id', appointment.listing_id)
-      .eq('recurrence', appointment.recurrence)
-      .gte('start_time', new Date().toISOString())
-      .neq('status', 'cancelled');
+    // If no direct rule ID, find the rule by matching criteria
+    if (!targetRuleId) {
+      const appointmentStartTime = new Date(appointment.start_time + 'Z'); // Ensure UTC
+      const costaRicaDate = new Date(appointmentStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
+      const dayOfWeek = costaRicaDate.getDay(); // Sunday = 0, Monday = 1, etc.
+      const dayOfMonth = costaRicaDate.getDate();
+      const timeOfDay = appointmentStartTime.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+      
+      console.log(`🕐 Searching for rule with time: ${timeOfDay}, day of week: ${dayOfWeek}, day of month: ${dayOfMonth}`);
 
-    if (futureError) {
-      console.error('❌ Error fetching future appointments:', futureError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch future appointments' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const { data: matchingRules, error: ruleError } = await supabaseClient
+        .from('recurring_rules')
+        .select('id')
+        .eq('provider_id', appointment.provider_id)
+        .eq('client_id', appointment.client_id)
+        .eq('listing_id', appointment.listing_id)
+        .eq('recurrence_type', appointment.recurrence)
+        .eq('start_time', timeOfDay)
+        .eq('is_active', true);
+
+      if (ruleError) {
+        console.error('❌ Error finding recurring rule:', ruleError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to find recurring rule' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Filter by day criteria based on recurrence type
+      const filteredRules = matchingRules?.filter(rule => {
+        if (appointment.recurrence === 'weekly' || appointment.recurrence === 'biweekly') {
+          return rule.day_of_week === dayOfWeek;
+        } else if (appointment.recurrence === 'monthly') {
+          return rule.day_of_month === dayOfMonth;
+        }
+        return true;
+      }) || [];
+
+      if (filteredRules.length === 0) {
+        console.log('⚠️ No matching recurring rule found, will use appointment-based cancellation');
+      } else {
+        targetRuleId = filteredRules[0].id;
+        console.log(`📋 Found matching rule: ${targetRuleId}`);
+      }
     }
 
-    // Filter appointments to only those with the SAME TIME PATTERN (same recurring series)
-    const specificSeriesAppointments = futureAppointments?.filter(apt => {
-      const aptTimeOfDay = new Date(apt.start_time).toTimeString().split(' ')[0].substring(0, 5);
-      return aptTimeOfDay === appointmentTimeOfDay;
-    }) || [];
+    // Step 2: Cancel future appointments belonging to this specific rule
+    let futureAppointments = [];
+    if (targetRuleId) {
+      // Cancel by rule ID (most precise)
+      const { data: ruleAppointments, error: futureError } = await supabaseClient
+        .from('appointments')
+        .select('id, start_time')
+        .eq('recurring_rule_id', targetRuleId)
+        .gte('start_time', new Date().toISOString())
+        .neq('status', 'cancelled');
 
-    console.log(`📅 Found ${futureAppointments?.length || 0} future appointments, ${specificSeriesAppointments.length} match the specific time pattern`);
+      if (futureError) {
+        console.error('❌ Error fetching appointments by rule ID:', futureError);
+      } else {
+        futureAppointments = ruleAppointments || [];
+        console.log(`📅 Found ${futureAppointments.length} future appointments for rule ${targetRuleId}`);
+      }
+    }
 
-    // Cancel only the appointments in this SPECIFIC recurring series
-    if (specificSeriesAppointments && specificSeriesAppointments.length > 0) {
-      const appointmentIds = specificSeriesAppointments.map(apt => apt.id);
+    // Fallback: if no rule ID or no appointments found via rule ID
+    if (futureAppointments.length === 0) {
+      console.log('🔄 Falling back to pattern-based appointment search');
       
-      console.log(`🎯 Targeting appointments with IDs: ${appointmentIds.join(', ')}`);
-      console.log(`🕐 Current time pattern: ${appointmentTimeOfDay}`);
+      const appointmentStartTime = new Date(appointment.start_time + 'Z');
+      const costaRicaDate = new Date(appointmentStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
+      const dayOfWeek = costaRicaDate.getDay();
+      const timeOfDay = appointmentStartTime.toTimeString().split(' ')[0].substring(0, 5);
+      
+      const { data: patternAppointments, error: patternError } = await supabaseClient
+        .from('appointments')
+        .select('id, start_time')
+        .eq('provider_id', appointment.provider_id)
+        .eq('client_id', appointment.client_id)
+        .eq('listing_id', appointment.listing_id)
+        .eq('recurrence', appointment.recurrence)
+        .gte('start_time', new Date().toISOString())
+        .neq('status', 'cancelled');
+
+      if (patternError) {
+        console.error('❌ Error fetching appointments by pattern:', patternError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch appointments' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Filter by exact time and day pattern
+      futureAppointments = patternAppointments?.filter(apt => {
+        const aptStartTime = new Date(apt.start_time + 'Z');
+        const aptCostaRicaDate = new Date(aptStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
+        const aptTimeOfDay = aptStartTime.toTimeString().split(' ')[0].substring(0, 5);
+        const aptDayOfWeek = aptCostaRicaDate.getDay();
+        
+        return aptTimeOfDay === timeOfDay && aptDayOfWeek === dayOfWeek;
+      }) || [];
+
+      console.log(`📅 Pattern search found ${futureAppointments.length} matching appointments`);
+    }
+
+    // Cancel the found appointments
+    if (futureAppointments && futureAppointments.length > 0) {
+      const appointmentIds = futureAppointments.map(apt => apt.id);
+      
+      console.log(`🎯 Cancelling appointments with IDs: ${appointmentIds.join(', ')}`);
       
       const { error: cancelError } = await supabaseClient
         .from('appointments')
@@ -113,125 +190,112 @@ serve(async (req) => {
       console.log(`✅ Cancelled ${appointmentIds.length} future appointments`);
     }
 
-    // Step 2: Deactivate only recurring rules that match this SPECIFIC time pattern
-    const { data: rulesToDeactivate, error: rulesFetchError } = await supabaseClient
-      .from('recurring_rules')
-      .select('id, start_time')
-      .eq('provider_id', appointment.provider_id)
-      .eq('client_id', appointment.client_id)
-      .eq('listing_id', appointment.listing_id)
-      .eq('start_time', appointmentTimeOfDay)
-      .eq('is_active', true);
+    // Step 3: Deactivate the specific recurring rule
+    if (targetRuleId) {
+      const { error: rulesError } = await supabaseClient
+        .from('recurring_rules')
+        .update({ 
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', targetRuleId);
 
-    if (rulesFetchError) {
-      console.log('⚠️ Error fetching recurring rules (may not exist):', rulesFetchError);
+      if (rulesError) {
+        console.log('⚠️ Error deactivating recurring rule:', rulesError);
+      } else {
+        console.log(`✅ Deactivated recurring rule: ${targetRuleId}`);
+      }
     }
 
-    const { error: rulesError } = await supabaseClient
-      .from('recurring_rules')
-      .update({ 
-        is_active: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('provider_id', appointment.provider_id)
-      .eq('client_id', appointment.client_id)
-      .eq('listing_id', appointment.listing_id)
-      .eq('start_time', appointmentTimeOfDay)
-      .eq('is_active', true);
-
-    if (rulesError) {
-      console.log('⚠️ Error deactivating recurring rules (may not exist):', rulesError);
-    } else {
-      console.log(`✅ Deactivated ${rulesToDeactivate?.length || 0} recurring rule(s)`);
-    }
-
-    // Step 3: Clean up recurring rules and instances for this SPECIFIC time pattern
-    // Fetch matching recurring rules with the same time pattern
-    const { data: matchingRules, error: rulesFetchError2 } = await supabaseClient
-      .from('recurring_rules')
-      .select('id')
-      .eq('provider_id', appointment.provider_id)
-      .eq('client_id', appointment.client_id)
-      .eq('listing_id', appointment.listing_id)
-      .eq('start_time', appointmentTimeOfDay);
-
-    if (rulesFetchError2) {
-      console.log('⚠️ Error fetching recurring rules for cleanup:', rulesFetchError2);
-    }
-
-    const ruleIds = matchingRules?.map(r => r.id) || [];
-
-    if (ruleIds.length > 0) {
+    // Step 4: Clean up recurring instances for this specific rule
+    if (targetRuleId) {
       const { error: instancesError } = await supabaseClient
         .from('recurring_appointment_instances')
         .delete()
-        .in('recurring_rule_id', ruleIds)
+        .in('recurring_rule_id', [targetRuleId])
         .gte('start_time', new Date().toISOString());
 
       if (instancesError) {
-        console.log('⚠️ Error deleting recurring instances (may not exist):', instancesError);
+        console.log('⚠️ Error deleting recurring instances:', instancesError);
       } else {
-        console.log(`🧹 Deleted recurring instances for ${ruleIds.length} rule(s)`);
+        console.log(`🧹 Deleted recurring instances for rule ${targetRuleId}`);
       }
     }
 
-    // Step 3b: Break the recurrence link ONLY on appointments with the SAME TIME PATTERN
-    // First, fetch all appointments that match the pattern to see what we're targeting
-    const { data: allMatchingAppointments, error: fetchAllError } = await supabaseClient
-      .from('appointments')
-      .select('id, start_time, recurrence')
-      .eq('provider_id', appointment.provider_id)
-      .eq('client_id', appointment.client_id)
-      .eq('listing_id', appointment.listing_id)
-      .neq('recurrence', 'none');
+    // Step 5: Break the recurrence link on appointments from this specific rule
+    if (targetRuleId) {
+      // Break recurrence by rule ID (most precise)
+      const { error: breakRuleError } = await supabaseClient
+        .from('appointments')
+        .update({
+          recurrence: 'none',
+          recurring_rule_id: null,
+          is_recurring_instance: false,
+          recurrence_group_id: null,
+          last_modified_at: new Date().toISOString(),
+          last_modified_by: appointment.client_id
+        })
+        .eq('recurring_rule_id', targetRuleId);
 
-    if (!fetchAllError && allMatchingAppointments) {
-      // Filter to only appointments with the same time pattern
-      const sameTimePatternAppointments = allMatchingAppointments.filter(apt => {
-        if (apt.recurrence === 'none') return false;
-        const aptTimeOfDay = new Date(apt.start_time).toTimeString().split(' ')[0].substring(0, 5);
-        return aptTimeOfDay === appointmentTimeOfDay;
-      });
-
-      console.log(`🔍 Found ${allMatchingAppointments.length} total recurring appointments, ${sameTimePatternAppointments.length} with matching time pattern`);
+      if (breakRuleError) {
+        console.log('⚠️ Error breaking recurrence by rule ID:', breakRuleError);
+      } else {
+        console.log(`🔗 Recurrence removed from all appointments with rule ID ${targetRuleId}`);
+      }
+    } else {
+      // Fallback: break recurrence by pattern matching
+      const appointmentStartTime = new Date(appointment.start_time + 'Z');
+      const costaRicaDate = new Date(appointmentStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
+      const dayOfWeek = costaRicaDate.getDay();
+      const timeOfDay = appointmentStartTime.toTimeString().split(' ')[0].substring(0, 5);
       
-      if (sameTimePatternAppointments.length > 0) {
-        const targetIds = sameTimePatternAppointments.map(apt => apt.id);
-        console.log(`🎯 Breaking recurrence for appointments: ${targetIds.join(', ')}`);
-        
-        const { error: breakSeriesError } = await supabaseClient
-          .from('appointments')
-          .update({
-            recurrence: 'none',
-            recurring_rule_id: null,
-            is_recurring_instance: false,
-            recurrence_group_id: null,
-            last_modified_at: new Date().toISOString(),
-            last_modified_by: appointment.client_id
-          })
-          .in('id', targetIds);
+      const { data: patternAppointments, error: patternFetchError } = await supabaseClient
+        .from('appointments')
+        .select('id, start_time')
+        .eq('provider_id', appointment.provider_id)
+        .eq('client_id', appointment.client_id)
+        .eq('listing_id', appointment.listing_id)
+        .eq('recurrence', appointment.recurrence)
+        .neq('recurrence', 'none');
 
-        if (breakSeriesError) {
-          console.log('⚠️ Error breaking recurrence on specific appointments:', breakSeriesError);
-        } else {
-          console.log(`🔗 Recurrence removed from ${targetIds.length} appointments with matching time pattern`);
+      if (!patternFetchError && patternAppointments) {
+        const matchingAppointments = patternAppointments.filter(apt => {
+          const aptStartTime = new Date(apt.start_time + 'Z');
+          const aptCostaRicaDate = new Date(aptStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
+          const aptTimeOfDay = aptStartTime.toTimeString().split(' ')[0].substring(0, 5);
+          const aptDayOfWeek = aptCostaRicaDate.getDay();
+          
+          return aptTimeOfDay === timeOfDay && aptDayOfWeek === dayOfWeek;
+        });
+
+        if (matchingAppointments.length > 0) {
+          const targetIds = matchingAppointments.map(apt => apt.id);
+          console.log(`🎯 Breaking recurrence for pattern-matched appointments: ${targetIds.join(', ')}`);
+          
+          const { error: breakPatternError } = await supabaseClient
+            .from('appointments')
+            .update({
+              recurrence: 'none',
+              recurring_rule_id: null,
+              is_recurring_instance: false,
+              recurrence_group_id: null,
+              last_modified_at: new Date().toISOString(),
+              last_modified_by: appointment.client_id
+            })
+            .in('id', targetIds);
+
+          if (breakPatternError) {
+            console.log('⚠️ Error breaking recurrence by pattern:', breakPatternError);
+          } else {
+            console.log(`🔗 Recurrence removed from ${targetIds.length} pattern-matched appointments`);
+          }
         }
-      } else {
-        console.log('ℹ️ No appointments found with matching time pattern to break recurrence');
       }
-    } else {
-      console.log('⚠️ Error fetching appointments for pattern matching:', fetchAllError);
     }
 
-    if (breakSeriesError) {
-      console.log('⚠️ Error breaking recurrence on appointments:', breakSeriesError);
-    } else {
-      console.log('🔗 Recurrence removed from all related appointments');
-    }
-
-    // Step 4: Release time slots for the cancelled appointments (specific series only)
-    if (specificSeriesAppointments && specificSeriesAppointments.length > 0) {
-      for (const apt of specificSeriesAppointments) {
+    // Step 6: Release time slots for the cancelled appointments
+    if (futureAppointments && futureAppointments.length > 0) {
+      for (const apt of futureAppointments) {
         // Release the specific slot
         const { error: slotError } = await supabaseClient
           .from('provider_time_slots')
@@ -249,8 +313,10 @@ serve(async (req) => {
           console.log(`⚠️ Error releasing slot for ${apt.start_time}:`, slotError);
         }
       }
+    }
 
-      // Also release all future recurring blocked slots with the same time pattern
+    // Release all future recurring blocked slots for this specific rule
+    if (targetRuleId) {
       const { error: recurringSlotError } = await supabaseClient
         .from('provider_time_slots')
         .update({
@@ -261,22 +327,21 @@ serve(async (req) => {
         })
         .eq('provider_id', appointment.provider_id)
         .eq('listing_id', appointment.listing_id)
-        .eq('recurring_blocked', true)
-        .eq('start_time', appointmentTimeOfDay)
+        .eq('recurring_rule_id', targetRuleId)
         .gte('slot_date', new Date().toISOString().split('T')[0]);
 
       if (recurringSlotError) {
-        console.log('⚠️ Error releasing recurring slots:', recurringSlotError);
+        console.log('⚠️ Error releasing recurring slots by rule ID:', recurringSlotError);
       } else {
-        console.log('✅ Released recurring blocked slots');
+        console.log('✅ Released recurring blocked slots for rule');
       }
     }
 
     console.log('🎉 Successfully cancelled recurring series');
 
-    // Step 5: DELETE cancelled appointments to prevent regeneration (specific series only)
-    if (specificSeriesAppointments && specificSeriesAppointments.length > 0) {
-      const appointmentIds = specificSeriesAppointments.map(apt => apt.id);
+    // Step 7: DELETE cancelled appointments to prevent regeneration
+    if (futureAppointments && futureAppointments.length > 0) {
+      const appointmentIds = futureAppointments.map(apt => apt.id);
       
       console.log(`🗑️ Deleting ${appointmentIds.length} cancelled appointments to prevent regeneration`);
       
@@ -293,33 +358,12 @@ serve(async (req) => {
       }
     }
 
-    // Step 6: Final safety unblock for any residual recurring-blocked slots for this SPECIFIC time pattern
-    const { error: finalUnblockError } = await supabaseClient
-      .from('provider_time_slots')
-      .update({
-        is_available: true,
-        is_reserved: false,
-        recurring_blocked: false,
-        blocked_until: null
-      })
-      .eq('provider_id', appointment.provider_id)
-      .eq('listing_id', appointment.listing_id)
-      .eq('start_time', appointmentTimeOfDay)
-      .eq('recurring_blocked', true)
-      .gte('slot_date', new Date().toISOString().split('T')[0]);
-
-    if (finalUnblockError) {
-      console.log('⚠️ Final unblock slots step had errors (non-critical):', finalUnblockError);
-    } else {
-      console.log('🔓 Final unblock ensured for any residual slots');
-    }
-
     return new Response(
       JSON.stringify({ 
         success: true, 
-        cancelledCount: specificSeriesAppointments?.length || 0,
-        timePattern: appointmentTimeOfDay,
-        message: 'Specific recurring series cancelled successfully'
+        cancelledCount: futureAppointments?.length || 0,
+        ruleId: targetRuleId,
+        message: 'Recurring series cancelled successfully'
       }),
       { 
         status: 200, 
