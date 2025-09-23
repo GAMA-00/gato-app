@@ -99,120 +99,38 @@ export const CancelAppointmentModal = ({
   });
 
   const handleCancelRecurring = () => withLoading(async () => {
-    console.log('Canceling recurring appointment series:', appointmentId);
+    console.log('🚫 Canceling recurring appointment series using edge function:', appointmentId);
     
-    // Obtener detalles de la cita
-    const { data: appointment, error: fetchError } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('id', appointmentId)
-      .single();
+    try {
+      // Use the secure edge function to cancel the entire recurring series
+      const { data, error } = await supabase.functions.invoke('cancel-recurring-series', {
+        body: { appointmentId }
+      });
 
-    if (fetchError) throw fetchError;
-
-    // Crear un identificador único para esta serie recurrente específica
-    const appointmentStartTime = new Date(appointment.start_time);
-    const appointmentTimeOfDay = appointmentStartTime.toTimeString().substring(0, 8); // HH:MM:SS
-    const appointmentDayOfWeek = appointmentStartTime.getDay();
-    const appointmentDayOfMonth = appointmentStartTime.getDate();
-
-    console.log('🎯 Canceling recurring series with criteria:', {
-      recurrence: appointment.recurrence,
-      timeOfDay: appointmentTimeOfDay,
-      dayOfWeek: appointmentDayOfWeek,
-      dayOfMonth: appointmentDayOfMonth,
-      originalStartTime: appointment.start_time
-    });
-
-    // Cancelar la cita base
-    const { error: updateError } = await supabase
-      .from('appointments')
-      .update({
-        recurrence: 'none',
-        status: 'cancelled',
-        cancellation_time: new Date().toISOString(),
-        last_modified_by: appointment.client_id,
-        last_modified_at: new Date().toISOString()
-      })
-      .eq('id', appointmentId);
-
-    if (updateError) throw updateError;
-
-    // Cancelar todas las citas futuras de la misma serie específica
-    if (appointment.recurrence && appointment.recurrence !== 'none') {
-      // Obtener todas las citas futuras que coincidan con el patrón específico
-      const { data: futureAppointments, error: fetchFutureError } = await supabase
-        .from('appointments')
-        .select('id, start_time')
-        .eq('provider_id', appointment.provider_id)
-        .eq('client_id', appointment.client_id)
-        .eq('listing_id', appointment.listing_id)
-        .eq('recurrence', appointment.recurrence)
-        .gte('start_time', new Date().toISOString())
-        .neq('id', appointmentId)
-        .in('status', ['pending', 'confirmed']);
-
-      if (fetchFutureError) {
-        console.error('Error fetching future appointments:', fetchFutureError);
-      } else if (futureAppointments && futureAppointments.length > 0) {
-        // Filtrar solo las citas que pertenecen a la misma serie temporal
-        const sameSeriesAppointments = futureAppointments.filter(apt => {
-          const aptStartTime = new Date(apt.start_time);
-          const aptTimeOfDay = aptStartTime.toTimeString().substring(0, 8);
-          
-          if (appointment.recurrence === 'weekly' || appointment.recurrence === 'biweekly' || appointment.recurrence === 'triweekly') {
-            return aptTimeOfDay === appointmentTimeOfDay && aptStartTime.getDay() === appointmentDayOfWeek;
-          } else if (appointment.recurrence === 'monthly') {
-            return aptTimeOfDay === appointmentTimeOfDay && aptStartTime.getDate() === appointmentDayOfMonth;
-          }
-          return false;
-        });
-
-        console.log(`🎯 Found ${sameSeriesAppointments.length} appointments in the same series to cancel`);
-
-        if (sameSeriesAppointments.length > 0) {
-          const appointmentIds = sameSeriesAppointments.map(apt => apt.id);
-          
-          const { error: cancelFutureError } = await supabase
-            .from('appointments')
-            .update({
-              status: 'cancelled',
-              cancellation_time: new Date().toISOString(),
-              last_modified_by: appointment.client_id,
-              last_modified_at: new Date().toISOString()
-            })
-            .in('id', appointmentIds);
-
-          if (cancelFutureError) {
-            console.error('Error canceling future appointments:', cancelFutureError);
-          } else {
-            console.log(`✅ Successfully canceled ${appointmentIds.length} future appointments`);
-          }
-        }
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw new Error(error.message || 'Failed to cancel recurring series');
       }
-      
-      // Auto-limpiar solo las citas canceladas de esta serie específica
-      setTimeout(async () => {
-        try {
-          await supabase
-            .from('appointments')
-            .delete()
-            .eq('status', 'cancelled')
-            .eq('client_id', appointment.client_id)
-            .eq('provider_id', appointment.provider_id)
-            .eq('listing_id', appointment.listing_id)
-            .gte('cancellation_time', appointment.cancellation_time || new Date().toISOString());
-          
-          queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-        } catch (deleteError) {
-          console.warn('Could not auto-clean cancelled recurring appointments:', deleteError);
-        }
-      }, 3000);
-    }
 
-    toast.success('Serie de citas recurrentes cancelada exitosamente');
-    queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-    onClose();
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to cancel recurring series');
+      }
+
+      console.log('✅ Successfully cancelled recurring series:', data);
+      
+      toast.success(`Serie de citas recurrentes cancelada (${data.cancelledCount || 0} citas)`);
+      
+      // Invalidate multiple query keys to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      
+      onClose();
+    } catch (error) {
+      console.error('❌ Error cancelling recurring series:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al cancelar la serie de citas');
+      throw error;
+    }
   });
 
   // ===== CONFIGURACIÓN DEL MODAL =====
