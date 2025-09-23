@@ -3,16 +3,17 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, X, MapPin, RotateCcw } from 'lucide-react';
+import { Calendar, Clock, X, MapPin, RotateCcw, SkipForward } from 'lucide-react';
 import { cn, formatTo12Hour } from '@/lib/utils';
 import { ClientBooking } from '@/hooks/useClientBookings';
-import { CancelAppointmentModal } from '@/components/client/booking/CancelAppointmentModal';
-import { RescheduleAppointmentModal } from '@/components/client/booking/RescheduleAppointmentModal';
 import { RatingStars } from '@/components/client/booking/RatingStars';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
 import { isRecurring } from '@/utils/recurrenceUtils';
 import { getServiceTypeIcon } from '@/utils/serviceIconUtils';
 import { getRecurrenceInfo } from '@/utils/recurrenceUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface BookingCardProps {
   booking: ClientBooking;
@@ -20,8 +21,8 @@ interface BookingCardProps {
 }
 
 export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
   const isRecurring = booking.recurrence && booking.recurrence !== 'none';
   const isCompleted = booking.status === 'completed';
   const isSkipped = booking.status === 'cancelled' && booking.notes?.includes('[SKIPPED BY CLIENT]');
@@ -38,12 +39,127 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     categoryId: booking.categoryId
   });
   
-  const handleReschedule = () => {
-    setShowRescheduleModal(true);
+  const handleSkipAppointment = async () => {
+    setIsLoading(true);
+    try {
+      if (isRecurring) {
+        // Para citas recurrentes: usar la función para saltar solo esta instancia
+        console.log('🔄 Skipping recurring instance using edge function:', booking.id);
+        
+        const { data, error } = await supabase.functions.invoke('skip-recurring-instance', {
+          body: { appointmentId: booking.id }
+        });
+
+        if (error) {
+          console.error('❌ Edge function error:', error);
+          throw new Error(error.message || 'Failed to skip recurring instance');
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to skip recurring instance');
+        }
+
+        console.log('✅ Successfully skipped recurring instance:', data);
+        toast.success('Se saltó esta fecha. Verás la siguiente instancia de la serie.');
+        
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+          queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+          queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+          queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
+          queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        ]);
+        
+        // Force refetch after a short delay
+        setTimeout(() => {
+          queryClient.refetchQueries({ queryKey: ['client-bookings'] });
+        }, 500);
+        
+      } else {
+        // Para citas no recurrentes: cancelar normalmente
+        console.log('Canceling single appointment:', booking.id);
+        
+        const { error } = await supabase
+          .from('appointments')
+          .update({
+            status: 'cancelled',
+            cancellation_time: new Date().toISOString()
+          })
+          .eq('id', booking.id);
+
+        if (error) throw error;
+
+        // Auto-limpiar la cita cancelada después de 3 segundos
+        setTimeout(async () => {
+          try {
+            await supabase
+              .from('appointments')
+              .delete()
+              .eq('id', booking.id)
+              .eq('status', 'cancelled');
+            
+            queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+          } catch (deleteError) {
+            console.warn('Could not auto-clean cancelled appointment:', deleteError);
+          }
+        }, 3000);
+
+        toast.success('Cita cancelada exitosamente');
+        queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al procesar la solicitud');
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  const handleCancel = () => {
-    setShowCancelModal(true);
+
+  const handleCancelAllFuture = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🚫 Canceling recurring appointment series using edge function:', booking.id);
+      
+      // Use the secure edge function to cancel the entire recurring series
+      const { data, error } = await supabase.functions.invoke('cancel-recurring-series', {
+        body: { appointmentId: booking.id }
+      });
+
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw new Error(error.message || 'Failed to cancel recurring series');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to cancel recurring series');
+      }
+
+      console.log('✅ Successfully cancelled recurring series:', data);
+      
+      toast.success(`Serie de citas recurrentes cancelada (${data.cancelledCount || 0} citas)`);
+      
+      // Invalidate ALL possible query keys to ensure UI updates
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        queryClient.resetQueries({ queryKey: ['client-bookings'] })
+      ]);
+      
+      // Force a complete refetch after a short delay
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['client-bookings'] });
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ Error cancelling recurring series:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al cancelar la serie de citas');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const getProviderName = () => {
@@ -149,45 +265,28 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                 variant="outline" 
                 size="sm" 
                 className="flex-1 h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                onClick={handleReschedule}
+                onClick={handleSkipAppointment}
+                disabled={isLoading}
               >
-                <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
-                <span className="truncate">Reagendar</span>
+                <SkipForward className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate">Saltar esta cita</span>
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                onClick={handleCancel}
-              >
-                <X className="h-3 w-3 mr-1 flex-shrink-0" />
-                <span className="truncate">Cancelar</span>
-              </Button>
+              {isRecurring && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                  onClick={handleCancelAllFuture}
+                  disabled={isLoading}
+                >
+                  <X className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="truncate">Cancelar todas las citas futuras</span>
+                </Button>
+              )}
             </div>
           )}
         </div>
       </CardContent>
-
-      <CancelAppointmentModal
-        isOpen={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        appointmentId={booking.id}
-        isRecurring={isRecurring}
-        appointmentDate={booking.date}
-      />
-
-      <RescheduleAppointmentModal
-        isOpen={showRescheduleModal}
-        onClose={() => setShowRescheduleModal(false)}
-        appointmentId={booking.id}
-        providerId={booking.providerId}
-        isRecurring={isRecurring}
-        currentDate={booking.date}
-        serviceDuration={60}
-        recurrence={booking.recurrence}
-        listingId={booking.listingId}
-        recurrenceGroupId={booking.recurrenceGroupId}
-      />
     </Card>
   );
 };
