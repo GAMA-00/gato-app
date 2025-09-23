@@ -166,7 +166,7 @@ serve(async (req) => {
         .eq('provider_id', appointment.provider_id)
         .eq('listing_id', appointment.listing_id)
         .eq('recurring_blocked', true)
-        .like('start_time', `${timeOfDay}%`)
+        .eq('start_time', timeOfDay)
         .gte('slot_date', new Date().toISOString().split('T')[0]);
 
       if (recurringSlotError) {
@@ -177,6 +177,25 @@ serve(async (req) => {
     }
 
     console.log('🎉 Successfully cancelled recurring series');
+
+    // Step 5: DELETE cancelled appointments to prevent regeneration
+    if (futureAppointments && futureAppointments.length > 0) {
+      const appointmentIds = futureAppointments.map(apt => apt.id);
+      
+      console.log(`🗑️ Deleting ${appointmentIds.length} cancelled appointments to prevent regeneration`);
+      
+      const { error: deleteError } = await supabaseClient
+        .from('appointments')
+        .delete()
+        .in('id', appointmentIds)
+        .eq('status', 'cancelled');
+      
+      if (deleteError) {
+        console.log('⚠️ Error deleting cancelled appointments (non-critical):', deleteError);
+      } else {
+        console.log('✅ Deleted cancelled appointments from database');
+      }
+    }
 
     return new Response(
       JSON.stringify({ 

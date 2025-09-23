@@ -120,10 +120,21 @@ export const CancelAppointmentModal = ({
       
       toast.success(`Serie de citas recurrentes cancelada (${data.cancelledCount || 0} citas)`);
       
-      // Invalidate multiple query keys to ensure UI updates
-      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      // Invalidate ALL possible query keys to ensure UI updates
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['provider-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+        queryClient.resetQueries({ queryKey: ['client-bookings'] })
+      ]);
+      
+      // Force a complete refetch after a short delay
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['client-bookings'] });
+      }, 500);
       
       onClose();
     } catch (error) {
