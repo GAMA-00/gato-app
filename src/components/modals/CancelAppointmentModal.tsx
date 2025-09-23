@@ -46,36 +46,56 @@ export const CancelAppointmentModal = ({
   // ===== FUNCIONES DE CANCELACIÓN =====
 
   const handleCancelSingle = () => withLoading(async () => {
-    console.log('Canceling single appointment:', appointmentId);
-    
-    const { error } = await supabase
-      .from('appointments')
-      .update({
-        status: 'cancelled',
-        cancellation_time: new Date().toISOString()
-      })
-      .eq('id', appointmentId);
+    if (isRecurring) {
+      // Para citas recurrentes: "saltar" marcando como completada
+      console.log('Skipping recurring appointment (marking as completed):', appointmentId);
+      
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'completed',
+          last_modified_at: new Date().toISOString()
+        })
+        .eq('id', appointmentId);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Auto-limpiar la cita cancelada después de 3 segundos
-    setTimeout(async () => {
-      try {
-        await supabase
-          .from('appointments')
-          .delete()
-          .eq('id', appointmentId)
-          .eq('status', 'cancelled');
-        
-        queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-      } catch (deleteError) {
-        console.warn('Could not auto-clean cancelled appointment:', deleteError);
-      }
-    }, 3000);
+      toast.success('Cita saltada. Se generará automáticamente la siguiente fecha.');
+      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      onClose();
+    } else {
+      // Para citas no recurrentes: cancelar normalmente
+      console.log('Canceling single appointment:', appointmentId);
+      
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'cancelled',
+          cancellation_time: new Date().toISOString()
+        })
+        .eq('id', appointmentId);
 
-    toast.success('Cita cancelada exitosamente');
-    queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-    onClose();
+      if (error) throw error;
+
+      // Auto-limpiar la cita cancelada después de 3 segundos
+      setTimeout(async () => {
+        try {
+          await supabase
+            .from('appointments')
+            .delete()
+            .eq('id', appointmentId)
+            .eq('status', 'cancelled');
+          
+          queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+        } catch (deleteError) {
+          console.warn('Could not auto-clean cancelled appointment:', deleteError);
+        }
+      }, 3000);
+
+      toast.success('Cita cancelada exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      onClose();
+    }
   });
 
   const handleCancelRecurring = () => withLoading(async () => {
@@ -198,7 +218,7 @@ export const CancelAppointmentModal = ({
   // ===== CONFIGURACIÓN DEL MODAL =====
 
   const description = isRecurring 
-    ? 'Esta es una cita recurrente. ¿Qué deseas cancelar?'
+    ? 'Esta es una cita recurrente. Puedes saltar solo esta fecha o cancelar toda la serie.'
     : '¿Estás seguro de que deseas cancelar esta cita?';
 
   // ===== RENDER =====
@@ -217,14 +237,14 @@ export const CancelAppointmentModal = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <Button
+            <Button
             onClick={handleCancelSingle}
             variant="outline"
             disabled={isLoading}
-            className="w-full justify-start gap-2 text-red-600 border-red-200 hover:bg-red-50 border-2"
+            className={`w-full justify-start gap-2 ${isRecurring ? 'text-blue-600 border-blue-200 hover:bg-blue-50' : 'text-red-600 border-red-200 hover:bg-red-50'} border-2`}
           >
             <X className="h-4 w-4" />
-            {isRecurring ? 'Cancelar solo esta cita' : 'Cancelar cita'}
+            {isRecurring ? 'Saltar esta cita' : 'Cancelar cita'}
           </Button>
 
           {isRecurring && (

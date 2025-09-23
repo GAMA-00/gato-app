@@ -28,10 +28,9 @@ export const RecurringAppointmentAdvancer = ({
         console.log('🔄 Auto-advancing recurring appointment:', appointmentId, 'recurrence:', recurrence);
         
         try {
-          // First check if this appointment needs advancing and wasn't canceled
           const { data: appointmentData } = await supabase
             .from('appointments')
-            .select('id, start_time, recurrence, status, last_modified_by, client_id')
+            .select('id, start_time, recurrence, status, last_modified_by, client_id, last_modified_at')
             .eq('id', appointmentId)
             .single();
             
@@ -97,8 +96,10 @@ export const RecurringAppointmentAdvancer = ({
         }
       };
 
-      // Small delay to ensure completion status is processed
-      const timer = setTimeout(advanceAppointment, 1500);
+      // Use shorter delay for recently modified appointments (likely skipped)
+      const now = new Date();
+      const delay = 500; // Always use short delay for immediate response
+      const timer = setTimeout(advanceAppointment, delay);
       return () => clearTimeout(timer);
     }
   }, [isCompleted, recurrence, appointmentId, queryClient, onAdvanced]);
