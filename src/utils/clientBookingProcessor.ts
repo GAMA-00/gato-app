@@ -15,7 +15,8 @@ interface ProcessBookingParams {
 function calculateNextOccurrenceForRecurring(
   startTime: string,
   recurrence: string,
-  status: string
+  status: string,
+  notes?: string
 ): Date {
   const originalDate = new Date(startTime);
   const now = new Date();
@@ -25,9 +26,10 @@ function calculateNextOccurrenceForRecurring(
     return originalDate;
   }
   
-  // CRITICAL: Don't calculate next occurrence for completed or skipped appointments
-  // This prevents "ghost" appointments from showing up
-  if (status === 'completed' || status === 'skipped') {
+  // CRITICAL: Don't calculate next occurrence for completed appointments
+  // For cancelled appointments, only skip if they were actually skipped (have the special note)
+  const isSkipped = status === 'cancelled' && notes?.includes('[SKIPPED BY CLIENT]');
+  if (status === 'completed' || (status === 'cancelled' && !isSkipped)) {
     console.log(`✅ ${status} appointment - using original date: ${originalDate.toISOString()}`);
     return originalDate;
   }
@@ -97,7 +99,8 @@ export function processClientBooking({
   const nextOccurrenceDate = calculateNextOccurrenceForRecurring(
     appointment.start_time,
     appointment.recurrence,
-    appointment.status
+    appointment.status,
+    appointment.notes
   );
 
   // Determinar si es post-pago y si puede ser calificado
@@ -126,6 +129,9 @@ export function processClientBooking({
       ? appointment.id.split('-recurring-')[0] 
       : undefined,
     isPostPayment,
+    supportsPostPayment: service?.is_post_payment || false,
+    isPostPaymentApproved: approvedInvoices.has(appointment.id),
+    notes: appointment.notes,
     canRate
   };
 }

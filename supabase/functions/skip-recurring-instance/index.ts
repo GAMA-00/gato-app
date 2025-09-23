@@ -107,21 +107,22 @@ serve(async (req) => {
       console.log(`✅ Created recurring exception for ${exceptionDate}`);
     }
 
-    // Step 3: Mark appointment as 'skipped' instead of deleting it
+    // Step 3: Mark appointment as 'cancelled' instead of deleting it
     // This preserves the recurring pattern while skipping this specific instance
-    console.log(`⏭️ Marking appointment ${appointmentId} as skipped`);
+    console.log(`⏭️ Marking appointment ${appointmentId} as cancelled (skipped)`);
     
     const { error: updateError } = await supabaseClient
       .from('appointments')
       .update({
-        status: 'skipped',
+        status: 'cancelled',
+        notes: `${appointment.notes || ''}\n[SKIPPED BY CLIENT]`.trim(),
         last_modified_by: appointment.client_id,
         last_modified_at: new Date().toISOString()
       })
       .eq('id', appointmentId);
 
     if (updateError) {
-      console.error('❌ Error updating appointment to skipped:', updateError);
+      console.error('❌ Error updating appointment to cancelled (skipped):', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to skip appointment' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

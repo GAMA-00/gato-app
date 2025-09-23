@@ -18,8 +18,7 @@ export type AppointmentStatus =
   | 'completed'   // Servicio completado
   | 'cancelled'   // Cancelada por cualquier parte
   | 'rejected'    // Rechazada por el proveedor
-  | 'rescheduled' // Reagendada
-  | 'skipped';    // Saltada (para recurrencias)
+  | 'rescheduled'; // Reagendada
 
 /** Tipos de recurrencia normalizados */
 export type RecurrenceType = 
@@ -92,6 +91,7 @@ export interface ClientBooking {
   providerName: string;
   location: string; // Dirección completa construida
   isRated: boolean;
+  notes?: string; // Para detectar si fue saltada
   
   // Campos opcionales de instancia recurrente
   isRecurringInstance?: boolean;

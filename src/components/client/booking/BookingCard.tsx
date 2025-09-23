@@ -22,8 +22,9 @@ interface BookingCardProps {
 export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const bookingIsRecurring = isRecurring(booking.recurrence);
+  const isRecurring = booking.recurrence && booking.recurrence !== 'none';
   const isCompleted = booking.status === 'completed';
+  const isSkipped = booking.status === 'cancelled' && booking.notes?.includes('[SKIPPED BY CLIENT]');
   
   console.log('BookingCard - Booking data:', {
     id: booking.id,
@@ -33,7 +34,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     isRated: booking.isRated,
     shouldShowRating: isCompleted && !booking.isRated,
     recurrence: booking.recurrence,
-    isRecurring: bookingIsRecurring,
+    isRecurring: isRecurring,
     categoryId: booking.categoryId
   });
   
@@ -81,14 +82,12 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                 booking.status === 'confirmed' ? "bg-green-100 text-green-800" : 
                 booking.status === 'completed' ? "bg-blue-100 text-blue-800" : 
                 booking.status === 'cancelled' ? "bg-gray-100 text-gray-800" : 
-                booking.status === 'skipped' ? "bg-purple-100 text-purple-800" : 
                 "bg-gray-100 text-gray-800"
               )}>
                 {booking.status === 'pending' ? 'Pendiente por aprobación' :
                  booking.status === 'confirmed' ? 'Confirmada' :
                  booking.status === 'completed' ? 'Completada' :
-                 booking.status === 'cancelled' ? 'Cancelada' : 
-                 booking.status === 'skipped' ? 'Saltada' : 'Otra'}
+                 booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 'Otra'}
               </div>
             </div>
           </div>
@@ -101,7 +100,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             <div className="flex items-center gap-2 p-1.5 bg-blue-50 rounded-md border border-blue-200">
               <RotateCcw className="h-3 w-3 text-blue-600 flex-shrink-0" />
               <span className="text-xs text-blue-700">
-                {bookingIsRecurring 
+                {isRecurring 
                   ? 'La próxima fecha ha sido reagendada. Tu plan recurrente se mantiene sin cambios.'
                   : 'Esta cita ha sido reagendada.'
                 }
@@ -173,7 +172,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         appointmentId={booking.id}
-        isRecurring={bookingIsRecurring}
+        isRecurring={isRecurring}
         appointmentDate={booking.date}
       />
 
@@ -182,7 +181,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         onClose={() => setShowRescheduleModal(false)}
         appointmentId={booking.id}
         providerId={booking.providerId}
-        isRecurring={bookingIsRecurring}
+        isRecurring={isRecurring}
         currentDate={booking.date}
         serviceDuration={60}
         recurrence={booking.recurrence}

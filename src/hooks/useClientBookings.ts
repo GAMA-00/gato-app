@@ -10,7 +10,7 @@ export interface ClientBooking {
   subcategory: string;
   categoryId: string;
   date: Date;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rescheduled' | 'skipped';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rescheduled';
   recurrence: string;
   providerId: string;
   providerName: string;
@@ -23,6 +23,9 @@ export interface ClientBooking {
   isRecurringInstance?: boolean;
   originalAppointmentId?: string;
   isPostPayment: boolean;
+  supportsPostPayment: boolean;
+  isPostPaymentApproved: boolean;
+  notes?: string;
   canRate: boolean;
 }
 
@@ -60,7 +63,7 @@ export const useClientBookings = () => {
             client_name
           `)
           .eq('client_id', user.id)
-          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rejected', 'rescheduled', 'skipped'])
+          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rejected', 'rescheduled'])
           .order('start_time', { ascending: false });
 
         if (error) {
