@@ -129,17 +129,28 @@ serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Get appointment details with client information
+    // Get appointment details
     currentPhase = 'fetch-appointment';
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
-      .select(`
-        client_id, 
-        provider_id, 
-        listing_id,
-        users!appointments_client_id_fkey(id, name, email, phone)
-      `)
+      .select('client_id, provider_id, listing_id')
       .eq('id', body.appointmentId)
+      .single();
+
+    if (appointmentError || !appointment) {
+      console.error('❌ Appointment not found:', appointmentError);
+      return new Response(JSON.stringify({
+        error: 'APPOINTMENT_NOT_FOUND',
+        message: 'No se encontró la cita especificada',
+      }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Get client data separately
+    currentPhase = 'fetch-client';
+    const { data: clientData, error: clientError } = await supabase
+      .from('users')
+      .select('id, name, email, phone')
+      .eq('id', appointment.client_id)
       .single();
 
     if (appointmentError || !appointment) {
@@ -160,14 +171,6 @@ serve(async (req) => {
 
     if (listingError) {
       console.warn('⚠️ Could not fetch listing.is_post_payment, defaulting to false:', listingError);
-    }
-
-    if (appointmentError || !appointment) {
-      console.error('❌ Appointment not found:', appointmentError);
-      return new Response(JSON.stringify({
-        error: 'APPOINTMENT_NOT_FOUND',
-        message: 'No se encontró la cita especificada',
-      }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Calculate amounts in cents
@@ -193,14 +196,6 @@ serve(async (req) => {
 
     // Get or create OnvoPay customer
     currentPhase = 'get-or-create-customer';
-    const clientData = appointment.users;
-    if (!clientData) {
-      console.error('❌ Client data not found in appointment');
-      return new Response(JSON.stringify({
-        error: 'CLIENT_DATA_NOT_FOUND',
-        message: 'No se encontraron los datos del cliente',
-      }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
 
     // Normalize client data for consistency
     const normalizeString = (str: string | null): string => {
