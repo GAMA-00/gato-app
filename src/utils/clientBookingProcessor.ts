@@ -25,10 +25,10 @@ function calculateNextOccurrenceForRecurring(
     return originalDate;
   }
   
-  // CRITICAL: Don't calculate next occurrence for completed appointments
+  // CRITICAL: Don't calculate next occurrence for completed or skipped appointments
   // This prevents "ghost" appointments from showing up
-  if (status === 'completed') {
-    console.log(`✅ Completed appointment - using original date: ${originalDate.toISOString()}`);
+  if (status === 'completed' || status === 'skipped') {
+    console.log(`✅ ${status} appointment - using original date: ${originalDate.toISOString()}`);
     return originalDate;
   }
   

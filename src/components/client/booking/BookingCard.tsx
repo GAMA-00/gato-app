@@ -81,12 +81,14 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                 booking.status === 'confirmed' ? "bg-green-100 text-green-800" : 
                 booking.status === 'completed' ? "bg-blue-100 text-blue-800" : 
                 booking.status === 'cancelled' ? "bg-gray-100 text-gray-800" : 
+                booking.status === 'skipped' ? "bg-purple-100 text-purple-800" : 
                 "bg-gray-100 text-gray-800"
               )}>
                 {booking.status === 'pending' ? 'Pendiente por aprobación' :
                  booking.status === 'confirmed' ? 'Confirmada' :
                  booking.status === 'completed' ? 'Completada' :
-                 booking.status === 'cancelled' ? 'Cancelada' : 'Otra'}
+                 booking.status === 'cancelled' ? 'Cancelada' : 
+                 booking.status === 'skipped' ? 'Saltada' : 'Otra'}
               </div>
             </div>
           </div>

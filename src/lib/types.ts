@@ -131,7 +131,8 @@ export type OrderStatus =
   | 'completed'
   | 'cancelled'
   | 'rejected'
-  | 'rescheduled';
+  | 'rescheduled'
+  | 'skipped';
 
 export interface AppointmentStatus {
   id: string;

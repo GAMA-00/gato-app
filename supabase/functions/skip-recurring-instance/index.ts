@@ -107,24 +107,87 @@ serve(async (req) => {
       console.log(`✅ Created recurring exception for ${exceptionDate}`);
     }
 
-    // Step 3: Delete the appointment directly (without marking as cancelled first)
-    // This prevents triggers from releasing future recurring slots
-    console.log(`🗑️ Deleting appointment ${appointmentId}`);
+    // Step 3: Mark appointment as 'skipped' instead of deleting it
+    // This preserves the recurring pattern while skipping this specific instance
+    console.log(`⏭️ Marking appointment ${appointmentId} as skipped`);
     
-    const { error: deleteError } = await supabaseClient
+    const { error: updateError } = await supabaseClient
       .from('appointments')
-      .delete()
+      .update({
+        status: 'skipped',
+        last_modified_by: appointment.client_id,
+        last_modified_at: new Date().toISOString()
+      })
       .eq('id', appointmentId);
 
-    if (deleteError) {
-      console.error('❌ Error deleting appointment:', deleteError);
+    if (updateError) {
+      console.error('❌ Error updating appointment to skipped:', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to skip appointment' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Successfully skipped recurring instance');
+    // Step 4: Create next recurring occurrence to maintain the series
+    if (appointment.recurrence && appointment.recurrence !== 'none') {
+      console.log(`🔄 Creating next occurrence for ${appointment.recurrence} appointment`);
+      
+      const originalStart = new Date(appointment.start_time);
+      const originalEnd = new Date(appointment.end_time);
+      let nextStart = new Date(originalStart);
+      let nextEnd = new Date(originalEnd);
+
+      // Calculate next occurrence based on recurrence pattern
+      switch (appointment.recurrence) {
+        case 'weekly':
+          nextStart.setDate(nextStart.getDate() + 7);
+          nextEnd.setDate(nextEnd.getDate() + 7);
+          break;
+        case 'biweekly':
+          nextStart.setDate(nextStart.getDate() + 14);
+          nextEnd.setDate(nextEnd.getDate() + 14);
+          break;
+        case 'triweekly':
+          nextStart.setDate(nextStart.getDate() + 21);
+          nextEnd.setDate(nextEnd.getDate() + 21);
+          break;
+        case 'monthly':
+          nextStart.setMonth(nextStart.getMonth() + 1);
+          nextEnd.setMonth(nextEnd.getMonth() + 1);
+          break;
+      }
+
+      // Create the next appointment in the series
+      const { error: nextAppointmentError } = await supabaseClient
+        .from('appointments')
+        .insert({
+          listing_id: appointment.listing_id,
+          client_id: appointment.client_id,
+          provider_id: appointment.provider_id,
+          residencia_id: appointment.residencia_id,
+          start_time: nextStart.toISOString(),
+          end_time: nextEnd.toISOString(),
+          status: 'confirmed',
+          recurrence: appointment.recurrence,
+          notes: appointment.notes,
+          client_name: appointment.client_name,
+          client_phone: appointment.client_phone,
+          client_email: appointment.client_email,
+          client_address: appointment.client_address,
+          external_booking: appointment.external_booking || false,
+          is_recurring_instance: true,
+          recurrence_group_id: appointment.recurrence_group_id
+        });
+
+      if (nextAppointmentError) {
+        console.log(`⚠️ Error creating next occurrence (non-critical): ${nextAppointmentError.message}`);
+        // Don't fail the skip operation if we can't create the next occurrence
+      } else {
+        console.log(`✅ Created next ${appointment.recurrence} occurrence for ${nextStart.toISOString()}`);
+      }
+    }
+
+    console.log('✅ Successfully skipped recurring instance and created next occurrence');
 
     return new Response(
       JSON.stringify({ 

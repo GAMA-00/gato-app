@@ -19,6 +19,7 @@ export type AppointmentStatus =
   | 'cancelled'   // Cancelada por cualquier parte
   | 'rejected'    // Rechazada por el proveedor
   | 'rescheduled' // Reagendada
+  | 'skipped';    // Saltada (para recurrencias)
 
 /** Tipos de recurrencia normalizados */
 export type RecurrenceType = 
