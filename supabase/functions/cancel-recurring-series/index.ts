@@ -54,7 +54,11 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: Cancel all future appointments in this recurring series
+    // Extract the specific time pattern to identify this exact recurring series
+    const appointmentTimeOfDay = new Date(appointment.start_time).toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
+    console.log(`🕐 Target recurring series time pattern: ${appointmentTimeOfDay}`);
+
+    // Step 1: Cancel all future appointments in this SPECIFIC recurring series (same time pattern)
     const { data: futureAppointments, error: futureError } = await supabaseClient
       .from('appointments')
       .select('id, start_time')
@@ -73,11 +77,20 @@ serve(async (req) => {
       );
     }
 
-    console.log(`📅 Found ${futureAppointments?.length || 0} future appointments to cancel`);
+    // Filter appointments to only those with the SAME TIME PATTERN (same recurring series)
+    const specificSeriesAppointments = futureAppointments?.filter(apt => {
+      const aptTimeOfDay = new Date(apt.start_time).toTimeString().split(' ')[0].substring(0, 5);
+      return aptTimeOfDay === appointmentTimeOfDay;
+    }) || [];
 
-    // Cancel all future appointments
-    if (futureAppointments && futureAppointments.length > 0) {
-      const appointmentIds = futureAppointments.map(apt => apt.id);
+    console.log(`📅 Found ${futureAppointments?.length || 0} future appointments, ${specificSeriesAppointments.length} match the specific time pattern`);
+
+    // Cancel only the appointments in this SPECIFIC recurring series
+    if (specificSeriesAppointments && specificSeriesAppointments.length > 0) {
+      const appointmentIds = specificSeriesAppointments.map(apt => apt.id);
+      
+      console.log(`🎯 Targeting appointments with IDs: ${appointmentIds.join(', ')}`);
+      console.log(`🕐 Current time pattern: ${appointmentTimeOfDay}`);
       
       const { error: cancelError } = await supabaseClient
         .from('appointments')
@@ -100,13 +113,14 @@ serve(async (req) => {
       console.log(`✅ Cancelled ${appointmentIds.length} future appointments`);
     }
 
-    // Step 2: Deactivate any recurring rules that match this pattern and capture their IDs
+    // Step 2: Deactivate only recurring rules that match this SPECIFIC time pattern
     const { data: rulesToDeactivate, error: rulesFetchError } = await supabaseClient
       .from('recurring_rules')
-      .select('id')
+      .select('id, start_time')
       .eq('provider_id', appointment.provider_id)
       .eq('client_id', appointment.client_id)
       .eq('listing_id', appointment.listing_id)
+      .eq('start_time', appointmentTimeOfDay)
       .eq('is_active', true);
 
     if (rulesFetchError) {
@@ -122,6 +136,7 @@ serve(async (req) => {
       .eq('provider_id', appointment.provider_id)
       .eq('client_id', appointment.client_id)
       .eq('listing_id', appointment.listing_id)
+      .eq('start_time', appointmentTimeOfDay)
       .eq('is_active', true);
 
     if (rulesError) {
@@ -130,14 +145,15 @@ serve(async (req) => {
       console.log(`✅ Deactivated ${rulesToDeactivate?.length || 0} recurring rule(s)`);
     }
 
-    // Step 3: Deactivate and clean up recurring rules and instances
-    // Fetch matching recurring rules (before/after deactivation)
+    // Step 3: Clean up recurring rules and instances for this SPECIFIC time pattern
+    // Fetch matching recurring rules with the same time pattern
     const { data: matchingRules, error: rulesFetchError2 } = await supabaseClient
       .from('recurring_rules')
       .select('id')
       .eq('provider_id', appointment.provider_id)
       .eq('client_id', appointment.client_id)
-      .eq('listing_id', appointment.listing_id);
+      .eq('listing_id', appointment.listing_id)
+      .eq('start_time', appointmentTimeOfDay);
 
     if (rulesFetchError2) {
       console.log('⚠️ Error fetching recurring rules for cleanup:', rulesFetchError2);
@@ -159,20 +175,53 @@ serve(async (req) => {
       }
     }
 
-    // Step 3b: Break the recurrence link on all related appointments (past and future)
-    const { error: breakSeriesError } = await supabaseClient
+    // Step 3b: Break the recurrence link ONLY on appointments with the SAME TIME PATTERN
+    // First, fetch all appointments that match the pattern to see what we're targeting
+    const { data: allMatchingAppointments, error: fetchAllError } = await supabaseClient
       .from('appointments')
-      .update({
-        recurrence: 'none',
-        recurring_rule_id: null,
-        is_recurring_instance: false,
-        recurrence_group_id: null,
-        last_modified_at: new Date().toISOString(),
-        last_modified_by: appointment.client_id
-      })
+      .select('id, start_time, recurrence')
       .eq('provider_id', appointment.provider_id)
       .eq('client_id', appointment.client_id)
-      .eq('listing_id', appointment.listing_id);
+      .eq('listing_id', appointment.listing_id)
+      .neq('recurrence', 'none');
+
+    if (!fetchAllError && allMatchingAppointments) {
+      // Filter to only appointments with the same time pattern
+      const sameTimePatternAppointments = allMatchingAppointments.filter(apt => {
+        if (apt.recurrence === 'none') return false;
+        const aptTimeOfDay = new Date(apt.start_time).toTimeString().split(' ')[0].substring(0, 5);
+        return aptTimeOfDay === appointmentTimeOfDay;
+      });
+
+      console.log(`🔍 Found ${allMatchingAppointments.length} total recurring appointments, ${sameTimePatternAppointments.length} with matching time pattern`);
+      
+      if (sameTimePatternAppointments.length > 0) {
+        const targetIds = sameTimePatternAppointments.map(apt => apt.id);
+        console.log(`🎯 Breaking recurrence for appointments: ${targetIds.join(', ')}`);
+        
+        const { error: breakSeriesError } = await supabaseClient
+          .from('appointments')
+          .update({
+            recurrence: 'none',
+            recurring_rule_id: null,
+            is_recurring_instance: false,
+            recurrence_group_id: null,
+            last_modified_at: new Date().toISOString(),
+            last_modified_by: appointment.client_id
+          })
+          .in('id', targetIds);
+
+        if (breakSeriesError) {
+          console.log('⚠️ Error breaking recurrence on specific appointments:', breakSeriesError);
+        } else {
+          console.log(`🔗 Recurrence removed from ${targetIds.length} appointments with matching time pattern`);
+        }
+      } else {
+        console.log('ℹ️ No appointments found with matching time pattern to break recurrence');
+      }
+    } else {
+      console.log('⚠️ Error fetching appointments for pattern matching:', fetchAllError);
+    }
 
     if (breakSeriesError) {
       console.log('⚠️ Error breaking recurrence on appointments:', breakSeriesError);
@@ -180,9 +229,9 @@ serve(async (req) => {
       console.log('🔗 Recurrence removed from all related appointments');
     }
 
-    // Step 4: Release time slots for the cancelled appointments
-    if (futureAppointments && futureAppointments.length > 0) {
-      for (const apt of futureAppointments) {
+    // Step 4: Release time slots for the cancelled appointments (specific series only)
+    if (specificSeriesAppointments && specificSeriesAppointments.length > 0) {
+      for (const apt of specificSeriesAppointments) {
         // Release the specific slot
         const { error: slotError } = await supabaseClient
           .from('provider_time_slots')
@@ -202,9 +251,6 @@ serve(async (req) => {
       }
 
       // Also release all future recurring blocked slots with the same time pattern
-      const appointmentTime = new Date(appointment.start_time);
-      const timeOfDay = appointmentTime.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
-
       const { error: recurringSlotError } = await supabaseClient
         .from('provider_time_slots')
         .update({
@@ -216,7 +262,7 @@ serve(async (req) => {
         .eq('provider_id', appointment.provider_id)
         .eq('listing_id', appointment.listing_id)
         .eq('recurring_blocked', true)
-        .eq('start_time', timeOfDay)
+        .eq('start_time', appointmentTimeOfDay)
         .gte('slot_date', new Date().toISOString().split('T')[0]);
 
       if (recurringSlotError) {
@@ -228,9 +274,9 @@ serve(async (req) => {
 
     console.log('🎉 Successfully cancelled recurring series');
 
-    // Step 5: DELETE cancelled appointments to prevent regeneration
-    if (futureAppointments && futureAppointments.length > 0) {
-      const appointmentIds = futureAppointments.map(apt => apt.id);
+    // Step 5: DELETE cancelled appointments to prevent regeneration (specific series only)
+    if (specificSeriesAppointments && specificSeriesAppointments.length > 0) {
+      const appointmentIds = specificSeriesAppointments.map(apt => apt.id);
       
       console.log(`🗑️ Deleting ${appointmentIds.length} cancelled appointments to prevent regeneration`);
       
@@ -247,7 +293,7 @@ serve(async (req) => {
       }
     }
 
-    // Step 6: Final safety unblock for any residual recurring-blocked slots for this series
+    // Step 6: Final safety unblock for any residual recurring-blocked slots for this SPECIFIC time pattern
     const { error: finalUnblockError } = await supabaseClient
       .from('provider_time_slots')
       .update({
@@ -258,6 +304,7 @@ serve(async (req) => {
       })
       .eq('provider_id', appointment.provider_id)
       .eq('listing_id', appointment.listing_id)
+      .eq('start_time', appointmentTimeOfDay)
       .eq('recurring_blocked', true)
       .gte('slot_date', new Date().toISOString().split('T')[0]);
 
@@ -270,8 +317,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        cancelledCount: futureAppointments?.length || 0,
-        message: 'Recurring series cancelled successfully'
+        cancelledCount: specificSeriesAppointments?.length || 0,
+        timePattern: appointmentTimeOfDay,
+        message: 'Specific recurring series cancelled successfully'
       }),
       { 
         status: 200, 
