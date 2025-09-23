@@ -295,6 +295,64 @@ export type Database = {
           },
         ]
       }
+      onvopay_customers: {
+        Row: {
+          client_id: string
+          created_at: string
+          customer_data: Json
+          id: string
+          normalized_email: string | null
+          normalized_name: string | null
+          normalized_phone: string | null
+          onvopay_customer_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          customer_data?: Json
+          id?: string
+          normalized_email?: string | null
+          normalized_name?: string | null
+          normalized_phone?: string | null
+          onvopay_customer_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          customer_data?: Json
+          id?: string
+          normalized_email?: string | null
+          normalized_name?: string | null
+          normalized_phone?: string | null
+          onvopay_customer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onvopay_customers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_customers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_customers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onvopay_payments: {
         Row: {
           amount: number
