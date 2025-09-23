@@ -90,50 +90,98 @@ export const CancelAppointmentModal = ({
 
     if (fetchError) throw fetchError;
 
+    // Crear un identificador único para esta serie recurrente específica
+    const appointmentStartTime = new Date(appointment.start_time);
+    const appointmentTimeOfDay = appointmentStartTime.toTimeString().substring(0, 8); // HH:MM:SS
+    const appointmentDayOfWeek = appointmentStartTime.getDay();
+    const appointmentDayOfMonth = appointmentStartTime.getDate();
+
+    console.log('🎯 Canceling recurring series with criteria:', {
+      recurrence: appointment.recurrence,
+      timeOfDay: appointmentTimeOfDay,
+      dayOfWeek: appointmentDayOfWeek,
+      dayOfMonth: appointmentDayOfMonth,
+      originalStartTime: appointment.start_time
+    });
+
     // Cancelar la cita base
     const { error: updateError } = await supabase
       .from('appointments')
       .update({
         recurrence: 'none',
         status: 'cancelled',
-        cancellation_time: new Date().toISOString()
+        cancellation_time: new Date().toISOString(),
+        last_modified_by: appointment.client_id,
+        last_modified_at: new Date().toISOString()
       })
       .eq('id', appointmentId);
 
     if (updateError) throw updateError;
 
-    // Cancelar todas las citas futuras con el mismo patrón
+    // Cancelar todas las citas futuras de la misma serie específica
     if (appointment.recurrence && appointment.recurrence !== 'none') {
-      const { error: cancelFutureError } = await supabase
+      // Obtener todas las citas futuras que coincidan con el patrón específico
+      const { data: futureAppointments, error: fetchFutureError } = await supabase
         .from('appointments')
-        .update({
-          status: 'cancelled',
-          cancellation_time: new Date().toISOString()
-        })
+        .select('id, start_time')
         .eq('provider_id', appointment.provider_id)
         .eq('client_id', appointment.client_id)
         .eq('listing_id', appointment.listing_id)
         .eq('recurrence', appointment.recurrence)
         .gte('start_time', new Date().toISOString())
-        .neq('id', appointmentId);
+        .neq('id', appointmentId)
+        .in('status', ['pending', 'confirmed']);
 
-      if (cancelFutureError) {
-        console.error('Error canceling future appointments:', cancelFutureError);
+      if (fetchFutureError) {
+        console.error('Error fetching future appointments:', fetchFutureError);
+      } else if (futureAppointments && futureAppointments.length > 0) {
+        // Filtrar solo las citas que pertenecen a la misma serie temporal
+        const sameSeriesAppointments = futureAppointments.filter(apt => {
+          const aptStartTime = new Date(apt.start_time);
+          const aptTimeOfDay = aptStartTime.toTimeString().substring(0, 8);
+          
+          if (appointment.recurrence === 'weekly' || appointment.recurrence === 'biweekly' || appointment.recurrence === 'triweekly') {
+            return aptTimeOfDay === appointmentTimeOfDay && aptStartTime.getDay() === appointmentDayOfWeek;
+          } else if (appointment.recurrence === 'monthly') {
+            return aptTimeOfDay === appointmentTimeOfDay && aptStartTime.getDate() === appointmentDayOfMonth;
+          }
+          return false;
+        });
+
+        console.log(`🎯 Found ${sameSeriesAppointments.length} appointments in the same series to cancel`);
+
+        if (sameSeriesAppointments.length > 0) {
+          const appointmentIds = sameSeriesAppointments.map(apt => apt.id);
+          
+          const { error: cancelFutureError } = await supabase
+            .from('appointments')
+            .update({
+              status: 'cancelled',
+              cancellation_time: new Date().toISOString(),
+              last_modified_by: appointment.client_id,
+              last_modified_at: new Date().toISOString()
+            })
+            .in('id', appointmentIds);
+
+          if (cancelFutureError) {
+            console.error('Error canceling future appointments:', cancelFutureError);
+          } else {
+            console.log(`✅ Successfully canceled ${appointmentIds.length} future appointments`);
+          }
+        }
       }
       
       // Auto-limpiar solo las citas canceladas de esta serie específica
       setTimeout(async () => {
         try {
-          // Solo eliminar citas de la misma serie recurrente usando criterios más específicos
           await supabase
             .from('appointments')
             .delete()
             .eq('status', 'cancelled')
-            .eq('recurrence', appointment.recurrence)
-            .eq('provider_id', appointment.provider_id)
             .eq('client_id', appointment.client_id)
+            .eq('provider_id', appointment.provider_id)
             .eq('listing_id', appointment.listing_id)
-            .gte('start_time', appointment.start_time); // Solo citas de esta serie (misma fecha o posteriores)
+            .gte('cancellation_time', appointment.cancellation_time || new Date().toISOString());
           
           queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
         } catch (deleteError) {
