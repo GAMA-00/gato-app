@@ -100,7 +100,19 @@ serve(async (req) => {
       console.log(`✅ Cancelled ${appointmentIds.length} future appointments`);
     }
 
-    // Step 2: Deactivate any recurring rules that match this pattern
+    // Step 2: Deactivate any recurring rules that match this pattern and capture their IDs
+    const { data: rulesToDeactivate, error: rulesFetchError } = await supabaseClient
+      .from('recurring_rules')
+      .select('id')
+      .eq('provider_id', appointment.provider_id)
+      .eq('client_id', appointment.client_id)
+      .eq('listing_id', appointment.listing_id)
+      .eq('is_active', true);
+
+    if (rulesFetchError) {
+      console.log('⚠️ Error fetching recurring rules (may not exist):', rulesFetchError);
+    }
+
     const { error: rulesError } = await supabaseClient
       .from('recurring_rules')
       .update({ 
@@ -115,19 +127,57 @@ serve(async (req) => {
     if (rulesError) {
       console.log('⚠️ Error deactivating recurring rules (may not exist):', rulesError);
     } else {
-      console.log('✅ Deactivated recurring rules');
+      console.log(`✅ Deactivated ${rulesToDeactivate?.length || 0} recurring rule(s)`);
     }
 
-    // Step 3: Delete any recurring appointment instances
-    const { error: instancesError } = await supabaseClient
-      .from('recurring_appointment_instances')
-      .delete()
-      .in('recurring_rule_id', [
-        // Get rule IDs that match our criteria
-      ]);
+    // Step 3: Deactivate and clean up recurring rules and instances
+    // Fetch matching recurring rules (before/after deactivation)
+    const { data: matchingRules, error: rulesFetchError2 } = await supabaseClient
+      .from('recurring_rules')
+      .select('id')
+      .eq('provider_id', appointment.provider_id)
+      .eq('client_id', appointment.client_id)
+      .eq('listing_id', appointment.listing_id);
 
-    if (instancesError) {
-      console.log('⚠️ Error deleting recurring instances (may not exist):', instancesError);
+    if (rulesFetchError2) {
+      console.log('⚠️ Error fetching recurring rules for cleanup:', rulesFetchError2);
+    }
+
+    const ruleIds = matchingRules?.map(r => r.id) || [];
+
+    if (ruleIds.length > 0) {
+      const { error: instancesError } = await supabaseClient
+        .from('recurring_appointment_instances')
+        .delete()
+        .in('recurring_rule_id', ruleIds)
+        .gte('start_time', new Date().toISOString());
+
+      if (instancesError) {
+        console.log('⚠️ Error deleting recurring instances (may not exist):', instancesError);
+      } else {
+        console.log(`🧹 Deleted recurring instances for ${ruleIds.length} rule(s)`);
+      }
+    }
+
+    // Step 3b: Break the recurrence link on all related appointments (past and future)
+    const { error: breakSeriesError } = await supabaseClient
+      .from('appointments')
+      .update({
+        recurrence: 'none',
+        recurring_rule_id: null,
+        is_recurring_instance: false,
+        recurrence_group_id: null,
+        last_modified_at: new Date().toISOString(),
+        last_modified_by: appointment.client_id
+      })
+      .eq('provider_id', appointment.provider_id)
+      .eq('client_id', appointment.client_id)
+      .eq('listing_id', appointment.listing_id);
+
+    if (breakSeriesError) {
+      console.log('⚠️ Error breaking recurrence on appointments:', breakSeriesError);
+    } else {
+      console.log('🔗 Recurrence removed from all related appointments');
     }
 
     // Step 4: Release time slots for the cancelled appointments
@@ -195,6 +245,26 @@ serve(async (req) => {
       } else {
         console.log('✅ Deleted cancelled appointments from database');
       }
+    }
+
+    // Step 6: Final safety unblock for any residual recurring-blocked slots for this series
+    const { error: finalUnblockError } = await supabaseClient
+      .from('provider_time_slots')
+      .update({
+        is_available: true,
+        is_reserved: false,
+        recurring_blocked: false,
+        blocked_until: null
+      })
+      .eq('provider_id', appointment.provider_id)
+      .eq('listing_id', appointment.listing_id)
+      .eq('recurring_blocked', true)
+      .gte('slot_date', new Date().toISOString().split('T')[0]);
+
+    if (finalUnblockError) {
+      console.log('⚠️ Final unblock slots step had errors (non-critical):', finalUnblockError);
+    } else {
+      console.log('🔓 Final unblock ensured for any residual slots');
     }
 
     return new Response(

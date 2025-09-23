@@ -47,21 +47,36 @@ export const CancelAppointmentModal = ({
 
   const handleCancelSingle = () => withLoading(async () => {
     if (isRecurring) {
-      // Para citas recurrentes: "saltar" marcando como completada
-      console.log('Skipping recurring appointment (marking as completed):', appointmentId);
-      
-      const { error } = await supabase
+      // Para citas recurrentes: crear una EXCEPCIÓN para omitir SOLO esta instancia
+      console.log('Skipping recurring instance via recurring_exceptions:', { appointmentId, appointmentDate });
+
+      // Cancelar SOLO esta cita (no avanza la serie)
+      const { error: cancelErr } = await supabase
         .from('appointments')
         .update({
-          status: 'completed',
+          status: 'cancelled',
+          cancellation_time: new Date().toISOString(),
           last_modified_at: new Date().toISOString()
         })
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (cancelErr) throw cancelErr;
 
-      toast.success('Cita saltada. Se generará automáticamente la siguiente fecha.');
-      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      // Eliminarla para que no reaparezca y liberar slots vía triggers
+      await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId)
+        .eq('status', 'cancelled');
+
+      toast.success('Se saltó esta fecha. Verás la siguiente instancia de la serie.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
+      ]);
       onClose();
     } else {
       // Para citas no recurrentes: cancelar normalmente
