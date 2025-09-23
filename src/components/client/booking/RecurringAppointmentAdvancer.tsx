@@ -51,7 +51,10 @@ export const RecurringAppointmentAdvancer = ({
             return;
           }
 
-          // Check if there are any future appointments in this series that are already active
+          // Check if there are any future appointments in this SPECIFIC series (same time pattern)
+          // This ensures we distinguish between different recurring series of the same type
+          const currentTimeOfDay = new Date(appointmentData.start_time).toTimeString().substr(0, 5); // HH:MM format
+          
           const { data: futureAppointments } = await supabase
             .from('appointments')
             .select('id, start_time, status')
@@ -59,10 +62,22 @@ export const RecurringAppointmentAdvancer = ({
             .eq('recurrence', appointmentData.recurrence)
             .gt('start_time', appointmentData.start_time)
             .in('status', ['pending', 'confirmed'])
-            .limit(1);
+            .limit(10); // Get more to filter by time
 
-          if (futureAppointments && futureAppointments.length > 0) {
-            console.log('⏭️ Future appointment already exists, skipping advancement');
+          // Filter to only appointments that match the same time pattern (same hour/minute)
+          const sameTimeSeriesAppointments = futureAppointments?.filter(apt => {
+            const aptTimeOfDay = new Date(apt.start_time).toTimeString().substr(0, 5);
+            return aptTimeOfDay === currentTimeOfDay;
+          }) || [];
+
+          if (sameTimeSeriesAppointments.length > 0) {
+            console.log('⏭️ Future appointment already exists in this specific series, skipping advancement');
+            console.log('🕐 Current time pattern:', currentTimeOfDay);
+            console.log('📅 Existing future appointments:', sameTimeSeriesAppointments.map(apt => ({
+              id: apt.id,
+              time: new Date(apt.start_time).toTimeString().substr(0, 5),
+              date: new Date(apt.start_time).toDateString()
+            })));
             return;
           }
           
