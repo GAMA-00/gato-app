@@ -565,8 +565,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
-                        type="password"
-                        placeholder="••••••"
+                        type="text"
+                        placeholder="Tu contraseña"
                         className="pl-10 h-12 text-base"
                         {...field}
                         disabled={isSubmitting}
