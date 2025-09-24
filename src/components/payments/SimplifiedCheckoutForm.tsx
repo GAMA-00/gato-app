@@ -249,8 +249,8 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       const { data: authorizeData, error: authorizeError } = authorizeResponse;
 
-      if (authorizeError) {
-        console.error('❌ Error creating Payment Intent:', authorizeError);
+      if (authorizeError || !authorizeData?.success) {
+        console.error('❌ Error creating Payment Intent:', authorizeError || authorizeData);
         
         setIsProcessing(false);
         
@@ -258,7 +258,15 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         let errorMessage = 'Error en el procesamiento del pago';
         let errorDetails = '';
         
-        if (authorizeError.message) {
+        // Check if we have error data in the response
+        if (authorizeData && !authorizeData.success) {
+          errorMessage = authorizeData.message || 'Error en el procesamiento del pago';
+          if (authorizeData.error === 'ONVO_SERVICE_UNAVAILABLE') {
+            errorDetails = 'El servicio de pagos está temporalmente no disponible. Intente nuevamente en unos minutos.';
+          } else if (authorizeData.hint) {
+            errorDetails = authorizeData.hint;
+          }
+        } else if (authorizeError?.message) {
           try {
             // If it's a structured error from our edge function
             if (authorizeError.message.includes('ONVOPAY_API_ERROR') || authorizeError.message.includes('CONFIGURATION_ERROR')) {
