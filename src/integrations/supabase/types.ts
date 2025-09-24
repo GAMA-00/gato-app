@@ -305,6 +305,7 @@ export type Database = {
           normalized_name: string | null
           normalized_phone: string | null
           onvopay_customer_id: string
+          synced_at: string | null
           updated_at: string
         }
         Insert: {
@@ -316,6 +317,7 @@ export type Database = {
           normalized_name?: string | null
           normalized_phone?: string | null
           onvopay_customer_id: string
+          synced_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -327,6 +329,7 @@ export type Database = {
           normalized_name?: string | null
           normalized_phone?: string | null
           onvopay_customer_id?: string
+          synced_at?: string | null
           updated_at?: string
         }
         Relationships: [
