@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Customer bypass configuration
+const CUSTOMER_OPTIONAL = (Deno.env.get('ONVOPAY_CUSTOMER_OPTIONAL') ?? 'true').toLowerCase() === 'true';
+
 // Environment configuration
 function getOnvoConfig() {
   const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com';
@@ -398,40 +401,36 @@ serve(async (req) => {
 
     // **CRITICAL: Ensure OnvoPay customer exists before creating payment intent**
     currentPhase = 'ensure-onvopay-customer';
-    let customerId: string;
+    let customerId: string | undefined;
     try {
       customerId = await ensureOnvoCustomer(supabase, appointment.client_id);
-    } catch (error: any) {
-      console.error('❌ Failed to ensure OnvoPay customer:', error);
+    } catch (err: any) {
+      const s = Number(err?.status);
+      const isServiceDown = s === 502 || s === 503 || s === 504 || /HTML|WAF|maintenance/i.test(String(err?.hint ?? err?.message));
       
-      // Handle service unavailable errors more gracefully
-      if (error.status === 503 || error.status === 502 || error.status === 504) {
+      if (isServiceDown && CUSTOMER_OPTIONAL) {
+        console.warn('⚠️ Skipping OnvoPay customer association due to service unavailability', {
+          appointmentId: body.appointmentId,
+          clientId: appointment.client_id,
+          status: s,
+          error: err?.code || 'UNKNOWN'
+        });
+        customerId = undefined;
+      } else {
+        console.error('❌ Failed to ensure OnvoPay customer:', err);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'ONVO_SERVICE_UNAVAILABLE',
-            message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
-            hint: 'OnvoPay API is temporarily down'
+            error: err.code || 'CUSTOMER_CREATION_FAILED',
+            message: err.hint || 'No se pudo crear o encontrar el cliente en OnvoPay',
+            details: err.details || err.message
           }),
           { 
-            status: 200,
+            status: err.status || 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
       }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: error.code || 'CUSTOMER_CREATION_FAILED',
-          message: error.hint || 'No se pudo crear o encontrar el cliente en OnvoPay',
-          details: error.details || error.message
-        }),
-        { 
-          status: error.status || 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
     }
 
     // Prepare OnvoPay API request - CREATE Payment Intent only
@@ -469,9 +468,13 @@ serve(async (req) => {
       })
     };
 
-    // Include customer_id (now guaranteed to exist)
-    onvoPayData.customer = customerId;
-    console.log('🔗 Including customer_id in payment intent:', customerId);
+    // Include customer_id only if available
+    if (customerId) {
+      onvoPayData.customer = customerId;
+      console.log('🔗 Including customer_id in payment intent:', customerId);
+    } else {
+      console.log('⚠️ Proceeding without customer association');
+    }
 
     console.log('📡 OnvoPay request payload:', {
       amount: onvoPayData.amount,
