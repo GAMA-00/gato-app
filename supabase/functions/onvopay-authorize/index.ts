@@ -556,6 +556,23 @@ serve(async (req) => {
         }
       }
       
+      // If OnvoPay service is down and we have customer bypass enabled, return user-friendly error
+      if (CUSTOMER_OPTIONAL && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
+        console.warn('⚠️ OnvoPay payment service unavailable, returning graceful error', {
+          appointmentId: body.appointmentId,
+          status: onvoResponse.status
+        });
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'PAYMENT_SERVICE_UNAVAILABLE',
+          message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
+          hint: 'OnvoPay API is temporarily down'
+        }), { 
+          status: 200, // Return 200 to avoid throwing error in client
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+
       return new Response(JSON.stringify({
         error: 'NON_JSON_RESPONSE',
         message: isHTML 
