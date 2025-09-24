@@ -404,6 +404,22 @@ serve(async (req) => {
     } catch (error: any) {
       console.error('❌ Failed to ensure OnvoPay customer:', error);
       
+      // Handle service unavailable errors more gracefully
+      if (error.status === 503 || error.status === 502 || error.status === 504) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'ONVO_SERVICE_UNAVAILABLE',
+            message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
+            hint: 'OnvoPay API is temporarily down'
+          }),
+          { 
+            status: 422, // Use 422 instead of 503 to avoid complete payment failure
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
