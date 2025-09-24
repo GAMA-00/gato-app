@@ -64,17 +64,17 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
       </div>
 
       {/* Botones de navegación */}
-      <div className="flex gap-2 sm:gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-4">
         {!isFirstStep && (
           <Button 
             type="button" 
             variant="outline" 
             onClick={onPrev}
-            className="flex-[0.8] sm:flex-1 h-12 sm:h-11 text-xs sm:text-base px-2 sm:px-4"
+            className="col-span-1 h-12 sm:h-11 text-xs sm:text-base px-2 sm:px-4 min-w-0"
             size="sm"
           >
             <ArrowLeft className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline truncate">Anterior</span>
+            <span className="hidden sm:inline truncate whitespace-nowrap">Anterior</span>
           </Button>
         )}
         
@@ -82,21 +82,21 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          className={`${isFirstStep ? "flex-1" : "flex-[0.6] sm:flex-1"} h-12 sm:h-11 text-xs sm:text-base px-2 sm:px-4`}
+          className={`${isFirstStep ? "col-span-2" : "col-span-1"} h-12 sm:h-11 text-xs sm:text-base px-2 sm:px-4 min-w-0`}
           size="sm"
         >
           <X className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline truncate">Cancelar</span>
+          <span className="hidden sm:inline truncate whitespace-nowrap">Cancelar</span>
         </Button>
         
         {!isLastStep ? (
           <Button 
             type="button"
             onClick={onNext}
-            className="flex-1 h-12 sm:h-11 text-xs sm:text-base px-2 sm:px-4"
+            className="col-span-1 h-12 sm:h-11 text-xs sm:text-base px-2 sm:px-4 min-w-0"
             size="sm"
           >
-            <span className="hidden sm:inline truncate">Siguiente</span>
+            <span className="hidden sm:inline truncate whitespace-nowrap">Siguiente</span>
             <ArrowRight className="h-4 w-4 sm:ml-2" />
           </Button>
         ) : (
@@ -104,11 +104,11 @@ const ServiceFormFooter: React.FC<ServiceFormFooterProps> = ({
             type="button"
             onClick={handleSubmitClick}
             disabled={isSubmitting}
-            className="flex-1 bg-green-600 hover:bg-green-700 h-12 sm:h-11 disabled:opacity-50 text-xs sm:text-base px-2 sm:px-4"
+            className="col-span-1 bg-green-600 hover:bg-green-700 h-12 sm:h-11 disabled:opacity-50 text-xs sm:text-base px-2 sm:px-4 min-w-0"
             size="sm"
           >
             <Check className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline truncate">
+            <span className="hidden sm:inline truncate whitespace-nowrap">
               {isSubmitting ? 'Enviando...' : (isEditing ? 'Guardar' : 'Crear')}
             </span>
           </Button>
