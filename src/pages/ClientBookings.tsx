@@ -14,6 +14,7 @@ import PendingInvoicesSection from '@/components/client/PendingInvoicesSection';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { logger, bookingLogger } from '@/utils/logger';
 
 const ClientBookings = () => {
   const navigate = useNavigate();
@@ -26,13 +27,14 @@ const ClientBookings = () => {
   const { summary: recurringServicesSummary } = useRecurringServices();
   const { data: bookings, isLoading, error, refetch } = useClientBookings();
   
-  console.log('=== CLIENT BOOKINGS PAGE ===');
-  console.log(`Total bookings received: ${bookings?.length || 0}`);
-  console.log('Recurring services summary:', recurringServicesSummary);
+  bookingLogger.info('=== CLIENT BOOKINGS PAGE ===');
+  bookingLogger.dataProcessing(`Total bookings received: ${bookings?.length || 0}`);
+  bookingLogger.debug('Recurring services summary:', recurringServicesSummary);
   
   // Filtrar SOLO citas futuras - tanto únicas como recurrentes
   const now = new Date();
   const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
+  
   
   const activeBookings = bookings?.filter(booking => {
     // Excluir citas canceladas, rechazadas o completadas
@@ -45,13 +47,13 @@ const ClientBookings = () => {
     const isActiveStatus = booking.status === 'pending' || booking.status === 'confirmed';
     
     if (!isFuture) {
-      console.log(`❌ Filtered out past appointment: ${booking.serviceName} - ${booking.date.toLocaleString()}`);
+      logger.debug(`Filtered out past appointment: ${booking.serviceName} - ${booking.date.toLocaleString()}`);
     }
     
     return isActiveStatus && isFuture;
   }) || [];
   
-  console.log(`📅 Showing ${activeBookings.length} future appointments only`);
+  bookingLogger.info(`Showing ${activeBookings.length} future appointments only`);
 
   // Obtener todas las citas completadas pendientes de calificar
   const allCompletedBookings = bookings?.filter(booking => 
@@ -63,7 +65,7 @@ const ClientBookings = () => {
     const autoRateOldServices = async () => {
       if (allCompletedBookings.length > 5) {
         const oldServices = allCompletedBookings.slice(5); // Servicios después de los 5 más recientes
-        console.log(`🌟 Auto-calificando ${oldServices.length} servicios antiguos con 5 estrellas`);
+        bookingLogger.info(`Auto-calificando ${oldServices.length} servicios antiguos con 5 estrellas`);
         
         try {
           // Auto-calificar cada servicio antiguo con 5 estrellas
@@ -78,9 +80,9 @@ const ClientBookings = () => {
               });
               
             if (error) {
-              console.error(`Error auto-calificando servicio ${booking.id}:`, error);
+              logger.error(`Error auto-calificando servicio ${booking.id}:`, error);
             } else {
-              console.log(`✅ Auto-calificado: ${booking.serviceName} con 5 estrellas`);
+              logger.rating(`Auto-calificado: ${booking.serviceName} con 5 estrellas`);
             }
           }
           
@@ -89,7 +91,7 @@ const ClientBookings = () => {
             handleRated();
           }
         } catch (error) {
-          console.error('Error en auto-calificación:', error);
+          logger.error('Error en auto-calificación:', error);
         }
       }
     };

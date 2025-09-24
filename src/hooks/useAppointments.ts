@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { startOfToday, endOfDay, addDays, addWeeks } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 import { useCalendarRecurringSystem } from '@/hooks/useCalendarRecurringSystem';
+import { logger, apiLogger } from '@/utils/logger';
 
 export const useAppointments = () => {
   const { user } = useAuth();
@@ -19,12 +20,12 @@ export const useAppointments = () => {
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.log('useAppointments: No user ID available');
+        logger.warn('useAppointments: No user ID available');
         return [];
       }
-
-      console.log('=== FETCHING APPOINTMENTS WITH COMPLETE DATA FOR DASHBOARD ===');
-      console.log(`User ID: ${user.id}, Role: ${user.role}`);
+      
+      apiLogger.info('=== FETCHING APPOINTMENTS WITH COMPLETE DATA FOR DASHBOARD ===');
+      apiLogger.debug(`User ID: ${user.id}, Role: ${user.role}`);
 
       try {
         // Step 1: Get basic appointments with listings data
@@ -52,16 +53,16 @@ export const useAppointments = () => {
         const { data: appointments, error: appointmentsError } = await query;
 
         if (appointmentsError) {
-          console.error('Error fetching appointments:', appointmentsError);
+          logger.error('Error fetching appointments:', appointmentsError);
           return [];
         }
 
         if (!appointments || appointments.length === 0) {
-          console.log('No appointments found');
+          logger.info('No appointments found');
           return [];
         }
 
-        console.log(`Fetched ${appointments.length} basic appointments`);
+        logger.dataProcessing(`Fetched ${appointments.length} basic appointments`);
         
         // Filter out cancelled and rejected appointments
         const validAppointments = appointments.filter(app => 
@@ -77,7 +78,7 @@ export const useAppointments = () => {
 
         let clientsData = [];
         if (clientIds.length > 0) {
-          console.log('Fetching client data for IDs:', clientIds);
+          logger.debug('Fetching client data for IDs:', clientIds);
           
           const { data: clients, error: clientsError } = await supabase
             .from('users')
@@ -98,10 +99,10 @@ export const useAppointments = () => {
             .in('id', clientIds);
 
           if (clientsError) {
-            console.error('Error fetching clients data:', clientsError);
+            logger.error('Error fetching clients data:', clientsError);
           } else {
             clientsData = clients || [];
-            console.log(`Fetched data for ${clientsData.length} clients`);
+            logger.dataProcessing(`Fetched data for ${clientsData.length} clients`);
           }
         }
 
@@ -112,8 +113,8 @@ export const useAppointments = () => {
         const enhancedAppointments = validAppointments.map(appointment => {
           const clientData = clientsMap.get(appointment.client_id);
           
-          console.log(`🔧 === GARANTIZANDO UBICACIÓN PARA APPOINTMENT ${appointment.id} ===`);
-          console.log('Appointment data:', {
+          logger.debug(`=== GARANTIZANDO UBICACIÓN PARA APPOINTMENT ${appointment.id} ===`);
+          logger.debug('Appointment data:', {
             id: appointment.id,
             client_id: appointment.client_id,
             external_booking: appointment.external_booking,
@@ -127,7 +128,7 @@ export const useAppointments = () => {
             clientData
           });
 
-          console.log(`✅ UBICACIÓN GARANTIZADA PARA APPOINTMENT ${appointment.id}: "${completeLocation}"`);
+          logger.info(`UBICACIÓN GARANTIZADA PARA APPOINTMENT ${appointment.id}: "${completeLocation}"`);
 
           return {
             ...appointment,
@@ -138,13 +139,13 @@ export const useAppointments = () => {
           };
         });
 
-        console.log(`Enhanced ${enhancedAppointments.length} appointments with GUARANTEED location data`);
+        apiLogger.info(`Enhanced ${enhancedAppointments.length} appointments with GUARANTEED location data`);
         
         // Log sample data for debugging
         if (enhancedAppointments.length > 0) {
-          console.log('=== SAMPLE ENHANCED APPOINTMENT WITH GUARANTEED LOCATION ===');
+          logger.debug('=== SAMPLE ENHANCED APPOINTMENT WITH GUARANTEED LOCATION ===');
           const sampleApp = enhancedAppointments[0];
-          console.log('Sample appointment:', {
+          logger.debug('Sample appointment:', {
             id: sampleApp.id,
             client_name: sampleApp.client_name,
             external_booking: sampleApp.external_booking,
@@ -155,7 +156,7 @@ export const useAppointments = () => {
         
         return enhancedAppointments;
       } catch (err) {
-        console.error('Exception in appointments query:', err);
+        logger.error('Exception in appointments query:', err);
         return [];
       }
     },
@@ -175,8 +176,8 @@ export const useAppointments = () => {
     appointment.recurrence && appointment.recurrence !== 'none'
   );
 
-  console.log(`Regular appointments: ${regularOnly.length}`);
-  console.log(`Recurring base appointments: ${recurringBase.length}`);
+  logger.debug(`Regular appointments: ${regularOnly.length}`);
+  logger.debug(`Recurring base appointments: ${recurringBase.length}`);
 
   // Generate recurring instances for the next 30 days
   const today = startOfToday();
@@ -185,7 +186,7 @@ export const useAppointments = () => {
   // Note: Recurring instances are now handled by the unified calendar system
   const recurringInstances: any[] = [];
 
-  console.log(`Recurring instances now handled by unified system: ${recurringInstances.length}`);
+  logger.debug(`Recurring instances now handled by unified system: ${recurringInstances.length}`);
 
   // Combine all appointments
   const allAppointments = [
@@ -196,8 +197,8 @@ export const useAppointments = () => {
     ...recurringInstances
   ];
 
-  console.log(`Total combined appointments: ${allAppointments.length}`);
-  console.log('=== APPOINTMENTS FETCH COMPLETE ===');
+  logger.info(`Total combined appointments: ${allAppointments.length}`);
+  logger.debug('=== APPOINTMENTS FETCH COMPLETE ===');
 
   // Return appropriate data based on user role
   if (user?.role === 'provider') {

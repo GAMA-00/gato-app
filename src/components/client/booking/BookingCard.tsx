@@ -14,6 +14,7 @@ import { getRecurrenceInfo } from '@/utils/recurrenceUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { logger, bookingLogger } from '@/utils/logger';
 
 interface BookingCardProps {
   booking: ClientBooking;
@@ -27,7 +28,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const isCompleted = booking.status === 'completed';
   const isSkipped = booking.status === 'cancelled' && booking.notes?.includes('[SKIPPED BY CLIENT]');
   
-  console.log('BookingCard - Booking data:', {
+  bookingLogger.debug('BookingCard - Booking data:', {
     id: booking.id,
     serviceName: booking.serviceName,
     status: booking.status,
@@ -44,7 +45,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     try {
       if (isRecurring) {
         // Para citas recurrentes: usar la función para saltar solo esta instancia
-        console.log('🔄 Skipping recurring instance using edge function:', booking.id);
+        logger.systemOperation('Skipping recurring instance using edge function:', booking.id);
         
         const { data, error } = await supabase.functions.invoke('skip-recurring-instance', {
           body: { appointmentId: booking.id }

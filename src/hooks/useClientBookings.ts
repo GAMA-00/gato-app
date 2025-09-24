@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { processClientBooking } from '@/utils/clientBookingProcessor';
+import { logger, bookingLogger, locationLogger } from '@/utils/logger';
 
 export interface ClientBooking {
   id: string;
@@ -37,8 +38,8 @@ export const useClientBookings = () => {
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
-      console.log('🚀 === INICIO CONSULTA CLIENT BOOKINGS ===');
-      console.log('👤 Obteniendo reservas para usuario:', user.id);
+      bookingLogger.info('=== INICIO CONSULTA CLIENT BOOKINGS ===');
+      bookingLogger.userAction('Obteniendo reservas para usuario:', user.id);
 
       try {
         // Removed auto-rating to prevent active bookings from disappearing
@@ -67,16 +68,16 @@ export const useClientBookings = () => {
           .order('start_time', { ascending: false });
 
         if (error) {
-          console.error('❌ Error obteniendo citas:', error);
+          logger.error('Error obteniendo citas:', error);
           throw error;
         }
 
         if (!appointments?.length) {
-          console.log('📭 No se encontraron citas para el cliente');
+          bookingLogger.info('No se encontraron citas para el cliente');
           return [];
         }
 
-        console.log(`📊 Encontradas ${appointments.length} citas`);
+        bookingLogger.dataProcessing(`Encontradas ${appointments.length} citas`);
 
         // Obtener información de servicios incluyendo is_post_payment
         const listingIds = [...new Set(appointments.map(a => a.listing_id).filter(Boolean))];
@@ -103,7 +104,7 @@ export const useClientBookings = () => {
               servicesMap = new Map(listings.map(l => [l.id, l]));
             }
           } catch (error) {
-            console.error('❌ Error obteniendo servicios:', error);
+            logger.error('Error obteniendo servicios:', error);
           }
         }
 
@@ -122,7 +123,7 @@ export const useClientBookings = () => {
               providersMap = new Map(providers.map(p => [p.id, p]));
             }
           } catch (error) {
-            console.error('❌ Error obteniendo proveedores:', error);
+            logger.error('Error obteniendo proveedores:', error);
           }
         }
 
@@ -138,7 +139,7 @@ export const useClientBookings = () => {
             ratedIds = new Set(ratedAppointments.map((r: any) => r.appointment_id));
           }
         } catch (error) {
-          console.error('❌ Error obteniendo calificaciones:', error);
+          logger.error('Error obteniendo calificaciones:', error);
         }
 
         // Obtener facturas aprobadas para citas post-pago
@@ -160,12 +161,12 @@ export const useClientBookings = () => {
               approvedInvoices = new Set(invoices.map(i => i.appointment_id));
             }
           } catch (error) {
-            console.error('❌ Error obteniendo facturas aprobadas:', error);
+            logger.error('Error obteniendo facturas aprobadas:', error);
           }
         }
 
         // *** PUNTO CRÍTICO: Obtener datos COMPLETOS del usuario ***
-        console.log('🏠 === OBTENIENDO DATOS COMPLETOS DE UBICACIÓN DEL USUARIO ===');
+        locationLogger.info('=== OBTENIENDO DATOS COMPLETOS DE UBICACIÓN DEL USUARIO ===');
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select(`
@@ -182,16 +183,16 @@ export const useClientBookings = () => {
           .single();
 
         if (userError) {
-          console.error('❌ Error obteniendo datos del usuario:', userError);
+          logger.error('Error obteniendo datos del usuario:', userError);
         }
 
-        console.log('🏠 === DATOS COMPLETOS DEL USUARIO ===');
-        console.log('📋 Objeto completo userData:', JSON.stringify(userData, null, 2));
-        console.log('🏢 Nombre residencia:', userData?.residencias?.name);
-        console.log('🏘️ Texto condominio (PRINCIPAL):', userData?.condominium_text);
-        console.log('🏘️ Nombre condominio (RESPALDO):', userData?.condominium_name);
-        console.log('🏠 Número de casa:', userData?.house_number);
-        console.log('🏠 === FIN DATOS USUARIO ===');
+        locationLogger.debug('=== DATOS COMPLETOS DEL USUARIO ===');
+        locationLogger.debug('Objeto completo userData:', JSON.stringify(userData, null, 2));
+        locationLogger.debug('Nombre residencia:', userData?.residencias?.name);
+        locationLogger.debug('Texto condominio (PRINCIPAL):', userData?.condominium_text);
+        locationLogger.debug('Nombre condominio (RESPALDO):', userData?.condominium_name);
+        locationLogger.debug('Número de casa:', userData?.house_number);
+        locationLogger.debug('=== FIN DATOS USUARIO ===');
 
         // Procesar citas con cálculo optimizado de próxima ocurrencia
         const processedBookings = appointments.map(appointment => {
@@ -205,11 +206,11 @@ export const useClientBookings = () => {
           });
         });
 
-        console.log('🎯 === RESULTADOS FINALES CLIENT BOOKINGS ===');
-        console.log(`📊 Procesadas ${processedBookings.length} reservas`);
+        bookingLogger.info('=== RESULTADOS FINALES CLIENT BOOKINGS ===');
+        bookingLogger.dataProcessing(`Procesadas ${processedBookings.length} reservas`);
 
         // *** DEDUPLICACIÓN MEJORADA: Solo eliminar duplicados reales ***
-        console.log('🔄 === INICIANDO PROCESO DE DEDUPLICACIÓN MEJORADA ===');
+        logger.systemOperation('=== INICIANDO PROCESO DE DEDUPLICACIÓN MEJORADA ===');
         const uniqueBookingsMap = new Map<string, ClientBooking>();
         
         processedBookings.forEach(booking => {
@@ -218,13 +219,13 @@ export const useClientBookings = () => {
           const timeKey = booking.date.toISOString().split('T')[1].substring(0, 5); // Solo hora HH:MM
           const uniqueKey = `${booking.listingId}-${booking.providerId}-${dateKey}-${timeKey}-${booking.status}`;
           
-          console.log(`🔍 Evaluando cita ${booking.id}: clave=${uniqueKey}, servicio=${booking.serviceName}, status=${booking.status}`);
+          logger.debug(`Evaluando cita ${booking.id}: clave=${uniqueKey}, servicio=${booking.serviceName}, status=${booking.status}`);
           
           if (uniqueBookingsMap.has(uniqueKey)) {
             const existingBooking = uniqueBookingsMap.get(uniqueKey)!;
-            console.log(`⚠️ DUPLICADO REAL DETECTADO: ${booking.serviceName} el ${dateKey} a las ${timeKey} (${booking.status})`);
-            console.log(`   - Existente: ID=${existingBooking.id}`);
-            console.log(`   - Nuevo: ID=${booking.id}`);
+            logger.warn(`DUPLICADO REAL DETECTADO: ${booking.serviceName} el ${dateKey} a las ${timeKey} (${booking.status})`);
+            logger.debug(`   - Existente: ID=${existingBooking.id}`);
+            logger.debug(`   - Nuevo: ID=${booking.id}`);
             
             // Solo reemplazar si es la misma cita exacta (mismo ID base para recurrentes)
             const existingBaseId = existingBooking.id.split('-recurring-')[0];
@@ -232,22 +233,22 @@ export const useClientBookings = () => {
             
             if (existingBaseId === newBaseId || booking.id > existingBooking.id) {
               uniqueBookingsMap.set(uniqueKey, booking);
-              console.log(`   🔄 Cita reemplazada por ser más reciente`);
+              logger.debug(`   Cita reemplazada por ser más reciente`);
             } else {
-              console.log(`   ⏭️ Cita mantenida (IDs diferentes)`);
+              logger.debug(`   Cita mantenida (IDs diferentes)`);
             }
           } else {
             uniqueBookingsMap.set(uniqueKey, booking);
-            console.log(`   ✅ Cita única agregada`);
+            logger.debug(`   Cita única agregada`);
           }
         });
         
         const deduplicatedBookings = Array.from(uniqueBookingsMap.values());
-        console.log(`🧹 DEDUPLICACIÓN COMPLETADA: ${processedBookings.length} → ${deduplicatedBookings.length} reservas`);
+        logger.systemOperation(`DEDUPLICACIÓN COMPLETADA: ${processedBookings.length} → ${deduplicatedBookings.length} reservas`);
         
         if (processedBookings.length !== deduplicatedBookings.length) {
           const duplicatesRemoved = processedBookings.length - deduplicatedBookings.length;
-          console.log(`🚨 SE ELIMINARON ${duplicatesRemoved} DUPLICADOS`);
+          logger.warn(`SE ELIMINARON ${duplicatesRemoved} DUPLICADOS`);
         }
         
         // ORDENAMIENTO CRONOLÓGICO CRÍTICO: Más próxima primero
@@ -257,15 +258,15 @@ export const useClientBookings = () => {
           return dateA.getTime() - dateB.getTime();
         });
         
-        console.log('✅ Reservas finales ordenadas cronológicamente (más próxima primero)');
+        bookingLogger.info('Reservas finales ordenadas cronológicamente (más próxima primero)');
         deduplicatedBookings.forEach((booking, index) => {
-          console.log(`${index + 1}. ${booking.serviceName} - ${booking.date.toLocaleString()}`);
+          logger.debug(`${index + 1}. ${booking.serviceName} - ${booking.date.toLocaleString()}`);
         });
         
         return deduplicatedBookings;
 
       } catch (error) {
-        console.error('❌ Error en useClientBookings:', error);
+        logger.error('Error en useClientBookings:', error);
         throw error;
       }
     },

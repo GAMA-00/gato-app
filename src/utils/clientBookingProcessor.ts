@@ -1,6 +1,7 @@
 import { ClientBooking } from '@/hooks/useClientBookings';
 import { buildCompleteLocation } from '@/utils/locationBuilder';
 import { calculateNextOccurrence } from '@/utils/nextOccurrenceCalculator';
+import { logger, bookingLogger } from '@/utils/logger';
 
 interface ProcessBookingParams {
   appointment: any;
@@ -30,7 +31,7 @@ function calculateNextOccurrenceForRecurring(
   // For cancelled appointments, only skip if they were actually skipped (have the special note)
   const isSkipped = status === 'cancelled' && notes?.includes('[SKIPPED BY CLIENT]');
   if (status === 'completed' || (status === 'cancelled' && !isSkipped)) {
-    console.log(`✅ ${status} appointment - using original date: ${originalDate.toISOString()}`);
+    logger.debug(`${status} appointment - using original date: ${originalDate.toISOString()}`);
     return originalDate;
   }
   
@@ -41,7 +42,7 @@ function calculateNextOccurrenceForRecurring(
   if (validRecurrences.includes(recurrence) && activeStatuses.includes(status)) {
     // If original date is in the future, use it
     if (originalDate > now) {
-      console.log(`📅 Future appointment - using original date: ${originalDate.toISOString()}`);
+      logger.debug(`Future appointment - using original date: ${originalDate.toISOString()}`);
       return originalDate;
     }
     
@@ -71,7 +72,7 @@ function calculateNextOccurrenceForRecurring(
         break;
     }
     
-    console.log(`🔄 Next occurrence calculated for ${status} ${recurrence} appointment: original=${originalDate.toISOString()}, next=${nextDate.toISOString()}`);
+    logger.debug(`Next occurrence calculated for ${status} ${recurrence} appointment: original=${originalDate.toISOString()}, next=${nextDate.toISOString()}`);
     return nextDate;
   }
   
@@ -90,7 +91,7 @@ export function processClientBooking({
   const service = servicesMap.get(appointment.listing_id);
   const provider = providersMap.get(appointment.provider_id);
   
-  console.log(`🔄 === PROCESANDO CITA ${appointment.id} ===`);
+  bookingLogger.debug(`=== PROCESANDO CITA ${appointment.id} ===`);
   
   // Construir ubicación
   const location = buildAppointmentLocation(appointment, userData);
@@ -140,13 +141,13 @@ function buildAppointmentLocation(appointment: any, userData: any): string {
   let location = 'Ubicación no especificada';
   
   if (appointment.external_booking && appointment.client_address) {
-    console.log('🌍 Reserva externa detectada');
+    logger.debug('Reserva externa detectada');
     location = buildCompleteLocation({
       clientAddress: appointment.client_address,
       isExternal: true
     }, appointment.id);
   } else if (userData) {
-    console.log('🏠 Construyendo ubicación interna con datos COMPLETOS');
+    logger.debug('Construyendo ubicación interna con datos COMPLETOS');
     
     const locationData = {
       residenciaName: userData.residencias?.name,
@@ -156,14 +157,14 @@ function buildAppointmentLocation(appointment: any, userData: any): string {
       isExternal: false
     };
     
-    console.log('📤 === DATOS ENVIADOS A buildCompleteLocation ===');
-    console.log('📋 Datos completos:', JSON.stringify(locationData, null, 2));
+    logger.debug('=== DATOS ENVIADOS A buildCompleteLocation ===');
+    logger.debug('Datos completos:', JSON.stringify(locationData, null, 2));
     
     location = buildCompleteLocation(locationData, appointment.id);
   } else {
-    console.log('❌ NO HAY DATOS DE USUARIO para construcción de ubicación');
+    logger.warn('NO HAY DATOS DE USUARIO para construcción de ubicación');
   }
 
-  console.log(`📍 Ubicación final para cita ${appointment.id}:`, location);
+  logger.debug(`Ubicación final para cita ${appointment.id}:`, location);
   return location;
 }
