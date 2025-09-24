@@ -414,7 +414,7 @@ serve(async (req) => {
             hint: 'OnvoPay API is temporarily down'
           }),
           { 
-            status: 422, // Use 422 instead of 503 to avoid complete payment failure
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
