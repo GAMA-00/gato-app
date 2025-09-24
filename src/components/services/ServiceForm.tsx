@@ -331,7 +331,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                   variant="outline" 
                   onClick={prevStep}
                   disabled={isFirstStep || isSubmitting}
-                  className="h-12 w-full min-w-0 justify-center text-sm sm:text-base px-2 sm:px-4"
+                  className="h-12 w-full min-w-0 justify-center text-xs sm:text-base px-2 sm:px-4"
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   <span className="truncate">Anterior</span>
@@ -380,7 +380,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                   <Button 
                     type="button"
                     onClick={nextStep}
-                    className="h-12 w-full min-w-0 justify-center text-sm sm:text-base px-2 sm:px-4"
+                    className="h-12 w-full min-w-0 justify-center text-xs sm:text-base px-2 sm:px-4"
                   >
                     <span className="truncate">Siguiente</span>
                     <ChevronRight className="h-4 w-4 ml-2" />
