@@ -324,32 +324,33 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t bg-gray-50 flex justify-between rounded-b-lg">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={prevStep}
-                disabled={isFirstStep || isSubmitting}
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Anterior
-              </Button>
-              
-              <div className="flex space-x-2">
+            <div className="p-6 border-t bg-gray-50 rounded-b-lg">
+              <div className="grid grid-cols-3 gap-2 w-full items-stretch">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={prevStep}
+                  disabled={isFirstStep || isSubmitting}
+                  className="h-12 w-full min-w-0 justify-center text-sm sm:text-base px-2 sm:px-4"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  <span className="truncate">Anterior</span>
+                </Button>
+                
                 <Button 
                   type="button" 
                   variant="ghost" 
                   onClick={onClose}
                   disabled={isSubmitting}
+                  className="h-12 w-full min-w-0 justify-center text-sm sm:text-base px-2 sm:px-4"
                 >
-                  Cancelar
+                  <span className="truncate">Cancelar</span>
                 </Button>
                 
                 {isLastStep ? (
                   <Button 
                     type="button" 
                     disabled={isSubmitting}
-                    className="min-w-[120px]"
                     onClick={() => {
                       console.log('=== Submit button clicked ===');
                       console.log('Form values before submit:', form.getValues());
@@ -371,12 +372,17 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                       
                       form.handleSubmit(handleFormSubmit)();
                     }}
+                    className="h-12 w-full min-w-0 justify-center text-sm sm:text-base px-2 sm:px-4"
                   >
-                    {isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')}
+                    <span className="truncate">{isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')}</span>
                   </Button>
                 ) : (
-                  <Button type="button" onClick={nextStep}>
-                    Siguiente
+                  <Button 
+                    type="button"
+                    onClick={nextStep}
+                    className="h-12 w-full min-w-0 justify-center text-sm sm:text-base px-2 sm:px-4"
+                  >
+                    <span className="truncate">Siguiente</span>
                     <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
                 )}
