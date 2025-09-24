@@ -8,11 +8,17 @@ const corsHeaders = {
 
 // Environment configuration
 function getOnvoConfig() {
+  const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com';
+  const version = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
+  const path = Deno.env.get('ONVOPAY_API_PATH_CUSTOMERS') || '/v1/customers';
+  const debug = (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true';
+  
   return {
-    baseUrl: Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com',
-    version: Deno.env.get('ONVOPAY_API_VERSION') || 'v1',
-    path: Deno.env.get('ONVOPAY_API_PATH_CUSTOMERS') || '/v1/customers',
-    debug: (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true'
+    baseUrl,
+    version,
+    path,
+    debug,
+    fullUrl: `${baseUrl}/${version}/payment_intents`
   };
 }
 
@@ -218,6 +224,11 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Diagnostics tracking
+  let currentPhase = 'start';
+  console.log('🚀 ONVOPAY AUTHORIZE - Function started');
+  console.log('🔎 Request info:', { method: req.method, url: req.url });
 
   try {
     // Handle CORS
@@ -521,8 +532,8 @@ serve(async (req) => {
             contentType: altResponse.headers.get('content-type'),
             url: alternativeUrl
           });
-        } catch (altError) {
-          console.log('🔧 Alternative endpoint also failed:', altError.message);
+        } catch (altError: any) {
+          console.log('🔧 Alternative endpoint also failed:', altError?.message || 'Unknown error');
         }
       }
       

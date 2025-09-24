@@ -131,11 +131,11 @@ serve(async (req) => {
           });
       }
 
-    } catch (processingError) {
+    } catch (processingError: any) {
       console.error('Error processing webhook:', processingError);
       errorDetails = { 
-        error: processingError.message,
-        stack: processingError.stack 
+        error: processingError?.message || 'Unknown error',
+        stack: processingError?.stack || 'No stack trace'
       };
     }
 
@@ -162,10 +162,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in onvopay-webhook:', error);
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: error?.message || 'Unknown error',
       received: false 
     }), {
       status: 500,

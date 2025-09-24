@@ -70,7 +70,7 @@ serve(async (req) => {
 
       const { data: matchingRules, error: ruleError } = await supabaseClient
         .from('recurring_rules')
-        .select('id')
+        .select('id, day_of_week, day_of_month, recurrence_type')
         .eq('provider_id', appointment.provider_id)
         .eq('client_id', appointment.client_id)
         .eq('listing_id', appointment.listing_id)
@@ -105,7 +105,7 @@ serve(async (req) => {
     }
 
     // Step 2: Cancel future appointments belonging to this specific rule
-    let futureAppointments = [];
+    let futureAppointments: any[] = [];
     if (targetRuleId) {
       // Cancel by rule ID (most precise)
       const { data: ruleAppointments, error: futureError } = await supabaseClient
