@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface CheckoutData {
   serviceTitle: string;
@@ -105,6 +106,18 @@ export const Checkout = () => {
 
   const handlePaymentError = (error: Error) => {
     console.error('Payment error:', error);
+    
+    // Don't show additional error for service unavailability - already handled in form
+    if (error.message === "SERVICE_TEMPORARILY_UNAVAILABLE") {
+      return;
+    }
+    
+    // For other errors, show general error message
+    toast({
+      variant: "destructive", 
+      title: "Error en el pago",
+      description: "Hubo un problema procesando su pago. Por favor, intente nuevamente."
+    });
   };
 
   // Detectar automáticamente el tipo de pago según la frecuencia

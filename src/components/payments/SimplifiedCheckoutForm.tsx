@@ -302,6 +302,24 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       if (authorizeData && !authorizeData.success) {
         console.error('❌ Error en authorize response:', authorizeData.error);
         
+        // Special handling for service unavailability - don't delete appointment
+        if (authorizeData.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
+          console.warn('⚠️ Payment service temporarily unavailable, showing user-friendly message');
+          
+          toast({
+            variant: "destructive",
+            title: "Servicio temporalmente no disponible",
+            description: authorizeData.message || "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.",
+            duration: 8000
+          });
+          
+          if (onError) {
+            onError(new Error("SERVICE_TEMPORARILY_UNAVAILABLE"));
+          }
+          return;
+        }
+        
+        // For other errors, delete appointment and throw error
         await supabase
           .from('appointments')
           .delete()
