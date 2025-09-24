@@ -12,10 +12,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BookingsList } from '@/components/client/booking/BookingsList';
 import PendingInvoicesSection from '@/components/client/PendingInvoicesSection';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const ClientBookings = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   // Re-enable appointment completion for proper flow
   useAppointmentCompletion();
@@ -50,10 +53,54 @@ const ClientBookings = () => {
   
   console.log(`📅 Showing ${activeBookings.length} future appointments only`);
 
-  // Mostrar TODAS las citas completadas pendientes de calificar
-  const completedBookings = bookings?.filter(booking => 
+  // Obtener todas las citas completadas pendientes de calificar
+  const allCompletedBookings = bookings?.filter(booking => 
     booking.status === 'completed' && !booking.isRated
   ) || [];
+
+  // Auto-calificar servicios antiguos (más de 5) con 5 estrellas
+  React.useEffect(() => {
+    const autoRateOldServices = async () => {
+      if (allCompletedBookings.length > 5) {
+        const oldServices = allCompletedBookings.slice(5); // Servicios después de los 5 más recientes
+        console.log(`🌟 Auto-calificando ${oldServices.length} servicios antiguos con 5 estrellas`);
+        
+        try {
+          // Auto-calificar cada servicio antiguo con 5 estrellas
+          for (const booking of oldServices) {
+            const { error } = await supabase
+              .rpc('submit_provider_rating', {
+                p_provider_id: booking.providerId,
+                p_client_id: user?.id,
+                p_appointment_id: booking.id,
+                p_rating: 5,
+                p_comment: null
+              });
+              
+            if (error) {
+              console.error(`Error auto-calificando servicio ${booking.id}:`, error);
+            } else {
+              console.log(`✅ Auto-calificado: ${booking.serviceName} con 5 estrellas`);
+            }
+          }
+          
+          // Refrescar la lista después de auto-calificar
+          if (oldServices.length > 0) {
+            handleRated();
+          }
+        } catch (error) {
+          console.error('Error en auto-calificación:', error);
+        }
+      }
+    };
+
+    if (user?.id && allCompletedBookings.length > 5) {
+      autoRateOldServices();
+    }
+  }, [allCompletedBookings.length, user?.id]);
+
+  // Mostrar solo los 5 servicios más recientes para calificar
+  const completedBookings = allCompletedBookings.slice(0, 5);
 
   // Separar citas post-pago pendientes de factura vs listas para calificar
   const pendingInvoiceBookings = completedBookings.filter(booking => 
