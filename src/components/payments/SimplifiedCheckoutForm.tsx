@@ -357,6 +357,24 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         if (confirmError || !confirmData.success) {
           console.error('❌ Error confirmando pago:', confirmError || confirmData.error);
           
+          // Special handling for service unavailability in confirm step
+          if (confirmData?.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
+            console.warn('⚠️ Payment confirmation service temporarily unavailable');
+            
+            toast({
+              variant: "destructive",
+              title: "Servicio temporalmente no disponible",
+              description: confirmData?.message || "El servicio de confirmación de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.",
+              duration: 8000
+            });
+            
+            if (onError) {
+              onError(new Error("SERVICE_TEMPORARILY_UNAVAILABLE"));
+            }
+            return;
+          }
+          
+          // For other errors, delete appointment and throw error
           await supabase
             .from('appointments')
             .delete()

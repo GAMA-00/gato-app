@@ -8,10 +8,17 @@ const corsHeaders = {
 
 // Environment configuration
 function getOnvoConfig() {
+  const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com';
+  const version = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
+  const path = Deno.env.get('ONVOPAY_API_PATH_CUSTOMERS') || '/v1/customers';
+  const debug = (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true';
+  
   return {
-    baseUrl: Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com',
-    path: Deno.env.get('ONVOPAY_API_PATH_CUSTOMERS') || '/v1/customers',
-    debug: (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true'
+    baseUrl,
+    version,
+    path,
+    debug,
+    fullUrl: `${baseUrl}/${version}/customers`
   };
 }
 
@@ -30,186 +37,128 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('🚀 ONVOPAY CUSTOMER SYNC - Function started');
+  console.log('🔎 Request info:', { method: req.method, url: req.url });
+
   try {
     const config = getOnvoConfig();
     const secretKey = Deno.env.get('ONVOPAY_SECRET_KEY');
     
     if (!secretKey) {
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          code: 'MISSING_CONFIG',
-          hint: 'ONVOPAY_SECRET_KEY not configured' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      console.error('❌ Missing ONVOPAY_SECRET_KEY environment variable');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'CONFIGURATION_ERROR',
+        message: 'Configuración de OnvoPay incompleta - falta secret key'
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    // Initialize Supabase admin client
+    // Create Supabase admin client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
     );
 
-    const body = await req.json();
-    const { clientId } = body;
-
-    if (!clientId) {
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          code: 'INVALID_INPUT',
-          hint: 'clientId requerido' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    // Parse request body
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('❌ Invalid JSON body:', e);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'INVALID_JSON',
+        message: 'El cuerpo del request no es JSON válido'
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if (config.debug) {
-      console.log(`🔄 Syncing OnvoPay customer for client: ${clientId}`);
+    const { client_id } = body;
+    if (!client_id) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: 'client_id es requerido'
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
+    console.log('📋 Syncing customer for client_id:', client_id);
 
     // Step 1: Check if customer mapping already exists
     const { data: existingCustomer } = await supabase
       .from('onvopay_customers')
       .select('onvopay_customer_id, synced_at')
-      .eq('client_id', clientId)
+      .eq('client_id', client_id)
       .single();
 
     if (existingCustomer?.onvopay_customer_id) {
-      if (config.debug) {
-        console.log(`✅ Customer mapping already exists: ${existingCustomer.onvopay_customer_id}`);
-      }
+      const syncAge = Date.now() - new Date(existingCustomer.synced_at).getTime();
+      const syncAgeHours = syncAge / (1000 * 60 * 60);
       
-      return new Response(
-        JSON.stringify({ 
-          ok: true, 
-          onvopay_customer_id: existingCustomer.onvopay_customer_id,
-          source: 'existing',
-          synced_at: existingCustomer.synced_at
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      console.log(`✅ Customer already exists: ${existingCustomer.onvopay_customer_id} (synced ${syncAgeHours.toFixed(1)}h ago)`);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        customer_id: existingCustomer.onvopay_customer_id,
+        status: 'existing',
+        message: 'Cliente ya existe en OnvoPay'
+      }), { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    // Step 2: Get user data
+    // Step 2: Get user data for customer creation
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, name, email, phone')
-      .eq('id', clientId)
+      .eq('id', client_id)
       .single();
 
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          code: 'USER_NOT_FOUND',
-          hint: `Usuario no encontrado: ${clientId}` 
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      console.error('❌ User not found:', userError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: `Usuario no encontrado: ${client_id}`
+      }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const normalized = normalizeData(user);
 
     // Step 3: Validate required data
     if (!normalized.email && !normalized.phone) {
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          code: 'MISSING_USER_DATA',
-          hint: 'Se requiere email o phone para crear cliente en OnvoPay' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'MISSING_USER_DATA',
+        message: 'Se requiere email o phone para crear el cliente en OnvoPay'
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Step 4: Check for existing mapping by normalized data (fallback search)
-    let existingByData = null;
-    if (normalized.email) {
-      const { data } = await supabase
-        .from('onvopay_customers')
-        .select('onvopay_customer_id, client_id, customer_data')
-        .eq('normalized_email', normalized.email)
-        .single();
-      
-      if (data) {
-        existingByData = data;
-        if (config.debug) {
-          console.log(`🔍 Found existing customer by email: ${data.onvopay_customer_id} for client ${data.client_id}`);
-        }
-      }
-    }
-
-    if (!existingByData && normalized.phone) {
-      const { data } = await supabase
-        .from('onvopay_customers')
-        .select('onvopay_customer_id, client_id, customer_data')
-        .eq('normalized_phone', normalized.phone)
-        .single();
-      
-      if (data) {
-        existingByData = data;
-        if (config.debug) {
-          console.log(`🔍 Found existing customer by phone: ${data.onvopay_customer_id} for client ${data.client_id}`);
-        }
-      }
-    }
-
-    // If we found an existing customer for a different client, we can either:
-    // 1. Create a new customer anyway (current approach)  
-    // 2. Link to existing customer (risky - could merge different people)
-    // For safety, we'll create a new customer but log the potential duplicate
-    if (existingByData && existingByData.client_id !== clientId) {
-      console.warn(`⚠️ Potential duplicate customer detected:`, {
-        existingCustomerId: existingByData.onvopay_customer_id,
-        existingClientId: existingByData.client_id,
-        newClientId: clientId,
-        sharedEmail: normalized.email,
-        sharedPhone: normalized.phone
-      });
-    }
-
-    // Step 5: Create customer in OnvoPay API
+    // Step 4: Create customer in OnvoPay API
     const payload = {
       name: normalized.name || 'Sin nombre',
       ...(normalized.email && { email: normalized.email }),
       ...(normalized.phone && { phone: normalized.phone }),
-      metadata: { internal_client_id: clientId, sync_source: 'manual' }
+      metadata: { internal_client_id: client_id }
     };
 
     const url = `${config.baseUrl}${config.path}`;
     const headers = {
       'Authorization': `Bearer ${secretKey}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Idempotency-Key': `customer-sync-${client_id}`
     };
 
-    if (config.debug) {
-      console.log(`📡 Creating OnvoPay customer:`, { url, payload });
-    }
+    console.log('📡 Creating customer in OnvoPay...', {
+      url,
+      hasEmail: !!normalized.email,
+      hasPhone: !!normalized.phone,
+      hasName: !!normalized.name
+    });
 
-    const startTime = Date.now();
     const response = await fetch(url, {
       method: 'POST',
       headers,
@@ -218,69 +167,71 @@ serve(async (req) => {
 
     const responseText = await response.text();
     const contentType = response.headers.get('content-type') || '';
-    const duration = Date.now() - startTime;
 
-    if (config.debug) {
-      console.log(`📡 OnvoPay API response (${duration}ms):`, {
-        status: response.status,
-        contentType,
-        preview: responseText.slice(0, 256)
-      });
-    }
-
-    let parsed = null;
-    if (contentType.includes('application/json')) {
-      try {
-        parsed = JSON.parse(responseText);
-      } catch {
-        // Invalid JSON in response
-      }
-    }
+    console.log('🔍 OnvoPay customer API response:', {
+      status: response.status,
+      contentType,
+      bodyLength: responseText.length,
+      isJSON: contentType.includes('application/json')
+    });
 
     if (!response.ok) {
-      const hint = contentType.includes('text/html') 
-        ? 'Proveedor devolvió HTML (503/maintenance/WAF). No es JSON.'
-        : response.status === 404 
-        ? 'Revisa base, versión (/v1) y endpoint /customers'
-        : 'Error en API de OnvoPay';
-
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          code: 'ONVO_API_ERROR',
+      // Best effort - if service is down, don't fail the sync but log it
+      if (response.status >= 500 || !contentType.includes('application/json')) {
+        console.warn('⚠️ OnvoPay customer sync failed due to service unavailability', {
           status: response.status,
-          hint,
-          provider: parsed || responseText.slice(0, 1024)
-        }),
-        { 
-          status: 400, 
+          contentType,
+          clientId: client_id
+        });
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'SERVICE_UNAVAILABLE',
+          message: 'Servicio temporalmente no disponible para sincronización de cliente',
+          status: 'down'
+        }), { 
+          status: 200, // Don't fail the request, this is best effort
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+        });
+      }
+      
+      console.error('❌ OnvoPay customer API error:', responseText);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'ONVO_API_ERROR',
+        message: 'Error creando cliente en OnvoPay',
+        status: response.status
+      }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Validate response format
+    let parsed;
+    try {
+      parsed = JSON.parse(responseText);
+    } catch (e) {
+      console.error('❌ Invalid JSON response:', e);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'INVALID_JSON',
+        message: 'Respuesta inválida de OnvoPay'
+      }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (!parsed || !parsed.id) {
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          code: 'ONVO_API_FORMAT',
-          hint: 'Respuesta de OnvoPay sin ID de cliente' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      console.error('❌ Invalid response format:', parsed);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'INVALID_RESPONSE',
+        message: 'Respuesta de OnvoPay sin ID de cliente'
+      }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const customerId = parsed.id;
 
-    // Step 6: Save customer mapping to database
+    // Step 5: Save customer mapping to database
     const { error: insertError } = await supabase
       .from('onvopay_customers')
       .insert({
-        client_id: clientId,
+        client_id: client_id,
         onvopay_customer_id: customerId,
         customer_data: parsed,
         normalized_email: normalized.email || null,
@@ -291,51 +242,36 @@ serve(async (req) => {
 
     if (insertError) {
       console.error('❌ Failed to save OnvoPay customer mapping:', insertError);
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          code: 'DB_UPDATE_ERROR',
-          hint: 'No se pudo guardar el mapeo del cliente',
-          details: insertError.message
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'DB_UPDATE_ERROR',
+        message: 'No se pudo guardar el mapeo del cliente',
+        details: insertError.message
+      }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if (config.debug) {
-      console.log(`✅ Successfully created and synced OnvoPay customer: ${customerId}`);
-    }
+    console.log('✅ Customer created and synced successfully:', customerId);
 
-    return new Response(
-      JSON.stringify({ 
-        ok: true, 
-        onvopay_customer_id: customerId,
-        source: 'created',
-        synced_at: new Date().toISOString()
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      customer_id: customerId,
+      status: 'created',
+      message: 'Cliente creado y sincronizado exitosamente'
+    }), { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
 
   } catch (error: any) {
-    console.error('❌ Unexpected error in onvopay-customer-sync:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        ok: false, 
-        code: 'UNEXPECTED_ERROR',
-        hint: 'Error interno del servidor',
-        error: error.message
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    console.error('❌ Customer sync function error:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'FUNCTION_ERROR',
+      message: error.message || 'Error sincronizando cliente',
+      timestamp: new Date().toISOString()
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Service bypass configuration - same as authorize
+const CUSTOMER_OPTIONAL = (Deno.env.get('ONVOPAY_CUSTOMER_OPTIONAL') ?? 'true').toLowerCase() === 'true';
+
 // OnvoPay API configuration
 const getOnvoConfig = () => {
   const ONVOPAY_API_BASE = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com';
@@ -172,12 +175,45 @@ serve(async (req) => {
     const pmText = await pmResponse.text();
     const pmContentType = pmResponse.headers.get('content-type') ?? '';
 
+    console.log('🔍 Payment Method response info:', {
+      status: pmResponse.status,
+      contentType: pmContentType,
+      bodyLength: pmText.length,
+      isHTML: pmContentType.includes('text/html'),
+      isJSON: pmContentType.includes('application/json')
+    });
+
     if (!pmContentType.includes('application/json')) {
+      const isHTML = pmContentType.includes('text/html') || pmText.trim().startsWith('<');
+      
+      // CRITICAL BYPASS: If OnvoPay service is down and customer bypass is enabled
+      if (CUSTOMER_OPTIONAL && (pmResponse.status === 502 || pmResponse.status === 503 || pmResponse.status === 504)) {
+        console.warn('⚠️ OnvoPay payment method service unavailable, activating bypass', {
+          paymentIntentId: body.payment_intent_id,
+          status: pmResponse.status,
+          customerOptional: CUSTOMER_OPTIONAL,
+          bypassing: true
+        });
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'PAYMENT_SERVICE_UNAVAILABLE',
+          message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
+          hint: 'OnvoPay Payment Method API is temporarily down'
+        }), { 
+          status: 200, // Return 200 to avoid throwing error in client
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+
       console.error('❌ Non-JSON response creating Payment Method');
       return new Response(JSON.stringify({
         error: 'NON_JSON_RESPONSE',
-        message: 'OnvoPay returned a non-JSON response when creating payment method',
-        status: pmResponse.status
+        message: isHTML 
+          ? 'OnvoPay returned an HTML error page instead of JSON. This usually indicates service unavailability.'
+          : 'OnvoPay returned a non-JSON response when creating payment method',
+        status: pmResponse.status,
+        bodyPreview: pmText.substring(0, 300) + (pmText.length > 300 ? '...' : '')
       }), { status: pmResponse.status || 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -227,15 +263,42 @@ serve(async (req) => {
     console.log('🔍 OnvoPay confirm response:', {
       status: onvoResponse.status,
       contentType: contentType,
-      bodyLength: responseText.length
+      bodyLength: responseText.length,
+      isHTML: contentType.includes('text/html'),
+      isJSON: contentType.includes('application/json')
     });
 
     if (!contentType.includes('application/json')) {
+      const isHTML = contentType.includes('text/html') || responseText.trim().startsWith('<');
+      
+      // CRITICAL BYPASS: If OnvoPay service is down and customer bypass is enabled
+      if (CUSTOMER_OPTIONAL && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
+        console.warn('⚠️ OnvoPay confirm service unavailable, activating bypass', {
+          paymentIntentId: body.payment_intent_id,
+          status: onvoResponse.status,
+          customerOptional: CUSTOMER_OPTIONAL,
+          bypassing: true
+        });
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'PAYMENT_SERVICE_UNAVAILABLE',
+          message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
+          hint: 'OnvoPay Confirm API is temporarily down'
+        }), { 
+          status: 200, // Return 200 to avoid throwing error in client
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+
       console.error('❌ Non-JSON response from OnvoPay confirm');
       return new Response(JSON.stringify({
         error: 'NON_JSON_RESPONSE',
-        message: 'OnvoPay returned a non-JSON response',
-        status: onvoResponse.status
+        message: isHTML 
+          ? 'OnvoPay returned an HTML error page instead of JSON. This usually indicates service unavailability.'
+          : 'OnvoPay returned a non-JSON response',
+        status: onvoResponse.status,
+        bodyPreview: responseText.substring(0, 300) + (responseText.length > 300 ? '...' : '')
       }), { 
         status: onvoResponse.status >= 400 ? onvoResponse.status : 502, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

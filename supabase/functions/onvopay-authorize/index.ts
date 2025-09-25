@@ -484,9 +484,22 @@ serve(async (req) => {
       metadata: onvoPayData.metadata
     });
 
-    // Make the actual API call to OnvoPay
-    currentPhase = 'call-onvopay';
-    console.log('🚀 Calling OnvoPay API...');
+      console.log('🚀 Calling OnvoPay API...');
+      
+      // Pre-sync customer if not already exists (best effort)
+      try {
+        const customerSyncResponse = await supabase.functions.invoke('onvopay-customer-sync', {
+          body: { client_id: appointment.client_id }
+        });
+        
+        if (customerSyncResponse.data?.success) {
+          console.log('✅ Customer pre-sync successful:', customerSyncResponse.data.customer_id);
+        } else {
+          console.warn('⚠️ Customer pre-sync failed (non-blocking):', customerSyncResponse.data?.error);
+        }
+      } catch (syncError: any) {
+        console.warn('⚠️ Customer pre-sync error (non-blocking):', syncError.message);
+      }
     
     const onvoUrl = `${onvoConfig.baseUrl}/v1/payment_intents`;
     const onvoResponse = await fetch(onvoUrl, {
@@ -494,6 +507,7 @@ serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
         'Content-Type': 'application/json',
+        'Idempotency-Key': `appointment-${body.appointmentId}`, // Ensure idempotency
       },
       body: JSON.stringify(onvoPayData)
     });
