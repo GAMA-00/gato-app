@@ -20,6 +20,13 @@ export async function validateSlotAvailabilityForBooking(
   console.log({ providerId, listingId, startTime, endTime, recurrence });
 
   try {
+    // 0. Limpiar citas pendientes antiguas antes de validar
+    try {
+      await supabase.rpc('cleanup_old_pending_appointments');
+    } catch (cleanupError) {
+      console.warn('Could not run cleanup:', cleanupError);
+    }
+
     // 1. Validar que el slot es válido para la recurrencia seleccionada
     if (recurrence !== 'once') {
       const normalizeRecurrenceType = (rec: string): 'once' | 'weekly' | 'biweekly' | 'triweekly' | 'monthly' => {
@@ -48,18 +55,76 @@ export async function validateSlotAvailabilityForBooking(
       }
     }
 
-    // 2. Validar usando nuestro sistema de validación existente
+    // 2. Verificar conflictos con citas existentes activas con detalles específicos
+    const { data: existingAppointments, error: appointmentError } = await supabase
+      .from('appointments')
+      .select('id, status, client_id, recurrence, created_at, end_time, admin_notes')
+      .eq('provider_id', providerId)
+      .eq('start_time', startTime.toISOString())
+      .in('status', ['confirmed', 'pending', 'completed']);
+
+    if (appointmentError) {
+      console.error('Error checking existing appointments:', appointmentError);
+      return {
+        isAvailable: false,
+        reason: 'Error verificando disponibilidad',
+        conflictType: 'database',
+        suggestions: ['Intenta de nuevo en unos momentos']
+      };
+    }
+
+    if (existingAppointments && existingAppointments.length > 0) {
+      console.log('🚨 Conflicto detectado:', existingAppointments);
+      
+      // Detectar si hay datos corruptos (citas completadas en el futuro)
+      const futureCompleted = existingAppointments.filter(apt => 
+        apt.status === 'completed' && new Date(apt.end_time) > new Date()
+      );
+      
+      if (futureCompleted.length > 0) {
+        console.error('🐛 Datos corruptos detectados - citas completadas en el futuro:', futureCompleted);
+        return {
+          isAvailable: false,
+          reason: 'Datos inconsistentes detectados. Se ha reportado el problema para corrección automática.',
+          conflictType: 'database',
+          suggestions: [
+            'Intenta de nuevo en unos momentos',
+            'Si el problema persiste, contacta soporte técnico'
+          ]
+        };
+      }
+
+      // Filtrar solo las citas activas reales
+      const activeAppointments = existingAppointments.filter(apt => 
+        apt.status === 'confirmed' || (apt.status === 'pending' && 
+        new Date(apt.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)) // Pending menos de 24h
+      );
+
+      if (activeAppointments.length > 0) {
+        const appointment = activeAppointments[0];
+        return {
+          isAvailable: false,
+          reason: appointment.status === 'confirmed' 
+            ? 'Ya existe una cita confirmada para este horario'
+            : 'Hay una cita pendiente de pago para este horario',
+          conflictType: 'appointment',
+          suggestions: ['Selecciona otro horario disponible']
+        };
+      }
+    }
+
+    // 3. Validar usando nuestro sistema de validación existente
     const isSlotValid = await validateBookingSlot(providerId, startTime, endTime, recurrence);
     if (!isSlotValid) {
       return {
         isAvailable: false,
-        reason: 'Este horario no está disponible',
+        reason: 'Este horario no está disponible según las reglas del proveedor',
         conflictType: 'appointment',
         suggestions: ['Selecciona otro horario disponible']
       };
     }
 
-    // 3. Verificar que el slot existe en provider_time_slots y está disponible
+    // 4. Verificar que el slot existe en provider_time_slots y está disponible
     const { data: slotData, error: slotError } = await supabase
       .from('provider_time_slots')
       .select('is_available, is_reserved, recurring_blocked')
@@ -79,33 +144,6 @@ export async function validateSlotAvailabilityForBooking(
           ? 'Este horario está bloqueado por una cita recurrente' 
           : 'Este horario ya está reservado',
         conflictType: 'provider_time_slot',
-        suggestions: ['Selecciona otro horario disponible']
-      };
-    }
-
-    // 4. Verificar conflictos con citas existentes activas
-    const { data: existingAppointments, error: appointmentError } = await supabase
-      .from('appointments')
-      .select('id, status, client_id, recurrence')
-      .eq('provider_id', providerId)
-      .eq('start_time', startTime.toISOString())
-      .in('status', ['confirmed', 'pending']);
-
-    if (appointmentError) {
-      console.error('Error checking existing appointments:', appointmentError);
-      return {
-        isAvailable: false,
-        reason: 'Error verificando disponibilidad',
-        conflictType: 'database',
-        suggestions: ['Intenta de nuevo en unos momentos']
-      };
-    }
-
-    if (existingAppointments && existingAppointments.length > 0) {
-      return {
-        isAvailable: false,
-        reason: 'Ya existe una cita para este horario',
-        conflictType: 'appointment',
         suggestions: ['Selecciona otro horario disponible']
       };
     }

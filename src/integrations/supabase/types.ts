@@ -1778,6 +1778,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      cleanup_old_pending_appointments: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       consolidate_multiple_listings: {
         Args: Record<PropertyKey, never>
         Returns: number
