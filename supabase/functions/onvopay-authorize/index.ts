@@ -223,18 +223,13 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   // Diagnostics tracking
   let currentPhase = 'start';
   console.log('🚀 ONVOPAY AUTHORIZE - Function started');
   console.log('🔎 Request info:', { method: req.method, url: req.url });
 
   try {
-    // Handle CORS
+    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       console.log('✅ CORS preflight handled');
       return new Response(null, { headers: corsHeaders });
@@ -654,28 +649,6 @@ serve(async (req) => {
         
         // Skip debug fallback and bypass logic for brevity
       }
-          const alternativeUrl = `${onvoConfig.baseUrl}/payment-intents`; // Without /v1
-          console.log('🔧 Debug: Trying alternative endpoint:', alternativeUrl);
-          
-          try {
-            const altResponse = await fetch(alternativeUrl, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(onvoPayData)
-            });
-            
-            console.log('🔧 Alternative endpoint result:', {
-              status: altResponse.status,
-              contentType: altResponse.headers.get('content-type'),
-              url: alternativeUrl
-            });
-          } catch (altError: any) {
-            console.log('🔧 Alternative endpoint also failed:', altError?.message || 'Unknown error');
-          }
-        }
         
         // Enhanced error handling for OnvoPay service  
         if (CUSTOMER_OPTIONAL && onvoResponse && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
