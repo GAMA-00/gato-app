@@ -194,11 +194,6 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         throw new Error('No se pudo obtener el ID de la reserva creada');
       }
 
-      if (appointmentError) {
-        console.error('❌ Error creando appointment:', appointmentError);
-        throw new Error('No se pudo crear la reserva. Intenta nuevamente.');
-      }
-
       console.log('✅ Appointment creado exitosamente:', newAppointmentId);
 
       // PASO 2: Si es nueva tarjeta y se quiere guardar, guardarla
@@ -257,6 +252,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         // Try to parse structured error from edge function
         let errorMessage = 'Error en el procesamiento del pago';
         let errorDetails = '';
+        let shouldDeleteAppointment = true;
         
         if (authorizeError) {
           console.error('❌ Error en onvopay-authorize:', {
@@ -264,10 +260,6 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             appointmentId: newAppointmentId,
             timestamp: new Date().toISOString()
           });
-          
-          let errorMessage = "Error procesando el pago. Por favor, intente nuevamente.";
-          let errorDetails = "";
-          let shouldDeleteAppointment = true;
           
           try {
             if (typeof authorizeError.message === 'string' && authorizeError.message.includes('Error: ')) {
@@ -372,33 +364,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
           return;
         }
 
-        if (authorizeData && !authorizeData.success) {
-        console.error('❌ Error en authorize response:', authorizeData.error);
-        
-        // Special handling for service unavailability - don't delete appointment
-        if (authorizeData.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
-          console.warn('⚠️ Payment service temporarily unavailable, showing user-friendly message');
-          
-          toast({
-            variant: "destructive",
-            title: "Servicio temporalmente no disponible",
-            description: authorizeData.message || "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.",
-            duration: 8000
-          });
-          
-          if (onError) {
-            onError(new Error("SERVICE_TEMPORARILY_UNAVAILABLE"));
-          }
-          return;
-        }
-        
-        // For other errors, delete appointment and throw error
-        await supabase
-          .from('appointments')
-          .delete()
-          .eq('id', newAppointmentId);
-
-        throw new Error(authorizeData.error || 'Error creando Payment Intent');
+        throw new Error(authorizeData?.error || 'Error creando Payment Intent');
       }
 
       console.log('✅ Payment Intent created:', {
@@ -453,19 +419,21 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             .delete()
             .eq('id', newAppointmentId);
 
-          throw new Error(confirmError?.message || confirmData.error || 'Error confirmando el pago');
+          throw new Error(confirmData?.error || 'Error confirmando pago');
         }
 
-        console.log('✅ Pago confirmado exitosamente');
-        finalPaymentData = { ...authorizeData, ...confirmData };
+        console.log('✅ Payment confirmed:', confirmData);
+        finalPaymentData = confirmData;
       }
 
-      // STEP 3: Update appointment with payment reference
-      if (authorizeData && authorizeData.success) {
+      // PASO 3: Actualizar appointment con información de pago procesado (si no es post-pago)
+      if (!finalPaymentData.is_post_payment && finalPaymentData.status === 'captured') {
+        console.log('🔄 Actualizando appointment con pago completo...');
+        
         await supabase
           .from('appointments')
-          .update({
-            onvopay_payment_id: authorizeData.payment_id
+          .update({ 
+            status: 'pending' // Provider approval required, but payment is secured
           })
           .eq('id', newAppointmentId);
 
@@ -541,76 +509,80 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         />
       )}
 
-      {validationErrors.card && (
-        <p className="text-sm text-red-500">{validationErrors.card}</p>
-      )}
-
-      {/* Información de facturación mínima */}
+      {/* Información de facturación */}
       <Card>
         <CardHeader>
-          <CardTitle>Información de Contacto</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Información de Contacto
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="phone">Teléfono *</Label>
-            <Input
-              id="phone"
-              placeholder="+506-8888-9999"
-              value={billingData.phone}
-              onChange={(e) => setBillingData({...billingData, phone: e.target.value})}
-              className={validationErrors.phone ? 'border-red-500' : ''}
-            />
-            {validationErrors.phone && (
-              <p className="text-sm text-red-500 mt-1">{validationErrors.phone}</p>
-            )}
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Teléfono *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="8123-4567"
+                value={billingData.phone}
+                onChange={(e) => setBillingData(prev => ({ ...prev, phone: e.target.value }))}
+                className={validationErrors.phone ? 'border-red-500' : ''}
+              />
+              {validationErrors.phone && (
+                <p className="text-sm text-red-500">{validationErrors.phone}</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="address">Dirección *</Label>
-            <Input
-              id="address"
-              placeholder="Dirección completa"
-              value={billingData.address}
-              onChange={(e) => setBillingData({...billingData, address: e.target.value})}
-              className={validationErrors.address ? 'border-red-500' : ''}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Requerido por el procesador de pagos
-            </p>
-            {validationErrors.address && (
-              <p className="text-sm text-red-500 mt-1">{validationErrors.address}</p>
-            )}
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address">Dirección completa *</Label>
+              <Input
+                id="address"
+                placeholder="Dirección de facturación"
+                value={billingData.address}
+                onChange={(e) => setBillingData(prev => ({ ...prev, address: e.target.value }))}
+                className={validationErrors.address ? 'border-red-500' : ''}
+              />
+              {validationErrors.address && (
+                <p className="text-sm text-red-500">{validationErrors.address}</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Botón de pago */}
+      {/* Resumen y botón de pago */}
       <Card>
         <CardContent className="pt-6">
-          <Button
-            type="submit"
-            className="w-full"
-            size="lg"
-            disabled={isProcessing || hasSubmitted}
-            onClick={handleSubmit}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Procesando Pago...
-              </>
-            ) : (
-              <>
-                <Shield className="mr-2 h-4 w-4" />
-                Autorizar Pago ${amount.toFixed(2)}
-              </>
-            )}
-          </Button>
-
-          <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              Al autorizar el pago, aceptas nuestros términos y condiciones.
-              Tu información está protegida con encriptación SSL.
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold">Total a pagar:</span>
+              <span className="text-2xl font-bold text-green-600">
+                ${amount.toFixed(2)} USD
+              </span>
+            </div>
+            
+            <Separator />
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              size="lg"
+              disabled={isProcessing || hasSubmitted}
+              onClick={handleSubmit}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                `Procesar Pago - $${amount.toFixed(2)} USD`
+              )}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              Tu información está protegida con encriptación de grado bancario
             </p>
           </div>
         </CardContent>

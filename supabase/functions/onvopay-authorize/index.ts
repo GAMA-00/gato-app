@@ -263,12 +263,6 @@ serve(async (req) => {
       });
     }
 
-    console.log('🔑 Using OnvoPay secret key:', '***' + ONVOPAY_SECRET_KEY.slice(-4));
-    console.log('🌐 OnvoPay API URL:', onvoConfig.fullUrl);
-    if (onvoConfig.debug) {
-      console.log('🐛 Debug mode enabled');
-    }
-
     // Create Supabase admin client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -288,21 +282,6 @@ serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log('📋 Request data received:', {
-      hasAppointmentId: !!body.appointmentId,
-      hasAmount: !!body.amount,
-      hasPaymentType: !!body.payment_type,
-      appointmentId: body.appointmentId,
-      hasCardData: !!body.card_data,
-      hasBillingInfo: !!body.billing_info,
-      cardData: body.card_data ? {
-        hasNumber: !!body.card_data.number,
-        hasExpiry: !!body.card_data.expiry,
-        hasCvv: !!body.card_data.cvv,
-        hasName: !!body.card_data.name
-      } : null
-    });
-
     // Input validation
     currentPhase = 'validate-input';
     const missing: string[] = [];
@@ -316,10 +295,7 @@ serve(async (req) => {
       if (!body.card_data.name) missing.push('card_data.name');
     }
     if (!body.billing_info) missing.push('billing_info');
-    else {
-      if (!body.billing_info.phone) missing.push('billing_info.phone');
-      if (!body.billing_info.address) missing.push('billing_info.address');
-    }
+
     if (missing.length > 0) {
       console.error('❌ Validation failed. Missing fields:', missing);
       return new Response(JSON.stringify({
@@ -345,23 +321,7 @@ serve(async (req) => {
       }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Get client data separately
-    currentPhase = 'fetch-client';
-    const { data: clientData, error: clientError } = await supabase
-      .from('users')
-      .select('id, name, email, phone')
-      .eq('id', appointment.client_id)
-      .single();
-
-    if (appointmentError || !appointment) {
-      console.error('❌ Appointment not found:', appointmentError);
-      return new Response(JSON.stringify({
-        error: 'APPOINTMENT_NOT_FOUND',
-        message: 'No se encontró la cita especificada',
-      }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    // Get listing to determine if post-payment (avoid joins due to missing FK)
+    // Get listing to determine if post-payment
     currentPhase = 'fetch-listing';
     const { data: listing, error: listingError } = await supabase
       .from('listings')
@@ -374,26 +334,13 @@ serve(async (req) => {
     }
 
     // Calculate amounts in cents
-    const amountCents = Math.round(body.amount * 100); // Convert USD to cents
-    const subtotalCents = Math.round(amountCents / 1.13); // Remove IVA (13%)
+    const amountCents = Math.round(body.amount * 100);
+    const subtotalCents = Math.round(amountCents / 1.13);
     const ivaCents = amountCents - subtotalCents;
-
-    console.log('💰 Payment calculation:', {
-      originalAmount: body.amount,
-      amountCents,
-      subtotalCents,
-      ivaCents,
-      paymentType: body.payment_type
-    });
 
     // Check if service is post-payment
     const isPostPayment = (listing && typeof listing.is_post_payment === 'boolean') ? listing.is_post_payment : false;
     
-    console.log('📋 Service payment type:', {
-      isPostPayment,
-      listingId: appointment.listing_id
-    });
-
     // **CRITICAL: Ensure OnvoPay customer exists before creating payment intent**
     currentPhase = 'ensure-onvopay-customer';
     let customerId: string | undefined;
@@ -431,71 +378,23 @@ serve(async (req) => {
     // Prepare OnvoPay API request - CREATE Payment Intent only
     currentPhase = 'prepare-onvopay-request';
     
-    // Sanitize metadata - OnvoPay requires all values to be strings with max 500 chars
-    const sanitizeMetadata = (obj: Record<string, any>): Record<string, string> => {
-      const sanitized: Record<string, string> = {};
-      
-      for (const [key, value] of Object.entries(obj)) {
-        // Skip null/undefined values
-        if (value == null) continue;
-        
-        // Convert to string and limit length to 500 chars
-        const stringValue = String(value).substring(0, 500);
-        
-        // Only include non-empty strings and validate key length
-        if (stringValue.length > 0 && key.length <= 40) {
-          sanitized[key] = stringValue;
-        }
-      }
-      
-      return sanitized;
-    };
-
     const onvoPayData: any = {
       amount: amountCents,
       currency: 'USD',
       description: `Servicio ${body.appointmentId}`,
-      metadata: sanitizeMetadata({
+      metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
-        is_post_payment: isPostPayment
-      })
+        is_post_payment: isPostPayment.toString()
+      }
     };
 
     // Include customer_id only if available
     if (customerId) {
       onvoPayData.customer = customerId;
-      console.log('🔗 Including customer_id in payment intent:', customerId);
-    } else {
-      console.log('⚠️ Proceeding without customer association');
     }
 
-    console.log('📡 OnvoPay request payload:', {
-      amount: onvoPayData.amount,
-      currency: onvoPayData.currency,
-      customerId: customerId,
-      hasMetadata: !!onvoPayData.metadata,
-      metadata: onvoPayData.metadata
-    });
-
-      console.log('🚀 Calling OnvoPay API...');
-      
-      // Pre-sync customer if not already exists (best effort)
-      try {
-        const customerSyncResponse = await supabase.functions.invoke('onvopay-customer-sync', {
-          body: { client_id: appointment.client_id }
-        });
-        
-        if (customerSyncResponse.data?.success) {
-          console.log('✅ Customer pre-sync successful:', customerSyncResponse.data.customer_id);
-        } else {
-          console.warn('⚠️ Customer pre-sync failed (non-blocking):', customerSyncResponse.data?.error);
-        }
-      } catch (syncError: any) {
-        console.warn('⚠️ Customer pre-sync error (non-blocking):', syncError.message);
-      }
-    
     // Create Payment Intent with retry logic and structured logging
     const requestId = crypto.randomUUID();
     const paymentIntentStartTime = Date.now();
@@ -511,6 +410,7 @@ serve(async (req) => {
     let attempt = 0;
     const maxRetries = 2;
     let onvoResponse: Response | undefined;
+    let onvoResult: any;
     
     while (attempt <= maxRetries) {
       try {
@@ -519,216 +419,136 @@ serve(async (req) => {
           headers: {
             'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
             'Content-Type': 'application/json',
-            'Idempotency-Key': `appointment-${body.appointmentId}`,
-            'X-Request-ID': requestId,
           },
           body: JSON.stringify(onvoPayData),
           signal: AbortSignal.timeout(10000) // 10 second timeout
         });
-        
-        break; // Success, exit retry loop
-      } catch (error: any) {
-        if (attempt < maxRetries && (error.name === 'TimeoutError' || error.message.includes('fetch'))) {
-          attempt++;
-          const backoffMs = Math.pow(2, attempt) * 1000;
-          console.log(`⏳ Payment Intent API timeout/network error, retrying in ${backoffMs}ms (attempt ${attempt}/${maxRetries}):`, error.message);
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
-          continue;
-        }
-        
-        // Network or timeout error after retries
-        const responseTime = Date.now() - paymentIntentStartTime;
-        console.error('❌ Payment Intent creation failed after retries:', {
-          requestId,
-          error: error.message,
-          responseTime: `${responseTime}ms`,
-          attempts: attempt + 1
-        });
-        
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'NETWORK_ERROR',
-          message: 'Error de red al crear Payment Intent. Intente nuevamente.',
-          requestId,
-          responseTime: `${responseTime}ms`,
-          timestamp: new Date().toISOString()
-        }), {
-          status: 200, // Return 200 for frontend handling
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
 
-    // Ensure we have a response after the retry loop
-    if (!onvoResponse) {
-      const responseTime = Date.now() - paymentIntentStartTime;
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'NETWORK_ERROR',
-        message: 'Error de red al crear Payment Intent. Intente nuevamente.',
-        requestId,
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString()
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+        const responseText = await onvoResponse.text();
+        const contentType = onvoResponse.headers.get('content-type') || '';
+        const responseTimeMs = Date.now() - paymentIntentStartTime;
 
-    // Read response body ONCE and add structured logging
-    const responseText = await onvoResponse.text();
-    const contentType = onvoResponse.headers.get('content-type') ?? '';
-    const responseTime = Date.now() - paymentIntentStartTime;
-    let onvoResult;
-    
-    console.log('🔍 Payment Intent response info:', {
-      requestId,
-      status: onvoResponse.status,
-      contentType: contentType,
-      bodyLength: responseText.length,
-      isHTML: contentType.includes('text/html'),
-      isJSON: contentType.includes('application/json'),
-      responseTime: `${responseTime}ms`,
-      customerOptional: CUSTOMER_OPTIONAL
-    });
-      
-      // Check if response is JSON before parsing
-      if (!contentType.includes('application/json')) {
-        const isHTML = contentType.includes('text/html') || responseText.trim().startsWith('<');
-        const hint = onvoResponse.status === 503 
-          ? 'OnvoPay service temporarily unavailable (503). This usually means maintenance or API overload.'
-          : onvoResponse.status === 404
-          ? 'Endpoint not found. Check: 1) API base URL (sandbox vs prod), 2) API version (/v1), 3) Resource name (payment-intents with hyphens)'
-          : onvoResponse.status === 401
-          ? 'Invalid ONVOPAY_SECRET_KEY or missing Authorization header'
-          : onvoResponse.status === 500
-          ? 'OnvoPay internal server error. Try again in a few minutes.'
-          : `Non-JSON response from OnvoPay (${contentType})`;
-        
-        console.error('❌ Non-JSON response from OnvoPay:', {
+        console.log(`📡 Payment Intent API response (attempt ${attempt + 1}):`, {
           requestId,
           status: onvoResponse.status,
+          responseTimeMs,
           contentType,
-          isHTML,
-          responseTime: `${responseTime}ms`,
-          bodyPreview: responseText.substring(0, 300) + (responseText.length > 300 ? '...' : '')
+          url: onvoUrl,
+          hasContent: responseText.length > 0
         });
-        
-        // Enhanced error mapping based on status codes
-        let errorCode = 'PAYMENT_SERVICE_UNAVAILABLE';
-        let errorMessage = 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.';
-        
-        if (onvoResponse.status === 401 || onvoResponse.status === 403) {
-          errorCode = 'CONFIGURATION_ERROR';
-          errorMessage = 'Error de configuración de OnvoPay. Contacte al administrador.';
-        } else if (onvoResponse.status === 404) {
-          errorCode = 'ENDPOINT_NOT_FOUND';
-          errorMessage = 'Endpoint de OnvoPay no encontrado. Verificar configuración de ambiente.';
-        } else if (onvoResponse.status >= 400 && onvoResponse.status < 500 && !isHTML) {
-          errorCode = 'VALIDATION_ERROR';
-          errorMessage = 'Error de validación en la solicitud de pago.';
-        }
-        
-        return new Response(JSON.stringify({
-          success: false,
-          error: errorCode,
-          message: errorMessage,
-          requestId,
-          responseTime: `${responseTime}ms`,
-          timestamp: new Date().toISOString(),
-          debug: {
-            status: onvoResponse.status,
-            contentType,
-            bodyPreview: responseText.substring(0, 200),
-            url: onvoUrl
-          }
-        }), {
-          status: 200, // Return 200 for frontend handling
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-        
-        // Skip debug fallback and bypass logic for brevity
-      }
-        
-        // Enhanced error handling for OnvoPay service  
-        if (CUSTOMER_OPTIONAL && onvoResponse && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
-          const requestId = crypto.randomUUID();
+
+        // Check if response is JSON before parsing
+        if (!contentType.includes('application/json')) {
+          const isHTML = contentType.includes('text/html') || responseText.trim().startsWith('<');
+          const hint = onvoResponse.status === 503 
+            ? 'OnvoPay service temporarily unavailable (503). This usually means maintenance or API overload.'
+            : onvoResponse.status === 404
+            ? 'Endpoint not found. Check: 1) API base URL (sandbox vs prod), 2) API version (/v1), 3) Resource name (payment-intents with hyphens)'
+            : onvoResponse.status === 401
+            ? 'Invalid ONVOPAY_SECRET_KEY or missing Authorization header'
+            : onvoResponse.status === 500
+            ? 'OnvoPay internal server error. Try again in a few minutes.'
+            : `Non-JSON response from OnvoPay (${contentType})`;
           
-          console.warn('⚠️ OnvoPay payment service unavailable, activating bypass', {
-            requestId,
-            appointmentId: body.appointmentId,
+          // Enhanced error handling for OnvoPay service  
+          if (CUSTOMER_OPTIONAL && onvoResponse && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
+            console.warn('⚠️ OnvoPay payment service unavailable, activating bypass', {
+              requestId,
+              appointmentId: body.appointmentId,
+              status: onvoResponse.status,
+              customerOptional: CUSTOMER_OPTIONAL,
+              bypassing: true
+            });
+            
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'PAYMENT_SERVICE_UNAVAILABLE',
+              message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
+              hint: 'OnvoPay API is temporarily down',
+              debug: {
+                requestId,
+                status: onvoResponse.status
+              }
+            }), { 
+              status: 200, // Return 200 for frontend handling
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            });
+          }
+
+          return new Response(JSON.stringify({
+            error: 'NON_JSON_RESPONSE',
+            message: isHTML 
+              ? 'OnvoPay returned an HTML error page instead of JSON. This usually indicates service unavailability or incorrect endpoint.'
+              : 'OnvoPay returned a non-JSON response. Check API configuration.',
             status: onvoResponse.status,
-            customerOptional: CUSTOMER_OPTIONAL,
-            bypassing: true
+            statusText: onvoResponse.statusText,
+            contentType: contentType,
+            url: onvoConfig.fullUrl,
+            hint: hint,
+            bodyPreview: responseText.substring(0, 500) + (responseText.length > 500 ? '...' : '')
+          }), { 
+            status: onvoResponse.status >= 400 ? onvoResponse.status : 502, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           });
+        }
+      
+        // Now safely parse JSON
+        try {
+          onvoResult = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('❌ Failed to parse JSON despite correct Content-Type:', parseError);
           
           return new Response(JSON.stringify({
-            success: false,
-            error: 'PAYMENT_SERVICE_UNAVAILABLE',
-            message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
-            hint: 'OnvoPay API is temporarily down',
-            debug: {
-              requestId,
-              status: onvoResponse.status
-            }
+            error: 'INVALID_JSON',
+            message: 'OnvoPay returned malformed JSON',
+            status: onvoResponse.status,
+            statusText: onvoResponse.statusText,
+            url: onvoConfig.fullUrl,
+            bodyPreview: responseText.substring(0, 300) + '...'
           }), { 
-            status: 200, // Return 200 to avoid throwing error in client
+            status: onvoResponse.status || 502, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           });
         }
 
-        // If not bypassing, return the original error
-        console.warn('⚠️ Not bypassing OnvoPay error', {
-          customerOptional: CUSTOMER_OPTIONAL,
-          status: onvoResponse.status,
-          shouldBypass: (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)
-        });
+        // Exit retry loop on successful response
+        break;
 
+      } catch (error: any) {
+        console.error(`❌ Payment Intent API call failed (attempt ${attempt + 1}):`, error.message);
+        
+        if (attempt < maxRetries && (error.name === 'TimeoutError' || error.message.includes('network'))) {
+          attempt++;
+          const backoffMs = Math.pow(2, attempt) * 1000;
+          console.log(`⏳ Retrying Payment Intent API call in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          continue;
+        }
+        
+        // Final network error after retries
         return new Response(JSON.stringify({
-          error: 'NON_JSON_RESPONSE',
-          message: isHTML 
-            ? 'OnvoPay returned an HTML error page instead of JSON. This usually indicates service unavailability or incorrect endpoint.'
-            : 'OnvoPay returned a non-JSON response. Check API configuration.',
-          status: onvoResponse.status,
-          statusText: onvoResponse.statusText,
-          contentType: contentType,
-          url: onvoConfig.fullUrl,
-          hint: hint,
-          bodyPreview: responseText.substring(0, 500) + (responseText.length > 500 ? '...' : '')
+          error: 'NETWORK_ERROR',
+          message: 'Error de red conectando con OnvoPay. Intenta nuevamente.',
+          details: error.message,
+          requestId
         }), { 
-          status: onvoResponse.status >= 400 ? onvoResponse.status : 502, 
+          status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
       }
-    
-    // Now safely parse JSON
-    try {
-      onvoResult = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('❌ Failed to parse JSON despite correct Content-Type:', parseError);
-      console.error('❌ Raw response:', responseText.substring(0, 500) + '...');
-      
+    }
+
+    // Ensure onvoResponse is defined
+    if (!onvoResponse) {
       return new Response(JSON.stringify({
-        error: 'INVALID_JSON',
-        message: 'OnvoPay returned malformed JSON',
-        status: onvoResponse.status,
-        statusText: onvoResponse.statusText,
-        url: onvoConfig.fullUrl,
-        bodyPreview: responseText.substring(0, 300) + '...'
+        error: 'NETWORK_ERROR',
+        message: 'No se pudo conectar con OnvoPay después de múltiples intentos',
+        requestId
       }), { 
-        status: onvoResponse.status || 502, 
+        status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
-
-    console.log('🔍 OnvoPay API response:', {
-      status: onvoResponse.status,
-      ok: onvoResponse.ok,
-      hasId: !!onvoResult.id,
-      status_field: onvoResult.status,
-      hasError: !!onvoResult.error,
-      url: onvoConfig.fullUrl
-    });
 
     if (!onvoResponse.ok || onvoResult.error) {
       console.error('❌ OnvoPay API error:', {
@@ -739,11 +559,6 @@ serve(async (req) => {
         message: onvoResult.message,
         method: 'POST'
       });
-      
-      if (onvoConfig.debug) {
-        console.error('❌ Full OnvoPay response (debug):', onvoResult);
-        console.error('❌ Raw response (debug):', 'Response body already consumed');
-      }
       
       // Return structured error to frontend
       return new Response(JSON.stringify({
@@ -762,20 +577,11 @@ serve(async (req) => {
 
     // Determine status - Payment Intent created, ready for confirmation
     const paymentIntentStatus = onvoResult.status || 'requires_payment_method';
-    // Store a valid initial DB status per CHECK constraint
     const dbStatus = 'pending_authorization';
     const now = new Date().toISOString();
-    
-    console.log('💰 Payment status determination:', {
-      onvoPayStatus: paymentIntentStatus,
-      isPostPayment,
-      finalDbStatus: dbStatus
-    });
 
-    console.log('💾 Creating payment record with OnvoPay data...');
+    // Create payment record in database
     currentPhase = 'create-payment-record';
-    
-    // Create payment record
     const { data: payment, error: paymentError } = await supabase
       .from('onvopay_payments')
       .insert({
@@ -785,24 +591,22 @@ serve(async (req) => {
         amount: amountCents,
         subtotal: subtotalCents,
         iva_amount: ivaCents,
-        commission_amount: 0,
-        status: dbStatus,
-        payment_type: body.payment_type,
-        payment_method: 'card',
         currency: 'USD',
-        billing_info: body.billing_info || {},
+        status: dbStatus,
+        payment_type: body.payment_type || 'appointment',
+        payment_method: 'card',
+        billing_info: body.billing_info,
         card_info: {
           last4: body.card_data.number.slice(-4),
-          brand: 'visa', // Default for now
+          brand: 'visa',
           exp_month: body.card_data.expiry.split('/')[0],
           exp_year: body.card_data.expiry.split('/')[1]
         },
-        authorized_at: null, // Will be set when confirmed
-        captured_at: null, // Will be set when captured
+        authorized_at: null,
+        captured_at: null,
         onvopay_payment_id: onvoResult.id,
         onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
         external_reference: body.appointmentId,
-        // Store encrypted card data for later confirmation if post-payment
         onvopay_response: isPostPayment ? {
           card_data_encrypted: JSON.stringify({
             last4: body.card_data.number.slice(-4),
@@ -820,13 +624,6 @@ serve(async (req) => {
       console.error('❌ Payment creation failed:', paymentError);
       throw new Error('Failed to create payment record');
     }
-
-    console.log('✅ Payment record created:', {
-      paymentId: payment.id,
-      onvoPayId: payment.onvopay_payment_id,
-      status: payment.status,
-      amount: payment.amount
-    });
 
     // Update appointment with payment ID
     currentPhase = 'update-appointment';
