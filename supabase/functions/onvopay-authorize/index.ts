@@ -29,9 +29,30 @@ function getOnvoConfig() {
 function normalizeData(data: any) {
   return {
     email: data.email ? data.email.trim().toLowerCase() : '',
-    phone: data.phone ? data.phone.replace(/[^0-9]/g, '') : '',
+    phone: data.phone ? formatPhoneForOnvoPay(data.phone) : '',
     name: data.name ? data.name.trim() : ''
   };
+}
+
+// Format phone for OnvoPay API (expects international format with +)
+function formatPhoneForOnvoPay(phone: string): string {
+  if (!phone) return '';
+  
+  // Remove all non-numeric characters first
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  
+  // If already has country code (506), format as +506XXXXXXXX
+  if (cleanPhone.startsWith('506') && cleanPhone.length === 11) {
+    return `+${cleanPhone}`;
+  }
+  
+  // If it's 8 digits, add Costa Rica country code
+  if (cleanPhone.length === 8) {
+    return `+506${cleanPhone}`;
+  }
+  
+  // Return as-is with + if it looks like international format
+  return cleanPhone.length > 8 ? `+${cleanPhone}` : cleanPhone;
 }
 
 // Robust customer creation/retrieval helper
@@ -83,9 +104,16 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
   const payload = {
     name: normalized.name || 'Sin nombre',
     ...(normalized.email && { email: normalized.email }),
-    ...(normalized.phone && { phone: normalized.phone }),
-    metadata: { internal_client_id: clientId }
+    ...(normalized.phone && { phone: normalized.phone })
+    // NOTE: OnvoPay doesn't accept metadata property
   };
+  
+  console.log(`📋 Creating OnvoPay customer with payload:`, {
+    name: payload.name,
+    email: payload.email,
+    phone: payload.phone,
+    originalPhone: user.phone
+  });
 
   const url = `${config.baseUrl}${config.path}`;
   const headers = {
@@ -146,6 +174,13 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
           : response.status === 404 
           ? 'Revisa base, versión (/v1) y endpoint /customers'
           : 'Error en API de OnvoPay';
+
+        console.error(`❌ OnvoPay customer API error:`, {
+          status: response.status,
+          contentType,
+          payload: JSON.stringify(payload, null, 2),
+          response: parsed || responseText.slice(0, 1024)
+        });
 
         throw {
           code: 'ONVO_API_ERROR',
