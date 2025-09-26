@@ -9,21 +9,33 @@ const corsHeaders = {
 // Service bypass configuration - same as authorize
 const CUSTOMER_OPTIONAL = (Deno.env.get('ONVOPAY_CUSTOMER_OPTIONAL') ?? 'true').toLowerCase() === 'true';
 
-// OnvoPay API configuration
+// OnvoPay API configuration - unified with onvopay-authorize
 const getOnvoConfig = () => {
-  const ONVOPAY_API_BASE = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com';
-  const ONVOPAY_API_VERSION = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
+  const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com';
+  const version = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
+  const debug = (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true';
   
   return {
-    baseUrl: ONVOPAY_API_BASE,
-    version: ONVOPAY_API_VERSION,
-    fullUrl: `${ONVOPAY_API_BASE}/${ONVOPAY_API_VERSION}`
+    baseUrl,
+    version,
+    debug,
+    fullUrl: `${baseUrl}/${version}`
   };
 };
 
 serve(async (req) => {
-  console.log('🚀 ONVOPAY CONFIRM - Function started');
-  console.log('🔎 Request info:', { method: req.method, url: req.url });
+  const requestId = crypto.randomUUID();
+  const startTime = Date.now();
+  
+  console.log('🚀 ONVOPAY CONFIRM - Function started', {
+    requestId,
+    timestamp: new Date().toISOString()
+  });
+  console.log('🔎 Request info:', { 
+    requestId,
+    method: req.method, 
+    url: req.url 
+  });
 
   try {
     // Handle CORS

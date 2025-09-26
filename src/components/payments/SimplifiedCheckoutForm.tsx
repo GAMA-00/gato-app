@@ -258,54 +258,121 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         let errorMessage = 'Error en el procesamiento del pago';
         let errorDetails = '';
         
-        // Check if we have error data in the response
-        if (authorizeData && !authorizeData.success) {
-          errorMessage = authorizeData.message || 'Error en el procesamiento del pago';
-          if (authorizeData.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
-            errorDetails = 'El servicio de pagos está temporalmente no disponible. Intente nuevamente en unos minutos.';
-          } else if (authorizeData.error === 'MISSING_USER_DATA') {
-            errorDetails = authorizeData.hint || 'Se requiere información completa del usuario';
-          } else if (authorizeData.error === 'ONVOPAY_API_ERROR') {
-            errorDetails = 'Error de conectividad con la pasarela de pagos';
-          } else if (authorizeData.error === 'FUNCTION_ERROR') {
-            errorDetails = 'Error interno del sistema. Por favor intenta nuevamente.';
-          } else if (authorizeData.hint) {
-            errorDetails = authorizeData.hint;
-          }
-        } else if (authorizeError?.message) {
+        if (authorizeError) {
+          console.error('❌ Error en onvopay-authorize:', {
+            error: authorizeError,
+            appointmentId: newAppointmentId,
+            timestamp: new Date().toISOString()
+          });
+          
+          let errorMessage = "Error procesando el pago. Por favor, intente nuevamente.";
+          let errorDetails = "";
+          let shouldDeleteAppointment = true;
+          
           try {
-            // If it's a structured error from our edge function
-            if (authorizeError.message.includes('ONVOPAY_API_ERROR') || authorizeError.message.includes('CONFIGURATION_ERROR')) {
-              errorMessage = 'Error de configuración de OnvoPay';
+            if (typeof authorizeError.message === 'string' && authorizeError.message.includes('Error: ')) {
+              const jsonStart = authorizeError.message.indexOf('{');
+              if (jsonStart !== -1) {
+                const jsonPart = authorizeError.message.substring(jsonStart);
+                const errorData = JSON.parse(jsonPart);
+                errorMessage = errorData.message || errorMessage;
+                errorDetails = errorData.details || '';
+                
+                // Don't delete appointment for service unavailability or network errors
+                if (errorData.error === 'PAYMENT_SERVICE_UNAVAILABLE' || errorData.error === 'NETWORK_ERROR') {
+                  shouldDeleteAppointment = false;
+                }
+              }
+            } else if (authorizeError.message?.includes('PAYMENT_SERVICE_UNAVAILABLE')) {
+              errorMessage = "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.";
               errorDetails = 'Por favor contacta al administrador del sistema';
+              shouldDeleteAppointment = false;
             } else {
               errorMessage = authorizeError.message;
             }
           } catch (e) {
             errorMessage = authorizeError.message;
           }
-        }
-        
-        // Eliminar appointment si el pago falla
-        await supabase
-          .from('appointments')
-          .delete()
-          .eq('id', newAppointmentId);
+          
+          // Only delete appointment for hard errors
+          if (shouldDeleteAppointment) {
+            console.log('🗑️ Deleting appointment due to hard error');
+            await supabase
+              .from('appointments')
+              .delete()
+              .eq('id', newAppointmentId);
+          } else {
+            console.log('⚠️ Keeping appointment for retriable error');
+          }
 
-        if (onError) {
-          onError(new Error(errorMessage));
+          if (onError) {
+            onError(new Error(errorMessage));
+          }
+          
+          toast({
+            variant: "destructive",
+            title: shouldDeleteAppointment ? "Error en el pago" : "Servicio temporalmente no disponible",
+            description: errorMessage + (errorDetails ? ` - ${errorDetails}` : ''),
+            duration: shouldDeleteAppointment ? 5000 : 8000
+          });
+          
+          return;
         }
-        
-        toast({
-          variant: "destructive",
-          title: "Error en el pago",
-          description: errorMessage + (errorDetails ? ` - ${errorDetails}` : ''),
-        });
-        
-        return;
-      }
 
-      if (authorizeData && !authorizeData.success) {
+        if (authorizeData && !authorizeData.success) {
+          console.error('❌ Error en authorize response:', {
+            error: authorizeData.error,
+            message: authorizeData.message,
+            requestId: authorizeData.requestId,
+            responseTime: authorizeData.responseTime,
+            appointmentId: newAppointmentId
+          });
+          
+          // Enhanced error handling based on error type
+          const shouldDeleteAppointment = !['PAYMENT_SERVICE_UNAVAILABLE', 'NETWORK_ERROR'].includes(authorizeData.error);
+          
+          if (shouldDeleteAppointment) {
+            console.log('🗑️ Deleting appointment due to hard error:', authorizeData.error); 
+            await supabase
+              .from('appointments')
+              .delete()
+              .eq('id', newAppointmentId);
+          } else {
+            console.log('⚠️ Keeping appointment for retriable error:', authorizeData.error);
+          }
+          
+          // Specific error messages based on error type
+          let title = "Error en el pago";
+          let description = authorizeData.message || "Error procesando el pago";
+          let duration = 5000;
+          
+          if (authorizeData.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
+            title = "Servicio temporalmente no disponible";
+            description = "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.";
+            duration = 8000;
+          } else if (authorizeData.error === 'CONFIGURATION_ERROR') {
+            title = "Error de configuración";
+            description = "Error de configuración del sistema de pagos. Contacte al administrador.";
+          } else if (authorizeData.error === 'ENDPOINT_NOT_FOUND') {
+            title = "Error de configuración";
+            description = "Configuración de ambiente incorrecta. Contacte al administrador.";
+          }
+          
+          toast({
+            variant: "destructive",
+            title,
+            description,
+            duration
+          });
+          
+          if (onError) {
+            onError(new Error(description));
+          }
+          
+          return;
+        }
+
+        if (authorizeData && !authorizeData.success) {
         console.error('❌ Error en authorize response:', authorizeData.error);
         
         // Special handling for service unavailability - don't delete appointment

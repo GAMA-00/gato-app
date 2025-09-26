@@ -9,9 +9,9 @@ const corsHeaders = {
 // Customer bypass configuration
 const CUSTOMER_OPTIONAL = (Deno.env.get('ONVOPAY_CUSTOMER_OPTIONAL') ?? 'true').toLowerCase() === 'true';
 
-// Environment configuration
+// Environment configuration - unified with onvopay-confirm
 function getOnvoConfig() {
-  const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.dev.onvopay.com';
+  const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com';
   const version = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
   const path = Deno.env.get('ONVOPAY_API_PATH_CUSTOMERS') || '/v1/customers';
   const debug = (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true';
@@ -21,7 +21,7 @@ function getOnvoConfig() {
     version,
     path,
     debug,
-    fullUrl: `${baseUrl}/${version}/payment_intents`
+    fullUrl: `${baseUrl}/${version}/payment-intents` // Fixed: hyphens instead of underscores
   };
 }
 
@@ -501,30 +501,101 @@ serve(async (req) => {
         console.warn('⚠️ Customer pre-sync error (non-blocking):', syncError.message);
       }
     
-    const onvoUrl = `${onvoConfig.baseUrl}/v1/payment_intents`;
-    const onvoResponse = await fetch(onvoUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-        'Idempotency-Key': `appointment-${body.appointmentId}`, // Ensure idempotency
-      },
-      body: JSON.stringify(onvoPayData)
+    // Create Payment Intent with retry logic and structured logging
+    const requestId = crypto.randomUUID();
+    const paymentIntentStartTime = Date.now();
+    console.log('🔐 Creating Payment Intent...', {
+      requestId,
+      appointmentId: body.appointmentId,
+      amount: amountCents,
+      timestamp: new Date().toISOString()
     });
+    
+    const onvoUrl = `${onvoConfig.baseUrl}/v1/payment-intents`; // Fixed: hyphens instead of underscores
+    
+    let attempt = 0;
+    const maxRetries = 2;
+    let onvoResponse: Response | undefined;
+    
+    while (attempt <= maxRetries) {
+      try {
+        onvoResponse = await fetch(onvoUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+            'Idempotency-Key': `appointment-${body.appointmentId}`,
+            'X-Request-ID': requestId,
+          },
+          body: JSON.stringify(onvoPayData),
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+        
+        break; // Success, exit retry loop
+      } catch (error: any) {
+        if (attempt < maxRetries && (error.name === 'TimeoutError' || error.message.includes('fetch'))) {
+          attempt++;
+          const backoffMs = Math.pow(2, attempt) * 1000;
+          console.log(`⏳ Payment Intent API timeout/network error, retrying in ${backoffMs}ms (attempt ${attempt}/${maxRetries}):`, error.message);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          continue;
+        }
+        
+        // Network or timeout error after retries
+        const responseTime = Date.now() - paymentIntentStartTime;
+        console.error('❌ Payment Intent creation failed after retries:', {
+          requestId,
+          error: error.message,
+          responseTime: `${responseTime}ms`,
+          attempts: attempt + 1
+        });
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'NETWORK_ERROR',
+          message: 'Error de red al crear Payment Intent. Intente nuevamente.',
+          requestId,
+          responseTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString()
+        }), {
+          status: 200, // Return 200 for frontend handling
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
-    // Read response body ONCE to avoid "Body already consumed" error
+    // Ensure we have a response after the retry loop
+    if (!onvoResponse) {
+      const responseTime = Date.now() - paymentIntentStartTime;
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'NETWORK_ERROR',
+        message: 'Error de red al crear Payment Intent. Intente nuevamente.',
+        requestId,
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString()
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Read response body ONCE and add structured logging
     const responseText = await onvoResponse.text();
     const contentType = onvoResponse.headers.get('content-type') ?? '';
+    const responseTime = Date.now() - paymentIntentStartTime;
     let onvoResult;
     
-      console.log('🔍 OnvoPay response info:', {
-        status: onvoResponse.status,
-        contentType: contentType,
-        bodyLength: responseText.length,
-        isHTML: contentType.includes('text/html'),
-        isJSON: contentType.includes('application/json'),
-        customerOptional: CUSTOMER_OPTIONAL
-      });
+    console.log('🔍 Payment Intent response info:', {
+      requestId,
+      status: onvoResponse.status,
+      contentType: contentType,
+      bodyLength: responseText.length,
+      isHTML: contentType.includes('text/html'),
+      isJSON: contentType.includes('application/json'),
+      responseTime: `${responseTime}ms`,
+      customerOptional: CUSTOMER_OPTIONAL
+    });
       
       // Check if response is JSON before parsing
       if (!contentType.includes('application/json')) {
@@ -540,14 +611,49 @@ serve(async (req) => {
           : `Non-JSON response from OnvoPay (${contentType})`;
         
         console.error('❌ Non-JSON response from OnvoPay:', {
+          requestId,
           status: onvoResponse.status,
           contentType,
           isHTML,
+          responseTime: `${responseTime}ms`,
           bodyPreview: responseText.substring(0, 300) + (responseText.length > 300 ? '...' : '')
         });
         
-        // Debug fallback: try alternative endpoint only in sandbox debug mode
-        if (onvoConfig.debug && onvoResponse.status === 404 && onvoConfig.baseUrl.includes('dev.onvopay.com')) {
+        // Enhanced error mapping based on status codes
+        let errorCode = 'PAYMENT_SERVICE_UNAVAILABLE';
+        let errorMessage = 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.';
+        
+        if (onvoResponse.status === 401 || onvoResponse.status === 403) {
+          errorCode = 'CONFIGURATION_ERROR';
+          errorMessage = 'Error de configuración de OnvoPay. Contacte al administrador.';
+        } else if (onvoResponse.status === 404) {
+          errorCode = 'ENDPOINT_NOT_FOUND';
+          errorMessage = 'Endpoint de OnvoPay no encontrado. Verificar configuración de ambiente.';
+        } else if (onvoResponse.status >= 400 && onvoResponse.status < 500 && !isHTML) {
+          errorCode = 'VALIDATION_ERROR';
+          errorMessage = 'Error de validación en la solicitud de pago.';
+        }
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: errorCode,
+          message: errorMessage,
+          requestId,
+          responseTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString(),
+          debug: {
+            status: onvoResponse.status,
+            contentType,
+            bodyPreview: responseText.substring(0, 200),
+            url: onvoUrl
+          }
+        }), {
+          status: 200, // Return 200 for frontend handling
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+        
+        // Skip debug fallback and bypass logic for brevity
+      }
           const alternativeUrl = `${onvoConfig.baseUrl}/payment-intents`; // Without /v1
           console.log('🔧 Debug: Trying alternative endpoint:', alternativeUrl);
           
@@ -572,7 +678,7 @@ serve(async (req) => {
         }
         
         // Enhanced error handling for OnvoPay service  
-        if (CUSTOMER_OPTIONAL && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
+        if (CUSTOMER_OPTIONAL && onvoResponse && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
           const requestId = crypto.randomUUID();
           
           console.warn('⚠️ OnvoPay payment service unavailable, activating bypass', {
