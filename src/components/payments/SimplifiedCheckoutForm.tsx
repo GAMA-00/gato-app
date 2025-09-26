@@ -261,8 +261,14 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         // Check if we have error data in the response
         if (authorizeData && !authorizeData.success) {
           errorMessage = authorizeData.message || 'Error en el procesamiento del pago';
-          if (authorizeData.error === 'ONVO_SERVICE_UNAVAILABLE') {
+          if (authorizeData.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
             errorDetails = 'El servicio de pagos está temporalmente no disponible. Intente nuevamente en unos minutos.';
+          } else if (authorizeData.error === 'MISSING_USER_DATA') {
+            errorDetails = authorizeData.hint || 'Se requiere información completa del usuario';
+          } else if (authorizeData.error === 'ONVOPAY_API_ERROR') {
+            errorDetails = 'Error de conectividad con la pasarela de pagos';
+          } else if (authorizeData.error === 'FUNCTION_ERROR') {
+            errorDetails = 'Error interno del sistema. Por favor intenta nuevamente.';
           } else if (authorizeData.hint) {
             errorDetails = authorizeData.hint;
           }

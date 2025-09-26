@@ -41,5 +41,8 @@ verify_jwt = false
 [functions.onvopay-customer-sync]
 verify_jwt = true
 
+[functions.onvopay-health-check]
+verify_jwt = false
+
 [functions.onvopay-webhook]
 verify_jwt = false

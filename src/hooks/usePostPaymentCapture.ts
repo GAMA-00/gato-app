@@ -22,9 +22,13 @@ export const usePostPaymentCapture = () => {
 
   return useMutation({
     mutationFn: async (params: CapturePaymentParams) => {
-      console.log('🔐 Capturing post-payment...', {
-        paymentIntentId: params.paymentIntentId
-      });
+        // Add structured logging for better debugging
+        const startTime = Date.now();
+        console.log('🔐 Capturing post-payment...', {
+          paymentIntentId: params.paymentIntentId,
+          timestamp: new Date().toISOString(),
+          requestId: crypto.randomUUID()
+        });
 
       const { data, error } = await supabase.functions.invoke('onvopay-confirm', {
         body: {

@@ -571,9 +571,12 @@ serve(async (req) => {
           }
         }
         
-        // CRITICAL BYPASS: If OnvoPay service is down and customer bypass is enabled
+        // Enhanced error handling for OnvoPay service  
         if (CUSTOMER_OPTIONAL && (onvoResponse.status === 502 || onvoResponse.status === 503 || onvoResponse.status === 504)) {
+          const requestId = crypto.randomUUID();
+          
           console.warn('⚠️ OnvoPay payment service unavailable, activating bypass', {
+            requestId,
             appointmentId: body.appointmentId,
             status: onvoResponse.status,
             customerOptional: CUSTOMER_OPTIONAL,
@@ -584,7 +587,11 @@ serve(async (req) => {
             success: false,
             error: 'PAYMENT_SERVICE_UNAVAILABLE',
             message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
-            hint: 'OnvoPay API is temporarily down'
+            hint: 'OnvoPay API is temporarily down',
+            debug: {
+              requestId,
+              status: onvoResponse.status
+            }
           }), { 
             status: 200, // Return 200 to avoid throwing error in client
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
