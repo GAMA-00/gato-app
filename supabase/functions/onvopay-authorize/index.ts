@@ -1,6 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// PAYMENT PROCESSING FIXES APPLIED:
+// 1. REMOVED customer field from payment intent creation (OnvoPay API rejected it)
+// 2. ENHANCED customer deduplication logic to prevent duplicate customer creation  
+// 3. ADDED database unique constraints for customer integrity
+// 4. IMPROVED error handling and logging for better debugging
+// 5. ADDED race condition handling for concurrent customer creation
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -55,7 +62,7 @@ function formatPhoneForOnvoPay(phone: string): string {
   return cleanPhone.length > 8 ? `+${cleanPhone}` : cleanPhone;
 }
 
-// Robust customer creation/retrieval helper
+// Robust customer creation/retrieval helper with enhanced deduplication
 async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<string> {
   const config = getOnvoConfig();
   const secretKey = Deno.env.get('ONVOPAY_SECRET_KEY');
@@ -64,17 +71,15 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
     throw new Error('ONVOPAY_SECRET_KEY not configured');
   }
 
-  // Step 1: Check if customer mapping already exists
+  // Step 1: Check if customer mapping already exists by client_id
   const { data: existingCustomer } = await supabase
     .from('onvopay_customers')
-    .select('onvopay_customer_id')
+    .select('onvopay_customer_id, normalized_email, normalized_phone')
     .eq('client_id', clientId)
-    .single();
+    .maybeSingle();
 
   if (existingCustomer?.onvopay_customer_id) {
-    if (config.debug) {
-      console.log(`🔄 Reusing existing OnvoPay customer: ${existingCustomer.onvopay_customer_id}`);
-    }
+    console.log(`🔄 Found existing OnvoPay customer for client ${clientId}: ${existingCustomer.onvopay_customer_id}`);
     return existingCustomer.onvopay_customer_id;
   }
 
@@ -90,6 +95,51 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
   }
 
   const normalized = normalizeData(user);
+
+  // Step 2.5: Enhanced deduplication - check for existing customers by email/phone
+  if (normalized.email || normalized.phone) {
+    const { data: duplicateCustomers } = await supabase
+      .from('onvopay_customers')
+      .select('onvopay_customer_id, client_id, normalized_email, normalized_phone')
+      .or(`normalized_email.eq.${normalized.email || 'null'},normalized_phone.eq.${normalized.phone || 'null'}`)
+      .limit(5);
+
+    if (duplicateCustomers && duplicateCustomers.length > 0) {
+      // Log potential duplicates but continue - the unique constraints will prevent actual duplicates
+      console.log(`⚠️ Found potential duplicate customers for user ${clientId}:`, 
+        duplicateCustomers.map((c: any) => ({ 
+          onvopay_customer_id: c.onvopay_customer_id,
+          client_id: c.client_id,
+          email: c.normalized_email,
+          phone: c.normalized_phone
+        }))
+      );
+      
+      // If there's a customer with same email/phone but different client_id, use that one
+      // and update the mapping to current client_id (this handles user data changes)
+      const exactMatch = duplicateCustomers.find((c: any) => 
+        (normalized.email && c.normalized_email === normalized.email) ||
+        (normalized.phone && c.normalized_phone === normalized.phone)
+      );
+      
+      if (exactMatch && exactMatch.client_id !== clientId) {
+        console.log(`🔄 Reusing existing OnvoPay customer from different client: ${exactMatch.onvopay_customer_id}`);
+        
+        // Update the mapping to current client (handle user data changes)
+        const { error: updateError } = await supabase
+          .from('onvopay_customers')
+          .update({ 
+            client_id: clientId,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('onvopay_customer_id', exactMatch.onvopay_customer_id);
+        
+        if (!updateError) {
+          return exactMatch.onvopay_customer_id;
+        }
+      }
+    }
+  }
 
   // Step 3: Validate required data (anti "blank customer")
   if (!normalized.email && !normalized.phone) {
@@ -201,7 +251,7 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
 
       const customerId = parsed.id;
 
-      // Step 5: Save customer mapping to database
+      // Step 5: Save customer mapping to database with conflict handling
       const { error: insertError } = await supabase
         .from('onvopay_customers')
         .insert({
@@ -215,6 +265,20 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
         });
 
       if (insertError) {
+        // If it's a unique constraint violation, it means another process created the customer
+        if (insertError.code === '23505') {
+          console.log(`ℹ️ Customer mapping already exists (race condition), fetching existing`);
+          const { data: existingAfterConflict } = await supabase
+            .from('onvopay_customers')
+            .select('onvopay_customer_id')
+            .eq('client_id', clientId)
+            .single();
+          
+          if (existingAfterConflict?.onvopay_customer_id) {
+            return existingAfterConflict.onvopay_customer_id;
+          }
+        }
+        
         console.error('❌ Failed to save OnvoPay customer mapping:', insertError);
         throw {
           code: 'DB_UPDATE_ERROR',
@@ -421,14 +485,15 @@ serve(async (req) => {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
-        is_post_payment: isPostPayment.toString()
+        is_post_payment: isPostPayment.toString(),
+        // Store customer ID in metadata instead of customer field
+        ...(customerId && { onvopay_customer_id: customerId })
       }
     };
 
-    // Include customer_id only if available
-    if (customerId) {
-      onvoPayData.customer = customerId;
-    }
+    // ❌ CRITICAL FIX: Do NOT include customer field in payment intent creation
+    // OnvoPay API rejects payment intents with customer field
+    // Customer association should be handled separately if needed
 
     // Create Payment Intent with retry logic and structured logging
     const requestId = crypto.randomUUID();
