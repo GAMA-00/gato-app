@@ -29,10 +29,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, X, Plus, FileText, Image, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import PasswordChangeModal from './PasswordChangeModal';
+import ClientResidenceField from '@/components/auth/ClientResidenceField';
+import { useResidencias } from '@/hooks/useResidencias';
 
 const clientProfileSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   phone: z.string().optional(),
+  residenciaId: z.string().optional(),
+  condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
   condominiumText: z.string().optional(),
 });
@@ -40,6 +44,8 @@ const clientProfileSchema = z.object({
 const providerProfileSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   phone: z.string().optional(),
+  residenciaId: z.string().optional(),
+  condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
   condominiumText: z.string().optional(),
   aboutMe: z.string().optional(),
@@ -57,6 +63,7 @@ interface EditProfileModalProps {
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { profile, invalidateProfile } = useUserProfile();
+  const { residencias, isLoading: loadingResidencias } = useResidencias();
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
@@ -77,6 +84,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     defaultValues: {
       name: '',
       phone: '',
+      residenciaId: '',
+      condominiumId: '',
       houseNumber: '',
       condominiumText: '',
     },
@@ -87,6 +96,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     defaultValues: {
       name: '',
       phone: '',
+      residenciaId: '',
+      condominiumId: '',
       houseNumber: '',
       condominiumText: '',
       aboutMe: '',
@@ -104,6 +115,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
       const commonData = {
         name: profile.name || '',
         phone: profile.phone || '',
+        residenciaId: profile.residencia_id || '',
+        condominiumId: profile.condominium_id || '',
         houseNumber: profile.house_number || '',
         condominiumText: profile.condominium_text || profile.condominium_name || '',
       };
@@ -254,6 +267,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
       const updateData: any = {
         name: values.name,
         phone: values.phone || '',
+        residencia_id: values.residenciaId || null,
+        condominium_id: values.condominiumId || null,
         house_number: values.houseNumber || '',
         condominium_text: values.condominiumText || '',
         condominium_name: values.condominiumText || '',
@@ -366,33 +381,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
                   </FormItem>
                 )}
               />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="condominiumText"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Condominio</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="houseNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número de Casa</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {/* Location Info */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Información de Ubicación</h3>
+              <ClientResidenceField
+                residencias={residencias}
+                isSubmitting={isLoading}
+                loadingResidencias={loadingResidencias}
+                form={form}
               />
             </div>
 

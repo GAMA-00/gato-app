@@ -18,7 +18,9 @@ export interface UserProfile {
   experience_years?: number;
   role: 'client' | 'provider';
   residencia_id?: string;
+  condominium_id?: string;
   condominium_name?: string;
+  condominium_text?: string;
   house_number?: string;
   address?: string;
 }
