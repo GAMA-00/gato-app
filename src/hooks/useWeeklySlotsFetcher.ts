@@ -353,8 +353,49 @@ export const useWeeklySlotsFetcher = ({
         console.log(`📊 Slots después de filtro de antelación: ${filteredByNotice.length}/${weeklySlots.length}`);
       }
 
-      // Solo usar slots filtrados por antelación
-      const finalWeeklySlots: WeeklySlot[] = filteredByNotice;
+      // PASO 4: Filtrar slots que puedan acomodar la duración completa del servicio
+      const canAccommodateFullService = (slot: WeeklySlot, allSlots: WeeklySlot[], requiredDuration: number, slotSize: number): boolean => {
+        const requiredSlots = Math.ceil(requiredDuration / slotSize);
+        if (requiredSlots <= 1) return true; // Single slot always works
+        
+        // Find all slots for the same date
+        const sameDate = allSlots.filter(s => 
+          format(s.date, 'yyyy-MM-dd') === format(slot.date, 'yyyy-MM-dd') && s.isAvailable
+        );
+        
+        // Sort by time
+        const sortedSlots = sameDate.sort((a, b) => a.time.localeCompare(b.time));
+        
+        // Find the index of current slot
+        const currentIndex = sortedSlots.findIndex(s => s.id === slot.id);
+        if (currentIndex === -1) return false;
+        
+        // Check if we have enough consecutive available slots
+        for (let i = 0; i < requiredSlots; i++) {
+          const nextSlot = sortedSlots[currentIndex + i];
+          if (!nextSlot || !nextSlot.isAvailable) return false;
+          
+          // Check if slots are consecutive (1 hour apart for typical slot sizes)
+          if (i > 0) {
+            const prevSlot = sortedSlots[currentIndex + i - 1];
+            const prevHour = parseInt(prevSlot.time.split(':')[0]);
+            const nextHour = parseInt(nextSlot.time.split(':')[0]);
+            if (nextHour !== prevHour + (slotSize / 60)) return false;
+          }
+        }
+        
+        return true;
+      };
+
+      // Filter slots that can accommodate the full service duration
+      const accommodatableSlots = filteredByNotice.filter(slot => 
+        canAccommodateFullService(slot, filteredByNotice, serviceDuration, 60) // Use the serviceDuration parameter
+      );
+
+      console.log(`📊 Slots que pueden acomodar duración completa: ${accommodatableSlots.length}/${filteredByNotice.length} (duración requerida: ${serviceDuration} min)`);
+
+      // Solo usar slots que puedan acomodar el servicio completo
+      const finalWeeklySlots: WeeklySlot[] = accommodatableSlots;
 
       // Calcular recomendación basada en adyacencia respecto solo a las reservas confirmadas en base de datos
       const apptStartMinutesByDate: Record<string, Set<number>> = {};

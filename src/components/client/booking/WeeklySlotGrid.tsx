@@ -99,37 +99,6 @@ const WeeklySlotGrid = ({
     [availableSlotGroups]
   );
 
-  const areSlotConsecutive = (slots: any[]): boolean => {
-    if (slots.length <= 1) return true;
-    
-    // Group by date
-    const slotsByDate = slots.reduce((acc, slot) => {
-      const dateKey = format(slot.date, 'yyyy-MM-dd');
-      if (!acc[dateKey]) acc[dateKey] = [];
-      acc[dateKey].push(slot);
-      return acc;
-    }, {} as Record<string, any[]>);
-    
-    // Check if all slots are on the same date
-    const dates = Object.keys(slotsByDate);
-    if (dates.length !== 1) return false;
-    
-    // Sort slots by time and check consecutivity
-    const sortedSlots = slotsByDate[dates[0]].sort((a, b) => {
-      const timeA = parseInt(a.time.split(':')[0]);
-      const timeB = parseInt(b.time.split(':')[0]);
-      return timeA - timeB;
-    });
-    
-    for (let i = 1; i < sortedSlots.length; i++) {
-      const prevHour = parseInt(sortedSlots[i - 1].time.split(':')[0]);
-      const currentHour = parseInt(sortedSlots[i].time.split(':')[0]);
-      if (currentHour !== prevHour + 1) return false;
-    }
-    
-    return true;
-  };
-
   const handleSlotClick = (slotId: string, date: Date, time: string) => {
     const slot = availableSlotGroups
       .flatMap(group => group.slots)
@@ -137,45 +106,36 @@ const WeeklySlotGrid = ({
     
     if (!slot || !slot.isAvailable) return;
 
-    const newSelectedSlots = selectedSlotIds.includes(slotId)
-      ? selectedSlotIds.filter(id => id !== slotId)
-      : [...selectedSlotIds, slotId];
-    
-    // Find the actual slot objects
+    // Automatically calculate and reserve consecutive slots
     const allSlots = availableSlotGroups.flatMap(group => group.slots);
-    const selectedSlotObjects = allSlots.filter(s => newSelectedSlots.includes(s.id));
+    const sameDateSlots = allSlots.filter(s => 
+      format(s.date, 'yyyy-MM-dd') === format(slot.date, 'yyyy-MM-dd') && s.isAvailable
+    ).sort((a, b) => a.time.localeCompare(b.time));
     
-    // Validate consecutivity
-    if (selectedSlotObjects.length > 1 && !areSlotConsecutive(selectedSlotObjects)) {
-      toast.error('Los slots deben ser consecutivos del mismo día');
+    const startIndex = sameDateSlots.findIndex(s => s.id === slotId);
+    if (startIndex === -1) return;
+    
+    // Calculate consecutive slots needed for the service
+    const consecutiveSlotIds: string[] = [];
+    for (let i = 0; i < slotsNeeded; i++) {
+      const nextSlot = sameDateSlots[startIndex + i];
+      if (nextSlot && nextSlot.isAvailable) {
+        consecutiveSlotIds.push(nextSlot.id);
+      }
+    }
+    
+    // Check if we have enough consecutive slots
+    if (consecutiveSlotIds.length < slotsNeeded) {
+      toast.error(`No hay suficientes slots consecutivos disponibles. Se necesitan ${slotsNeeded} slots para ${actualTotalDuration} minutos.`);
       return;
     }
     
-    // Validate max slots
-    if (newSelectedSlots.length > slotsNeeded) {
-      toast.error(`Solo puedes seleccionar ${slotsNeeded} slot${slotsNeeded > 1 ? 's' : ''} para este servicio (duración total: ${actualTotalDuration} min)`);
-      return;
-    }
+    setSelectedSlotIds(consecutiveSlotIds);
     
-    setSelectedSlotIds(newSelectedSlots);
+    const totalDurationReserved = slotSize * consecutiveSlotIds.length;
+    onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved);
     
-    if (newSelectedSlots.length > 0) {
-      // Sort selected slots by time to get the start time
-      const sortedSlots = selectedSlotObjects.sort((a, b) => {
-        const timeA = parseInt(a.time.split(':')[0]);
-        const timeB = parseInt(b.time.split(':')[0]);
-        return timeA - timeB;
-      });
-      
-      const startSlot = sortedSlots[0];
-      const totalDurationReserved = slotSize * newSelectedSlots.length; // Use slotSize for actual duration calculation
-      
-      onSlotSelect(newSelectedSlots, startSlot.date, startSlot.time, totalDurationReserved);
-      console.log(`✅ ${newSelectedSlots.length} slots seleccionados consecutivos, duración reservada: ${totalDurationReserved} min (servicio necesita ${actualTotalDuration} min)`);
-    } else {
-      // No slots selected
-      onSlotSelect([], new Date(), '', 0);
-    }
+    console.log(`✅ Automáticamente reservados ${consecutiveSlotIds.length} slots consecutivos (${totalDurationReserved} min) para servicio de ${actualTotalDuration} min`);
   };
 
   const goToPreviousWeek = () => {
@@ -266,35 +226,34 @@ const WeeklySlotGrid = ({
         <div className="text-center md:flex md:items-center md:justify-between md:text-left">
           <div>
             <CardTitle className="text-lg md:text-xl text-center md:text-left">
-              <span className="md:hidden">Seleccione su espacio</span>
-              <span className="hidden md:inline md:ml-16">Selecciona tu horario</span>
+              <span className="md:hidden">Selecciona la hora de inicio</span>
+              <span className="hidden md:inline md:ml-16">Selecciona la hora de inicio</span>
             </CardTitle>
             <CardDescription className="hidden md:block mt-2 md:ml-16">
-              <span className="font-bold">Horarios disponibles del proveedor</span>
+              <span className="font-bold">Selecciona la hora de inicio</span>
               {slotsNeeded > 1 && (
                 <div className="mt-2 space-y-1">
-                  <span className="block text-xs text-orange-600">
-                    ⚡ Debes seleccionar {slotsNeeded} horarios consecutivos (duración total: {actualTotalDuration} min en slots de {slotSize} min)
+                  <span className="block text-xs text-blue-600">
+                    💡 Se reservarán automáticamente {slotsNeeded} slots consecutivos ({actualTotalDuration} min)
                   </span>
                   {selectedSlotIds.length > 0 && (
-                    <span className="block text-xs text-blue-600">
-                      📍 {selectedSlotIds.length} de {slotsNeeded} slots seleccionados
-                      {selectedSlotIds.length === slotsNeeded && " ✓ Completo"}
+                    <span className="block text-xs text-green-600">
+                      ✅ Horario confirmado: {slotsNeeded} slots reservados
                     </span>
                   )}
                 </div>
               )}
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
-              {stats.availableSlots} horarios disponibles
+              {stats.availableSlots} horarios de inicio disponibles
               {slotsNeeded > 1 && (
                 <div className="mt-1 space-y-1">
-                  <span className="block text-xs text-orange-600">
-                    Selecciona {slotsNeeded} consecutivos
+                  <span className="block text-xs text-blue-600">
+                    Se reservarán {slotsNeeded} slots automáticamente
                   </span>
                   {selectedSlotIds.length > 0 && (
-                    <span className="block text-xs text-blue-600">
-                      {selectedSlotIds.length}/{slotsNeeded} slots
+                    <span className="block text-xs text-green-600">
+                      ✅ Reservado
                     </span>
                   )}
                 </div>
