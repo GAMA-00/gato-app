@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle, Upload } from 'lucide-react';
+import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle, Upload, Eye, EyeOff } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1); // Para manejar los pasos del formulario
+  const [showPassword, setShowPassword] = useState(false); // Para controlar visibilidad de contraseña
   
   // Refinamos el esquema según el rol del usuario
   const formSchema = z.object({
@@ -301,12 +302,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                         <div className="relative">
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
-                            type="text"
+                            type={showPassword ? "text" : "password"}
                             placeholder="Tu contraseña"
-                            className="pl-10 h-12 text-base"
+                            className="pl-10 pr-10 h-12 text-base"
                             {...field}
                             disabled={isSubmitting}
                           />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-12 w-10 px-0 py-0 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -565,12 +580,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
-                        type="text"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Tu contraseña"
-                        className="pl-10 h-12 text-base"
+                        className="pl-10 pr-10 h-12 text-base"
                         {...field}
                         disabled={isSubmitting}
                       />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-12 w-10 px-0 py-0 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
                     </div>
                   </FormControl>
                   <FormMessage />
