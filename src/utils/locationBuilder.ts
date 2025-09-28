@@ -28,31 +28,37 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
   // Construir ubicación progresivamente basado en datos disponibles
   let finalLocation = '';
   
-  // PASO 1: Verificar si tenemos residencia
+  // Construcción flexible: armar por partes aunque falte la residencia
+  const parts: string[] = [];
+
+  // Residencia (si existe)
   if (data.residenciaName?.trim()) {
-    finalLocation = data.residenciaName.trim();
-    
-    // PASO 2: Agregar condominio si está disponible
-    let condominiumToAdd = '';
-    if (data.condominiumText?.trim()) {
-      condominiumToAdd = data.condominiumText.trim();
-    } else if (data.condominiumName?.trim()) {
-      condominiumToAdd = data.condominiumName.trim();
+    parts.push(data.residenciaName.trim());
+  }
+
+  // Condominio: preferir texto libre y luego nombre
+  let condominiumToAdd = '';
+  if (data.condominiumText?.trim()) {
+    condominiumToAdd = data.condominiumText.trim();
+  } else if (data.condominiumName?.trim()) {
+    condominiumToAdd = data.condominiumName.trim();
+  }
+  if (condominiumToAdd) {
+    parts.push(condominiumToAdd);
+  }
+
+  // Número de casa (normalizado y con prefijo "Casa")
+  if (data.houseNumber?.toString().trim()) {
+    const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
+    if (cleanNumber) {
+      parts.push(`Casa ${cleanNumber}`);
     }
-    
-    if (condominiumToAdd) {
-      finalLocation += ` - ${condominiumToAdd}`;
-      
-      // PASO 3: Agregar número de casa si está disponible
-      if (data.houseNumber?.toString().trim()) {
-        const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
-        if (cleanNumber) {
-          finalLocation += ` - Casa ${cleanNumber}`;
-        }
-      }
-    }
+  }
+
+  if (parts.length > 0) {
+    finalLocation = parts.join(' - ');
   } else {
-    // Si no hay residencia, verificar si hay dirección del cliente como fallback SOLO para reservas externas
+    // Si no hay residencia/condominio/casa: manejar según tipo
     if (data.isExternal && data.clientAddress?.trim()) {
       finalLocation = data.clientAddress.trim();
     } else if (data.isExternal) {

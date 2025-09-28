@@ -98,14 +98,15 @@ export function useGroupedPendingRequests() {
               } else if (clientData) {
                 clientInfo = clientData;
                 
-                // Resolve residencia name if we have ID but no name
+                // Resolve residencia name if we have an ID (from user or appointment)
                 let residenciaName = '';
-                if (clientData.residencia_id) {
+                const residenciaIdToResolve = clientData.residencia_id || appointment.residencia_id;
+                if (residenciaIdToResolve) {
                   try {
                     const { data: residenciaData } = await supabase
                       .from('residencias')
                       .select('name')
-                      .eq('id', clientData.residencia_id)
+                      .eq('id', residenciaIdToResolve)
                       .single();
                     
                     if (residenciaData) {
