@@ -240,6 +240,7 @@ export type Database = {
           service_type_id: string
           service_variants: Json | null
           slot_preferences: Json
+          slot_size: number
           standard_duration: number
           title: string
           updated_at: string
@@ -260,6 +261,7 @@ export type Database = {
           service_type_id: string
           service_variants?: Json | null
           slot_preferences?: Json
+          slot_size?: number
           standard_duration: number
           title: string
           updated_at?: string
@@ -280,6 +282,7 @@ export type Database = {
           service_type_id?: string
           service_variants?: Json | null
           slot_preferences?: Json
+          slot_size?: number
           standard_duration?: number
           title?: string
           updated_at?: string

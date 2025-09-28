@@ -32,6 +32,8 @@ interface WeeklySlotGridProps {
   onSlotSelect: (slots: string[], startDate: Date, startTime: string, totalDuration: number) => void;
   recurrence?: string;
   requiredSlots?: number;
+  slotSize?: number; // Tamaño del slot configurado para el servicio
+  totalServiceDuration?: number; // Duración total de todos los servicios seleccionados
 }
 
 const WeeklySlotGrid = ({
@@ -41,7 +43,9 @@ const WeeklySlotGrid = ({
   selectedSlots = [],
   onSlotSelect,
   recurrence = 'once',
-  requiredSlots = 1
+  requiredSlots = 1,
+  slotSize = 60, // Default to 60 minutes if not provided
+  totalServiceDuration
 }: WeeklySlotGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);
@@ -51,6 +55,21 @@ const WeeklySlotGrid = ({
   React.useEffect(() => {
     setSelectedSlotIds(selectedSlots);
   }, [selectedSlots]);
+
+  // Calculate required slots based on new slot system
+  const actualTotalDuration = totalServiceDuration || (serviceDuration * requiredSlots);
+  const calculatedRequiredSlots = Math.ceil(actualTotalDuration / slotSize);
+  const slotsNeeded = Math.max(calculatedRequiredSlots, 1);
+
+  console.log('🎯 Slot calculation:', {
+    totalServiceDuration,
+    serviceDuration,
+    requiredSlots,
+    slotSize,
+    actualTotalDuration,
+    calculatedRequiredSlots,
+    slotsNeeded
+  });
 
   // Calculate correct week boundaries
   const { startDate: weekStartDate, endDate: weekEndDate } = calculateWeekDateRange(currentWeek);
@@ -67,7 +86,7 @@ const WeeklySlotGrid = ({
   } = useWeeklySlots({
     providerId,
     listingId,
-    serviceDuration,
+    serviceDuration: slotSize, // Use slotSize instead of serviceDuration for grid generation
     recurrence,
     startDate: weekStartDate,
     daysAhead: 7,
@@ -133,8 +152,8 @@ const WeeklySlotGrid = ({
     }
     
     // Validate max slots
-    if (newSelectedSlots.length > requiredSlots) {
-      toast.error(`Solo puedes seleccionar ${requiredSlots} slot${requiredSlots > 1 ? 's' : ''}`);
+    if (newSelectedSlots.length > slotsNeeded) {
+      toast.error(`Solo puedes seleccionar ${slotsNeeded} slot${slotsNeeded > 1 ? 's' : ''} para este servicio (duración total: ${actualTotalDuration} min)`);
       return;
     }
     
@@ -149,10 +168,10 @@ const WeeklySlotGrid = ({
       });
       
       const startSlot = sortedSlots[0];
-      const totalDuration = serviceDuration * newSelectedSlots.length;
+      const totalDurationReserved = slotSize * newSelectedSlots.length; // Use slotSize for actual duration calculation
       
-      onSlotSelect(newSelectedSlots, startSlot.date, startSlot.time, totalDuration);
-      console.log(`✅ ${newSelectedSlots.length} slots seleccionados consecutivos, duración total: ${totalDuration} min`);
+      onSlotSelect(newSelectedSlots, startSlot.date, startSlot.time, totalDurationReserved);
+      console.log(`✅ ${newSelectedSlots.length} slots seleccionados consecutivos, duración reservada: ${totalDurationReserved} min (servicio necesita ${actualTotalDuration} min)`);
     } else {
       // No slots selected
       onSlotSelect([], new Date(), '', 0);
@@ -252,15 +271,15 @@ const WeeklySlotGrid = ({
             </CardTitle>
             <CardDescription className="hidden md:block mt-2 md:ml-16">
               <span className="font-bold">Horarios disponibles del proveedor</span>
-              {requiredSlots > 1 && (
+              {slotsNeeded > 1 && (
                 <div className="mt-2 space-y-1">
                   <span className="block text-xs text-orange-600">
-                    ⚡ Debes seleccionar {requiredSlots} horarios consecutivos (tienes {requiredSlots} servicios)
+                    ⚡ Debes seleccionar {slotsNeeded} horarios consecutivos (duración total: {actualTotalDuration} min en slots de {slotSize} min)
                   </span>
                   {selectedSlotIds.length > 0 && (
                     <span className="block text-xs text-blue-600">
-                      📍 {selectedSlotIds.length} de {requiredSlots} slots seleccionados
-                      {selectedSlotIds.length === requiredSlots && " ✓ Completo"}
+                      📍 {selectedSlotIds.length} de {slotsNeeded} slots seleccionados
+                      {selectedSlotIds.length === slotsNeeded && " ✓ Completo"}
                     </span>
                   )}
                 </div>
@@ -268,14 +287,14 @@ const WeeklySlotGrid = ({
             </CardDescription>
             <CardDescription className="md:hidden text-center mt-2">
               {stats.availableSlots} horarios disponibles
-              {requiredSlots > 1 && (
+              {slotsNeeded > 1 && (
                 <div className="mt-1 space-y-1">
                   <span className="block text-xs text-orange-600">
-                    Selecciona {requiredSlots} consecutivos
+                    Selecciona {slotsNeeded} consecutivos
                   </span>
                   {selectedSlotIds.length > 0 && (
                     <span className="block text-xs text-blue-600">
-                      {selectedSlotIds.length}/{requiredSlots} slots
+                      {selectedSlotIds.length}/{slotsNeeded} slots
                     </span>
                   )}
                 </div>

@@ -30,6 +30,9 @@ const serviceSchema = z.object({
   price: z.coerce.number().min(0, 'El precio debe ser mayor a 0'),
   duration: z.coerce.number().min(15, 'La duración debe ser de al menos 15 minutos'),
   isPostPayment: z.union([z.boolean(), z.literal("ambas")]).default(false),
+  slotSize: z.coerce.number().refine((val) => val === 30 || val === 60, {
+    message: 'El tamaño de slot debe ser 30 o 60 minutos'
+  }).default(60),
   serviceVariants: z.array(z.object({
     id: z.string().optional(),
     name: z.string().min(1, 'El nombre del servicio es requerido'),
@@ -90,6 +93,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       price: 0,
       duration: 60,
       isPostPayment: false,
+      slotSize: 60,
       serviceVariants: [
         { id: uuidv4(), name: '', price: '', duration: 60, customVariables: [] }
       ],
@@ -139,6 +143,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         price: Number(initialData.price) || 0,
         duration: Number(initialData.duration) || 60,
         isPostPayment: initialData.isPostPayment || false,
+        slotSize: (Number(initialData.slotSize) === 30 ? 30 : 60) as 30 | 60,
         serviceVariants: initialData.serviceVariants?.length > 0 
           ? initialData.serviceVariants.map(variant => ({
               id: variant.id || uuidv4(),

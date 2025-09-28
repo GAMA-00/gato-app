@@ -24,6 +24,7 @@ interface NewBookingFormProps {
   customVariableGroups?: CustomVariableGroup[];
   customVariableSelections?: any;
   onCustomVariableSelectionsChange?: (selections: any, totalPrice: number) => void;
+  slotSize?: number; // Tamaño de slot del servicio
 }
 
 const NewBookingForm = ({
@@ -42,9 +43,25 @@ const NewBookingForm = ({
   onNotesChange,
   customVariableGroups,
   customVariableSelections,
-  onCustomVariableSelectionsChange
+  onCustomVariableSelectionsChange,
+  slotSize = 60 // Default slot size
 }: NewBookingFormProps) => {
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
+
+  // Calculate total service duration from all selected variants
+  const totalServiceDuration = selectedVariants.reduce((total, variant) => 
+    total + (variant.duration * variant.quantity), 0
+  );
+
+  // Calculate required slots based on slot size and total duration
+  const requiredSlots = Math.ceil(totalServiceDuration / slotSize);
+
+  console.log('📊 NewBookingForm calculations:', {
+    selectedVariants,
+    totalServiceDuration,
+    slotSize,
+    requiredSlots
+  });
 
   const handleSlotSelect = (slotIds: string[], date: Date, time: string, duration: number) => {
     setSelectedSlotIds(slotIds);
@@ -69,7 +86,9 @@ const NewBookingForm = ({
         selectedSlots={selectedSlotIds}
         onSlotSelect={handleSlotSelect}
         recurrence={selectedFrequency}
-        requiredSlots={selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)}
+        requiredSlots={requiredSlots}
+        slotSize={slotSize}
+        totalServiceDuration={totalServiceDuration}
       />
 
       {/* 3. Recurrence Pattern Display - After schedule selection */}

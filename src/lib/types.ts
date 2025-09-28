@@ -92,6 +92,8 @@ export interface Service {
   };
   // Nuevo campo para servicios post-pago - ahora puede ser boolean o "ambas"
   isPostPayment?: boolean | "ambas";
+  // Tamaño de slot configurable (30 o 60 minutos)
+  slotSize?: number;
   // Nuevos campos para variables personalizadas flexibles
   customVariableGroups?: CustomVariableGroup[];
   useCustomVariables?: boolean;

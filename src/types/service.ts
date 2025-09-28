@@ -147,6 +147,7 @@ export interface Service {
   serviceVariants?: ServiceVariant[];
   availability?: WeeklyAvailability;
   isPostPayment?: boolean; // Si se paga después del servicio
+  slotSize?: number; // Tamaño de slot configurable (30 o 60 minutos)
   
   // Variables personalizadas
   customVariableGroups?: CustomVariableGroup[];
