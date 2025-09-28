@@ -88,9 +88,8 @@ const BookingSummaryCard = ({
     ? selectedVariants.reduce((sum, variant) => sum + variant.quantity, 0)
     : (selectedVariant ? 1 : 0);
 
-  // Check if enough slots are selected for multiple services
-  const hasEnoughSlots = totalServices <= 1 || selectedSlotIds.length === requiredSlots;
-  const slotsValidation = !hasEnoughSlots && totalServices > 1;
+  // Simplified validation - only check essential booking requirements
+  const isEssentialDataValid = selectedDate && selectedTime && (selectedVariant || selectedVariants.length > 0);
   
   return (
     <Card className="w-full">{/* Removed sticky positioning */}
@@ -168,18 +167,18 @@ const BookingSummaryCard = ({
         {/* Service Information - For both prepago and postpago */}
         <ServiceInfo isPostPayment={isPostPayment} />
 
-        {/* ROBUST Booking Button with Enhanced Error Handling */}
+        {/* ROBUST Booking Button with Simplified Validation */}
         {bookingData ? (
           <RobustBookingButton
             bookingData={bookingData}
             onSuccess={onBookingSuccess}
-            disabled={!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0) || !hasEnoughSlots}
+            disabled={!isEssentialDataValid}
             className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
           />
         ) : (
           <Button
             onClick={onBooking}
-            disabled={isLoading || !selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0) || !hasEnoughSlots}
+            disabled={isLoading || !isEssentialDataValid}
             className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
             size="lg"
           >
@@ -197,25 +196,22 @@ const BookingSummaryCard = ({
           </Button>
         )}
 
-        {/* ENHANCED validation feedback with better UX */}
-        {(!selectedDate || !selectedTime || (!selectedVariant && selectedVariants.length === 0) || slotsValidation) && !isLoading && (
+        {/* Simplified validation feedback */}
+        {!isEssentialDataValid && !isLoading && (
           <div className="text-sm text-muted-foreground text-center space-y-1">
             <div className="bg-muted/50 p-2 rounded-md">
               <p className="font-medium">Para continuar:</p>
               <ul className="text-xs mt-1 space-y-0.5">
                 {!selectedDate && <li>• Selecciona una fecha</li>}
-                {!selectedTime && <li>• Selecciona una hora</li>}
+                {!selectedTime && <li>• Selecciona una hora de inicio</li>}
                 {(!selectedVariant && selectedVariants.length === 0) && <li>• Selecciona un servicio</li>}
-                {slotsValidation && (
-                  <li>• Selecciona {requiredSlots} horarios consecutivos (tienes {totalServices} servicios contratados)</li>
-                )}
               </ul>
             </div>
           </div>
         )}
         
         {/* SUCCESS feedback when all requirements are met */}
-        {selectedDate && selectedTime && (selectedVariant || selectedVariants.length > 0) && hasEnoughSlots && !isLoading && (
+        {isEssentialDataValid && !isLoading && (
           <div className="text-sm text-green-600 text-center flex items-center justify-center gap-1">
             <span className="text-green-600">✓</span>
             <span>Listo para confirmar tu reserva</span>
