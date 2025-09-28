@@ -162,6 +162,32 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          created_at: string | null
+          id: string
+          residencia_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          residencia_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          residencia_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_residencia_id_fkey"
+            columns: ["residencia_id"]
+            isOneToOne: false
+            referencedRelation: "residencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condominiums: {
         Row: {
           created_at: string
@@ -1157,6 +1183,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      providers: {
+        Row: {
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: []
       }
       recurring_appointment_instances: {
         Row: {
