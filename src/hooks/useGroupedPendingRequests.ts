@@ -85,11 +85,9 @@ export function useGroupedPendingRequests() {
                   email,
                   house_number,
                   residencia_id,
+                  condominium_id,
                   condominium_text,
-                  residencias (
-                    id,
-                    name
-                  )
+                  condominium_name
                 `)
                 .eq('id', appointment.client_id)
                 .eq('role', 'client')
@@ -100,13 +98,41 @@ export function useGroupedPendingRequests() {
               } else if (clientData) {
                 clientInfo = clientData;
                 
+                // Resolve residencia name if we have ID but no name
+                let residenciaName = '';
+                if (clientData.residencia_id) {
+                  try {
+                    const { data: residenciaData } = await supabase
+                      .from('residencias')
+                      .select('name')
+                      .eq('id', clientData.residencia_id)
+                      .single();
+                    
+                    if (residenciaData) {
+                      residenciaName = residenciaData.name;
+                    }
+                  } catch (error) {
+                    console.warn('Failed to fetch residencia name:', error);
+                  }
+                }
+                
+                console.log(`🐛 Location data for appointment ${appointment.id}:`, {
+                  residencia_id: clientData.residencia_id,
+                  residenciaName,
+                  condominium_text: clientData.condominium_text,
+                  condominium_name: clientData.condominium_name,
+                  house_number: clientData.house_number
+                });
+                
                 // Build location string using buildLocationString utility
                 clientLocation = buildLocationString({
-                  residenciaName: clientData.residencias?.name,
-                  condominiumName: clientData.condominium_text,
+                  residenciaName,
+                  condominiumName: clientData.condominium_text || clientData.condominium_name,
                   houseNumber: clientData.house_number,
                   isExternal: false
                 });
+                
+                console.log(`🎯 Final location for appointment ${appointment.id}: "${clientLocation}"`);
               }
             }
 

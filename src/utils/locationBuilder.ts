@@ -41,13 +41,13 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     }
     
     if (condominiumToAdd) {
-      finalLocation += ` – ${condominiumToAdd}`;
+      finalLocation += ` - ${condominiumToAdd}`;
       
       // PASO 3: Agregar número de casa si está disponible
       if (data.houseNumber?.toString().trim()) {
         const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
         if (cleanNumber) {
-          finalLocation += ` – Casa ${cleanNumber}`;
+          finalLocation += ` - Casa ${cleanNumber}`;
         }
       }
     }

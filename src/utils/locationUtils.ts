@@ -32,18 +32,18 @@ export const buildLocationString = (data: LocationData): string => {
   
   // Add house number
   if (data.houseNumber && data.houseNumber.toString().trim()) {
-    // Format house number consistently, removing any existing prefixes
+    // Format house number consistently, removing any existing prefixes and adding "Casa"
     const cleanNumber = data.houseNumber.toString().replace(/^(casa\s*|#\s*)/i, '').trim();
     if (cleanNumber) {
-      parts.push(cleanNumber);
-      console.log('Added house number:', cleanNumber);
+      parts.push(`Casa ${cleanNumber}`);
+      console.log('Added house number:', `Casa ${cleanNumber}`);
     }
   }
   
   console.log('Final parts array:', parts);
   
-  // Return in the standardized format: Residencia – Condominio – Número
-  const result = parts.length > 0 ? parts.join(' – ') : 'Ubicación no especificada';
+  // Return in the standardized format: Residencia - Condominio - Casa X
+  const result = parts.length > 0 ? parts.join(' - ') : 'Ubicación no especificada';
   console.log('Final location result:', result);
   
   return result;

@@ -263,6 +263,47 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
         allGalleryUrls = [...allGalleryUrls, ...newGalleryUrls];
       }
 
+      // Resolve condominium name if needed
+      let resolvedCondominiumName = values.condominiumText || '';
+      
+      if (values.condominiumId && !resolvedCondominiumName) {
+        console.log('Resolving condominium name for ID:', values.condominiumId);
+        
+        if (values.condominiumId.startsWith('static-')) {
+          // Static condominium from predefined list
+          const condominiumNames = [
+            'El Carao', 'La Ceiba', 'Guayaquil', 'Ilang-Ilang', 'Nogal', 
+            'Guayacán Real', 'Cedro Alto', 'Roble Sabana', 'Alamo', 'Guaitil'
+          ];
+          const index = parseInt(values.condominiumId.replace('static-', ''));
+          if (index >= 0 && index < condominiumNames.length) {
+            resolvedCondominiumName = condominiumNames[index];
+          }
+        } else {
+          // Database condominium - fetch name
+          try {
+            const { data: condominiumData, error } = await supabase
+              .from('condominiums')
+              .select('name')
+              .eq('id', values.condominiumId)
+              .single();
+              
+            if (!error && condominiumData) {
+              resolvedCondominiumName = condominiumData.name;
+            }
+          } catch (error) {
+            console.error('Failed to resolve condominium name:', error);
+          }
+        }
+      }
+
+      console.log('Profile update data:', {
+        residencia_id: values.residenciaId,
+        condominium_id: values.condominiumId,
+        condominium_name: resolvedCondominiumName,
+        house_number: values.houseNumber
+      });
+
       // Prepare update data
       const updateData: any = {
         name: values.name,
@@ -270,8 +311,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
         residencia_id: values.residenciaId || null,
         condominium_id: values.condominiumId || null,
         house_number: values.houseNumber || '',
-        condominium_text: values.condominiumText || '',
-        condominium_name: values.condominiumText || '',
+        condominium_text: resolvedCondominiumName,
+        condominium_name: resolvedCondominiumName,
         avatar_url: avatarUrl,
       };
 
