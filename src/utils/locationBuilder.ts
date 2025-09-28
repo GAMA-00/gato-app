@@ -52,13 +52,13 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
       }
     }
   } else {
-    // Si no hay residencia, verificar si hay dirección del cliente como fallback
-    if (data.clientAddress?.trim()) {
+    // Si no hay residencia, verificar si hay dirección del cliente como fallback SOLO para reservas externas
+    if (data.isExternal && data.clientAddress?.trim()) {
       finalLocation = data.clientAddress.trim();
     } else if (data.isExternal) {
       finalLocation = 'Reserva Externa';
     } else {
-      finalLocation = 'Ubicación no especificada';
+      finalLocation = 'Residencia por confirmar';
     }
   }
   
