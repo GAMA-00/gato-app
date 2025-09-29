@@ -212,6 +212,10 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
           };
 
       // STEP 1: Create Payment Intent
+      const billingName = showNewCardForm
+        ? newCardData.cardholderName
+        : selectedSavedCard?.cardholder_name || user?.name || 'Cliente';
+
       const authorizeResponse = await supabase.functions.invoke('onvopay-authorize', {
         body: {
           appointmentId: newAppointmentId,
@@ -220,7 +224,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
           payment_method: 'card',
           card_data: cardDataForPayment,
           billing_info: {
-            name: newCardData.cardholderName || 'Cliente',
+            name: billingName,
             phone: formatPhoneCR(billingData.phone),
             address: billingData.address
           }
@@ -363,13 +367,13 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       // STEP 2: For normal services, confirm Payment Intent immediately
       if (authorizeData.requires_confirmation && !authorizeData.is_post_payment) {
         console.log('💳 Confirmando Payment Intent inmediatamente...');
-        
+
         const confirmResponse = await supabase.functions.invoke('onvopay-confirm', {
           body: {
             payment_intent_id: authorizeData.onvopay_payment_id,
             card_data: cardDataForPayment,
             billing_info: {
-              name: newCardData.cardholderName || 'Cliente',
+              name: billingName,
               phone: formatPhoneCR(billingData.phone),
               address: billingData.address
             }
