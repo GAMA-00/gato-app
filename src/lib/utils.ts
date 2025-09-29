@@ -1,6 +1,6 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -101,7 +101,6 @@ export function capitalizeFirst(str: string): string {
  * @param options - Format options including locale
  */
 export function formatDateES(date: Date | string, formatStr: string, options?: any): string {
-  const { format } = require('date-fns');
   const formatted = format(typeof date === 'string' ? new Date(date) : date, formatStr, options);
   
   // Capitalize first letter for Spanish day/month names
