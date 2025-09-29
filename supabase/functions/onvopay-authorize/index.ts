@@ -64,10 +64,14 @@ function formatPhoneForOnvoPay(phone: string): string {
 }
 
 // Robust customer creation/retrieval helper with enhanced deduplication
-async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<string> {
+async function ensureOnvoCustomer(
+  supabase: any,
+  clientId: string,
+  billingInfo?: { name?: string; phone?: string; email?: string }
+): Promise<string> {
   const config = getOnvoConfig();
   const secretKey = Deno.env.get('ONVOPAY_SECRET_KEY');
-  
+
   if (!secretKey) {
     throw new Error('ONVOPAY_SECRET_KEY not configured');
   }
@@ -95,7 +99,14 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
     throw new Error(`User not found: ${clientId}`);
   }
 
-  const normalized = normalizeData(user);
+  // Merge user data with billing info (billing info takes priority)
+  const mergedData = {
+    name: billingInfo?.name || user.name,
+    email: billingInfo?.email || user.email,
+    phone: billingInfo?.phone || user.phone
+  };
+
+  const normalized = normalizeData(mergedData);
 
   // Step 2.5: Enhanced deduplication - check for existing customers by email/phone
   if (normalized.email || normalized.phone) {
@@ -163,7 +174,7 @@ async function ensureOnvoCustomer(supabase: any, clientId: string): Promise<stri
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
-    originalPhone: user.phone
+    source: billingInfo ? 'billing_info + user_data' : 'user_data_only'
   });
 
   const url = `${config.baseUrl}${config.path}`;
@@ -445,7 +456,7 @@ serve(async (req) => {
     currentPhase = 'ensure-onvopay-customer';
     let customerId: string | undefined;
     try {
-      customerId = await ensureOnvoCustomer(supabase, appointment.client_id);
+      customerId = await ensureOnvoCustomer(supabase, appointment.client_id, body.billing_info);
     } catch (err: any) {
       const s = Number(err?.status);
       const isServiceDown = s === 502 || s === 503 || s === 504 || /HTML|WAF|maintenance/i.test(String(err?.hint ?? err?.message));
