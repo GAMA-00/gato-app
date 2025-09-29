@@ -569,21 +569,16 @@ serve(async (req) => {
       amount: amountCents,
       currency: 'USD',
       description: `Servicio ${body.appointmentId}`,
-      // CRITICAL: Use capture_method: manual to only authorize (not capture) the payment
-      // This allows us to capture the payment later after service completion
-      capture_method: 'manual',
+      // NOTE: OnvoPay doesn't support capture_method or customer fields
+      // Customer is linked via metadata instead
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
-        is_post_payment: isPostPayment.toString()
+        is_post_payment: isPostPayment.toString(),
+        ...(customerId && { onvopay_customer_id: customerId })
       }
     };
-
-    // Add customer if available (for card storage and future use)
-    if (customerId) {
-      onvoPayData.customer = customerId;
-    }
 
     // Create Payment Intent with retry logic and structured logging
     const requestId = crypto.randomUUID();
