@@ -3,18 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface CapturePaymentParams {
-  paymentIntentId: string;
-  cardData: {
-    number: string;
-    expiry: string;
-    cvv: string;
-    name: string;
-  };
-  billingInfo: {
-    name: string;
-    phone: string;
-    address: string;
-  };
+  paymentId: string;
+  onvopay_payment_id?: string;
 }
 
 export const usePostPaymentCapture = () => {
@@ -22,33 +12,52 @@ export const usePostPaymentCapture = () => {
 
   return useMutation({
     mutationFn: async (params: CapturePaymentParams) => {
-        // Add structured logging for better debugging
-        const startTime = Date.now();
-        console.log('🔐 Capturing post-payment...', {
-          paymentIntentId: params.paymentIntentId,
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID()
-        });
+      // Add structured logging for better debugging
+      const startTime = Date.now();
+      const requestId = crypto.randomUUID();
+      
+      console.log('🔐 Capturing post-payment...', {
+        paymentId: params.paymentId,
+        onvopay_payment_id: params.onvopay_payment_id,
+        timestamp: new Date().toISOString(),
+        requestId
+      });
 
-      const { data, error } = await supabase.functions.invoke('onvopay-confirm', {
+      // FIXED: Call onvopay-capture instead of onvopay-confirm
+      // Capture doesn't need card data, just the payment ID
+      const { data, error } = await supabase.functions.invoke('onvopay-capture', {
         body: {
-          payment_intent_id: params.paymentIntentId,
-          card_data: params.cardData,
-          billing_info: params.billingInfo
+          paymentId: params.paymentId,
+          onvopay_payment_id: params.onvopay_payment_id
         }
       });
 
+      const duration = Date.now() - startTime;
+      
       if (error) {
-        console.error('❌ Error capturing payment:', error);
+        console.error('❌ Error capturing payment:', {
+          error,
+          duration: `${duration}ms`,
+          requestId
+        });
         throw new Error(error.message || 'Error procesando el pago');
       }
 
       if (!data.success) {
-        console.error('❌ Capture failed:', data.error);
+        console.error('❌ Capture failed:', {
+          error: data.error,
+          duration: `${duration}ms`,
+          requestId
+        });
         throw new Error(data.error || 'Error confirmando el pago');
       }
 
-      console.log('✅ Payment captured successfully:', data);
+      console.log('✅ Payment captured successfully:', {
+        ...data,
+        duration: `${duration}ms`,
+        requestId
+      });
+      
       return data;
     },
     onSuccess: (data) => {

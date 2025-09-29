@@ -6,18 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Environment configuration helper
+// Environment configuration helper - unified across all OnvoPay functions
 function getOnvoConfig() {
-  const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com';
+  const mode = Deno.env.get('ONVOPAY_MODE') || 'test';
+  const isTest = mode === 'test';
+  
+  const baseUrl = isTest 
+    ? (Deno.env.get('ONVOPAY_API_BASE_TEST') || 'https://sandbox.api.onvopay.com')
+    : (Deno.env.get('ONVOPAY_API_BASE_LIVE') || 'https://api.onvopay.com');
+  
+  const secretKey = isTest
+    ? Deno.env.get('ONVOPAY_TEST_SECRET_KEY')
+    : Deno.env.get('ONVOPAY_LIVE_SECRET_KEY');
+  
+  // Fallback to legacy ONVOPAY_SECRET_KEY
+  const finalSecretKey = secretKey || Deno.env.get('ONVOPAY_SECRET_KEY');
+  
   const version = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
   const debug = (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true';
   
   return {
+    mode,
     baseUrl,
+    secretKey: finalSecretKey,
     version,
     debug,
     fullUrl: `${baseUrl}/${version}`,
-    environment: baseUrl.includes('sandbox') || baseUrl.includes('test') ? 'SANDBOX' : 'PRODUCTION'
+    environment: isTest ? 'SANDBOX' : 'PRODUCTION'
   };
 }
 
@@ -38,7 +53,7 @@ serve(async (req) => {
     }
 
     const onvoConfig = getOnvoConfig();
-    const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
+    const ONVOPAY_SECRET_KEY = onvoConfig.secretKey;
     
     if (!ONVOPAY_SECRET_KEY) {
       return new Response(JSON.stringify({

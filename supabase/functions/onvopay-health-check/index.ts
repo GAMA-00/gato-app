@@ -6,18 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Environment configuration helper
+// Environment configuration helper - unified across all OnvoPay functions
 function getOnvoConfig() {
-  const baseUrl = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com';
+  const mode = Deno.env.get('ONVOPAY_MODE') || 'test';
+  const isTest = mode === 'test';
+  
+  const baseUrl = isTest 
+    ? (Deno.env.get('ONVOPAY_API_BASE_TEST') || 'https://sandbox.api.onvopay.com')
+    : (Deno.env.get('ONVOPAY_API_BASE_LIVE') || 'https://api.onvopay.com');
+  
+  const secretKey = isTest
+    ? Deno.env.get('ONVOPAY_TEST_SECRET_KEY')
+    : Deno.env.get('ONVOPAY_LIVE_SECRET_KEY');
+  
+  // Fallback to legacy ONVOPAY_SECRET_KEY
+  const finalSecretKey = secretKey || Deno.env.get('ONVOPAY_SECRET_KEY');
+  
   const version = Deno.env.get('ONVOPAY_API_VERSION') || 'v1';
   const debug = (Deno.env.get('ONVOPAY_DEBUG') || 'false') === 'true';
   
   return {
+    mode,
     baseUrl,
+    secretKey: finalSecretKey,
     version,
     debug,
     fullUrl: `${baseUrl}/${version}`,
-    environment: baseUrl.includes('sandbox') || baseUrl.includes('test') ? 'SANDBOX' : 'PRODUCTION'
+    environment: isTest ? 'SANDBOX' : 'PRODUCTION'
   };
 }
 
@@ -38,7 +53,7 @@ serve(async (req) => {
     }
 
     const onvoConfig = getOnvoConfig();
-    const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
+    const ONVOPAY_SECRET_KEY = onvoConfig.secretKey;
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -47,6 +62,7 @@ serve(async (req) => {
       requestId,
       timestamp: new Date().toISOString(),
       onvopay: {
+        mode: onvoConfig.mode,
         hasSecretKey: !!ONVOPAY_SECRET_KEY,
         keyPrefix: ONVOPAY_SECRET_KEY ? `${ONVOPAY_SECRET_KEY.substring(0, 8)}...` : 'NOT_SET',
         baseUrl: onvoConfig.baseUrl,
@@ -224,9 +240,28 @@ serve(async (req) => {
           events: ['payment.authorized', 'payment.captured', 'payment.failed'],
           note: 'Configure this URL in your OnvoPay dashboard webhook settings'
         },
+        environmentCheck: `Currently using ${onvoConfig.environment} (mode: ${onvoConfig.mode})`,
+        secretKeyConfig: onvoConfig.mode === 'test' 
+          ? 'Using ONVOPAY_TEST_SECRET_KEY for sandbox'
+          : 'Using ONVOPAY_LIVE_SECRET_KEY for production',
         environmentVariables: {
-          required: ['ONVOPAY_SECRET_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'],
-          optional: ['ONVOPAY_API_BASE', 'ONVOPAY_API_VERSION', 'ONVOPAY_DEBUG', 'ONVOPAY_CUSTOMER_OPTIONAL']
+          core: {
+            ONVOPAY_MODE: 'Set to "test" or "live"',
+            ONVOPAY_TEST_SECRET_KEY: 'Secret key for sandbox environment',
+            ONVOPAY_LIVE_SECRET_KEY: 'Secret key for production environment',
+            SUPABASE_URL: 'Your Supabase project URL',
+            SUPABASE_SERVICE_ROLE_KEY: 'Service role key for admin operations'
+          },
+          optional: {
+            ONVOPAY_API_BASE_TEST: 'Custom sandbox API URL (default: https://sandbox.api.onvopay.com)',
+            ONVOPAY_API_BASE_LIVE: 'Custom production API URL (default: https://api.onvopay.com)',
+            ONVOPAY_API_VERSION: 'API version (default: v1)',
+            ONVOPAY_DEBUG: 'Enable debug logging (true/false)',
+            ONVOPAY_CUSTOMER_OPTIONAL: 'Allow bypass when customer service is down (true/false)'
+          },
+          legacy: {
+            ONVOPAY_SECRET_KEY: 'Legacy secret key (use mode-specific keys instead)'
+          }
         }
       }
     };

@@ -197,20 +197,31 @@ export const OnvoPayDebugPanel = () => {
                   </div>
 
                   {healthData.recommendations && (
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        <div className="space-y-2">
-                          <strong>Webhook Configuration:</strong>
-                          <div className="text-sm font-mono bg-muted p-2 rounded">
-                            {healthData.recommendations.webhookConfiguration.url}
+                    <div className="space-y-3">
+                      <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          <div className="space-y-2">
+                            <strong>Webhook Configuration:</strong>
+                            <div className="text-sm font-mono bg-muted p-2 rounded break-all">
+                              {healthData.recommendations.webhookConfiguration.url}
+                            </div>
+                            <p className="text-sm">
+                              Configure this URL in your OnvoPay dashboard for events: {healthData.recommendations.webhookConfiguration.events.join(', ')}
+                            </p>
                           </div>
-                          <p className="text-sm">
-                            Configure this URL in your OnvoPay dashboard for events: {healthData.recommendations.webhookConfiguration.events.join(', ')}
-                          </p>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <Alert>
+                        <AlertDescription>
+                          <div className="space-y-1 text-sm">
+                            <div><strong>Environment:</strong> {healthData.recommendations.environmentCheck}</div>
+                            <div><strong>Secret Key:</strong> {healthData.recommendations.secretKeyConfig}</div>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
                   )}
                 </div>
               )}
