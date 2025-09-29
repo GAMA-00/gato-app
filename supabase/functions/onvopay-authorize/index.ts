@@ -108,6 +108,9 @@ async function ensureOnvoCustomer(
     phone: billingInfo?.phone || user.phone
   };
 
+  console.log(`📥 Received billingInfo:`, JSON.stringify(billingInfo, null, 2));
+  console.log(`📥 User data from DB:`, JSON.stringify({ name: user.name, email: user.email, phone: user.phone }, null, 2));
+
   const normalized = normalizeData(mergedData);
 
   // Step 2.5: Enhanced deduplication - check for existing customers by email/phone
@@ -191,13 +194,12 @@ async function ensureOnvoCustomer(
     };
   }
   
-  console.log(`📋 Creating OnvoPay customer with payload:`, {
-    name: payload.name,
-    email: payload.email,
-    phone: payload.phone,
+  console.log(`📋 Creating OnvoPay customer with FULL payload:`, JSON.stringify(payload, null, 2));
+  console.log(`📋 Address check:`, {
+    hasBillingInfo: !!billingInfo,
+    billingInfoAddress: billingInfo?.address,
     hasAddress: !!payload.address,
-    hasShipping: !!payload.shipping,
-    source: billingInfo ? 'billing_info + user_data' : 'user_data_only'
+    hasShipping: !!payload.shipping
   });
 
   const url = `${config.baseUrl}${config.path}`;

@@ -216,6 +216,14 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         ? newCardData.cardholderName
         : selectedSavedCard?.cardholder_name || user?.name || 'Cliente';
 
+      console.log('📤 Sending billing_info to onvopay-authorize:', {
+        name: billingName,
+        email: user?.email || '',
+        phone: formatPhoneCR(billingData.phone),
+        address: billingData.address,
+        rawBillingData: billingData
+      });
+
       const authorizeResponse = await supabase.functions.invoke('onvopay-authorize', {
         body: {
           appointmentId: newAppointmentId,
