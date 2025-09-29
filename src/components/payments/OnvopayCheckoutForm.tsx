@@ -128,29 +128,8 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
     console.log('Iniciando proceso de reserva y pago...');
 
     try {
-      // PASO 0: Validar que el slot esté disponible antes de crear appointment
-      console.log('🔍 Validando disponibilidad del slot...');
-      const { data: existingAppointments, error: validationError } = await supabase
-        .from('appointments')
-        .select('id, status')
-        .eq('provider_id', appointmentData.providerId)
-        .eq('start_time', appointmentData.startTime)
-        .eq('end_time', appointmentData.endTime)
-        .not('status', 'in', '(cancelled,rejected)');
-
-      if (validationError) {
-        console.error('❌ Error validating slot:', validationError);
-        throw new Error('Error al validar disponibilidad del slot');
-      }
-
-      if (existingAppointments && existingAppointments.length > 0) {
-        console.error('❌ Slot ya ocupado:', existingAppointments);
-        throw new Error('Este horario ya no está disponible. Por favor selecciona otro horario.');
-      }
-
-      console.log('✅ Slot disponible, procediendo con creación...');
-
       // PASO 1: Crear appointment usando RPC para asegurar estado 'pending' y reservar slot
+      // La función RPC tiene protección integrada contra race conditions con advisory locks
       console.log('📝 Creando appointment con slot reservado...');
       console.log('📋 appointmentData recibido:', appointmentData);
 
@@ -173,17 +152,18 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
       if (appointmentError) {
         console.error('❌ Error creando appointment:', appointmentError);
+        
+        // Check for P0001 error (slot conflict)
+        if (appointmentError.code === 'P0001' || appointmentError.message?.includes('conflicts with')) {
+          throw new Error('Este horario ya fue reservado por otro cliente. Por favor selecciona otro horario.');
+        }
+        
         throw new Error('No se pudo crear la reserva. Intenta nuevamente.');
       }
 
       const newAppointmentId = appointmentResult?.appointment_id;
       if (!newAppointmentId) {
         throw new Error('No se pudo obtener el ID de la reserva creada');
-      }
-
-      if (appointmentError) {
-        console.error('❌ Error creando appointment:', appointmentError);
-        throw new Error('No se pudo crear la reserva. Intenta nuevamente.');
       }
 
       console.log('✅ Appointment creado exitosamente:', newAppointmentId);
