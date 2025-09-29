@@ -475,35 +475,38 @@ serve(async (req) => {
       }
     }
 
-    // Prepare OnvoPay API request - CREATE Payment Intent only
+    // Prepare OnvoPay API request - CREATE Payment Intent with capture_method: manual for auth-only
     currentPhase = 'prepare-onvopay-request';
-    
+
     const apiRequestId = crypto.randomUUID();
     console.log('🔐 Creating Payment Intent...', {
       requestId: apiRequestId,
       appointmentId: body.appointmentId,
       amount: amountCents,
+      isPostPayment,
       environment: onvoConfig.environment,
       timestamp: new Date().toISOString()
     });
-    
+
     const onvoPayData: any = {
       amount: amountCents,
       currency: 'USD',
       description: `Servicio ${body.appointmentId}`,
+      // CRITICAL: Use capture_method: manual to only authorize (not capture) the payment
+      // This allows us to capture the payment later after service completion
+      capture_method: 'manual',
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
-        is_post_payment: isPostPayment.toString(),
-        // Store customer ID in metadata instead of customer field
-        ...(customerId && { onvopay_customer_id: customerId })
+        is_post_payment: isPostPayment.toString()
       }
     };
 
-    // ❌ CRITICAL FIX: Do NOT include customer field in payment intent creation
-    // OnvoPay API rejects payment intents with customer field
-    // Customer association should be handled separately if needed
+    // Add customer if available (for card storage and future use)
+    if (customerId) {
+      onvoPayData.customer = customerId;
+    }
 
     // Create Payment Intent with retry logic and structured logging
     const requestId = crypto.randomUUID();
@@ -685,10 +688,19 @@ serve(async (req) => {
       });
     }
 
-    // Determine status - Payment Intent created, ready for confirmation
+    // Determine status based on OnvoPay response
+    // With capture_method: manual, payment intent will be 'requires_confirmation' or 'requires_payment_method'
     const paymentIntentStatus = onvoResult.status || 'requires_payment_method';
-    const dbStatus = 'pending_authorization';
+    const dbStatus = 'pending_authorization'; // Will be updated to 'authorized' after confirmation
     const now = new Date().toISOString();
+
+    console.log('💡 Payment Intent created with status:', {
+      onvoPayStatus: paymentIntentStatus,
+      dbStatus,
+      paymentIntentId: onvoResult.id,
+      requiresConfirmation: paymentIntentStatus === 'requires_confirmation',
+      captureMethod: 'manual'
+    });
 
     // Create payment record in database
     currentPhase = 'create-payment-record';

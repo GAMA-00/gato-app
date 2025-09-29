@@ -10,6 +10,7 @@ export interface PaymentMethod {
   cardholder_name: string | null;
   expiry_date: string | null;
   bank_name: string | null;
+  onvopay_payment_method_id: string | null;
   created_at: string;
 }
 
@@ -40,6 +41,7 @@ export const usePaymentMethods = () => {
       cardNumber: string;
       cardholderName: string;
       expiryDate: string;
+      onvopayPaymentMethodId?: string;
     }) => {
       if (!user?.id) throw new Error('Usuario no autenticado');
 
@@ -53,7 +55,8 @@ export const usePaymentMethods = () => {
           method_type: 'card',
           card_number: maskedCardNumber,
           cardholder_name: cardData.cardholderName,
-          expiry_date: cardData.expiryDate
+          expiry_date: cardData.expiryDate,
+          onvopay_payment_method_id: cardData.onvopayPaymentMethodId || null
         })
         .select()
         .single();

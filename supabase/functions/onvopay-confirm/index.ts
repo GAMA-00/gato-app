@@ -85,14 +85,21 @@ serve(async (req) => {
     // Input validation
     const missing: string[] = [];
     if (!body.payment_intent_id) missing.push('payment_intent_id');
-    if (!body.card_data) missing.push('card_data');
-    else {
-      if (!body.card_data.number) missing.push('card_data.number');
-      if (!body.card_data.expiry) missing.push('card_data.expiry');
-      if (!body.card_data.cvv) missing.push('card_data.cvv');
-      if (!body.card_data.name) missing.push('card_data.name');
+
+    // Check if using saved payment method or new card data
+    const usingSavedPaymentMethod = body.card_data?.payment_method_id;
+
+    if (!usingSavedPaymentMethod) {
+      // Validate card data for new cards
+      if (!body.card_data) missing.push('card_data');
+      else {
+        if (!body.card_data.number) missing.push('card_data.number');
+        if (!body.card_data.expiry) missing.push('card_data.expiry');
+        if (!body.card_data.cvv) missing.push('card_data.cvv');
+        if (!body.card_data.name) missing.push('card_data.name');
+      }
+      if (!body.billing_info) missing.push('billing_info');
     }
-    if (!body.billing_info) missing.push('billing_info');
 
     if (missing.length > 0) {
       console.error('❌ Validation failed. Missing fields:', missing);
@@ -118,136 +125,146 @@ serve(async (req) => {
       }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // 1) Create Payment Method from raw card data
-    const pmCreateUrl = `${onvoConfig.fullUrl}/payment-methods`;
+    // 1) Get or Create Payment Method
+    let paymentMethodId: string;
 
-    // Parse expiry (supports MM/YY or MM/YYYY)
-    const rawExpiry = String(body.card_data.expiry || '').trim();
-    const cleanedExpiry = rawExpiry.replace(/\s/g, '');
-    const [mmStr, yyStr] = cleanedExpiry.split('/');
-    const expMonth = Number.parseInt(mmStr, 10);
-    let expYear = Number.parseInt(yyStr, 10);
-    if (yyStr && yyStr.length === 2 && Number.isInteger(expYear)) {
-      expYear = 2000 + expYear; // normalize to 20xx
-    }
+    if (usingSavedPaymentMethod) {
+      // Use existing saved payment method
+      paymentMethodId = body.card_data.payment_method_id;
+      console.log('🔄 Using saved payment method:', paymentMethodId);
+    } else {
+      // Create Payment Method from raw card data
+      const pmCreateUrl = `${onvoConfig.fullUrl}/payment-methods`;
 
-    if (!Number.isInteger(expMonth) || expMonth < 1 || expMonth > 12) {
-      console.error('❌ Invalid expMonth parsed from expiry:', { rawExpiry, expMonth });
-      return new Response(JSON.stringify({
-        error: 'INVALID_EXP_MONTH',
-        message: 'El mes de expiración de la tarjeta es inválido'
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const currentYear = new Date().getFullYear();
-    if (!Number.isInteger(expYear) || expYear < currentYear || expYear > 2100) {
-      console.error('❌ Invalid expYear parsed from expiry:', { rawExpiry, expYear });
-      return new Response(JSON.stringify({
-        error: 'INVALID_EXP_YEAR',
-        message: 'El año de expiración de la tarjeta es inválido'
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const holderName = String(body.card_data.name || '').trim();
-    if (!holderName) {
-      return new Response(JSON.stringify({
-        error: 'INVALID_HOLDER_NAME',
-        message: 'El nombre del titular es requerido'
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const pmPayload = {
-      type: 'card',
-      card: {
-        number: String(body.card_data.number || '').replace(/\s+/g, ''),
-        expMonth,
-        expYear,
-        cvv: String(body.card_data.cvv || ''),
-        holderName
+      // Parse expiry (supports MM/YY or MM/YYYY)
+      const rawExpiry = String(body.card_data.expiry || '').trim();
+      const cleanedExpiry = rawExpiry.replace(/\s/g, '');
+      const [mmStr, yyStr] = cleanedExpiry.split('/');
+      const expMonth = Number.parseInt(mmStr, 10);
+      let expYear = Number.parseInt(yyStr, 10);
+      if (yyStr && yyStr.length === 2 && Number.isInteger(expYear)) {
+        expYear = 2000 + expYear; // normalize to 20xx
       }
-    };
 
-    console.log('📡 Creating Payment Method in OnvoPay (payload summary)...', {
-      hasNumber: !!pmPayload.card.number,
-      expMonth: pmPayload.card.expMonth,
-      expYear: pmPayload.card.expYear,
-      hasCVV: !!pmPayload.card.cvv,
-      hasHolderName: !!pmPayload.card.holderName
-    });
-
-    const pmResponse = await fetch(pmCreateUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(pmPayload)
-    });
-
-    const pmText = await pmResponse.text();
-    const pmContentType = pmResponse.headers.get('content-type') ?? '';
-
-    console.log('🔍 Payment Method response info:', {
-      status: pmResponse.status,
-      contentType: pmContentType,
-      bodyLength: pmText.length,
-      isHTML: pmContentType.includes('text/html'),
-      isJSON: pmContentType.includes('application/json')
-    });
-
-    if (!pmContentType.includes('application/json')) {
-      const isHTML = pmContentType.includes('text/html') || pmText.trim().startsWith('<');
-      
-      // CRITICAL BYPASS: If OnvoPay service is down and customer bypass is enabled
-      if (CUSTOMER_OPTIONAL && (pmResponse.status === 502 || pmResponse.status === 503 || pmResponse.status === 504)) {
-        console.warn('⚠️ OnvoPay payment method service unavailable, activating bypass', {
-          paymentIntentId: body.payment_intent_id,
-          status: pmResponse.status,
-          customerOptional: CUSTOMER_OPTIONAL,
-          bypassing: true
-        });
-        
+      if (!Number.isInteger(expMonth) || expMonth < 1 || expMonth > 12) {
+        console.error('❌ Invalid expMonth parsed from expiry:', { rawExpiry, expMonth });
         return new Response(JSON.stringify({
-          success: false,
-          error: 'PAYMENT_SERVICE_UNAVAILABLE',
-          message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
-          hint: 'OnvoPay Payment Method API is temporarily down'
-        }), { 
-          status: 200, // Return 200 to avoid throwing error in client
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        });
+          error: 'INVALID_EXP_MONTH',
+          message: 'El mes de expiración de la tarjeta es inválido'
+        }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      console.error('❌ Non-JSON response creating Payment Method');
-      return new Response(JSON.stringify({
-        error: 'NON_JSON_RESPONSE',
-        message: isHTML 
-          ? 'OnvoPay returned an HTML error page instead of JSON. This usually indicates service unavailability.'
-          : 'OnvoPay returned a non-JSON response when creating payment method',
+      const currentYear = new Date().getFullYear();
+      if (!Number.isInteger(expYear) || expYear < currentYear || expYear > 2100) {
+        console.error('❌ Invalid expYear parsed from expiry:', { rawExpiry, expYear });
+        return new Response(JSON.stringify({
+          error: 'INVALID_EXP_YEAR',
+          message: 'El año de expiración de la tarjeta es inválido'
+        }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const holderName = String(body.card_data.name || '').trim();
+      if (!holderName) {
+        return new Response(JSON.stringify({
+          error: 'INVALID_HOLDER_NAME',
+          message: 'El nombre del titular es requerido'
+        }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const pmPayload = {
+        type: 'card',
+        card: {
+          number: String(body.card_data.number || '').replace(/\s+/g, ''),
+          expMonth,
+          expYear,
+          cvv: String(body.card_data.cvv || ''),
+          holderName
+        }
+      };
+
+      console.log('📡 Creating Payment Method in OnvoPay (payload summary)...', {
+        hasNumber: !!pmPayload.card.number,
+        expMonth: pmPayload.card.expMonth,
+        expYear: pmPayload.card.expYear,
+        hasCVV: !!pmPayload.card.cvv,
+        hasHolderName: !!pmPayload.card.holderName
+      });
+
+      const pmResponse = await fetch(pmCreateUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pmPayload)
+      });
+
+      const pmText = await pmResponse.text();
+      const pmContentType = pmResponse.headers.get('content-type') ?? '';
+
+      console.log('🔍 Payment Method response info:', {
         status: pmResponse.status,
-        bodyPreview: pmText.substring(0, 300) + (pmText.length > 300 ? '...' : '')
-      }), { status: pmResponse.status || 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+        contentType: pmContentType,
+        bodyLength: pmText.length,
+        isHTML: pmContentType.includes('text/html'),
+        isJSON: pmContentType.includes('application/json')
+      });
 
-    let pmResult: any;
-    try {
-      pmResult = JSON.parse(pmText);
-    } catch (e) {
-      console.error('❌ Invalid JSON creating Payment Method');
-      return new Response(JSON.stringify({ error: 'INVALID_JSON', message: 'Malformed JSON from payment-methods' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+      if (!pmContentType.includes('application/json')) {
+        const isHTML = pmContentType.includes('text/html') || pmText.trim().startsWith('<');
 
-    if (!pmResponse.ok || pmResult.error) {
-      console.error('❌ OnvoPay payment-methods error:', pmResult);
-      return new Response(JSON.stringify({
-        error: 'ONVOPAY_PAYMENT_METHOD_ERROR',
-        message: pmResult.error?.message || 'Error creando método de pago',
-        status: pmResponse.status,
-        onvoPayError: pmResult.error
-      }), { status: pmResponse.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+        // CRITICAL BYPASS: If OnvoPay service is down and customer bypass is enabled
+        if (CUSTOMER_OPTIONAL && (pmResponse.status === 502 || pmResponse.status === 503 || pmResponse.status === 504)) {
+          console.warn('⚠️ OnvoPay payment method service unavailable, activating bypass', {
+            paymentIntentId: body.payment_intent_id,
+            status: pmResponse.status,
+            customerOptional: CUSTOMER_OPTIONAL,
+            bypassing: true
+          });
 
-    const paymentMethodId = String(pmResult.id);
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'PAYMENT_SERVICE_UNAVAILABLE',
+            message: 'El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.',
+            hint: 'OnvoPay Payment Method API is temporarily down'
+          }), {
+            status: 200, // Return 200 to avoid throwing error in client
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        console.error('❌ Non-JSON response creating Payment Method');
+        return new Response(JSON.stringify({
+          error: 'NON_JSON_RESPONSE',
+          message: isHTML
+            ? 'OnvoPay returned an HTML error page instead of JSON. This usually indicates service unavailability.'
+            : 'OnvoPay returned a non-JSON response when creating payment method',
+          status: pmResponse.status,
+          bodyPreview: pmText.substring(0, 300) + (pmText.length > 300 ? '...' : '')
+        }), { status: pmResponse.status || 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      let pmResult: any;
+      try {
+        pmResult = JSON.parse(pmText);
+      } catch (e) {
+        console.error('❌ Invalid JSON creating Payment Method');
+        return new Response(JSON.stringify({ error: 'INVALID_JSON', message: 'Malformed JSON from payment-methods' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (!pmResponse.ok || pmResult.error) {
+        console.error('❌ OnvoPay payment-methods error:', pmResult);
+        return new Response(JSON.stringify({
+          error: 'ONVOPAY_PAYMENT_METHOD_ERROR',
+          message: pmResult.error?.message || 'Error creando método de pago',
+          status: pmResponse.status,
+          onvoPayError: pmResult.error
+        }), { status: pmResponse.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      paymentMethodId = String(pmResult.id);
+      console.log('✅ Created new payment method:', paymentMethodId);
+    }
 
     // 2) Confirm Payment Intent with paymentMethodId only (per OnvoPay spec)
     const confirmUrl = `${onvoConfig.fullUrl}/payment-intents/${body.payment_intent_id}/confirm`;
@@ -344,9 +361,28 @@ serve(async (req) => {
       });
     }
 
-    // Determine final status
-    const finalStatus = onvoResult.status === 'succeeded' ? 'captured' : 'authorized';
+    // Determine final status based on OnvoPay response
+    // With capture_method: manual, payment should be 'requires_capture' after confirmation (authorized but not captured)
+    // Status mapping:
+    // - 'requires_capture' -> 'authorized' (payment authorized, waiting for capture after service completion)
+    // - 'succeeded' -> 'captured' (payment fully processed - shouldn't happen with manual capture)
+    const onvoStatus = onvoResult.status || 'unknown';
+    let finalStatus = 'authorized';
+
+    if (onvoStatus === 'succeeded') {
+      finalStatus = 'captured'; // Payment was captured immediately (shouldn't happen with manual capture)
+    } else if (onvoStatus === 'requires_capture') {
+      finalStatus = 'authorized'; // Payment authorized, ready for capture after service completion
+    }
+
     const now = new Date().toISOString();
+
+    console.log('💡 Payment confirmation result:', {
+      onvoStatus,
+      finalStatus,
+      requiresCapture: onvoStatus === 'requires_capture',
+      paymentIntentId: body.payment_intent_id
+    });
 
     // Update payment record
     const { error: updateError } = await supabase
@@ -376,7 +412,8 @@ serve(async (req) => {
       payment_id: payment.id,
       status: finalStatus,
       onvopay_status: onvoResult.status,
-      message: finalStatus === 'captured' 
+      onvopay_payment_method_id: paymentMethodId, // Return payment method ID for card storage
+      message: finalStatus === 'captured'
         ? 'Pago procesado exitosamente'
         : 'Pago autorizado exitosamente',
       timestamp: now

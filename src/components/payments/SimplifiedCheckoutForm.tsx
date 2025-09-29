@@ -181,30 +181,30 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       console.log('✅ Appointment creado exitosamente:', newAppointmentId);
 
-      // PASO 2: Si es nueva tarjeta y se quiere guardar, guardarla
-      if (showNewCardForm && newCardData.saveCard) {
-        try {
-          await savePaymentMethod({
-            cardNumber: newCardData.cardNumber.replace(/\D/g, ''),
-            cardholderName: newCardData.cardholderName,
-            expiryDate: newCardData.expiryDate
-          });
-        } catch (saveError) {
-          console.warn('⚠️ No se pudo guardar la tarjeta (no crítico):', saveError);
-        }
-      }
+      // PASO 2: Procesar pago primero, luego guardar tarjeta con payment_method_id
 
       // PASO 3: Procesar pago
       console.log('💳 Procesando pago...');
-      const cardDataForPayment = showNewCardForm 
+
+      // Get selected saved card if using one
+      const selectedSavedCard = !showNewCardForm && selectedCardId
+        ? paymentMethods.find(pm => pm.id === selectedCardId)
+        : null;
+
+      const cardDataForPayment = showNewCardForm
         ? {
             number: newCardData.cardNumber.replace(/\D/g, ''),
             expiry: newCardData.expiryDate,
             cvv: newCardData.cvv,
             name: newCardData.cardholderName
           }
+        : selectedSavedCard?.onvopay_payment_method_id
+        ? {
+            // Use saved OnvoPay payment method ID
+            payment_method_id: selectedSavedCard.onvopay_payment_method_id
+          }
         : {
-            // Para tarjetas guardadas, usamos tarjetas de prueba válidas de OnvoPay
+            // Fallback: use test card data (shouldn't happen in production)
             number: '4242424242424242',
             expiry: '12/28',
             cvv: '123',
@@ -409,6 +409,22 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
         console.log('✅ Payment confirmed:', confirmData);
         finalPaymentData = confirmData;
+
+        // PASO 2.5: Guardar tarjeta con payment_method_id de OnvoPay si el usuario lo solicitó
+        if (showNewCardForm && newCardData.saveCard && confirmData.onvopay_payment_method_id) {
+          try {
+            console.log('💾 Guardando tarjeta con OnvoPay payment method ID...');
+            await savePaymentMethod({
+              cardNumber: newCardData.cardNumber.replace(/\D/g, ''),
+              cardholderName: newCardData.cardholderName,
+              expiryDate: newCardData.expiryDate,
+              onvopayPaymentMethodId: confirmData.onvopay_payment_method_id
+            });
+            console.log('✅ Tarjeta guardada con payment method ID de OnvoPay');
+          } catch (saveError) {
+            console.warn('⚠️ No se pudo guardar la tarjeta (no crítico):', saveError);
+          }
+        }
       }
 
       // PASO 3: Actualizar appointment con información de pago procesado (si no es post-pago)
