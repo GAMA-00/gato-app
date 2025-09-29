@@ -85,6 +85,51 @@ async function ensureOnvoCustomer(
 
   if (existingCustomer?.onvopay_customer_id) {
     console.log(`🔄 Found existing OnvoPay customer for client ${clientId}: ${existingCustomer.onvopay_customer_id}`);
+
+    // Update customer with latest billing info if provided
+    if (billingInfo?.address) {
+      console.log(`🔄 Updating OnvoPay customer with latest billing info...`);
+      try {
+        const updatePayload: any = {};
+
+        if (billingInfo.name) updatePayload.name = billingInfo.name;
+        if (billingInfo.email) updatePayload.email = billingInfo.email;
+        if (billingInfo.phone) updatePayload.phone = formatPhoneForOnvoPay(billingInfo.phone);
+
+        if (billingInfo.address) {
+          updatePayload.address = {
+            line1: billingInfo.address,
+            country: 'CR'
+          };
+          updatePayload.shipping = {
+            name: billingInfo.name || 'Cliente',
+            address: {
+              line1: billingInfo.address,
+              country: 'CR'
+            }
+          };
+        }
+
+        const updateUrl = `${config.baseUrl}/v1/customers/${existingCustomer.onvopay_customer_id}`;
+        const updateResponse = await fetch(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${secretKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatePayload)
+        });
+
+        if (updateResponse.ok) {
+          console.log(`✅ OnvoPay customer updated successfully`);
+        } else {
+          console.warn(`⚠️ Could not update OnvoPay customer (non-critical):`, await updateResponse.text());
+        }
+      } catch (updateError) {
+        console.warn(`⚠️ Error updating OnvoPay customer (non-critical):`, updateError);
+      }
+    }
+
     return existingCustomer.onvopay_customer_id;
   }
 
