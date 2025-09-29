@@ -28,6 +28,7 @@ function getOnvoConfig() {
     version,
     path,
     debug,
+    environment: baseUrl.includes('sandbox') || baseUrl.includes('test') ? 'SANDBOX' : 'PRODUCTION',
     fullUrl: `${baseUrl}/${version}/payment-intents` // Fixed: hyphens instead of underscores
   };
 }
@@ -476,6 +477,15 @@ serve(async (req) => {
 
     // Prepare OnvoPay API request - CREATE Payment Intent only
     currentPhase = 'prepare-onvopay-request';
+    
+    const apiRequestId = crypto.randomUUID();
+    console.log('🔐 Creating Payment Intent...', {
+      requestId: apiRequestId,
+      appointmentId: body.appointmentId,
+      amount: amountCents,
+      environment: onvoConfig.environment,
+      timestamp: new Date().toISOString()
+    });
     
     const onvoPayData: any = {
       amount: amountCents,

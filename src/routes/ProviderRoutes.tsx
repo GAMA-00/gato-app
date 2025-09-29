@@ -10,6 +10,7 @@ import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
 import Team from '@/pages/Team';
 import ProviderInvoices from '@/pages/ProviderInvoices';
+import { OnvoPayDebug } from '@/pages/admin/OnvoPayDebug';
 
 const ProviderRoutes = () => {
   return [
@@ -82,6 +83,15 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <ProviderInvoices />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="onvopay-debug"
+      path="/admin/onvopay-debug"
+      element={
+        <RoleGuard allowedRole="provider">
+          <OnvoPayDebug />
         </RoleGuard>
       }
     />
