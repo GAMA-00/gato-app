@@ -225,6 +225,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
           card_data: cardDataForPayment,
           billing_info: {
             name: billingName,
+            email: user?.email || '',
             phone: formatPhoneCR(billingData.phone),
             address: billingData.address
           }

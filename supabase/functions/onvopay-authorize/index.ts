@@ -163,17 +163,38 @@ async function ensureOnvoCustomer(
   }
 
   // Step 4: Create customer in OnvoPay API
-  const payload = {
+  const payload: any = {
     name: normalized.name || 'Sin nombre',
     ...(normalized.email && { email: normalized.email }),
     ...(normalized.phone && { phone: normalized.phone })
-    // NOTE: OnvoPay doesn't accept metadata property
   };
+
+  // Add address if available from billing_info
+  if (billingInfo?.address) {
+    payload.address = {
+      line1: billingInfo.address,
+      country: 'CR' // Costa Rica
+      // OnvoPay puede requerir más campos: city, state, postal_code
+    };
+  }
+
+  // Add shipping same as billing (común en ecommerce)
+  if (billingInfo?.address) {
+    payload.shipping = {
+      name: normalized.name || 'Sin nombre',
+      address: {
+        line1: billingInfo.address,
+        country: 'CR'
+      }
+    };
+  }
   
   console.log(`📋 Creating OnvoPay customer with payload:`, {
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
+    hasAddress: !!payload.address,
+    hasShipping: !!payload.shipping,
     source: billingInfo ? 'billing_info + user_data' : 'user_data_only'
   });
 
