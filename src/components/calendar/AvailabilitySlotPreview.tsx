@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useProviderListing } from '@/hooks/useProviderListing';
 import SlotCard from '../services/steps/SlotCard';
 import { format } from 'date-fns';
+import { formatDateES } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 import { CheckCircle, XCircle, Calendar, Clock, Loader2 } from 'lucide-react';
 
@@ -219,10 +220,10 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                   {/* Day Header */}
                   <div className="text-center">
                     <div className="text-sm font-medium text-gray-900">
-                      {format(date, 'EEE', { locale: es })}
+                      {formatDateES(date, 'EEE', { locale: es })}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {format(date, 'd MMM', { locale: es })}
+                      {formatDateES(date, 'd MMM', { locale: es })}
                     </div>
                   </div>
 
@@ -262,10 +263,10 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
                   {/* Day Header */}
                   <div className="text-center">
                     <div className="text-sm font-medium text-gray-900">
-                      {format(date, 'EEEE', { locale: es })}
+                      {formatDateES(date, 'EEEE', { locale: es })}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {format(date, 'd MMM', { locale: es })}
+                      {formatDateES(date, 'd MMM', { locale: es })}
                     </div>
                   </div>
 

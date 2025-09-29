@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDateES } from '@/lib/utils';
 import { ProviderProfile } from '@/lib/types';
 import { useProviderComments, useAllProviderComments } from '@/hooks/useProviderComments';
 
@@ -89,7 +90,7 @@ const ProviderReviews = ({ provider }: ProviderReviewsProps) => {
                       <div className="flex items-center justify-between mb-1">
                         <h5 className="font-medium text-sm">{comment.client_name}</h5>
                         <span className="text-xs text-muted-foreground">
-                          {format(new Date(comment.created_at), 'dd MMM, yyyy', { locale: es })}
+                          {formatDateES(new Date(comment.created_at), 'dd MMM, yyyy', { locale: es })}
                         </span>
                       </div>
                       

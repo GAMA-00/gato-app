@@ -5,7 +5,7 @@ import { Star, User, Calendar, DollarSign } from 'lucide-react';
 import { RatingHistory } from '@/lib/achievementTypes';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDateES } from '@/lib/utils';
 
 interface RatingHistoryProps {
   ratingHistory: RatingHistory[];
@@ -104,7 +104,7 @@ const RatingHistoryComponent = ({ ratingHistory, isLoading }: RatingHistoryProps
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   <span>
-                    {format(rating.appointmentDate, "d 'de' MMMM, yyyy", { locale: es })}
+                    {formatDateES(rating.appointmentDate, "d 'de' MMMM, yyyy", { locale: es })}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

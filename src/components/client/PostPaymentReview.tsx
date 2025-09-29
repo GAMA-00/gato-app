@@ -83,13 +83,14 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
+    const formatted = new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
   };
 
   if (!invoice) return null;

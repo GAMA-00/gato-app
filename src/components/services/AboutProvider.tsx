@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { capitalizeFirst } from '@/lib/utils';
 import {
   Card,
   CardContent,
@@ -30,7 +31,7 @@ const AboutProvider: React.FC<AboutProviderProps> = ({
           Acerca de {name}
         </CardTitle>
         <CardDescription>
-          Miembro desde {joinedDate.toLocaleDateString()}
+          Miembro desde {capitalizeFirst(joinedDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }))}
           {totalServices > 0 && ` • ${totalServices} servicios realizados`}
         </CardDescription>
       </CardHeader>

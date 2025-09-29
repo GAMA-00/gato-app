@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Clock, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDateES } from '@/lib/utils';
 import { useProviderAvailability } from '@/hooks/useProviderAvailability';
 
 interface DateTimeSelectorProps {
@@ -184,7 +185,7 @@ const DateTimeSelector = ({
                       )}
                     </div>
                     <div className="text-sm text-gray-400">
-                      {selectedDate && format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                      {selectedDate && formatDateES(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                     </div>
                     <div className="text-xs text-gray-400 mt-2">
                       Todos los horarios están ocupados o bloqueados

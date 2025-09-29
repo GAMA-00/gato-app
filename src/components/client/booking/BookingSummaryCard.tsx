@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDateES } from '@/lib/utils';
 import { ServiceVariant } from '@/components/client/service/types';
 import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import { RobustBookingButton } from './RobustBookingButton';
@@ -118,7 +119,7 @@ const BookingSummaryCard = ({
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Fecha y hora</p>
                 <p className="text-sm">
-                  {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
+                  {formatDateES(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                 </p>
                 <p className="text-sm">
                   {selectedTime} ({getRecurrenceText(selectedFrequency)})

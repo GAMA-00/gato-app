@@ -7,6 +7,7 @@ import { useWeeklySlots } from '@/hooks/useWeeklySlots';
 import SlotCard from '@/components/services/steps/SlotCard';
 import { format, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDateES } from '@/lib/utils';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -288,7 +289,7 @@ const WeeklySlotGrid = ({
               {isCurrentWeek(currentWeek) ? 'Esta semana' : `Semana ${currentWeek + 1}`}
             </div>
             <div className="hidden md:block text-xs text-gray-500">
-              {format(weekStartDate, 'd MMM', { locale: es })} - {format(weekEndDate, 'd MMM', { locale: es })}
+              {formatDateES(weekStartDate, 'd MMM', { locale: es })} - {formatDateES(weekEndDate, 'd MMM', { locale: es })}
             </div>
           </div>
 
@@ -345,7 +346,7 @@ const WeeklySlotGrid = ({
                 {/* Day Header */}
                 <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
                   <div className="text-base md:text-sm font-medium text-gray-900 capitalize">
-                    {format(group.date, 'EEEE', { locale: es })}
+                    {formatDateES(group.date, 'EEEE', { locale: es })}
                   </div>
                   <div className="text-sm md:text-xs text-gray-500">
                     {group.dayNumber} {group.dayMonth}

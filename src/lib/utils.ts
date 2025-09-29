@@ -83,3 +83,27 @@ export function formatCurrencyLocalized(amount: number): string {
     currency: 'USD'
   }).format(amount);
 }
+
+/**
+ * Capitalizes the first letter of a string
+ * @param str - The string to capitalize
+ */
+export function capitalizeFirst(str: string): string {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Formats a date with proper Spanish capitalization for day/month names
+ * Wrapper around date-fns format that ensures proper capitalization
+ * @param date - The date to format
+ * @param formatStr - The format string (same as date-fns)
+ * @param options - Format options including locale
+ */
+export function formatDateES(date: Date | string, formatStr: string, options?: any): string {
+  const { format } = require('date-fns');
+  const formatted = format(typeof date === 'string' ? new Date(date) : date, formatStr, options);
+  
+  // Capitalize first letter for Spanish day/month names
+  return capitalizeFirst(formatted);
+}

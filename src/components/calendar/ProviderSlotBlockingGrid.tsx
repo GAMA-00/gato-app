@@ -6,6 +6,7 @@ import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
 import { groupSlotsByDate } from '@/utils/weeklySlotUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDateES } from '@/lib/utils';
 import { getCalendarWeekRange, getCalendarWeekLabel } from '@/utils/calendarWeekUtils';
 import { 
   Calendar, 
@@ -157,7 +158,7 @@ const ProviderSlotBlockingGrid = ({
       
       toast({
         title: `Horario ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'}`,
-        description: `${format(date, 'EEEE d MMMM', { locale: es })} a las ${time} ha sido ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'} exitosamente.`,
+        description: `${formatDateES(date, 'EEEE d MMMM', { locale: es })} a las ${time} ha sido ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'} exitosamente.`,
         variant: action === 'bloquear' ? 'default' : 'default'
       });
 
@@ -263,7 +264,7 @@ const ProviderSlotBlockingGrid = ({
         <div className="text-center mb-3">
           <div className="font-semibold text-gray-900 text-lg">{currentWeek === 0 ? 'Semana actual' : `Semana ${currentWeek + 1}`}</div>
           <div className="text-gray-600 text-sm">
-            {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
+            {formatDateES(startDate, 'd MMM', { locale: es })} – {formatDateES(endDate, 'd MMM', { locale: es })}
           </div>
         </div>
         
@@ -330,7 +331,7 @@ const ProviderSlotBlockingGrid = ({
               <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
                 <div className="flex flex-col">
                   <div className="text-sm font-medium text-gray-900">
-                    {format(group.date, 'EEEE', { locale: es })}
+                    {formatDateES(group.date, 'EEEE', { locale: es })}
                   </div>
                   <div className="text-xs text-gray-500">
                     {group.dayNumber} {group.dayMonth}
@@ -408,7 +409,7 @@ const ProviderSlotBlockingGrid = ({
         <div className="text-center mb-3">
           <div className="font-semibold text-gray-900 text-xl">{currentWeek === 0 ? 'Semana actual' : `Semana ${currentWeek + 1}`}</div>
           <div className="text-gray-600 text-sm">
-            {format(startDate, 'd MMM')} – {format(endDate, 'd MMM')}
+            {formatDateES(startDate, 'd MMM', { locale: es })} – {formatDateES(endDate, 'd MMM', { locale: es })}
           </div>
         </div>
         
@@ -493,7 +494,7 @@ const ProviderSlotBlockingGrid = ({
               {/* Day Header */}
               <div className="text-center">
                 <div className="text-xs font-medium text-gray-900">
-                  {format(group.date, 'EEEE', { locale: es })}
+                  {formatDateES(group.date, 'EEEE', { locale: es })}
                 </div>
                 <div className="text-xs text-gray-500">
                   {group.dayNumber} {group.dayMonth}

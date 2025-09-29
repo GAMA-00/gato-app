@@ -7,6 +7,7 @@ import { useSlotGeneration } from '@/hooks/useSlotGeneration';
 import SlotCard from './SlotCard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDateES } from '@/lib/utils';
 import { CheckCircle, XCircle, RotateCcw, Calendar, Clock } from 'lucide-react';
 
 const SlotGeneratorPreview = () => {
@@ -146,10 +147,10 @@ const SlotGeneratorPreview = () => {
                 {/* Day Header */}
                 <div className="text-left border-b border-gray-200 pb-2 mb-3 md:text-center md:border-b-0 md:pb-0 md:mb-0">
                   <div className="text-base md:text-sm font-medium text-gray-900">
-                    {format(date, 'EEEE', { locale: es })}
+                    {formatDateES(date, 'EEEE', { locale: es })}
                   </div>
                   <div className="text-sm md:text-xs text-gray-500">
-                    {format(date, 'd MMM', { locale: es })}
+                    {formatDateES(date, 'd MMM', { locale: es })}
                   </div>
                 </div>
 

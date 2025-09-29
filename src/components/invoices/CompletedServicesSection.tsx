@@ -19,11 +19,12 @@ export const CompletedServicesSection: React.FC<CompletedServicesSectionProps> =
   );
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-CR', {
+    const formatted = new Date(dateString).toLocaleDateString('es-CR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
   };
 
   if (error) {

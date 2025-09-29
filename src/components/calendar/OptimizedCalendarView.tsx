@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday } from 'date-fns';
+import { formatDateES } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ const OptimizedCalendarDay = React.memo<{
       {/* Optimized header */}
       <div className="h-16 py-2 text-center border-b bg-white flex-shrink-0 flex flex-col justify-center">
         <div className={cn("text-xs uppercase tracking-wide", !isCurrentMonth && "text-muted-foreground")}>
-          {format(date, 'EEE', { locale: es })}
+          {formatDateES(date, 'EEE', { locale: es })}
         </div>
         <div className={cn("flex items-center justify-center", !isCurrentMonth && "text-muted-foreground", isCurrentDay && "font-bold text-primary")}>
           {isCurrentDay ? (
@@ -146,7 +147,7 @@ const OptimizedCalendarView: React.FC<OptimizedCalendarViewProps> = ({
     <Card className="overflow-hidden border-0 shadow-medium">
       <div className="p-4 flex items-center justify-between border-b bg-white">
         <h2 className="text-xl font-semibold">
-          {format(currentDate, 'MMMM yyyy', { locale: es })}
+          {formatDateES(currentDate, 'MMMM yyyy', { locale: es })}
         </h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleToday}>

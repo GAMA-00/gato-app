@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDateES } from '@/lib/utils';
 import { Calendar, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 import { getWeekPattern, getMonthlyPatternDescription, calculateMonthlyByWeekPattern } from '@/utils/monthlyRecurrenceUtils';
 
@@ -44,13 +45,13 @@ const RecurrencePatternDisplay = ({
   const getPatternDescription = () => {
     switch (frequency) {
       case 'weekly':
-        return `Cada ${format(selectedDate, 'EEEE', { locale: es })}`;
+        return `Cada ${formatDateES(selectedDate, 'EEEE', { locale: es })}`;
       
       case 'biweekly':
-        return `Cada dos semanas, los ${format(selectedDate, 'EEEE', { locale: es })}`;
+        return `Cada dos semanas, los ${formatDateES(selectedDate, 'EEEE', { locale: es })}`;
       
       case 'triweekly':
-        return `Cada tres semanas, los ${format(selectedDate, 'EEEE', { locale: es })}`;
+        return `Cada tres semanas, los ${formatDateES(selectedDate, 'EEEE', { locale: es })}`;
       
       case 'monthly':
         return getMonthlyPatternDescription(selectedDate);
@@ -151,7 +152,7 @@ const RecurrencePatternDisplay = ({
                     variant="secondary"
                     className="text-xs bg-gray-100 text-gray-700 border-gray-200"
                   >
-                    {format(date, 'd MMM', { locale: es })}
+                    {formatDateES(date, 'd MMM', { locale: es })}
                   </Badge>
                 ))}
               </div>

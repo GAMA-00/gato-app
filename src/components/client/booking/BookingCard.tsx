@@ -4,7 +4,7 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, X, MapPin, RotateCcw, SkipForward } from 'lucide-react';
-import { cn, formatTo12Hour } from '@/lib/utils';
+import { cn, formatTo12Hour, formatDateES } from '@/lib/utils';
 import { ClientBooking } from '@/hooks/useClientBookings';
 import { RatingStars } from '@/components/client/booking/RatingStars';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
@@ -229,7 +229,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           <div className="flex items-center text-xs text-muted-foreground">
             <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
             <span className="truncate">
-              {`${format(booking.date, 'EEEE d', { locale: es }).split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} de ${format(booking.date, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(booking.date, 'MMMM', { locale: es }).slice(1)} – ${formatTo12Hour(format(booking.date, 'HH:mm'))}`}
+              {`${formatDateES(booking.date, 'EEEE d', { locale: es })} de ${formatDateES(booking.date, 'MMMM', { locale: es })} – ${formatTo12Hour(format(booking.date, 'HH:mm'))}`}
             </span>
           </div>
           
