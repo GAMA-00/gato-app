@@ -107,7 +107,13 @@ const WeeklySlotGrid = ({
     
     if (!slot || !slot.isAvailable) return;
 
-    // Automatically calculate and reserve consecutive slots
+    // Helper to parse time string to minutes since midnight
+    const timeToMinutes = (timeStr: string): number => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + (minutes || 0);
+    };
+
+    // Automatically calculate and reserve consecutive slots with REAL time contiguity validation
     const allSlots = availableSlotGroups.flatMap(group => group.slots);
     const sameDateSlots = allSlots.filter(s => 
       format(s.date, 'yyyy-MM-dd') === format(slot.date, 'yyyy-MM-dd') && s.isAvailable
@@ -116,27 +122,55 @@ const WeeklySlotGrid = ({
     const startIndex = sameDateSlots.findIndex(s => s.id === slotId);
     if (startIndex === -1) return;
     
-    // Calculate consecutive slots needed for the service
+    // Validate consecutive slots with REAL time contiguity (no gaps allowed)
     const consecutiveSlotIds: string[] = [];
+    let isContiguous = true;
+    
     for (let i = 0; i < slotsNeeded; i++) {
-      const nextSlot = sameDateSlots[startIndex + i];
-      if (nextSlot && nextSlot.isAvailable) {
-        consecutiveSlotIds.push(nextSlot.id);
+      const currentSlot = sameDateSlots[startIndex + i];
+      
+      if (!currentSlot || !currentSlot.isAvailable) {
+        isContiguous = false;
+        console.log(`❌ Slot ${i} no disponible en posición ${startIndex + i}`);
+        break;
       }
+      
+      // Validate time contiguity: each slot must start exactly slotSize minutes after previous
+      if (i > 0) {
+        const prevSlot = sameDateSlots[startIndex + i - 1];
+        const prevTime = timeToMinutes(prevSlot.time);
+        const currentTime = timeToMinutes(currentSlot.time);
+        const expectedTime = prevTime + slotSize;
+        
+        if (currentTime !== expectedTime) {
+          isContiguous = false;
+          console.log(`❌ Gap detectado entre ${prevSlot.time} y ${currentSlot.time} (esperado: ${Math.floor(expectedTime/60)}:${String(expectedTime%60).padStart(2,'0')})`);
+          toast.error(`Hay un hueco entre ${prevSlot.time} y ${currentSlot.time}. Selecciona un horario con ${slotsNeeded} slots consecutivos sin interrupciones.`);
+          break;
+        }
+      }
+      
+      consecutiveSlotIds.push(currentSlot.id);
     }
     
-    // Check if we have enough consecutive slots
-    if (consecutiveSlotIds.length < slotsNeeded) {
-      toast.error(`No hay suficientes slots consecutivos disponibles. Se necesitan ${slotsNeeded} slots para ${actualTotalDuration} minutos.`);
+    // Check if we have enough consecutive slots WITHOUT GAPS
+    if (!isContiguous || consecutiveSlotIds.length < slotsNeeded) {
+      toast.error(`No hay suficientes slots consecutivos disponibles. Se necesitan ${slotsNeeded} slots consecutivos (sin huecos) para ${actualTotalDuration} minutos.`);
       return;
     }
     
     setSelectedSlotIds(consecutiveSlotIds);
     
     const totalDurationReserved = slotSize * consecutiveSlotIds.length;
+    const endSlot = sameDateSlots[startIndex + slotsNeeded - 1];
+    const endTime = timeToMinutes(endSlot.time) + slotSize;
+    const endHour = Math.floor(endTime / 60);
+    const endMin = endTime % 60;
+    
     onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved);
     
-    console.log(`✅ Automáticamente reservados ${consecutiveSlotIds.length} slots consecutivos (${totalDurationReserved} min) para servicio de ${actualTotalDuration} min`);
+    console.log(`✅ Reservados ${consecutiveSlotIds.length} slots CONTIGUOS (${slot.time}-${endHour}:${String(endMin).padStart(2,'0')}) = ${totalDurationReserved} min`);
+    toast.success(`Horario reservado: ${slot.time} - ${endHour}:${String(endMin).padStart(2,'0')} (${slotsNeeded} slots consecutivos)`);
   };
 
   const goToPreviousWeek = () => {

@@ -353,7 +353,7 @@ export const useWeeklySlotsFetcher = ({
         console.log(`📊 Slots después de filtro de antelación: ${filteredByNotice.length}/${weeklySlots.length}`);
       }
 
-      // PASO 4: Filtrar slots que puedan acomodar la duración completa del servicio
+      // PASO 4: Filtrar slots que puedan acomodar la duración completa del servicio con validación de contigüidad REAL
       const canAccommodateFullService = (slot: WeeklySlot, allSlots: WeeklySlot[], requiredDuration: number, slotSize: number): boolean => {
         const requiredSlots = Math.ceil(requiredDuration / slotSize);
         if (requiredSlots <= 1) return true; // Single slot always works
@@ -370,20 +370,35 @@ export const useWeeklySlotsFetcher = ({
         const currentIndex = sortedSlots.findIndex(s => s.id === slot.id);
         if (currentIndex === -1) return false;
         
-        // Check if we have enough consecutive available slots
+        // Helper to parse time string to minutes since midnight
+        const timeToMinutes = (timeStr: string): number => {
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return hours * 60 + minutes;
+        };
+        
+        // Check if we have enough consecutive available slots with REAL time contiguity
         for (let i = 0; i < requiredSlots; i++) {
-          const nextSlot = sortedSlots[currentIndex + i];
-          if (!nextSlot || !nextSlot.isAvailable) return false;
+          const currentSlot = sortedSlots[currentIndex + i];
+          if (!currentSlot || !currentSlot.isAvailable) {
+            console.log(`❌ Slot ${i} no disponible o no existe`);
+            return false;
+          }
           
-          // Check if slots are consecutive (1 hour apart for typical slot sizes)
+          // Validate time contiguity: next slot must start exactly slotSize minutes after current
           if (i > 0) {
             const prevSlot = sortedSlots[currentIndex + i - 1];
-            const prevHour = parseInt(prevSlot.time.split(':')[0]);
-            const nextHour = parseInt(nextSlot.time.split(':')[0]);
-            if (nextHour !== prevHour + (slotSize / 60)) return false;
+            const prevTime = timeToMinutes(prevSlot.time);
+            const currentTime = timeToMinutes(currentSlot.time);
+            const expectedTime = prevTime + slotSize;
+            
+            if (currentTime !== expectedTime) {
+              console.log(`❌ Gap detectado: ${prevSlot.time} → ${currentSlot.time} (esperado: ${Math.floor(expectedTime/60)}:${String(expectedTime%60).padStart(2,'0')})`);
+              return false;
+            }
           }
         }
         
+        console.log(`✅ Slot ${slot.time} puede acomodar ${requiredSlots} slots consecutivos de ${slotSize}min`);
         return true;
       };
 
