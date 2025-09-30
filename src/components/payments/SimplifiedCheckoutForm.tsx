@@ -214,7 +214,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       // STEP 1: Create Payment Intent
       const billingName = showNewCardForm
         ? newCardData.cardholderName
-        : selectedSavedCard?.cardholder_name || user?.name || 'Cliente';
+        : selectedSavedCard?.cardholder_name || profile?.name || 'Cliente';
 
       console.log('📤 Sending billing_info to onvopay-authorize:', {
         name: billingName,
