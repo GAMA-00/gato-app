@@ -10,8 +10,13 @@ export interface PaymentMethod {
   cardholder_name: string | null;
   expiry_date: string | null;
   bank_name: string | null;
+  account_holder: string | null;
+  account_number: string | null;
+  sinpe_number: string | null;
   onvopay_payment_method_id: string | null;
   created_at: string;
+  updated_at: string;
+  user_id: string;
 }
 
 export const usePaymentMethods = () => {
