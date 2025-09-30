@@ -6,6 +6,7 @@ import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 import { generateAvailabilitySlots } from '@/utils/availabilitySlotGenerator';
+import { projectAllRecurringSlots, isSlotRecurring } from '@/utils/recurringSlotProjection';
 
 interface UseProviderSlotManagementReturn {
   slots: WeeklySlot[];
@@ -97,6 +98,28 @@ export const useProviderSlotManagement = ({
 
       if (slotsError) throw slotsError;
       
+      // Fetch active recurring appointments for this provider/listing
+      const { data: recurringAppointments, error: recurringError } = await supabase
+        .from('appointments')
+        .select('id, provider_id, listing_id, start_time, end_time, recurrence, status')
+        .eq('provider_id', providerId)
+        .eq('listing_id', listingId)
+        .in('status', ['confirmed'])
+        .not('recurrence', 'is', null)
+        .neq('recurrence', 'none')
+        .neq('recurrence', '');
+      
+      if (recurringError) {
+        console.warn('⚠️ Error cargando citas recurrentes:', recurringError);
+      }
+      
+      // Project recurring appointments into future slots
+      const recurringProjection = projectAllRecurringSlots(
+        recurringAppointments || [],
+        baseDate,
+        endDate
+      );
+      
       console.log('📊 Resultado consulta ALL slots (admin):', {
         totalSlots: timeSlots?.length || 0,
         disponibles: timeSlots?.filter(s => s.is_available)?.length || 0,
@@ -183,26 +206,42 @@ export const useProviderSlotManagement = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
+        // Check if this slot matches a recurring projection
+        const recurringCheck = isSlotRecurring(slotDate, slot.start_time, recurringProjection);
+        
         // Use shouldBlockSlot utility to determine true availability and conflict reason
         const { isBlocked, reason } = shouldBlockSlot(slot, allAppointments);
         
+        // Override with recurring status if applicable
+        const finalBlocked = isBlocked || recurringCheck.isRecurring;
+        const finalReason = recurringCheck.isRecurring ? 'Bloqueado por cita recurrente' : reason;
+        
         // Calculate effective availability: slot should be available if not truly blocked
-        const effectiveAvailability = !isBlocked;
+        const effectiveAvailability = !finalBlocked;
         
         // Log inconsistencies for debugging
-        if (slot.is_available !== effectiveAvailability) {
+        if (slot.is_available !== effectiveAvailability && !recurringCheck.isRecurring) {
           console.log(`🔍 Inconsistencia detectada en slot ${slot.slot_datetime_start}:`, {
             dbAvailable: slot.is_available,
             calculatedAvailable: effectiveAvailability,
-            reason,
+            reason: finalReason,
             slotType: slot.slot_type,
             isReserved: slot.is_reserved,
             recurringBlocked: slot.recurring_blocked,
+            isRecurringProjection: recurringCheck.isRecurring,
             conflictingAppointments: allAppointments.filter(apt => {
               const aptStart = new Date(apt.start_time);
               const aptEnd = new Date(apt.end_time);
               return slotStart < aptEnd && slotEnd > aptStart;
             }).length
+          });
+        }
+        
+        // Log recurring projections
+        if (recurringCheck.isRecurring) {
+          console.log(`🔄 Slot recurrente proyectado en ${slot.slot_datetime_start}:`, {
+            instances: recurringCheck.instances.length,
+            recurrenceTypes: [...new Set(recurringCheck.instances.map(i => i.recurrenceType))]
           });
         }
 
@@ -213,7 +252,7 @@ export const useProviderSlotManagement = ({
           displayTime,
           period,
           isAvailable: effectiveAvailability, // Use calculated availability instead of database value
-          conflictReason: isBlocked ? reason : undefined
+          conflictReason: finalBlocked ? finalReason : undefined
         };
       });
       
