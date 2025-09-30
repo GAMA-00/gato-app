@@ -59,16 +59,11 @@ export function projectRecurringInstances(
   const startTimeStr = format(appointmentStart, 'HH:mm');
   const endTimeStr = format(appointmentEnd, 'HH:mm');
   
-  // Start from the appointment's date
+  // Start from the original appointment's date
   let currentOccurrence = startOfDay(appointmentStart);
   
-  // Move to first occurrence within or after startDate
-  while (currentOccurrence < startDate) {
-    currentOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence);
-  }
-  
-  // Generate all occurrences until endDate
-  while (currentOccurrence <= endDate) {
+  // Generate first occurrence (the original appointment itself)
+  if (currentOccurrence >= startDate && currentOccurrence <= endDate) {
     instances.push({
       appointmentId: appointment.id,
       date: new Date(currentOccurrence),
@@ -76,6 +71,21 @@ export function projectRecurringInstances(
       endTime: endTimeStr,
       recurrenceType: appointment.recurrence
     });
+  }
+  
+  // Generate future occurrences
+  currentOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence);
+  
+  while (currentOccurrence <= endDate) {
+    if (currentOccurrence >= startDate) {
+      instances.push({
+        appointmentId: appointment.id,
+        date: new Date(currentOccurrence),
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        recurrenceType: appointment.recurrence
+      });
+    }
     
     currentOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence);
   }
