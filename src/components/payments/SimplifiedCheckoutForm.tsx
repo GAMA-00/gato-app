@@ -216,6 +216,15 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         ? newCardData.cardholderName
         : selectedSavedCard?.cardholder_name || profile?.name || 'Cliente';
 
+      console.log('🔍 DEBUG billingName calculation:', {
+        showNewCardForm,
+        'newCardData.cardholderName': newCardData.cardholderName,
+        'selectedSavedCard?.cardholder_name': selectedSavedCard?.cardholder_name,
+        'profile?.name': profile?.name,
+        'user?.email': user?.email,
+        finalBillingName: billingName
+      });
+
       console.log('📤 Sending billing_info to onvopay-authorize:', {
         name: billingName,
         email: user?.email || '',
