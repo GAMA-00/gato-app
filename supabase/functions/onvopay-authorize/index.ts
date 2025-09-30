@@ -168,8 +168,11 @@ async function ensureOnvoCustomer(
   }
 
   // Step 4: Create customer in OnvoPay API
+  // Use the best available name: billingInfo > user.name > default
+  const customerName = billingInfo?.name?.trim() || user.name?.trim() || 'Cliente';
+
   const payload: any = {
-    name: normalized.name || 'Sin nombre',
+    name: customerName,
     ...(normalized.email && { email: normalized.email }),
     ...(normalized.phone && { phone: normalized.phone })
   };
@@ -186,7 +189,7 @@ async function ensureOnvoCustomer(
   // Add shipping same as billing (común en ecommerce)
   if (billingInfo?.address) {
     payload.shipping = {
-      name: normalized.name || 'Sin nombre',
+      name: customerName,
       address: {
         line1: billingInfo.address,
         country: 'CR'
