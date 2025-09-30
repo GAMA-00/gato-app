@@ -217,6 +217,101 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          appointment_id: string
+          base_price: number
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          custom_variables_total: number | null
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          listing_id: string
+          notes: string | null
+          onvopay_payment_id: string | null
+          paid_at: string | null
+          post_payment_invoice_id: string | null
+          provider_id: string
+          status: string
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          base_price: number
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          custom_variables_total?: number | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          listing_id: string
+          notes?: string | null
+          onvopay_payment_id?: string | null
+          paid_at?: string | null
+          post_payment_invoice_id?: string | null
+          provider_id: string
+          status?: string
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          base_price?: number
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          custom_variables_total?: number | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          listing_id?: string
+          notes?: string | null
+          onvopay_payment_id?: string | null
+          paid_at?: string | null
+          post_payment_invoice_id?: string | null
+          provider_id?: string
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_onvopay_payment_id_fkey"
+            columns: ["onvopay_payment_id"]
+            isOneToOne: false
+            referencedRelation: "onvopay_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_post_payment_invoice_id_fkey"
+            columns: ["post_payment_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "post_payment_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_residencias: {
         Row: {
           created_at: string
@@ -724,6 +819,7 @@ export type Database = {
           expiry_date: string | null
           id: string
           method_type: string
+          onvopay_payment_method_id: string | null
           sinpe_number: string | null
           updated_at: string
           user_id: string
@@ -738,6 +834,7 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           method_type: string
+          onvopay_payment_method_id?: string | null
           sinpe_number?: string | null
           updated_at?: string
           user_id: string
@@ -752,6 +849,7 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           method_type?: string
+          onvopay_payment_method_id?: string | null
           sinpe_number?: string | null
           updated_at?: string
           user_id?: string
@@ -1918,6 +2016,10 @@ export type Database = {
       generate_all_provider_time_slots: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       generate_provider_time_slots: {
         Args:

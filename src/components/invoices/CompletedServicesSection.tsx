@@ -76,20 +76,39 @@ export const CompletedServicesSection: React.FC<CompletedServicesSectionProps> =
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-medium">{service.service_name}</h3>
+                      <div className="flex items-start justify-between">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {service.invoice_number}
+                            </span>
+                            <Badge 
+                              variant={service.invoice_status === 'completed' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {service.invoice_status === 'completed' ? 'Completada' : 'Pagada'}
+                            </Badge>
+                          </div>
+                          <h3 className="font-medium text-base">{service.service_name}</h3>
+                        </div>
                         <Badge 
-                          variant={service.payment_type === 'prepaid' ? 'default' : 'secondary'}
+                          variant={service.payment_type === 'prepaid' ? 'outline' : 'secondary'}
                           className="text-xs"
                         >
                           {service.payment_type === 'prepaid' ? 'Pre-pago' : 'Post-pago'}
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{formatDate(service.service_date)}</span>
+                      <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>Servicio: {formatDate(service.service_date)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>Factura: {formatDate(service.invoice_date)}</span>
+                          </div>
                         </div>
                         
                         {userType === 'client' && service.provider_name && (
@@ -101,8 +120,8 @@ export const CompletedServicesSection: React.FC<CompletedServicesSectionProps> =
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-1 text-sm font-medium text-primary">
-                        <DollarSign className="h-4 w-4" />
+                      <div className="flex items-center gap-1 text-base font-semibold text-primary">
+                        <DollarSign className="h-5 w-5" />
                         <span>{formatCurrency(service.final_price)}</span>
                       </div>
                     </div>

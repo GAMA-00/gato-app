@@ -5,13 +5,18 @@ import { toast } from '@/hooks/use-toast';
 
 export interface PaymentMethod {
   id: string;
+  user_id: string;
   method_type: string;
-  card_number: string | null;
-  cardholder_name: string | null;
-  expiry_date: string | null;
-  bank_name: string | null;
-  onvopay_payment_method_id: string | null;
+  card_number?: string | null;
+  cardholder_name?: string | null;
+  expiry_date?: string | null;
+  account_holder?: string | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  sinpe_number?: string | null;
+  onvopay_payment_method_id?: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export const usePaymentMethods = () => {
