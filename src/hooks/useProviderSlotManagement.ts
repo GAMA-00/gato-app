@@ -212,15 +212,18 @@ export const useProviderSlotManagement = ({
         // Use shouldBlockSlot utility to determine true availability and conflict reason
         const { isBlocked, reason } = shouldBlockSlot(slot, allAppointments);
         
+        // Combine DB state with in-memory projection for recurring slots
+        const isRecurringSlot = slot.recurring_blocked || recurringCheck.isRecurring;
+        
         // Override with recurring status if applicable
-        const finalBlocked = isBlocked || recurringCheck.isRecurring;
-        const finalReason = recurringCheck.isRecurring ? 'Bloqueado por cita recurrente' : reason;
+        const finalBlocked = isBlocked || isRecurringSlot;
+        const finalReason = isRecurringSlot ? 'Bloqueado por cita recurrente' : reason;
         
         // Calculate effective availability: slot should be available if not truly blocked
         const effectiveAvailability = !finalBlocked;
         
         // Log inconsistencies for debugging
-        if (slot.is_available !== effectiveAvailability && !recurringCheck.isRecurring) {
+        if (slot.is_available !== effectiveAvailability && !isRecurringSlot) {
           console.log(`🔍 Inconsistencia detectada en slot ${slot.slot_datetime_start}:`, {
             dbAvailable: slot.is_available,
             calculatedAvailable: effectiveAvailability,
@@ -237,11 +240,15 @@ export const useProviderSlotManagement = ({
           });
         }
         
-        // Log recurring projections
-        if (recurringCheck.isRecurring) {
-          console.log(`🔄 Slot recurrente proyectado en ${slot.slot_datetime_start}:`, {
+        // Log recurring slots detection
+        if (isRecurringSlot) {
+          console.log(`🔄 Slot recurrente detectado en ${slot.slot_datetime_start}:`, {
+            fromDB: slot.recurring_blocked,
+            fromProjection: recurringCheck.isRecurring,
             instances: recurringCheck.instances.length,
-            recurrenceTypes: [...new Set(recurringCheck.instances.map(i => i.recurrenceType))]
+            recurrenceTypes: recurringCheck.instances.length > 0 
+              ? [...new Set(recurringCheck.instances.map(i => i.recurrenceType))]
+              : []
           });
         }
 
@@ -251,8 +258,9 @@ export const useProviderSlotManagement = ({
           time: slot.start_time,
           displayTime,
           period,
-          isAvailable: effectiveAvailability, // Use calculated availability instead of database value
-          conflictReason: finalBlocked ? finalReason : undefined
+          isAvailable: effectiveAvailability,
+          conflictReason: finalBlocked ? finalReason : undefined,
+          isRecurringProjection: isRecurringSlot
         };
       });
       
