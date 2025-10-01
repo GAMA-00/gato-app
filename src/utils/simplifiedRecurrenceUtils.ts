@@ -3,8 +3,8 @@
  * Calculates recurring dates dynamically and handles exceptions
  */
 
-import { addDays, addWeeks, addMonths, format, startOfDay, isSameDay } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { addDays, addWeeks, addMonths, format, isSameDay } from 'date-fns';
+import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { DATE_CONFIG } from '@/lib/recurrence/config';
 
 export interface RecurringException {
@@ -45,6 +45,7 @@ export interface CalculatedRecurringInstance {
 
 /**
  * Calculate all recurring dates for an appointment within a date range
+ * Preserves exact time in Costa Rica timezone
  */
 export function calculateRecurringDates(
   appointment: RecurringAppointment,
@@ -53,17 +54,27 @@ export function calculateRecurringDates(
 ): Date[] {
   const dates: Date[] = [];
   const appointmentStart = new Date(appointment.start_time);
-  let currentDate = new Date(appointmentStart);
+  
+  // Convert to Costa Rica timezone and extract original time
+  const zonedStart = toZonedTime(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE);
+  const originalTime = {
+    hours: zonedStart.getHours(),
+    minutes: zonedStart.getMinutes()
+  };
+  
+  let currentDate = toZonedTime(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE);
+  currentDate.setHours(originalTime.hours, originalTime.minutes, 0, 0);
+  currentDate = fromZonedTime(currentDate, DATE_CONFIG.DEFAULT_TIMEZONE);
 
   // Ensure we start from the correct date within our range
   while (currentDate < startDate) {
-    currentDate = getNextRecurrenceDate(currentDate, appointment.recurrence);
+    currentDate = getNextRecurrenceDate(currentDate, appointment.recurrence, originalTime);
   }
 
   // Generate dates until end date
   while (currentDate <= endDate) {
     dates.push(new Date(currentDate));
-    currentDate = getNextRecurrenceDate(currentDate, appointment.recurrence);
+    currentDate = getNextRecurrenceDate(currentDate, appointment.recurrence, originalTime);
   }
 
   return dates;
@@ -71,20 +82,36 @@ export function calculateRecurringDates(
 
 /**
  * Get the next recurrence date based on recurrence type
+ * Preserves exact time in Costa Rica timezone
  */
-function getNextRecurrenceDate(currentDate: Date, recurrence: string): Date {
+function getNextRecurrenceDate(currentDate: Date, recurrence: string, originalTime: { hours: number; minutes: number }): Date {
+  // Convert to Costa Rica timezone for operations
+  const zonedDate = toZonedTime(currentDate, DATE_CONFIG.DEFAULT_TIMEZONE);
+  
+  // Add the interval
+  let nextDate: Date;
   switch (recurrence) {
     case 'weekly':
-      return addWeeks(currentDate, 1);
+      nextDate = addWeeks(zonedDate, 1);
+      break;
     case 'biweekly':
-      return addWeeks(currentDate, 2);
+      nextDate = addWeeks(zonedDate, 2);
+      break;
     case 'triweekly':
-      return addWeeks(currentDate, 3);
+      nextDate = addWeeks(zonedDate, 3);
+      break;
     case 'monthly':
-      return addMonths(currentDate, 1);
+      nextDate = addMonths(zonedDate, 1);
+      break;
     default:
-      return addDays(currentDate, 1); // fallback
+      nextDate = addDays(zonedDate, 1);
   }
+  
+  // Ensure the exact time is preserved in Costa Rica timezone
+  nextDate.setHours(originalTime.hours, originalTime.minutes, 0, 0);
+  
+  // Convert back from Costa Rica timezone
+  return fromZonedTime(nextDate, DATE_CONFIG.DEFAULT_TIMEZONE);
 }
 
 /**

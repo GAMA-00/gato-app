@@ -3,8 +3,8 @@
  * Projects recurring appointments into future time slots
  */
 
-import { addWeeks, addMonths, format, startOfDay } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { addWeeks, addMonths, format } from 'date-fns';
+import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { DATE_CONFIG } from '@/lib/recurrence/config';
 
 export interface RecurringAppointmentData {
@@ -27,20 +27,36 @@ export interface ProjectedRecurringSlot {
 
 /**
  * Calculate the next occurrence date based on recurrence type
+ * Preserves exact time in Costa Rica timezone
  */
-function getNextOccurrence(currentDate: Date, recurrence: string): Date {
+function getNextOccurrence(currentDate: Date, recurrence: string, originalTime: { hours: number; minutes: number }): Date {
+  // Convert to Costa Rica timezone for operations
+  const zonedDate = toZonedTime(currentDate, DATE_CONFIG.DEFAULT_TIMEZONE);
+  
+  // Add the interval
+  let nextDate: Date;
   switch (recurrence) {
     case 'weekly':
-      return addWeeks(currentDate, 1);
+      nextDate = addWeeks(zonedDate, 1);
+      break;
     case 'biweekly':
-      return addWeeks(currentDate, 2);
+      nextDate = addWeeks(zonedDate, 2);
+      break;
     case 'triweekly':
-      return addWeeks(currentDate, 3);
+      nextDate = addWeeks(zonedDate, 3);
+      break;
     case 'monthly':
-      return addMonths(currentDate, 1);
+      nextDate = addMonths(zonedDate, 1);
+      break;
     default:
-      return addWeeks(currentDate, 1); // default to weekly
+      nextDate = addWeeks(zonedDate, 1);
   }
+  
+  // Ensure the exact time is preserved in Costa Rica timezone
+  nextDate.setHours(originalTime.hours, originalTime.minutes, 0, 0);
+  
+  // Convert back from Costa Rica timezone
+  return fromZonedTime(nextDate, DATE_CONFIG.DEFAULT_TIMEZONE);
 }
 
 /**
@@ -53,16 +69,30 @@ export function projectRecurringInstances(
 ): ProjectedRecurringSlot[] {
   const instances: ProjectedRecurringSlot[] = [];
   
-  // Parse the appointment's start time
+  // Parse the appointment's start time in Costa Rica timezone
   const appointmentStart = new Date(appointment.start_time);
   const appointmentEnd = new Date(appointment.end_time);
+  
+  // Convert to Costa Rica timezone to extract exact time components
+  const zonedStart = toZonedTime(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE);
+  const zonedEnd = toZonedTime(appointmentEnd, DATE_CONFIG.DEFAULT_TIMEZONE);
   
   // Extract time components (HH:mm) in Costa Rica timezone
   const startTimeStr = formatInTimeZone(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
   const endTimeStr = formatInTimeZone(appointmentEnd, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
   
-  // Start from the original appointment's date
-  let currentOccurrence = startOfDay(appointmentStart);
+  // Store original time to preserve across all occurrences
+  const originalTime = {
+    hours: zonedStart.getHours(),
+    minutes: zonedStart.getMinutes()
+  };
+  
+  console.log(`🔄 Proyectando cita recurrente ${appointment.id}: ${startTimeStr}-${endTimeStr} (${appointment.recurrence})`);
+  
+  // Start from the original appointment's date in Costa Rica timezone
+  let currentOccurrence = toZonedTime(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE);
+  currentOccurrence.setHours(originalTime.hours, originalTime.minutes, 0, 0);
+  currentOccurrence = fromZonedTime(currentOccurrence, DATE_CONFIG.DEFAULT_TIMEZONE);
   
   // Generate first occurrence (the original appointment itself)
   if (currentOccurrence >= startDate && currentOccurrence <= endDate) {
@@ -76,9 +106,9 @@ export function projectRecurringInstances(
   }
   
   // Generate future occurrences - continue from first occurrence
-  let nextOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence);
+  let nextOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence, originalTime);
   
-  // Add safety limit to prevent infinite loops (max 52 weeks = 1 year)
+  // Add safety limit to prevent infinite loops (max 100 iterations)
   let iterationCount = 0;
   const maxIterations = 100;
   
@@ -91,15 +121,23 @@ export function projectRecurringInstances(
         endTime: endTimeStr,
         recurrenceType: appointment.recurrence
       });
+      
+      // Log for debugging timezone consistency
+      const actualTime = formatInTimeZone(nextOccurrence, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+      if (actualTime !== startTimeStr) {
+        console.warn(`⚠️ Desalineación detectada: esperado ${startTimeStr}, obtenido ${actualTime}`);
+      }
     }
     
-    nextOccurrence = getNextOccurrence(nextOccurrence, appointment.recurrence);
+    nextOccurrence = getNextOccurrence(nextOccurrence, appointment.recurrence, originalTime);
     iterationCount++;
   }
   
   if (iterationCount >= maxIterations) {
     console.warn(`⚠️ Reached max iterations for appointment ${appointment.id}`);
   }
+  
+  console.log(`✅ ${instances.length} instancias proyectadas para ${appointment.id}`);
   
   return instances;
 }
