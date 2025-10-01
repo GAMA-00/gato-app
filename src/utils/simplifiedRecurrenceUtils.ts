@@ -3,7 +3,7 @@
  * Calculates recurring dates dynamically and handles exceptions
  */
 
-import { addDays, addWeeks, addMonths, format, isSameDay } from 'date-fns';
+import { addDays, addWeeks, addMonths, format, startOfDay, isSameDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { DATE_CONFIG } from '@/lib/recurrence/config';
 
