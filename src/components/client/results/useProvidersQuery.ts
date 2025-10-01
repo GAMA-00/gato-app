@@ -131,12 +131,21 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           // Use the optimized rating from database (already includes 5-star base calculation)
           const rating = provider?.average_rating ? Number(provider.average_rating) : 5.0;
 
+          // Get price from first service variant or base_price
+          let displayPrice = listing.base_price || 0;
+          if (listing.service_variants && Array.isArray(listing.service_variants) && listing.service_variants.length > 0) {
+            const firstVariant = listing.service_variants[0];
+            if (firstVariant && typeof firstVariant === 'object' && 'price' in firstVariant) {
+              displayPrice = Number(firstVariant.price) || listing.base_price || 0;
+            }
+          }
+
           const processedProvider = {
             id: listing.provider_id,
             name: provider?.name || 'Proveedor',
             avatar: provider?.avatar_url && provider.avatar_url.trim() !== '' ? provider.avatar_url : null,
             rating: rating,
-            price: listing.base_price || 0,
+            price: displayPrice,
             duration: listing.duration || 60,
             serviceName: listing.title || 'Servicio',
             serviceId: listing.id,
