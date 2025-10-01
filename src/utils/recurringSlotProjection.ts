@@ -73,21 +73,30 @@ export function projectRecurringInstances(
     });
   }
   
-  // Generate future occurrences
-  currentOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence);
+  // Generate future occurrences - continue from first occurrence
+  let nextOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence);
   
-  while (currentOccurrence <= endDate) {
-    if (currentOccurrence >= startDate) {
+  // Add safety limit to prevent infinite loops (max 52 weeks = 1 year)
+  let iterationCount = 0;
+  const maxIterations = 100;
+  
+  while (nextOccurrence <= endDate && iterationCount < maxIterations) {
+    if (nextOccurrence >= startDate) {
       instances.push({
         appointmentId: appointment.id,
-        date: new Date(currentOccurrence),
+        date: new Date(nextOccurrence),
         startTime: startTimeStr,
         endTime: endTimeStr,
         recurrenceType: appointment.recurrence
       });
     }
     
-    currentOccurrence = getNextOccurrence(currentOccurrence, appointment.recurrence);
+    nextOccurrence = getNextOccurrence(nextOccurrence, appointment.recurrence);
+    iterationCount++;
+  }
+  
+  if (iterationCount >= maxIterations) {
+    console.warn(`⚠️ Reached max iterations for appointment ${appointment.id}`);
   }
   
   return instances;

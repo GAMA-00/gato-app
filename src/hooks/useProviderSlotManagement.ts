@@ -206,20 +206,35 @@ export const useProviderSlotManagement = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
-        // Check if this slot matches a recurring projection
+        // Check if this slot matches a recurring projection (in-memory)
         const recurringCheck = isSlotRecurring(slotDate, slot.start_time, recurringProjection);
         
         // Use shouldBlockSlot utility to determine true availability and conflict reason
-        const { isBlocked, reason } = shouldBlockSlot(slot, allAppointments);
+        const slotBlockStatus = shouldBlockSlot(slot, allAppointments);
         
-        // Combine DB state with in-memory projection for recurring slots
-        const isRecurringSlot = slot.recurring_blocked || recurringCheck.isRecurring;
+        // COMBINED RECURRING DETECTION with priority hierarchy:
+        // 1. Database recurring_blocked (highest priority - most reliable)
+        // 2. In-memory projection (fallback for newly created patterns)
+        const isRecurringFromDB = slot.recurring_blocked === true;
+        const isRecurringProjection = recurringCheck.isRecurring;
+        const isRecurringSlot = isRecurringFromDB || isRecurringProjection;
         
-        // Override with recurring status if applicable
-        const finalBlocked = isBlocked || isRecurringSlot;
-        const finalReason = isRecurringSlot ? 'Bloqueado por cita recurrente' : reason;
+        // Determine final blocking status with priority:
+        // recurring_blocked from DB > in-memory projection > regular conflicts
+        let finalBlocked = slotBlockStatus.isBlocked;
+        let finalReason = slotBlockStatus.reason;
         
-        // Calculate effective availability: slot should be available if not truly blocked
+        if (isRecurringFromDB) {
+          // Database says it's recurring - always trust this
+          finalBlocked = true;
+          finalReason = 'Bloqueado por cita recurrente';
+        } else if (isRecurringProjection && !slotBlockStatus.isBlocked) {
+          // In-memory projection detected recurring pattern (fallback)
+          finalBlocked = true;
+          finalReason = 'Bloqueado por cita recurrente';
+        }
+        
+        // Calculate effective availability
         const effectiveAvailability = !finalBlocked;
         
         // Log inconsistencies for debugging
@@ -240,11 +255,12 @@ export const useProviderSlotManagement = ({
           });
         }
         
-        // Log recurring slots detection
+        // Log recurring slots detection with source priority
         if (isRecurringSlot) {
           console.log(`🔄 Slot recurrente detectado en ${slot.slot_datetime_start}:`, {
-            fromDB: slot.recurring_blocked,
-            fromProjection: recurringCheck.isRecurring,
+            source: isRecurringFromDB ? 'DATABASE (priority)' : 'IN-MEMORY PROJECTION (fallback)',
+            fromDB: isRecurringFromDB,
+            fromProjection: isRecurringProjection,
             instances: recurringCheck.instances.length,
             recurrenceTypes: recurringCheck.instances.length > 0 
               ? [...new Set(recurringCheck.instances.map(i => i.recurrenceType))]
