@@ -30,11 +30,16 @@ const StatCard: React.FC<StatCardProps> = ({
             <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
             <h3 className="text-2xl font-semibold">{value}</h3>
             {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
-            {trend && (
+            {trend ? (
               <div className="flex items-center gap-1 mt-2">
-                <span className={trend.isPositive ? "text-green-500" : "text-red-500"}>
-                  {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
+                <span className={trend.isPositive ? "text-green-500" : "text-gray-500"}>
+                  {trend.isPositive ? "↑" : "↓"} {trend.value}%
                 </span>
+                <span className="text-xs text-muted-foreground">vs periodo anterior</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 mt-2">
+                <span className="text-xs text-gray-400">—</span>
                 <span className="text-xs text-muted-foreground">vs periodo anterior</span>
               </div>
             )}
@@ -60,21 +65,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         value={stats.weekAppointments}
         icon={<Clock className="h-5 w-5 text-primary" />}
         description="Próximas citas"
-        trend={{ value: 8, isPositive: true }}
+        trend={stats.weekAppointmentsTrend}
       />
       <StatCard
         title="Ingresos Mensuales"
         value={`$${stats.monthRevenue.toLocaleString()}`}
         icon={<DollarSign className="h-5 w-5 text-primary" />}
         description="Para el mes actual"
-        trend={{ value: 5, isPositive: true }}
+        trend={stats.monthRevenueTrend}
       />
       <StatCard
         title="Clientes Recurrentes"
         value={stats.activeClients}
         icon={<Users className="h-5 w-5 text-primary" />}
         description="Total de clientes activos"
-        trend={{ value: 3, isPositive: true }}
+        trend={stats.activeClientsTrend}
       />
     </div>
   );

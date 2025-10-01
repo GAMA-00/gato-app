@@ -171,6 +171,16 @@ export interface DashboardStats {
   weekAppointments: number;
   monthRevenue: number;
   activeClients: number;
+  
+  // Previous period data for trend calculation
+  previousWeekAppointments?: number;
+  previousMonthRevenue?: number;
+  previousActiveClients?: number;
+  
+  // Calculated trends
+  weekAppointmentsTrend?: { value: number; isPositive: boolean; } | null;
+  monthRevenueTrend?: { value: number; isPositive: boolean; } | null;
+  activeClientsTrend?: { value: number; isPositive: boolean; } | null;
 }
 
 export interface Achievement {

@@ -2,7 +2,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { startOfToday, startOfWeek, startOfMonth } from "date-fns";
+import { startOfToday, startOfWeek, startOfMonth, subWeeks, subMonths } from "date-fns";
+
+// Utility function to calculate trend percentage
+const calculateTrend = (current: number, previous: number) => {
+  if (previous === 0 || !previous) return null;
+  const percentage = ((current - previous) / previous) * 100;
+  return {
+    value: Math.round(Math.abs(percentage)),
+    isPositive: percentage >= 0
+  };
+};
 
 export function useStats() {
   const { user } = useAuth();
@@ -21,19 +31,29 @@ export function useStats() {
         const today = startOfToday();
         const weekStart = startOfWeek(today);
         const monthStart = startOfMonth(today);
+        
+        // Calculate previous periods
+        const previousWeekStart = startOfWeek(subWeeks(today, 1));
+        const previousMonthStart = startOfMonth(subMonths(today, 1));
 
         // Default stats
         const defaultStats = {
           todayAppointments: 0,
           weekAppointments: 0,
           monthRevenue: 0,
-          activeClients: 0
+          activeClients: 0,
+          previousWeekAppointments: 0,
+          previousMonthRevenue: 0,
+          previousActiveClients: 0,
+          weekAppointmentsTrend: null,
+          monthRevenueTrend: null,
+          activeClientsTrend: null
         };
 
         if (user.role === 'provider') {
           console.log("Fetching provider stats with optimized query...");
           
-          // Single optimized query for all stats with error handling
+          // Single optimized query for all stats including previous periods
           const { data: appointments, error } = await supabase
             .from('appointments')
             .select(`
@@ -43,7 +63,7 @@ export function useStats() {
               listings!inner(base_price)
             `)
             .eq('provider_id', user.id)
-            .gte('start_time', monthStart.toISOString())
+            .gte('start_time', previousMonthStart.toISOString())
             .in('status', ['pending', 'confirmed', 'completed']);
 
           if (error) {
@@ -60,7 +80,10 @@ export function useStats() {
           let todayCount = 0;
           let weekCount = 0;
           let monthRevenue = 0;
+          let previousWeekCount = 0;
+          let previousMonthRevenue = 0;
           const uniqueClients = new Set();
+          const previousUniqueClients = new Set();
 
           appointments.forEach(app => {
             try {
@@ -82,26 +105,57 @@ export function useStats() {
                 weekCount++;
               }
               
+              // Count previous week's appointments
+              if (appDate >= previousWeekStart && appDate < weekStart) {
+                previousWeekCount++;
+              }
+              
               // Calculate revenue from confirmed and completed appointments
               if (['confirmed', 'completed'].includes(app.status)) {
                 const price = app.listings?.base_price || 0;
-                monthRevenue += parseFloat(price.toString());
+                const priceValue = parseFloat(price.toString());
+                
+                // Current month revenue
+                if (appDate >= monthStart) {
+                  monthRevenue += priceValue;
+                }
+                
+                // Previous month revenue
+                if (appDate >= previousMonthStart && appDate < monthStart) {
+                  previousMonthRevenue += priceValue;
+                }
               }
               
               // Track unique clients
               if (app.client_id) {
-                uniqueClients.add(app.client_id);
+                if (appDate >= monthStart) {
+                  uniqueClients.add(app.client_id);
+                }
+                if (appDate >= previousMonthStart && appDate < monthStart) {
+                  previousUniqueClients.add(app.client_id);
+                }
               }
             } catch (error) {
               console.error("Error processing appointment for stats:", error);
             }
           });
 
+          // Calculate trends
+          const weekAppointmentsTrend = calculateTrend(weekCount, previousWeekCount);
+          const monthRevenueTrend = calculateTrend(monthRevenue, previousMonthRevenue);
+          const activeClientsTrend = calculateTrend(uniqueClients.size, previousUniqueClients.size);
+
           return {
             todayAppointments: todayCount,
             weekAppointments: weekCount,
             monthRevenue,
-            activeClients: uniqueClients.size
+            activeClients: uniqueClients.size,
+            previousWeekAppointments: previousWeekCount,
+            previousMonthRevenue,
+            previousActiveClients: previousUniqueClients.size,
+            weekAppointmentsTrend,
+            monthRevenueTrend,
+            activeClientsTrend
           };
           
         } else if (user.role === 'client') {
@@ -116,7 +170,7 @@ export function useStats() {
               listings!inner(base_price)
             `)
             .eq('client_id', user.id)
-            .gte('start_time', monthStart.toISOString())
+            .gte('start_time', previousMonthStart.toISOString())
             .in('status', ['pending', 'confirmed', 'completed']);
 
           if (error) {
@@ -133,7 +187,10 @@ export function useStats() {
           let todayCount = 0;
           let weekCount = 0;
           let monthRevenue = 0;
+          let previousWeekCount = 0;
+          let previousMonthRevenue = 0;
           const uniqueProviders = new Set();
+          const previousUniqueProviders = new Set();
 
           appointments.forEach(app => {
             try {
@@ -153,24 +210,52 @@ export function useStats() {
                 weekCount++;
               }
               
+              if (appDate >= previousWeekStart && appDate < weekStart) {
+                previousWeekCount++;
+              }
+              
               if (['confirmed', 'completed'].includes(app.status)) {
                 const price = app.listings?.base_price || 0;
-                monthRevenue += parseFloat(price.toString());
+                const priceValue = parseFloat(price.toString());
+                
+                if (appDate >= monthStart) {
+                  monthRevenue += priceValue;
+                }
+                
+                if (appDate >= previousMonthStart && appDate < monthStart) {
+                  previousMonthRevenue += priceValue;
+                }
               }
               
               if (app.provider_id) {
-                uniqueProviders.add(app.provider_id);
+                if (appDate >= monthStart) {
+                  uniqueProviders.add(app.provider_id);
+                }
+                if (appDate >= previousMonthStart && appDate < monthStart) {
+                  previousUniqueProviders.add(app.provider_id);
+                }
               }
             } catch (error) {
               console.error("Error processing client appointment for stats:", error);
             }
           });
 
+          // Calculate trends
+          const weekAppointmentsTrend = calculateTrend(weekCount, previousWeekCount);
+          const monthRevenueTrend = calculateTrend(monthRevenue, previousMonthRevenue);
+          const activeClientsTrend = calculateTrend(uniqueProviders.size, previousUniqueProviders.size);
+
           return {
             todayAppointments: todayCount,
             weekAppointments: weekCount,
             monthRevenue,
-            activeClients: uniqueProviders.size
+            activeClients: uniqueProviders.size,
+            previousWeekAppointments: previousWeekCount,
+            previousMonthRevenue,
+            previousActiveClients: previousUniqueProviders.size,
+            weekAppointmentsTrend,
+            monthRevenueTrend,
+            activeClientsTrend
           };
         }
 
