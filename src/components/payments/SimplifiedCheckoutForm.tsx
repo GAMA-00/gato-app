@@ -57,9 +57,10 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   const [hasSubmitted, setHasSubmitted] = useState(false);
   
   // Formulario simplificado - solo datos esenciales
+  // Use profile address first, then fallback to service location
   const [billingData, setBillingData] = useState({
     phone: profile?.phone || '',
-    address: profile?.address || ''
+    address: profile?.address || appointmentData?.clientLocation || ''
   });
   
   const [newCardData, setNewCardData] = useState({
@@ -101,15 +102,13 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
-    // Validar teléfono
+    // Validar teléfono (requerido por ONVO Pay)
     if (!validatePhoneCR(billingData.phone)) {
       errors.phone = 'Ingresa un número válido de 8 dígitos';
     }
 
-    // Solo requerir dirección si no es posible eliminarla del procesador
-    if (!billingData.address.trim()) {
-      errors.address = 'La dirección es requerida para el procesador de pagos';
-    }
+    // Dirección es opcional - se usa la ubicación del servicio como fallback
+    // No se requiere validación
 
     // Si está usando nueva tarjeta, validar datos de tarjeta
     if (showNewCardForm) {
@@ -158,7 +157,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
           p_client_name: appointmentData.clientName || user?.name,
           p_client_email: appointmentData.clientEmail || user?.email,
           p_client_phone: formatPhoneCR(billingData.phone),
-          p_client_address: billingData.address,
+          p_client_address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio',
           p_residencia_id: appointmentData.residenciaId || profile?.residencia_id
         })
         .single();
@@ -244,7 +243,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             name: billingName,
             email: user?.email || '',
             phone: formatPhoneCR(billingData.phone),
-            address: billingData.address
+            address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
           }
         }
       });
@@ -393,7 +392,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             billing_info: {
               name: billingName,
               phone: formatPhoneCR(billingData.phone),
-              address: billingData.address
+              address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
             }
           }
         });
@@ -465,15 +464,23 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       console.log('🎉 Proceso completo exitoso');
 
-      // PASO 4: Guardar solo el teléfono en el perfil del usuario (si cambió)
+      // PASO 4: Guardar teléfono y dirección en el perfil del usuario (si cambiaron)
+      const profileUpdates: any = {};
+      
       if (billingData.phone && billingData.phone !== profile?.phone) {
+        profileUpdates.phone = formatPhoneCR(billingData.phone);
+      }
+      
+      if (billingData.address && billingData.address.trim() && billingData.address !== profile?.address) {
+        profileUpdates.address = billingData.address.trim();
+      }
+      
+      if (Object.keys(profileUpdates).length > 0) {
         try {
-          await updateUserProfile(user?.id, {
-            phone: formatPhoneCR(billingData.phone)
-          });
-          console.log('✅ Teléfono actualizado en el perfil');
+          await updateUserProfile(user?.id, profileUpdates);
+          console.log('✅ Perfil actualizado:', profileUpdates);
         } catch (profileError) {
-          console.warn('⚠️ No se pudo actualizar el teléfono (no crítico):', profileError);
+          console.warn('⚠️ No se pudo actualizar el perfil (no crítico):', profileError);
         }
       }
 
@@ -540,6 +547,9 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             <Shield className="h-5 w-5" />
             Información de Contacto
           </CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Estos campos se autocompletarán con tu perfil. Cualquier cambio se guardará para futuras reservas.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -559,10 +569,10 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Dirección completa *</Label>
+              <Label htmlFor="address">Dirección de facturación (opcional)</Label>
               <Input
                 id="address"
-                placeholder="Dirección de facturación"
+                placeholder="Se usará la ubicación del servicio si está vacío"
                 value={billingData.address}
                 onChange={(e) => setBillingData(prev => ({ ...prev, address: e.target.value }))}
                 className={validationErrors.address ? 'border-red-500' : ''}

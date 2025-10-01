@@ -22,7 +22,7 @@ export interface UserProfile {
   condominium_name?: string;
   condominium_text?: string;
   house_number?: string;
-  address?: string;
+  address?: string; // Billing address persisted from checkout
 }
 
 export interface AuthContextType {

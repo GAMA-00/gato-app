@@ -1654,6 +1654,7 @@ export type Database = {
       users: {
         Row: {
           about_me: string | null
+          address: string | null
           avatar_url: string | null
           average_rating: number | null
           certification_files: Json | null
@@ -1674,6 +1675,7 @@ export type Database = {
         }
         Insert: {
           about_me?: string | null
+          address?: string | null
           avatar_url?: string | null
           average_rating?: number | null
           certification_files?: Json | null
@@ -1694,6 +1696,7 @@ export type Database = {
         }
         Update: {
           about_me?: string | null
+          address?: string | null
           avatar_url?: string | null
           average_rating?: number | null
           certification_files?: Json | null
