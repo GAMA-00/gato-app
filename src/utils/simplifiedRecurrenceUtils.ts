@@ -4,6 +4,8 @@
  */
 
 import { addDays, addWeeks, addMonths, format, startOfDay, isSameDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DATE_CONFIG } from '@/lib/recurrence/config';
 
 export interface RecurringException {
   id: string;
@@ -101,9 +103,11 @@ export function applyRecurringExceptions(
     const dateStr = format(date, 'yyyy-MM-dd');
     const exception = exceptions.find(ex => ex.exception_date === dateStr);
     
-    // Calculate the time for this instance
+    // Calculate the time for this instance using Costa Rica timezone
+    const timeStr = formatInTimeZone(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+    const [hours, minutes] = timeStr.split(':').map(Number);
     const instanceStart = new Date(date);
-    instanceStart.setHours(appointmentStart.getHours(), appointmentStart.getMinutes(), 0, 0);
+    instanceStart.setHours(hours, minutes, 0, 0);
     const instanceEnd = new Date(instanceStart.getTime() + duration);
 
     const instance: CalculatedRecurringInstance = {
@@ -180,8 +184,11 @@ export function checkRecurringConflicts(
       const appointmentEnd = new Date(appointment.end_time);
       const duration = appointmentEnd.getTime() - appointmentStart.getTime();
       
+      // Use Costa Rica timezone for consistent hour extraction
+      const timeStr = formatInTimeZone(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+      const [hours, minutes] = timeStr.split(':').map(Number);
       instanceStart = new Date(proposedDate);
-      instanceStart.setHours(appointmentStart.getHours(), appointmentStart.getMinutes(), 0, 0);
+      instanceStart.setHours(hours, minutes, 0, 0);
       instanceEnd = new Date(instanceStart.getTime() + duration);
     }
 

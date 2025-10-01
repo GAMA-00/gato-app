@@ -4,6 +4,8 @@
  */
 
 import { addWeeks, addMonths, format, startOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { DATE_CONFIG } from '@/lib/recurrence/config';
 
 export interface RecurringAppointmentData {
   id: string;
@@ -55,9 +57,9 @@ export function projectRecurringInstances(
   const appointmentStart = new Date(appointment.start_time);
   const appointmentEnd = new Date(appointment.end_time);
   
-  // Extract time components (HH:mm)
-  const startTimeStr = format(appointmentStart, 'HH:mm');
-  const endTimeStr = format(appointmentEnd, 'HH:mm');
+  // Extract time components (HH:mm) in Costa Rica timezone
+  const startTimeStr = formatInTimeZone(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+  const endTimeStr = formatInTimeZone(appointmentEnd, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
   
   // Start from the original appointment's date
   let currentOccurrence = startOfDay(appointmentStart);
