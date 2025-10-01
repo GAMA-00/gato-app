@@ -3,7 +3,7 @@
  * Projects recurring appointments into future time slots
  */
 
-import { addWeeks, addMonths, format } from 'date-fns';
+import { addWeeks, addMonths } from 'date-fns';
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { DATE_CONFIG } from '@/lib/recurrence/config';
 
@@ -78,8 +78,8 @@ export function projectRecurringInstances(
   const zonedEnd = toZonedTime(appointmentEnd, DATE_CONFIG.DEFAULT_TIMEZONE);
   
   // Extract time components (HH:mm) in Costa Rica timezone
-  const startTimeStr = formatInTimeZone(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
-  const endTimeStr = formatInTimeZone(appointmentEnd, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+  const startTimeStr = formatInTimeZone(appointmentStart, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm:ss');
+  const endTimeStr = formatInTimeZone(appointmentEnd, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm:ss');
   
   // Store original time to preserve across all occurrences
   const originalTime = {
@@ -123,7 +123,7 @@ export function projectRecurringInstances(
       });
       
       // Log for debugging timezone consistency
-      const actualTime = formatInTimeZone(nextOccurrence, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+      const actualTime = formatInTimeZone(nextOccurrence, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm:ss');
       if (actualTime !== startTimeStr) {
         console.warn(`⚠️ Desalineación detectada: esperado ${startTimeStr}, obtenido ${actualTime}`);
       }
@@ -167,12 +167,28 @@ export function projectAllRecurringSlots(
     
     // Store instances by date+time key for quick lookup
     for (const instance of instances) {
-      const key = `${format(instance.date, 'yyyy-MM-dd')}-${instance.startTime}`;
-      
-      if (!projectionMap.has(key)) {
-        projectionMap.set(key, []);
+      const dateKey = formatInTimeZone(instance.date, DATE_CONFIG.DEFAULT_TIMEZONE, 'yyyy-MM-dd');
+      const timeKeySec = formatInTimeZone(instance.date, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm:ss');
+      const timeKeyShort = formatInTimeZone(instance.date, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+
+      // Primary key with seconds precision
+      const keyWithSeconds = `${dateKey}-${timeKeySec}`;
+      if (!projectionMap.has(keyWithSeconds)) {
+        projectionMap.set(keyWithSeconds, []);
       }
-      projectionMap.get(key)!.push(instance);
+      projectionMap.get(keyWithSeconds)!.push(instance);
+
+      // Backward-compatibility key without seconds
+      const keyShort = `${dateKey}-${timeKeyShort}`;
+      if (!projectionMap.has(keyShort)) {
+        projectionMap.set(keyShort, []);
+      }
+      projectionMap.get(keyShort)!.push(instance);
+
+      // Dev-only diagnostic
+      if ((import.meta as any)?.env?.MODE === 'development') {
+        console.debug(`🗝️ Recurrence index: ${keyWithSeconds} (alias: ${keyShort})`);
+      }
     }
   }
   
@@ -189,9 +205,27 @@ export function isSlotRecurring(
   time: string,
   projectionMap: Map<string, ProjectedRecurringSlot[]>
 ): { isRecurring: boolean; instances: ProjectedRecurringSlot[] } {
-  const key = `${format(date, 'yyyy-MM-dd')}-${time}`;
-  const instances = projectionMap.get(key) || [];
-  
+  const dateKey = formatInTimeZone(date, DATE_CONFIG.DEFAULT_TIMEZONE, 'yyyy-MM-dd');
+
+  // Normalize time to seconds precision (HH:mm:ss)
+  const timeWithSeconds = /^\d{2}:\d{2}:\d{2}$/.test(time) ? time : `${time.slice(0,5)}:00`;
+  const primaryKey = `${dateKey}-${timeWithSeconds}`;
+  let instances = projectionMap.get(primaryKey) || [];
+
+  if (instances.length === 0) {
+    // Fallback to HH:mm (backward compatibility)
+    const timeShort = timeWithSeconds.slice(0, 5);
+    const fallbackKey = `${dateKey}-${timeShort}`;
+    instances = projectionMap.get(fallbackKey) || [];
+    if ((import.meta as any)?.env?.MODE === 'development') {
+      console.debug(`🔍 isSlotRecurring fallback key used: ${fallbackKey} (primary was ${primaryKey})`);
+    }
+  } else {
+    if ((import.meta as any)?.env?.MODE === 'development') {
+      console.debug(`🔍 isSlotRecurring primary key used: ${primaryKey}`);
+    }
+  }
+
   return {
     isRecurring: instances.length > 0,
     instances
