@@ -136,10 +136,55 @@ export const useProviderSlotManagement = ({
 
         if (instancesError) {
           console.warn('⚠️ Error cargando instancias recurrentes:', instancesError);
-        } else {
-          // 3️⃣ Group instances by local date (America/Costa_Rica)
+        }
+
+        // 3️⃣ On-demand materialization: if no instances but rules exist, generate them
+        let instancesData = recurringInstances || [];
+        if (instancesData.length === 0 && (rules || []).length > 0) {
+          console.log('📦 No hay instancias materializadas, generando para', rules?.length, 'reglas...');
+          
+          // Calculate weeks ahead based on date range
+          const weeksAhead = Math.ceil((endDateFull.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 2;
+          
+          // Generate instances for each rule
+          for (const rule of rules || []) {
+            try {
+              const { error: rpcError } = await supabase.rpc('generate_recurring_appointment_instances', {
+                p_rule_id: rule.id,
+                p_weeks_ahead: weeksAhead
+              });
+              
+              if (rpcError) {
+                console.warn('⚠️ Error generando instancias para regla', rule.id, rpcError);
+              } else {
+                console.log('✅ Instancias generadas para regla', rule.id);
+              }
+            } catch (err) {
+              console.warn('⚠️ Excepción generando instancias:', err);
+            }
+          }
+          
+          // Re-query instances after materialization
+          const { data: newInstances, error: newError } = await supabase
+            .from('recurring_appointment_instances')
+            .select('id, start_time, end_time, status, recurring_rules(provider_id, listing_id)')
+            .gte('start_time', startDate.toISOString())
+            .lte('end_time', endDateFull.toISOString())
+            .in('status', ['scheduled', 'confirmed'])
+            .not('recurring_rules', 'is', null);
+          
+          if (newError) {
+            console.warn('⚠️ Error recargando instancias:', newError);
+          } else {
+            instancesData = newInstances || [];
+            console.log('🔄 Instancias recargadas:', instancesData.length);
+          }
+        }
+
+        if (instancesData.length > 0) {
+          // 4️⃣ Group instances by local date (America/Costa_Rica)
           const grouped = new Map<string, any[]>();
-          (recurringInstances || []).forEach(inst => {
+          instancesData.forEach(inst => {
             const start = new Date(inst.start_time);
             const dateKey = formatInTimeZone(start, DATE_CONFIG.DEFAULT_TIMEZONE, 'yyyy-MM-dd');
             const localHHmm = formatInTimeZone(start, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
@@ -148,7 +193,7 @@ export const useProviderSlotManagement = ({
             grouped.set(dateKey, arr);
           });
 
-          // 4️⃣ Filter instances: keep only canonical times if they exist, otherwise keep all (for rescheduled)
+          // 5️⃣ Filter instances: keep only canonical times if they exist, otherwise keep all (for rescheduled)
           const filteredInstances: any[] = [];
           for (const [dateKey, arr] of grouped.entries()) {
             // Check if any instances match canonical times
@@ -169,13 +214,13 @@ export const useProviderSlotManagement = ({
           }
 
           console.log('🔎 Recurring instances (raw vs filtered):', {
-            raw: (recurringInstances || []).length,
+            raw: instancesData.length,
             filtered: filteredInstances.length,
             canonical: Array.from(canonicalStarts),
             groupedDates: grouped.size
           });
 
-          // 5️⃣ Build intervals from filtered instances
+          // 6️⃣ Build intervals from filtered instances
           recurringInstanceIntervals = filteredInstances.map(inst => ({
             id: inst.id,
             start: inst.__start,
