@@ -212,24 +212,47 @@ export const useProviderSlotManagement = ({
         // Use shouldBlockSlot utility to determine true availability and conflict reason
         const slotBlockStatus = shouldBlockSlot(slot, allAppointments);
         
-        // COMBINED RECURRING DETECTION with priority hierarchy:
-        // 1. Database recurring_blocked (highest priority - most reliable)
-        // 2. In-memory projection (fallback for newly created patterns)
-        const isRecurringFromDB = slot.recurring_blocked === true;
+        // Check for CONFIRMED recurring appointments that actually overlap this slot
+        const confirmedRecurringConflict = allAppointments.some(apt => {
+          if (apt.status !== 'confirmed') return false;
+          if (!apt.recurrence || apt.recurrence === 'none') return false;
+          
+          const aptStart = new Date(apt.start_time);
+          const aptEnd = new Date(apt.end_time);
+          return slotStart < aptEnd && slotEnd > aptStart;
+        });
+        
+        // REFINED RECURRING DETECTION:
+        // Only trust DB recurring_blocked if it matches confirmed appointments OR in-memory projection
         const isRecurringProjection = recurringCheck.isRecurring;
-        const isRecurringSlot = isRecurringFromDB || isRecurringProjection;
+        const isRecurringFromDBTrusted = slot.recurring_blocked === true && (confirmedRecurringConflict || isRecurringProjection);
+        const isRecurringSlot = confirmedRecurringConflict || isRecurringProjection || isRecurringFromDBTrusted;
+        
+        // Diagnostic: detect stale recurring_blocked flags
+        if (slot.recurring_blocked === true && !confirmedRecurringConflict && !isRecurringProjection) {
+          if ((import.meta as any)?.env?.MODE === 'development') {
+            console.warn(`⚠️ Stale recurring_blocked detected: ${slot.slot_datetime_start} - no confirmed appointment or projection matches`);
+          }
+        }
         
         // Determine final blocking status with priority:
-        // recurring_blocked from DB > in-memory projection > regular conflicts
+        // 1. Confirmed recurring conflict (highest)
+        // 2. In-memory projection
+        // 3. Trusted DB recurring_blocked
+        // 4. Regular conflicts
         let finalBlocked = slotBlockStatus.isBlocked;
         let finalReason = slotBlockStatus.reason;
         
-        if (isRecurringFromDB) {
-          // Database says it's recurring - always trust this
+        if (confirmedRecurringConflict) {
+          // Actual confirmed recurring appointment exists
           finalBlocked = true;
           finalReason = 'Bloqueado por cita recurrente';
         } else if (isRecurringProjection && !slotBlockStatus.isBlocked) {
-          // In-memory projection detected recurring pattern (fallback)
+          // In-memory projection detected recurring pattern
+          finalBlocked = true;
+          finalReason = 'Bloqueado por cita recurrente';
+        } else if (isRecurringFromDBTrusted && !slotBlockStatus.isBlocked) {
+          // DB flag is trusted (matches projection or confirmed appointment)
           finalBlocked = true;
           finalReason = 'Bloqueado por cita recurrente';
         }
@@ -258,9 +281,11 @@ export const useProviderSlotManagement = ({
         // Log recurring slots detection with source priority
         if (isRecurringSlot) {
           console.log(`🔄 Slot recurrente detectado en ${slot.slot_datetime_start}:`, {
-            source: isRecurringFromDB ? 'DATABASE (priority)' : 'IN-MEMORY PROJECTION (fallback)',
-            fromDB: isRecurringFromDB,
+            source: confirmedRecurringConflict ? 'CONFIRMED APPOINTMENT (highest)' : 
+                    isRecurringProjection ? 'IN-MEMORY PROJECTION' : 'DATABASE (trusted)',
+            fromConfirmedAppointment: confirmedRecurringConflict,
             fromProjection: isRecurringProjection,
+            fromDBTrusted: isRecurringFromDBTrusted,
             instances: recurringCheck.instances.length,
             recurrenceTypes: recurringCheck.instances.length > 0 
               ? [...new Set(recurringCheck.instances.map(i => i.recurrenceType))]
