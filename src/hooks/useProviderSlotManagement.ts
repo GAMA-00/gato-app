@@ -6,7 +6,7 @@ import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 import { generateAvailabilitySlots } from '@/utils/availabilitySlotGenerator';
-import { projectAllRecurringSlots, isSlotRecurring } from '@/utils/recurringSlotProjection';
+
 
 interface UseProviderSlotManagementReturn {
   slots: WeeklySlot[];
@@ -98,27 +98,35 @@ export const useProviderSlotManagement = ({
 
       if (slotsError) throw slotsError;
       
-      // Fetch active recurring appointments for this provider/listing
-      const { data: recurringAppointments, error: recurringError } = await supabase
-        .from('appointments')
-        .select('id, provider_id, listing_id, start_time, end_time, recurrence, status')
-        .eq('provider_id', providerId)
-        .eq('listing_id', listingId)
-        .in('status', ['confirmed'])
-        .not('recurrence', 'is', null)
-        .neq('recurrence', 'none')
-        .neq('recurrence', '');
-      
-      if (recurringError) {
-        console.warn('⚠️ Error cargando citas recurrentes:', recurringError);
+      // Fetch recurring appointment INSTANCES for this provider/listing
+      let recurringInstanceIntervals: { id: string; start: Date; end: Date }[] = [];
+      try {
+        const endDateFull = endOfDay(endDate);
+        const { data: recurringInstances, error: instancesError } = await supabase
+          .from('recurring_appointment_instances')
+          .select('id, start_time, end_time, status, recurring_rules(provider_id, listing_id)')
+          .eq('recurring_rules.provider_id', providerId)
+          .eq('recurring_rules.listing_id', listingId)
+          .in('status', ['scheduled', 'confirmed'])
+          .gte('start_time', baseDate.toISOString())
+          .lte('start_time', endDateFull.toISOString());
+
+        if (instancesError) {
+          console.warn('⚠️ Error cargando instancias recurrentes:', instancesError);
+        } else {
+          recurringInstanceIntervals = (recurringInstances || []).map((inst: any) => ({
+            id: inst.id,
+            start: new Date(inst.start_time),
+            end: new Date(inst.end_time)
+          }));
+          console.log('🔮 Instancias recurrentes:', {
+            total: recurringInstanceIntervals.length,
+            primeros3: recurringInstanceIntervals.slice(0, 3)
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Error cargando instancias recurrentes:', e);
       }
-      
-      // Project recurring appointments into future slots
-      const recurringProjection = projectAllRecurringSlots(
-        recurringAppointments || [],
-        baseDate,
-        endDate
-      );
       
       console.log('📊 Resultado consulta ALL slots (admin):', {
         totalSlots: timeSlots?.length || 0,
@@ -206,8 +214,10 @@ export const useProviderSlotManagement = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
-        // Check if this slot matches a recurring projection (in-memory)
-        const recurringCheck = isSlotRecurring(slotDate, slot.start_time, recurringProjection);
+        // Check if this slot matches any recurring instances from DB
+        const isRecurringProjection = recurringInstanceIntervals.some(inst =>
+          slotStart < inst.end && slotEnd > inst.start
+        );
         
         // Use shouldBlockSlot utility to determine true availability and conflict reason
         const slotBlockStatus = shouldBlockSlot(slot, allAppointments);
