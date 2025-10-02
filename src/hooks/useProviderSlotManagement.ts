@@ -1,11 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { addDays, format, startOfDay, endOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 import { generateAvailabilitySlots } from '@/utils/availabilitySlotGenerator';
+import { DATE_CONFIG } from '@/lib/recurrence/config';
 
 
 interface UseProviderSlotManagementReturn {
@@ -102,6 +104,27 @@ export const useProviderSlotManagement = ({
       let recurringInstanceIntervals: { id: string; start: Date; end: Date }[] = [];
       try {
         const endDateFull = endOfDay(endDate);
+        
+        // 1️⃣ Fetch active recurring rules to get canonical start times
+        const { data: rules, error: rulesError } = await supabase
+          .from('recurring_rules')
+          .select('id, start_time, is_active')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('is_active', true);
+
+        if (rulesError) {
+          console.warn('⚠️ Error cargando reglas recurrentes:', rulesError);
+        }
+
+        // Build set of canonical start times (HH:mm)
+        const canonicalStarts = new Set(
+          (rules || [])
+            .map(r => (r.start_time || '').slice(0, 5)) // Extract HH:mm
+            .filter(Boolean)
+        );
+
+        // 2️⃣ Fetch recurring instances
         const { data: recurringInstances, error: instancesError } = await supabase
           .from('recurring_appointment_instances')
           .select('id, start_time, end_time, status, recurring_rules(provider_id, listing_id)')
@@ -114,12 +137,52 @@ export const useProviderSlotManagement = ({
         if (instancesError) {
           console.warn('⚠️ Error cargando instancias recurrentes:', instancesError);
         } else {
-          recurringInstanceIntervals = (recurringInstances || []).map((inst: any) => ({
+          // 3️⃣ Group instances by local date (America/Costa_Rica)
+          const grouped = new Map<string, any[]>();
+          (recurringInstances || []).forEach(inst => {
+            const start = new Date(inst.start_time);
+            const dateKey = formatInTimeZone(start, DATE_CONFIG.DEFAULT_TIMEZONE, 'yyyy-MM-dd');
+            const localHHmm = formatInTimeZone(start, DATE_CONFIG.DEFAULT_TIMEZONE, 'HH:mm');
+            const arr = grouped.get(dateKey) || [];
+            arr.push({ ...inst, __localHHmm: localHHmm, __start: start, __end: new Date(inst.end_time) });
+            grouped.set(dateKey, arr);
+          });
+
+          // 4️⃣ Filter instances: keep only canonical times if they exist, otherwise keep all (for rescheduled)
+          const filteredInstances: any[] = [];
+          for (const [dateKey, arr] of grouped.entries()) {
+            // Check if any instances match canonical times
+            const canonicalArr = arr.filter(i => canonicalStarts.has(i.__localHHmm));
+            
+            // If we found canonical instances for this date, use only those; otherwise use all (for exceptions)
+            const pick = canonicalArr.length > 0 ? canonicalArr : arr;
+            
+            // Deduplicate by local HH:mm to avoid precision duplicates
+            const uniq = new Map<string, any>();
+            pick.forEach(i => {
+              if (!uniq.has(i.__localHHmm)) {
+                uniq.set(i.__localHHmm, i);
+              }
+            });
+            
+            filteredInstances.push(...uniq.values());
+          }
+
+          console.log('🔎 Recurring instances (raw vs filtered):', {
+            raw: (recurringInstances || []).length,
+            filtered: filteredInstances.length,
+            canonical: Array.from(canonicalStarts),
+            groupedDates: grouped.size
+          });
+
+          // 5️⃣ Build intervals from filtered instances
+          recurringInstanceIntervals = filteredInstances.map(inst => ({
             id: inst.id,
-            start: new Date(inst.start_time),
-            end: new Date(inst.end_time)
+            start: inst.__start,
+            end: inst.__end
           }));
-          console.log('🔮 Instancias recurrentes:', {
+          
+          console.log('🔮 Instancias recurrentes finales:', {
             total: recurringInstanceIntervals.length,
             primeros3: recurringInstanceIntervals.slice(0, 3)
           });
