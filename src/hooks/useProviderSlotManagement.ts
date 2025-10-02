@@ -214,93 +214,33 @@ export const useProviderSlotManagement = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
-        // Check if this slot matches any recurring instances from DB
-        const isRecurringProjection = recurringInstanceIntervals.some(inst =>
+        // Check if this slot matches any recurring instances from DB (real booked instances)
+        const matchesRecurringInstance = recurringInstanceIntervals.some(inst =>
           slotStart < inst.end && slotEnd > inst.start
         );
         
         // Use shouldBlockSlot utility to determine true availability and conflict reason
         const slotBlockStatus = shouldBlockSlot(slot, allAppointments);
         
-        // Check for CONFIRMED recurring appointments that actually overlap this slot
-        const confirmedRecurringConflict = allAppointments.some(apt => {
-          if (apt.status !== 'confirmed') return false;
-          if (!apt.recurrence || apt.recurrence === 'none') return false;
-          
-          const aptStart = new Date(apt.start_time);
-          const aptEnd = new Date(apt.end_time);
-          return slotStart < aptEnd && slotEnd > aptStart;
-        });
-        
-        // REFINED RECURRING DETECTION:
-        // Only trust DB recurring_blocked if it matches confirmed appointments OR in-memory projection
-        const isRecurringProjection = recurringCheck.isRecurring;
-        const isRecurringFromDBTrusted = slot.recurring_blocked === true && (confirmedRecurringConflict || isRecurringProjection);
-        const isRecurringSlot = confirmedRecurringConflict || isRecurringProjection || isRecurringFromDBTrusted;
-        
-        // Diagnostic: detect stale recurring_blocked flags
-        if (slot.recurring_blocked === true && !confirmedRecurringConflict && !isRecurringProjection) {
-          if ((import.meta as any)?.env?.MODE === 'development') {
-            console.warn(`⚠️ Stale recurring_blocked detected: ${slot.slot_datetime_start} - no confirmed appointment or projection matches`);
-          }
-        }
-        
-        // Determine final blocking status with priority:
-        // 1. Confirmed recurring conflict (highest)
-        // 2. In-memory projection
-        // 3. Trusted DB recurring_blocked
-        // 4. Regular conflicts
+        // Determine final blocking status
+        // Priority: recurring instances from DB > regular appointment conflicts
         let finalBlocked = slotBlockStatus.isBlocked;
         let finalReason = slotBlockStatus.reason;
+        let isRecurringSlot = false;
         
-        if (confirmedRecurringConflict) {
-          // Actual confirmed recurring appointment exists
+        if (matchesRecurringInstance) {
+          // This slot is blocked by an actual recurring appointment instance
           finalBlocked = true;
           finalReason = 'Bloqueado por cita recurrente';
-        } else if (isRecurringProjection && !slotBlockStatus.isBlocked) {
-          // In-memory projection detected recurring pattern
-          finalBlocked = true;
-          finalReason = 'Bloqueado por cita recurrente';
-        } else if (isRecurringFromDBTrusted && !slotBlockStatus.isBlocked) {
-          // DB flag is trusted (matches projection or confirmed appointment)
-          finalBlocked = true;
-          finalReason = 'Bloqueado por cita recurrente';
+          isRecurringSlot = true;
         }
         
         // Calculate effective availability
         const effectiveAvailability = !finalBlocked;
         
-        // Log inconsistencies for debugging
-        if (slot.is_available !== effectiveAvailability && !isRecurringSlot) {
-          console.log(`🔍 Inconsistencia detectada en slot ${slot.slot_datetime_start}:`, {
-            dbAvailable: slot.is_available,
-            calculatedAvailable: effectiveAvailability,
-            reason: finalReason,
-            slotType: slot.slot_type,
-            isReserved: slot.is_reserved,
-            recurringBlocked: slot.recurring_blocked,
-            isRecurringProjection: recurringCheck.isRecurring,
-            conflictingAppointments: allAppointments.filter(apt => {
-              const aptStart = new Date(apt.start_time);
-              const aptEnd = new Date(apt.end_time);
-              return slotStart < aptEnd && slotEnd > aptStart;
-            }).length
-          });
-        }
-        
-        // Log recurring slots detection with source priority
+        // Log recurring slots for debugging
         if (isRecurringSlot) {
-          console.log(`🔄 Slot recurrente detectado en ${slot.slot_datetime_start}:`, {
-            source: confirmedRecurringConflict ? 'CONFIRMED APPOINTMENT (highest)' : 
-                    isRecurringProjection ? 'IN-MEMORY PROJECTION' : 'DATABASE (trusted)',
-            fromConfirmedAppointment: confirmedRecurringConflict,
-            fromProjection: isRecurringProjection,
-            fromDBTrusted: isRecurringFromDBTrusted,
-            instances: recurringCheck.instances.length,
-            recurrenceTypes: recurringCheck.instances.length > 0 
-              ? [...new Set(recurringCheck.instances.map(i => i.recurrenceType))]
-              : []
-          });
+          console.log(`🔄 Slot recurrente detectado en ${slot.slot_datetime_start} (instancia real de BD)`);
         }
 
         return {
