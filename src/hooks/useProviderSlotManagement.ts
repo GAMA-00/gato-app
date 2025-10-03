@@ -288,6 +288,8 @@ export const useProviderSlotManagement = ({
 
       // Fetch ALL appointments (pending and confirmed) within the date range for conflict detection
       let allAppointments: any[] = [];
+      let legacyRecurringAppointments: any[] = [];
+      
       try {
         const endDateFull = endOfDay(endDate);
         const { data: appointments, error: appointmentsError } = await supabase
@@ -310,9 +312,111 @@ export const useProviderSlotManagement = ({
             recurring: allAppointments.filter(a => a.recurrence && a.recurrence !== 'none').length
           });
         }
+        
+        // 🔄 LEGACY SYSTEM: Fetch confirmed appointments with recurrence (even if outside date range)
+        // We need to project their future occurrences into our viewing window
+        const { data: legacyRecurring, error: legacyError } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('status', 'confirmed')
+          .not('recurrence', 'is', null)
+          .neq('recurrence', 'none');
+        
+        if (legacyError) {
+          console.warn('⚠️ Error cargando citas legacy recurrentes:', legacyError);
+        } else {
+          legacyRecurringAppointments = legacyRecurring || [];
+          console.log(`🔄 Citas legacy con recurrencia encontradas:`, {
+            total: legacyRecurringAppointments.length,
+            weekly: legacyRecurringAppointments.filter(a => a.recurrence === 'weekly').length,
+            biweekly: legacyRecurringAppointments.filter(a => a.recurrence === 'biweekly').length,
+            monthly: legacyRecurringAppointments.filter(a => a.recurrence === 'monthly').length
+          });
+        }
       } catch (e) {
         console.warn('⚠️ Error cargando citas para conflictos', e);
       }
+      
+      // 🔮 PROJECT LEGACY RECURRING APPOINTMENTS: Calculate future occurrences
+      const projectedLegacyOccurrences: { id: string; start: Date; end: Date; appointmentId: string }[] = [];
+      
+      if (legacyRecurringAppointments.length > 0) {
+        console.log('🔮 Proyectando ocurrencias futuras de citas legacy...');
+        
+        for (const apt of legacyRecurringAppointments) {
+          const aptStart = new Date(apt.start_time);
+          const aptEnd = new Date(apt.end_time);
+          const duration = aptEnd.getTime() - aptStart.getTime();
+          
+          // Calculate day of week for the original appointment
+          const originalDayOfWeek = aptStart.getUTCDay();
+          
+          // Project occurrences for the next 8 weeks from the viewing window start
+          let currentDate = new Date(baseDate);
+          const projectionEndDate = addDays(baseDate, daysAhead + 7 * 7); // 8 weeks ahead
+          
+          while (currentDate <= projectionEndDate) {
+            const currentDayOfWeek = currentDate.getUTCDay();
+            
+            // Check if this date matches the recurrence pattern
+            let shouldProject = false;
+            
+            if (apt.recurrence === 'weekly' && currentDayOfWeek === originalDayOfWeek) {
+              shouldProject = true;
+            } else if (apt.recurrence === 'biweekly' && currentDayOfWeek === originalDayOfWeek) {
+              // Check if it's been 2 weeks since the original
+              const weeksSince = Math.floor((currentDate.getTime() - aptStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+              shouldProject = weeksSince % 2 === 0;
+            } else if (apt.recurrence === 'monthly' && currentDate.getUTCDate() === aptStart.getUTCDate()) {
+              shouldProject = true;
+            }
+            
+            if (shouldProject && currentDate >= baseDate) {
+              // Create projected occurrence with same time of day as original
+              const projectedStart = new Date(Date.UTC(
+                currentDate.getUTCFullYear(),
+                currentDate.getUTCMonth(),
+                currentDate.getUTCDate(),
+                aptStart.getUTCHours(),
+                aptStart.getUTCMinutes(),
+                0
+              ));
+              const projectedEnd = new Date(projectedStart.getTime() + duration);
+              
+              projectedLegacyOccurrences.push({
+                id: `legacy-${apt.id}-${format(projectedStart, 'yyyy-MM-dd-HHmm')}`,
+                start: projectedStart,
+                end: projectedEnd,
+                appointmentId: apt.id
+              });
+            }
+            
+            currentDate = addDays(currentDate, 1);
+          }
+        }
+        
+        console.log('🔮 Ocurrencias legacy proyectadas:', {
+          total: projectedLegacyOccurrences.length,
+          primeros3: projectedLegacyOccurrences.slice(0, 3).map(o => ({
+            start: o.start.toISOString(),
+            end: o.end.toISOString()
+          }))
+        });
+      }
+      
+      // 🔗 COMBINE: Merge new system instances with legacy projections
+      const combinedRecurringIntervals = [
+        ...recurringInstanceIntervals,
+        ...projectedLegacyOccurrences
+      ];
+      
+      console.log('🔗 Intervalos recurrentes combinados:', {
+        nuevasSistema: recurringInstanceIntervals.length,
+        legacyProyectadas: projectedLegacyOccurrences.length,
+        totalCombinado: combinedRecurringIntervals.length
+      });
 
       // Process ALL slots and determine availability based on ACTUAL appointment conflicts
       const providerSlots: WeeklySlot[] = (uiSlots || []).map((slot: any) => {
@@ -322,8 +426,8 @@ export const useProviderSlotManagement = ({
 
         const { time: displayTime, period } = formatTimeTo12Hour(slot.start_time);
 
-        // Check if this slot matches any recurring instances from DB (real booked instances)
-        const matchesRecurringInstance = recurringInstanceIntervals.some(inst =>
+        // Check if this slot matches any recurring instances (new system + legacy projections)
+        const matchesRecurringInstance = combinedRecurringIntervals.some(inst =>
           slotStart < inst.end && slotEnd > inst.start
         );
         
@@ -331,13 +435,13 @@ export const useProviderSlotManagement = ({
         const slotBlockStatus = shouldBlockSlot(slot, allAppointments);
         
         // Determine final blocking status
-        // Priority: recurring instances from DB > regular appointment conflicts
+        // Priority: combined recurring intervals (new + legacy) > regular appointment conflicts
         let finalBlocked = slotBlockStatus.isBlocked;
         let finalReason = slotBlockStatus.reason;
         let isRecurringSlot = false;
         
         if (matchesRecurringInstance) {
-          // This slot is blocked by an actual recurring appointment instance
+          // This slot is blocked by a recurring appointment (new system or legacy projection)
           finalBlocked = true;
           finalReason = 'Bloqueado por cita recurrente';
           isRecurringSlot = true;
@@ -348,7 +452,7 @@ export const useProviderSlotManagement = ({
         
         // Log recurring slots for debugging
         if (isRecurringSlot) {
-          console.log(`🔄 Slot recurrente detectado en ${slot.slot_datetime_start} (instancia real de BD)`);
+          console.log(`🔄 Slot recurrente detectado en ${slot.slot_datetime_start} (nuevo sistema o legacy proyectado)`);
         }
 
         return {
