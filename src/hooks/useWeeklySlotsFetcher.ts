@@ -134,7 +134,29 @@ export const useWeeklySlotsFetcher = ({
           .from('listings')
           .select('slot_preferences')
           .eq('id', listingId)
-          .single()
+          .single(),
+        // Fetch legacy recurring appointments (confirmed appointments with recurrence)
+        supabase
+          .from('appointments')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('status', 'confirmed')
+          .not('recurrence', 'is', null)
+          .neq('recurrence', 'none')
+          .neq('recurrence', 'once')
+      ]);
+
+      const legacyRecurringRes = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('*')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('status', 'confirmed')
+          .not('recurrence', 'is', null)
+          .neq('recurrence', 'none')
+          .neq('recurrence', 'once')
       ]);
 
       if (dtRes.error) throw dtRes.error;
@@ -143,6 +165,7 @@ export const useWeeklySlotsFetcher = ({
       if (apptDirectRes && 'error' in apptDirectRes && apptDirectRes.error) throw apptDirectRes.error;
       if (apptRecurringBaseRes && 'error' in apptRecurringBaseRes && apptRecurringBaseRes.error) throw apptRecurringBaseRes.error;
       if (listingRes.error) throw listingRes.error;
+      if (legacyRecurringRes[0].error) throw legacyRecurringRes[0].error;
 
       const timeSlotsDt = dtRes.data || [];
       const timeSlotsLegacy = legacyRes.data || [];
@@ -264,12 +287,102 @@ export const useWeeklySlotsFetcher = ({
         rangoFechas: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') }
       });
 
-      // Get only confirmed appointments from the database - rely on database triggers for recurring slot blocking
+      // Get confirmed appointments and project legacy recurring appointments into the future
       const allAppointments = apptAllRes.data || [];
+      const legacyRecurring = legacyRecurringRes[0].data || [];
       
-      console.log('📊 Using database-only conflicts for slot availability:', {
-        regularAppointments: allAppointments.length,
-        rangeUsado: { desde: format(baseDate, 'yyyy-MM-dd'), hasta: format(endDate, 'yyyy-MM-dd') }
+      console.log('🔄 Sistema Legacy de Recurrencia:', {
+        citasRecurrentesLegacy: legacyRecurring.length,
+        desglose: {
+          weekly: legacyRecurring.filter(a => a.recurrence === 'weekly').length,
+          biweekly: legacyRecurring.filter(a => a.recurrence === 'biweekly').length,
+          monthly: legacyRecurring.filter(a => a.recurrence === 'monthly').length
+        }
+      });
+
+      // Project legacy recurring appointments into future occurrences (up to 8 weeks)
+      const projectedLegacyOccurrences: Array<{ id: string; start: Date; end: Date }> = [];
+      const maxWeeksToProject = 8;
+      
+      for (const appt of legacyRecurring) {
+        const originalStart = new Date(appt.start_time);
+        const originalEnd = new Date(appt.end_time);
+        const dayOfWeek = originalStart.getDay(); // 0=Sunday, 1=Monday, etc.
+        const duration = originalEnd.getTime() - originalStart.getTime();
+        
+        // Calculate projections based on recurrence type
+        for (let weekOffset = 0; weekOffset < maxWeeksToProject; weekOffset++) {
+          let projectedDate: Date | null = null;
+          
+          switch (appt.recurrence) {
+            case 'weekly':
+              // Every week, same day and time
+              projectedDate = new Date(originalStart);
+              projectedDate.setDate(originalStart.getDate() + (weekOffset * 7));
+              break;
+              
+            case 'biweekly':
+              // Every 2 weeks
+              if (weekOffset % 2 === 0) {
+                projectedDate = new Date(originalStart);
+                projectedDate.setDate(originalStart.getDate() + (weekOffset * 7));
+              }
+              break;
+              
+            case 'monthly':
+              // Monthly pattern: try to keep same week-of-month and day-of-week
+              // Simplified: add ~4 weeks per iteration (will skip some weeks)
+              if (weekOffset % 4 === 0 && weekOffset > 0) {
+                const monthsToAdd = Math.floor(weekOffset / 4);
+                projectedDate = new Date(originalStart);
+                projectedDate.setMonth(originalStart.getMonth() + monthsToAdd);
+                
+                // Adjust to same day of week if needed
+                while (projectedDate.getDay() !== dayOfWeek) {
+                  projectedDate.setDate(projectedDate.getDate() + 1);
+                  if (projectedDate.getDate() > 28) break; // Safety check
+                }
+              }
+              break;
+          }
+          
+          if (projectedDate && projectedDate >= baseDate && projectedDate <= endDate) {
+            const projectedEnd = new Date(projectedDate.getTime() + duration);
+            projectedLegacyOccurrences.push({
+              id: `${appt.id}-projected-${weekOffset}`,
+              start: projectedDate,
+              end: projectedEnd
+            });
+          }
+        }
+      }
+      
+      console.log('📅 Proyecciones Legacy Generadas:', {
+        total: projectedLegacyOccurrences.length,
+        ejemplos: projectedLegacyOccurrences.slice(0, 3).map(p => ({
+          start: format(p.start, 'yyyy-MM-dd HH:mm'),
+          end: format(p.end, 'yyyy-MM-dd HH:mm')
+        }))
+      });
+
+      // Combine regular appointments with projected legacy occurrences for conflict detection
+      const combinedConflicts = [
+        ...allAppointments.map(a => ({
+          start_time: a.start_time,
+          end_time: a.end_time,
+          status: a.status
+        })),
+        ...projectedLegacyOccurrences.map(p => ({
+          start_time: p.start.toISOString(),
+          end_time: p.end.toISOString(),
+          status: 'confirmed' as const
+        }))
+      ];
+      
+      console.log('📊 Conflictos Combinados (appointments + proyecciones legacy):', {
+        appointmentsOriginales: allAppointments.length,
+        proyeccionesLegacy: projectedLegacyOccurrences.length,
+        totalConflictos: combinedConflicts.length
       });
 
       // Procesar slots con manejo correcto de TZ y compatibilidad legacy
@@ -298,7 +411,7 @@ export const useWeeklySlotsFetcher = ({
           slot_datetime_start: slotStart.toISOString(),
           slot_datetime_end: slotEnd.toISOString(),
         };
-        const { isBlocked, reason } = shouldBlockSlot(slotForBlock, allAppointments);
+        const { isBlocked, reason } = shouldBlockSlot(slotForBlock, combinedConflicts);
 
         // Datos para UI
         const slotDate = new Date(slotStart);
@@ -412,12 +525,12 @@ export const useWeeklySlotsFetcher = ({
       // Solo usar slots que puedan acomodar el servicio completo
       const finalWeeklySlots: WeeklySlot[] = accommodatableSlots;
 
-      // Calcular recomendación basada en adyacencia respecto solo a las reservas confirmadas en base de datos
+      // Calcular recomendación basada en adyacencia respecto a las reservas confirmadas + proyecciones legacy
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
       const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
-      // Usar solo las citas confirmadas de la base de datos
-      const adjacentPool = allAppointments;
+      // Usar las citas confirmadas de la base de datos + proyecciones legacy
+      const adjacentPool = combinedConflicts;
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);
