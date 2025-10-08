@@ -22,11 +22,12 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       const { data: { session } } = await supabase.auth.getSession();
       console.log("Current auth session:", session ? "User authenticated" : "No auth session");
       
-      // Get listing details including gallery_images
+      // Get listing details including gallery_images and slot_size
       const { data: listing, error } = await supabase
         .from('listings')
         .select(`
           *,
+          slot_size,
           service_type:service_type_id(
             name,
             category:category_id(

@@ -92,6 +92,7 @@ const ClientBooking = () => {
   // Enhanced validation - More permissive for better UX
   const isBookingValid = selectedDate && selectedTime && selectedVariants?.length > 0 && !isLoadingUserData;
   const selectedVariant = selectedVariants?.[0];
+  const slotSize = serviceDetails?.slot_size || 60; // Default to 60 if not specified
 
   const handleBackNavigation = () => {
     // Scroll to top before navigation
@@ -269,6 +270,7 @@ const ClientBooking = () => {
             setCustomVariableSelections(selections);
             setCustomVariablesTotalPrice(totalPrice);
           }}
+          slotSize={slotSize}
         />
 
         {/* Booking Summary */}
