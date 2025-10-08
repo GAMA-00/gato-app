@@ -517,7 +517,7 @@ export const useWeeklySlotsFetcher = ({
 
       // Filter slots that can accommodate the full service duration
       const accommodatableSlots = filteredByNotice.filter(slot => 
-        canAccommodateFullService(slot, filteredByNotice, serviceDuration, 60) // Use the serviceDuration parameter
+        canAccommodateFullService(slot, filteredByNotice, serviceDuration, serviceDuration) // Use serviceDuration as slot size
       );
 
       console.log(`📊 Slots que pueden acomodar duración completa: ${accommodatableSlots.length}/${filteredByNotice.length} (duración requerida: ${serviceDuration} min)`);

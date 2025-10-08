@@ -16,7 +16,7 @@ export const useProviderListing = () => {
       try {
         const { data, error } = await supabase
           .from('listings')
-          .select('id, standard_duration, duration')
+          .select('id, slot_size, standard_duration, duration')
           .eq('provider_id', user.id)
           .eq('is_active', true)
           .order('created_at', { ascending: true })
@@ -29,10 +29,10 @@ export const useProviderListing = () => {
         }
 
         setFirstListingId(data?.id || null);
-        // Usar standard_duration como primario, duration como fallback, 60 como último recurso
-        const duration = data?.standard_duration || data?.duration || 60;
+        // Priorizar slot_size, luego standard_duration, duration como fallback, 60 como último recurso
+        const duration = data?.slot_size || data?.standard_duration || data?.duration || 60;
         setServiceDuration(duration);
-        console.log('📋 Duración de servicio detectada:', { standard_duration: data?.standard_duration, duration: data?.duration, final: duration });
+        console.log('📋 Duración de servicio detectada:', { slot_size: data?.slot_size, standard_duration: data?.standard_duration, duration: data?.duration, final: duration });
       } catch (error) {
         console.error('Error in fetchFirstListing:', error);
       } finally {

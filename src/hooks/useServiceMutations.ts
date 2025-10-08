@@ -11,6 +11,7 @@ interface CreateListingData {
   base_price: number;
   duration: number;
   standard_duration: number;
+  slot_size: number;
   service_type_id: string;
   provider_id: string;
   is_post_payment: boolean;
@@ -64,6 +65,7 @@ export const useServiceMutations = () => {
         base_price: Number(serviceData.price),
         duration: Number(serviceData.duration), // Mantener por compatibilidad
         standard_duration: Number(serviceData.duration), // Fuente de verdad
+        slot_size: Number(serviceData.slotSize ?? 60),
         service_type_id: serviceData.subcategoryId!,
         provider_id: providerId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
@@ -206,6 +208,7 @@ export const useServiceMutations = () => {
         base_price: serviceData.price ? Number(serviceData.price) : undefined,
         duration: serviceData.duration ? Number(serviceData.duration) : undefined, // Mantener por compatibilidad
         standard_duration: serviceData.duration ? Number(serviceData.duration) : undefined, // Fuente de verdad
+        slot_size: serviceData.slotSize ? Number(serviceData.slotSize) : undefined,
         service_type_id: serviceData.subcategoryId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         service_variants: serviceData.serviceVariants,
