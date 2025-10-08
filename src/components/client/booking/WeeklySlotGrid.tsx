@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useWeeklySlots } from '@/hooks/useWeeklySlots';
 import SlotCard from '@/components/services/steps/SlotCard';
 import { format, addWeeks } from 'date-fns';
@@ -13,8 +12,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   RefreshCw,
-  AlertCircle,
-  CheckCircle
+  AlertCircle
 } from 'lucide-react';
 import { 
   isCurrentWeek, 
@@ -255,51 +253,26 @@ const WeeklySlotGrid = ({
   }
 
   return (
-    <Card className="shadow-md relative">
-      <img src="/lovable-uploads/093e198a-95d0-419b-93ad-7c094a6c79d5.png" alt="Seleccionar espacio" className="absolute top-4 left-4 h-12 w-12 z-10" />
+    <Card className="shadow-md">
       <CardHeader className="pb-4 px-4 pt-4 md:px-6">
-        <div className="text-center md:flex md:items-center md:justify-between md:text-left">
-          <div>
-            <CardTitle className="text-lg md:text-xl text-center md:text-left">
-              <span className="md:hidden">Selecciona la hora de inicio</span>
-              <span className="hidden md:inline md:ml-16">Selecciona la hora de inicio</span>
+        <div className="flex items-center gap-3">
+          <Calendar className="h-8 w-8 text-primary flex-shrink-0" />
+          <div className="flex-1">
+            <CardTitle className="text-lg md:text-xl">
+              Selecciona la hora de inicio
             </CardTitle>
-            <CardDescription className="hidden md:block mt-2 md:ml-16">
-              <span className="font-bold">Selecciona la hora de inicio</span>
-              {slotsNeeded > 1 && (
-                <div className="mt-2 space-y-1">
-                  <span className="block text-xs text-blue-600">
-                    💡 Se reservarán automáticamente {slotsNeeded} slots consecutivos ({actualTotalDuration} min)
+            {slotsNeeded > 1 && (
+              <CardDescription className="mt-2">
+                <span className="block text-xs text-muted-foreground">
+                  💡 Se reservarán automáticamente {slotsNeeded} slots consecutivos ({actualTotalDuration} min)
+                </span>
+                {selectedSlotIds.length > 0 && (
+                  <span className="block text-xs text-green-600 mt-1">
+                    ✅ Horario confirmado: {slotsNeeded} slots reservados
                   </span>
-                  {selectedSlotIds.length > 0 && (
-                    <span className="block text-xs text-green-600">
-                      ✅ Horario confirmado: {slotsNeeded} slots reservados
-                    </span>
-                  )}
-                </div>
-              )}
-            </CardDescription>
-            <CardDescription className="md:hidden text-center mt-2">
-              {stats.availableSlots} horarios de inicio disponibles
-              {slotsNeeded > 1 && (
-                <div className="mt-1 space-y-1">
-                  <span className="block text-xs text-blue-600">
-                    Se reservarán {slotsNeeded} slots automáticamente
-                  </span>
-                  {selectedSlotIds.length > 0 && (
-                    <span className="block text-xs text-green-600">
-                      ✅ Reservado
-                    </span>
-                  )}
-                </div>
-              )}
-            </CardDescription>
-          </div>
-          <div className="hidden md:flex items-center gap-2">
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              {stats.availableSlots} disponibles
-            </Badge>
+                )}
+              </CardDescription>
+            )}
           </div>
         </div>
       </CardHeader>
