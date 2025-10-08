@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import calendarIcon from '@/assets/calendar-icon.png';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import { format, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatDateES } from '@/lib/utils';
 import { 
-  Calendar, 
   ChevronLeft, 
   ChevronRight, 
   RefreshCw,
@@ -256,7 +256,7 @@ const WeeklySlotGrid = ({
     <Card className="shadow-md">
       <CardHeader className="pb-4 px-4 pt-4 md:px-6">
         <div className="flex items-center gap-3">
-          <Calendar className="h-8 w-8 text-primary flex-shrink-0" />
+          <img src={calendarIcon} alt="Calendar" className="h-12 w-12 flex-shrink-0" />
           <div className="flex-1">
             <CardTitle className="text-lg md:text-xl">
               Selecciona la hora de inicio
