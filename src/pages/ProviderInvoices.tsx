@@ -63,10 +63,7 @@ const ProviderInvoices: React.FC = () => {
   return (
     <>
       <Navbar />
-      <PageContainer 
-        title="Facturas" 
-        subtitle="Gestiona tus facturas postpago y revisa el historial de pagos"
-      >
+      <PageContainer>
         {/* SECTION 1: Post-payment invoices */}
         <div className="mb-8 space-y-4">
           <div>
