@@ -49,3 +49,6 @@ verify_jwt = false
 
 [functions.onvopay-transaction-lookup]
 verify_jwt = false
+
+[functions.onvopay-create-subscription]
+verify_jwt = true

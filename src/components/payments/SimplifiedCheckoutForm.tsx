@@ -180,6 +180,16 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       console.log('✅ Appointment creado exitosamente:', newAppointmentId);
 
+      // DETECTAR SI ES SERVICIO RECURRENTE
+      const isRecurring = appointmentData.recurrenceType && 
+                         appointmentData.recurrenceType !== 'once' && 
+                         appointmentData.recurrenceType !== 'none';
+
+      console.log('🔍 Tipo de servicio:', { 
+        recurrenceType: appointmentData.recurrenceType, 
+        isRecurring 
+      });
+
       // PASO 2: Procesar pago primero, luego guardar tarjeta con payment_method_id
 
       // PASO 3: Procesar pago
@@ -430,6 +440,57 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
         console.log('✅ Payment confirmed:', confirmData);
         finalPaymentData = confirmData;
+
+        // FASE 2: Si es servicio recurrente, crear suscripción en ONVO Pay
+        if (isRecurring && confirmData.onvopay_payment_method_id) {
+          console.log('📅 Creando suscripción recurrente en ONVO Pay...');
+          
+          try {
+            const subscriptionResponse = await supabase.functions.invoke(
+              'onvopay-create-subscription',
+              {
+                body: {
+                  appointmentId: newAppointmentId,
+                  amount: amount,
+                  recurrenceType: appointmentData.recurrenceType,
+                  paymentMethodId: confirmData.onvopay_payment_method_id,
+                  billing_info: {
+                    name: billingName,
+                    email: user?.email || '',
+                    phone: formatPhoneCR(billingData.phone),
+                    address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
+                  }
+                }
+              }
+            );
+
+            const { data: subscriptionData, error: subscriptionError } = subscriptionResponse;
+
+            if (subscriptionError || !subscriptionData?.success) {
+              console.error('⚠️ Error creando suscripción:', subscriptionError || subscriptionData);
+              toast({
+                variant: "destructive",
+                title: "Advertencia",
+                description: "El pago fue exitoso pero hubo un problema configurando la suscripción recurrente. Contacta soporte.",
+                duration: 8000
+              });
+            } else {
+              console.log('✅ Suscripción creada:', {
+                subscriptionId: subscriptionData.subscription_id,
+                nextChargeDate: subscriptionData.next_charge_date
+              });
+
+              toast({
+                title: "Suscripción creada",
+                description: `Próximo cobro automático: ${subscriptionData.next_charge_date}`,
+                duration: 5000
+              });
+            }
+          } catch (subError) {
+            console.error('❌ Error en suscripción:', subError);
+            // No bloquear el flujo si el pago ya fue exitoso
+          }
+        }
 
         // PASO 2.5: Guardar tarjeta con payment_method_id de OnvoPay si el usuario lo solicitó
         if (showNewCardForm && newCardData.saveCard && confirmData.onvopay_payment_method_id) {

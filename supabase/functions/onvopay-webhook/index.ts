@@ -236,6 +236,8 @@ async function handlePaymentFailed(supabaseAdmin: any, eventData: any) {
 async function handleSubscriptionCharged(supabaseAdmin: any, eventData: any) {
   const { subscription_id, payment_id, amount, reference } = eventData;
   
+  console.log('💰 Procesando cobro de suscripción:', { subscription_id, payment_id, amount });
+  
   // Find the subscription
   const { data: subscription, error: subError } = await supabaseAdmin
     .from('onvopay_subscriptions')
@@ -247,49 +249,103 @@ async function handleSubscriptionCharged(supabaseAdmin: any, eventData: any) {
     throw new Error(`Subscription not found: ${subscription_id}`);
   }
 
+  // FASE 3: Crear registro de pago para tracking del cobro recurrente
+  let newAppointmentId = null;
+
   // Create new appointment based on template
   if (subscription.inherit_original_data && subscription.original_appointment_template) {
     const template = subscription.original_appointment_template;
     
     // Calculate next appointment date/time based on interval
     const nextDate = new Date();
-    if (subscription.interval_type === 'weekly') {
+    if (subscription.interval_type === 'week') {
       nextDate.setDate(nextDate.getDate() + (7 * subscription.interval_count));
-    } else if (subscription.interval_type === 'monthly') {
+    } else if (subscription.interval_type === 'month') {
       nextDate.setMonth(nextDate.getMonth() + subscription.interval_count);
     }
 
-    // Create new appointment
-    const { error: aptError } = await supabaseAdmin
+    // FASE 3: Validar si ya existe appointment para esta fecha (evitar duplicados)
+    const { data: existingAppointment } = await supabaseAdmin
       .from('appointments')
+      .select('id')
+      .eq('recurring_rule_id', subscription.recurring_rule_id)
+      .gte('start_time', nextDate.toISOString().split('T')[0])
+      .lt('start_time', new Date(nextDate.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      .maybeSingle();
+
+    if (existingAppointment) {
+      console.log('⚠️ Appointment ya existe para esta fecha, usando existente:', existingAppointment.id);
+      newAppointmentId = existingAppointment.id;
+    } else {
+      // Create new appointment
+      const { data: newAppointment, error: aptError } = await supabaseAdmin
+        .from('appointments')
+        .insert({
+          provider_id: subscription.provider_id,
+          client_id: subscription.client_id,
+          listing_id: template.listing_id,
+          residencia_id: template.residencia_id,
+          recurring_rule_id: subscription.recurring_rule_id,
+          start_time: nextDate.toISOString(),
+          end_time: new Date(nextDate.getTime() + 60 * 60 * 1000).toISOString(), // +1 hour
+          status: 'confirmed', // Confirmar automáticamente porque el pago ya fue exitoso
+          client_name: template.client_name,
+          client_email: template.client_email,
+          client_phone: template.client_phone,
+          client_address: template.client_address,
+          notes: template.notes,
+          recurrence: subscription.interval_type === 'week' 
+            ? (subscription.interval_count === 1 ? 'weekly' : subscription.interval_count === 2 ? 'biweekly' : 'triweekly')
+            : 'monthly',
+          external_booking: false,
+          is_recurring_instance: true
+        })
+        .select()
+        .single();
+
+      if (aptError) {
+        console.error('❌ Error creating recurring appointment:', aptError);
+      } else {
+        newAppointmentId = newAppointment.id;
+        console.log('✅ Nuevo appointment recurrente creado:', newAppointmentId);
+      }
+    }
+  }
+
+  // FASE 3: Crear registro de pago en onvopay_payments
+  if (newAppointmentId) {
+    const { error: paymentError } = await supabaseAdmin
+      .from('onvopay_payments')
       .insert({
-        provider_id: subscription.provider_id,
+        appointment_id: newAppointmentId,
         client_id: subscription.client_id,
-        listing_id: template.listing_id,
-        residencia_id: template.residencia_id,
-        start_time: nextDate.toISOString(),
-        end_time: new Date(nextDate.getTime() + 60 * 60 * 1000).toISOString(), // +1 hour
-        status: 'pending',
-        client_name: template.client_name,
-        client_email: template.client_email,
-        client_phone: template.client_phone,
-        client_address: template.client_address,
-        notes: template.notes,
-        recurrence: subscription.interval_type,
-        external_booking: false,
-        is_recurring_instance: true
+        provider_id: subscription.provider_id,
+        amount: amount,
+        subtotal: Math.round(amount / 1.13), // Calcular subtotal sin IVA
+        iva_amount: amount - Math.round(amount / 1.13),
+        status: 'captured',
+        payment_type: 'subscription',
+        payment_method: 'card',
+        onvopay_payment_id: payment_id,
+        captured_at: new Date().toISOString(),
+        billing_info: {
+          from_subscription: true,
+          subscription_id: subscription_id
+        }
       });
 
-    if (aptError) {
-      console.error('Error creating recurring appointment:', aptError);
+    if (paymentError) {
+      console.error('⚠️ Error creando registro de pago:', paymentError);
+    } else {
+      console.log('✅ Registro de pago creado para cobro recurrente');
     }
   }
 
   // Update subscription
   const nextChargeDate = new Date();
-  if (subscription.interval_type === 'weekly') {
+  if (subscription.interval_type === 'week') {
     nextChargeDate.setDate(nextChargeDate.getDate() + (7 * subscription.interval_count));
-  } else if (subscription.interval_type === 'monthly') {
+  } else if (subscription.interval_type === 'month') {
     nextChargeDate.setMonth(nextChargeDate.getMonth() + subscription.interval_count);
   }
 
@@ -306,7 +362,8 @@ async function handleSubscriptionCharged(supabaseAdmin: any, eventData: any) {
     throw new Error(`Error updating subscription: ${updateError.message}`);
   }
 
-  console.log('Subscription charged successfully:', subscription_id);
+  console.log('✅ Subscription charged successfully:', subscription_id);
+  console.log('📅 Next charge date:', nextChargeDate.toISOString().split('T')[0]);
 }
 
 async function handleSubscriptionFailed(supabaseAdmin: any, eventData: any) {
