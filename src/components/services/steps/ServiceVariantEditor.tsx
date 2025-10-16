@@ -263,23 +263,6 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                 </div>
               </div>
 
-              {isPostPayment === true && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-gray-700 mb-0.5">
-                        Modalidad Post-pago
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        Tarifa base: ${variant.price || 0} + costos adicionales al finalizar
-                      </p>
-                    </div>
-                    <div className="bg-blue-100 px-3 py-1.5 rounded-md text-xs font-semibold text-blue-700 whitespace-nowrap">
-                      Post-pago
-                    </div>
-                  </div>
-                </div>
-              )}
               {isPostPayment === "ambas" && (
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
                   <strong>Modalidades disponibles:</strong> Pre-pago y Post-pago
