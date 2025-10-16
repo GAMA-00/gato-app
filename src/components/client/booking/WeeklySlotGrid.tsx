@@ -215,35 +215,35 @@ const WeeklySlotGrid = ({
     const navigationHint = getNavigationHint(currentWeek, false);
     
     return (
-      <Card className="shadow-md border-yellow-200 bg-yellow-50">
+      <Card className="shadow-md border-blue-200 bg-blue-50/30">
         <CardContent className="pt-6">
-          <div className="text-center py-8">
-            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
-            <p className="text-yellow-800 font-medium mb-2">
+          <div className="text-center py-8 px-4">
+            <AlertCircle className="h-10 w-10 mx-auto mb-4 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {contextMessage}
-            </p>
-            <p className="text-yellow-700 text-sm mb-4">
+            </h3>
+            <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
               {navigationHint}
             </p>
-            <div className="flex justify-center gap-2">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={goToPreviousWeek}
                 disabled={currentWeek === 0}
-                className="text-yellow-700 border-yellow-300"
+                className="w-full sm:w-auto min-h-[40px] border-blue-300 hover:bg-blue-50 transition-colors"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
+                <ChevronLeft className="h-4 w-4 mr-2" />
                 Semana anterior
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={goToNextWeek}
-                className="text-yellow-700 border-yellow-300"
+                className="w-full sm:w-auto min-h-[40px] border-blue-300 hover:bg-blue-50 transition-colors"
               >
                 Próxima semana
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
           </div>
