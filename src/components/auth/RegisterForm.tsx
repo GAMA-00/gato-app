@@ -361,18 +361,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
-                      <FormControl>
-                        <PhoneInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          disabled={isSubmitting}
-                          placeholder="12345678"
-                        />
-                      </FormControl>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Solo números costarricenses (8 dígitos)
-                      </p>
-                      <FormMessage />
+                  <FormControl>
+                    <PhoneInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isSubmitting}
+                      placeholder="12345678"
+                    />
+                  </FormControl>
+                  <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -504,18 +501,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
-                  <FormControl>
-                    <PhoneInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      disabled={isSubmitting}
-                      placeholder="12345678"
-                    />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Solo números costarricenses (8 dígitos)
-                  </p>
-                  <FormMessage />
+              <FormControl>
+                <PhoneInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isSubmitting}
+                  placeholder="12345678"
+                />
+              </FormControl>
+              <FormMessage />
                 </FormItem>
               )}
             />
