@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Edit, User, Mail, Phone, Building, FileText, Calendar, RefreshCw } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import EditProfileModal from '@/components/profile/EditProfileModal';
+import { formatPhoneForDisplay } from '@/utils/phoneUtils';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -105,7 +106,7 @@ const Profile = () => {
               {displayData.phone && (
                 <div className="flex items-center space-x-3">
                   <Phone className="h-5 w-5 text-muted-foreground" />
-                  <span>{displayData.phone}</span>
+                  <span>{formatPhoneForDisplay(displayData.phone)}</span>
                 </div>
               )}
               

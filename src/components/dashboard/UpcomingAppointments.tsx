@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Appointment, Client, Service } from '@/lib/types';
 import { MOCK_SERVICES, MOCK_CLIENTS } from '@/lib/data';
+import { formatPhoneForDisplay } from '@/utils/phoneUtils';
 
 interface AppointmentItemProps {
   appointment: Appointment;
@@ -63,7 +64,7 @@ const AppointmentItem: React.FC<AppointmentItemProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground mt-1">
           <span className="truncate">
             {/* Show the appropriate name based on context */}
-            {displayName} • {client.phone}
+            {displayName} • {formatPhoneForDisplay(client.phone)}
           </span>
           <span className="truncate">
             {format(appointment.startTime, 'MMM d, h:mm a')} - {format(appointment.endTime, 'h:mm a')}

@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Phone, User, UserPlus, Loader2, AlertCircle, Upload, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, Loader2, AlertCircle, Upload, Eye, EyeOff } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Residencia, UserRole } from '@/lib/types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import ClientResidenceField from './ClientResidenceField';
@@ -21,7 +22,9 @@ import { supabase } from '@/integrations/supabase/client';
 export const registerSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Correo electrónico inválido'),
-  phone: z.string().min(8, 'Número de teléfono inválido'),
+  phone: z.string()
+    .regex(/^\+506\d{8}$/, 'Debe ser un número costarricense válido (+506 + 8 dígitos)')
+    .length(12, 'El número debe tener exactamente 8 dígitos'),
   providerResidenciaIds: z.array(z.string()).optional(),
   residenciaId: z.string().optional(),
   condominiumId: z.string().optional(),
@@ -58,7 +61,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const formSchema = z.object({
     name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
     email: z.string().email('Correo electrónico inválido'),
-    phone: z.string().min(8, 'Número de teléfono inválido'),
+    phone: z.string()
+      .regex(/^\+506\d{8}$/, 'Debe ser un número costarricense válido (+506 + 8 dígitos)')
+      .length(12, 'El número debe tener exactamente 8 dígitos'),
     providerResidenciaIds: userRole === 'provider' ? z.array(z.string()).min(1, 'Selecciona al menos una residencia') : z.array(z.string()).optional(),
     residenciaId: userRole === 'client' ? z.string().min(1, 'Selecciona una residencia') : z.string().optional(),
     condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
@@ -357,16 +362,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     <FormItem>
                       <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="+52 1234567890"
-                            className="pl-10 h-12 text-base"
-                            {...field}
-                            disabled={isSubmitting}
-                          />
-                        </div>
+                        <PhoneInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          disabled={isSubmitting}
+                          placeholder="12345678"
+                        />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Solo números costarricenses (8 dígitos)
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -500,16 +505,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 <FormItem>
                   <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="+52 1234567890"
-                        className="pl-10 h-12 text-base"
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                    <PhoneInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isSubmitting}
+                      placeholder="12345678"
+                    />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Solo números costarricenses (8 dígitos)
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

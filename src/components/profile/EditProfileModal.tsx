@@ -7,6 +7,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { uploadCertificationFiles, uploadGalleryImages } from '@/utils/uploadService';
 import { supabase } from '@/integrations/supabase/client';
+import { formatPhoneForDisplay } from '@/utils/phoneUtils';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Button } from '@/components/ui/button';
 import UnifiedAvatar from '@/components/ui/unified-avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,7 +36,11 @@ import { useResidencias } from '@/hooks/useResidencias';
 
 const clientProfileSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
-  phone: z.string().optional(),
+  phone: z.string()
+    .regex(/^\+506\d{8}$/, 'Debe ser un número costarricense válido (+506 + 8 dígitos)')
+    .length(12, 'El número debe tener exactamente 8 dígitos')
+    .optional()
+    .or(z.literal('')),
   residenciaId: z.string().optional(),
   condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
@@ -43,7 +49,11 @@ const clientProfileSchema = z.object({
 
 const providerProfileSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
-  phone: z.string().optional(),
+  phone: z.string()
+    .regex(/^\+506\d{8}$/, 'Debe ser un número costarricense válido (+506 + 8 dígitos)')
+    .length(12, 'El número debe tener exactamente 8 dígitos')
+    .optional()
+    .or(z.literal('')),
   residenciaId: z.string().optional(),
   condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
@@ -416,8 +426,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
                   <FormItem>
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <PhoneInput
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="12345678"
+                      />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Solo números costarricenses (8 dígitos)
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
