@@ -106,18 +106,18 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
         </Button>
       </div>
       {isPostPayment === true && (
-        <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start gap-3">
-            <div className="text-orange-600 mt-0.5">
-              <AlertCircle className="w-4 h-4" />
+            <div className="text-blue-600 mt-0.5">
+              <AlertCircle className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-orange-800 mb-1">
-                Servicios Post-pago - Tarifa Base Obligatoria
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900 mb-1.5">
+                Servicios Post-pago
               </p>
-              <p className="text-xs text-orange-700">
-                Para servicios post-pago, debes definir una <strong>tarifa base</strong> que se cobrará al cliente al momento de hacer la reserva. 
-                Los costos adicionales se agregarán al finalizar el servicio mediante un formulario de facturación.
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Define una <strong>tarifa base obligatoria</strong> que se cobrará al momento de la reserva. 
+                Los costos adicionales se agregarán al finalizar mediante un formulario de facturación.
               </p>
             </div>
           </div>
@@ -135,13 +135,13 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
           <Card key={variant.id || index} className="border">
             <CardContent className="p-4">
               <div className="grid grid-cols-12 gap-3">
-                <div className="col-span-12 mb-2">
+                <div className="col-span-12">
                   <FormField
                     control={control}
                     name={`serviceVariants.${index}.name`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Nombre del servicio</FormLabel>
+                        <FormLabel className="text-sm font-medium">Nombre del servicio</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Ej. Corte básico" 
@@ -156,14 +156,14 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                 </div>
                 
                 {isPostPayment === true && (
-                  <div className="col-span-4">
+                  <div className="col-span-5">
                     <FormField
                       control={control}
                       name={`serviceVariants.${index}.price`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-medium text-orange-700">
-                            Tarifa Base (se cobra al reservar)
+                          <FormLabel className="text-sm font-medium">
+                            Tarifa Base
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
@@ -174,14 +174,11 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                                 placeholder="Precio base" 
                                 value={variant.price}
                                 onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
-                                className="pl-7 border-orange-200 focus:border-orange-400"
+                                className="pl-7"
                                 required
                               />
                             </div>
                           </FormControl>
-                          <p className="text-xs text-orange-600 mt-1">
-                            Esta tarifa se cobra al cliente al momento de hacer la reserva
-                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -217,13 +214,13 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                   </div>
                 )}
                 
-                <div className={isPostPayment === true ? "col-span-6" : (showPriceFields ? "col-span-6" : "col-span-8")}>
+                <div className={isPostPayment === true ? "col-span-5" : (showPriceFields ? "col-span-6" : "col-span-8")}>
                   <FormField
                     control={control}
                     name={`serviceVariants.${index}.duration`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">
+                        <FormLabel className="text-sm font-medium">
                           Duración {isPostPayment === true ? "(estimada)" : ""} (min)
                         </FormLabel>
                         <FormControl>
@@ -267,16 +264,18 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
               </div>
 
               {isPostPayment === true && (
-                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-orange-800">Modalidad Post-pago</p>
-                      <p className="text-xs text-orange-700">
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-700 mb-0.5">
+                        Modalidad Post-pago
+                      </p>
+                      <p className="text-xs text-gray-600">
                         Tarifa base: ${variant.price || 0} + costos adicionales al finalizar
                       </p>
                     </div>
-                    <div className="bg-orange-100 px-2 py-1 rounded text-xs font-medium text-orange-800">
-                      Post pago
+                    <div className="bg-blue-100 px-3 py-1.5 rounded-md text-xs font-semibold text-blue-700 whitespace-nowrap">
+                      Post-pago
                     </div>
                   </div>
                 </div>
