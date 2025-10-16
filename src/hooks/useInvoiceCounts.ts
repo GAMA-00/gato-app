@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Hook para contar facturas pendientes por generar (proveedores)
+// Hook para contar facturas postpago que necesitan acción del proveedor
 export const usePendingInvoicesCount = () => {
   const { user } = useAuth();
   
@@ -13,6 +13,7 @@ export const usePendingInvoicesCount = () => {
         return 0;
       }
 
+      // Solo contar draft y rejected (submitted está esperando al cliente)
       const { count, error } = await supabase
         .from('post_payment_invoices')
         .select('*', { count: 'exact', head: true })
@@ -27,7 +28,7 @@ export const usePendingInvoicesCount = () => {
       return count || 0;
     },
     enabled: !!user?.id && user.role === 'provider',
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 };
 

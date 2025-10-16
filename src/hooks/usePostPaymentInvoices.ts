@@ -115,7 +115,7 @@ export const useAutoCreatePostPaymentInvoices = (providerId?: string) => {
   });
 };
 
-// Hook for providers to get their pending invoices
+// Hook for providers to get their pending invoices (draft/rejected/submitted)
 export const usePendingInvoices = (providerId?: string) => {
   // Auto-create invoices for completed post-payment services
   useAutoCreatePostPaymentInvoices(providerId);
@@ -140,7 +140,7 @@ export const usePendingInvoices = (providerId?: string) => {
           )
         `)
         .eq('provider_id', providerId)
-        .in('status', ['draft', 'rejected'])
+        .in('status', ['draft', 'rejected', 'submitted'])
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -347,6 +347,93 @@ export const useSubmitInvoiceMutation = () => {
   });
 };
 
+// Hook to get unified paid invoices (from both tables)
+export const usePaidInvoices = (providerId?: string) => {
+  return useQuery({
+    queryKey: ['paid-invoices', providerId],
+    queryFn: async () => {
+      if (!providerId) return [];
+
+      // Get paid prepaid invoices
+      const { data: prepaidInvoices, error: prepaidError } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          appointments!inner(
+            id,
+            start_time,
+            client_name,
+            listings!inner(title)
+          )
+        `)
+        .eq('provider_id', providerId)
+        .in('status', ['paid', 'completed'])
+        .order('paid_at', { ascending: false });
+
+      if (prepaidError) {
+        console.error('Error fetching prepaid invoices:', prepaidError);
+      }
+
+      // Get approved post-payment invoices (approved = paid)
+      const { data: postpaidInvoices, error: postpaidError } = await supabase
+        .from('post_payment_invoices')
+        .select(`
+          *,
+          appointments!inner(
+            id,
+            start_time,
+            client_name,
+            listings!inner(title)
+          )
+        `)
+        .eq('provider_id', providerId)
+        .eq('status', 'approved')
+        .order('approved_at', { ascending: false });
+
+      if (postpaidError) {
+        console.error('Error fetching postpaid invoices:', postpaidError);
+      }
+
+      // Unify format
+      const unifiedInvoices = [
+        ...(prepaidInvoices || []).map(inv => ({
+          id: inv.id,
+          invoice_number: inv.invoice_number,
+          type: 'prepaid' as const,
+          appointment_id: inv.appointment_id,
+          client_name: inv.appointments?.client_name || 'N/A',
+          service_title: inv.appointments?.listings?.title || 'N/A',
+          amount: inv.total_price,
+          payment_date: inv.paid_at || inv.completed_at || inv.invoice_date,
+          payment_method_id: inv.onvopay_payment_id,
+          status: inv.status,
+          created_at: inv.created_at
+        })),
+        ...(postpaidInvoices || []).map(inv => ({
+          id: inv.id,
+          invoice_number: `PP-${inv.id.slice(0, 8)}`,
+          type: 'postpaid' as const,
+          appointment_id: inv.appointment_id,
+          client_name: inv.appointments?.client_name || 'N/A',
+          service_title: inv.appointments?.listings?.title || 'N/A',
+          amount: inv.total_price,
+          payment_date: inv.approved_at || inv.created_at,
+          payment_method_id: null,
+          status: 'approved',
+          created_at: inv.created_at
+        }))
+      ];
+
+      // Sort by payment date
+      return unifiedInvoices.sort((a, b) => 
+        new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()
+      );
+    },
+    enabled: !!providerId,
+    refetchInterval: 30000,
+  });
+};
+
 // Mutation for client to approve/reject invoice
 export const useInvoiceApprovalMutation = () => {
   const queryClient = useQueryClient();
@@ -361,12 +448,34 @@ export const useInvoiceApprovalMutation = () => {
       approved: boolean; 
       rejectionReason?: string;
     }) => {
+      // Get invoice details first
+      const { data: invoice, error: fetchError } = await supabase
+        .from('post_payment_invoices')
+        .select('*, appointments!inner(id, final_price)')
+        .eq('id', invoiceId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const updateData: any = {
         status: approved ? 'approved' : 'rejected'
       };
 
       if (approved) {
         updateData.approved_at = new Date().toISOString();
+
+        // Update appointment final_price when approved
+        const { error: appointmentError } = await supabase
+          .from('appointments')
+          .update({
+            final_price: invoice.total_price,
+            price_finalized: true
+          })
+          .eq('id', invoice.appointment_id);
+
+        if (appointmentError) {
+          console.error('Error updating appointment price:', appointmentError);
+        }
       } else {
         updateData.rejected_at = new Date().toISOString();
         updateData.rejection_reason = rejectionReason;
@@ -383,7 +492,8 @@ export const useInvoiceApprovalMutation = () => {
     onSuccess: (_, { approved }) => {
       queryClient.invalidateQueries({ queryKey: ['pending-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['client-invoices'] });
-      toast.success(approved ? 'Factura aprobada' : 'Factura rechazada');
+      queryClient.invalidateQueries({ queryKey: ['paid-invoices'] });
+      toast.success(approved ? 'Factura aprobada y pagada' : 'Factura rechazada');
     },
     onError: (error) => {
       console.error('Error processing invoice approval:', error);
