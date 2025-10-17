@@ -99,30 +99,13 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
         <Button 
           type="button" 
           variant="outline" 
-          size="sm"
+          size="default"
           onClick={handleAddServiceVariant}
+          className="px-4"
         >
-          <Plus className="h-4 w-4 mr-1" /> Agregar servicio
+          <Plus className="h-4 w-4 mr-2" /> Agregar servicio
         </Button>
       </div>
-      {isPostPayment === true && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="text-blue-600 mt-0.5">
-              <AlertCircle className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900 mb-1.5">
-                Servicios Post-pago
-              </p>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Define una <strong>tarifa base obligatoria</strong> que se cobrará al momento de la reserva. 
-                Los costos adicionales se agregarán al finalizar mediante un formulario de facturación.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
       
       {showPriceFields && (
         <p className="text-sm text-muted-foreground mb-4">
