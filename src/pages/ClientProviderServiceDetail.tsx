@@ -22,7 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ProviderReviews from '@/components/providers/ProviderReviews';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
-import EnhancedAvatar from '@/components/ui/enhanced-avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 
 
@@ -184,13 +184,11 @@ const ClientProviderServiceDetail = () => {
 
           {/* 1. Foto de Perfil, Nombre, Calificación y Nivel */}
           <div className="text-center space-y-4 w-full">
-            <EnhancedAvatar 
+            <UnifiedAvatar 
               src={transformedProvider.avatar}
-              alt={transformedProvider.name}
-              fallback={transformedProvider.name.substring(0, 2).toUpperCase()}
+              name={transformedProvider.name}
+              size="xl"
               className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg"
-              onError={() => console.error('ClientProviderServiceDetail: Avatar failed to load for', transformedProvider.name)}
-              onLoad={() => console.log('ClientProviderServiceDetail: Avatar loaded for', transformedProvider.name)}
             />
             
             <div className="w-full px-2">

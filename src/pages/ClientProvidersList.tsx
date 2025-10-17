@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import UnifiedAvatar from '@/components/ui/unified-avatar';
 import Navbar from '@/components/layout/Navbar';
 
 interface ValidUser {
@@ -141,12 +141,12 @@ const ClientProvidersList = () => {
                   onClick={() => navigate(`/client/service/${listing.id}`)}
                 >
                   <div className="flex items-center mb-4">
-                    <Avatar className="h-12 w-12 mr-3">
-                      <AvatarImage src={userData.avatar_url} />
-                      <AvatarFallback>
-                        {userData.name ? userData.name.substring(0, 2).toUpperCase() : <User className="h-6 w-6" />}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UnifiedAvatar
+                      src={userData.avatar_url}
+                      name={userData.name || 'Proveedor'}
+                      size="md"
+                      className="mr-3"
+                    />
                     <div>
                       <h3 className="font-semibold">{userData.name || 'Proveedor'}</h3>
                       <div className="flex items-center">
