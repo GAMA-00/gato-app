@@ -99,11 +99,11 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
         <Button 
           type="button" 
           variant="outline" 
-          size="default"
+          size="sm"
           onClick={handleAddServiceVariant}
-          className="px-6"
+          className="px-3"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-1.5" />
           <span className="text-sm">Agregar servicio</span>
         </Button>
       </div>
