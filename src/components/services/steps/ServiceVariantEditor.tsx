@@ -101,7 +101,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
           variant="outline" 
           size="sm"
           onClick={handleAddServiceVariant}
-          className="px-3"
+          className="px-4 py-2"
         >
           <Plus className="h-4 w-4 mr-1.5" />
           <span className="text-sm">Agregar servicio</span>
