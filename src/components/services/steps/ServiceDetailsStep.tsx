@@ -70,7 +70,7 @@ const ServiceDetailsStep: React.FC = () => {
             Configuración de Horarios
           </CardTitle>
           <CardDescription className="text-sm text-stone-600">
-            Define el tamaño de los slots de tiempo que se mostrarán a los clientes para reservar tu servicio.
+            Define el tamaño de los bloques de horario que se mostrarán a los clientes para reservar tu servicio.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -79,7 +79,7 @@ const ServiceDetailsStep: React.FC = () => {
             name="slotSize"
             render={({ field }) => (
               <FormItem className="space-y-4">
-                <FormLabel className="text-base font-medium">Tamaño de Slot</FormLabel>
+                <FormLabel className="text-base font-medium">Tamaño de Bloque de Horario</FormLabel>
                 <FormControl>
                   <RadioGroup
                     value={field.value?.toString()}
@@ -88,25 +88,15 @@ const ServiceDetailsStep: React.FC = () => {
                   >
                     <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <RadioGroupItem value="30" id="slot-30" />
-                      <div className="space-y-1">
-                        <FormLabel htmlFor="slot-30" className="font-medium cursor-pointer">
-                          30 minutos
-                        </FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Slots más pequeños, mayor flexibilidad de horarios
-                        </p>
-                      </div>
+                      <FormLabel htmlFor="slot-30" className="font-medium cursor-pointer">
+                        30 minutos
+                      </FormLabel>
                     </div>
                     <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <RadioGroupItem value="60" id="slot-60" />
-                      <div className="space-y-1">
-                        <FormLabel htmlFor="slot-60" className="font-medium cursor-pointer">
-                          60 minutos (recomendado)
-                        </FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Slots estándar, más fácil de gestionar
-                        </p>
-                      </div>
+                      <FormLabel htmlFor="slot-60" className="font-medium cursor-pointer">
+                        60 minutos
+                      </FormLabel>
                     </div>
                   </RadioGroup>
                 </FormControl>
@@ -115,9 +105,7 @@ const ServiceDetailsStep: React.FC = () => {
                   <div className="text-xs text-blue-800">
                     <p className="font-medium mb-1">¿Cómo funciona?</p>
                     <p>
-                      El tamaño de slot define la grilla de horarios que verán los clientes. 
-                      Si un servicio dura 90 minutos y eliges slots de 60 minutos, se reservarán 
-                      2 slots consecutivos (120 minutos total).
+                      El tamaño del bloque de horario define cómo se mostrará tu disponibilidad a los clientes. No indica la duración de tus servicios, sino la frecuencia con la que se dividen tus horarios en la agenda.
                     </p>
                   </div>
                 </div>
