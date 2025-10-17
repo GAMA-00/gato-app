@@ -84,7 +84,7 @@ export const useUnifiedProviderAvailability = ({
 
       const timeSlots: TimeSlot[] = [];
       const now = new Date();
-      const step = Math.max(15, serviceDuration); // paso = duración del servicio (mín. 15m)
+      const step = Math.max(2, serviceDuration); // paso = duración del servicio (mín. 2m)
       for (const av of workingHours) {
         const [sH, sM] = toHM(av.start_time as string).split(':').map(Number);
         const [eH, eM] = toHM(av.end_time as string).split(':').map(Number);

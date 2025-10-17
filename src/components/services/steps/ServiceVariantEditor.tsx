@@ -210,8 +210,8 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                         <FormControl>
                           <Input 
                             type="number" 
-                            min="15" 
-                            step="5" 
+                            min="2" 
+                            step="1" 
                             placeholder="Minutos" 
                             value={variant.duration}
                             onChange={(e) => handleServiceVariantChange(index, 'duration', e.target.value)}

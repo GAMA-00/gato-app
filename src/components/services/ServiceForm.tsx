@@ -28,7 +28,7 @@ const serviceSchema = z.object({
   subcategoryId: z.string().min(1, 'La subcategoría es requerida'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   price: z.coerce.number().min(0, 'El precio debe ser mayor a 0'),
-  duration: z.coerce.number().min(15, 'La duración debe ser de al menos 15 minutos'),
+  duration: z.coerce.number().min(2, 'La duración debe ser de al menos 2 minutos'),
   isPostPayment: z.union([z.boolean(), z.literal("ambas")]).default(false),
   slotSize: z.coerce.number().refine((val) => val === 30 || val === 60, {
     message: 'El tamaño de slot debe ser 30 o 60 minutos'
@@ -42,8 +42,8 @@ const serviceSchema = z.object({
     }, 'El precio debe ser mayor a 0'),
     duration: z.union([z.string(), z.coerce.number()]).refine((val) => {
       const num = typeof val === 'string' ? parseFloat(val) : val;
-      return !isNaN(num) && num >= 15;
-    }, 'La duración debe ser de al menos 15 minutos'),
+      return !isNaN(num) && num >= 2;
+    }, 'La duración debe ser de al menos 2 minutos'),
     customVariables: z.array(z.any()).optional().default([]),
     additionalPersonPrice: z.union([z.string(), z.coerce.number()]).optional(),
     maxPersons: z.union([z.string(), z.coerce.number()]).optional()

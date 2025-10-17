@@ -164,7 +164,7 @@ export const useProviderAvailability = ({
 
       // 5.2 Generar slots a partir de la disponibilidad configurada, avanzando por serviceDuration
       const now = new Date();
-      const serviceStep = Math.max(15, serviceDuration); // mínimo 15m para evitar bucles extraños
+      const serviceStep = Math.max(2, serviceDuration); // mínimo 2m para evitar bucles extraños
 
       workingHours.forEach(av => {
         const startStr = av.start_time as string | undefined;
