@@ -277,42 +277,53 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           {/* Botones de acción */}
           {(booking.status === 'pending' || booking.status === 'confirmed') && (
             <div className="flex flex-col gap-2 pt-2">
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="w-full h-11 text-sm font-medium text-blue-600 bg-white border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 flex items-center justify-center gap-2 transition-colors"
-                onClick={() => setShowSkipDialog(true)}
-                disabled={isLoading}
-              >
-                <SkipForward className="h-4 w-4" />
-                <span>Saltar la próxima cita</span>
-              </Button>
+              {/* Para citas RECURRENTES: mostrar botón Saltar */}
               {isRecurring && (
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="w-full h-11 text-sm font-medium text-red-600 bg-white border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 flex items-center justify-center gap-2 transition-colors"
-                  onClick={() => setShowCancelAllDialog(true)}
+                  className="w-full h-11 text-sm font-medium text-blue-600 bg-white border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 flex items-center justify-center gap-2 transition-colors"
+                  onClick={() => setShowSkipDialog(true)}
                   disabled={isLoading}
                 >
-                  <X className="h-4 w-4" />
-                  <span>Cancelar plan recurrente</span>
+                  <SkipForward className="h-4 w-4" />
+                  <span>Saltar la próxima cita</span>
                 </Button>
               )}
+              
+              {/* Botón de cancelar: diferente texto según tipo */}
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="w-full h-11 text-sm font-medium text-red-600 bg-white border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 flex items-center justify-center gap-2 transition-colors"
+                onClick={() => {
+                  if (isRecurring) {
+                    setShowCancelAllDialog(true);
+                  } else {
+                    setShowSkipDialog(true);
+                  }
+                }}
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+                <span>{isRecurring ? 'Cancelar plan recurrente' : 'Cancelar'}</span>
+              </Button>
             </div>
           )}
         </div>
       </CardContent>
 
-      {/* Diálogo de confirmación para Saltar */}
+      {/* Diálogo de confirmación para Saltar/Cancelar */}
       <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Saltar la próxima cita?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isRecurring ? '¿Saltar la próxima cita?' : '¿Cancelar esta cita?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {isRecurring 
                 ? 'Esta fecha se saltará y verás la siguiente cita de tu plan automáticamente.'
-                : 'Esta cita se cancelará permanentemente.'
+                : 'Esta cita se cancelará permanentemente. Esta acción no se puede deshacer.'
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -323,7 +334,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                 setShowSkipDialog(false);
                 handleSkipAppointment();
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className={isRecurring ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}
             >
               Confirmar
             </AlertDialogAction>
