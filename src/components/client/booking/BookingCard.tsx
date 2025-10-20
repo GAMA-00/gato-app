@@ -226,10 +226,17 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             </div>
           </div>
           
-          {/* Línea 2: Meta compacta */}
-          <p className="text-xs text-muted-foreground">
-            {getCompactMeta()}
-          </p>
+          {/* Línea 2: Proveedor + Recurrencia */}
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {getProviderName()}
+            </p>
+            {isRecurring && (
+              <p className="text-xs text-muted-foreground">
+                {recurrenceInfo.label}
+              </p>
+            )}
+          </div>
           
           {/* Línea 3: Fecha/hora bold */}
           <p className="text-sm font-semibold text-foreground">
