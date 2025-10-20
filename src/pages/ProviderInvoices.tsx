@@ -4,9 +4,11 @@ import { usePendingInvoices, usePaidInvoices } from '@/hooks/usePostPaymentInvoi
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, DollarSign, FileText, Download } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Clock, DollarSign, FileText, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import PostPaymentInvoicing from '@/components/provider/PostPaymentInvoicing';
-import PageContainer from '@/components/layout/PageContainer';
+import PageLayout from '@/components/layout/PageLayout';
 import Navbar from '@/components/layout/Navbar';
 import { formatCurrency } from '@/utils/currencyUtils';
 
@@ -57,193 +59,245 @@ const ProviderInvoices: React.FC = () => {
     }
   };
 
-  const getInvoiceTypeLabel = (type: 'prepaid' | 'postpaid') => {
-    return type === 'prepaid' ? 'Prepago' : 'Postpago';
+  // Componente para cards individuales de facturas
+  interface InvoiceCardProps {
+    invoice: any;
+    type: 'pending' | 'paid';
+    onEdit?: (invoice: any) => void;
+  }
+
+  const InvoiceCard: React.FC<InvoiceCardProps> = ({ invoice, type, onEdit }) => {
+    if (type === 'pending') {
+      const appointment = invoice.appointments;
+      const isSubmitted = invoice.status === 'submitted';
+      const isRejected = invoice.status === 'rejected';
+      
+      return (
+        <Card className={cn(
+          "border-l-4 shadow-sm transition-shadow hover:shadow-md",
+          isRejected ? 'border-l-red-500' : 
+          isSubmitted ? 'border-l-blue-500' : 
+          'border-l-orange-500'
+        )}>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              {/* Header con título y badge de estado */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-lg text-[#2D2D2D] truncate mb-1">
+                    {appointment?.listings?.title}
+                  </h3>
+                  <p className="text-sm text-[#6B6B6B]">
+                    Cliente: {appointment?.client_name}
+                  </p>
+                </div>
+                
+                {/* Estado badge */}
+                {isSubmitted ? (
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 flex-shrink-0">
+                    En revisión
+                  </Badge>
+                ) : isRejected ? (
+                  <Badge className="bg-red-100 text-red-800 border-red-200 flex-shrink-0">
+                    Rechazada
+                  </Badge>
+                ) : (
+                  <Badge className="bg-orange-100 text-orange-800 border-orange-200 flex-shrink-0">
+                    Pendiente
+                  </Badge>
+                )}
+              </div>
+
+              {/* Rechazo reason si aplica */}
+              {isRejected && invoice.rejection_reason && (
+                <div className="p-3 bg-red-50 rounded-lg border border-red-100">
+                  <p className="text-sm text-red-800">
+                    <AlertCircle className="w-4 h-4 inline mr-1" />
+                    {invoice.rejection_reason}
+                  </p>
+                </div>
+              )}
+
+              {/* Metadata: fecha y monto */}
+              <div className="flex flex-wrap gap-4 text-sm text-[#6B6B6B]">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4" />
+                  <span>{formatDate(appointment?.start_time)}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="font-medium">{formatCurrency(invoice.total_price || 0)}</span>
+                </div>
+              </div>
+
+              {/* CTA primario */}
+              {!isSubmitted && onEdit && (
+                <Button
+                  onClick={() => onEdit(invoice)}
+                  variant={isRejected ? 'destructive' : 'default'}
+                  size="default"
+                  className="w-full h-11 text-base"
+                >
+                  {isRejected ? 'Corregir y Reenviar' : 'Completar Desglose'}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Type: paid
+    return (
+      <Card className="border-l-4 border-l-green-500 shadow-sm transition-shadow hover:shadow-md">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            {/* Header con badges */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              <span className="text-xs font-mono text-[#6B6B6B] px-2 py-1 bg-muted rounded">
+                {invoice.invoice_number}
+              </span>
+              <Badge className="bg-primary/10 text-primary border-primary/20">
+                {invoice.type === 'prepaid' ? 'Prepago' : 'Postpago'}
+              </Badge>
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                Pagada
+              </Badge>
+            </div>
+
+            {/* Título y cliente */}
+            <div>
+              <h3 className="font-semibold text-lg text-[#2D2D2D] mb-1">
+                {invoice.service_title}
+              </h3>
+              <p className="text-sm text-[#6B6B6B]">
+                Cliente: {invoice.client_name}
+              </p>
+            </div>
+
+            {/* Metadata: fecha de pago y monto */}
+            <div className="flex flex-wrap gap-4 text-sm text-[#6B6B6B]">
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4" />
+                <span>Pagado: {formatDate(invoice.payment_date)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4" />
+                <span className="font-semibold text-[#2D2D2D]">{formatCurrency(invoice.amount || 0)}</span>
+              </div>
+            </div>
+
+            {/* Acción secundaria: Ver PDF */}
+            <Button
+              variant="outline"
+              size="default"
+              className="w-full h-11 text-sm"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Ver PDF
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
     <>
       <Navbar />
-      <PageContainer>
-        {/* SECTION 1: Post-payment invoices */}
-        <div className="mb-8 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold">Facturas Postpago</h2>
-            <p className="text-sm text-muted-foreground">
-              Completa el desglose de gastos adicionales de tus servicios postpago para enviar al cliente
-            </p>
-          </div>
+      <PageLayout 
+        title="Facturas"
+        subtitle="Gestiona tus facturas"
+        className="min-h-screen"
+      >
+        <Tabs defaultValue="postpago" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="postpago" className="text-sm md:text-base">
+              Postpago {pendingInvoices.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded-full">
+                  {pendingInvoices.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="pagadas" className="text-sm md:text-base">
+              Pagadas {paidInvoices.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-green-500 text-white rounded-full">
+                  {paidInvoices.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-          {pendingInvoices.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground">
-                  No hay facturas postpago pendientes
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3 md:space-y-4">
-              {pendingInvoices.map((invoice) => {
-                const appointment = invoice.appointments;
-                const isSubmitted = invoice.status === 'submitted';
-                const isRejected = invoice.status === 'rejected';
-                
-                return (
-                  <Card key={invoice.id} className={`border-l-4 ${
-                    isRejected ? 'border-l-red-500' : 
-                    isSubmitted ? 'border-l-blue-500' : 
-                    'border-l-orange-500'
-                  }`}>
-                    <CardContent className="p-4 md:p-6">
-                      <div className="space-y-3">
-                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                          <div className="space-y-2 flex-1">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-semibold text-base md:text-lg">
-                                  {appointment?.listings?.title}
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                  Cliente: {appointment?.client_name}
-                                </p>
-                              </div>
-                              {!isSubmitted && (
-                                <Button
-                                  onClick={() => setSelectedInvoice(invoice)}
-                                  variant={isRejected ? 'destructive' : 'default'}
-                                  size="sm"
-                                  className="ml-2"
-                                >
-                                  <DollarSign className="w-4 h-4 mr-2" />
-                                  {isRejected ? 'Corregir y Reenviar' : 'Completar Desglose'}
-                                </Button>
-                              )}
-                              {isSubmitted && (
-                                <Badge className="bg-blue-100 text-blue-800 ml-2">
-                                  En revisión
-                                </Badge>
-                              )}
-                            </div>
-                            {getStatusBadge(invoice.status, invoice.rejection_reason)}
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs md:text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{formatDate(appointment?.start_time)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            <span>Total: {formatCurrency(invoice.total_price || 0)}</span>
-                          </div>
-                        </div>
-                      </div>
+          {/* Tab Content: Postpago */}
+          <TabsContent value="postpago" className="space-y-4">
+            {pendingInvoices.length === 0 ? (
+              <Card className="border shadow-sm">
+                <CardContent className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mb-4">
+                    <FileText className="w-8 h-8 text-orange-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#2D2D2D] mb-2">
+                    Sin facturas postpago
+                  </h3>
+                  <p className="text-sm text-[#6B6B6B] max-w-sm">
+                    Aparecerán aquí cuando completes un servicio
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {pendingInvoices.map((invoice) => (
+                  <InvoiceCard 
+                    key={invoice.id} 
+                    invoice={invoice} 
+                    type="pending" 
+                    onEdit={setSelectedInvoice}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Tab Content: Pagadas */}
+          <TabsContent value="pagadas" className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse border shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="h-4 bg-muted rounded w-3/4 mb-3"></div>
+                      <div className="h-3 bg-muted rounded w-1/2"></div>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* SECTION 2: Paid invoices */}
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold">Facturas Pagadas</h2>
-            <p className="text-sm text-muted-foreground">
-              Historial completo de todas tus transacciones completadas (prepago y postpago aprobado)
-            </p>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : paidInvoices.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                  No hay facturas pagadas
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Aquí aparecerán todas tus facturas una vez completadas
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3 md:space-y-4">
-              {paidInvoices.map((invoice) => (
-                <Card key={`${invoice.type}-${invoice.id}`} className="border-l-4 border-l-green-500">
-                  <CardContent className="p-4 md:p-6">
-                    <div className="space-y-3">
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="text-xs font-mono text-muted-foreground">
-                                  {invoice.invoice_number}
-                                </span>
-                                <span className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
-                                  {getInvoiceTypeLabel(invoice.type)}
-                                </span>
-                                <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                  Pagada
-                                </span>
-                              </div>
-                              <h3 className="font-semibold text-base md:text-lg">
-                                {invoice.service_title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                Cliente: {invoice.client_name}
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="ml-2"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              PDF
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs md:text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>Pagado: {formatDate(invoice.payment_date)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          <span className="font-semibold">Total: {formatCurrency(invoice.amount || 0)}</span>
-                        </div>
-                        {invoice.payment_method_id && (
-                          <div className="flex items-center gap-1">
-                            <FileText className="w-4 h-4" />
-                            <span className="text-xs">ID: {invoice.payment_method_id.slice(0, 8)}...</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : paidInvoices.length === 0 ? (
+              <Card className="border shadow-sm">
+                <CardContent className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#2D2D2D] mb-2">
+                    No hay facturas pagadas
+                  </h3>
+                  <p className="text-sm text-[#6B6B6B] max-w-sm">
+                    Verás aquí tu historial
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {paidInvoices.map((invoice) => (
+                  <InvoiceCard 
+                    key={`${invoice.type}-${invoice.id}`} 
+                    invoice={invoice} 
+                    type="paid" 
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Invoicing Modal */}
         <PostPaymentInvoicing
@@ -252,7 +306,7 @@ const ProviderInvoices: React.FC = () => {
           invoice={selectedInvoice}
           onSuccess={handleInvoiceComplete}
         />
-      </PageContainer>
+      </PageLayout>
     </>
   );
 };
