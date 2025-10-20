@@ -71,7 +71,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
   const [itemFiles, setItemFiles] = useState<{ [key: number]: File | null }>({});
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [openAccordions, setOpenAccordions] = useState<string[]>(['items']);
+  const [openAccordions, setOpenAccordions] = useState<string[]>(['info', 'items', 'notes']);
   
   const { data: existingItems = [] } = useInvoiceItems(invoice?.id);
   const invoiceMutation = useInvoiceMutation();
@@ -266,7 +266,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-full md:max-w-4xl h-[95vh] md:h-[90vh] flex flex-col mx-2 md:mx-auto p-0">
+      <DialogContent className="max-w-full md:max-w-4xl h-[96vh] md:h-[92vh] max-h-[900px] flex flex-col mx-2 md:mx-auto p-0 overflow-hidden">
         {/* Header fijo */}
         <div className="sticky top-0 z-10 bg-background border-b px-4 md:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -323,7 +323,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
         )}
 
         {/* Contenido principal con scroll */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 pb-8">
           <Accordion 
             type="multiple" 
             value={openAccordions}
@@ -332,7 +332,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
           >
             {/* 1. Información del servicio */}
             <AccordionItem value="info" className="border rounded-lg">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <FileText className="h-4 w-4" />
                   Información del servicio
@@ -358,7 +358,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
             {/* 2. Gastos adicionales */}
             <AccordionItem value="items" className="border rounded-lg">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors">
                 <div className="flex items-center justify-between w-full pr-4">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Receipt className="h-4 w-4" />
@@ -437,7 +437,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
             {/* 3. Observaciones */}
             <AccordionItem value="notes" className="border rounded-lg">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <MessageSquare className="h-4 w-4" />
                   Observaciones
@@ -459,32 +459,32 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
         </div>
 
         {/* Resumen sticky al pie */}
-        <div className="sticky bottom-0 z-10 bg-background border-t">
+        <div className="sticky bottom-0 z-20 bg-background border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
           {/* Resumen de cálculos */}
-          <div className="px-4 md:px-6 py-4 space-y-2 bg-muted/30">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal:</span>
-              <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
+          <div className="px-4 md:px-6 py-3 space-y-2 bg-gradient-to-b from-muted/20 to-muted/40">
+            <div className="flex justify-between text-sm font-medium">
+              <span className="text-foreground/70">Subtotal:</span>
+              <span className="font-semibold text-foreground">{formatCurrency(calculateSubtotal())}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Impuestos:</span>
-              <span className="font-medium">{formatCurrency(calculateTaxes())}</span>
+            <div className="flex justify-between text-sm font-medium">
+              <span className="text-foreground/70">Impuestos:</span>
+              <span className="font-semibold text-foreground">{formatCurrency(calculateTaxes())}</span>
             </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total:</span>
+            <Separator className="my-2" />
+            <div className="flex justify-between text-base md:text-lg font-bold">
+              <span className="text-foreground">Total:</span>
               <span className="text-primary">{formatCurrency(calculateTotal())}</span>
             </div>
           </div>
 
           {/* Acciones */}
-          <div className="px-4 md:px-6 py-4 flex flex-col-reverse md:flex-row gap-3">
+          <div className="px-4 md:px-6 py-3 flex flex-col-reverse md:flex-row gap-2 md:gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={() => form.handleSubmit((data) => onSubmit(data, false))()}
               disabled={isSubmitting || autoSaving}
-              className="flex-1 h-12"
+              className="flex-1 h-11"
             >
               <Save className="h-4 w-4 mr-2" />
               Guardar borrador
@@ -499,7 +499,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                 }
               }}
               disabled={isSubmitting || autoSaving || fields.length === 0}
-              className="flex-1 h-12 bg-primary hover:bg-primary/90"
+              className="flex-1 h-11 bg-primary hover:bg-primary/90"
             >
               {isSubmitting ? (
                 <>
@@ -546,7 +546,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
 
   return (
     <Card className="border shadow-sm">
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-3 md:p-4 space-y-2.5">
         {/* Header con acciones */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-muted-foreground">
