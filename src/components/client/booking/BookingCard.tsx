@@ -269,23 +269,23 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex-1 h-14 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 px-2"
+                className="flex-1 h-16 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 px-2 flex-col items-center justify-center gap-1"
                 onClick={() => setShowSkipDialog(true)}
                 disabled={isLoading}
               >
-                <SkipForward className="h-4 w-4 mr-1.5 flex-shrink-0" />
-                <span className="text-center leading-tight">Saltar esta cita</span>
+                <SkipForward className="h-4 w-4 flex-shrink-0" />
+                <span className="text-center leading-tight whitespace-normal">Saltar esta cita</span>
               </Button>
               {isRecurring && (
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex-1 h-14 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 px-2"
+                  className="flex-1 h-16 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 px-2 flex-col items-center justify-center gap-1"
                   onClick={() => setShowCancelAllDialog(true)}
                   disabled={isLoading}
                 >
-                  <X className="h-4 w-4 mr-1.5 flex-shrink-0" />
-                  <span className="text-center leading-tight">Cancelar todas las citas futuras</span>
+                  <X className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-center leading-tight whitespace-normal">Cancelar todas las citas futuras</span>
                 </Button>
               )}
             </div>
