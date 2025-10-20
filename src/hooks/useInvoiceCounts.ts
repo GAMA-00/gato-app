@@ -1,12 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 // Hook para contar facturas postpago que necesitan acción del proveedor
 export const usePendingInvoicesCount = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['pending-invoices-count', user?.id],
     queryFn: async () => {
       if (!user?.id || user.role !== 'provider') {
@@ -28,15 +30,45 @@ export const usePendingInvoicesCount = () => {
       return count || 0;
     },
     enabled: !!user?.id && user.role === 'provider',
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Reducido a 5s como fallback
   });
+
+  // Suscripción en tiempo real para actualizaciones instantáneas
+  useEffect(() => {
+    if (!user?.id || user.role !== 'provider') return;
+
+    const channel = supabase
+      .channel('provider-invoices-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'post_payment_invoices',
+          filter: `provider_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('📊 Invoice change detected for provider:', payload);
+          // Invalidar query para refresco inmediato
+          queryClient.invalidateQueries({ queryKey: ['pending-invoices-count', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, user?.role, queryClient]);
+
+  return query;
 };
 
 // Hook para contar facturas pendientes de aprobación (clientes)
 export const useClientInvoicesCount = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['client-invoices-count', user?.id],
     queryFn: async () => {
       if (!user?.id || user.role !== 'client') {
@@ -57,6 +89,35 @@ export const useClientInvoicesCount = () => {
       return count || 0;
     },
     enabled: !!user?.id && user.role === 'client',
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 5000, // Reducido a 5s como fallback
   });
+
+  // Suscripción en tiempo real para actualizaciones instantáneas
+  useEffect(() => {
+    if (!user?.id || user.role !== 'client') return;
+
+    const channel = supabase
+      .channel('client-invoices-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'post_payment_invoices',
+          filter: `client_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('📊 Invoice change detected for client:', payload);
+          // Invalidar query para refresco inmediato
+          queryClient.invalidateQueries({ queryKey: ['client-invoices-count', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, user?.role, queryClient]);
+
+  return query;
 };
