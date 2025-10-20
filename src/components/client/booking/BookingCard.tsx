@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn, formatTo12Hour, formatDateES } from '@/lib/utils';
+import { cn, formatTo12Hour, formatDateES, formatCompactDateTimeES } from '@/lib/utils';
 import { ClientBooking } from '@/hooks/useClientBookings';
 import { RatingStars } from '@/components/client/booking/RatingStars';
 import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
@@ -73,7 +73,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         }
 
         console.log('✅ Successfully skipped recurring instance:', data);
-        toast.success('Se saltó esta fecha. Verás la siguiente instancia de la serie.');
+        toast.success('Próxima cita mostrada');
         
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
@@ -117,7 +117,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           }
         }, 3000);
 
-        toast.success('Cita cancelada exitosamente');
+        toast.success('Cita cancelada');
         queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
       }
     } catch (error) {
@@ -149,7 +149,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
 
       console.log('✅ Successfully cancelled recurring series:', data);
       
-      toast.success(`Serie de citas recurrentes cancelada (${data.cancelledCount || 0} citas)`);
+      toast.success('Plan recurrente cancelado');
       
       // Invalidate ALL possible query keys to ensure UI updates
       await Promise.all([
@@ -188,62 +188,66 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   // Get recurrence label
   const recurrenceInfo = getRecurrenceInfo(booking.recurrence);
   
+  // Helper function for compact meta display
+  const getCompactMeta = () => {
+    const recurrence = recurrenceInfo.label;
+    const status = booking.status === 'confirmed' ? 'Confirmada' : 
+                   booking.status === 'pending' ? 'Pendiente' :
+                   booking.status === 'completed' ? 'Completada' :
+                   booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 
+                   'Otra';
+    
+    if (isRecurring) {
+      return `${recurrence} • ${status}`;
+    }
+    return status;
+  };
+  
   return (
-    <Card className="overflow-hidden animate-scale-in">
-      <CardContent className="p-3">
-        <div className="flex flex-col space-y-2">
-          {/* Header Row with Title, Recurrence & Status */}
-          <div className="flex items-start justify-between">
-            {/* Left: Title & Provider */}
-            <div className="flex flex-col flex-1 min-w-0">
-              <h3 className="font-semibold text-base truncate">{booking.serviceName}</h3>
-              <p className="text-sm text-muted-foreground truncate">{getProviderName()}</p>
-            </div>
-            
-            {/* Right: Recurrence Text & Status Stack */}
-            <div className="flex flex-col items-center gap-1 flex-shrink-0">
-              <span className="text-xs font-medium text-muted-foreground">
-                {recurrenceInfo.label}
-              </span>
-              <div className={cn(
-                "px-2 py-0.5 rounded-full text-xs font-medium",
-                booking.status === 'pending' ? "bg-yellow-100 text-yellow-800" : 
-                booking.status === 'confirmed' ? "bg-green-100 text-green-800" : 
-                booking.status === 'completed' ? "bg-blue-100 text-blue-800" : 
-                booking.status === 'cancelled' ? "bg-gray-100 text-gray-800" : 
-                "bg-gray-100 text-gray-800"
-              )}>
-                {booking.status === 'pending' ? 'Pendiente por aprobación' :
-                 booking.status === 'confirmed' ? 'Confirmada' :
-                 booking.status === 'completed' ? 'Completada' :
-                 booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 'Otra'}
-              </div>
+    <Card className="overflow-hidden animate-scale-in rounded-[14px] shadow-sm border border-gray-200">
+      <CardContent className="p-4">
+        <div className="flex flex-col space-y-3">
+          {/* Línea 1: Título + Badge */}
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-semibold text-base flex-1 min-w-0 truncate">
+              {booking.serviceName}
+            </h3>
+            <div className={cn(
+              "px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap",
+              booking.status === 'confirmed' && "bg-green-50 text-green-700 border border-green-200",
+              booking.status === 'pending' && "bg-yellow-50 text-yellow-700 border border-yellow-200",
+              booking.status === 'completed' && "bg-blue-50 text-blue-700 border border-blue-200",
+              booking.status === 'cancelled' && "bg-gray-50 text-gray-700 border border-gray-200"
+            )}>
+              {booking.status === 'confirmed' ? 'Confirmada' :
+               booking.status === 'pending' ? 'Pendiente' :
+               booking.status === 'completed' ? 'Completada' :
+               booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 'Otra'}
             </div>
           </div>
           
-          {/* Service Type */}
-          <p className="text-xs text-muted-foreground truncate">{booking.subcategory}</p>
+          {/* Línea 2: Meta compacta */}
+          <p className="text-xs text-muted-foreground">
+            {getCompactMeta()}
+          </p>
           
-          {/* Rescheduled Notice */}
+          {/* Línea 3: Fecha/hora bold */}
+          <p className="text-sm font-semibold text-foreground">
+            {formatCompactDateTimeES(booking.date)}
+          </p>
+          
+          {/* Aviso reagendamiento */}
           {booking.isRescheduled && (
-            <div className="flex items-center gap-2 p-1.5 bg-blue-50 rounded-md border border-blue-200">
-              <RotateCcw className="h-3 w-3 text-blue-600 flex-shrink-0" />
+            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+              <RotateCcw className="h-4 w-4 text-blue-600 flex-shrink-0" />
               <span className="text-xs text-blue-700">
                 {isRecurring 
-                  ? 'La próxima fecha ha sido reagendada. Tu plan recurrente se mantiene sin cambios.'
-                  : 'Esta cita ha sido reagendada.'
+                  ? 'Fecha reagendada. Tu plan continúa sin cambios.'
+                  : 'Esta cita fue reagendada.'
                 }
               </span>
             </div>
           )}
-          
-          {/* Date & Time */}
-          <div className="flex items-center text-xs text-muted-foreground">
-            <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
-            <span className="truncate">
-              {`${formatDateES(booking.date, 'EEEE d', { locale: es })} de ${formatDateES(booking.date, 'MMMM', { locale: es })} – ${formatTo12Hour(format(booking.date, 'HH:mm'))}`}
-            </span>
-          </div>
           
           {/* Rating Section - Solo mostrar si canRate es true */}
           {isCompleted && !booking.isRated && booking.canRate && (
@@ -256,36 +260,36 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
 
           {/* Mensaje para citas post-pago pendientes de factura */}
           {isCompleted && !booking.isRated && booking.isPostPayment && !booking.canRate && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-sm text-amber-800">
-                📋 Este servicio está pendiente de facturación. Podrás calificarlo una vez que se apruebe la factura.
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-800">
+                Pendiente de facturación. Podrás calificar una vez aprobada.
               </p>
             </div>
           )}
           
-          {/* Action Buttons */}
+          {/* Botones de acción */}
           {(booking.status === 'pending' || booking.status === 'confirmed') && (
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-col gap-2 pt-2">
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="flex-1 h-16 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 px-2 flex-col items-center justify-center gap-1"
+                size="lg"
+                className="w-full h-11 text-sm font-medium text-blue-600 bg-white border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 flex items-center justify-center gap-2 transition-colors"
                 onClick={() => setShowSkipDialog(true)}
                 disabled={isLoading}
               >
-                <SkipForward className="h-4 w-4 flex-shrink-0" />
-                <span className="text-center leading-tight whitespace-normal">Saltar esta cita</span>
+                <SkipForward className="h-4 w-4" />
+                <span>Saltar la próxima cita</span>
               </Button>
               {isRecurring && (
                 <Button 
                   variant="outline" 
-                  size="sm" 
-                  className="flex-1 h-16 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 px-2 flex-col items-center justify-center gap-1"
+                  size="lg"
+                  className="w-full h-11 text-sm font-medium text-red-600 bg-white border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 flex items-center justify-center gap-2 transition-colors"
                   onClick={() => setShowCancelAllDialog(true)}
                   disabled={isLoading}
                 >
-                  <X className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-center leading-tight whitespace-normal">Cancelar todas las citas futuras</span>
+                  <X className="h-4 w-4" />
+                  <span>Cancelar plan recurrente</span>
                 </Button>
               )}
             </div>
@@ -297,11 +301,11 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
       <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Saltar esta cita?</AlertDialogTitle>
+            <AlertDialogTitle>¿Saltar la próxima cita?</AlertDialogTitle>
             <AlertDialogDescription>
               {isRecurring 
-                ? 'Esta acción saltará solo esta fecha. La próxima cita de la serie se generará automáticamente.'
-                : 'Esta acción cancelará permanentemente esta cita.'
+                ? 'Esta fecha se saltará y verás la siguiente cita de tu plan automáticamente.'
+                : 'Esta cita se cancelará permanentemente.'
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -320,18 +324,18 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Diálogo de confirmación para Cancelar Todas */}
+      {/* Diálogo de confirmación para Cancelar Plan */}
       {isRecurring && (
         <AlertDialog open={showCancelAllDialog} onOpenChange={setShowCancelAllDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Cancelar toda la serie?</AlertDialogTitle>
+              <AlertDialogTitle>¿Cancelar plan recurrente?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta acción cancelará permanentemente todas las citas futuras de esta serie recurrente. Esta acción no se puede deshacer.
+                Todas las citas futuras de este plan serán canceladas. Esta acción no se puede deshacer.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>No, mantener citas</AlertDialogCancel>
+              <AlertDialogCancel>Mantener plan</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
                   setShowCancelAllDialog(false);
@@ -339,7 +343,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                 }}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Sí, cancelar todas
+                Cancelar plan
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

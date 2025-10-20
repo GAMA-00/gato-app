@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -105,4 +106,26 @@ export function formatDateES(date: Date | string, formatStr: string, options?: a
   
   // Capitalize first letter for Spanish day/month names
   return capitalizeFirst(formatted);
+}
+
+/**
+ * Formats a date in compact Spanish format: "Jue 23 Oct · 9:00 a. m."
+ * @param date - The date to format
+ */
+export function formatCompactDateTimeES(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Day name (3 letters)
+  const dayName = format(dateObj, 'EEE', { locale: es });
+  
+  // Day number
+  const dayNum = format(dateObj, 'd');
+  
+  // Month name (3 letters)
+  const monthName = format(dateObj, 'MMM', { locale: es });
+  
+  // Time in 12-hour format
+  const time = formatTo12Hour(format(dateObj, 'HH:mm'));
+  
+  return `${capitalizeFirst(dayName)} ${dayNum} ${capitalizeFirst(monthName)} · ${time.toLowerCase()}`;
 }
