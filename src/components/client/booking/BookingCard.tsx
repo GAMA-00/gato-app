@@ -206,7 +206,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   return (
     <Card className="overflow-hidden animate-scale-in rounded-[14px] shadow-sm border border-gray-200">
       <CardContent className="p-4">
-        <div className="flex flex-col space-y-3">
+        <div className="flex flex-col space-y-2">
           {/* Línea 1 y 2: Título + Proveedor | Badges */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
