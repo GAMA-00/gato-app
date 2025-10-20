@@ -187,11 +187,7 @@ const ClientInvoices: React.FC = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="pagadas" className="text-sm md:text-base">
-              Pagadas {paidInvoices.length > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-green-500 text-white rounded-full">
-                  {paidInvoices.length}
-                </span>
-              )}
+              Pagadas
             </TabsTrigger>
           </TabsList>
 
