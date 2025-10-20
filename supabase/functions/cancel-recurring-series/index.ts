@@ -60,7 +60,16 @@ serve(async (req) => {
 
     // If no direct rule ID, find the rule by matching criteria
     if (!targetRuleId) {
-      const appointmentStartTime = new Date(appointment.start_time + 'Z'); // Ensure UTC
+      const appointmentStartTime = new Date(appointment.start_time);
+      
+      if (isNaN(appointmentStartTime.getTime())) {
+        console.error(`❌ Invalid start_time format: ${appointment.start_time}`);
+        return new Response(
+          JSON.stringify({ error: 'Invalid appointment start time' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       const costaRicaDate = new Date(appointmentStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
       const dayOfWeek = costaRicaDate.getDay(); // Sunday = 0, Monday = 1, etc.
       const dayOfMonth = costaRicaDate.getDate();
@@ -127,7 +136,16 @@ serve(async (req) => {
     if (futureAppointments.length === 0) {
       console.log('🔄 Falling back to pattern-based appointment search');
       
-      const appointmentStartTime = new Date(appointment.start_time + 'Z');
+      const appointmentStartTime = new Date(appointment.start_time);
+      
+      if (isNaN(appointmentStartTime.getTime())) {
+        console.error(`❌ Invalid start_time format in fallback: ${appointment.start_time}`);
+        return new Response(
+          JSON.stringify({ error: 'Invalid appointment start time' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       const costaRicaDate = new Date(appointmentStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
       const dayOfWeek = costaRicaDate.getDay();
       const timeOfDay = appointmentStartTime.toTimeString().split(' ')[0].substring(0, 5);
@@ -152,7 +170,11 @@ serve(async (req) => {
 
       // Filter by exact time and day pattern
       futureAppointments = patternAppointments?.filter(apt => {
-        const aptStartTime = new Date(apt.start_time + 'Z');
+        const aptStartTime = new Date(apt.start_time);
+        if (isNaN(aptStartTime.getTime())) {
+          console.warn(`⚠️ Skipping appointment ${apt.id} with invalid start_time`);
+          return false;
+        }
         const aptCostaRicaDate = new Date(aptStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
         const aptTimeOfDay = aptStartTime.toTimeString().split(' ')[0].substring(0, 5);
         const aptDayOfWeek = aptCostaRicaDate.getDay();
@@ -244,7 +266,21 @@ serve(async (req) => {
       }
     } else {
       // Fallback: break recurrence by pattern matching
-      const appointmentStartTime = new Date(appointment.start_time + 'Z');
+      const appointmentStartTime = new Date(appointment.start_time);
+      
+      if (isNaN(appointmentStartTime.getTime())) {
+        console.error(`❌ Invalid start_time format in pattern matching: ${appointment.start_time}`);
+        // Continue with the rest of the cleanup even if we can't match by pattern
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            cancelledCount: futureAppointments?.length || 0,
+            message: 'Partial cancellation completed (pattern matching failed)'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       const costaRicaDate = new Date(appointmentStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
       const dayOfWeek = costaRicaDate.getDay();
       const timeOfDay = appointmentStartTime.toTimeString().split(' ')[0].substring(0, 5);
@@ -260,7 +296,11 @@ serve(async (req) => {
 
       if (!patternFetchError && patternAppointments) {
         const matchingAppointments = patternAppointments.filter(apt => {
-          const aptStartTime = new Date(apt.start_time + 'Z');
+          const aptStartTime = new Date(apt.start_time);
+          if (isNaN(aptStartTime.getTime())) {
+            console.warn(`⚠️ Skipping appointment ${apt.id} with invalid start_time in pattern break`);
+            return false;
+          }
           const aptCostaRicaDate = new Date(aptStartTime.toLocaleString("en-US", {timeZone: "America/Costa_Rica"}));
           const aptTimeOfDay = aptStartTime.toTimeString().split(' ')[0].substring(0, 5);
           const aptDayOfWeek = aptCostaRicaDate.getDay();
