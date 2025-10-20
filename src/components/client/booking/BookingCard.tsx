@@ -207,35 +207,35 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     <Card className="overflow-hidden animate-scale-in rounded-[14px] shadow-sm border border-gray-200">
       <CardContent className="p-4">
         <div className="flex flex-col space-y-3">
-          {/* Línea 1: Título + Badge */}
+          {/* Línea 1 y 2: Título + Proveedor | Badges */}
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-semibold text-base flex-1 min-w-0 truncate">
-              {booking.serviceName}
-            </h3>
-            <div className={cn(
-              "px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap",
-              booking.status === 'confirmed' && "bg-green-50 text-green-700 border border-green-200",
-              booking.status === 'pending' && "bg-yellow-50 text-yellow-700 border border-yellow-200",
-              booking.status === 'completed' && "bg-blue-50 text-blue-700 border border-blue-200",
-              booking.status === 'cancelled' && "bg-gray-50 text-gray-700 border border-gray-200"
-            )}>
-              {booking.status === 'confirmed' ? 'Confirmada' :
-               booking.status === 'pending' ? 'Pendiente' :
-               booking.status === 'completed' ? 'Completada' :
-               booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 'Otra'}
-            </div>
-          </div>
-          
-          {/* Línea 2: Proveedor + Recurrencia */}
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">
-              {getProviderName()}
-            </p>
-            {isRecurring && (
-              <p className="text-xs text-muted-foreground">
-                {recurrenceInfo.label}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-base truncate">
+                {booking.serviceName}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {getProviderName()}
               </p>
-            )}
+            </div>
+            <div className="flex flex-col gap-1 items-end">
+              <div className={cn(
+                "px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap",
+                booking.status === 'confirmed' && "bg-green-50 text-green-700 border border-green-200",
+                booking.status === 'pending' && "bg-yellow-50 text-yellow-700 border border-yellow-200",
+                booking.status === 'completed' && "bg-blue-50 text-blue-700 border border-blue-200",
+                booking.status === 'cancelled' && "bg-gray-50 text-gray-700 border border-gray-200"
+              )}>
+                {booking.status === 'confirmed' ? 'Confirmada' :
+                 booking.status === 'pending' ? 'Pendiente' :
+                 booking.status === 'completed' ? 'Completada' :
+                 booking.status === 'cancelled' ? (isSkipped ? 'Saltada' : 'Cancelada') : 'Otra'}
+              </div>
+              {isRecurring && (
+                <div className="px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap bg-green-50 text-green-700 border border-green-200">
+                  {recurrenceInfo.label}
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Línea 3: Fecha/hora bold */}
