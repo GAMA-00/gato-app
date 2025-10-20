@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, X, MapPin, RotateCcw, SkipForward } from 'lucide-react';
+import { Calendar, Clock, X, RotateCcw, SkipForward } from 'lucide-react';
 import { cn, formatTo12Hour, formatDateES } from '@/lib/utils';
 import { ClientBooking } from '@/hooks/useClientBookings';
 import { RatingStars } from '@/components/client/booking/RatingStars';
@@ -182,10 +182,26 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         <div className="flex flex-col space-y-2">
           {/* Header Row with Title, Recurrence & Status */}
           <div className="flex items-start justify-between">
-            {/* Left: Service Title & Provider */}
-            <div className="flex flex-col flex-1 min-w-0">
-              <h3 className="font-semibold text-base truncate">{booking.serviceName}</h3>
-              <p className="text-sm text-muted-foreground truncate">{getProviderName()}</p>
+            {/* Left: Service Icon, Title & Provider */}
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              {/* Service Icon */}
+              <div className="flex-shrink-0 mt-0.5">
+                {serviceIcon.src ? (
+                  <img 
+                    src={serviceIcon.src} 
+                    alt={booking.serviceName}
+                    className="h-5 w-5 object-cover rounded"
+                  />
+                ) : serviceIcon.component ? (
+                  <serviceIcon.component className="h-5 w-5 text-app-text" />
+                ) : null}
+              </div>
+              
+              {/* Title & Provider */}
+              <div className="flex flex-col flex-1 min-w-0">
+                <h3 className="font-semibold text-base truncate">{booking.serviceName}</h3>
+                <p className="text-sm text-muted-foreground truncate">{getProviderName()}</p>
+              </div>
             </div>
             
             {/* Right: Recurrence Text & Status Stack */}
@@ -230,14 +246,6 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             <Clock className="h-3 w-3 mr-1.5 flex-shrink-0" />
             <span className="truncate">
               {`${formatDateES(booking.date, 'EEEE d', { locale: es })} de ${formatDateES(booking.date, 'MMMM', { locale: es })} – ${formatTo12Hour(format(booking.date, 'HH:mm'))}`}
-            </span>
-          </div>
-          
-          {/* Location */}
-          <div className="flex items-start text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3 mr-1.5 flex-shrink-0 mt-0.5" />
-            <span className="break-words leading-relaxed">
-              {booking.location}
             </span>
           </div>
           
