@@ -72,15 +72,24 @@ export const useClientBookings = () => {
           throw error;
         }
 
-        if (!appointments?.length) {
+        // Filtrar citas saltadas (cancelled con nota especial)
+        const filteredAppointments = appointments?.filter(apt => {
+          const isSkipped = apt.status === 'cancelled' && apt.notes?.includes('[SKIPPED BY CLIENT]');
+          if (isSkipped) {
+            bookingLogger.debug(`Cita saltada filtrada: ${apt.id}`);
+          }
+          return !isSkipped;
+        }) || [];
+
+        if (!filteredAppointments?.length) {
           bookingLogger.info('No se encontraron citas para el cliente');
           return [];
         }
 
-        bookingLogger.dataProcessing(`Encontradas ${appointments.length} citas`);
+        bookingLogger.dataProcessing(`Encontradas ${filteredAppointments.length} citas (${appointments?.length || 0} antes de filtrar saltadas)`);
 
         // Obtener información de servicios incluyendo is_post_payment
-        const listingIds = [...new Set(appointments.map(a => a.listing_id).filter(Boolean))];
+        const listingIds = [...new Set(filteredAppointments.map(a => a.listing_id).filter(Boolean))];
         let servicesMap = new Map();
 
         if (listingIds.length > 0) {
@@ -109,7 +118,7 @@ export const useClientBookings = () => {
         }
 
         // Obtener información de proveedores
-        const providerIds = [...new Set(appointments.map(a => a.provider_id).filter(Boolean))];
+        const providerIds = [...new Set(filteredAppointments.map(a => a.provider_id).filter(Boolean))];
         let providersMap = new Map();
 
         if (providerIds.length > 0) {
@@ -128,7 +137,7 @@ export const useClientBookings = () => {
         }
 
         // Obtener citas calificadas
-        const appointmentIds = appointments.map(a => a.id);
+        const appointmentIds = filteredAppointments.map(a => a.id);
         let ratedIds: Set<string> = new Set();
 
         try {
@@ -144,7 +153,7 @@ export const useClientBookings = () => {
 
         // Obtener facturas aprobadas para citas post-pago
         let approvedInvoices: Set<string> = new Set();
-        const completedPostPaymentAppointments = appointments.filter(a => {
+        const completedPostPaymentAppointments = filteredAppointments.filter(a => {
           const listing = servicesMap.get(a.listing_id);
           return a.status === 'completed' && listing?.is_post_payment;
         });
@@ -195,7 +204,7 @@ export const useClientBookings = () => {
         locationLogger.debug('=== FIN DATOS USUARIO ===');
 
         // Procesar citas con cálculo optimizado de próxima ocurrencia
-        const processedBookings = appointments.map(appointment => {
+        const processedBookings = filteredAppointments.map(appointment => {
           return processClientBooking({
             appointment,
             servicesMap,
