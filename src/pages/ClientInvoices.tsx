@@ -177,10 +177,10 @@ const ClientInvoices: React.FC = () => {
         subtitle="Gestiona tus facturas"
         className="min-h-screen"
       >
-        <Tabs defaultValue="pendientes" className="w-full">
+        <Tabs defaultValue="postpago" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="pendientes" className="text-sm md:text-base">
-              Pendientes {postPaymentInvoices.length > 0 && (
+            <TabsTrigger value="postpago" className="text-sm md:text-base">
+              Post-pago {postPaymentInvoices.length > 0 && (
                 <span className="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded-full">
                   {postPaymentInvoices.length}
                 </span>
@@ -191,8 +191,8 @@ const ClientInvoices: React.FC = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab Content: Pendientes de Revisión */}
-          <TabsContent value="pendientes" className="space-y-4">
+          {/* Tab Content: Post-pago de Revisión */}
+          <TabsContent value="postpago" className="space-y-4">
             {isLoadingPostPayment ? (
               <div className="space-y-4">
                 {[1, 2].map((i) => (
