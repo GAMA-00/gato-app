@@ -213,7 +213,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
               <h3 className="font-semibold text-base truncate">
                 {booking.serviceName}
               </h3>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {getProviderName()}
               </p>
             </div>
