@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePendingInvoices, usePaidInvoices } from '@/hooks/usePostPaymentInvoices';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Clock, DollarSign, FileText, Download } from 'lucide-react';
 import PostPaymentInvoicing from '@/components/provider/PostPaymentInvoicing';
 import PageContainer from '@/components/layout/PageContainer';
@@ -69,7 +70,7 @@ const ProviderInvoices: React.FC = () => {
           <div>
             <h2 className="text-xl font-semibold">Facturas Postpago</h2>
             <p className="text-sm text-muted-foreground">
-              Servicios completados que requieren desglose de costos adicionales
+              Completa el desglose de gastos adicionales de tus servicios postpago para enviar al cliente
             </p>
           </div>
 
@@ -116,8 +117,13 @@ const ProviderInvoices: React.FC = () => {
                                   className="ml-2"
                                 >
                                   <DollarSign className="w-4 h-4 mr-2" />
-                                  {isRejected ? 'Corregir' : 'Completar'}
+                                  {isRejected ? 'Corregir y Reenviar' : 'Completar Desglose'}
                                 </Button>
+                              )}
+                              {isSubmitted && (
+                                <Badge className="bg-blue-100 text-blue-800 ml-2">
+                                  En revisión
+                                </Badge>
                               )}
                             </div>
                             {getStatusBadge(invoice.status, invoice.rejection_reason)}
@@ -148,7 +154,7 @@ const ProviderInvoices: React.FC = () => {
           <div>
             <h2 className="text-xl font-semibold">Facturas Pagadas</h2>
             <p className="text-sm text-muted-foreground">
-              Historial de todas las transacciones completadas
+              Historial completo de todas tus transacciones completadas (prepago y postpago aprobado)
             </p>
           </div>
 

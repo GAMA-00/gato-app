@@ -112,7 +112,10 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
         base_price: 0, // Base price is charged at booking, not in post-payment
         total_price: totalPrice,
         status: submitForApproval ? 'submitted' as const : 'draft' as const,
-        ...(submitForApproval && { submitted_at: new Date().toISOString() })
+        ...(submitForApproval && { 
+          submitted_at: new Date().toISOString(),
+          rejection_reason: null // Clear rejection reason when resubmitting
+        })
       };
 
       const invoiceId = await invoiceMutation.mutateAsync({
@@ -328,25 +331,17 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
-                className="w-full md:w-auto order-3 md:order-1"
+                className="w-full md:w-auto order-2 md:order-1"
               >
                 Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                variant="secondary" 
-                disabled={isSubmitting}
-                className="w-full md:w-auto order-2"
-              >
-                Guardar Borrador
               </Button>
               <Button
                 type="button"
                 onClick={form.handleSubmit((data) => onSubmit(data, true))}
                 disabled={isSubmitting}
-                className="w-full md:flex-1 order-1 md:order-3"
+                className="w-full md:flex-1 order-1 md:order-2"
               >
-                {isSubmitting ? 'Enviando...' : 'Enviar al Cliente'}
+                {isSubmitting ? 'Enviando...' : invoice?.status === 'rejected' ? 'Reenviar al Cliente' : 'Enviar al Cliente'}
               </Button>
             </div>
           </form>

@@ -33,9 +33,15 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
   const approvalMutation = useInvoiceApprovalMutation();
 
   const handleApproval = async (approved: boolean) => {
-    if (!approved && !rejectionReason.trim()) {
-      toast.error('Debe proporcionar un motivo para rechazar la factura');
-      return;
+    if (!approved) {
+      if (!rejectionReason.trim()) {
+        toast.error('Debe proporcionar un motivo para rechazar la factura');
+        return;
+      }
+      if (rejectionReason.trim().length < 10) {
+        toast.error('El motivo del rechazo debe tener al menos 10 caracteres');
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -207,14 +213,19 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
               <CardContent>
                 <div className="space-y-3">
                   <Label className="text-sm">
-                    Explique por qué rechaza esta factura (requerido)
+                    Explique por qué rechaza esta factura (requerido, mínimo 10 caracteres)
                   </Label>
                   <Textarea
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Ej: Los materiales parecen muy caros, necesito más detalles sobre..."
+                    placeholder="Ej: Los materiales parecen muy caros, necesito más detalles sobre los costos específicos..."
                     className="min-h-[100px]"
                   />
+                  {rejectionReason.trim().length > 0 && rejectionReason.trim().length < 10 && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Faltan {10 - rejectionReason.trim().length} caracteres (mínimo 10)
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -268,7 +279,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 <Button
                   variant="destructive"
                   onClick={() => handleApproval(false)}
-                  disabled={isProcessing || !rejectionReason.trim()}
+                  disabled={isProcessing || !rejectionReason.trim() || rejectionReason.trim().length < 10}
                   className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none"
                 >
                   <XCircle className="w-4 h-4" />
