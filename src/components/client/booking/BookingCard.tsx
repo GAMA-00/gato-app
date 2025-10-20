@@ -4,6 +4,16 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, X, RotateCcw, SkipForward } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn, formatTo12Hour, formatDateES } from '@/lib/utils';
 import { ClientBooking } from '@/hooks/useClientBookings';
 import { RatingStars } from '@/components/client/booking/RatingStars';
@@ -23,6 +33,8 @@ interface BookingCardProps {
 
 export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
+  const [showCancelAllDialog, setShowCancelAllDialog] = useState(false);
   const queryClient = useQueryClient();
   const isRecurring = booking.recurrence && booking.recurrence !== 'none';
   const isCompleted = booking.status === 'completed';
@@ -182,26 +194,10 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         <div className="flex flex-col space-y-2">
           {/* Header Row with Title, Recurrence & Status */}
           <div className="flex items-start justify-between">
-            {/* Left: Service Icon, Title & Provider */}
-            <div className="flex items-start gap-2 flex-1 min-w-0">
-              {/* Service Icon */}
-              <div className="flex-shrink-0 mt-0.5">
-                {serviceIcon.src ? (
-                  <img 
-                    src={serviceIcon.src} 
-                    alt={booking.serviceName}
-                    className="h-5 w-5 object-cover rounded"
-                  />
-                ) : serviceIcon.component ? (
-                  <serviceIcon.component className="h-5 w-5 text-app-text" />
-                ) : null}
-              </div>
-              
-              {/* Title & Provider */}
-              <div className="flex flex-col flex-1 min-w-0">
-                <h3 className="font-semibold text-base truncate">{booking.serviceName}</h3>
-                <p className="text-sm text-muted-foreground truncate">{getProviderName()}</p>
-              </div>
+            {/* Left: Title & Provider */}
+            <div className="flex flex-col flex-1 min-w-0">
+              <h3 className="font-semibold text-base truncate">{booking.serviceName}</h3>
+              <p className="text-sm text-muted-foreground truncate">{getProviderName()}</p>
             </div>
             
             {/* Right: Recurrence Text & Status Stack */}
@@ -273,22 +269,22 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex-1 h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                onClick={handleSkipAppointment}
+                className="flex-1 h-10 text-sm text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 py-2"
+                onClick={() => setShowSkipDialog(true)}
                 disabled={isLoading}
               >
-                <SkipForward className="h-3 w-3 mr-1 flex-shrink-0" />
+                <SkipForward className="h-4 w-4 mr-1.5 flex-shrink-0" />
                 <span className="truncate">Saltar esta cita</span>
               </Button>
               {isRecurring && (
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                  onClick={handleCancelAllFuture}
+                  className="flex-1 h-10 text-sm text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 py-2"
+                  onClick={() => setShowCancelAllDialog(true)}
                   disabled={isLoading}
                 >
-                  <X className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <X className="h-4 w-4 mr-1.5 flex-shrink-0" />
                   <span className="truncate">Cancelar todas las citas futuras</span>
                 </Button>
               )}
@@ -296,6 +292,59 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           )}
         </div>
       </CardContent>
+
+      {/* Diálogo de confirmación para Saltar */}
+      <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Saltar esta cita?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRecurring 
+                ? 'Esta acción saltará solo esta fecha. La próxima cita de la serie se generará automáticamente.'
+                : 'Esta acción cancelará permanentemente esta cita.'
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowSkipDialog(false);
+                handleSkipAppointment();
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de confirmación para Cancelar Todas */}
+      {isRecurring && (
+        <AlertDialog open={showCancelAllDialog} onOpenChange={setShowCancelAllDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Cancelar toda la serie?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción cancelará permanentemente todas las citas futuras de esta serie recurrente. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>No, mantener citas</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowCancelAllDialog(false);
+                  handleCancelAllFuture();
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Sí, cancelar todas
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </Card>
   );
 };
