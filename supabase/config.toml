@@ -52,3 +52,12 @@ verify_jwt = false
 
 [functions.onvopay-create-subscription]
 verify_jwt = true
+
+[functions.onvopay-charge-post-payment]
+verify_jwt = true
+
+[functions.onvopay-subscription-webhook]
+verify_jwt = false
+
+[functions.onvopay-sync-recurring-payments]
+verify_jwt = true

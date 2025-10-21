@@ -361,39 +361,102 @@ serve(async (req) => {
       });
     }
 
-    // Determine final status based on OnvoPay response
-    // With capture_method: manual, payment should be 'requires_capture' after confirmation (authorized but not captured)
+    // Determine if this is a post-payment service
+    const { data: listing } = await supabase
+      .from('listings')
+      .select('is_post_payment')
+      .eq('id', payment.listing_id)
+      .single();
+
+    const isPostPayment = listing?.is_post_payment ?? false;
+
+    // Determine final status based on OnvoPay response and service type
+    // For post-payment services, auto-capture T1 Base immediately
     // Status mapping:
-    // - 'requires_capture' -> 'authorized' (payment authorized, waiting for capture after service completion)
-    // - 'succeeded' -> 'captured' (payment fully processed - shouldn't happen with manual capture)
+    // - 'requires_capture' + post-payment -> 'captured' (T1 auto-captured immediately)
+    // - 'requires_capture' + prepaid -> 'authorized' (capture after service completion)
+    // - 'succeeded' -> 'captured' (payment fully processed)
     const onvoStatus = onvoResult.status || 'unknown';
     let finalStatus = 'authorized';
+    let shouldAutoCapture = false;
 
-    if (onvoStatus === 'succeeded') {
-      finalStatus = 'captured'; // Payment was captured immediately (shouldn't happen with manual capture)
-    } else if (onvoStatus === 'requires_capture') {
-      finalStatus = 'authorized'; // Payment authorized, ready for capture after service completion
+    if (onvoStatus === 'requires_capture') {
+      if (isPostPayment) {
+        // Postpago: capturar T1 inmediatamente
+        shouldAutoCapture = true;
+        finalStatus = 'captured';
+      } else {
+        // Prepago regular: dejar authorized para capturar al completar
+        finalStatus = 'authorized';
+      }
+    } else if (onvoStatus === 'succeeded') {
+      finalStatus = 'captured';
     }
 
     const now = new Date().toISOString();
+    
+    const updateData: any = {
+      status: finalStatus,
+      authorized_at: finalStatus === 'authorized' || finalStatus === 'captured' ? now : null,
+      captured_at: finalStatus === 'captured' ? now : null,
+      onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
+      onvopay_response: onvoResult,
+      onvopay_payment_method_id: paymentMethodId
+    };
 
     console.log('💡 Payment confirmation result:', {
       onvoStatus,
       finalStatus,
+      isPostPayment,
+      shouldAutoCapture,
       requiresCapture: onvoStatus === 'requires_capture',
       paymentIntentId: body.payment_intent_id
     });
 
+    // Auto-capture T1 Base for post-payment services
+    if (shouldAutoCapture) {
+      console.log('🔄 Auto-capturing prepayment (T1) for post-payment service...');
+      
+      try {
+        const captureUrl = `${onvoConfig.fullUrl}/payment-intents/${body.payment_intent_id}/capture`;
+        
+        const captureResponse = await fetch(captureUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ amount: payment.amount })
+        });
+
+        const captureResult = await captureResponse.json();
+        
+        if (captureResponse.ok) {
+          console.log('✅ T1 Base captured immediately');
+          finalStatus = 'captured';
+          updateData.status = 'captured';
+          updateData.captured_at = now;
+          updateData.onvopay_response = {
+            ...onvoResult,
+            capture: captureResult
+          };
+        } else {
+          console.error('❌ Auto-capture failed:', captureResult);
+          // Mantener como authorized si falla
+          updateData.status = 'authorized';
+          updateData.captured_at = null;
+        }
+      } catch (captureError) {
+        console.error('❌ Exception during auto-capture:', captureError);
+        updateData.status = 'authorized';
+        updateData.captured_at = null;
+      }
+    }
+
     // Update payment record
     const { error: updateError } = await supabase
       .from('onvopay_payments')
-      .update({
-        status: finalStatus,
-        authorized_at: finalStatus === 'authorized' || finalStatus === 'captured' ? now : null,
-        captured_at: finalStatus === 'captured' ? now : null,
-        onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
-        onvopay_response: onvoResult
-      })
+      .update(updateData)
       .eq('id', payment.id);
 
     if (updateError) {

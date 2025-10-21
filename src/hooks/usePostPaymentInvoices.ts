@@ -464,6 +464,23 @@ export const useInvoiceApprovalMutation = () => {
       if (approved) {
         updateData.approved_at = new Date().toISOString();
 
+        // NUEVO: Crear y capturar pago T2 de gastos adicionales
+        console.log('💳 Charging T2 post-payment...');
+        
+        const { data: chargeData, error: chargeError } = await supabase.functions.invoke(
+          'onvopay-charge-post-payment',
+          {
+            body: { invoiceId }
+          }
+        );
+
+        if (chargeError || !chargeData?.success) {
+          console.error('❌ T2 charge failed:', chargeError || chargeData);
+          throw new Error(chargeError?.message || chargeData?.error || 'Error procesando el pago adicional');
+        }
+
+        console.log('✅ T2 payment charged:', chargeData.payment_id);
+
         // Update appointment final_price when approved
         const { error: appointmentError } = await supabase
           .from('appointments')
