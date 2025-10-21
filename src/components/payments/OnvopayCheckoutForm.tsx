@@ -125,12 +125,18 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
     setHasSubmitted(true); // Prevent double submission
     setIsProcessing(true);
-    console.log('Iniciando proceso de reserva y pago...');
+    
+    console.log('🔄 FLUJO DE PAGO INICIADO:', {
+      appointmentData,
+      amount: total,
+      paymentType,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       // PASO 1: Crear appointment usando RPC para asegurar estado 'pending' y reservar slot
       // La función RPC tiene protección integrada contra race conditions con advisory locks
-      console.log('📝 Creando appointment con slot reservado...');
+      console.log('📝 PASO 1/4: Creando appointment con slot reservado...');
       console.log('📋 appointmentData recibido:', appointmentData);
 
       const { data: appointmentResult, error: appointmentError } = await supabase
@@ -166,12 +172,12 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         throw new Error('No se pudo obtener el ID de la reserva creada');
       }
 
-      console.log('✅ Appointment creado exitosamente:', newAppointmentId);
+      console.log('✅ PASO 1/4 COMPLETADO: Appointment creado:', newAppointmentId);
 
-      // PASO 2: Procesar pago CON el appointment.id
-      console.log('💳 Procesando pago...');
+      // PASO 2: Autorizar pago CON el appointment.id
+      console.log('🔐 PASO 2/4: Autorizando pago...');
 
-      const response = await supabase.functions.invoke('onvopay-authorize', {
+      const authorizeResponse = await supabase.functions.invoke('onvopay-authorize', {
         body: {
           appointmentId: newAppointmentId,
           amount: total,
@@ -191,32 +197,32 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         }
       });
 
-      console.log('Respuesta completa de la edge function:', response);
+      console.log('Respuesta de autorización:', authorizeResponse);
 
-      const { data: paymentData, error: paymentError } = response;
+      const { data: authorizeData, error: authorizeError } = authorizeResponse;
 
-      if (paymentError) {
-        console.error('❌ Error de pago:', paymentError);
+      if (authorizeError) {
+        console.error('❌ Error en autorización:', authorizeError);
 
-        // PASO 3: Si el pago falla, ELIMINAR el appointment creado
+        // PASO 2.1: Si el pago falla, ELIMINAR el appointment creado
         await supabase
           .from('appointments')
           .delete()
           .eq('id', newAppointmentId);
 
-        console.log('🗑️ Appointment eliminado por fallo en pago');
+        console.log('🗑️ Appointment eliminado por fallo en autorización');
 
-        if (paymentError.message.includes('Edge Function returned a non-2xx status code')) {
-          if (paymentData && paymentData.error) {
-            throw new Error(paymentData.error);
+        if (authorizeError.message.includes('Edge Function returned a non-2xx status code')) {
+          if (authorizeData && authorizeData.error) {
+            throw new Error(authorizeData.error);
           }
         }
-        throw paymentError;
+        throw authorizeError;
       }
 
       // Check if the response indicates an error
-      if (paymentData && !paymentData.success) {
-        console.error('❌ Error en la respuesta:', paymentData.error);
+      if (authorizeData && !authorizeData.success) {
+        console.error('❌ Error en la respuesta de autorización:', authorizeData.error);
         
         // Eliminar appointment si hay error
         await supabase
@@ -224,33 +230,110 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
           .delete()
           .eq('id', newAppointmentId);
 
-        console.log('🗑️ Appointment eliminado por error en respuesta');
-        throw new Error(paymentData.error || 'Error desconocido en el pago');
+        console.log('🗑️ Appointment eliminado por error en respuesta de autorización');
+        throw new Error(authorizeData.error || 'Error desconocido en la autorización del pago');
       }
 
-      // PASO 4: Solo guardar referencia del pago (mantener status 'pending')
-      if (paymentData && paymentData.success) {
-        await supabase
-          .from('appointments')
-          .update({
-            onvopay_payment_id: paymentData.payment_id
-          })
-          .eq('id', newAppointmentId);
-
-        console.log('✅ Appointment actualizado con pago exitoso - permanece pendiente por aprobación');
-      }
-
-      console.log('🎉 Proceso completo exitoso');
-      toast({
-        title: "Solicitud enviada",
-        description: "Solicitud enviada. Pendiente por aprobación del proveedor.",
+      console.log('✅ PASO 2/4 COMPLETADO: Pago autorizado', {
+        payment_id: authorizeData.payment_id,
+        onvopay_payment_id: authorizeData.onvopay_payment_id
       });
 
-      // Pasar tanto appointment como payment data
-      onSuccess({
-        ...paymentData,
+      // PASO 3: Confirmar pago inmediatamente (esto captura T1 para postpago o autoriza para prepago)
+      console.log('💳 PASO 3/4: Confirmando pago...');
+
+      const confirmResponse = await supabase.functions.invoke('onvopay-confirm', {
+        body: {
+          payment_intent_id: authorizeData.onvopay_payment_id,
+          card_data: {
+            number: formData.cardNumber.replace(/\D/g, ''),
+            expiry: formData.expiryDate,
+            cvv: formData.cvv,
+            name: formData.cardholderName
+          },
+          billing_info: {
+            name: formData.cardholderName,
+            phone: formatPhoneCR(formData.phone),
+            address: formData.address
+          }
+        }
+      });
+
+      console.log('Respuesta de confirmación:', confirmResponse);
+
+      const { data: confirmData, error: confirmError } = confirmResponse;
+
+      if (confirmError) {
+        console.error('❌ Error en confirmación:', confirmError);
+
+        // Eliminar appointment si falla la confirmación
+        await supabase
+          .from('appointments')
+          .delete()
+          .eq('id', newAppointmentId);
+
+        console.log('🗑️ Appointment eliminado por fallo en confirmación');
+        throw new Error(confirmError.message || 'Error confirmando el pago');
+      }
+
+      if (confirmData && !confirmData.success) {
+        console.error('❌ Error en la respuesta de confirmación:', confirmData.error);
+        
+        // Eliminar appointment si hay error
+        await supabase
+          .from('appointments')
+          .delete()
+          .eq('id', newAppointmentId);
+
+        console.log('🗑️ Appointment eliminado por error en respuesta de confirmación');
+        throw new Error(confirmData.error || 'Error confirmando el pago');
+      }
+
+      console.log('✅ PASO 3/4 COMPLETADO: Pago confirmado', {
+        status: confirmData.status,
+        is_post_payment: confirmData.is_post_payment
+      });
+
+      // PASO 4: Actualizar appointment con payment_id
+      console.log('📝 PASO 4/4: Actualizando appointment con payment_id...');
+      
+      await supabase
+        .from('appointments')
+        .update({
+          onvopay_payment_id: authorizeData.payment_id
+        })
+        .eq('id', newAppointmentId);
+
+      console.log('✅ PASO 4/4 COMPLETADO: Appointment actualizado');
+
+      // Determinar mensaje según el tipo de servicio
+      const isPostPayment = confirmData.is_post_payment;
+      const finalStatus = confirmData.status;
+
+      console.log('🎉 FLUJO COMPLETADO EXITOSAMENTE:', {
         appointmentId: newAppointmentId,
-        status: 'pending'
+        paymentStatus: finalStatus,
+        isPostPayment,
+        timestamp: new Date().toISOString()
+      });
+
+      // Mensajes contextuales según tipo de servicio
+      const successTitle = isPostPayment ? "Pago procesado" : "Solicitud enviada";
+      const successDescription = isPostPayment
+        ? "Reserva confirmada. El pago base ha sido procesado exitosamente."
+        : "Reserva confirmada. Pendiente por aprobación del proveedor.";
+
+      toast({
+        title: successTitle,
+        description: successDescription,
+      });
+
+      // Pasar datos completos al callback de éxito
+      onSuccess({
+        ...confirmData,
+        appointmentId: newAppointmentId,
+        status: finalStatus,
+        is_post_payment: isPostPayment
       });
 
     } catch (error: any) {
