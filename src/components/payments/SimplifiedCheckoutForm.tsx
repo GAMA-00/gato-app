@@ -391,9 +391,14 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       let finalPaymentData = authorizeData;
 
-      // STEP 2: For normal services, confirm Payment Intent immediately
-      if (authorizeData.requires_confirmation && !authorizeData.is_post_payment) {
-        console.log('💳 Confirmando Payment Intent inmediatamente...');
+      // STEP 2: Confirm Payment Intent immediately for ALL services
+      // - Post-payment (is_post_payment=true): Auto-captures T1 Base immediately
+      // - Pre-payment (is_post_payment=false): Authorizes, captures later
+      if (authorizeData.requires_confirmation) {
+        console.log('💳 PASO 3/4: Confirmando pago...', {
+          is_post_payment: authorizeData.is_post_payment,
+          payment_intent_id: authorizeData.onvopay_payment_id
+        });
 
         const confirmResponse = await supabase.functions.invoke('onvopay-confirm', {
           body: {
@@ -438,7 +443,12 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
           throw new Error(confirmData?.error || 'Error confirmando pago');
         }
 
-        console.log('✅ Payment confirmed:', confirmData);
+        console.log('✅ PASO 3/4 COMPLETADO: Pago confirmado', {
+          status: confirmData.status,
+          is_post_payment: confirmData.is_post_payment,
+          payment_type: confirmData.payment_type,
+          captured_at: confirmData.captured_at
+        });
         finalPaymentData = confirmData;
 
         // FASE 2: Si es servicio recurrente, crear suscripción en ONVO Pay
@@ -545,11 +555,12 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         }
       }
 
-      const successMessage = finalPaymentData.is_post_payment 
-        ? "Solicitud enviada. El pago se procesará al completar el servicio."
+      // Mensajes contextuales según tipo de servicio y estado
+      const successMessage = finalPaymentData.is_post_payment && finalPaymentData.status === 'captured'
+        ? "Reserva confirmada. El pago base (T1) ha sido procesado exitosamente."
         : finalPaymentData.status === 'captured' 
           ? "Pago procesado exitosamente. Pendiente de aprobación del proveedor."
-          : "Pago autorizado. Pendiente de aprobación del proveedor.";
+          : "Pago autorizado. Se cobrará al completar el servicio.";
       
       toast({
         title: "Proceso exitoso",

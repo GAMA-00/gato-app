@@ -62,12 +62,17 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
     }
   }, [payment?.status, onStatusChange]);
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (status: string, payment?: any) => {
+    // Detectar si es servicio postpago para mensaje contextual
+    const isPostPayment = payment?.payment_type === 'prepaid' && status === 'pending_authorization';
+    
     const statusMap = {
       'pending_authorization': {
         icon: <Clock className="h-6 w-6 text-yellow-500" />,
         title: 'Pago Pendiente',
-        description: 'Esperando confirmación al completar servicio...',
+        description: isPostPayment 
+          ? '⚠️ Completando captura del pago base (T1)...'
+          : 'Esperando confirmación al completar servicio...',
         color: 'yellow'
       },
       'requires_confirmation': {
@@ -111,6 +116,8 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
     return statusMap[status] || statusMap['failed'];
   };
 
+  const statusInfo = getStatusInfo(payment?.status || '', payment);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -134,8 +141,6 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
       </Card>
     );
   }
-
-  const statusInfo = getStatusInfo(payment.status);
 
   return (
     <Card className="w-full max-w-md mx-auto">
