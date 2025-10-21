@@ -585,6 +585,22 @@ export const useWeeklySlotsFetcher = ({
 
       // Usar el pool de adyacencia filtrado por residencial para calcular recomendaciones
       const adjacentPool = adjacentPoolForRecommendations;
+      
+      // Identificar qué días tienen al menos una cita confirmada
+      const daysWithAppointments = new Set<string>();
+      for (const apt of adjacentPool) {
+        try {
+          const start = new Date(apt.start_time);
+          const dateKey = format(start, 'yyyy-MM-dd');
+          daysWithAppointments.add(dateKey);
+        } catch {}
+      }
+
+      console.log('📅 Días con citas confirmadas:', {
+        totalDias: daysWithAppointments.size,
+        dias: Array.from(daysWithAppointments)
+      });
+      
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);
@@ -631,16 +647,52 @@ export const useWeeklySlotsFetcher = ({
         slotStepByDate[dateKey] = step > 0 ? step : 60; // fallback a 60 min
       }
 
+      // Agrupar slots por día para identificar el primer slot disponible de cada día
+      const slotsByDay: Record<string, WeeklySlot[]> = {};
+      for (const s of finalWeeklySlots) {
+        const dateKey = format(s.date, 'yyyy-MM-dd');
+        if (!slotsByDay[dateKey]) slotsByDay[dateKey] = [];
+        slotsByDay[dateKey].push(s);
+      }
+
+      // Ordenar slots de cada día por hora
+      for (const dateKey in slotsByDay) {
+        slotsByDay[dateKey].sort((a, b) => a.time.localeCompare(b.time));
+      }
+
       const weeklySlotsWithRec: WeeklySlot[] = finalWeeklySlots.map(s => {
         if (!s.isAvailable) return s;
+        
         const dateKey = format(s.date, 'yyyy-MM-dd');
         const [hh, mm] = s.time.split(':').map(n => parseInt(n, 10));
         const slotMin = (hh * 60) + (mm || 0);
         const apptStarts = apptStartMinutesByDate[dateKey] || new Set<number>();
         const apptEnds = apptEndMinutesByDate[dateKey] || new Set<number>();
         const step = slotStepByDate[dateKey] || 60;
-        // Recomendado si el siguiente slot inmediato es inicio de cita, o si justo antes terminó una cita
-        const isRecommended = apptStarts.has(slotMin + step) || apptEnds.has(slotMin);
+        
+        // OPCIÓN A (Prioridad): Adyacente a citas confirmadas
+        const isAdjacentToAppointment = apptStarts.has(slotMin + step) || apptEnds.has(slotMin);
+        
+        // OPCIÓN C (Fallback): Primer slot del día SOLO si no hay citas en ese día
+        const dayHasNoAppointments = !daysWithAppointments.has(dateKey);
+        const availableSlotsInDay = slotsByDay[dateKey].filter(slot => slot.isAvailable);
+        const isFirstSlotOfDay = availableSlotsInDay.length > 0 && 
+                                 availableSlotsInDay[0].id === s.id;
+        const isFirstSlotFallback = dayHasNoAppointments && isFirstSlotOfDay;
+        
+        // Recomendado si cumple Opción A (prioridad) o Opción C (fallback)
+        const isRecommended = isAdjacentToAppointment || isFirstSlotFallback;
+        
+        // Logging para debug
+        if (isRecommended) {
+          console.log('⭐ Slot marcado como recomendado:', {
+            date: dateKey,
+            time: s.time,
+            reason: isAdjacentToAppointment ? 'adyacente_a_cita_confirmada' : 'primer_slot_del_dia',
+            dayHasAppointments: daysWithAppointments.has(dateKey)
+          });
+        }
+        
         return { ...s, isRecommended };
       });
 
