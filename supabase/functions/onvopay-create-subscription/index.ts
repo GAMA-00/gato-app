@@ -84,29 +84,15 @@ serve(async (req) => {
       }
     };
 
-    console.log('📤 Enviando request a ONVO Pay:', {
-      url: `${ONVOPAY_API_URL}/subscriptions`,
-      interval: recurrenceConfig.interval,
-      interval_count: recurrenceConfig.interval_count
-    });
+    // ONVO Pay no tiene endpoint de subscripciones nativas
+    // Manejamos la recurrencia localmente con cobros programados
+    console.log('⚠️ ONVO Pay no soporta suscripciones nativas');
+    console.log('💾 Guardando suscripción solo en base de datos local');
+    console.log('📅 Los cobros futuros serán procesados automáticamente por process-recurring-charges');
 
-    const onvopayResponse = await fetch(`${ONVOPAY_API_URL}/subscriptions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ONVOPAY_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(subscriptionPayload)
-    });
-
-    if (!onvopayResponse.ok) {
-      const errorData = await onvopayResponse.json();
-      console.error('❌ Error de ONVO Pay:', errorData);
-      throw new Error(`Error creando suscripción: ${errorData.message || 'Unknown error'}`);
-    }
-
-    const onvopayData = await onvopayResponse.json();
-    console.log('✅ Suscripción creada en ONVO Pay:', onvopayData.id);
+    // Generar ID local para la suscripción
+    const localSubscriptionId = `local_sub_${appointmentId}_${Date.now()}`;
+    console.log('🆔 ID local generado:', localSubscriptionId);
 
     // Calcular siguiente fecha de cobro
     const nextChargeDate = new Date();
@@ -116,11 +102,11 @@ serve(async (req) => {
       nextChargeDate.setMonth(nextChargeDate.getMonth() + recurrenceConfig.interval_count);
     }
 
-    // Guardar en tabla onvopay_subscriptions
+    // Guardar en tabla onvopay_subscriptions (LOCAL)
     const { data: subscription, error: subError } = await supabaseAdmin
       .from('onvopay_subscriptions')
       .insert({
-        onvopay_subscription_id: onvopayData.id,
+        onvopay_subscription_id: localSubscriptionId, // ID local, no de ONVO Pay
         recurring_rule_id: appointment.recurring_rules?.[0]?.id || null,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
@@ -131,6 +117,7 @@ serve(async (req) => {
         start_date: new Date().toISOString().split('T')[0],
         next_charge_date: nextChargeDate.toISOString().split('T')[0],
         external_reference: appointmentId,
+        payment_method_id: paymentMethodId, // CRÍTICO: Guardar para cobros futuros
         original_appointment_template: {
           listing_id: appointment.listing_id,
           residencia_id: appointment.residencia_id,
@@ -138,7 +125,8 @@ serve(async (req) => {
           client_email: appointment.client_email,
           client_phone: appointment.client_phone,
           client_address: appointment.client_address,
-          notes: appointment.notes
+          notes: appointment.notes,
+          billing_info: billing_info // Guardar billing_info para futuros cobros
         }
       })
       .select()
@@ -165,11 +153,12 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      subscription_id: onvopayData.id,
+      subscription_id: localSubscriptionId,
       db_subscription_id: subscription.id,
       next_charge_date: nextChargeDate.toISOString().split('T')[0],
       interval: recurrenceConfig.interval,
-      interval_count: recurrenceConfig.interval_count
+      interval_count: recurrenceConfig.interval_count,
+      message: 'Suscripción creada exitosamente. Los cobros futuros se procesarán automáticamente.'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

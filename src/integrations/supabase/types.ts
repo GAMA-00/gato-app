@@ -638,6 +638,7 @@ export type Database = {
           next_charge_date: string
           onvopay_subscription_id: string | null
           original_appointment_template: Json | null
+          payment_method_id: string | null
           provider_id: string
           recurring_rule_id: string | null
           start_date: string
@@ -661,6 +662,7 @@ export type Database = {
           next_charge_date: string
           onvopay_subscription_id?: string | null
           original_appointment_template?: Json | null
+          payment_method_id?: string | null
           provider_id: string
           recurring_rule_id?: string | null
           start_date: string
@@ -684,6 +686,7 @@ export type Database = {
           next_charge_date?: string
           onvopay_subscription_id?: string | null
           original_appointment_template?: Json | null
+          payment_method_id?: string | null
           provider_id?: string
           recurring_rule_id?: string | null
           start_date?: string

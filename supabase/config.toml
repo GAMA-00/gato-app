@@ -61,3 +61,6 @@ verify_jwt = false
 
 [functions.onvopay-sync-recurring-payments]
 verify_jwt = true
+
+[functions.process-recurring-charges]
+verify_jwt = false
