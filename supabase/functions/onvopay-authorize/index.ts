@@ -275,10 +275,10 @@ serve(async (req) => {
       amount: body.amount,
       currency: 'USD',
       is_post_payment: isPostPayment,
-      requires_confirmation: !isPostPayment,
+      requires_confirmation: true,
       message: isPostPayment 
-        ? 'Payment Intent creado. Pago se procesará al completar el servicio.'
-        : 'Payment Intent creado. Procediendo con confirmación.',
+        ? 'Payment Intent creado. T1 Base será capturado inmediatamente.'
+        : 'Payment Intent creado. Será capturado al completar el servicio.',
       timestamp: now,
       onvopay_status: onvoResult.status,
       onvopay_raw: {
