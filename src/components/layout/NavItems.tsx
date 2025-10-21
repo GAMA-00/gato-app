@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import NavItem from './NavItem';
 import { Home, Calendar, Users, Star, Settings, Briefcase, FileText } from 'lucide-react';
 import { usePendingInvoicesCount, useClientInvoicesCount } from '@/hooks/useInvoiceCounts';
+import { usePendingAppointments } from '@/hooks/usePendingAppointments';
 
 export interface NavItem {
   title: string;
@@ -74,6 +75,7 @@ export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchVie
   const { user } = useAuth();
   const { data: pendingInvoicesCount = 0 } = usePendingInvoicesCount();
   const { data: clientInvoicesCount = 0 } = useClientInvoicesCount();
+  const { count: pendingAppointmentsCount } = usePendingAppointments();
 
   if (!user) return null;
 
@@ -86,6 +88,9 @@ export const NavItems: React.FC<NavItemsProps> = ({ isClientSection, onSwitchVie
   });
 
   const getItemCounter = (href: string) => {
+    if (href === '/calendar' && user.role === 'provider') {
+      return pendingAppointmentsCount;
+    }
     if (href === '/provider/invoices' && user.role === 'provider') {
       return pendingInvoicesCount;
     }
