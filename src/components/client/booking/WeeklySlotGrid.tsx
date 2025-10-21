@@ -73,6 +73,8 @@ const WeeklySlotGrid = ({
   // Calculate correct week boundaries
   const { startDate: weekStartDate, endDate: weekEndDate } = calculateWeekDateRange(currentWeek);
   
+  console.log('🏠 Cliente Residencia ID:', profile?.residencia_id);
+
   const {
     slotGroups,
     availableSlotGroups,

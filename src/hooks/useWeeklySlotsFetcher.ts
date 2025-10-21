@@ -291,6 +291,21 @@ export const useWeeklySlotsFetcher = ({
       const allAppointments = apptAllRes.data || [];
       const legacyRecurring = legacyRecurringRes[0].data || [];
       
+      // Extraer citas del mismo residencial para cálculo de recomendaciones
+      const sameResidenciaAppointments = (apptDirectRes && 'data' in apptDirectRes) 
+        ? (apptDirectRes.data || []) 
+        : [];
+
+      console.log('🏢 Citas del mismo residencial para recomendaciones:', {
+        clientResidenciaId,
+        totalCitasMismaResidencia: sameResidenciaAppointments.length,
+        detalles: sameResidenciaAppointments.map(a => ({
+          start: a.start_time,
+          end: a.end_time,
+          residencia_id: a.residencia_id
+        }))
+      });
+      
       console.log('🔄 Sistema Legacy de Recurrencia:', {
         citasRecurrentesLegacy: legacyRecurring.length,
         desglose: {
@@ -529,8 +544,47 @@ export const useWeeklySlotsFetcher = ({
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
       const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
-      // Usar las citas confirmadas de la base de datos + proyecciones legacy
-      const adjacentPool = combinedConflicts;
+      // Para recomendaciones: usar citas del MISMO residencial + proyecciones legacy del mismo residencial
+      const adjacentPoolForRecommendations = [
+        // Incluir citas confirmadas del MISMO residencial
+        ...sameResidenciaAppointments.map(a => ({
+          start_time: a.start_time,
+          end_time: a.end_time,
+          status: a.status,
+          residencia_id: a.residencia_id
+        })),
+        // Incluir proyecciones legacy que sean del mismo residencial
+        ...projectedLegacyOccurrences
+          .filter(p => {
+            // Buscar la cita original para verificar su residencia_id
+            const originalAppt = legacyRecurring.find(lr => {
+              const origStart = new Date(lr.start_time);
+              const projDay = p.start.getDay();
+              const origDay = origStart.getDay();
+              // Identificar si esta proyección viene de esta cita original comparando día de la semana y hora
+              return projDay === origDay && 
+                     p.start.getHours() === origStart.getHours() && 
+                     p.start.getMinutes() === origStart.getMinutes();
+            });
+            return originalAppt && originalAppt.residencia_id === clientResidenciaId;
+          })
+          .map(p => ({
+            start_time: p.start.toISOString(),
+            end_time: p.end.toISOString(),
+            status: 'confirmed' as const
+          }))
+      ];
+
+      console.log('📍 Pool de adyacencia para recomendaciones:', {
+        citasMismaResidencia: sameResidenciaAppointments.length,
+        proyeccionesLegacyTotal: projectedLegacyOccurrences.length,
+        proyeccionesFiltradas: adjacentPoolForRecommendations.length - sameResidenciaAppointments.length,
+        totalParaRecomendaciones: adjacentPoolForRecommendations.length,
+        clientResidenciaId
+      });
+
+      // Usar el pool de adyacencia filtrado por residencial para calcular recomendaciones
+      const adjacentPool = adjacentPoolForRecommendations;
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);
