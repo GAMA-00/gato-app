@@ -56,6 +56,21 @@ serve(async (req) => {
       throw new Error(`Tipo de recurrencia no soportado: ${recurrenceType}`);
     }
 
+    // Validación explícita de recurrenceType para constraint de BD
+    const validIntervalTypes = ['weekly', 'biweekly', 'triweekly', 'monthly'];
+    if (!validIntervalTypes.includes(recurrenceType)) {
+      throw new Error(`Tipo de recurrencia inválido: ${recurrenceType}. Valores válidos: ${validIntervalTypes.join(', ')}`);
+    }
+
+    console.log('✅ Validación y mapeo de recurrencia:', {
+      recurrenceType,
+      mappedToOnvoPay: {
+        interval: recurrenceConfig.interval,
+        interval_count: recurrenceConfig.interval_count
+      },
+      willSaveInDB: recurrenceType
+    });
+
     // Obtener datos del appointment
     const { data: appointment, error: aptError } = await supabaseAdmin
       .from('appointments')
@@ -117,7 +132,7 @@ serve(async (req) => {
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
         amount: normalizedAmount,
-        interval_type: recurrenceConfig.interval,
+        interval_type: recurrenceType,
         interval_count: recurrenceConfig.interval_count,
         status: 'active',
         start_date: new Date().toISOString().split('T')[0],
