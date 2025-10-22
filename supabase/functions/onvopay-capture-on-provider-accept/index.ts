@@ -33,7 +33,7 @@ serve(async (req) => {
       // Buscar pago autorizado o pendiente para esta cita
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from('onvopay_payments')
-        .select('id, status, onvopay_payment_id, amount, payment_type')
+        .select('id, status, onvopay_payment_id, onvopay_payment_method_id, amount, payment_type, client_id')
         .eq('appointment_id', appointmentId)
         .in('status', ['pending_authorization', 'authorized'])
         .single();
@@ -67,6 +67,34 @@ serve(async (req) => {
       if (payment.status === 'pending_authorization') {
         console.log(`🔄 Pago en pending_authorization, ejecutando confirm primero...`);
         
+        let paymentMethodId = (payment as any).onvopay_payment_method_id;
+
+        // Fallback: buscar método guardado del cliente
+        if (!paymentMethodId) {
+          console.warn('⚠️ No payment_method_id, buscando método guardado...');
+          const { data: savedMethods } = await supabaseAdmin
+            .from('payment_methods')
+            .select('onvopay_payment_method_id')
+            .eq('user_id', (payment as any).client_id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (savedMethods?.[0]) {
+            paymentMethodId = savedMethods[0].onvopay_payment_method_id;
+          }
+        }
+
+        if (!paymentMethodId) {
+          console.error('❌ No payment method disponible');
+          captureResults.push({
+            appointmentId,
+            paymentId: payment.id,
+            status: 'confirm_failed',
+            error: 'No payment method available'
+          });
+          continue;
+        }
+        
         const confirmUrl = `${Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com'}/v1/payment-intents/${payment.onvopay_payment_id}/confirm`;
         const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
 
@@ -79,7 +107,10 @@ serve(async (req) => {
           headers: {
             'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
             'Content-Type': 'application/json',
-          }
+          },
+          body: JSON.stringify({
+            payment_method: paymentMethodId
+          })
         });
 
         const confirmText = await confirmResponse.text();

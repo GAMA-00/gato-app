@@ -174,8 +174,39 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
       console.log('✅ PASO 1/4 COMPLETADO: Appointment creado:', newAppointmentId);
 
-      // PASO 2: Autorizar pago CON el appointment.id
-      console.log('🔐 PASO 2/4: Autorizando pago...');
+      // PASO 2: Tokenizar tarjeta primero
+      console.log('🎫 PASO 2/4: Tokenizando tarjeta...');
+
+      const tokenizeResponse = await supabase.functions.invoke('onvopay-create-payment-method', {
+        body: {
+          card_data: {
+            number: formData.cardNumber.replace(/\D/g, ''),
+            expiry: formData.expiryDate,
+            cvv: formData.cvv,
+            name: formData.cardholderName
+          }
+        }
+      });
+
+      const { data: tokenData, error: tokenError } = tokenizeResponse;
+
+      if (tokenError || !tokenData?.success) {
+        console.error('❌ Error tokenizando tarjeta:', tokenError || tokenData);
+        
+        // Eliminar appointment si tokenización falla
+        await supabase
+          .from('appointments')
+          .delete()
+          .eq('id', newAppointmentId);
+
+        throw new Error('No se pudo procesar los datos de la tarjeta');
+      }
+
+      const paymentMethodId = tokenData.payment_method_id;
+      console.log('✅ Tarjeta tokenizada:', paymentMethodId);
+
+      // PASO 3: Autorizar pago CON el appointment.id y payment_method_id
+      console.log('🔐 PASO 3/4: Autorizando pago...');
 
       const authorizeResponse = await supabase.functions.invoke('onvopay-authorize', {
         body: {
@@ -184,9 +215,11 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
           payment_type: paymentType,
           payment_method: 'card',
           card_data: {
-            number: formData.cardNumber.replace(/\D/g, ''),
-            expiry: formData.expiryDate,
-            cvv: formData.cvv,
+            payment_method_id: paymentMethodId,
+            last4: tokenData.card.last4,
+            brand: tokenData.card.brand,
+            exp_month: tokenData.card.exp_month,
+            exp_year: tokenData.card.exp_year,
             name: formData.cardholderName
           },
           billing_info: {
@@ -234,7 +267,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         throw new Error(authorizeData.error || 'Error desconocido en la autorización del pago');
       }
 
-      console.log('✅ PASO 2/4 COMPLETADO: Payment Intent creado (pending_authorization)');
+      console.log('✅ PASO 3/4 COMPLETADO: Payment Intent creado (pending_authorization)');
       console.log('⏳ El pago se procesará cuando el proveedor acepte tu reserva');
 
       // PASO 4: Actualizar appointment con payment_id

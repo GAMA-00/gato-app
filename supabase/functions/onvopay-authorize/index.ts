@@ -79,10 +79,22 @@ serve(async (req) => {
     if (typeof body.amount !== 'number') missing.push('amount');
     if (!body.card_data) missing.push('card_data');
     else {
-      if (!body.card_data.number) missing.push('card_data.number');
-      if (!body.card_data.expiry) missing.push('card_data.expiry');
-      if (!body.card_data.cvv) missing.push('card_data.cvv');
-      if (!body.card_data.name) missing.push('card_data.name');
+      // Accept EITHER payment_method_id OR raw card data, but not both
+      const hasPaymentMethodId = !!body.card_data.payment_method_id;
+      const hasRawCardData = !!(body.card_data.number && body.card_data.expiry && body.card_data.cvv && body.card_data.name);
+      
+      if (!hasPaymentMethodId && !hasRawCardData) {
+        missing.push('card_data (must include payment_method_id OR complete card details)');
+      }
+      if (hasPaymentMethodId && hasRawCardData) {
+        return new Response(JSON.stringify({
+          error: 'VALIDATION_ERROR',
+          message: 'Provide EITHER payment_method_id OR card details, not both',
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
     }
     if (!body.billing_info) missing.push('billing_info');
 
@@ -213,6 +225,21 @@ serve(async (req) => {
     const now = new Date().toISOString();
     const dbStatus = 'pending_authorization';
 
+    // Determine card info based on whether payment_method_id or raw card data was provided
+    const cardInfo = body.card_data.payment_method_id 
+      ? {
+          last4: body.card_data.last4 || '****',
+          brand: body.card_data.brand || 'card',
+          exp_month: body.card_data.exp_month || '',
+          exp_year: body.card_data.exp_year || ''
+        }
+      : {
+          last4: body.card_data.number.slice(-4),
+          brand: 'visa',
+          exp_month: body.card_data.expiry.split('/')[0],
+          exp_year: body.card_data.expiry.split('/')[1]
+        };
+
     const { data: payment, error: paymentError } = await supabase
       .from('onvopay_payments')
       .insert({
@@ -227,22 +254,18 @@ serve(async (req) => {
         payment_type: body.payment_type || 'appointment',
         payment_method: 'card',
         billing_info: body.billing_info,
-        card_info: {
-          last4: body.card_data.number.slice(-4),
-          brand: 'visa',
-          exp_month: body.card_data.expiry.split('/')[0],
-          exp_year: body.card_data.expiry.split('/')[1]
-        },
+        card_info: cardInfo,
         authorized_at: null,
         captured_at: null,
         onvopay_payment_id: onvoResult.id,
+        onvopay_payment_method_id: body.card_data.payment_method_id || null,
         onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
         external_reference: body.appointmentId,
         onvopay_response: isPostPayment ? {
           card_data_encrypted: JSON.stringify({
-            last4: body.card_data.number.slice(-4),
-            exp_month: body.card_data.expiry.split('/')[0],
-            exp_year: body.card_data.expiry.split('/')[1],
+            last4: cardInfo.last4,
+            exp_month: cardInfo.exp_month,
+            exp_year: cardInfo.exp_year,
             name: body.card_data.name
           }),
           billing_info: body.billing_info
@@ -276,9 +299,10 @@ serve(async (req) => {
       currency: 'USD',
       is_post_payment: isPostPayment,
       requires_confirmation: true,
+      onvopay_payment_method_id: payment.onvopay_payment_method_id,
       message: isPostPayment 
-        ? 'Payment Intent creado. T1 Base será capturado inmediatamente.'
-        : 'Payment Intent creado. Será capturado al completar el servicio.',
+        ? 'Payment Intent creado. Será capturado cuando el proveedor acepte.'
+        : 'Payment Intent creado. Será capturado cuando el proveedor acepte.',
       timestamp: now,
       onvopay_status: onvoResult.status,
       onvopay_raw: {

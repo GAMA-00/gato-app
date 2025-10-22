@@ -190,35 +190,60 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         isRecurring 
       });
 
-      // PASO 2: Procesar pago primero, luego guardar tarjeta con payment_method_id
+      // PASO 2: Tokenizar tarjeta nueva si es necesario
+      let paymentMethodId: string | null = null;
+      let cardInfoForSaving: any = null;
 
-      // PASO 3: Procesar pago
-      console.log('💳 Procesando pago...');
-
-      // Get selected saved card if using one
       const selectedSavedCard = !showNewCardForm && selectedCardId
         ? paymentMethods.find(pm => pm.id === selectedCardId)
         : null;
 
-      const cardDataForPayment = showNewCardForm
-        ? {
-            number: newCardData.cardNumber.replace(/\D/g, ''),
-            expiry: newCardData.expiryDate,
-            cvv: newCardData.cvv,
-            name: newCardData.cardholderName
+      if (showNewCardForm) {
+        // Nueva tarjeta: tokenizar primero
+        console.log('🎫 Tokenizando nueva tarjeta...');
+        
+        const tokenizeResponse = await supabase.functions.invoke('onvopay-create-payment-method', {
+          body: {
+            card_data: {
+              number: newCardData.cardNumber.replace(/\D/g, ''),
+              expiry: newCardData.expiryDate,
+              cvv: newCardData.cvv,
+              name: newCardData.cardholderName
+            }
           }
-        : selectedSavedCard?.onvopay_payment_method_id
-        ? {
-            // Use saved OnvoPay payment method ID
-            payment_method_id: selectedSavedCard.onvopay_payment_method_id
-          }
-        : {
-            // Fallback: use test card data (shouldn't happen in production)
-            number: '4242424242424242',
-            expiry: '12/28',
-            cvv: '123',
-            name: 'Tarjeta Guardada'
-          };
+        });
+
+        const { data: tokenData, error: tokenError } = tokenizeResponse;
+
+        if (tokenError || !tokenData?.success) {
+          console.error('❌ Error tokenizando tarjeta:', tokenError || tokenData);
+          throw new Error('No se pudo procesar los datos de la tarjeta');
+        }
+
+        paymentMethodId = tokenData.payment_method_id;
+        cardInfoForSaving = tokenData.card;
+        console.log('✅ Tarjeta tokenizada:', paymentMethodId);
+      } else if (selectedSavedCard?.onvopay_payment_method_id) {
+        // Tarjeta guardada: usar payment_method_id existente
+        paymentMethodId = selectedSavedCard.onvopay_payment_method_id;
+        console.log('🎫 Usando tarjeta guardada:', paymentMethodId);
+      } else {
+        throw new Error('No se pudo obtener método de pago');
+      }
+
+      // PASO 3: Procesar pago con payment_method_id
+      console.log('💳 Autorizando pago con payment_method_id...');
+
+      const cardDataForPayment = {
+        payment_method_id: paymentMethodId,
+        ...(cardInfoForSaving && {
+          last4: cardInfoForSaving.last4,
+          brand: cardInfoForSaving.brand,
+          exp_month: cardInfoForSaving.exp_month,
+          exp_year: cardInfoForSaving.exp_year,
+          name: showNewCardForm ? newCardData.cardholderName : selectedSavedCard?.cardholder_name
+        })
+      };
 
       // STEP 1: Create Payment Intent
       const billingName = showNewCardForm
@@ -396,8 +421,25 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       let finalPaymentData = authorizeData;
 
-      // FASE 2: Si es servicio recurrente, crear suscripción en ONVO Pay
-      if (isRecurring && authorizeData.onvopay_payment_method_id) {
+      // FASE 2: Guardar tarjeta si el usuario lo solicitó
+      if (showNewCardForm && newCardData.saveCard && paymentMethodId && cardInfoForSaving) {
+        console.log('💾 Guardando método de pago...');
+        try {
+          await savePaymentMethod({
+            cardNumber: '****',
+            cardholderName: newCardData.cardholderName,
+            expiryDate: `${cardInfoForSaving.exp_month}/${cardInfoForSaving.exp_year}`,
+            onvopayPaymentMethodId: paymentMethodId
+          });
+          console.log('✅ Método de pago guardado');
+        } catch (saveError) {
+          console.error('⚠️ Error guardando método de pago:', saveError);
+          // No bloquear el flujo si falla guardar la tarjeta
+        }
+      }
+
+      // FASE 3: Si es servicio recurrente, crear suscripción en ONVO Pay
+      if (isRecurring && paymentMethodId) {
         console.log('📅 Creando suscripción recurrente en ONVO Pay...');
         
         try {
@@ -408,7 +450,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
                 appointmentId: newAppointmentId,
                 amount: amount,
                 recurrenceType: appointmentData.recurrenceType,
-                paymentMethodId: authorizeData.onvopay_payment_method_id,
+                paymentMethodId: paymentMethodId,
                 billing_info: {
                   name: billingName,
                   email: user?.email || '',
