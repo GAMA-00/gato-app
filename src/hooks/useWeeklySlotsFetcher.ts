@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { addDays, format, startOfDay, endOfDay } from 'date-fns';
+import { addDays, format, startOfDay, endOfDay, subWeeks } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
@@ -83,7 +83,7 @@ export const useWeeklySlotsFetcher = ({
     
     try {
       // Consultar slots con datetime y legacy en paralelo y fusionar resultados, incluyendo slot_preferences
-      const [dtRes, legacyRes, apptAllRes, apptDirectRes, apptRecurringBaseRes, listingRes] = await Promise.all([
+      const [dtRes, legacyRes, apptAllRes, apptDirectRes, apptRecurringBaseRes, listingRes, legacyRecurringFirstRes, historicalRes] = await Promise.all([
         supabase
           .from('provider_time_slots')
           .select('*')
@@ -106,7 +106,7 @@ export const useWeeklySlotsFetcher = ({
           .select('start_time, end_time, status, is_recurring_instance, external_booking, recurrence, residencia_id')
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
-          .in('status', ['confirmed', 'pending'])
+          .in('status', ['confirmed', 'pending', 'completed'])
           .gte('start_time', baseDate.toISOString())
           .lte('start_time', endOfDay(endDate).toISOString()),
         clientResidenciaId ?
@@ -115,7 +115,7 @@ export const useWeeklySlotsFetcher = ({
             .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id')
             .eq('provider_id', providerId)
             .eq('listing_id', listingId)
-            .in('status', ['confirmed', 'pending'])
+            .in('status', ['confirmed', 'pending', 'completed'])
             .eq('residencia_id', clientResidenciaId)
             .gte('start_time', baseDate.toISOString())
             .lte('start_time', endOfDay(endDate).toISOString())
@@ -126,7 +126,7 @@ export const useWeeklySlotsFetcher = ({
             .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status, external_booking')
             .eq('provider_id', providerId)
             .eq('listing_id', listingId)
-            .in('status', ['confirmed', 'pending'])
+            .in('status', ['confirmed', 'pending', 'completed'])
             .not('recurrence', 'in', '("none","once")')
             .lte('start_time', endOfDay(endDate).toISOString()),
         // obtener configuraciones del listing
@@ -141,10 +141,22 @@ export const useWeeklySlotsFetcher = ({
           .select('*')
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
-          .eq('status', 'confirmed')
+          .in('status', ['confirmed', 'completed'])
           .not('recurrence', 'is', null)
           .neq('recurrence', 'none')
-          .neq('recurrence', 'once')
+          .neq('recurrence', 'once'),
+        // Historical appointments for adjacency recommendations (up to 4 weeks back)
+        clientResidenciaId ?
+          supabase
+            .from('appointments')
+            .select('start_time, end_time, status, residencia_id')
+            .eq('provider_id', providerId)
+            .eq('listing_id', listingId)
+            .in('status', ['confirmed', 'pending', 'completed'])
+            .eq('residencia_id', clientResidenciaId)
+            .gte('start_time', subWeeks(baseDate, 4).toISOString())
+            .lte('start_time', endOfDay(endDate).toISOString())
+          : Promise.resolve({ data: [], error: null })
       ]);
 
       const legacyRecurringRes = await Promise.all([
@@ -153,7 +165,7 @@ export const useWeeklySlotsFetcher = ({
           .select('*')
           .eq('provider_id', providerId)
           .eq('listing_id', listingId)
-          .eq('status', 'confirmed')
+          .in('status', ['confirmed', 'completed'])
           .not('recurrence', 'is', null)
           .neq('recurrence', 'none')
           .neq('recurrence', 'once')
@@ -165,6 +177,8 @@ export const useWeeklySlotsFetcher = ({
       if (apptDirectRes && 'error' in apptDirectRes && apptDirectRes.error) throw apptDirectRes.error;
       if (apptRecurringBaseRes && 'error' in apptRecurringBaseRes && apptRecurringBaseRes.error) throw apptRecurringBaseRes.error;
       if (listingRes.error) throw listingRes.error;
+      if (legacyRecurringFirstRes && 'error' in legacyRecurringFirstRes && legacyRecurringFirstRes.error) throw legacyRecurringFirstRes.error;
+      if (historicalRes && 'error' in historicalRes && historicalRes.error) throw historicalRes.error;
       if (legacyRecurringRes[0].error) throw legacyRecurringRes[0].error;
 
       const timeSlotsDt = dtRes.data || [];
@@ -295,13 +309,22 @@ export const useWeeklySlotsFetcher = ({
       const sameResidenciaAppointments = (apptDirectRes && 'data' in apptDirectRes) 
         ? (apptDirectRes.data || []) 
         : [];
+      
+      // Agregar citas históricas (hasta 4 semanas atrás) para mejorar recomendaciones
+      const historicalAppointments = (historicalRes && 'data' in historicalRes)
+        ? (historicalRes.data || [])
+        : [];
 
       console.log('🏢 Citas del mismo residencial para recomendaciones:', {
         clientResidenciaId,
         totalCitasMismaResidencia: sameResidenciaAppointments.length,
-        detalles: sameResidenciaAppointments.map(a => ({
-          start: a.start_time,
-          end: a.end_time,
+        citasHistoricas: historicalAppointments.length,
+        citasConfirmed: sameResidenciaAppointments.filter(a => a.status === 'confirmed').length,
+        citasPending: sameResidenciaAppointments.filter(a => a.status === 'pending').length,
+        citasCompleted: sameResidenciaAppointments.filter(a => a.status === 'completed').length,
+        detalles: [...sameResidenciaAppointments, ...historicalAppointments].map(a => ({
+          start: format(new Date(a.start_time), 'yyyy-MM-dd HH:mm'),
+          status: a.status,
           residencia_id: a.residencia_id
         }))
       });
@@ -544,10 +567,17 @@ export const useWeeklySlotsFetcher = ({
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
       const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
-      // Para recomendaciones: usar citas del MISMO residencial + proyecciones legacy del mismo residencial
+      // Para recomendaciones: usar citas del MISMO residencial + históricos + proyecciones legacy del mismo residencial
       const adjacentPoolForRecommendations = [
-        // Incluir citas confirmadas del MISMO residencial
+        // Incluir citas confirmadas, pending y completed del MISMO residencial
         ...sameResidenciaAppointments.map(a => ({
+          start_time: a.start_time,
+          end_time: a.end_time,
+          status: a.status,
+          residencia_id: a.residencia_id
+        })),
+        // Incluir citas históricas (hasta 4 semanas atrás)
+        ...historicalAppointments.map(a => ({
           start_time: a.start_time,
           end_time: a.end_time,
           status: a.status,
@@ -577,10 +607,18 @@ export const useWeeklySlotsFetcher = ({
 
       console.log('📍 Pool de adyacencia para recomendaciones:', {
         citasMismaResidencia: sameResidenciaAppointments.length,
+        citasHistoricas: historicalAppointments.length,
+        citasConfirmed: [...sameResidenciaAppointments, ...historicalAppointments].filter(a => a.status === 'confirmed').length,
+        citasPending: [...sameResidenciaAppointments, ...historicalAppointments].filter(a => a.status === 'pending').length,
+        citasCompleted: [...sameResidenciaAppointments, ...historicalAppointments].filter(a => a.status === 'completed').length,
         proyeccionesLegacyTotal: projectedLegacyOccurrences.length,
-        proyeccionesFiltradas: adjacentPoolForRecommendations.length - sameResidenciaAppointments.length,
+        proyeccionesFiltradas: adjacentPoolForRecommendations.length - sameResidenciaAppointments.length - historicalAppointments.length,
         totalParaRecomendaciones: adjacentPoolForRecommendations.length,
-        clientResidenciaId
+        clientResidenciaId,
+        detalles: adjacentPoolForRecommendations.slice(0, 5).map(a => ({
+          start: format(new Date(a.start_time), 'yyyy-MM-dd HH:mm'),
+          status: a.status
+        }))
       });
 
       // Usar el pool de adyacencia filtrado por residencial para calcular recomendaciones
