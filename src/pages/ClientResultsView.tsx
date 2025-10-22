@@ -21,7 +21,7 @@ const ClientResultsView = () => {
           <div className="space-y-3">
             {/* Back button - top left corner */}
             <div>
-              <BackButton onClick={() => navigate(-1)} label="" className="h-10" />
+              <BackButton onClick={() => navigate(-1)} label="Volver" className="h-10" />
             </div>
             
             {/* Title - centered below back button */}
