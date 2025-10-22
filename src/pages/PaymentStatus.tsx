@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PaymentStatusTracker } from '@/components/payments/PaymentStatusTracker';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export const PaymentStatus = () => {
   const { paymentId } = useParams<{ paymentId: string }>();
@@ -16,17 +16,10 @@ export const PaymentStatus = () => {
   }, [paymentId, navigate]);
 
   const handleStatusChange = (status: string) => {
-    if (status === 'captured') {
-      // Redirect to dashboard with success message after 3 seconds
-      setTimeout(() => {
-        navigate('/dashboard?payment=success');
-      }, 3000);
-    } else if (status === 'authorized') {
-      // Redirect to dashboard after 5 seconds for authorized payments
-      setTimeout(() => {
-        navigate('/dashboard?payment=authorized');
-      }, 5000);
-    }
+    // Redirigir a dashboard después de 2 segundos (usuario ya vio mensaje de éxito)
+    setTimeout(() => {
+      navigate('/dashboard?payment=success');
+    }, 2000);
   };
 
   if (!paymentId) {
@@ -48,10 +41,22 @@ export const PaymentStatus = () => {
         </div>
         
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">Estado del Pago</h1>
-          <p className="text-gray-600">
-            Verificando el estado de tu transacción
-          </p>
+          <h1 className="text-2xl font-bold mb-4">Solicitud de Reserva Enviada</h1>
+          
+          {/* Mensaje fijo con check verde - siempre visible */}
+          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-6">
+            <div className="flex items-start gap-4">
+              <CheckCircle2 className="h-8 w-8 text-green-600 flex-shrink-0 mt-1" />
+              <div className="text-left flex-1">
+                <p className="text-green-900 font-semibold text-lg mb-2">
+                  ✅ Solicitud Procesada Exitosamente
+                </p>
+                <p className="text-green-800 text-sm">
+                  <strong>Importante:</strong> El pago se realizará en el momento en que el proveedor acepte la cita.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <PaymentStatusTracker

@@ -64,3 +64,6 @@ verify_jwt = true
 
 [functions.process-recurring-charges]
 verify_jwt = false
+
+[functions.onvopay-capture-on-provider-accept]
+verify_jwt = false

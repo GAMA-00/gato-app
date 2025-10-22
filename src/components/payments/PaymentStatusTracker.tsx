@@ -32,14 +32,9 @@ const usePaymentStatus = (paymentId: string) => {
       if (error) throw error;
       return data;
     },
-    refetchInterval: (query) => {
-      // Keep polling for intermediate states
-      const status = query?.state?.data?.status;
-      if (status === 'pending_authorization' || status === 'requires_confirmation') {
-        return 2000; // Poll every 2 seconds
-      }
-      return false; // Stop polling for final states
-    }
+    enabled: !!paymentId
+    // ❌ ELIMINADO: refetchInterval - no más polling innecesario
+    // Los pagos se capturan inmediatamente al evento correspondiente
   });
 };
 
@@ -63,45 +58,45 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
   }, [payment?.status, onStatusChange]);
 
   const getStatusInfo = (status: string, payment?: any) => {
-    // Detectar si es servicio postpago para mensaje contextual
-    const isPostPayment = payment?.payment_type === 'prepaid' && status === 'pending_authorization';
-    
+    // Usuarios solo ven: Success, Subscription Active, o Failed
+    // NO hay estados "pendientes" visibles
     const statusMap = {
       'pending_authorization': {
-        icon: <Clock className="h-6 w-6 text-yellow-500" />,
-        title: 'Pago Pendiente',
-        description: isPostPayment 
-          ? '⚠️ Completando captura del pago base (T1)...'
-          : 'Esperando confirmación al completar servicio...',
-        color: 'yellow'
+        // Internamente puede existir, pero usuario ve éxito
+        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
+        title: 'Solicitud Procesada',
+        description: 'El pago se realizará cuando el proveedor acepte tu cita.',
+        color: 'green'
       },
       'requires_confirmation': {
-        icon: <Clock className="h-6 w-6 text-blue-500" />,
-        title: 'Payment Intent Creado',
-        description: 'Confirmando pago automáticamente...',
-        color: 'blue'
+        // Internamente puede existir, pero usuario ve éxito
+        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
+        title: 'Solicitud Procesada',
+        description: 'El pago se realizará cuando el proveedor acepte tu cita.',
+        color: 'green'
       },
       'authorized': {
-        icon: <CheckCircle className="h-6 w-6 text-blue-500" />,
-        title: 'Pago Autorizado',
-        description: 'Fondos retenidos. Se cobrará al completar el servicio.',
-        color: 'blue'
+        // Usuario ve esto como éxito (pago garantizado)
+        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
+        title: 'Solicitud Procesada',
+        description: 'El pago se realizará cuando el proveedor acepte tu cita.',
+        color: 'green'
       },
       'captured': {
         icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
         title: 'Pago Completado',
-        description: 'Transacción exitosa. Servicio pagado.',
+        description: 'Transacción exitosa. Servicio confirmado.',
         color: 'green'
       },
       'failed': {
         icon: <XCircle className="h-6 w-6 text-red-500" />,
-        title: 'Pago Fallido',
-        description: 'Error en la transacción. Intenta nuevamente.',
+        title: 'Error en el Proceso',
+        description: 'Hubo un problema. Por favor, intenta nuevamente.',
         color: 'red'
       },
       'cancelled': {
         icon: <AlertCircle className="h-6 w-6 text-gray-500" />,
-        title: 'Pago Cancelado',
+        title: 'Solicitud Cancelada',
         description: 'Transacción cancelada. Fondos liberados.',
         color: 'gray'
       },
@@ -113,7 +108,17 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
       }
     };
 
-    return statusMap[status] || statusMap['failed'];
+    // Mensaje especial para suscripciones
+    if (payment?.payment_type === 'subscription' && status !== 'failed') {
+      return {
+        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
+        title: 'Suscripción Activada',
+        description: 'Los pagos se procesarán automáticamente según la frecuencia configurada.',
+        color: 'green'
+      };
+    }
+
+    return statusMap[status] || statusMap['authorized'];
   };
 
   const statusInfo = getStatusInfo(payment?.status || '', payment);

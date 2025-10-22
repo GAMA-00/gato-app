@@ -105,7 +105,22 @@ serve(async (req) => {
           throw new Error(`Error confirmando pago: ${confirmError.message}`);
         }
 
-        console.log('✅ Pago confirmado exitosamente');
+        console.log('✅ Pago confirmado:', confirmResponse);
+
+        // Validar que se capturó INMEDIATAMENTE (nuevo requerimiento)
+        if (confirmResponse.status !== 'captured') {
+          console.warn(`⚠️ ALERTA: Pago recurrente NO capturado inmediatamente. Status: ${confirmResponse.status}`);
+          console.log('🔄 Esto es un error - los pagos recurrentes deben capturarse inmediatamente');
+          
+          // Para debug: loguear el response completo
+          console.log('Response completo:', JSON.stringify(confirmResponse, null, 2));
+          
+          // Este es un escenario que NO debería ocurrir con el fix en onvopay-confirm
+          // Si ocurre, es un bug que debe investigarse
+          throw new Error(`Pago recurrente no se capturó inmediatamente. Status: ${confirmResponse.status}. Verificar onvopay-confirm.`);
+        }
+
+        console.log('✅ Validación: Pago recurrente capturado correctamente');
 
         // 4. Calcular próxima fecha de cobro
         const nextDate = new Date(sub.next_charge_date);

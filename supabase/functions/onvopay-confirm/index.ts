@@ -380,14 +380,25 @@ serve(async (req) => {
     let finalStatus = 'authorized';
     let shouldAutoCapture = false;
 
+    // Detectar si es pago recurrente
+    const isRecurringPayment = payment.payment_type === 'subscription';
+    
     if (onvoStatus === 'requires_capture') {
-      if (isPostPayment) {
-        // Postpago: capturar T1 inmediatamente
+      // CAPTURA INMEDIATA para:
+      // 1. Servicios postpago (tarifa base T1)
+      // 2. Pagos recurrentes (cada ocurrencia)
+      if (isPostPayment || isRecurringPayment) {
         shouldAutoCapture = true;
         finalStatus = 'captured';
+        console.log('💳 Auto-captura activada:', {
+          isPostPayment,
+          isRecurringPayment,
+          reason: isRecurringPayment ? 'Pago recurrente - captura inmediata' : 'Servicio postpago - T1 Base'
+        });
       } else {
-        // Prepago regular: dejar authorized para capturar al completar
+        // Prepago regular: dejar authorized para capturar cuando proveedor acepte
         finalStatus = 'authorized';
+        console.log('⏳ Prepago: quedará authorized hasta que proveedor acepte cita');
       }
     } else if (onvoStatus === 'succeeded') {
       finalStatus = 'captured';

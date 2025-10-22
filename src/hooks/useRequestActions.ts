@@ -57,6 +57,27 @@ export const useRequestActions = () => {
         throw new Error("No se pudieron actualizar las citas. Verifica que existan.");
       }
 
+      // ✅ NUEVO: Capturar pagos prepago inmediatamente cuando proveedor acepta
+      console.log('💰 Capturando pagos prepago para citas aceptadas...');
+      try {
+        const { data: captureResult, error: captureError } = await supabase.functions.invoke(
+          'onvopay-capture-on-provider-accept',
+          {
+            body: { appointmentIds: request.appointment_ids }
+          }
+        );
+
+        if (captureError) {
+          console.error('⚠️ Error capturando pagos (no crítico - puede ser postpago):', captureError);
+          // NO bloquear el flujo, solo loguear
+        } else {
+          console.log('✅ Resultado de capturas prepago:', captureResult);
+        }
+      } catch (captureError) {
+        console.error('⚠️ Exception capturando pagos (no crítico):', captureError);
+        // Continuar flujo normal - algunos pagos pueden ser postpago
+      }
+
       const isGroup = request.appointment_count > 1;
       const successMessage = isGroup 
         ? `Serie de reservas ${request.recurrence_label?.toLowerCase()} aceptada (${request.appointment_count} citas)`

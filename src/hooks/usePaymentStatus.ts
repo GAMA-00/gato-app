@@ -14,14 +14,9 @@ export const usePaymentStatus = (paymentId: string) => {
       if (error) throw error;
       return data;
     },
-    refetchInterval: (query) => {
-      // Keep polling if status is pending
-      if (query?.state?.data?.status === 'pending_authorization') {
-        return 2000; // Poll every 2 seconds
-      }
-      return false; // Stop polling
-    },
     enabled: !!paymentId
+    // ❌ ELIMINADO: refetchInterval
+    // No más polling - capturas son inmediatas al evento correspondiente
   });
 };
 
