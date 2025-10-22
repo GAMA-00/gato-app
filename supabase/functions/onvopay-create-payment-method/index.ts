@@ -90,23 +90,47 @@ serve(async (req) => {
       });
     }
 
+    // Validate year (must be current year or future)
+    const currentYear = new Date().getFullYear();
+    const fullYear = parseInt(exp_year, 10) + 2000;
+
+    if (fullYear < currentYear) {
+      return new Response(JSON.stringify({
+        error: 'VALIDATION_ERROR',
+        message: 'Card has expired'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (fullYear > 2100) {
+      return new Response(JSON.stringify({
+        error: 'VALIDATION_ERROR',
+        message: 'Invalid expiry year'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // Build payment method payload
     const payload = {
       type: 'card',
       card: {
         number: number.replace(/\D/g, ''),
-        exp_month: exp_month,
-        exp_year: exp_year,
-        cvc: cvv,
-        name: name.trim()
+        expMonth: parseInt(exp_month, 10),
+        expYear: parseInt(exp_year, 10) + 2000,
+        cvv: cvv,
+        holderName: name.trim()
       }
     };
 
     console.log('📤 Creating payment method with OnvoPay:', {
       last4: payload.card.number.slice(-4),
-      exp_month: payload.card.exp_month,
-      exp_year: payload.card.exp_year,
-      name: payload.card.name
+      expMonth: payload.card.expMonth,
+      expYear: payload.card.expYear,
+      holderName: payload.card.holderName
     });
 
     // Call OnvoPay API
