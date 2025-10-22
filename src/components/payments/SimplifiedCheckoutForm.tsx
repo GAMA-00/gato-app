@@ -10,7 +10,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { SavedCardsSelector } from './SavedCardsSelector';
 import { NewCardForm } from './NewCardForm';
-import { LegacyCardReEntry } from './LegacyCardReEntry';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { updateUserProfile } from '@/utils/profileManagement';
 
@@ -54,8 +53,6 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [showNewCardForm, setShowNewCardForm] = useState(false);
-  const [requiresCardReEntry, setRequiresCardReEntry] = useState(false);
-  const [legacyCardData, setLegacyCardData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   
@@ -226,28 +223,9 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         paymentMethodId = tokenData.payment_method_id;
         cardInfoForSaving = tokenData.card;
         console.log('✅ Tarjeta tokenizada:', paymentMethodId);
-      } else if (selectedSavedCard) {
-        if (selectedSavedCard.onvopay_payment_method_id) {
-          // ✅ Tarjeta moderna con payment_method_id
-          paymentMethodId = selectedSavedCard.onvopay_payment_method_id;
-          console.log('🎫 Usando tarjeta guardada:', paymentMethodId);
-        } else {
-          // ⚠️ Tarjeta legacy: necesita re-tokenización
-          console.log('⚠️ Tarjeta legacy detectada, requiere datos completos');
-          
-          setRequiresCardReEntry(true);
-          setLegacyCardData(selectedSavedCard);
-          setIsProcessing(false);
-          setHasSubmitted(false);
-          
-          toast({
-            title: "Actualización de tarjeta requerida",
-            description: "Por seguridad, necesitamos que confirmes los datos de esta tarjeta.",
-            duration: 5000
-          });
-          
-          return;
-        }
+      } else if (selectedSavedCard?.onvopay_payment_method_id) {
+        paymentMethodId = selectedSavedCard.onvopay_payment_method_id;
+        console.log('🎫 Usando tarjeta guardada:', paymentMethodId);
       } else {
         throw new Error('No se pudo obtener método de pago');
       }
@@ -594,96 +572,11 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   const handleAddNewCard = () => {
     setShowNewCardForm(true);
     setSelectedCardId(null);
-    setRequiresCardReEntry(false);
-    setLegacyCardData(null);
-  };
-
-  const handleLegacyCardRetokenize = async (cardData: {
-    cardNumber: string;
-    cvv: string;
-    expiryDate: string;
-    cardholderName: string;
-  }) => {
-    try {
-      setIsProcessing(true);
-      
-      // Tokenizar datos re-ingresados
-      const tokenizeResponse = await supabase.functions.invoke('onvopay-create-payment-method', {
-        body: {
-          card_data: {
-            number: cardData.cardNumber.replace(/\D/g, ''),
-            expiry: cardData.expiryDate,
-            cvv: cardData.cvv,
-            name: cardData.cardholderName
-          }
-        }
-      });
-      
-      if (tokenizeResponse.error || !tokenizeResponse.data?.success) {
-        throw new Error(tokenizeResponse.data?.error || 'No se pudo actualizar la tarjeta');
-      }
-      
-      const paymentMethodId = tokenizeResponse.data.payment_method_id;
-      
-      // Actualizar registro en DB
-      const { error: updateError } = await supabase
-        .from('payment_methods')
-        .update({
-          onvopay_payment_method_id: paymentMethodId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', legacyCardData!.id);
-      
-      if (updateError) {
-        console.error('Error actualizando payment_method:', updateError);
-        throw new Error('No se pudo actualizar la tarjeta en la base de datos');
-      }
-      
-      toast({
-        title: "Tarjeta actualizada",
-        description: "Tu tarjeta ha sido actualizada exitosamente. Continuando con el pago..."
-      });
-      
-      // Actualizar el estado para usar la tarjeta ahora actualizada
-      setSelectedCardId(legacyCardData!.id);
-      setRequiresCardReEntry(false);
-      setLegacyCardData(null);
-      setIsProcessing(false);
-      setHasSubmitted(false);
-      
-      // Pequeña pausa para que el usuario vea el mensaje de éxito
-      setTimeout(() => {
-        // Simular el submit del formulario
-        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-        handleSubmit(fakeEvent);
-      }, 500);
-      
-    } catch (error: any) {
-      console.error('Error re-tokenizando tarjeta:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "No se pudo actualizar la tarjeta. Por favor, intenta nuevamente."
-      });
-      setIsProcessing(false);
-    }
   };
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Modal de re-ingreso para tarjetas legacy */}
-      {requiresCardReEntry && legacyCardData ? (
-        <LegacyCardReEntry
-          legacyCard={legacyCardData}
-          onComplete={handleLegacyCardRetokenize}
-          onCancel={() => {
-            setRequiresCardReEntry(false);
-            setLegacyCardData(null);
-            setSelectedCardId(null);
-          }}
-          isProcessing={isProcessing}
-        />
-      ) : showNewCardForm ? (
+      {showNewCardForm ? (
         <NewCardForm
           onBack={() => setShowNewCardForm(false)}
           onCardDataChange={setNewCardData}
