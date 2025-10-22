@@ -29,6 +29,9 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
 }) => {
   const { paymentMethods, deletePaymentMethod, isDeleting } = usePaymentMethods();
 
+  // Filter out cards without onvopay_payment_method_id (legacy cards)
+  const validCards = paymentMethods.filter(pm => !!pm.onvopay_payment_method_id);
+
   const getCardBrand = (cardNumber: string) => {
     const lastFour = cardNumber.slice(-4);
     if (cardNumber.includes('****')) {
@@ -45,7 +48,7 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
     deletePaymentMethod(cardId);
   };
 
-  if (paymentMethods.length === 0) {
+  if (validCards.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -79,7 +82,7 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {paymentMethods.map((method) => {
+        {validCards.map((method) => {
           const { brand, color } = getCardBrand(method.card_number || '');
           const isSelected = selectedCardId === method.id;
 

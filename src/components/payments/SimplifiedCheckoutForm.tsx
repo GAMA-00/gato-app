@@ -50,6 +50,12 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 }) => {
   const { user, profile } = useAuth();
   const { paymentMethods, savePaymentMethod, isLoading } = usePaymentMethods();
+
+  // Filter out cards without onvopay_payment_method_id (legacy cards)
+  const validPaymentMethods = React.useMemo(
+    () => paymentMethods.filter(pm => !!pm.onvopay_payment_method_id),
+    [paymentMethods]
+  );
   
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [showNewCardForm, setShowNewCardForm] = useState(false);
@@ -75,13 +81,15 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
   // Effect to set initial card selection and form visibility
   React.useEffect(() => {
-    if (!isLoading && paymentMethods.length > 0 && !selectedCardId) {
-      setSelectedCardId(paymentMethods[0].id);
+    if (!isLoading && validPaymentMethods.length > 0 && !selectedCardId) {
+      console.log('✅ Valid cards found, selecting first one');
+      setSelectedCardId(validPaymentMethods[0].id);
       setShowNewCardForm(false);
-    } else if (!isLoading && paymentMethods.length === 0 && !showNewCardForm) {
+    } else if (!isLoading && validPaymentMethods.length === 0 && !showNewCardForm) {
+      console.log('⚠️ No valid saved cards; switching to new card form');
       setShowNewCardForm(true);
     }
-  }, [paymentMethods, isLoading, selectedCardId, showNewCardForm]);
+  }, [validPaymentMethods, isLoading, selectedCardId, showNewCardForm]);
 
   // Mostrar loading mientras se cargan los métodos de pago
   if (isLoading) {
@@ -126,6 +134,14 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       }
     } else if (!selectedCardId) {
       errors.card = 'Selecciona un método de pago';
+    } else {
+      // Verify selected card is valid (has onvopay_payment_method_id)
+      const selectedCard = validPaymentMethods.find(pm => pm.id === selectedCardId);
+      if (!selectedCard) {
+        console.log('⚠️ Selected saved card missing payment_method_id; soft-switch to new card form');
+        setShowNewCardForm(true);
+        errors.card = 'Ingresa una tarjeta para continuar';
+      }
     }
 
     setValidationErrors(errors);
@@ -140,6 +156,8 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
     setHasSubmitted(true);
     setIsProcessing(true);
     console.log('Iniciando proceso de reserva y pago...');
+
+    let createdAppointmentId: string | null = null;
 
     try {
       // PASO 1: Crear appointment usando RPC para asegurar estado 'pending' y reservar slot
@@ -178,6 +196,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         throw new Error('No se pudo obtener el ID de la reserva creada');
       }
 
+      createdAppointmentId = newAppointmentId;
       console.log('✅ Appointment creado exitosamente:', newAppointmentId);
 
       // DETECTAR SI ES SERVICIO RECURRENTE
@@ -195,7 +214,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       let cardInfoForSaving: any = null;
 
       const selectedSavedCard = !showNewCardForm && selectedCardId
-        ? paymentMethods.find(pm => pm.id === selectedCardId)
+        ? validPaymentMethods.find(pm => pm.id === selectedCardId)
         : null;
 
       if (showNewCardForm) {
@@ -227,7 +246,15 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         paymentMethodId = selectedSavedCard.onvopay_payment_method_id;
         console.log('🎫 Usando tarjeta guardada:', paymentMethodId);
       } else {
-        throw new Error('No se pudo obtener método de pago');
+        // Silent fallback: switch to new card form instead of throwing error
+        console.log('⚠️ No valid payment method available; switching to new card form');
+        setShowNewCardForm(true);
+        toast({
+          description: "Para finalizar tu pago, ingresa los datos de tu tarjeta.",
+        });
+        setIsProcessing(false);
+        setHasSubmitted(false);
+        return;
       }
 
       // PASO 3: Procesar pago con payment_method_id
@@ -549,6 +576,19 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
     } catch (error: any) {
       console.error('❌ Error en proceso completo:', error);
+
+      // Cleanup: Delete appointment if created but payment failed
+      if (createdAppointmentId) {
+        try {
+          console.log('🗑️ Cleaning up appointment due to early payment failure');
+          await supabase
+            .from('appointments')
+            .delete()
+            .eq('id', createdAppointmentId);
+        } catch (cleanupError) {
+          console.error('⚠️ Failed to cleanup appointment:', cleanupError);
+        }
+      }
 
       let errorMessage = 'Error al procesar la reserva y pago';
       if (error.message) {
