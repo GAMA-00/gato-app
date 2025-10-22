@@ -34,7 +34,8 @@ export const ProviderCardSkeleton = () => {
         </div>
         
         {/* Galería */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
+          <Skeleton className="aspect-square rounded-lg" />
           <Skeleton className="aspect-square rounded-lg" />
           <Skeleton className="aspect-square rounded-lg" />
           <Skeleton className="aspect-square rounded-lg" />
@@ -161,12 +162,12 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
           </p>
         )}
 
-        {/* Gallery - 3 miniaturas cuadradas + indicador +N */}
+        {/* Gallery - 4 miniaturas cuadradas + indicador +N */}
         {allImages.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {allImages.slice(0, 3).map((image, index) => {
-              const isLastImage = index === 2;
-              const remainingImages = allImages.length - 3;
+          <div className="grid grid-cols-4 gap-2">
+            {allImages.slice(0, 4).map((image, index) => {
+              const isLastImage = index === 3;
+              const remainingImages = allImages.length - 4;
               const showOverlay = isLastImage && remainingImages > 0;
               
               return (

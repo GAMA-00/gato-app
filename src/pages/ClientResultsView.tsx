@@ -26,7 +26,7 @@ const ClientResultsView = () => {
             
             {/* Centered title */}
             <h1 className="text-lg font-semibold text-[#2D2D2D]">
-              Profesionales
+              Profesionales Disponibles
             </h1>
           </div>
           
