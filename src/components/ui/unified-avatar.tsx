@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface UnifiedAvatarProps {
@@ -73,16 +74,13 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
     }
   }, [src, currentSrc]);
 
-  // Manejar error como ServiceGallery con reintentos
+  // Manejar error con single retry (optimizado)
   const handleImageError = (event: any) => {
-    console.error("❌ AVATAR LOAD ERROR:");
-    console.error("URL:", currentSrc);
-    console.error("Retry count:", retryCount);
-    console.error("Error event:", event);
+    console.error("❌ AVATAR LOAD ERROR:", currentSrc);
     
-    if (retryCount < 2) {
-      // Reintentar con cache busting más agresivo
-      const retryUrl = currentSrc.split('?')[0] + `?retry=${retryCount + 1}&t=${Date.now()}`;
+    if (retryCount < 1) {
+      // Single retry con cache busting
+      const retryUrl = currentSrc.split('?')[0] + `?t=${Date.now()}`;
       console.log("🔄 Retrying avatar load:", retryUrl);
       setCurrentSrc(retryUrl);
       setRetryCount(prev => prev + 1);
@@ -93,21 +91,13 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
     }
   };
 
-  // Manejar éxito como ServiceGallery
+  // Manejar éxito
   const handleImageLoad = (event: any) => {
-    console.log("✅ AVATAR LOAD SUCCESS:");
-    console.log("URL:", currentSrc);
-    console.log("Dimensions:", {
-      naturalWidth: event.target.naturalWidth,
-      naturalHeight: event.target.naturalHeight
-    });
-    
     setImageLoadStatus('success');
     onLoad?.();
   };
 
   const handleImageLoadStart = () => {
-    console.log("🔄 AVATAR LOAD START:", currentSrc);
     setImageLoadStatus('loading');
   };
 
@@ -116,13 +106,15 @@ const UnifiedAvatar: React.FC<UnifiedAvatarProps> = ({
       {currentSrc && imageLoadStatus !== 'error' && (
         <>
           {imageLoadStatus === 'loading' && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-full">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+            <div className="absolute inset-0">
+              <Skeleton className="w-full h-full rounded-full" />
             </div>
           )}
           <AvatarImage
             src={currentSrc}
             alt={`Avatar de ${name}`}
+            loading="lazy"
+            decoding="async"
             onError={handleImageError}
             onLoad={handleImageLoad}
             onLoadStart={handleImageLoadStart}

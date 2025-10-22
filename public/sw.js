@@ -1,6 +1,6 @@
 
-// Service Worker for image caching
-const CACHE_NAME = 'image-cache-v1';
+// Service Worker for image caching - Optimized for performance
+const CACHE_NAME = 'image-cache-v2';
 const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Critical images to cache immediately
@@ -9,6 +9,14 @@ const CRITICAL_IMAGES = [
   '/lovable-uploads/7613f29b-5528-4db5-9357-1d3724a98d5d.png', // pets
   '/lovable-uploads/19672ce3-748b-4ea7-86dc-b281bb9b8d45.png', // classes
   '/lovable-uploads/f5cf3911-b44f-47e9-b52e-4e16ab8b8987.png', // personal-care
+];
+
+// Supabase Storage patterns to cache
+const CACHEABLE_PATTERNS = [
+  '/lovable-uploads/',
+  '/storage/v1/object/public/avatars/',
+  '/storage/v1/object/public/team-photos/',
+  '/storage/v1/object/public/service-gallery/'
 ];
 
 self.addEventListener('install', (event) => {
@@ -34,34 +42,44 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Exclude Supabase Storage upload/API requests from caching
-  if (url.hostname.includes('supabase.co') && 
-      (event.request.method !== 'GET' || url.pathname.includes('/storage/v1/object/'))) {
-    // Let upload requests pass through without caching
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
     return;
   }
   
-  // Only cache static image requests (not uploads)
-  if ((url.pathname.includes('/lovable-uploads/') || event.request.destination === 'image') &&
-      event.request.method === 'GET') {
-    
+  // Check if URL matches cacheable patterns
+  const shouldCache = CACHEABLE_PATTERNS.some(pattern => 
+    url.pathname.includes(pattern)
+  ) || event.request.destination === 'image';
+  
+  // Exclude Supabase upload/mutation endpoints
+  if (url.hostname.includes('supabase.co') && 
+      (url.pathname.includes('/storage/v1/upload') || 
+       url.pathname.includes('/rest/v1/'))) {
+    return;
+  }
+  
+  if (shouldCache) {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
         return cache.match(event.request).then(response => {
+          // Cache hit - check expiry
           if (response) {
-            // Check if cache is expired
             const dateHeader = response.headers.get('sw-cached-date');
             if (dateHeader) {
               const cachedDate = new Date(dateHeader);
               const now = new Date();
               if (now.getTime() - cachedDate.getTime() > CACHE_EXPIRY) {
-                // Cache expired, fetch new version
-                return fetchAndCache(event.request, cache);
+                // Cache expired - fetch fresh, but return stale while revalidating
+                fetchAndCache(event.request, cache);
+                return response;
               }
             }
+            // Valid cache hit - return immediately
             return response;
           }
           
+          // Cache miss - fetch and cache
           return fetchAndCache(event.request, cache);
         });
       }).catch(error => {

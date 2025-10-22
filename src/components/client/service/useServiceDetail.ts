@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ServiceDetailData, CertificationFile } from './types';
 import { ProviderData } from '@/components/client/results/types';
 import { useEffect } from 'react';
+import { preloadImages } from '@/hooks/useImagePreload';
 
 export const useServiceDetail = (providerId?: string, serviceId?: string, userId?: string) => {
   const { data, isLoading, error } = useQuery({
@@ -361,6 +362,35 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       toast.error("No se pudo cargar la información del servicio");
     }
   }, [error]);
+
+  // Preload critical images when data is available
+  useEffect(() => {
+    if (data) {
+      const imagesToPreload = [];
+      
+      // Preload provider avatar with high priority
+      if (data.provider?.avatar_url) {
+        imagesToPreload.push({
+          url: data.provider.avatar_url,
+          priority: 'high' as const
+        });
+      }
+      
+      // Preload first 2 gallery images with high priority
+      if (data.galleryImages && data.galleryImages.length > 0) {
+        data.galleryImages.slice(0, 2).forEach(url => {
+          imagesToPreload.push({
+            url,
+            priority: 'high' as const
+          });
+        });
+      }
+      
+      if (imagesToPreload.length > 0) {
+        preloadImages(imagesToPreload);
+      }
+    }
+  }, [data]);
 
   return { serviceDetails: data, isLoading, error };
 };

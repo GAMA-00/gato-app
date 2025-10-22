@@ -10,6 +10,7 @@ import {
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { GalleryHorizontal, Maximize2, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ServiceGalleryProps {
   images: string[];
@@ -154,8 +155,8 @@ const ServiceGallery = ({
             <CarouselItem key={index} className="md:basis-1/2">
               <div className="relative h-64 rounded-xl overflow-hidden bg-luxury-gray/20">
                 {imageLoadStatus.get(image) === 'loading' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  <div className="absolute inset-0">
+                    <Skeleton className="w-full h-full" />
                   </div>
                 )}
                 
@@ -163,6 +164,9 @@ const ServiceGallery = ({
                   src={image} 
                   alt={`Imagen de servicio ${index + 1}`}
                   className="w-full h-full object-cover"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  fetchPriority={index === 0 ? 'high' : 'low'}
                   onError={(e) => handleImageError(image, e)}
                   onLoad={(e) => handleImageLoad(image, e)}
                   onLoadStart={() => handleImageLoadStart(image)}
@@ -200,6 +204,8 @@ const ServiceGallery = ({
                               src={img}
                               alt={`Imagen completa ${idx + 1}`}
                               className="w-full h-auto rounded-xl object-contain"
+                              loading="lazy"
+                              decoding="async"
                               onError={(e) => handleImageError(img, e)}
                               onLoad={(e) => handleImageLoad(img, e)}
                             />
@@ -232,6 +238,8 @@ const ServiceGallery = ({
                           src={img}
                           alt={`Imagen completa ${idx + 1}`}
                           className="w-full h-auto rounded-xl object-contain"
+                          loading="lazy"
+                          decoding="async"
                           onError={(e) => handleImageError(img, e)}
                           onLoad={(e) => handleImageLoad(img, e)}
                         />
