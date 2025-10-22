@@ -68,19 +68,13 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="text-center">
-          <h2 className={`font-bold mb-2 ${isMobile ? 'text-lg' : 'text-2xl'}`}>Buscando profesionales...</h2>
-          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>Esto puede tomar unos segundos</p>
-        </div>
-        
-        <div className="space-y-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="w-full">
-              <Skeleton className="h-48 w-full rounded-lg" />
-            </div>
-          ))}
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p 
+          className="text-lg text-foreground" 
+          aria-live="polite"
+        >
+          Cargando...
+        </p>
       </div>
     );
   }
