@@ -17,19 +17,20 @@ const ClientResultsView = () => {
     return (
       <ClientPageLayout>
         <div className="space-y-6">
-          {/* Back button positioned at top left */}
-          <div className="flex justify-start">
-            <BackButton onClick={() => navigate(-1)} />
-          </div>
-          
-          {/* Centered title */}
-          <div className="text-center">
-            <h1 className="text-2xl font-semibold text-[#2D2D2D]">
-              Profesionales disponibles
+          {/* Compact header with back button and centered title */}
+          <div className="flex items-center justify-center relative h-14">
+            {/* Back button - absolute positioned to the left */}
+            <div className="absolute left-0">
+              <BackButton onClick={() => navigate(-1)} label="" className="h-10" />
+            </div>
+            
+            {/* Centered title */}
+            <h1 className="text-lg font-semibold text-[#2D2D2D]">
+              Profesionales
             </h1>
           </div>
           
-          <ProvidersList 
+          <ProvidersList
             categoryName={categoryName || ''} 
             serviceId={serviceId} 
           />

@@ -2,10 +2,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import ProviderCard from './ProviderCard';
+import ProviderCard, { ProviderCardSkeleton } from './ProviderCard';
 import { useProvidersQuery } from './useProvidersQuery';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -68,13 +67,10 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p 
-          className="text-lg text-foreground" 
-          aria-live="polite"
-        >
-          Cargando...
-        </p>
+      <div className="space-y-4" aria-live="polite" aria-busy="true">
+        {[1, 2, 3, 4].map(i => (
+          <ProviderCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
