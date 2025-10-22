@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Plus, Trash2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CreditCard, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { usePaymentMethods, PaymentMethod } from '@/hooks/usePaymentMethods';
 import {
   AlertDialog,
@@ -79,6 +80,15 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {paymentMethods.some(pm => !pm.onvopay_payment_method_id) && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Algunas tarjetas necesitan actualizarse. Al usarlas, te pediremos confirmar los datos por seguridad.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {paymentMethods.map((method) => {
           const { brand, color } = getCardBrand(method.card_number || '');
           const isSelected = selectedCardId === method.id;
@@ -107,6 +117,11 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  {!method.onvopay_payment_method_id && (
+                    <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700 dark:text-yellow-300">
+                      Requiere actualización
+                    </Badge>
+                  )}
                   {isSelected && (
                     <Badge variant="default" className="text-xs">
                       Seleccionada
