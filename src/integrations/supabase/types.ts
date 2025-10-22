@@ -1881,10 +1881,7 @@ export type Database = {
         Args: { p_appointment_id: string }
         Returns: undefined
       }
-      auto_rate_old_appointments: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      auto_rate_old_appointments: { Args: never; Returns: number }
       block_recurring_slots: {
         Args: { p_months_ahead?: number; p_recurring_rule_id: string }
         Returns: number
@@ -1918,22 +1915,10 @@ export type Database = {
         }
         Returns: boolean
       }
-      clean_duplicate_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_and_regenerate_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_old_pending_appointments: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      consolidate_multiple_listings: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      clean_duplicate_slots: { Args: never; Returns: number }
+      cleanup_and_regenerate_slots: { Args: never; Returns: number }
+      cleanup_old_pending_appointments: { Args: never; Returns: number }
+      consolidate_multiple_listings: { Args: never; Returns: number }
       create_appointment_with_slot: {
         Args: {
           p_client_address?: string
@@ -1995,18 +1980,9 @@ export type Database = {
           debug_value: string
         }[]
       }
-      extend_recurring_instances: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      fix_avatar_mime_types: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      fix_empty_avatars: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      extend_recurring_instances: { Args: never; Returns: number }
+      fix_avatar_mime_types: { Args: never; Returns: number }
+      fix_empty_avatars: { Args: never; Returns: undefined }
       fix_missing_slots_for_provider: {
         Args: { p_listing_id: string; p_provider_id: string }
         Returns: number
@@ -2015,21 +1991,12 @@ export type Database = {
         Args: { p_listing_id?: string; p_provider_id: string }
         Returns: number
       }
-      fix_triweekly_blocked_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      generate_all_provider_time_slots: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      generate_invoice_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_provider_time_slots: {
-        Args:
-          | {
+      fix_triweekly_blocked_slots: { Args: never; Returns: number }
+      generate_all_provider_time_slots: { Args: never; Returns: number }
+      generate_invoice_number: { Args: never; Returns: string }
+      generate_provider_time_slots:
+        | {
+            Args: {
               p_days_of_week: string[]
               p_end_date: string
               p_end_time: string
@@ -2039,14 +2006,17 @@ export type Database = {
               p_start_date: string
               p_start_time: string
             }
-          | {
+            Returns: number
+          }
+        | {
+            Args: {
               p_end_date: string
               p_listing_id: string
               p_provider_id: string
               p_start_date: string
             }
-        Returns: number
-      }
+            Returns: number
+          }
       generate_provider_time_slots_for_listing: {
         Args: {
           p_listing_id: string
@@ -2072,10 +2042,7 @@ export type Database = {
           total_ratings: number
         }[]
       }
-      get_provider_listing: {
-        Args: { p_provider_id: string }
-        Returns: string
-      }
+      get_provider_listing: { Args: { p_provider_id: string }; Returns: string }
       get_provider_payments_stats: {
         Args: { p_provider_id: string }
         Returns: {
@@ -2099,28 +2066,19 @@ export type Database = {
         Args: { listing_id: string; provider_id: string }
         Returns: number
       }
-      mark_past_appointments_completed: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      mark_past_appointments_completed: { Args: never; Returns: number }
       migrate_all_provider_availability_and_generate_slots: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: number
       }
-      migrate_existing_recurring_appointments: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      migrate_existing_recurring_appointments: { Args: never; Returns: number }
       needs_price_finalization: {
         Args: {
           appointment_row: Database["public"]["Tables"]["appointments"]["Row"]
         }
         Returns: boolean
       }
-      recalculate_all_provider_ratings: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      recalculate_all_provider_ratings: { Args: never; Returns: number }
       regenerate_slots_for_listing: {
         Args: { p_listing_id: string }
         Returns: number
@@ -2129,23 +2087,26 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: number
       }
-      submit_provider_rating: {
-        Args:
-          | {
+      submit_provider_rating:
+        | {
+            Args: {
               p_appointment_id: string
               p_client_id: string
               p_comment?: string
               p_provider_id: string
               p_rating: number
             }
-          | {
+            Returns: undefined
+          }
+        | {
+            Args: {
               p_appointment_id: string
               p_client_id: string
               p_provider_id: string
               p_rating: number
             }
-        Returns: undefined
-      }
+            Returns: undefined
+          }
       sync_provider_availability_from_listing: {
         Args: { p_listing_id: string }
         Returns: number

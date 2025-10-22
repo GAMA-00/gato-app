@@ -37,9 +37,15 @@ serve(async (req) => {
       billing_info
     } = await req.json();
 
+    // Validar y normalizar amount a 2 decimales
+    if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+      throw new Error(`Monto inválido: ${amount}`);
+    }
+    const normalizedAmount = Math.round(amount * 100) / 100;
+
     console.log('📅 Creando suscripción recurrente:', {
       appointmentId,
-      amount,
+      amount: normalizedAmount,
       recurrenceType,
       paymentMethodId
     });
@@ -63,7 +69,7 @@ serve(async (req) => {
 
     // Crear suscripción en ONVO Pay
     const subscriptionPayload = {
-      amount: amount,
+      amount: normalizedAmount,
       currency: 'USD',
       interval: recurrenceConfig.interval,
       interval_count: recurrenceConfig.interval_count,
@@ -110,7 +116,7 @@ serve(async (req) => {
         recurring_rule_id: appointment.recurring_rules?.[0]?.id || null,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
-        amount: amount,
+        amount: normalizedAmount,
         interval_type: recurrenceConfig.interval,
         interval_count: recurrenceConfig.interval_count,
         status: 'active',
@@ -133,8 +139,14 @@ serve(async (req) => {
       .single();
 
     if (subError) {
-      console.error('❌ Error guardando suscripción:', subError);
-      throw new Error('Error guardando suscripción en base de datos');
+      console.error('❌ Error guardando suscripción:', {
+        error: subError,
+        amount: normalizedAmount,
+        appointmentId,
+        code: subError.code,
+        message: subError.message
+      });
+      throw new Error(`Error guardando suscripción: ${subError.message || subError.code}`);
     }
 
     console.log('✅ Suscripción guardada en BD:', subscription.id);

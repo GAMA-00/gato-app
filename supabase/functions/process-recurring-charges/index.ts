@@ -68,7 +68,7 @@ serve(async (req) => {
           {
             body: {
               appointmentId: sub.external_reference,
-              amount: sub.amount * 100, // Convertir a centavos
+              amount: sub.amount, // Amount ya está en dólares (NUMERIC), no multiplicar por 100
               billing_info: sub.original_appointment_template?.billing_info || {
                 name: sub.original_appointment_template?.client_name || 'Cliente',
                 email: sub.original_appointment_template?.client_email || '',
