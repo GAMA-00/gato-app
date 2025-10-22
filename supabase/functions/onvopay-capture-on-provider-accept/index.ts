@@ -30,22 +30,107 @@ serve(async (req) => {
     for (const appointmentId of appointmentIds) {
       console.log(`\n🔍 Procesando cita ${appointmentId}...`);
       
-      // Buscar pago autorizado para esta cita
+      // Buscar pago autorizado o pendiente para esta cita
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from('onvopay_payments')
         .select('id, status, onvopay_payment_id, amount, payment_type')
         .eq('appointment_id', appointmentId)
-        .eq('status', 'authorized')
+        .in('status', ['pending_authorization', 'authorized'])
         .single();
 
       if (paymentError || !payment) {
-        console.log(`⚠️ No hay pago autorizado para appointment ${appointmentId} - puede estar ya capturado o ser postpago`);
+        console.log(`⚠️ No hay pago autorizado para appointment ${appointmentId}`, {
+          possibleReasons: [
+            'Ya fue capturado anteriormente',
+            'Es un pago postpago (no requiere prepago)',
+            'El pago falló y fue marcado como failed',
+            'Aún no se ha creado el pago'
+          ]
+        });
         captureResults.push({
           appointmentId,
           status: 'no_payment_found',
           message: 'No authorized payment found (may be post-payment or already captured)'
         });
         continue;
+      }
+
+      console.log(`🔍 Estado de pago encontrado:`, {
+        appointmentId,
+        paymentId: payment.id,
+        status: payment.status,
+        onvopayPaymentId: payment.onvopay_payment_id,
+        amount: payment.amount / 100
+      });
+
+      // Si el pago está en pending_authorization, primero debemos confirmarlo
+      if (payment.status === 'pending_authorization') {
+        console.log(`🔄 Pago en pending_authorization, ejecutando confirm primero...`);
+        
+        const confirmUrl = `${Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com'}/v1/payment-intents/${payment.onvopay_payment_id}/confirm`;
+        const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
+
+        if (!ONVOPAY_SECRET_KEY) {
+          throw new Error('ONVOPAY_SECRET_KEY not configured');
+        }
+
+        const confirmResponse = await fetch(confirmUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+          }
+        });
+
+        const confirmText = await confirmResponse.text();
+        let confirmResult: any;
+        
+        try {
+          confirmResult = JSON.parse(confirmText);
+        } catch (e) {
+          console.error(`❌ Error parseando respuesta de confirm:`, confirmText.substring(0, 200));
+          captureResults.push({
+            appointmentId,
+            paymentId: payment.id,
+            status: 'confirm_failed',
+            error: 'Invalid JSON response from OnvoPay confirm'
+          });
+          continue;
+        }
+
+        if (!confirmResponse.ok) {
+          console.error(`❌ Error en confirm de OnvoPay para pago ${payment.id}:`, confirmResult);
+          
+          await supabaseAdmin
+            .from('onvopay_payments')
+            .update({
+              error_details: confirmResult,
+              retry_count: ((payment as any).retry_count || 0) + 1
+            })
+            .eq('id', payment.id);
+
+          captureResults.push({
+            appointmentId,
+            paymentId: payment.id,
+            status: 'confirm_failed',
+            error: confirmResult.message || 'OnvoPay confirm failed'
+          });
+          continue;
+        }
+
+        console.log(`✅ Pago confirmado exitosamente, actualizando a authorized...`);
+        
+        // Actualizar el pago a authorized
+        await supabaseAdmin
+          .from('onvopay_payments')
+          .update({
+            status: 'authorized',
+            onvopay_response: { 
+              ...(payment as any).onvopay_response, 
+              confirm: confirmResult 
+            }
+          })
+          .eq('id', payment.id);
       }
 
       console.log(`💳 Capturando pago ${payment.id} (${payment.amount / 100} USD) para appointment ${appointmentId}`);

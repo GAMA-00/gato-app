@@ -32,9 +32,9 @@ const usePaymentStatus = (paymentId: string) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!paymentId
-    // ❌ ELIMINADO: refetchInterval - no más polling innecesario
-    // Los pagos se capturan inmediatamente al evento correspondiente
+    enabled: !!paymentId,
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000 // Refetch every 3 seconds to detect status changes
   });
 };
 
@@ -60,10 +60,10 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
 const getStatusInfo = (status: string, payment?: any) => {
   const statusMap = {
     'pending_authorization': {
-      icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
-      title: 'Solicitud Procesada',
-      description: 'Tu solicitud fue recibida correctamente. El pago se procesará en el momento correspondiente.',
-      color: 'green'
+      icon: <Clock className="h-12 w-12 text-blue-500" />,
+      title: 'Pago Iniciado',
+      description: 'Tu solicitud fue recibida correctamente. El pago se procesará cuando el proveedor acepte tu reserva.',
+      color: 'blue'
     },
     'requires_confirmation': {
       icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
