@@ -389,149 +389,82 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         requiresConfirmation: authorizeData.requires_confirmation
       });
 
+      // ✅ PREPAGO: Solo autorizar, NO confirmar
+      // La captura se hará cuando el proveedor acepte la cita
+      console.log('✅ PASO 2/4 COMPLETADO: Payment Intent creado (pending_authorization)');
+      console.log('⏳ El pago se procesará cuando el proveedor acepte tu reserva');
+
       let finalPaymentData = authorizeData;
 
-      // STEP 2: Confirm Payment Intent immediately for ALL services
-      // - Post-payment (is_post_payment=true): Auto-captures T1 Base immediately
-      // - Pre-payment (is_post_payment=false): Authorizes, captures later
-      if (authorizeData.requires_confirmation) {
-        console.log('💳 PASO 3/4: Confirmando pago...', {
-          is_post_payment: authorizeData.is_post_payment,
-          payment_intent_id: authorizeData.onvopay_payment_id
-        });
-
-        const confirmResponse = await supabase.functions.invoke('onvopay-confirm', {
-          body: {
-            payment_intent_id: authorizeData.onvopay_payment_id,
-            card_data: cardDataForPayment,
-            billing_info: {
-              name: billingName,
-              phone: formatPhoneCR(billingData.phone),
-              address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
-            }
-          }
-        });
-
-        const { data: confirmData, error: confirmError } = confirmResponse;
-
-        if (confirmError || !confirmData.success) {
-          console.error('❌ Error confirmando pago:', confirmError || confirmData.error);
-          
-          // Special handling for service unavailability in confirm step
-          if (confirmData?.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
-            console.warn('⚠️ Payment confirmation service temporarily unavailable');
-            
-            toast({
-              variant: "destructive",
-              title: "Servicio temporalmente no disponible",
-              description: confirmData?.message || "El servicio de confirmación de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.",
-              duration: 8000
-            });
-            
-            if (onError) {
-              onError(new Error("SERVICE_TEMPORARILY_UNAVAILABLE"));
-            }
-            return;
-          }
-          
-          // For other errors, delete appointment and throw error
-          await supabase
-            .from('appointments')
-            .delete()
-            .eq('id', newAppointmentId);
-
-          throw new Error(confirmData?.error || 'Error confirmando pago');
-        }
-
-        console.log('✅ PASO 3/4 COMPLETADO: Pago confirmado', {
-          status: confirmData.status,
-          is_post_payment: confirmData.is_post_payment,
-          payment_type: confirmData.payment_type,
-          captured_at: confirmData.captured_at
-        });
-        finalPaymentData = confirmData;
-
-        // FASE 2: Si es servicio recurrente, crear suscripción en ONVO Pay
-        if (isRecurring && confirmData.onvopay_payment_method_id) {
-          console.log('📅 Creando suscripción recurrente en ONVO Pay...');
-          
-          try {
-            const subscriptionResponse = await supabase.functions.invoke(
-              'onvopay-create-subscription',
-              {
-                body: {
-                  appointmentId: newAppointmentId,
-                  amount: amount,
-                  recurrenceType: appointmentData.recurrenceType,
-                  paymentMethodId: confirmData.onvopay_payment_method_id,
-                  billing_info: {
-                    name: billingName,
-                    email: user?.email || '',
-                    phone: formatPhoneCR(billingData.phone),
-                    address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
-                  }
+      // FASE 2: Si es servicio recurrente, crear suscripción en ONVO Pay
+      if (isRecurring && authorizeData.onvopay_payment_method_id) {
+        console.log('📅 Creando suscripción recurrente en ONVO Pay...');
+        
+        try {
+          const subscriptionResponse = await supabase.functions.invoke(
+            'onvopay-create-subscription',
+            {
+              body: {
+                appointmentId: newAppointmentId,
+                amount: amount,
+                recurrenceType: appointmentData.recurrenceType,
+                paymentMethodId: authorizeData.onvopay_payment_method_id,
+                billing_info: {
+                  name: billingName,
+                  email: user?.email || '',
+                  phone: formatPhoneCR(billingData.phone),
+                  address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
                 }
               }
-            );
-
-            const { data: subscriptionData, error: subscriptionError } = subscriptionResponse;
-
-            if (subscriptionError || !subscriptionData?.success) {
-              console.error('⚠️ Error creando suscripción:', subscriptionError || subscriptionData);
-              toast({
-                variant: "destructive",
-                title: "Advertencia",
-                description: "El pago fue exitoso pero hubo un problema configurando la suscripción recurrente. Contacta soporte.",
-                duration: 8000
-              });
-            } else {
-              console.log('✅ Suscripción creada:', {
-                subscriptionId: subscriptionData.subscription_id,
-                nextChargeDate: subscriptionData.next_charge_date
-              });
-
-              toast({
-                title: "Suscripción creada",
-                description: `Próximo cobro automático: ${subscriptionData.next_charge_date}`,
-                duration: 5000
-              });
             }
-          } catch (subError) {
-            console.error('❌ Error en suscripción:', subError);
-            // No bloquear el flujo si el pago ya fue exitoso
-          }
-        }
+          );
 
-        // PASO 2.5: Guardar tarjeta con payment_method_id de OnvoPay si el usuario lo solicitó
-        if (showNewCardForm && newCardData.saveCard && confirmData.onvopay_payment_method_id) {
-          try {
-            console.log('💾 Guardando tarjeta con OnvoPay payment method ID...');
-            await savePaymentMethod({
-              cardNumber: newCardData.cardNumber.replace(/\D/g, ''),
-              cardholderName: newCardData.cardholderName,
-              expiryDate: newCardData.expiryDate,
-              onvopayPaymentMethodId: confirmData.onvopay_payment_method_id
+          const { data: subscriptionData, error: subscriptionError } = subscriptionResponse;
+
+          if (subscriptionError || !subscriptionData?.success) {
+            console.error('⚠️ Error creando suscripción:', subscriptionError || subscriptionData);
+            toast({
+              variant: "destructive",
+              title: "Advertencia",
+              description: "El pago fue exitoso pero hubo un problema configurando la suscripción recurrente. Contacta soporte.",
+              duration: 8000
             });
-            console.log('✅ Tarjeta guardada con payment method ID de OnvoPay');
-          } catch (saveError) {
-            console.warn('⚠️ No se pudo guardar la tarjeta (no crítico):', saveError);
+          } else {
+            console.log('✅ Suscripción creada:', {
+              subscriptionId: subscriptionData.subscription_id,
+              nextChargeDate: subscriptionData.next_charge_date
+            });
+
+            toast({
+              title: "Suscripción creada",
+              description: `Próximo cobro automático: ${subscriptionData.next_charge_date}`,
+              duration: 5000
+            });
           }
+        } catch (subError) {
+          console.error('❌ Error en suscripción:', subError);
+          // No bloquear el flujo si el pago ya fue exitoso
         }
       }
 
-      // PASO 3: Actualizar appointment con información de pago procesado (si no es post-pago)
-      if (!finalPaymentData.is_post_payment && finalPaymentData.status === 'captured') {
-        console.log('🔄 Actualizando appointment con pago completo...');
-        
-        await supabase
-          .from('appointments')
-          .update({ 
-            status: 'pending' // Provider approval required, but payment is secured
-          })
-          .eq('id', newAppointmentId);
-
-        console.log('✅ Appointment actualizado con pago');
+      // PASO 2.5: Guardar tarjeta con payment_method_id de OnvoPay si el usuario lo solicitó
+      if (showNewCardForm && newCardData.saveCard && authorizeData.onvopay_payment_method_id) {
+        try {
+          console.log('💾 Guardando tarjeta con OnvoPay payment method ID...');
+          await savePaymentMethod({
+            cardNumber: newCardData.cardNumber.replace(/\D/g, ''),
+            cardholderName: newCardData.cardholderName,
+            expiryDate: newCardData.expiryDate,
+            onvopayPaymentMethodId: authorizeData.onvopay_payment_method_id
+          });
+          console.log('✅ Tarjeta guardada con payment method ID de OnvoPay');
+        } catch (saveError) {
+          console.warn('⚠️ No se pudo guardar la tarjeta (no crítico):', saveError);
+        }
       }
+
+      // PASO 3: Actualizar appointment (sin verificar captura, eso se hace cuando proveedor acepta)
+      console.log('🔄 Actualizando appointment con payment intent...');
 
       console.log('🎉 Proceso completo exitoso');
 

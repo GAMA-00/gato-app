@@ -53,30 +53,46 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
       });
       
       if (approved) {
-        // Procesar pago con Stripe
+        // Aprobar invoice primero
+        await approvalMutation.mutateAsync({
+          invoiceId: invoice.id,
+          approved: true
+        });
+
+        // Capturar pago postpago con OnvoPay
+        console.log('💳 Capturando pago postpago para invoice:', invoice.id);
         try {
-          const { data, error } = await supabase.functions.invoke('create-payment', {
-            body: {
-              invoice_id: invoice.id,
-              amount: invoice.total_price,
-              description: `Pago de factura - ${invoice.appointments?.listings?.title}`
+          const { data: captureData, error: captureError } = await supabase.functions.invoke(
+            'onvopay-capture-on-invoice-approval',
+            {
+              body: {
+                invoiceId: invoice.id,
+                totalAmount: invoice.total_price
+              }
             }
-          });
+          );
 
-          if (error) throw error;
-
-          if (data.url) {
-            // Abrir Stripe checkout en nueva pestaña
-            window.open(data.url, '_blank');
-            toast.success('Factura aprobada. Redirigiendo al pago...');
+          if (captureError || !captureData?.success) {
+            console.error('❌ Error capturando pago postpago:', captureError || captureData?.error);
+            toast.error('Error al procesar el pago. Intente nuevamente.');
+            return;
           }
+
+          console.log('✅ Pago postpago capturado exitosamente');
+          toast.success('Factura aprobada y pago procesado correctamente.');
         } catch (paymentError) {
           console.error('Error processing payment:', paymentError);
           toast.error('Error al procesar el pago. Intente nuevamente.');
+          return;
         }
-        } else {
-          toast.success('Factura rechazada. El proveedor recibirá tu comentario y podrá corregirla.');
-        }
+      } else {
+        await approvalMutation.mutateAsync({
+          invoiceId: invoice.id,
+          approved: false,
+          rejectionReason
+        });
+        toast.success('Factura rechazada. El proveedor recibirá tu comentario y podrá corregirla.');
+      }
       
       onSuccess();
       onClose();

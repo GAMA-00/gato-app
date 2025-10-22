@@ -384,21 +384,17 @@ serve(async (req) => {
     const isRecurringPayment = payment.payment_type === 'subscription';
     
     if (onvoStatus === 'requires_capture') {
-      // CAPTURA INMEDIATA para:
-      // 1. Servicios postpago (tarifa base T1)
-      // 2. Pagos recurrentes (cada ocurrencia)
-      if (isPostPayment || isRecurringPayment) {
+      // CAPTURA INMEDIATA SOLO para pagos recurrentes
+      if (isRecurringPayment) {
         shouldAutoCapture = true;
         finalStatus = 'captured';
-        console.log('💳 Auto-captura activada:', {
-          isPostPayment,
-          isRecurringPayment,
-          reason: isRecurringPayment ? 'Pago recurrente - captura inmediata' : 'Servicio postpago - T1 Base'
-        });
+        console.log('💳 Auto-captura activada (pago recurrente)');
       } else {
-        // Prepago regular: dejar authorized para capturar cuando proveedor acepte
-        finalStatus = 'authorized';
-        console.log('⏳ Prepago: quedará authorized hasta que proveedor acepte cita');
+        // Prepago y Postpago: NO capturar aquí
+        // - Prepago: se captura cuando proveedor acepta
+        // - Postpago: se captura cuando cliente acepta desglose
+        finalStatus = 'pending_authorization';
+        console.log('⏳ Payment Intent creado, sin capturar todavía');
       }
     } else if (onvoStatus === 'succeeded') {
       finalStatus = 'captured';
@@ -424,9 +420,9 @@ serve(async (req) => {
       paymentIntentId: body.payment_intent_id
     });
 
-    // Auto-capture T1 Base for post-payment services
+    // Auto-capture solo para pagos recurrentes
     if (shouldAutoCapture) {
-      console.log('🔄 Auto-capturing prepayment (T1) for post-payment service...');
+      console.log('🔄 Auto-capturing recurring payment...');
       
       try {
         const captureUrl = `${onvoConfig.fullUrl}/payment-intents/${body.payment_intent_id}/capture`;

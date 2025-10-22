@@ -16,10 +16,10 @@ export const PaymentStatus = () => {
   }, [paymentId, navigate]);
 
   const handleStatusChange = (status: string) => {
-    // Redirigir a dashboard después de 2 segundos (usuario ya vio mensaje de éxito)
+    // Redirigir al dashboard después de 3 segundos
     setTimeout(() => {
       navigate('/dashboard?payment=success');
-    }, 2000);
+    }, 3000);
   };
 
   if (!paymentId) {
@@ -43,7 +43,7 @@ export const PaymentStatus = () => {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-4">Solicitud de Reserva Enviada</h1>
           
-          {/* Mensaje fijo con check verde - siempre visible */}
+          {/* Check verde fijo - mensaje contextual según tipo de servicio */}
           <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-6">
             <div className="flex items-start gap-4">
               <CheckCircle2 className="h-8 w-8 text-green-600 flex-shrink-0 mt-1" />
@@ -52,8 +52,12 @@ export const PaymentStatus = () => {
                   ✅ Solicitud Procesada Exitosamente
                 </p>
                 <p className="text-green-800 text-sm">
-                  <strong>Importante:</strong> El pago se realizará en el momento en que el proveedor acepte la cita.
+                  <strong>¿Cuándo se procesará el pago?</strong>
                 </p>
+                <ul className="text-green-800 text-sm mt-2 space-y-1">
+                  <li>• <strong>Prepago:</strong> Cuando el proveedor acepte tu reserva</li>
+                  <li>• <strong>Postpago:</strong> Cuando aceptes el desglose final del servicio</li>
+                </ul>
               </div>
             </div>
           </div>

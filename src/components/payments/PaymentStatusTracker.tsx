@@ -57,69 +57,58 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
     }
   }, [payment?.status, onStatusChange]);
 
-  const getStatusInfo = (status: string, payment?: any) => {
-    // Usuarios solo ven: Success, Subscription Active, o Failed
-    // NO hay estados "pendientes" visibles
-    const statusMap = {
-      'pending_authorization': {
-        // Internamente puede existir, pero usuario ve éxito
-        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-        title: 'Solicitud Procesada',
-        description: 'El pago se realizará cuando el proveedor acepte tu cita.',
-        color: 'green'
-      },
-      'requires_confirmation': {
-        // Internamente puede existir, pero usuario ve éxito
-        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-        title: 'Solicitud Procesada',
-        description: 'El pago se realizará cuando el proveedor acepte tu cita.',
-        color: 'green'
-      },
-      'authorized': {
-        // Usuario ve esto como éxito (pago garantizado)
-        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-        title: 'Solicitud Procesada',
-        description: 'El pago se realizará cuando el proveedor acepte tu cita.',
-        color: 'green'
-      },
-      'captured': {
-        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-        title: 'Pago Completado',
-        description: 'Transacción exitosa. Servicio confirmado.',
-        color: 'green'
-      },
-      'failed': {
-        icon: <XCircle className="h-6 w-6 text-red-500" />,
-        title: 'Error en el Proceso',
-        description: 'Hubo un problema. Por favor, intenta nuevamente.',
-        color: 'red'
-      },
-      'cancelled': {
-        icon: <AlertCircle className="h-6 w-6 text-gray-500" />,
-        title: 'Solicitud Cancelada',
-        description: 'Transacción cancelada. Fondos liberados.',
-        color: 'gray'
-      },
-      'refunded': {
-        icon: <RotateCcw className="h-6 w-6 text-purple-500" />,
-        title: 'Pago Reembolsado',
-        description: 'Fondos devueltos a tu cuenta.',
-        color: 'purple'
-      }
-    };
-
-    // Mensaje especial para suscripciones
-    if (payment?.payment_type === 'subscription' && status !== 'failed') {
-      return {
-        icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-        title: 'Suscripción Activada',
-        description: 'Los pagos se procesarán automáticamente según la frecuencia configurada.',
-        color: 'green'
-      };
+const getStatusInfo = (status: string, payment?: any) => {
+  const statusMap = {
+    'pending_authorization': {
+      icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
+      title: 'Solicitud Procesada',
+      description: 'Tu solicitud fue recibida correctamente. El pago se procesará en el momento correspondiente.',
+      color: 'green'
+    },
+    'requires_confirmation': {
+      icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
+      title: 'Solicitud Procesada',
+      description: 'El pago se procesará cuando el proveedor acepte tu cita.',
+      color: 'green'
+    },
+    'authorized': {
+      icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
+      title: 'Pago Autorizado',
+      description: 'El pago se procesará cuando el proveedor acepte tu cita.',
+      color: 'green'
+    },
+    'captured': {
+      icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
+      title: 'Pago Completado',
+      description: 'Tu pago fue procesado exitosamente. Servicio confirmado.',
+      color: 'green'
+    },
+    'failed': {
+      icon: <XCircle className="h-12 w-12 text-red-500" />,
+      title: 'Error en el Proceso',
+      description: 'Hubo un problema procesando tu pago. Por favor, intenta nuevamente.',
+      color: 'red'
+    },
+    'cancelled': {
+      icon: <XCircle className="h-12 w-12 text-gray-500" />,
+      title: 'Pago Cancelado',
+      description: 'El pago fue cancelado.',
+      color: 'gray'
     }
-
-    return statusMap[status] || statusMap['authorized'];
   };
+
+  // Manejar suscripciones
+  if (payment?.payment_type === 'subscription' && status !== 'failed') {
+    return {
+      icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
+      title: 'Suscripción Activada',
+      description: 'Los pagos se procesarán automáticamente según la frecuencia configurada.',
+      color: 'green'
+    };
+  }
+
+  return statusMap[status] || statusMap['pending_authorization'];
+};
 
   const statusInfo = getStatusInfo(payment?.status || '', payment);
 

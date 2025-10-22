@@ -234,65 +234,8 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
         throw new Error(authorizeData.error || 'Error desconocido en la autorización del pago');
       }
 
-      console.log('✅ PASO 2/4 COMPLETADO: Pago autorizado', {
-        payment_id: authorizeData.payment_id,
-        onvopay_payment_id: authorizeData.onvopay_payment_id
-      });
-
-      // PASO 3: Confirmar pago inmediatamente (esto captura T1 para postpago o autoriza para prepago)
-      console.log('💳 PASO 3/4: Confirmando pago...');
-
-      const confirmResponse = await supabase.functions.invoke('onvopay-confirm', {
-        body: {
-          payment_intent_id: authorizeData.onvopay_payment_id,
-          card_data: {
-            number: formData.cardNumber.replace(/\D/g, ''),
-            expiry: formData.expiryDate,
-            cvv: formData.cvv,
-            name: formData.cardholderName
-          },
-          billing_info: {
-            name: formData.cardholderName,
-            phone: formatPhoneCR(formData.phone),
-            address: formData.address
-          }
-        }
-      });
-
-      console.log('Respuesta de confirmación:', confirmResponse);
-
-      const { data: confirmData, error: confirmError } = confirmResponse;
-
-      if (confirmError) {
-        console.error('❌ Error en confirmación:', confirmError);
-
-        // Eliminar appointment si falla la confirmación
-        await supabase
-          .from('appointments')
-          .delete()
-          .eq('id', newAppointmentId);
-
-        console.log('🗑️ Appointment eliminado por fallo en confirmación');
-        throw new Error(confirmError.message || 'Error confirmando el pago');
-      }
-
-      if (confirmData && !confirmData.success) {
-        console.error('❌ Error en la respuesta de confirmación:', confirmData.error);
-        
-        // Eliminar appointment si hay error
-        await supabase
-          .from('appointments')
-          .delete()
-          .eq('id', newAppointmentId);
-
-        console.log('🗑️ Appointment eliminado por error en respuesta de confirmación');
-        throw new Error(confirmData.error || 'Error confirmando el pago');
-      }
-
-      console.log('✅ PASO 3/4 COMPLETADO: Pago confirmado', {
-        status: confirmData.status,
-        is_post_payment: confirmData.is_post_payment
-      });
+      console.log('✅ PASO 2/4 COMPLETADO: Payment Intent creado (pending_authorization)');
+      console.log('⏳ El pago se procesará cuando el proveedor acepte tu reserva');
 
       // PASO 4: Actualizar appointment con payment_id
       console.log('📝 PASO 4/4: Actualizando appointment con payment_id...');
@@ -307,8 +250,8 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
       console.log('✅ PASO 4/4 COMPLETADO: Appointment actualizado');
 
       // Determinar mensaje según el tipo de servicio
-      const isPostPayment = confirmData.is_post_payment;
-      const finalStatus = confirmData.status;
+      const isPostPayment = authorizeData.is_post_payment;
+      const finalStatus = authorizeData.status || 'pending_authorization';
 
       console.log('🎉 FLUJO COMPLETADO EXITOSAMENTE:', {
         appointmentId: newAppointmentId,
@@ -318,10 +261,8 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
       });
 
       // Mensajes contextuales según tipo de servicio
-      const successTitle = isPostPayment ? "Pago procesado" : "Solicitud enviada";
-      const successDescription = isPostPayment
-        ? "Reserva confirmada. El pago base ha sido procesado exitosamente."
-        : "Reserva confirmada. Pendiente por aprobación del proveedor.";
+      const successTitle = "Solicitud enviada";
+      const successDescription = "Tu solicitud fue procesada. El pago se realizará cuando el proveedor acepte tu reserva.";
 
       toast({
         title: successTitle,
@@ -330,7 +271,7 @@ export const OnvopayCheckoutForm: React.FC<OnvopayCheckoutFormProps> = ({
 
       // Pasar datos completos al callback de éxito
       onSuccess({
-        ...confirmData,
+        ...authorizeData,
         appointmentId: newAppointmentId,
         status: finalStatus,
         is_post_payment: isPostPayment
