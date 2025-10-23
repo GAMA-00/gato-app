@@ -231,16 +231,16 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-full md:max-w-4xl h-[96vh] md:h-[92vh] max-h-[900px] flex flex-col mx-2 md:mx-auto p-0 overflow-hidden">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-full md:max-w-4xl h-[96vh] md:h-[92vh] max-h-[900px] flex flex-col mx-auto p-0 overflow-hidden overflow-x-hidden">
         {/* Header fijo */}
-        <div className="sticky top-0 z-10 bg-background border-b px-4 md:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="sticky top-0 z-10 bg-background border-b px-3 md:px-6 py-4 flex items-center justify-between min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <DollarSign className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-semibold">Desglose Postpago</h2>
-              <p className="text-xs md:text-sm text-muted-foreground">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg md:text-xl font-semibold truncate">Desglose Postpago</h2>
+              <p className="text-xs md:text-sm text-muted-foreground truncate">
                 Servicio: {appointment?.listings?.title}
               </p>
             </div>
@@ -278,26 +278,26 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
         )}
 
         {/* Contenido principal con scroll */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-4">
           {/* 1. Resumen del Servicio */}
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold text-sm">Resumen del Servicio</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div>
+                <div className="min-w-0">
                   <span className="text-muted-foreground text-xs block mb-1">Servicio</span>
-                  <span className="font-medium">{appointment?.listings?.title}</span>
+                  <span className="font-medium break-words">{appointment?.listings?.title}</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-muted-foreground text-xs block mb-1">Cliente</span>
-                  <span className="font-medium">{appointment?.client_name}</span>
+                  <span className="font-medium break-words">{appointment?.client_name}</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-muted-foreground text-xs block mb-1">Fecha y hora</span>
-                  <span className="font-medium">{formatDate(appointment?.start_time)}</span>
+                  <span className="font-medium break-words">{formatDate(appointment?.start_time)}</span>
                 </div>
               </div>
             </CardContent>
@@ -305,7 +305,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
           {/* 2. Gastos Adicionales */}
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Receipt className="h-4 w-4 text-primary" />
@@ -354,7 +354,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
           {/* 3. Observaciones */}
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold text-sm">Observaciones</h3>
@@ -373,24 +373,24 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 
           {/* 4. Resumen Final */}
           <Card className="border-primary/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold text-sm">Resumen Final</h3>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal:</span>
-                  <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-muted-foreground flex-shrink-0">Subtotal:</span>
+                  <span className="font-medium break-all">{formatCurrency(calculateSubtotal())}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">IVA 13%:</span>
-                  <span className="font-medium">{formatCurrency(calculateIVA())}</span>
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-muted-foreground flex-shrink-0">IVA 13%:</span>
+                  <span className="font-medium break-all">{formatCurrency(calculateIVA())}</span>
                 </div>
                 <Separator className="my-2" />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total:</span>
-                  <span className="text-primary">{formatCurrency(calculateTotal())}</span>
+                <div className="flex justify-between text-base md:text-lg font-bold gap-2">
+                  <span className="flex-shrink-0">Total:</span>
+                  <span className="text-primary break-all">{formatCurrency(calculateTotal())}</span>
                 </div>
               </div>
             </CardContent>
@@ -398,16 +398,16 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
         </div>
 
         {/* Botones de acción */}
-        <div className="border-t bg-background">
-          <div className="px-4 md:px-6 py-3 flex flex-col-reverse md:flex-row gap-2 md:gap-3">
+        <div className="border-t bg-background min-w-0">
+          <div className="px-3 md:px-6 py-3 flex flex-col-reverse md:flex-row gap-2 md:gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={() => form.handleSubmit((data) => onSubmit(data, false))()}
               disabled={isSubmitting}
-              className="flex-1 h-11"
+              className="flex-1 h-11 text-sm md:text-base px-3 md:px-4"
             >
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-3 w-3 md:h-4 md:w-4 mr-2" />
               Guardar borrador
             </Button>
             <Button
@@ -420,16 +420,16 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                 }
               }}
               disabled={isSubmitting || fields.length === 0}
-              className="flex-1 h-11 bg-primary hover:bg-primary/90"
+              className="flex-1 h-11 bg-primary hover:bg-primary/90 text-sm md:text-base px-3 md:px-4"
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  <div className="animate-spin h-3 w-3 md:h-4 md:w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
                   Enviando...
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                   {invoice?.status === 'rejected' ? 'Reenviar al cliente' : 'Enviar al cliente'}
                 </>
               )}
@@ -463,14 +463,14 @@ const ItemCard: React.FC<ItemCardProps> = ({
 }) => {
 
   return (
-    <div className="flex items-start gap-2 md:gap-3 p-2 md:p-3 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
+    <div className="flex items-start gap-2 md:gap-3 p-2 md:p-3 border rounded-lg bg-card hover:bg-accent/5 transition-colors overflow-hidden">
       {/* Número del gasto */}
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">#{index + 1}</span>
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 overflow-hidden space-y-2">
+      <div className="flex-1 min-w-0 space-y-2">
         {/* Nombre y monto en una fila */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {/* Nombre del gasto */}
