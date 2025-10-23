@@ -118,16 +118,10 @@ const ProviderInvoices: React.FC = () => {
                 </div>
               )}
 
-              {/* Metadata: fecha y monto */}
-              <div className="flex flex-wrap gap-4 text-sm text-[#6B6B6B]">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
-                  <span>{formatDate(appointment?.start_time)}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="font-medium">{formatCurrency(invoice.total_price || 0)}</span>
-                </div>
+              {/* Metadata: fecha */}
+              <div className="flex items-center gap-1.5 text-sm text-[#6B6B6B]">
+                <Clock className="w-4 h-4" />
+                <span>{formatDate(appointment?.start_time)}</span>
               </div>
 
               {/* CTA primario */}
