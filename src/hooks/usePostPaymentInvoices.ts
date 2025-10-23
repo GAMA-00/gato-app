@@ -254,12 +254,17 @@ export const useInvoiceMutation = () => {
         invoiceId = data.id;
       }
 
-      // Delete existing items if updating
+      // Delete existing items if updating (prevenir duplicados)
       if ('id' in invoiceData && invoiceData.id) {
-        await supabase
+        console.log('🗑️ Deleting existing items for invoice:', invoiceId);
+        const { error: deleteError } = await supabase
           .from('post_payment_items')
           .delete()
           .eq('invoice_id', invoiceId);
+        
+        if (deleteError) {
+          console.error('Error deleting existing items:', deleteError);
+        }
       }
 
       // Process and insert new items
@@ -294,13 +299,18 @@ export const useInvoiceMutation = () => {
         });
       }
 
-      // Insert new items
+      // Insert new items (sin duplicados porque borramos antes)
       if (itemsToInsert.length > 0) {
+        console.log(`📝 Inserting ${itemsToInsert.length} items for invoice:`, invoiceId);
         const { error } = await supabase
           .from('post_payment_items')
           .insert(itemsToInsert);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error inserting items:', error);
+          throw error;
+        }
+        console.log('✅ Items inserted successfully');
       }
 
       return invoiceId;
@@ -464,8 +474,8 @@ export const useInvoiceApprovalMutation = () => {
       if (approved) {
         updateData.approved_at = new Date().toISOString();
 
-        // NUEVO: Crear y capturar pago T2 de gastos adicionales
-        console.log('💳 Charging T2 post-payment...');
+        // 🔐 PASO 1: Crear y capturar pago T2 de gastos adicionales ANTES de actualizar el status
+        console.log('💳 [CLIENT FLOW] Initiating T2 post-payment charge for invoice:', invoiceId);
         
         const { data: chargeData, error: chargeError } = await supabase.functions.invoke(
           'onvopay-charge-post-payment',
@@ -475,13 +485,14 @@ export const useInvoiceApprovalMutation = () => {
         );
 
         if (chargeError || !chargeData?.success) {
-          console.error('❌ T2 charge failed:', chargeError || chargeData);
+          console.error('❌ [CLIENT FLOW] T2 charge failed:', chargeError || chargeData);
           throw new Error(chargeError?.message || chargeData?.error || 'Error procesando el pago adicional');
         }
 
-        console.log('✅ T2 payment charged:', chargeData.payment_id);
+        console.log('✅ [CLIENT FLOW] T2 payment charged successfully:', chargeData.payment_id);
 
-        // Update appointment final_price when approved
+        // 📊 PASO 2: Actualizar appointment con precio final
+        console.log('📊 [CLIENT FLOW] Updating appointment final_price to:', invoice.total_price);
         const { error: appointmentError } = await supabase
           .from('appointments')
           .update({
@@ -491,11 +502,14 @@ export const useInvoiceApprovalMutation = () => {
           .eq('id', invoice.appointment_id);
 
         if (appointmentError) {
-          console.error('Error updating appointment price:', appointmentError);
+          console.error('❌ Error updating appointment price:', appointmentError);
+        } else {
+          console.log('✅ [CLIENT FLOW] Appointment final_price updated');
         }
       } else {
         updateData.rejected_at = new Date().toISOString();
         updateData.rejection_reason = rejectionReason;
+        console.log('❌ [CLIENT FLOW] Invoice rejected with reason:', rejectionReason);
       }
 
       const { error } = await supabase

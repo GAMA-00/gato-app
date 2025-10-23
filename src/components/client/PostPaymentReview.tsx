@@ -46,6 +46,9 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
     setIsProcessing(true);
     try {
+      console.log(`🔄 Processing ${approved ? 'approval' : 'rejection'} for invoice:`, invoice.id);
+      
+      // La mutation ya maneja todo el flujo (incluido el cargo de pago T2 si es aprobado)
       await approvalMutation.mutateAsync({
         invoiceId: invoice.id,
         approved,
@@ -53,52 +56,16 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
       });
       
       if (approved) {
-        // Aprobar invoice primero
-        await approvalMutation.mutateAsync({
-          invoiceId: invoice.id,
-          approved: true
-        });
-
-        // Capturar pago postpago con OnvoPay
-        console.log('💳 Capturando pago postpago para invoice:', invoice.id);
-        try {
-          const { data: captureData, error: captureError } = await supabase.functions.invoke(
-            'onvopay-capture-on-invoice-approval',
-            {
-              body: {
-                invoiceId: invoice.id,
-                totalAmount: invoice.total_price
-              }
-            }
-          );
-
-          if (captureError || !captureData?.success) {
-            console.error('❌ Error capturando pago postpago:', captureError || captureData?.error);
-            toast.error('Error al procesar el pago. Intente nuevamente.');
-            return;
-          }
-
-          console.log('✅ Pago postpago capturado exitosamente');
-          toast.success('Factura aprobada y pago procesado correctamente.');
-        } catch (paymentError) {
-          console.error('Error processing payment:', paymentError);
-          toast.error('Error al procesar el pago. Intente nuevamente.');
-          return;
-        }
+        toast.success('Factura aprobada y pago procesado correctamente.');
       } else {
-        await approvalMutation.mutateAsync({
-          invoiceId: invoice.id,
-          approved: false,
-          rejectionReason
-        });
         toast.success('Factura rechazada. El proveedor recibirá tu comentario y podrá corregirla.');
       }
       
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error('Error processing approval:', error);
-      toast.error('Error al procesar la respuesta. Intente nuevamente.');
+    } catch (error: any) {
+      console.error('❌ Error processing approval:', error);
+      toast.error(error.message || 'Error al procesar la respuesta. Intente nuevamente.');
     } finally {
       setIsProcessing(false);
     }

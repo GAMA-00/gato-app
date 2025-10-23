@@ -78,27 +78,11 @@ serve(async (req) => {
 
     const amountCents = Math.round(invoice.total_price * 100);
 
-    // Get customer ID for this client
-    console.log('🔍 Getting OnvoPay customer for client:', invoice.appointments.client_id);
-    const { data: customerMapping } = await supabase
-      .from('onvopay_customers')
-      .select('onvopay_customer_id')
-      .eq('client_id', invoice.appointments.client_id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    const customerId = customerMapping?.onvopay_customer_id;
-    console.log('✅ Customer ID for T2 payment:', customerId || 'none');
-
-    // Create Payment Intent for T2
+    // ✅ PASO 1: Crear Payment Intent SIN payment_method (OnvoPay requiere 3 pasos para saved methods)
     const paymentIntentPayload = {
       amount: amountCents,
       currency: 'USD',
       description: `Gastos adicionales - ${invoice.appointments.listings.title}`,
-      payment_method: savedMethod.onvopay_payment_method_id,
-      confirm: true,
-      capture_method: 'automatic',
       metadata: {
         invoice_id: invoiceId,
         appointment_id: invoice.appointment_id,
@@ -108,9 +92,9 @@ serve(async (req) => {
       }
     };
 
-    console.log('📤 Creating T2 Payment Intent...');
+    console.log('🔐 [FLOW] Step 1: Creating T2 Payment Intent (amount:', amountCents, 'cents)');
 
-    const onvoResponse = await fetch(`${config.fullUrl}/payment-intents`, {
+    const createResponse = await fetch(`${config.fullUrl}/payment-intents`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
@@ -119,17 +103,79 @@ serve(async (req) => {
       body: JSON.stringify(paymentIntentPayload)
     });
 
-    const onvoResult = await onvoResponse.json();
+    const paymentIntent = await createResponse.json();
 
-    if (!onvoResponse.ok) {
-      console.error('❌ OnvoPay error:', onvoResult);
-      throw new Error(onvoResult.message || 'Payment failed');
+    if (!createResponse.ok) {
+      console.error('❌ Step 1 failed - Payment Intent creation error:', paymentIntent);
+      throw new Error(paymentIntent.message || 'Failed to create Payment Intent');
     }
 
-    console.log('✅ T2 Payment Intent created:', onvoResult.id);
+    console.log('✅ [FLOW] Step 1 complete - Payment Intent created:', paymentIntent.id);
 
-    // Create payment record in DB
-    console.log('💾 Creating T2 payment record in DB...');
+    // ✅ PASO 2: Confirmar con el payment_method_id guardado
+    console.log('💳 [FLOW] Step 2: Confirming with saved payment method:', savedMethod.onvopay_payment_method_id);
+
+    const confirmResponse = await fetch(
+      `${config.fullUrl}/payment-intents/${paymentIntent.id}/confirm`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentMethodId: savedMethod.onvopay_payment_method_id
+        })
+      }
+    );
+
+    const confirmedPayment = await confirmResponse.json();
+
+    if (!confirmResponse.ok) {
+      console.error('❌ Step 2 failed - Payment confirmation error:', confirmedPayment);
+      throw new Error(confirmedPayment.message || 'Failed to confirm payment');
+    }
+
+    console.log('✅ [FLOW] Step 2 complete - Payment confirmed with status:', confirmedPayment.status);
+
+    // ✅ PASO 3: Capturar si está en estado 'requires_capture'
+    let finalPayment = confirmedPayment;
+    
+    if (confirmedPayment.status === 'requires_capture') {
+      console.log('💰 [FLOW] Step 3: Capturing payment...');
+      
+      const captureResponse = await fetch(
+        `${config.fullUrl}/payment-intents/${paymentIntent.id}/capture`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      finalPayment = await captureResponse.json();
+
+      if (!captureResponse.ok) {
+        console.error('❌ Step 3 failed - Payment capture error:', finalPayment);
+        throw new Error(finalPayment.message || 'Failed to capture payment');
+      }
+
+      console.log('✅ [FLOW] Step 3 complete - Payment captured with status:', finalPayment.status);
+    } else {
+      console.log('⏭️ [FLOW] Step 3 skipped - Payment already in final state:', confirmedPayment.status);
+    }
+
+    const onvoResult = finalPayment;
+
+    // Determinar el estado final basado en el resultado de OnvoPay
+    const finalStatus = onvoResult.status === 'succeeded' ? 'captured' : 
+                       onvoResult.status === 'requires_capture' ? 'authorized' : 
+                       'pending_authorization';
+
+    // Guardar registro de pago en BD
+    console.log('💾 [FLOW] Saving T2 payment record to DB with status:', finalStatus);
     const { data: payment, error: paymentError } = await supabase
       .from('onvopay_payments')
       .insert({
@@ -142,23 +188,23 @@ serve(async (req) => {
         iva_amount: 0,
         payment_type: 'postpaid',
         payment_method: 'card',
-        status: onvoResult.status === 'succeeded' ? 'captured' : 'authorized',
+        status: finalStatus,
         onvopay_response: onvoResult,
         authorized_at: new Date().toISOString(),
         captured_at: onvoResult.status === 'succeeded' ? new Date().toISOString() : null,
         card_info: {
-          payment_method_id: savedMethod.onvopay_payment_method_id // Store in JSON for reference
+          payment_method_id: savedMethod.onvopay_payment_method_id
         }
       })
       .select()
       .single();
 
     if (paymentError) {
-      console.error('❌ Error saving payment:', paymentError);
+      console.error('❌ Error saving payment to DB:', paymentError);
       throw paymentError;
     }
 
-    console.log('✅ T2 payment saved:', payment.id);
+    console.log('✅ [FLOW] T2 payment flow complete - Payment ID:', payment.id, '| Status:', payment.status);
 
     return new Response(JSON.stringify({
       success: true,
