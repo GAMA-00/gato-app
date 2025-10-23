@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, FileImage, Calendar, User, DollarSign, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, FileImage, Calendar, User, DollarSign, AlertTriangle, Download, Eye, File } from 'lucide-react';
 import { useInvoiceApprovalMutation, useInvoiceItems } from '@/hooks/usePostPaymentInvoices';
 import { toast } from 'sonner';
 
@@ -86,6 +86,40 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
   const appointment = invoice.appointments;
   const totalItems = items.reduce((sum, item) => sum + item.amount, 0);
+  
+  // Obtener todas las evidencias de los items
+  const evidences = items
+    .filter(item => item.evidence_file_url)
+    .map(item => ({
+      id: item.id,
+      itemName: item.item_name,
+      url: item.evidence_file_url!,
+      fileName: item.evidence_file_url!.split('/').pop() || 'documento',
+      isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(item.evidence_file_url!)
+    }));
+
+  const handlePreview = (url: string) => {
+    window.open(url, '_blank');
+  };
+
+  const handleDownload = async (url: string, fileName: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success('Archivo descargado correctamente');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Error al descargar el archivo');
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -147,25 +181,63 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                         <p className="font-semibold">{formatCurrency(item.amount)}</p>
                       </div>
                     </div>
-                    
-                    {item.evidence_file_url && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <FileImage className="w-3 h-3" />
-                        <a 
-                          href={item.evidence_file_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="hover:text-primary hover:underline"
-                        >
-                          Ver evidencia
-                        </a>
-                      </div>
-                    )}
                   </div>
                 ))}
               </CardContent>
             )}
           </Card>
+
+          {/* Evidencias Adjuntas */}
+          {evidences.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <FileImage className="w-4 h-4" />
+                  Evidencias Adjuntas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {evidences.map((evidence) => (
+                  <div 
+                    key={evidence.id} 
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {evidence.isImage ? (
+                        <FileImage className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                      ) : (
+                        <File className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{evidence.itemName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{evidence.fileName}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePreview(evidence.url)}
+                        className="h-8 w-8 p-0"
+                        title="Ver documento"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownload(evidence.url, evidence.fileName)}
+                        className="h-8 w-8 p-0"
+                        title="Descargar"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Total Summary */}
           <Card className="bg-primary/5 border-primary/20">
