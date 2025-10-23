@@ -99,6 +99,12 @@ serve(async (req) => {
           throw new Error('ONVOPAY_SECRET_KEY not configured');
         }
 
+        console.log('📡 Confirmando payment intent con OnvoPay:', {
+          paymentIntentId: payment.onvopay_payment_id,
+          paymentMethodId: paymentMethodId,
+          url: confirmUrl
+        });
+
         const confirmResponse = await fetch(confirmUrl, {
           method: 'POST',
           headers: {
@@ -106,7 +112,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            payment_method: paymentMethodId
+            paymentMethodId: paymentMethodId  // ✅ camelCase como lo espera OnvoPay
           })
         });
 

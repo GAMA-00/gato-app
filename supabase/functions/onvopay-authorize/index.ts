@@ -175,10 +175,19 @@ serve(async (req) => {
     currentPhase = 'create-payment-intent';
     const requestId = crypto.randomUUID();
     
+    console.log('🔐 Creating Payment Intent...', {
+      requestId: requestId,
+      appointmentId: body.appointmentId,
+      amount: amountCents,
+      customerId: customerId || 'none',
+      timestamp: new Date().toISOString()
+    });
+
     const paymentIntentData = {
       amount: amountCents,
       currency: 'USD',
       description: `Servicio ${body.appointmentId}`,
+      ...(customerId && { customer: customerId }),
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,

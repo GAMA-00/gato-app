@@ -78,6 +78,19 @@ serve(async (req) => {
 
     const amountCents = Math.round(invoice.total_price * 100);
 
+    // Get customer ID for this client
+    console.log('🔍 Getting OnvoPay customer for client:', invoice.appointments.client_id);
+    const { data: customerMapping } = await supabase
+      .from('onvopay_customers')
+      .select('onvopay_customer_id')
+      .eq('client_id', invoice.appointments.client_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    const customerId = customerMapping?.onvopay_customer_id;
+    console.log('✅ Customer ID for T2 payment:', customerId || 'none');
+
     // Create Payment Intent for T2
     const paymentIntentPayload = {
       amount: amountCents,
@@ -86,6 +99,7 @@ serve(async (req) => {
       payment_method: savedMethod.onvopay_payment_method_id,
       confirm: true,
       capture_method: 'automatic',
+      ...(customerId && { customer: customerId }),
       metadata: {
         invoice_id: invoiceId,
         appointment_id: invoice.appointment_id,
