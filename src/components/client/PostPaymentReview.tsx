@@ -135,7 +135,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-2rem)] sm:w-[calc(100vw-4rem)] md:w-full mx-auto">
+      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] md:w-full mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
@@ -143,16 +143,16 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 md:space-y-6 px-1 md:px-0">
+        <div className="space-y-4 md:space-y-6 px-0 md:px-0">
           {/* Service Information */}
           <Card>
-            <CardHeader className="pb-3 px-3 pt-3 md:px-6 md:pt-6">
+            <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Información del Servicio
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 p-3 md:p-6">
+            <CardContent className="space-y-3 p-2 md:p-6">
               <div className="grid grid-cols-1 gap-3 text-sm">
                 <div>
                   <span className="text-muted-foreground">Servicio:</span>
@@ -172,16 +172,16 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
           {/* Items Breakdown */}
           <Card>
-            <CardHeader className="pb-3 px-3 pt-3 md:px-6 md:pt-6">
+            <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
               <CardTitle className="text-sm font-medium">Desglose de Gastos Adicionales</CardTitle>
               {items.length === 0 && (
                 <p className="text-xs text-muted-foreground">No se reportaron gastos adicionales</p>
               )}
             </CardHeader>
             {items.length > 0 && (
-              <CardContent className="space-y-3 md:space-y-4 p-3 md:p-6">
+              <CardContent className="space-y-3 md:space-y-4 p-2 md:p-6">
                 {items.map((item, index) => (
-                  <div key={item.id} className="p-2 md:p-4 border rounded-lg space-y-2">
+                  <div key={item.id} className="p-1.5 md:p-4 border rounded-lg space-y-2">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                       <div className="flex-1">
                         <h4 className="font-medium text-sm">{item.item_name}</h4>
@@ -201,22 +201,22 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
           {/* Evidencias Adjuntas */}
           <Card>
-            <CardHeader className="pb-3 px-3 pt-3 md:px-6 md:pt-6">
+            <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <FileImage className="w-4 h-4" />
                 Evidencias Adjuntas
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 p-3 md:p-6">
+            <CardContent className="space-y-3 p-2 md:p-6">
               {evidences.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No hay evidencias adjuntas</p>
               ) : (
                 evidences.map((evidence) => (
                   <div 
                     key={evidence.id} 
-                    className="flex items-center justify-between gap-2 p-2 md:p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                    className="flex items-center justify-between gap-1 p-1.5 md:p-3 border rounded-lg hover:bg-muted/30 transition-colors"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                    <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
                       {evidence.isImage ? (
                         <FileImage className="w-5 h-5 text-blue-500 flex-shrink-0" />
                       ) : (
@@ -224,15 +224,15 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                       )}
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <p className="text-sm font-medium truncate">{evidence.itemName}</p>
-                        <p className="text-xs text-muted-foreground truncate break-all">{evidence.fileName}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1 break-all max-w-full">{evidence.fileName}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 ml-1 md:ml-2">
+                    <div className="flex items-center gap-0.5 md:gap-2 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handlePreview(evidence.url)}
-                        className="h-7 w-7 md:h-8 md:w-8 p-0"
+                        className="h-6 w-6 md:h-8 md:w-8 p-0"
                         title="Ver documento"
                       >
                         <Eye className="w-3 h-3 md:w-4 md:h-4" />
@@ -241,7 +241,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDownload(evidence.url, evidence.fileName)}
-                        className="h-7 w-7 md:h-8 md:w-8 p-0"
+                        className="h-6 w-6 md:h-8 md:w-8 p-0"
                         title="Descargar"
                       >
                         <Download className="w-3 h-3 md:w-4 md:h-4" />
@@ -255,16 +255,16 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
           {/* Total Summary */}
           <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="pt-3 px-3 pb-3 md:pt-4 md:px-6 md:pb-4">
+            <CardContent className="pt-3 px-2 pb-3 md:pt-4 md:px-6 md:pb-4">
               <div className="space-y-2">
-                <div className="flex justify-between text-xs md:text-sm gap-2">
-                  <span className="flex-shrink-0">Gastos Adicionales:</span>
-                  <span className="font-medium">{formatCurrency(totalItems)}</span>
+                <div className="flex justify-between items-center text-xs md:text-sm gap-1">
+                  <span className="flex-shrink-0 text-left">Gastos Adicionales:</span>
+                  <span className="font-medium text-right flex-shrink-0 min-w-[60px]">{formatCurrency(totalItems)}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between font-semibold text-base md:text-lg gap-2">
-                  <span className="flex-shrink-0">Total a Pagar:</span>
-                  <span className="text-primary">{formatCurrency(totalItems)}</span>
+                <div className="flex justify-between items-center font-semibold text-sm md:text-lg gap-1">
+                  <span className="flex-shrink-0 text-left">Total a Pagar:</span>
+                  <span className="text-primary text-right flex-shrink-0 min-w-[60px]">{formatCurrency(totalItems)}</span>
                 </div>
               </div>
             </CardContent>
@@ -273,13 +273,13 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           {/* Rejection Form */}
           {showRejectionForm && (
             <Card className="border-orange-200 bg-orange-50/30">
-              <CardHeader className="pb-3 px-3 pt-3 md:px-6 md:pt-6">
+              <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
                 <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-800">
                   <AlertTriangle className="w-4 h-4" />
                   Motivo del Rechazo
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
+              <CardContent className="p-2 md:p-6 pt-0 md:pt-0">
                 <div className="space-y-3">
                   <Label className="text-sm">
                     Explique por qué rechaza esta factura (requerido, mínimo 10 caracteres)
@@ -301,13 +301,13 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-col md:flex-row gap-2 md:gap-3 pt-4 px-1 md:px-0">
+          <div className="flex flex-col md:flex-row gap-1.5 md:gap-3 pt-4 px-0 md:px-0">
             <Button 
               type="button" 
               variant="outline" 
               onClick={onClose}
               disabled={isProcessing}
-              className="order-1 md:order-none text-sm md:text-base px-3 md:px-4"
+              className="order-1 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
             >
               Cancelar
             </Button>
@@ -318,7 +318,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                   variant="destructive"
                   onClick={() => setShowRejectionForm(true)}
                   disabled={isProcessing}
-                  className="flex items-center justify-center gap-2 order-3 md:order-none text-sm md:text-base px-3 md:px-4"
+                  className="flex items-center justify-center gap-2 order-3 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
                 >
                   <XCircle className="w-3 h-3 md:w-4 md:h-4" />
                   Rechazar
@@ -326,7 +326,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 <Button
                   onClick={() => handleApproval(true)}
                   disabled={isProcessing}
-                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none text-sm md:text-base px-3 md:px-4"
+                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
                 >
                   <CheckCircle className="w-3 h-3 md:w-4 md:h-4" />
                   {isProcessing ? 'Procesando...' : 'Aprobar y Proceder al Pago'}
@@ -341,7 +341,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                     setRejectionReason('');
                   }}
                   disabled={isProcessing}
-                  className="order-3 md:order-none text-sm md:text-base px-3 md:px-4"
+                  className="order-3 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
                 >
                   Cancelar Rechazo
                 </Button>
@@ -349,7 +349,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                   variant="destructive"
                   onClick={() => handleApproval(false)}
                   disabled={isProcessing || !rejectionReason.trim() || rejectionReason.trim().length < 10}
-                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none text-sm md:text-base px-3 md:px-4"
+                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
                 >
                   <XCircle className="w-3 h-3 md:w-4 md:h-4" />
                   {isProcessing ? 'Procesando...' : 'Confirmar Rechazo'}
