@@ -51,7 +51,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
   onSuccess
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [itemFiles, setItemFiles] = useState<{ [key: number]: File | null }>({});
+  const [itemFiles, setItemFiles] = useState<{ [key: number]: { file?: File; existingUrl?: string } }>({});
   const [itemsLoaded, setItemsLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
@@ -86,6 +86,16 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
             amount: item.amount,
             evidenceFile: undefined
           })));
+          
+          // 🆕 Cargar URLs de evidencias existentes
+          const existingFiles: { [key: number]: { existingUrl?: string } } = {};
+          existingItems.forEach((item, index) => {
+            if (item.evidence_file_url) {
+              existingFiles[index] = { existingUrl: item.evidence_file_url };
+            }
+          });
+          setItemFiles(existingFiles);
+          
           setItemsLoaded(true);
         }
       } else if (fields.length === 0) {
@@ -106,7 +116,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
   const handleFileUpload = (index: number, file: File | null) => {
     setItemFiles(prev => ({
       ...prev,
-      [index]: file
+      [index]: file ? { file } : { existingUrl: prev[index]?.existingUrl }
     }));
   };
 
@@ -146,12 +156,16 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
       const taxes = subtotal * 0.13; // IVA fijo del 13%
       const totalPrice = subtotal + taxes;
 
-      // Prepare items with evidence files
-      const itemsWithEvidence = data.items.map((item, index) => ({
-        item_name: item.item_name,
-        amount: item.amount,
-        evidenceFile: itemFiles[index] || undefined
-      }));
+      // Prepare items with evidence files and existing URLs
+      const itemsWithEvidence = data.items.map((item, index) => {
+        const fileData = itemFiles[index];
+        return {
+          item_name: item.item_name,
+          amount: item.amount,
+          evidenceFile: fileData?.file, // Archivo nuevo (si existe)
+          existingUrl: fileData?.existingUrl // URL existente (si existe)
+        };
+      });
 
       const invoiceData = {
         id: invoice.id,
@@ -433,7 +447,7 @@ interface ItemCardProps {
   form: any;
   onRemove: () => void;
   canRemove: boolean;
-  itemFile: File | null | undefined;
+  itemFile: { file?: File; existingUrl?: string } | null | undefined;
   onFileChange: (file: File | null) => void;
   formatCurrency: (value: number) => string;
 }
@@ -505,7 +519,8 @@ const ItemCard: React.FC<ItemCardProps> = ({
         {/* Evidencia */}
         <EvidenceUploader
           onFileSelect={onFileChange}
-          currentFile={itemFile}
+          currentFile={itemFile?.file || null}
+          existingUrl={itemFile?.existingUrl}
           accept="image/*,.pdf"
           showLabel={true}
         />

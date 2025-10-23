@@ -231,6 +231,7 @@ export const useInvoiceMutation = () => {
         description?: string; 
         amount: number; 
         evidenceFile?: File;
+        existingUrl?: string; // 🆕 URL existente
       }>;
     }) => {
       let invoiceId = ('id' in invoiceData) ? invoiceData.id : undefined;
@@ -270,23 +271,34 @@ export const useInvoiceMutation = () => {
       // Process and insert new items
       const itemsToInsert = [];
       for (const item of items) {
-        let evidenceUrl = null;
+        let evidenceUrl = item.existingUrl || null; // 🆕 Preservar URL existente
 
-        // Upload evidence file if provided
+        // Solo subir si hay archivo nuevo
         if (item.evidenceFile) {
           const fileName = `${invoiceId}_${Date.now()}_${item.evidenceFile.name}`;
           
+          // Convertir a ArrayBuffer para mejor compatibilidad
+          const fileBuffer = await item.evidenceFile.arrayBuffer();
+          
+          console.log('📤 Uploading evidence:', fileName);
+          
           const { error: uploadError } = await supabase.storage
             .from('service-gallery')
-            .upload(`invoices/${fileName}`, item.evidenceFile);
+            .upload(`invoices/${fileName}`, fileBuffer, {
+              contentType: item.evidenceFile.type,
+              cacheControl: '3600',
+              upsert: false
+            });
 
           if (uploadError) {
-            console.error('Error uploading evidence file:', uploadError);
+            console.error('❌ Error uploading evidence:', uploadError);
+            // No lanzar error, continuar sin evidencia nueva
           } else {
             const { data: urlData } = supabase.storage
               .from('service-gallery')
               .getPublicUrl(`invoices/${fileName}`);
             evidenceUrl = urlData.publicUrl;
+            console.log('✅ Evidence uploaded:', evidenceUrl);
           }
         }
 
@@ -295,7 +307,7 @@ export const useInvoiceMutation = () => {
           item_name: item.item_name,
           description: item.description || null,
           amount: item.amount,
-          evidence_file_url: evidenceUrl
+          evidence_file_url: evidenceUrl // Puede ser nueva URL o existente
         });
       }
 

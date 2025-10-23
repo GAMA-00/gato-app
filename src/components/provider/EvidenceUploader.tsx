@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 interface EvidenceUploaderProps {
   onFileSelect: (file: File | null) => void;
   currentFile?: File | null;
+  existingUrl?: string; // 🆕 URL de evidencia existente
   accept?: string;
   maxSizeMB?: number;
   className?: string;
@@ -17,6 +18,7 @@ interface EvidenceUploaderProps {
 export const EvidenceUploader = ({
   onFileSelect,
   currentFile,
+  existingUrl,
   accept = "image/*,.pdf",
   maxSizeMB = 10,
   className = "",
@@ -86,7 +88,37 @@ export const EvidenceUploader = ({
         className="hidden"
       />
 
-      {!currentFile && (
+      {/* Mostrar evidencia existente si hay */}
+      {!currentFile && existingUrl && (
+        <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+          <CheckCircle2 className="h-4 w-4 text-blue-600 flex-shrink-0" />
+          <span className="text-sm text-blue-700 truncate flex-1">
+            Evidencia adjunta
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => window.open(existingUrl, '_blank')}
+            className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+            title="Ver evidencia"
+          >
+            <Camera className="h-3 w-3" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => onFileSelect(null)}
+            className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Eliminar"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      {!currentFile && !existingUrl && (
         <div className="space-y-2">
           {/* Botón: Seleccionar documento */}
           <Button
