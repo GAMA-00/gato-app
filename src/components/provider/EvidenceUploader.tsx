@@ -93,10 +93,10 @@ export const EvidenceUploader = ({
             type="button"
             variant="outline"
             onClick={() => documentInputRef.current?.click()}
-            className="w-full justify-start h-11 text-sm px-3"
+            className="w-full justify-start h-auto py-2.5 px-3 text-sm whitespace-normal text-left"
           >
             <FileUp className="h-4 w-4 mr-2 flex-shrink-0" />
-            Seleccionar documento
+            <span>Seleccionar documento</span>
           </Button>
 
           {/* Botón: Tomar foto */}
@@ -104,10 +104,10 @@ export const EvidenceUploader = ({
             type="button"
             variant="outline"
             onClick={() => cameraInputRef.current?.click()}
-            className="w-full justify-start h-11 text-sm px-3"
+            className="w-full justify-start h-auto py-2.5 px-3 text-sm whitespace-normal text-left"
           >
             <Camera className="h-4 w-4 mr-2 flex-shrink-0" />
-            Tomar foto
+            <span>Tomar foto</span>
           </Button>
         </div>
       )}

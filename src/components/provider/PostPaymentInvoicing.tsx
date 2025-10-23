@@ -456,7 +456,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 min-w-0 space-y-2">
+      <div className="flex-1 overflow-hidden space-y-2">
         {/* Nombre y monto en una fila */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {/* Nombre del gasto */}
