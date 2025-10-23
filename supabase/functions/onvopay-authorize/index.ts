@@ -231,7 +231,8 @@ serve(async (req) => {
           last4: body.card_data.last4 || '****',
           brand: body.card_data.brand || 'card',
           exp_month: body.card_data.exp_month || '',
-          exp_year: body.card_data.exp_year || ''
+          exp_year: body.card_data.exp_year || '',
+          payment_method_id: body.card_data.payment_method_id // Store in JSON for reference
         }
       : {
           last4: body.card_data.number.slice(-4),
@@ -239,6 +240,12 @@ serve(async (req) => {
           exp_month: body.card_data.expiry.split('/')[0],
           exp_year: body.card_data.expiry.split('/')[1]
         };
+
+    console.log('💾 Creating payment record (phase: create-payment-record)...', {
+      appointmentId: body.appointmentId,
+      status: dbStatus,
+      amount: amountCents
+    });
 
     const { data: payment, error: paymentError } = await supabase
       .from('onvopay_payments')
@@ -258,7 +265,6 @@ serve(async (req) => {
         authorized_at: null,
         captured_at: null,
         onvopay_payment_id: onvoResult.id,
-        onvopay_payment_method_id: body.card_data.payment_method_id || null,
         onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
         external_reference: body.appointmentId,
         onvopay_response: isPostPayment ? {
@@ -299,7 +305,8 @@ serve(async (req) => {
       currency: 'USD',
       is_post_payment: isPostPayment,
       requires_confirmation: true,
-      onvopay_payment_method_id: payment.onvopay_payment_method_id,
+      // Include payment_method_id in response for client-side use (not stored in DB)
+      onvopay_payment_method_id: body.card_data.payment_method_id || null,
       message: isPostPayment 
         ? 'Payment Intent creado. Será capturado cuando el proveedor acepte.'
         : 'Payment Intent creado. Será capturado cuando el proveedor acepte.',

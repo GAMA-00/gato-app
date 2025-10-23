@@ -59,19 +59,22 @@ serve(async (req) => {
       throw new Error('Invoice not found');
     }
 
-    // Get client's saved payment method (from previous T1 transaction)
-    const { data: previousPayment } = await supabase
-      .from('onvopay_payments')
+    // Get client's saved payment method from payment_methods table (not onvopay_payments)
+    console.log('🔍 Getting payment method for client:', invoice.appointments.client_id);
+    const { data: savedMethod } = await supabase
+      .from('payment_methods')
       .select('onvopay_payment_method_id')
-      .eq('appointment_id', invoice.appointment_id)
+      .eq('user_id', invoice.appointments.client_id)
       .not('onvopay_payment_method_id', 'is', null)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
-    if (!previousPayment?.onvopay_payment_method_id) {
+    if (!savedMethod?.onvopay_payment_method_id) {
       throw new Error('No saved payment method found for client');
     }
+
+    console.log('✅ Payment method found:', savedMethod.onvopay_payment_method_id);
 
     const amountCents = Math.round(invoice.total_price * 100);
 
@@ -80,7 +83,7 @@ serve(async (req) => {
       amount: amountCents,
       currency: 'USD',
       description: `Gastos adicionales - ${invoice.appointments.listings.title}`,
-      payment_method: previousPayment.onvopay_payment_method_id,
+      payment_method: savedMethod.onvopay_payment_method_id,
       confirm: true,
       capture_method: 'automatic',
       metadata: {
@@ -113,13 +116,13 @@ serve(async (req) => {
     console.log('✅ T2 Payment Intent created:', onvoResult.id);
 
     // Create payment record in DB
+    console.log('💾 Creating T2 payment record in DB...');
     const { data: payment, error: paymentError } = await supabase
       .from('onvopay_payments')
       .insert({
         appointment_id: invoice.appointment_id,
         client_id: invoice.appointments.client_id,
         provider_id: invoice.appointments.provider_id,
-        listing_id: invoice.appointments.listing_id,
         onvopay_payment_id: onvoResult.id,
         amount: amountCents,
         subtotal: amountCents,
@@ -130,7 +133,9 @@ serve(async (req) => {
         onvopay_response: onvoResult,
         authorized_at: new Date().toISOString(),
         captured_at: onvoResult.status === 'succeeded' ? new Date().toISOString() : null,
-        onvopay_payment_method_id: previousPayment.onvopay_payment_method_id
+        card_info: {
+          payment_method_id: savedMethod.onvopay_payment_method_id // Store in JSON for reference
+        }
       })
       .select()
       .single();

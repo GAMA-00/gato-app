@@ -361,14 +361,26 @@ serve(async (req) => {
       });
     }
 
-    // Determine if this is a post-payment service
-    const { data: listing } = await supabase
-      .from('listings')
-      .select('is_post_payment')
-      .eq('id', payment.listing_id)
+    // Determine if this is a post-payment service by looking up via appointment
+    console.log('🔍 Determining if post-payment via appointment...');
+    const { data: appointment } = await supabase
+      .from('appointments')
+      .select('listing_id')
+      .eq('id', payment.appointment_id)
       .single();
 
-    const isPostPayment = listing?.is_post_payment ?? false;
+    let isPostPayment = false;
+    if (appointment?.listing_id) {
+      const { data: listing } = await supabase
+        .from('listings')
+        .select('is_post_payment')
+        .eq('id', appointment.listing_id)
+        .single();
+      
+      isPostPayment = listing?.is_post_payment ?? false;
+    }
+    
+    console.log('📋 Service type:', { isPostPayment, appointmentId: payment.appointment_id });
 
     // Determine final status based on OnvoPay response and service type
     // For post-payment services, auto-capture T1 Base immediately
@@ -407,8 +419,9 @@ serve(async (req) => {
       authorized_at: finalStatus === 'authorized' || finalStatus === 'captured' ? now : null,
       captured_at: finalStatus === 'captured' ? now : null,
       onvopay_transaction_id: onvoResult.charges?.data?.[0]?.id || onvoResult.id,
-      onvopay_response: onvoResult,
-      onvopay_payment_method_id: paymentMethodId
+      onvopay_response: onvoResult
+      // Note: onvopay_payment_method_id not stored in onvopay_payments table
+      // It's stored in card_info JSON or in separate payment_methods table
     };
 
     console.log('💡 Payment confirmation result:', {

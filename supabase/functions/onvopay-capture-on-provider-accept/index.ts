@@ -33,7 +33,7 @@ serve(async (req) => {
       // Buscar pago autorizado o pendiente para esta cita
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from('onvopay_payments')
-        .select('id, status, onvopay_payment_id, onvopay_payment_method_id, amount, payment_type, client_id')
+        .select('id, status, onvopay_payment_id, amount, payment_type, client_id')
         .eq('appointment_id', appointmentId)
         .in('status', ['pending_authorization', 'authorized'])
         .single();
@@ -67,25 +67,20 @@ serve(async (req) => {
       if (payment.status === 'pending_authorization') {
         console.log(`🔄 Pago en pending_authorization, ejecutando confirm primero...`);
         
-        let paymentMethodId = (payment as any).onvopay_payment_method_id;
+        // Obtener payment_method_id desde payment_methods (no desde onvopay_payments)
+        console.log('🔍 Getting payment method from payment_methods table...');
+        const { data: savedMethods } = await supabaseAdmin
+          .from('payment_methods')
+          .select('onvopay_payment_method_id')
+          .eq('user_id', payment.client_id)
+          .not('onvopay_payment_method_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        // Fallback: buscar método guardado del cliente
-        if (!paymentMethodId) {
-          console.warn('⚠️ No payment_method_id, buscando método guardado...');
-          const { data: savedMethods } = await supabaseAdmin
-            .from('payment_methods')
-            .select('onvopay_payment_method_id')
-            .eq('user_id', (payment as any).client_id)
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          if (savedMethods?.[0]) {
-            paymentMethodId = savedMethods[0].onvopay_payment_method_id;
-          }
-        }
+        const paymentMethodId = savedMethods?.[0]?.onvopay_payment_method_id;
 
         if (!paymentMethodId) {
-          console.error('❌ No payment method disponible');
+          console.error('❌ No payment method disponible para cliente', payment.client_id);
           captureResults.push({
             appointmentId,
             paymentId: payment.id,
@@ -94,6 +89,8 @@ serve(async (req) => {
           });
           continue;
         }
+
+        console.log('✅ Payment method found:', paymentMethodId);
         
         const confirmUrl = `${Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com'}/v1/payment-intents/${payment.onvopay_payment_id}/confirm`;
         const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
