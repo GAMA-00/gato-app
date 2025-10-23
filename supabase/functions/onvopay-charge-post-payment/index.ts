@@ -76,7 +76,33 @@ serve(async (req) => {
 
     console.log('✅ Payment method found:', savedMethod.onvopay_payment_method_id);
 
-    const amountCents = Math.round(invoice.total_price * 100);
+    // Obtener el total de gastos adicionales desde los items de la factura
+    const { data: items, error: itemsError } = await supabase
+      .from('post_payment_items')
+      .select('amount')
+      .eq('invoice_id', invoiceId);
+
+    if (itemsError) {
+      console.error('❌ Error fetching invoice items:', itemsError);
+      throw new Error('Failed to fetch invoice items');
+    }
+
+    const itemsTotal = (items || []).reduce((sum: number, i: any) => sum + (i?.amount || 0), 0);
+
+    // Si no hay gastos adicionales, omitir el cobro (flujo válido)
+    if (!itemsTotal || itemsTotal <= 0) {
+      console.log('ℹ️ [FLOW] No additional expenses to charge. Skipping T2 payment.');
+      return new Response(JSON.stringify({
+        success: true,
+        status: 'skipped',
+        amount: 0,
+        message: 'No additional expenses to charge'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const amountCents = Math.round(itemsTotal * 100);
 
     // ✅ PASO 1: Crear Payment Intent SIN payment_method (OnvoPay requiere 3 pasos para saved methods)
     const paymentIntentPayload = {
