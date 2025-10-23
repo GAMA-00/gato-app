@@ -135,7 +135,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto mx-2 md:mx-auto">
+      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden mx-2 md:mx-auto w-[calc(100vw-1rem)] md:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
@@ -152,7 +152,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 Información del Servicio
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 p-4 md:p-6">
               <div className="grid grid-cols-1 gap-3 text-sm">
                 <div>
                   <span className="text-muted-foreground">Servicio:</span>
@@ -179,7 +179,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
               )}
             </CardHeader>
             {items.length > 0 && (
-              <CardContent className="space-y-3 md:space-y-4">
+              <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6">
                 {items.map((item, index) => (
                   <div key={item.id} className="p-3 md:p-4 border rounded-lg space-y-2">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
@@ -207,7 +207,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 Evidencias Adjuntas
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 p-4 md:p-6">
               {evidences.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No hay evidencias adjuntas</p>
               ) : (
@@ -216,18 +216,18 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                     key={evidence.id} 
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
                       {evidence.isImage ? (
                         <FileImage className="w-5 h-5 text-blue-500 flex-shrink-0" />
                       ) : (
                         <File className="w-5 h-5 text-gray-500 flex-shrink-0" />
                       )}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <p className="text-sm font-medium truncate">{evidence.itemName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{evidence.fileName}</p>
+                        <p className="text-xs text-muted-foreground truncate break-all">{evidence.fileName}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 ml-2">
                       <Button
                         variant="ghost"
                         size="sm"
