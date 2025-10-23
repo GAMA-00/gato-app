@@ -455,14 +455,14 @@ const ItemCard: React.FC<ItemCardProps> = ({
 }) => {
 
   return (
-    <div className="flex items-start gap-3 p-3 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
+    <div className="flex items-start gap-2 md:gap-3 p-2 md:p-3 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
       {/* Número del gasto */}
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">#{index + 1}</span>
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 space-y-2">
+      <div className="flex-1 min-w-0 space-y-2">
         {/* Nombre y monto en una fila */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {/* Nombre del gasto */}

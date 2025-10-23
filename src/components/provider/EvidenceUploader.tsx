@@ -107,7 +107,7 @@ export const EvidenceUploader = ({
             className="w-full justify-start h-10 text-sm"
           >
             <Camera className="h-4 w-4 mr-2" />
-            Tomar foto con la cámara
+            Tomar foto
           </Button>
         </div>
       )}
