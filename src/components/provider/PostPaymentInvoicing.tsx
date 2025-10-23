@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Plus, Clock, DollarSign, X, Copy, Trash2, 
+  Plus, Clock, DollarSign, X, Trash2, 
   FileText, Receipt, MessageSquare, 
   AlertCircle, Send, Save 
 } from 'lucide-react';
@@ -316,10 +316,6 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                       index={index}
                       form={form}
                       onRemove={() => remove(index)}
-                      onDuplicate={() => {
-                        const item = form.getValues(`items.${index}`);
-                        append({ ...item, evidenceFile: undefined });
-                      }}
                       canRemove={fields.length > 1}
                       itemFile={itemFiles[index]}
                       onFileChange={(file) => handleFileUpload(index, file)}
@@ -436,7 +432,6 @@ interface ItemCardProps {
   index: number;
   form: any;
   onRemove: () => void;
-  onDuplicate: () => void;
   canRemove: boolean;
   itemFile: File | null | undefined;
   onFileChange: (file: File | null) => void;
@@ -447,7 +442,6 @@ const ItemCard: React.FC<ItemCardProps> = ({
   index,
   form,
   onRemove,
-  onDuplicate,
   canRemove,
   itemFile,
   onFileChange,
@@ -519,16 +513,6 @@ const ItemCard: React.FC<ItemCardProps> = ({
 
       {/* Acciones */}
       <div className="flex flex-col gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={onDuplicate}
-          className="h-7 w-7"
-          title="Duplicar"
-        >
-          <Copy className="h-3 w-3" />
-        </Button>
         <Button
           type="button"
           variant="ghost"
