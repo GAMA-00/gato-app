@@ -187,7 +187,6 @@ serve(async (req) => {
       amount: amountCents,
       currency: 'USD',
       description: `Servicio ${body.appointmentId}`,
-      ...(customerId && { customer: customerId }),
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,

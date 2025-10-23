@@ -99,7 +99,6 @@ serve(async (req) => {
       payment_method: savedMethod.onvopay_payment_method_id,
       confirm: true,
       capture_method: 'automatic',
-      ...(customerId && { customer: customerId }),
       metadata: {
         invoice_id: invoiceId,
         appointment_id: invoice.appointment_id,
