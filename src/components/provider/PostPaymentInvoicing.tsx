@@ -51,8 +51,8 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [itemFiles, setItemFiles] = useState<{ [key: number]: File | null }>({});
-  const [autoSaving, setAutoSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [itemsLoaded, setItemsLoaded] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const { data: existingItems = [] } = useInvoiceItems(invoice?.id);
   const invoiceMutation = useInvoiceMutation();
@@ -71,51 +71,36 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
     name: 'items'
   });
 
-  // Load existing items when invoice changes
+  // Load existing items ONCE when modal opens
   useEffect(() => {
-    if (existingItems.length > 0) {
-      form.setValue('items', existingItems.map(item => ({
-        item_name: item.item_name || '',
-        amount: item.amount,
-        evidenceFile: undefined
-      })));
-    } else if (fields.length === 0) {
-      append({ item_name: '', amount: 0 });
-    }
-  }, [existingItems, form, append, fields.length]);
+    if (!itemsLoaded) {
+      if (existingItems.length > 0) {
+        const hasEmptyInitialItem = fields.length === 1 && 
+          !form.getValues('items.0.item_name') && 
+          form.getValues('items.0.amount') === 0;
 
-  // Debounced autosave
-  const debouncedAutoSave = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout;
-      return async (data: InvoiceFormData) => {
-        if (!invoice) return;
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(async () => {
-          setAutoSaving(true);
-          try {
-            await onSubmit(data, false);
-            setLastSaved(new Date());
-          } catch (error) {
-            console.error('Autosave failed:', error);
-          } finally {
-            setAutoSaving(false);
-          }
-        }, 2000);
-      };
-    })(),
-    [invoice]
-  );
-
-  // Watch form changes for autosave
-  useEffect(() => {
-    const subscription = form.watch((data) => {
-      if (data.items && data.items.length > 0) {
-        debouncedAutoSave(data as InvoiceFormData);
+        if (fields.length === 0 || hasEmptyInitialItem) {
+          form.setValue('items', existingItems.map(item => ({
+            item_name: item.item_name || '',
+            amount: item.amount,
+            evidenceFile: undefined
+          })));
+          setItemsLoaded(true);
+        }
+      } else if (fields.length === 0) {
+        append({ item_name: '', amount: 0 });
+        setItemsLoaded(true);
       }
+    }
+  }, [existingItems.length, itemsLoaded]);
+
+  // Watch for unsaved changes
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      setHasUnsavedChanges(true);
     });
     return () => subscription.unsubscribe();
-  }, [form.watch, debouncedAutoSave]);
+  }, [form.watch]);
 
   const handleFileUpload = (index: number, file: File | null) => {
     setItemFiles(prev => ({
@@ -189,10 +174,13 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
       if (submitForApproval) {
         await submitMutation.mutateAsync(invoiceId);
         toast.success('Factura enviada al cliente');
+        setHasUnsavedChanges(false);
         onSuccess();
         onClose();
-      } else if (!submitForApproval && lastSaved) {
-        // Silent save for autosave
+      } else {
+        // Manual draft save
+        toast.success('Borrador guardado');
+        setHasUnsavedChanges(false);
       }
     } catch (error) {
       console.error('Error saving invoice:', error);
@@ -220,8 +208,14 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
   const appointment = invoice.appointments;
   const basePrice = appointment?.listings?.base_price || 0;
 
+  const handleClose = () => {
+    setItemsLoaded(false);
+    setHasUnsavedChanges(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-full md:max-w-4xl h-[96vh] md:h-[92vh] max-h-[900px] flex flex-col mx-2 md:mx-auto p-0 overflow-hidden">
         {/* Header fijo */}
         <div className="sticky top-0 z-10 bg-background border-b px-4 md:px-6 py-4 flex items-center justify-between">
@@ -236,34 +230,24 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
               </p>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8 rounded-full"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasUnsavedChanges && (
+              <div className="flex items-center gap-1 text-xs text-amber-600 mr-2">
+                <AlertCircle className="h-3 w-3" />
+                <span className="hidden md:inline">Cambios sin guardar</span>
+              </div>
+            )}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleClose}
+              className="h-8 w-8 rounded-full"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Indicador de autoguardado */}
-        {(autoSaving || lastSaved) && (
-          <div className="px-4 md:px-6 py-2 bg-muted/50 border-b">
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              {autoSaving ? (
-                <>
-                  <div className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full" />
-                  Guardando borrador...
-                </>
-              ) : (
-                <>
-                  <Check className="h-3 w-3 text-green-600" />
-                  Último guardado: {lastSaved?.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                </>
-              )}
-            </p>
-          </div>
-        )}
 
         {/* Rejection Reason */}
         {invoice.status === 'rejected' && invoice.rejection_reason && (
@@ -409,7 +393,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
               type="button"
               variant="outline"
               onClick={() => form.handleSubmit((data) => onSubmit(data, false))()}
-              disabled={isSubmitting || autoSaving}
+              disabled={isSubmitting}
               className="flex-1 h-11"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -424,7 +408,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
                   form.handleSubmit((data) => onSubmit(data, true))();
                 }
               }}
-              disabled={isSubmitting || autoSaving || fields.length === 0}
+              disabled={isSubmitting || fields.length === 0}
               className="flex-1 h-11 bg-primary hover:bg-primary/90"
             >
               {isSubmitting ? (

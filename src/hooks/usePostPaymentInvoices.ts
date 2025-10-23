@@ -316,10 +316,16 @@ export const useInvoiceMutation = () => {
       return invoiceId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['client-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoice-items'] });
-      toast.success('Factura guardada exitosamente');
+      // Invalidar sin refetch inmediato para no interrumpir la edición
+      queryClient.invalidateQueries({ 
+        queryKey: ['pending-invoices'],
+        refetchType: 'none'
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['client-invoices'],
+        refetchType: 'none'
+      });
+      // No mostrar toast aquí - se maneja en el componente
     },
     onError: (error) => {
       console.error('Error saving invoice:', error);
