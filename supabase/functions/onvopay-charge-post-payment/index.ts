@@ -176,6 +176,9 @@ serve(async (req) => {
 
     // Guardar registro de pago en BD
     console.log('💾 [FLOW] Saving T2 payment record to DB with status:', finalStatus);
+    // Note: Using 'cash' for T2 post-payment charges as the DB constraint 
+    // only allows 'cash' (one-time) or 'subscription' (recurring).
+    // Post-payments are one-time additional charges, so 'cash' is appropriate.
     const { data: payment, error: paymentError } = await supabase
       .from('onvopay_payments')
       .insert({
@@ -186,7 +189,7 @@ serve(async (req) => {
         amount: amountCents,
         subtotal: amountCents,
         iva_amount: 0,
-        payment_type: 'postpaid',
+        payment_type: 'cash',
         payment_method: 'card',
         status: finalStatus,
         onvopay_response: onvoResult,
