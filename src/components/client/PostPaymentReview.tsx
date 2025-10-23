@@ -87,8 +87,18 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
   const appointment = invoice.appointments;
   const totalItems = items.reduce((sum, item) => sum + item.amount, 0);
   
-  // Obtener todas las evidencias de los items
-  const evidences = items
+  // Obtener evidencias de la factura y de los items
+  const evidenceFromInvoice = invoice?.evidence_file_url
+    ? [{
+        id: `invoice-${invoice.id}`,
+        itemName: 'Evidencia general',
+        url: invoice.evidence_file_url,
+        fileName: invoice.evidence_file_url.split('/').pop() || 'documento',
+        isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(invoice.evidence_file_url)
+      }]
+    : [];
+
+  const evidenceFromItems = items
     .filter(item => item.evidence_file_url)
     .map(item => ({
       id: item.id,
@@ -97,6 +107,8 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
       fileName: item.evidence_file_url!.split('/').pop() || 'documento',
       isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(item.evidence_file_url!)
     }));
+
+  const evidences = [...evidenceFromInvoice, ...evidenceFromItems];
 
   const handlePreview = (url: string) => {
     window.open(url, '_blank');
@@ -188,16 +200,18 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           </Card>
 
           {/* Evidencias Adjuntas */}
-          {evidences.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <FileImage className="w-4 h-4" />
-                  Evidencias Adjuntas
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {evidences.map((evidence) => (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <FileImage className="w-4 h-4" />
+                Evidencias Adjuntas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {evidences.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No hay evidencias adjuntas</p>
+              ) : (
+                evidences.map((evidence) => (
                   <div 
                     key={evidence.id} 
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors"
@@ -234,10 +248,10 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                       </Button>
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                ))
+              )}
+            </CardContent>
+          </Card>
 
           {/* Total Summary */}
           <Card className="bg-primary/5 border-primary/20">
