@@ -20,9 +20,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, X, Upload, DollarSign, FileText, Camera } from 'lucide-react';
+import { Plus, X, DollarSign, FileText, Camera } from 'lucide-react';
 import { useUpdateFinalPrice } from '@/hooks/usePostPaymentServices';
 import { toast } from 'sonner';
+import { EvidenceUploader } from '@/components/provider/EvidenceUploader';
 
 const costItemSchema = z.object({
   description: z.string().min(1, 'Descripción requerida'),
@@ -86,15 +87,6 @@ const PostPaymentPricing: React.FC<PostPaymentPricingProps> = ({
     form.setValue('costItems', current.filter((_, i) => i !== index));
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const newFiles = Array.from(files).filter(file => 
-        file.type.startsWith('image/') || file.type === 'application/pdf'
-      );
-      setEvidenceFiles(prev => [...prev, ...newFiles]);
-    }
-  };
 
   const removeFile = (index: number) => {
     setEvidenceFiles(prev => prev.filter((_, i) => i !== index));
@@ -249,51 +241,48 @@ const PostPaymentPricing: React.FC<PostPaymentPricingProps> = ({
                   <Camera className="h-4 w-4" />
                   Evidencias (Facturas/Recibos)
                 </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Adjunta fotos o documentos que respalden los gastos adicionales
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,application/pdf"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="evidence-upload"
-                    />
-                    <label
-                      htmlFor="evidence-upload"
-                      className="flex flex-col items-center gap-2 cursor-pointer"
-                    >
-                      <Upload className="h-8 w-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Subir fotos de facturas o recibos
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Formatos: JPG, PNG, PDF
-                      </span>
-                    </label>
-                  </div>
+                  <EvidenceUploader
+                    onFileSelect={(file) => {
+                      if (file) {
+                        setEvidenceFiles(prev => [...prev, file]);
+                      }
+                    }}
+                    accept="image/*,application/pdf"
+                    showLabel={false}
+                  />
 
+                  {/* Lista de archivos adjuntos */}
                   {evidenceFiles.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {evidenceFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 p-2 border rounded-lg"
-                        >
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm truncate flex-1">{file.name}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(index)}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Archivos adjuntos ({evidenceFiles.length})
+                      </p>
+                      <div className="grid gap-2">
+                        {evidenceFiles.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 p-2 border rounded-lg bg-card"
                           >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
+                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm truncate flex-1">{file.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFile(index)}
+                              className="h-7 w-7 text-red-600 hover:text-red-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

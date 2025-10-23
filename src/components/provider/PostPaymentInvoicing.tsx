@@ -11,12 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Plus, FileImage, Clock, DollarSign, X, Copy, Trash2, 
-  Paperclip, FileText, Receipt, MessageSquare, 
-  AlertCircle, Check, Send, Save 
+  Plus, Clock, DollarSign, X, Copy, Trash2, 
+  FileText, Receipt, MessageSquare, 
+  AlertCircle, Send, Save 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useInvoiceMutation, useSubmitInvoiceMutation, useInvoiceItems } from '@/hooks/usePostPaymentInvoices';
+import { EvidenceUploader } from './EvidenceUploader';
 
 const invoiceItemSchema = z.object({
   item_name: z.string()
@@ -452,7 +453,6 @@ const ItemCard: React.FC<ItemCardProps> = ({
   onFileChange,
   formatCurrency
 }) => {
-  const [showEvidence, setShowEvidence] = useState(false);
 
   return (
     <div className="flex items-start gap-3 p-3 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
@@ -509,57 +509,12 @@ const ItemCard: React.FC<ItemCardProps> = ({
         </div>
 
         {/* Evidencia */}
-        {!showEvidence && !itemFile && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowEvidence(true)}
-            className="h-8 text-xs"
-          >
-            <Paperclip className="h-3 w-3 mr-1" />
-            Adjuntar evidencia
-          </Button>
-        )}
-
-        {showEvidence && !itemFile && (
-          <div className="flex gap-2">
-            <Input
-              type="file"
-              accept="image/*,.pdf"
-              onChange={(e) => {
-                onFileChange(e.target.files?.[0] || null);
-                setShowEvidence(false);
-              }}
-              className="h-8 text-xs flex-1"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowEvidence(false)}
-              className="h-8 px-2"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-
-        {itemFile && (
-          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
-            <FileImage className="h-3 w-3 text-green-600 flex-shrink-0" />
-            <span className="truncate text-green-700 flex-1">{itemFile.name}</span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => onFileChange(null)}
-              className="h-6 w-6 text-red-600 hover:text-red-700"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
+        <EvidenceUploader
+          onFileSelect={onFileChange}
+          currentFile={itemFile}
+          accept="image/*,.pdf"
+          showLabel={true}
+        />
       </div>
 
       {/* Acciones */}
