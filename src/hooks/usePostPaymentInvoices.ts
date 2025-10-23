@@ -268,6 +268,12 @@ export const useInvoiceMutation = () => {
         }
       }
 
+      // Get authenticated user for storage path
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuario no autenticado para subir evidencias');
+      }
+
       // Process and insert new items
       const itemsToInsert = [];
       for (const item of items) {
@@ -275,16 +281,17 @@ export const useInvoiceMutation = () => {
 
         // Solo subir si hay archivo nuevo
         if (item.evidenceFile) {
-          const fileName = `${invoiceId}_${Date.now()}_${item.evidenceFile.name}`;
+          // Use user ID as first folder to match RLS policy
+          const storagePath = `${user.id}/invoices/${invoiceId}/${Date.now()}_${item.evidenceFile.name}`;
           
           // Convertir a ArrayBuffer para mejor compatibilidad
           const fileBuffer = await item.evidenceFile.arrayBuffer();
           
-          console.log('📤 Uploading evidence:', fileName);
+          console.log('📤 Uploading evidence to:', storagePath);
           
           const { error: uploadError } = await supabase.storage
             .from('service-gallery')
-            .upload(`invoices/${fileName}`, fileBuffer, {
+            .upload(storagePath, fileBuffer, {
               contentType: item.evidenceFile.type,
               cacheControl: '3600',
               upsert: false
@@ -296,7 +303,7 @@ export const useInvoiceMutation = () => {
           } else {
             const { data: urlData } = supabase.storage
               .from('service-gallery')
-              .getPublicUrl(`invoices/${fileName}`);
+              .getPublicUrl(storagePath);
             evidenceUrl = urlData.publicUrl;
             console.log('✅ Evidence uploaded:', evidenceUrl);
           }
