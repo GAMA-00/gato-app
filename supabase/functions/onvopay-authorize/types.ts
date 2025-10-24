@@ -62,11 +62,13 @@ export interface OnvoPaymentIntentData {
   amount: number;
   currency: string;
   description: string;
+  customer?: string;
   metadata: {
     appointment_id: string;
     client_id: string;
     provider_id: string;
     is_post_payment: string;
+    customer_name?: string;
     onvopay_customer_id?: string;
   };
 }

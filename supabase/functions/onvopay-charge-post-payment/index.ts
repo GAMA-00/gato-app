@@ -104,19 +104,32 @@ serve(async (req) => {
 
     const amountCents = Math.round(itemsTotal * 100);
 
+    // Fetch customer ID if exists
+    const { data: customerMapping } = await supabase
+      .from('onvopay_customers')
+      .select('onvopay_customer_id')
+      .eq('client_id', invoice.appointments.client_id)
+      .maybeSingle();
+
+    const customerId = customerMapping?.onvopay_customer_id;
+
     // ✅ PASO 1: Crear Payment Intent SIN payment_method (OnvoPay requiere 3 pasos para saved methods)
     const paymentIntentPayload = {
       amount: amountCents,
       currency: 'USD',
       description: `Gastos adicionales - ${invoice.appointments.listings.title}`,
+      ...(customerId && { customer: customerId }),
       metadata: {
         invoice_id: invoiceId,
         appointment_id: invoice.appointment_id,
         client_id: invoice.appointments.client_id,
         provider_id: invoice.appointments.provider_id,
-        payment_phase: 'T2_POST_PAYMENT'
+        payment_phase: 'T2_POST_PAYMENT',
+        ...(customerId && { onvopay_customer_id: customerId })
       }
     };
+
+    console.log('👤 Using customer ID for post-payment:', customerId || 'none');
 
     console.log('🔐 [FLOW] Step 1: Creating T2 Payment Intent (amount:', amountCents, 'cents)');
 

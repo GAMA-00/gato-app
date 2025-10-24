@@ -26,6 +26,36 @@ import { createPaymentIntent } from './payment.ts';
 import type { AuthorizePaymentRequest } from './types.ts';
 
 /**
+ * Format payment description with service type and recurrence
+ */
+function formatPaymentDescription(appointment: any): string {
+  // Get service type name from the nested relationship
+  const serviceTypeName = appointment.listings?.service_types?.name || 
+                         appointment.listings?.title || 
+                         'Servicio';
+  
+  // Map recurrence to Spanish
+  const recurrenceMap: Record<string, string> = {
+    'weekly': 'Semanal',
+    'biweekly': 'Quincenal',
+    'triweekly': 'Trisemanal',
+    'monthly': 'Mensual',
+    'none': '',
+    'daily': 'Diaria'
+  };
+  
+  const recurrence = appointment.recurrence || 'none';
+  const recurrenceText = recurrenceMap[recurrence] || '';
+  
+  // Format: "Reserva — ServiceType" or "Reserva — ServiceType — Recurrence"
+  if (recurrenceText && recurrence !== 'none') {
+    return `Reserva — ${serviceTypeName} — ${recurrenceText}`;
+  }
+  
+  return `Reserva — ${serviceTypeName}`;
+}
+
+/**
  * Main request handler
  */
 serve(async (req) => {
@@ -114,7 +144,19 @@ serve(async (req) => {
     currentPhase = 'fetch-appointment';
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
-      .select('client_id, provider_id, listing_id')
+      .select(`
+        client_id, 
+        provider_id, 
+        listing_id,
+        recurrence,
+        listings (
+          title,
+          service_type_id,
+          service_types (
+            name
+          )
+        )
+      `)
       .eq('id', body.appointmentId)
       .single();
 
@@ -183,18 +225,26 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
+    const description = formatPaymentDescription(appointment);
+
     const paymentIntentData = {
       amount: amountCents,
       currency: 'USD',
-      description: `Servicio ${body.appointmentId}`,
+      description: description,
+      customer: customerId,
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
         is_post_payment: isPostPayment.toString(),
+        customer_name: body.billing_info?.name || 'Cliente',
         ...(customerId && { onvopay_customer_id: customerId })
       }
     };
+
+    console.log('📝 Payment description:', description);
+    console.log('👤 Customer ID:', customerId);
+    console.log('👤 Customer name:', body.billing_info?.name);
 
     let onvoResult: any;
     try {
