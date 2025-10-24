@@ -1,9 +1,7 @@
 
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
-import { Clock, MapPin, ExternalLink, DollarSign } from 'lucide-react';
+import { Clock, MapPin, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatDateES } from '@/lib/utils';
@@ -26,18 +24,6 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
   // Normalize and validate notes: show only if user actually wrote additional notes
   const normalizedNotes = typeof request.notes === 'string' ? request.notes.trim() : '';
   const shouldShowNotes = normalizedNotes.length > 0 && normalizedNotes !== 'Reserva creada desde la aplicación';
-  
-  // Helper function to get initials from name
-  const getInitials = (name: string) => {
-    if (!name || name === 'Cliente sin nombre' || name === 'Cliente Externo') return 'CL';
-    
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-  };
 
   // Get the recurrence type and label
   const recurrenceType = request.recurrence || (request.appointment_count > 1 ? 'weekly' : 'none');
@@ -45,15 +31,8 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
 
   return (
     <div className="border rounded-2xl p-4 md:p-5 shadow-sm relative" style={{ backgroundColor: '#E9FBF3', borderColor: '#10B981' }}>
-      {/* Header: Avatar + Client Info + Badge */}
-      <div className="flex items-start gap-3 mb-3">
-        <Avatar className="h-12 w-12 flex-shrink-0" style={{ borderColor: '#10B981', borderWidth: '2px' }}>
-          <AvatarImage alt={request.client_name} />
-          <AvatarFallback style={{ backgroundColor: '#D1FAE5', color: '#059669' }}>
-            {getInitials(request.client_name)}
-          </AvatarFallback>
-        </Avatar>
-        
+      {/* Header: Client Info + Badge */}
+      <div className="flex items-start justify-between mb-3">
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-[17px] leading-tight" style={{ color: '#111827' }}>
             {request.client_name}
@@ -86,7 +65,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
             {formatDateES(new Date(request.start_time), 'EEE d MMM', { locale: es })}
           </span>
           <span style={{ color: '#4B5563' }}>•</span>
-          <span style={{ color: '#4B5563' }}>
+          <span className="font-medium" style={{ color: '#4B5563' }}>
             {format(new Date(request.start_time), 'h:mm a')} – {format(new Date(request.end_time), 'h:mm a')}
           </span>
           {isGroup && (
