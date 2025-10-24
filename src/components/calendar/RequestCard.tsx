@@ -58,20 +58,20 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
       </div>
 
       {/* Meta: Date/Time and Details */}
-      <div className="mb-3 text-sm leading-relaxed" style={{ color: '#111827' }}>
+      <div className="mb-3 text-sm leading-relaxed font-semibold" style={{ color: '#111827' }}>
         <div className="flex items-center gap-1.5 flex-wrap">
           <Clock className="h-4 w-4 flex-shrink-0" style={{ color: '#059669' }} />
-          <span className="font-medium">
+          <span>
             {formatDateES(new Date(request.start_time), 'EEE d MMM', { locale: es })}
           </span>
           <span style={{ color: '#4B5563' }}>•</span>
-          <span className="font-medium" style={{ color: '#4B5563' }}>
+          <span style={{ color: '#4B5563' }}>
             {format(new Date(request.start_time), 'h:mm a')} – {format(new Date(request.end_time), 'h:mm a')}
           </span>
           {isGroup && (
             <>
               <span style={{ color: '#4B5563' }}>•</span>
-              <span className="font-medium" style={{ color: '#10B981' }}>
+              <span style={{ color: '#10B981' }}>
                 {request.appointment_count} citas
               </span>
             </>
