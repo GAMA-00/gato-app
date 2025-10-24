@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, Award, Flame, User, Users, FileText } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, Award, User, Users, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRecurringServices } from '@/hooks/useRecurringServices';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
 import { usePendingInvoicesCount, useClientInvoicesCount } from '@/hooks/useInvoiceCounts';
+import { useClientAppointmentsCount } from '@/hooks/useClientAppointmentsCount';
 
 interface MobileBottomNavProps {
   isClientSection: boolean;
@@ -24,10 +24,10 @@ interface NavItemType {
 const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { count: recurringServicesCount } = useRecurringServices();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
   const { data: pendingInvoicesCount = 0 } = usePendingInvoicesCount();
   const { data: clientInvoicesCount = 0 } = useClientInvoicesCount();
+  const { count: clientAppointmentsCount } = useClientAppointmentsCount();
 
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
@@ -39,19 +39,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   
   const clientNavItems: NavItemType[] = [
     { to: '/client/categories', icon: Briefcase, label: 'Servicios' },
-    { 
-      to: '/client/bookings', 
-      icon: CalendarClock, 
-      label: 'Reservas', 
-      customBadge: (
-        <div className="absolute -top-1 -right-1 flex items-center justify-center">
-          <Flame className="h-3.5 w-3.5 text-destructive" />
-          <span className="absolute text-[9px] font-bold text-destructive">
-            {recurringServicesCount || 0}
-          </span>
-        </div>
-      )
-    },
+    { to: '/client/bookings', icon: CalendarClock, label: 'Reservas', counter: clientAppointmentsCount },
     { to: '/client/invoices', icon: FileText, label: 'Facturas', counter: clientInvoicesCount },
     { to: '/profile', icon: User, label: 'Perfil' }
   ];
@@ -108,7 +96,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
                 )} 
               />
               {item.counter !== undefined && item.counter > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-red-500 text-white rounded-full w-4 h-4 text-[10px] font-bold">
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-blue-500 text-white rounded-full w-4 h-4 text-[10px] font-bold">
                   {item.counter > 99 ? '99+' : item.counter}
                 </span>
               )}

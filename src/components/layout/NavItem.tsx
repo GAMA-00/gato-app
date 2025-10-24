@@ -39,7 +39,7 @@ const NavItem = ({
       <div className="relative">
         <Icon className="h-4 w-4" />
         {counter !== undefined && counter > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-red-500 text-white rounded-full w-3.5 h-3.5 text-[10px] font-bold">
+          <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-blue-500 text-white rounded-full w-3.5 h-3.5 text-[10px] font-bold">
             {counter > 99 ? '99+' : counter}
           </span>
         )}
