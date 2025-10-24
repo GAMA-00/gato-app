@@ -136,23 +136,23 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] md:w-full mx-auto box-border p-0">
-        <DialogHeader>
+        <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3">
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
             Revisar Factura Post-Pago
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 md:space-y-6 px-0 md:px-0 overflow-x-hidden w-full">
+        <div className="space-y-4 md:space-y-6 px-4 md:px-6 pt-4 pb-6 md:pb-8 overflow-x-hidden w-full">
           {/* Service Information */}
           <Card>
-            <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
+            <CardHeader className="pb-2 px-3 pt-3 md:px-6 md:pt-6">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Información del Servicio
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 p-2 md:p-6">
+            <CardContent className="space-y-3 p-3 md:p-6">
               <div className="grid grid-cols-1 gap-3 text-sm">
                 <div>
                   <span className="text-muted-foreground">Servicio:</span>
@@ -172,7 +172,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
           {/* Items Breakdown */}
           <Card>
-            <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
+            <CardHeader className="pb-2 px-3 pt-3 md:px-6 md:pt-6">
               <CardTitle className="text-sm font-medium">Desglose de Gastos Adicionales</CardTitle>
               {items.length === 0 && (
                 <p className="text-xs text-muted-foreground">No se reportaron gastos adicionales</p>
@@ -201,13 +201,13 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
           {/* Evidencias Adjuntas */}
           <Card>
-            <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
+            <CardHeader className="pb-2 px-3 pt-3 md:px-6 md:pt-6">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <FileImage className="w-4 h-4" />
                 Evidencias Adjuntas
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 p-2 md:p-6">
+            <CardContent className="space-y-3 p-3 md:p-6">
               {evidences.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No hay evidencias adjuntas</p>
               ) : (
@@ -255,7 +255,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
           {/* Total Summary */}
           <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="pt-3 px-2 pb-3 md:pt-4 md:px-6 md:pb-4">
+            <CardContent className="p-3 md:p-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs md:text-sm gap-1">
                   <span className="flex-shrink-0 text-left">Gastos Adicionales:</span>
@@ -273,13 +273,13 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           {/* Rejection Form */}
           {showRejectionForm && (
             <Card className="border-orange-200 bg-orange-50/30">
-              <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
+              <CardHeader className="pb-2 px-3 pt-3 md:px-6 md:pt-6">
                 <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-800">
                   <AlertTriangle className="w-4 h-4" />
                   Motivo del Rechazo
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-2 md:p-6 pt-0 md:pt-0">
+              <CardContent className="space-y-3 p-3 md:p-6 pt-0 md:pt-0">
                 <div className="space-y-3">
                   <Label className="text-sm">
                     Explique por qué rechaza esta factura (requerido, mínimo 10 caracteres)
@@ -301,7 +301,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-col md:flex-row gap-1.5 md:gap-3 pt-4 px-0 md:px-0">
+          <div className="flex flex-col md:flex-row gap-2 md:gap-3 pt-2">
             <Button 
               type="button" 
               variant="outline" 
