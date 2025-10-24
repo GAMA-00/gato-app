@@ -118,7 +118,6 @@ serve(async (req) => {
       amount: amountCents,
       currency: 'USD',
       description: `Gastos adicionales - ${invoice.appointments.listings.title}`,
-      ...(customerId && { customer: customerId }),
       metadata: {
         invoice_id: invoiceId,
         appointment_id: invoice.appointment_id,
