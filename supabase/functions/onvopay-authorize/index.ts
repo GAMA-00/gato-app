@@ -155,7 +155,8 @@ serve(async (req) => {
           service_types (
             name
           )
-        )
+        ),
+        client:users!client_id(name, email)
       `)
       .eq('id', body.appointmentId)
       .single();
@@ -236,14 +237,15 @@ serve(async (req) => {
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
         is_post_payment: isPostPayment.toString(),
-        customer_name: body.billing_info?.name || 'Cliente',
+        customer_name: appointment.client?.name || body.billing_info?.name || 'Cliente',
         ...(customerId && { onvopay_customer_id: customerId })
       }
     };
 
     console.log('📝 Payment description:', description);
     console.log('👤 Customer ID:', customerId);
-    console.log('👤 Customer name:', body.billing_info?.name);
+    console.log('👤 Customer name (profile):', appointment.client?.name);
+    console.log('👤 Customer name (billing):', body.billing_info?.name);
 
     let onvoResult: any;
     try {

@@ -49,7 +49,8 @@ serve(async (req) => {
           client_id,
           provider_id,
           listing_id,
-          listings!inner(title)
+          listings!inner(title),
+          client:users!client_id(name, email)
         )
       `)
       .eq('id', invoiceId)
@@ -124,11 +125,13 @@ serve(async (req) => {
         client_id: invoice.appointments.client_id,
         provider_id: invoice.appointments.provider_id,
         payment_phase: 'T2_POST_PAYMENT',
+        customer_name: invoice.appointments.client?.name || 'Cliente',
         ...(customerId && { onvopay_customer_id: customerId })
       }
     };
 
     console.log('👤 Using customer ID for post-payment:', customerId || 'none');
+    console.log('👤 T2 Customer name:', invoice.appointments.client?.name || 'Cliente');
 
     console.log('🔐 [FLOW] Step 1: Creating T2 Payment Intent (amount:', amountCents, 'cents)');
 
