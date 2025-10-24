@@ -60,12 +60,19 @@ const ClientBookings = () => {
     booking.status === 'completed' && !booking.isRated
   ) || [];
 
-  // Auto-calificar servicios antiguos (más de 5) con 5 estrellas
+  // Auto-calificar servicios completados hace más de 4 días con 5 estrellas
   React.useEffect(() => {
     const autoRateOldServices = async () => {
-      if (allCompletedBookings.length > 5) {
-        const oldServices = allCompletedBookings.slice(5); // Servicios después de los 5 más recientes
-        bookingLogger.info(`Auto-calificando ${oldServices.length} servicios antiguos con 5 estrellas`);
+      const fourDaysAgo = new Date();
+      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+      
+      // Filtrar servicios completados hace más de 4 días
+      const oldServices = allCompletedBookings.filter(booking => {
+        return booking.date <= fourDaysAgo;
+      });
+      
+      if (oldServices.length > 0) {
+        bookingLogger.info(`Auto-calificando ${oldServices.length} servicios completados hace más de 4 días con 5 estrellas`);
         
         try {
           // Auto-calificar cada servicio antiguo con 5 estrellas
@@ -80,9 +87,12 @@ const ClientBookings = () => {
               });
               
             if (error) {
-              logger.error(`Error auto-calificando servicio ${booking.id}:`, error);
+              // Solo loggear el error si no es un conflicto de duplicado
+              if (!error.message.includes('duplicate') && !error.message.includes('unique')) {
+                logger.error(`Error auto-calificando servicio ${booking.id}:`, error);
+              }
             } else {
-              logger.rating(`Auto-calificado: ${booking.serviceName} con 5 estrellas`);
+              logger.rating(`Auto-calificado: ${booking.serviceName} con 5 estrellas (completado hace más de 4 días)`);
             }
           }
           
@@ -96,13 +106,18 @@ const ClientBookings = () => {
       }
     };
 
-    if (user?.id && allCompletedBookings.length > 5) {
+    if (user?.id && allCompletedBookings.length > 0) {
       autoRateOldServices();
     }
   }, [allCompletedBookings.length, user?.id]);
 
-  // Mostrar solo los 5 servicios más recientes para calificar
-  const completedBookings = allCompletedBookings.slice(0, 5);
+  // Mostrar servicios completados que están dentro del período de 4 días para calificar
+  const fourDaysAgo = new Date();
+  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+  
+  const completedBookings = allCompletedBookings.filter(booking => 
+    booking.date > fourDaysAgo // Solo mostrar servicios completados en los últimos 4 días
+  );
 
   // Separar citas post-pago pendientes de factura vs listas para calificar
   const pendingInvoiceBookings = completedBookings.filter(booking => 
