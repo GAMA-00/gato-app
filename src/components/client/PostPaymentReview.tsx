@@ -135,7 +135,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] md:w-full mx-auto">
+      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto overflow-x-hidden w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] md:w-full mx-auto box-border p-0">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
@@ -143,7 +143,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 md:space-y-6 px-0 md:px-0">
+        <div className="space-y-4 md:space-y-6 px-0 md:px-0 overflow-x-hidden w-full">
           {/* Service Information */}
           <Card>
             <CardHeader className="pb-2 px-2 pt-2 md:px-6 md:pt-6">
@@ -214,7 +214,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 evidences.map((evidence) => (
                   <div 
                     key={evidence.id} 
-                    className="flex items-center justify-between gap-1 p-1.5 md:p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                    className="flex items-center justify-between gap-1 p-1.5 md:p-3 border rounded-lg hover:bg-muted/30 transition-colors flex-wrap md:flex-nowrap"
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
                       {evidence.isImage ? (
@@ -224,7 +224,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                       )}
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <p className="text-sm font-medium truncate">{evidence.itemName}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1 break-all max-w-full">{evidence.fileName}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 md:line-clamp-1 break-words whitespace-normal max-w-full">{evidence.fileName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 md:gap-2 flex-shrink-0">
@@ -307,7 +307,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
               variant="outline" 
               onClick={onClose}
               disabled={isProcessing}
-              className="order-1 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
+              className="order-1 md:order-none text-xs md:text-base px-2 md:px-4 py-2 w-full md:w-auto"
             >
               Cancelar
             </Button>
@@ -318,7 +318,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                   variant="destructive"
                   onClick={() => setShowRejectionForm(true)}
                   disabled={isProcessing}
-                  className="flex items-center justify-center gap-2 order-3 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
+                  className="flex items-center justify-center gap-2 order-3 md:order-none text-xs md:text-base px-2 md:px-4 py-2 w-full md:w-auto"
                 >
                   <XCircle className="w-3 h-3 md:w-4 md:h-4" />
                   Rechazar
@@ -326,7 +326,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                 <Button
                   onClick={() => handleApproval(true)}
                   disabled={isProcessing}
-                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 order-2 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
                 >
                   <CheckCircle className="w-3 h-3 md:w-4 md:h-4" />
                   {isProcessing ? 'Procesando...' : 'Aprobar y Proceder al Pago'}
@@ -341,7 +341,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                     setRejectionReason('');
                   }}
                   disabled={isProcessing}
-                  className="order-3 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
+                  className="order-3 md:order-none text-xs md:text-base px-2 md:px-4 py-2 w-full md:w-auto"
                 >
                   Cancelar Rechazo
                 </Button>
@@ -349,7 +349,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
                   variant="destructive"
                   onClick={() => handleApproval(false)}
                   disabled={isProcessing || !rejectionReason.trim() || rejectionReason.trim().length < 10}
-                  className="flex-1 flex items-center justify-center gap-2 order-2 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 order-2 md:order-none text-xs md:text-base px-2 md:px-4 py-2"
                 >
                   <XCircle className="w-3 h-3 md:w-4 md:h-4" />
                   {isProcessing ? 'Procesando...' : 'Confirmar Rechazo'}
