@@ -64,13 +64,13 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
           <span>
             {formatDateES(new Date(request.start_time), 'EEE d MMM', { locale: es })}
           </span>
-          <span style={{ color: '#4B5563' }}>•</span>
-          <span style={{ color: '#4B5563' }}>
+          <span>•</span>
+          <span>
             {format(new Date(request.start_time), 'h:mm a')} – {format(new Date(request.end_time), 'h:mm a')}
           </span>
           {isGroup && (
             <>
-              <span style={{ color: '#4B5563' }}>•</span>
+              <span>•</span>
               <span style={{ color: '#10B981' }}>
                 {request.appointment_count} citas
               </span>
