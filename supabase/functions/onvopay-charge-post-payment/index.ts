@@ -59,6 +59,22 @@ serve(async (req) => {
       throw new Error('Invoice not found');
     }
 
+    // Fetch client name with robust fallback
+    let clientName = 'Cliente';
+    try {
+      const { data: clientProfile } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', invoice.appointments.client_id)
+        .maybeSingle();
+
+      clientName = clientProfile?.name?.trim() || 'Cliente';
+      console.log('👤 T2 Client profile name:', clientProfile?.name || '(none)');
+    } catch (e) {
+      console.warn('⚠️ Could not fetch T2 client profile name', e);
+    }
+    console.log('👤 T2 Final client name:', clientName);
+
     // Get client's saved payment method from payment_methods table (not onvopay_payments)
     console.log('🔍 Getting payment method for client:', invoice.appointments.client_id);
     const { data: savedMethod } = await supabase

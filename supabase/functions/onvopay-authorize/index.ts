@@ -171,6 +171,25 @@ serve(async (req) => {
       });
     }
 
+    // Fetch client name with robust fallback
+    let clientName = (body.billing_info?.name || '').trim();
+    try {
+      const { data: clientProfile } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', appointment.client_id)
+        .maybeSingle();
+
+      if (clientProfile?.name && clientProfile.name.trim() !== '') {
+        clientName = clientProfile.name.trim();
+      }
+      console.log('👤 Client profile name:', clientProfile?.name || '(none)');
+    } catch (e) {
+      console.warn('⚠️ Could not fetch client profile name', e);
+    }
+    if (!clientName) clientName = 'Cliente';
+    console.log('👤 Final client name:', clientName);
+
     // Fetch listing to check if post-payment
     currentPhase = 'fetch-listing';
     const { data: listing } = await supabase
