@@ -142,24 +142,23 @@ serve(async (req) => {
 
     // Fetch appointment details
     currentPhase = 'fetch-appointment';
-    const { data: appointment, error: appointmentError } = await supabase
-      .from('appointments')
-      .select(`
-        client_id, 
-        provider_id, 
-        listing_id,
-        recurrence,
-        listings (
-          title,
-          service_type_id,
-          service_types (
-            name
+      const { data: appointment, error: appointmentError } = await supabase
+        .from('appointments')
+        .select(`
+          client_id, 
+          provider_id, 
+          listing_id,
+          recurrence,
+          listings (
+            title,
+            service_type_id,
+            service_types (
+              name
+            )
           )
-        ),
-        client:users!client_id(name, email)
-      `)
-      .eq('id', body.appointmentId)
-      .single();
+        `)
+        .eq('id', body.appointmentId)
+        .single();
 
     if (appointmentError || !appointment) {
       console.error('❌ Appointment not found:', appointmentError);
@@ -237,15 +236,15 @@ serve(async (req) => {
         client_id: appointment.client_id,
         provider_id: appointment.provider_id,
         is_post_payment: isPostPayment.toString(),
-        customer_name: appointment.client?.name || body.billing_info?.name || 'Cliente',
+        customer_name: clientName,
         ...(customerId && { onvopay_customer_id: customerId })
       }
     };
 
     console.log('📝 Payment description:', description);
     console.log('👤 Customer ID:', customerId);
-    console.log('👤 Customer name (profile):', appointment.client?.name);
-    console.log('👤 Customer name (billing):', body.billing_info?.name);
+    console.log('👤 Customer name (final):', clientName);
+    console.log('👤 Customer name (billing fallback):', body.billing_info?.name);
 
     let onvoResult: any;
     try {
