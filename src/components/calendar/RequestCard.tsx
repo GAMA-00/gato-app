@@ -7,7 +7,7 @@ import { Clock, MapPin, ExternalLink, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatDateES } from '@/lib/utils';
-import { RecurrenceIndicator } from '@/components/client/booking/RecurrenceIndicator';
+import { getRecurrenceInfo } from '@/utils/recurrenceUtils';
 import { getServiceSummary } from '@/utils/serviceDetailsFormatter';
 import RequestActions from './RequestActions';
 
@@ -26,6 +26,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
   // Normalize and validate notes: show only if user actually wrote additional notes
   const normalizedNotes = typeof request.notes === 'string' ? request.notes.trim() : '';
   const shouldShowNotes = normalizedNotes.length > 0 && normalizedNotes !== 'Reserva creada desde la aplicación';
+  
   // Helper function to get initials from name
   const getInitials = (name: string) => {
     if (!name || name === 'Cliente sin nombre' || name === 'Cliente Externo') return 'CL';
@@ -38,8 +39,9 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
       .toUpperCase();
   };
 
-  // Get the recurrence type to display - use the actual recurrence value or fallback
+  // Get the recurrence type and label
   const recurrenceType = request.recurrence || (request.appointment_count > 1 ? 'weekly' : 'none');
+  const { label: recurrenceLabel } = getRecurrenceInfo(recurrenceType);
 
   return (
     <div className="border rounded-2xl p-4 md:p-5 shadow-sm relative" style={{ backgroundColor: '#E9FBF3', borderColor: '#10B981' }}>
@@ -69,22 +71,10 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
         
         <Badge 
           variant="outline" 
-          className="flex-shrink-0 px-2 py-0.5 text-xs font-medium whitespace-nowrap"
-          style={{ borderColor: '#10B981', color: '#059669', backgroundColor: 'transparent' }}
+          className="flex-shrink-0 px-2.5 py-1 text-xs font-medium whitespace-nowrap rounded-full"
+          style={{ borderColor: '#3B82F6', color: '#2563EB', backgroundColor: 'transparent' }}
         >
-          {isGroup ? (
-            <div className="flex items-center gap-1">
-              <RecurrenceIndicator 
-                recurrence={recurrenceType}
-                size="sm"
-                showIcon={true}
-                showText={false}
-              />
-              Serie
-            </div>
-          ) : (
-            'Nueva reserva'
-          )}
+          {recurrenceLabel}
         </Badge>
       </div>
 
