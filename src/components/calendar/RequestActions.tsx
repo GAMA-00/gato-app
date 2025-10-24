@@ -26,25 +26,40 @@ const RequestActions: React.FC<RequestActionsProps> = ({ request, onAccept, onDe
   };
 
   return (
-    <div className="flex justify-end gap-2 mt-3">
+    <div className="flex flex-col gap-2 w-full">
+      <Button 
+        onClick={handleAcceptClick}
+        size="lg"
+        disabled={isLoading}
+        className="w-full h-11 flex items-center justify-center font-medium disabled:opacity-50"
+        style={{ 
+          backgroundColor: '#10B981', 
+          color: 'white',
+          borderRadius: '0.5rem'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10B981'}
+      >
+        <Check className="w-4 h-4 mr-2" /> 
+        {isLoading ? 'Procesando...' : `Aceptar${isGroup ? ' Serie' : ''}`}
+      </Button>
       <Button 
         onClick={handleDeclineClick}
         variant="outline"
-        size="sm"
+        size="lg"
         disabled={isLoading}
-        className="flex items-center border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50"
+        className="w-full h-11 flex items-center justify-center font-medium disabled:opacity-50"
+        style={{ 
+          borderColor: '#EF4444',
+          color: '#B91C1C',
+          backgroundColor: 'transparent',
+          borderRadius: '0.5rem'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEE2E2'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
       >
-        <X className="w-4 h-4 mr-1" /> 
+        <X className="w-4 h-4 mr-2" /> 
         {isLoading ? 'Procesando...' : `Rechazar${isGroup ? ' Serie' : ''}`}
-      </Button>
-      <Button 
-        onClick={handleAcceptClick}
-        size="sm"
-        disabled={isLoading}
-        className="flex items-center bg-green-600 hover:bg-green-700 disabled:opacity-50"
-      >
-        <Check className="w-4 h-4 mr-1" /> 
-        {isLoading ? 'Procesando...' : `Aceptar${isGroup ? ' Serie' : ''}`}
       </Button>
     </div>
   );
