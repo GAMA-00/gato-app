@@ -38,13 +38,62 @@ export async function ensureOnvoCustomer(
   // Step 1: Check if customer mapping already exists by client_id
   const { data: existingCustomer } = await supabase
     .from('onvopay_customers')
-    .select('onvopay_customer_id, normalized_email, normalized_phone')
+    .select('onvopay_customer_id, normalized_email, normalized_phone, customer_data')
     .eq('client_id', clientId)
     .maybeSingle();
 
-  // If customer already exists in OnvoPay, reuse it
+  // If customer already exists in OnvoPay, check if name needs updating
   if (existingCustomer?.onvopay_customer_id) {
     console.log(`🔄 Found existing OnvoPay customer for client ${clientId}: ${existingCustomer.onvopay_customer_id}`);
+    
+    // Check if customer name needs to be updated
+    const { data: user } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', clientId)
+      .maybeSingle();
+
+    const currentName = user?.name?.trim();
+    const savedName = existingCustomer.customer_data?.name?.trim();
+
+    if (currentName && currentName !== savedName) {
+      console.log(`🔄 Customer name changed: "${savedName}" → "${currentName}"`);
+      
+      // Update customer in OnvoPay
+      try {
+        const updateUrl = `${config.baseUrl}${config.path}/${existingCustomer.onvopay_customer_id}`;
+        const updateResponse = await fetch(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${secretKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: currentName })
+        });
+
+        if (updateResponse.ok) {
+          const updatedCustomer = await updateResponse.json();
+          
+          // Update local database
+          await supabase
+            .from('onvopay_customers')
+            .update({
+              customer_data: updatedCustomer,
+              normalized_name: currentName,
+              updated_at: new Date().toISOString()
+            })
+            .eq('client_id', clientId);
+          
+          console.log(`✅ Customer name updated in OnvoPay: ${currentName}`);
+        } else {
+          console.warn(`⚠️ Failed to update customer name in OnvoPay (${updateResponse.status})`);
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not update customer name in OnvoPay', err);
+        // Don't block payment flow if update fails
+      }
+    }
+    
     return existingCustomer.onvopay_customer_id;
   }
 
@@ -124,7 +173,8 @@ export async function ensureOnvoCustomer(
   }
 
   // Step 4: Create customer in OnvoPay API
-  const customerName = billingInfo?.name?.trim() || user.name?.trim() || 'Cliente';
+  // Prioritize profile name over billing info name
+  const customerName = user.name?.trim() || billingInfo?.name?.trim() || 'Cliente';
 
   const payload: any = {
     name: customerName,

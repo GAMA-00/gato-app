@@ -56,6 +56,9 @@ verify_jwt = true
 [functions.onvopay-charge-post-payment]
 verify_jwt = true
 
+[functions.onvopay-sync-customer-names]
+verify_jwt = true
+
 [functions.onvopay-subscription-webhook]
 verify_jwt = false
 
