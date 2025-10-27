@@ -563,12 +563,19 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         description: successMessage,
       });
 
-      onSuccess({
-        ...finalPaymentData,
-        appointmentId: newAppointmentId,
-        status: 'pending',
-        isRecurring
-      });
+      // Redirigir según tipo de servicio
+      if (isRecurring) {
+        // Para citas recurrentes, usar página específica sin payment tracking
+        window.location.href = `/recurring-booking-confirmation/${newAppointmentId}`;
+      } else {
+        // Para citas "una vez", flujo normal con payment tracking
+        onSuccess({
+          ...finalPaymentData,
+          appointmentId: newAppointmentId,
+          status: 'pending',
+          isRecurring: false
+        });
+      }
 
     } catch (error: any) {
       console.error('❌ Error en proceso completo:', error);

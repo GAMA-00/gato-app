@@ -13,6 +13,7 @@ import Profile from '@/pages/Profile';
 import ClientInvoices from '@/pages/ClientInvoices';
 import { Checkout } from '@/pages/Checkout';
 import { PaymentStatus } from '@/pages/PaymentStatus';
+import { RecurringBookingConfirmation } from '@/pages/RecurringBookingConfirmation';
 
 const ClientRoutes = () => {
   return [
@@ -103,6 +104,15 @@ const ClientRoutes = () => {
       element={
         <RoleGuard allowedRole="client">
           <PaymentStatus />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="recurring-booking-confirmation"
+      path="/recurring-booking-confirmation/:appointmentId"
+      element={
+        <RoleGuard allowedRole="client">
+          <RecurringBookingConfirmation />
         </RoleGuard>
       }
     />

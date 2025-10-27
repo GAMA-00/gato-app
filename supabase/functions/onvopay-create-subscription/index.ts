@@ -115,13 +115,15 @@ serve(async (req) => {
     const localSubscriptionId = `local_sub_${appointmentId}_${Date.now()}`;
     console.log('🆔 ID local generado:', localSubscriptionId);
 
-    // Calcular siguiente fecha de cobro
-    const nextChargeDate = new Date();
-    if (recurrenceConfig.interval === 'week') {
-      nextChargeDate.setDate(nextChargeDate.getDate() + (7 * recurrenceConfig.interval_count));
-    } else if (recurrenceConfig.interval === 'month') {
-      nextChargeDate.setMonth(nextChargeDate.getMonth() + recurrenceConfig.interval_count);
-    }
+    // ✅ CORRECTO: Usar la fecha del appointment como primer cobro
+    // El primer cobro se procesará cuando SE COMPLETE esta primera cita
+    const nextChargeDate = new Date(appointment.start_time);
+    
+    console.log('📅 Primer cobro programado para:', {
+      date: nextChargeDate.toISOString().split('T')[0],
+      appointmentStartTime: appointment.start_time,
+      message: 'Se cobrará cuando el primer servicio se complete'
+    });
 
     // Guardar en tabla onvopay_subscriptions (LOCAL)
     const { data: subscription, error: subError } = await supabaseAdmin
