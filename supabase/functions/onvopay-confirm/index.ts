@@ -392,8 +392,8 @@ serve(async (req) => {
     let finalStatus = 'authorized';
     let shouldAutoCapture = false;
 
-    // Detectar si es pago recurrente
-    const isRecurringPayment = payment.payment_type === 'subscription';
+    // Detectar si es pago recurrente (subscription o recurring)
+    const isRecurringPayment = payment.payment_type === 'subscription' || payment.payment_type === 'recurring';
     
     if (onvoStatus === 'requires_capture') {
       // CAPTURA INMEDIATA SOLO para pagos recurrentes

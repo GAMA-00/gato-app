@@ -56,100 +56,32 @@ serve(async (req) => {
       console.log(`\n💳 Procesando suscripción ${sub.id} (cliente: ${sub.client_id})`);
       
       try {
-        // Verificar que tenga payment_method_id
-        if (!sub.payment_method_id) {
-          throw new Error('No hay payment_method_id guardado para esta suscripción');
-        }
-
-        // 2. Crear Payment Intent usando onvopay-authorize
-        console.log('📡 Creando Payment Intent...');
-        const { data: authResponse, error: authError } = await supabaseAdmin.functions.invoke(
-          'onvopay-authorize',
+        // NUEVA LÓGICA: Usar edge function dedicada onvopay-process-membership-charge
+        console.log('📡 Delegando a onvopay-process-membership-charge...');
+        
+        const { data: chargeResponse, error: chargeError } = await supabaseAdmin.functions.invoke(
+          'onvopay-process-membership-charge',
           {
             body: {
-              appointmentId: sub.external_reference,
-              amount: sub.amount, // Amount ya está en dólares (NUMERIC), no multiplicar por 100
-              billing_info: sub.original_appointment_template?.billing_info || {
-                name: sub.original_appointment_template?.client_name || 'Cliente',
-                email: sub.original_appointment_template?.client_email || '',
-                phone: sub.original_appointment_template?.client_phone || '',
-                address: sub.original_appointment_template?.client_address || ''
-              }
+              subscription_id: sub.id,
+              appointment_id: sub.external_reference
             }
           }
         );
 
-        if (authError) {
-          console.error('❌ Error en onvopay-authorize:', authError);
-          throw new Error(`Error autorizando pago: ${authError.message}`);
+        if (chargeError || !chargeResponse?.success) {
+          console.error('❌ Error procesando cobro:', chargeError || chargeResponse?.error);
+          throw new Error(chargeError?.message || chargeResponse?.error || 'Error desconocido');
         }
 
-        console.log('✅ Payment Intent creado:', authResponse);
-
-        // 3. Confirmar el pago automáticamente usando el payment_method_id guardado
-        console.log('🔐 Confirmando pago con método guardado...');
-        const { data: confirmResponse, error: confirmError } = await supabaseAdmin.functions.invoke(
-          'onvopay-confirm',
-          {
-            body: {
-              paymentIntentId: authResponse.payment_intent_id,
-              payment_method_id: sub.payment_method_id,
-              billing_info: sub.original_appointment_template?.billing_info,
-              card_data: {} // No necesario, usamos payment_method_id
-            }
-          }
-        );
-
-        if (confirmError) {
-          console.error('❌ Error en onvopay-confirm:', confirmError);
-          throw new Error(`Error confirmando pago: ${confirmError.message}`);
-        }
-
-        console.log('✅ Pago confirmado:', confirmResponse);
-
-        // Validar que se capturó INMEDIATAMENTE (nuevo requerimiento)
-        if (confirmResponse.status !== 'captured') {
-          console.warn(`⚠️ ALERTA: Pago recurrente NO capturado inmediatamente. Status: ${confirmResponse.status}`);
-          console.log('🔄 Esto es un error - los pagos recurrentes deben capturarse inmediatamente');
-          
-          // Para debug: loguear el response completo
-          console.log('Response completo:', JSON.stringify(confirmResponse, null, 2));
-          
-          // Este es un escenario que NO debería ocurrir con el fix en onvopay-confirm
-          // Si ocurre, es un bug que debe investigarse
-          throw new Error(`Pago recurrente no se capturó inmediatamente. Status: ${confirmResponse.status}. Verificar onvopay-confirm.`);
-        }
-
-        console.log('✅ Validación: Pago recurrente capturado correctamente');
-
-        // 4. Calcular próxima fecha de cobro
-        const nextDate = new Date(sub.next_charge_date);
-        if (sub.interval_type === 'week') {
-          nextDate.setDate(nextDate.getDate() + (7 * sub.interval_count));
-        } else if (sub.interval_type === 'month') {
-          nextDate.setMonth(nextDate.getMonth() + sub.interval_count);
-        }
-
-        // 5. Actualizar suscripción con nueva fecha y resetear contador de fallos
-        const { error: updateError } = await supabaseAdmin
-          .from('onvopay_subscriptions')
-          .update({
-            next_charge_date: nextDate.toISOString().split('T')[0],
-            last_charge_date: today,
-            failed_attempts: 0,
-            last_failure_reason: null
-          })
-          .eq('id', sub.id);
-
-        if (updateError) {
-          console.error('⚠️ Error actualizando suscripción:', updateError);
-        }
+        console.log('✅ Cobro procesado exitosamente:', chargeResponse);
 
         processed++;
         results.push({
           subscription_id: sub.id,
           status: 'success',
-          next_charge_date: nextDate.toISOString().split('T')[0]
+          payment_id: chargeResponse.payment_id,
+          next_charge_date: chargeResponse.next_charge_date
         });
 
         console.log(`✅ Cobro procesado exitosamente para suscripción ${sub.id}`);
