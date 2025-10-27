@@ -1906,6 +1906,10 @@ export type Database = {
         Args: { new_role: string; target_user_id: string }
         Returns: boolean
       }
+      cancel_membership_subscription: {
+        Args: { p_subscription_id: string }
+        Returns: Json
+      }
       check_recurring_availability: {
         Args: {
           p_end_time: string
@@ -2086,6 +2090,10 @@ export type Database = {
       regenerate_slots_for_listing_safe: {
         Args: { p_listing_id: string }
         Returns: number
+      }
+      skip_next_membership_charge: {
+        Args: { p_subscription_id: string }
+        Returns: Json
       }
       submit_provider_rating:
         | {
