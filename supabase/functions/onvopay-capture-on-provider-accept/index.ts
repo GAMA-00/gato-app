@@ -25,9 +25,47 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // ✅ Verificar si son citas recurrentes primero (se cobrarán cuando se completen)
+    const { data: appointments, error: appointmentsError } = await supabaseAdmin
+      .from('appointments')
+      .select('id, recurrence')
+      .in('id', appointmentIds);
+
+    if (appointmentsError) {
+      console.error('❌ Error fetching appointments:', appointmentsError);
+      throw new Error('Error fetching appointments: ' + appointmentsError.message);
+    }
+
+    // ✅ Filtrar citas recurrentes (NO capturar ahora, se cobrarán cuando se completen)
+    const recurringAppointments = appointments?.filter(apt => 
+      apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== ''
+    ) || [];
+
+    const nonRecurringAppointmentIds = appointmentIds.filter(id => 
+      !recurringAppointments.find(apt => apt.id === id)
+    );
+
+    if (recurringAppointments.length > 0) {
+      console.log('⏭️ Skipping recurring appointments (will be charged on completion):', 
+        recurringAppointments.map(apt => ({ id: apt.id, recurrence: apt.recurrence }))
+      );
+    }
+
+    if (nonRecurringAppointmentIds.length === 0) {
+      console.log('✅ All appointments are recurring, no immediate capture needed');
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'All appointments are recurring - charges will be processed on completion',
+          skipped_recurring: recurringAppointments.map(apt => apt.id)
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const captureResults = [];
 
-    for (const appointmentId of appointmentIds) {
+    for (const appointmentId of nonRecurringAppointmentIds) {
       console.log(`\n🔍 Procesando cita ${appointmentId}...`);
       
       // Buscar pago autorizado o pendiente para esta cita
@@ -266,12 +304,18 @@ serve(async (req) => {
 
     console.log('\n✅ PROCESO DE CAPTURA COMPLETADO:', {
       totalAppointments: appointmentIds.length,
+      processedNonRecurring: nonRecurringAppointmentIds.length,
+      skippedRecurring: recurringAppointments.length,
       results: captureResults
     });
 
     return new Response(JSON.stringify({
       success: true,
-      results: captureResults
+      results: captureResults,
+      skipped_recurring: recurringAppointments.map(apt => apt.id),
+      message: recurringAppointments.length > 0 
+        ? `${recurringAppointments.length} recurring appointment(s) will be charged on completion`
+        : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
