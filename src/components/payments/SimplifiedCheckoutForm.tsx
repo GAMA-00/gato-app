@@ -257,195 +257,184 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         return;
       }
 
-      // PASO 3: Procesar pago con payment_method_id
-      console.log('💳 Autorizando pago con payment_method_id...');
-
-      const cardDataForPayment = {
-        payment_method_id: paymentMethodId,
-        ...(cardInfoForSaving && {
-          last4: cardInfoForSaving.last4,
-          brand: cardInfoForSaving.brand,
-          exp_month: cardInfoForSaving.exp_month,
-          exp_year: cardInfoForSaving.exp_year,
-          name: showNewCardForm ? newCardData.cardholderName : selectedSavedCard?.cardholder_name
-        })
-      };
-
-      // STEP 1: Create Payment Intent
+      // PASO 3: Procesar pago según tipo de servicio
       const billingName = showNewCardForm
         ? newCardData.cardholderName
         : selectedSavedCard?.cardholder_name || profile?.name || 'Cliente';
 
-      console.log('🔍 DEBUG billingName calculation:', {
-        showNewCardForm,
-        'newCardData.cardholderName': newCardData.cardholderName,
-        'selectedSavedCard?.cardholder_name': selectedSavedCard?.cardholder_name,
-        'profile?.name': profile?.name,
-        'user?.email': user?.email,
-        finalBillingName: billingName
-      });
+      let finalPaymentData: any = null;
 
-      console.log('📤 Sending billing_info to onvopay-authorize:', {
-        name: billingName,
-        email: user?.email || '',
-        phone: formatPhoneCR(billingData.phone),
-        address: billingData.address,
-        rawBillingData: billingData
-      });
-
-      const authorizeResponse = await supabase.functions.invoke('onvopay-authorize', {
-        body: {
-          appointmentId: newAppointmentId,
-          amount: amount,
-          payment_type: paymentType,
-          payment_method: 'card',
-          card_data: cardDataForPayment,
-          billing_info: {
-            name: billingName,
-            email: user?.email || '',
-            phone: formatPhoneCR(billingData.phone),
-            address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
-          }
-        }
-      });
-
-      const { data: authorizeData, error: authorizeError } = authorizeResponse;
-
-      if (authorizeError || !authorizeData?.success) {
-        console.error('❌ Error creating Payment Intent:', authorizeError || authorizeData);
+      // ✅ SERVICIOS RECURRENTES: NO crear payment ahora
+      // El cobro se procesará automáticamente cuando el servicio se complete
+      if (isRecurring) {
+        console.log('🔄 Servicio recurrente: NO crear payment ahora');
+        console.log('💡 El cobro se procesará automáticamente cuando el servicio se complete');
         
-        setIsProcessing(false);
+        // NO llamar a onvopay-authorize para citas recurrentes
+        // El payment se creará y capturará cuando el appointment cambie a 'completed'
         
-        // Try to parse structured error from edge function
-        let errorMessage = 'Error en el procesamiento del pago';
-        let errorDetails = '';
-        let shouldDeleteAppointment = true;
-        
-        if (authorizeError) {
-          console.error('❌ Error en onvopay-authorize:', {
-            error: authorizeError,
+      } else {
+        // ✅ SERVICIOS "UNA VEZ": Flujo normal (authorize → capture al aceptar)
+        console.log('💳 Servicio único: Autorizando pago...');
+
+        const cardDataForPayment = {
+          payment_method_id: paymentMethodId,
+          ...(cardInfoForSaving && {
+            last4: cardInfoForSaving.last4,
+            brand: cardInfoForSaving.brand,
+            exp_month: cardInfoForSaving.exp_month,
+            exp_year: cardInfoForSaving.exp_year,
+            name: billingName
+          })
+        };
+
+        const authorizeResponse = await supabase.functions.invoke('onvopay-authorize', {
+          body: {
             appointmentId: newAppointmentId,
-            timestamp: new Date().toISOString()
-          });
+            amount: amount,
+            payment_type: paymentType,
+            payment_method: 'card',
+            card_data: cardDataForPayment,
+            billing_info: {
+              name: billingName,
+              email: user?.email || '',
+              phone: formatPhoneCR(billingData.phone),
+              address: billingData.address.trim() || appointmentData?.clientLocation || 'Dirección del servicio'
+            }
+          }
+        });
+
+        const { data: authorizeData, error: authorizeError } = authorizeResponse;
+
+        if (authorizeError || !authorizeData?.success) {
+          console.error('❌ Error creating Payment Intent:', authorizeError || authorizeData);
           
-          try {
-            if (typeof authorizeError.message === 'string' && authorizeError.message.includes('Error: ')) {
-              const jsonStart = authorizeError.message.indexOf('{');
-              if (jsonStart !== -1) {
-                const jsonPart = authorizeError.message.substring(jsonStart);
-                const errorData = JSON.parse(jsonPart);
-                errorMessage = errorData.message || errorMessage;
-                errorDetails = errorData.details || '';
-                
-                // Don't delete appointment for service unavailability or network errors
-                if (errorData.error === 'PAYMENT_SERVICE_UNAVAILABLE' || errorData.error === 'NETWORK_ERROR') {
-                  shouldDeleteAppointment = false;
+          setIsProcessing(false);
+          
+          let errorMessage = 'Error en el procesamiento del pago';
+          let errorDetails = '';
+          let shouldDeleteAppointment = true;
+          
+          if (authorizeError) {
+            console.error('❌ Error en onvopay-authorize:', {
+              error: authorizeError,
+              appointmentId: newAppointmentId,
+              timestamp: new Date().toISOString()
+            });
+            
+            try {
+              if (typeof authorizeError.message === 'string' && authorizeError.message.includes('Error: ')) {
+                const jsonStart = authorizeError.message.indexOf('{');
+                if (jsonStart !== -1) {
+                  const jsonPart = authorizeError.message.substring(jsonStart);
+                  const errorData = JSON.parse(jsonPart);
+                  errorMessage = errorData.message || errorMessage;
+                  errorDetails = errorData.details || '';
+                  
+                  if (errorData.error === 'PAYMENT_SERVICE_UNAVAILABLE' || errorData.error === 'NETWORK_ERROR') {
+                    shouldDeleteAppointment = false;
+                  }
                 }
+              } else if (authorizeError.message?.includes('PAYMENT_SERVICE_UNAVAILABLE')) {
+                errorMessage = "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.";
+                errorDetails = 'Por favor contacta al administrador del sistema';
+                shouldDeleteAppointment = false;
+              } else {
+                errorMessage = authorizeError.message;
               }
-            } else if (authorizeError.message?.includes('PAYMENT_SERVICE_UNAVAILABLE')) {
-              errorMessage = "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.";
-              errorDetails = 'Por favor contacta al administrador del sistema';
-              shouldDeleteAppointment = false;
-            } else {
+            } catch (e) {
               errorMessage = authorizeError.message;
             }
-          } catch (e) {
-            errorMessage = authorizeError.message;
-          }
-          
-          // Only delete appointment for hard errors
-          if (shouldDeleteAppointment) {
-            console.log('🗑️ Deleting appointment due to hard error');
-            await supabase
-              .from('appointments')
-              .delete()
-              .eq('id', newAppointmentId);
-          } else {
-            console.log('⚠️ Keeping appointment for retriable error');
+            
+            if (shouldDeleteAppointment) {
+              console.log('🗑️ Deleting appointment due to hard error');
+              await supabase
+                .from('appointments')
+                .delete()
+                .eq('id', newAppointmentId);
+            } else {
+              console.log('⚠️ Keeping appointment for retriable error');
+            }
+
+            if (onError) {
+              onError(new Error(errorMessage));
+            }
+            
+            toast({
+              variant: "destructive",
+              title: shouldDeleteAppointment ? "Error en el pago" : "Servicio temporalmente no disponible",
+              description: errorMessage + (errorDetails ? ` - ${errorDetails}` : ''),
+              duration: shouldDeleteAppointment ? 5000 : 8000
+            });
+            
+            return;
           }
 
-          if (onError) {
-            onError(new Error(errorMessage));
+          if (authorizeData && !authorizeData.success) {
+            console.error('❌ Error en authorize response:', {
+              error: authorizeData.error,
+              message: authorizeData.message,
+              requestId: authorizeData.requestId,
+              responseTime: authorizeData.responseTime,
+              appointmentId: newAppointmentId
+            });
+            
+            const shouldDeleteAppointment = !['PAYMENT_SERVICE_UNAVAILABLE', 'NETWORK_ERROR'].includes(authorizeData.error);
+            
+            if (shouldDeleteAppointment) {
+              console.log('🗑️ Deleting appointment due to hard error:', authorizeData.error); 
+              await supabase
+                .from('appointments')
+                .delete()
+                .eq('id', newAppointmentId);
+            } else {
+              console.log('⚠️ Keeping appointment for retriable error:', authorizeData.error);
+            }
+            
+            let title = "Error en el pago";
+            let description = authorizeData.message || "Error procesando el pago";
+            let duration = 5000;
+            
+            if (authorizeData.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
+              title = "Servicio temporalmente no disponible";
+              description = "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.";
+              duration = 8000;
+            } else if (authorizeData.error === 'CONFIGURATION_ERROR') {
+              title = "Error de configuración";
+              description = "Error de configuración del sistema de pagos. Contacte al administrador.";
+            } else if (authorizeData.error === 'ENDPOINT_NOT_FOUND') {
+              title = "Error de configuración";
+              description = "Configuración de ambiente incorrecta. Contacte al administrador.";
+            }
+            
+            toast({
+              variant: "destructive",
+              title,
+              description,
+              duration
+            });
+            
+            if (onError) {
+              onError(new Error(description));
+            }
+            
+            return;
           }
-          
-          toast({
-            variant: "destructive",
-            title: shouldDeleteAppointment ? "Error en el pago" : "Servicio temporalmente no disponible",
-            description: errorMessage + (errorDetails ? ` - ${errorDetails}` : ''),
-            duration: shouldDeleteAppointment ? 5000 : 8000
-          });
-          
-          return;
+
+          throw new Error(authorizeData?.error || 'Error creando Payment Intent');
         }
 
-        if (authorizeData && !authorizeData.success) {
-          console.error('❌ Error en authorize response:', {
-            error: authorizeData.error,
-            message: authorizeData.message,
-            requestId: authorizeData.requestId,
-            responseTime: authorizeData.responseTime,
-            appointmentId: newAppointmentId
-          });
-          
-          // Enhanced error handling based on error type
-          const shouldDeleteAppointment = !['PAYMENT_SERVICE_UNAVAILABLE', 'NETWORK_ERROR'].includes(authorizeData.error);
-          
-          if (shouldDeleteAppointment) {
-            console.log('🗑️ Deleting appointment due to hard error:', authorizeData.error); 
-            await supabase
-              .from('appointments')
-              .delete()
-              .eq('id', newAppointmentId);
-          } else {
-            console.log('⚠️ Keeping appointment for retriable error:', authorizeData.error);
-          }
-          
-          // Specific error messages based on error type
-          let title = "Error en el pago";
-          let description = authorizeData.message || "Error procesando el pago";
-          let duration = 5000;
-          
-          if (authorizeData.error === 'PAYMENT_SERVICE_UNAVAILABLE') {
-            title = "Servicio temporalmente no disponible";
-            description = "El servicio de pagos está temporalmente no disponible. Por favor, intente nuevamente en unos minutos.";
-            duration = 8000;
-          } else if (authorizeData.error === 'CONFIGURATION_ERROR') {
-            title = "Error de configuración";
-            description = "Error de configuración del sistema de pagos. Contacte al administrador.";
-          } else if (authorizeData.error === 'ENDPOINT_NOT_FOUND') {
-            title = "Error de configuración";
-            description = "Configuración de ambiente incorrecta. Contacte al administrador.";
-          }
-          
-          toast({
-            variant: "destructive",
-            title,
-            description,
-            duration
-          });
-          
-          if (onError) {
-            onError(new Error(description));
-          }
-          
-          return;
-        }
+        console.log('✅ Payment Intent created:', {
+          paymentIntentId: authorizeData.onvopay_payment_id,
+          isPostPayment: authorizeData.is_post_payment,
+          requiresConfirmation: authorizeData.requires_confirmation
+        });
 
-        throw new Error(authorizeData?.error || 'Error creando Payment Intent');
+        console.log('✅ PASO 2/4 COMPLETADO: Payment Intent creado (pending_authorization)');
+        console.log('⏳ El pago se procesará cuando el proveedor acepte tu reserva');
+
+        finalPaymentData = authorizeData;
       }
-
-      console.log('✅ Payment Intent created:', {
-        paymentIntentId: authorizeData.onvopay_payment_id,
-        isPostPayment: authorizeData.is_post_payment,
-        requiresConfirmation: authorizeData.requires_confirmation
-      });
-
-      // ✅ PREPAGO: Solo autorizar, NO confirmar
-      // La captura se hará cuando el proveedor acepte la cita
-      console.log('✅ PASO 2/4 COMPLETADO: Payment Intent creado (pending_authorization)');
-      console.log('⏳ El pago se procesará cuando el proveedor acepte tu reserva');
-
-      let finalPaymentData = authorizeData;
 
       // FASE 2: Guardar tarjeta si el usuario lo solicitó
       if (showNewCardForm && newCardData.saveCard && paymentMethodId && cardInfoForSaving) {
@@ -516,14 +505,14 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       }
 
       // PASO 2.5: Guardar tarjeta con payment_method_id de OnvoPay si el usuario lo solicitó
-      if (showNewCardForm && newCardData.saveCard && authorizeData.onvopay_payment_method_id) {
+      if (showNewCardForm && newCardData.saveCard && finalPaymentData?.onvopay_payment_method_id) {
         try {
           console.log('💾 Guardando tarjeta con OnvoPay payment method ID...');
           await savePaymentMethod({
             cardNumber: newCardData.cardNumber.replace(/\D/g, ''),
             cardholderName: newCardData.cardholderName,
             expiryDate: newCardData.expiryDate,
-            onvopayPaymentMethodId: authorizeData.onvopay_payment_method_id
+            onvopayPaymentMethodId: finalPaymentData.onvopay_payment_method_id
           });
           console.log('✅ Tarjeta guardada con payment method ID de OnvoPay');
         } catch (saveError) {
@@ -557,11 +546,17 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       }
 
       // Mensajes contextuales según tipo de servicio y estado
-      const successMessage = finalPaymentData.is_post_payment && finalPaymentData.status === 'captured'
-        ? "Reserva confirmada. El pago base (T1) ha sido procesado exitosamente."
-        : finalPaymentData.status === 'captured' 
-          ? "Pago procesado exitosamente. Pendiente de aprobación del proveedor."
-          : "Pago autorizado. Se cobrará al completar el servicio.";
+      let successMessage: string;
+      
+      if (isRecurring) {
+        successMessage = "Reserva recurrente creada exitosamente. El primer cobro se procesará cuando el servicio se complete.";
+      } else if (finalPaymentData?.is_post_payment && finalPaymentData.status === 'captured') {
+        successMessage = "Reserva confirmada. El pago base (T1) ha sido procesado exitosamente.";
+      } else if (finalPaymentData?.status === 'captured') {
+        successMessage = "Pago procesado exitosamente. Pendiente de aprobación del proveedor.";
+      } else {
+        successMessage = "Pago autorizado. Se cobrará al completar el servicio.";
+      }
       
       toast({
         title: "Proceso exitoso",
@@ -571,7 +566,8 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       onSuccess({
         ...finalPaymentData,
         appointmentId: newAppointmentId,
-        status: 'pending'
+        status: 'pending',
+        isRecurring
       });
 
     } catch (error: any) {
