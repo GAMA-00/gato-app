@@ -648,14 +648,10 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       {/* Indicador de datos cargados desde perfil */}
       {billingData.phone && (
         <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border/50">
-          <p className="flex items-center gap-2 font-medium">
+          <p className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
-            <span>Datos de contacto cargados desde tu perfil</span>
+            <span>Datos de contacto: {formatPhoneCR(billingData.phone)}</span>
           </p>
-          <p className="mt-1.5 ml-6">📱 {formatPhoneCR(billingData.phone)}</p>
-          {billingData.address && (
-            <p className="mt-1 ml-6">📍 {billingData.address}</p>
-          )}
         </div>
       )}
 
