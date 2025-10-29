@@ -392,21 +392,43 @@ serve(async (req) => {
     let finalStatus = 'authorized';
     let shouldAutoCapture = false;
 
-    // Detectar si es pago recurrente (subscription o recurring)
-    const isRecurringPayment = payment.payment_type === 'subscription' || payment.payment_type === 'recurring';
+    // Detectar si es pago recurrente verificando el appointment.recurrence
+    console.log('🔍 Checking if recurring payment...', {
+      paymentType: payment.payment_type,
+      appointmentRecurrence: appointment ? 'fetching...' : 'no appointment'
+    });
+    
+    let isRecurringPayment = false;
+    if (appointment?.listing_id) {
+      // Re-fetch appointment to get recurrence field
+      const { data: fullAppointment } = await supabase
+        .from('appointments')
+        .select('recurrence')
+        .eq('id', payment.appointment_id)
+        .single();
+      
+      isRecurringPayment = fullAppointment?.recurrence && fullAppointment.recurrence !== 'none';
+      console.log('📊 Recurring check result:', {
+        recurrence: fullAppointment?.recurrence,
+        isRecurring: isRecurringPayment
+      });
+    }
     
     if (onvoStatus === 'requires_capture') {
-      // CAPTURA INMEDIATA SOLO para pagos recurrentes
+      // CAPTURA INMEDIATA para pagos recurrentes
       if (isRecurringPayment) {
         shouldAutoCapture = true;
         finalStatus = 'captured';
-        console.log('💳 Auto-captura activada (pago recurrente)');
+        console.log('💳 Auto-captura activada (pago recurrente detectado)');
+      } else if (isPostPayment) {
+        // Post-payment: captura inmediata del T1 Base
+        shouldAutoCapture = true;
+        finalStatus = 'captured';
+        console.log('💳 Auto-captura activada (servicio post-pago)');
       } else {
-        // Prepago y Postpago: NO capturar aquí
-        // - Prepago: se captura cuando proveedor acepta
-        // - Postpago: se captura cuando cliente acepta desglose
-        finalStatus = 'pending_authorization';
-        console.log('⏳ Payment Intent creado, sin capturar todavía');
+        // Prepago: NO capturar aquí, se captura cuando proveedor acepta
+        finalStatus = 'authorized';
+        console.log('⏳ Pago autorizado, captura pendiente de aceptación del proveedor');
       }
     } else if (onvoStatus === 'succeeded') {
       finalStatus = 'captured';
