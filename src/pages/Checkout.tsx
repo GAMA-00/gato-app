@@ -139,11 +139,14 @@ export const Checkout = () => {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {new Date(selectedDate).toLocaleDateString('es-ES', { 
-                    weekday: 'long', 
-                    day: 'numeric', 
-                    month: 'long' 
-                  })} - {selectedTime}
+                  {(() => {
+                    const dateStr = new Date(selectedDate).toLocaleDateString('es-ES', { 
+                      weekday: 'long', 
+                      day: 'numeric', 
+                      month: 'long' 
+                    });
+                    return dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+                  })()} - {selectedTime}
                 </span>
                 <span className="font-medium">{formatDuration(totalDuration)}</span>
               </div>
@@ -198,7 +201,13 @@ export const Checkout = () => {
               {isRecurringService && (
                 <div className="bg-blue-50 p-3 rounded-lg mt-4">
                   <p className="text-sm text-blue-700">
-                    <strong>Servicio Recurrente:</strong> Este pago se procesará automáticamente según la frecuencia seleccionada ({bookingData.recurrenceType}).
+                    <strong>Servicio Recurrente:</strong> Este pago se procesará automáticamente según la frecuencia seleccionada ({
+                      bookingData.recurrenceType === 'weekly' ? 'Semanal' :
+                      bookingData.recurrenceType === 'biweekly' ? 'Quincenal' :
+                      bookingData.recurrenceType === 'triweekly' ? 'Trisemanal' :
+                      bookingData.recurrenceType === 'monthly' ? 'Mensual' :
+                      bookingData.recurrenceType
+                    }).
                   </p>
                 </div>
               )}
