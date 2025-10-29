@@ -27,8 +27,14 @@ import type { AuthorizePaymentRequest } from './types.ts';
 
 /**
  * Format payment description with service type and recurrence
+ * Format: "[Service Type] - [Recurrence]" (e.g., "Pet grooming - Semanal")
  */
-function formatPaymentDescription(appointment: any): string {
+function formatPaymentDescription(appointment: any, customDescription?: string): string {
+  // Si se proporciona una descripción personalizada, usarla
+  if (customDescription) {
+    return customDescription;
+  }
+
   // Get service type name from the nested relationship
   const serviceTypeName = appointment.listings?.service_types?.name || 
                          appointment.listings?.title || 
@@ -47,12 +53,13 @@ function formatPaymentDescription(appointment: any): string {
   const recurrence = appointment.recurrence || 'none';
   const recurrenceText = recurrenceMap[recurrence] || '';
   
-  // Format: "Reserva — ServiceType" or "Reserva — ServiceType — Recurrence"
+  // ✅ NUEVO FORMATO: "[Service Type] - [Recurrence]"
   if (recurrenceText && recurrence !== 'none') {
-    return `Reserva — ${serviceTypeName} — ${recurrenceText}`;
+    return `${serviceTypeName} - ${recurrenceText}`;
   }
   
-  return `Reserva — ${serviceTypeName}`;
+  // Para servicios sin recurrencia, solo el tipo
+  return serviceTypeName;
 }
 
 /**
@@ -244,7 +251,8 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    const description = formatPaymentDescription(appointment);
+    // Usar descripción personalizada si se proporciona, sino generar automáticamente
+    const description = formatPaymentDescription(appointment, body.description);
 
     const paymentIntentData = {
       amount: amountCents,

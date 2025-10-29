@@ -177,16 +177,17 @@ serve(async (req) => {
 
     console.log('✅ Suscripción guardada en BD:', subscription.id);
 
-    // Actualizar appointment con subscription_id
+    // Actualizar appointment con subscription_id (usar nueva columna)
     const { error: updateError } = await supabaseAdmin
       .from('appointments')
       .update({
-        onvopay_payment_id: subscription.id // Vincular appointment con subscription
+        onvopay_subscription_id: subscription.id // ✅ CORRECTO: Usar nueva columna
       })
       .eq('id', appointmentId);
 
     if (updateError) {
-      console.error('⚠️ Error actualizando appointment:', updateError);
+      console.error('⚠️ Error actualizando appointment con subscription_id:', updateError);
+      // No lanzar error, la suscripción fue creada exitosamente
     }
 
     return new Response(JSON.stringify({

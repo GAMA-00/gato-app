@@ -109,6 +109,38 @@ serve(async (req) => {
       next_charge_date: subscription.next_charge_date
     });
 
+    // Obtener datos del appointment para generar descripción
+    const { data: appointmentData } = await supabaseAdmin
+      .from('appointments')
+      .select(`
+        recurrence,
+        listings (
+          title,
+          service_types (
+            name
+          )
+        )
+      `)
+      .eq('id', subscription.external_reference)
+      .single();
+
+    // Generar descripción en formato correcto: "[Service Type] - [Recurrence]"
+    const serviceTypeName = appointmentData?.listings?.service_types?.name || 
+                           appointmentData?.listings?.title || 
+                           'Servicio';
+
+    const recurrenceMap: Record<string, string> = {
+      'weekly': 'Semanal',
+      'biweekly': 'Quincenal',
+      'triweekly': 'Trisemanal',
+      'monthly': 'Mensual'
+    };
+
+    const recurrenceText = recurrenceMap[subscription.interval_type] || subscription.interval_type;
+    const description = `${serviceTypeName} - ${recurrenceText}`;
+
+    console.log('📝 Descripción del cobro:', description);
+
     // 2. Crear Payment Intent usando onvopay-authorize
     console.log('📡 Paso 1/3: Creando Payment Intent...');
     
@@ -126,7 +158,8 @@ serve(async (req) => {
           appointmentId: subscription.external_reference,
           amount: subscription.amount,
           billing_info,
-          payment_type: 'recurring' // CRÍTICO: marcar como recurring para auto-captura
+          payment_type: 'recurring', // CRÍTICO: marcar como recurring para auto-captura
+          description: description // ✅ AGREGAR: descripción personalizada
         }
       }
     );
