@@ -99,24 +99,29 @@ const handler = async (req: Request): Promise<Response> => {
                     
                     <!-- Header -->
                     <tr>
-                      <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 40px 30px; text-align: center;">
-                        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">🐱 Gato</h1>
+                      <td style="background: linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%); padding: 50px 40px; text-align: center; position: relative;">
+                        <div style="font-size: 64px; margin-bottom: 10px;">🐱</div>
+                        <h1 style="margin: 0; color: #2D3748; font-size: 32px; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">Gato</h1>
+                        <p style="margin: 8px 0 0; color: #4A5568; font-size: 14px; font-weight: 500;">Tu plataforma de confianza</p>
                       </td>
                     </tr>
                     
                     <!-- Body -->
                     <tr>
                       <td style="padding: 40px;">
-                        <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 24px; font-weight: 600;">
-                          Hola ${userName},
-                        </h2>
+                        <div style="text-align: center; margin-bottom: 30px;">
+                          <div style="font-size: 48px; margin-bottom: 15px;">🔐</div>
+                          <h2 style="margin: 0 0 10px; color: #2D3748; font-size: 28px; font-weight: 700;">
+                            ¡Hola ${userName}!
+                          </h2>
+                        </div>
                         
-                        <p style="margin: 0 0 20px; color: #4a5568; font-size: 16px; line-height: 1.6;">
-                          Recibimos una solicitud para restablecer la contraseña de tu cuenta en Gato.
+                        <p style="margin: 0 0 20px; color: #4A5568; font-size: 17px; line-height: 1.7; text-align: center;">
+                          Recibimos una solicitud para restablecer tu contraseña 🐾
                         </p>
                         
-                        <p style="margin: 0 0 30px; color: #4a5568; font-size: 16px; line-height: 1.6;">
-                          Haz clic en el botón de abajo para crear una nueva contraseña:
+                        <p style="margin: 0 0 35px; color: #718096; font-size: 15px; line-height: 1.6; text-align: center;">
+                          Haz clic en el botón para crear una nueva contraseña segura:
                         </p>
                         
                         <!-- Button -->
@@ -125,15 +130,16 @@ const handler = async (req: Request): Promise<Response> => {
                             <td align="center" style="padding: 0 0 30px;">
                               <a href="${recoveryLink}" 
                                  style="display: inline-block; 
-                                        padding: 16px 40px; 
-                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                        padding: 18px 48px; 
+                                        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
                                         color: #ffffff; 
                                         text-decoration: none; 
-                                        border-radius: 6px; 
-                                        font-weight: 600; 
-                                        font-size: 16px;
-                                        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
-                                Restablecer contraseña
+                                        border-radius: 50px; 
+                                        font-weight: 700; 
+                                        font-size: 17px;
+                                        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+                                        transition: transform 0.2s;">
+                                🐱 Restablecer contraseña
                               </a>
                             </td>
                           </tr>
@@ -149,13 +155,13 @@ const handler = async (req: Request): Promise<Response> => {
                           </a>
                         </p>
                         
-                        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
-                          <p style="margin: 0 0 10px; color: #a0aec0; font-size: 13px; line-height: 1.6;">
-                            ⏰ Este enlace expirará en 1 hora por seguridad.
+                        <div style="background: linear-gradient(135deg, #FFF5F5 0%, #FED7D7 100%); border-radius: 12px; padding: 20px; margin-top: 30px; border-left: 4px solid #FF6B6B;">
+                          <p style="margin: 0 0 12px; color: #C53030; font-size: 14px; line-height: 1.6; font-weight: 600;">
+                            ⏰ Importante: Este enlace expira en 1 hora
                           </p>
                           
-                          <p style="margin: 0; color: #a0aec0; font-size: 13px; line-height: 1.6;">
-                            Si no solicitaste restablecer tu contraseña, puedes ignorar este correo de forma segura.
+                          <p style="margin: 0; color: #9B2C2C; font-size: 13px; line-height: 1.6;">
+                            Si no solicitaste este cambio, ignora este correo. Tu cuenta está segura 🛡️
                           </p>
                         </div>
                       </td>
@@ -163,12 +169,13 @@ const handler = async (req: Request): Promise<Response> => {
                     
                     <!-- Footer -->
                     <tr>
-                      <td style="background-color: #f7fafc; padding: 30px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
-                        <p style="margin: 0 0 10px; color: #718096; font-size: 14px;">
-                          Gato - Tu plataforma de servicios
+                      <td style="background: linear-gradient(135deg, #2D3748 0%, #1A202C 100%); padding: 35px 40px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 12px;">🐱</div>
+                        <p style="margin: 0 0 8px; color: #E2E8F0; font-size: 15px; font-weight: 600;">
+                          Gato - Tu plataforma de confianza
                         </p>
-                        <p style="margin: 0; color: #a0aec0; font-size: 12px;">
-                          © ${new Date().getFullYear()} Gato. Todos los derechos reservados.
+                        <p style="margin: 0; color: #A0AEC0; font-size: 13px;">
+                          © ${new Date().getFullYear()} Gato. Todos los derechos reservados 🐾
                         </p>
                       </td>
                     </tr>

@@ -38,7 +38,7 @@ const ForgotPassword = () => {
       }
 
       // Generar el link de reset usando Supabase Auth
-      const redirectUrl = `${window.location.origin}/reset-password`;
+      const redirectUrl = 'https://gato-app.com/reset-password';
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
