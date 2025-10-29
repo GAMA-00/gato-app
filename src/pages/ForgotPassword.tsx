@@ -62,8 +62,8 @@ const ForgotPassword = () => {
 
       setEmailSent(true);
       toast({
-        title: 'Email enviado',
-        description: 'Revisa tu correo para restablecer tu contraseña',
+        title: 'Solicitud recibida',
+        description: 'Si el correo existe en nuestro sistema, recibirás un enlace de recuperación',
       });
     } catch (error: any) {
       console.error('Error sending password reset:', error);
@@ -87,7 +87,7 @@ const ForgotPassword = () => {
             </div>
             <CardTitle className="text-2xl">Revisa tu correo</CardTitle>
             <CardDescription className="text-base">
-              Te hemos enviado un enlace para restablecer tu contraseña a <strong>{email}</strong>
+              Si el correo existe en nuestro sistema, te llegará un enlace para restablecer tu contraseña.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
