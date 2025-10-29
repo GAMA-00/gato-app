@@ -60,6 +60,20 @@ const handler = async (req: Request): Promise<Response> => {
     const userName = user?.name || 'Usuario';
     console.log('👤 User name resolved:', userName);
 
+    // Generar enlace de recuperación real con tokens usando el Admin API
+    console.log('🔗 Generando enlace de recuperación con Supabase Admin...');
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: resetUrl }
+    });
+    if (linkError) {
+      console.error('❌ Error generando enlace de recuperación:', linkError.message);
+      throw new Error(`No se pudo generar el enlace de recuperación: ${linkError.message}`);
+    }
+    const recoveryLink = (linkData as any)?.properties?.action_link || (linkData as any)?.action_link;
+    console.log('🔗 Recovery link generado:', recoveryLink);
+
     console.log('📧 Preparing to send email via Resend...');
     console.log('📧 From: Gato <no-reply@gato-app.com>');
     console.log('📧 To:', email);
@@ -109,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
                             <td align="center" style="padding: 0 0 30px;">
-                              <a href="${resetUrl}" 
+                              <a href="${recoveryLink}" 
                                  style="display: inline-block; 
                                         padding: 16px 40px; 
                                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -130,8 +144,8 @@ const handler = async (req: Request): Promise<Response> => {
                         </p>
                         
                         <p style="margin: 0 0 30px; padding: 12px; background-color: #f7fafc; border-radius: 4px; word-break: break-all;">
-                          <a href="${resetUrl}" style="color: #667eea; text-decoration: none; font-size: 14px;">
-                            ${resetUrl}
+                          <a href="${recoveryLink}" style="color: #667eea; text-decoration: none; font-size: 14px;">
+                            ${recoveryLink}
                           </a>
                         </p>
                         
