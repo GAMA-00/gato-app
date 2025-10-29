@@ -94,34 +94,34 @@ const BookingSummaryCard = ({
   
   return (
     <Card className="w-full">{/* Removed sticky positioning */}
-      <CardHeader>
-        <CardTitle>Resumen de Reserva</CardTitle>
+      <CardHeader className="pb-2 md:pb-4 pt-3 md:pt-6 px-4 md:px-6">
+        <CardTitle className="text-base md:text-lg">Resumen de Reserva</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Information organized in 3 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <CardContent className="space-y-3 md:space-y-6 px-4 md:px-6">
+        {/* Information organized in 2 columns on mobile, 3 on desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
           {/* Column 1: Service and Provider */}
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Servicio</p>
-              <p className="font-medium">{serviceTitle}</p>
+              <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Servicio</p>
+              <p className="text-sm md:text-base font-medium">{serviceTitle}</p>
             </div>
             
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Proveedor</p>
-              <p className="text-sm">{providerName}</p>
+              <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Proveedor</p>
+              <p className="text-xs md:text-sm">{providerName}</p>
             </div>
           </div>
 
           {/* Column 2: Date, Time and Duration */}
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {selectedDate && selectedTime && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Fecha y hora</p>
-                <p className="text-sm">
+                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Fecha y hora</p>
+                <p className="text-xs md:text-sm">
                   {formatDateES(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                 </p>
-                <p className="text-sm">
+                <p className="text-xs md:text-sm">
                   {selectedTime} ({getRecurrenceText(selectedFrequency)})
                 </p>
               </div>
@@ -129,17 +129,17 @@ const BookingSummaryCard = ({
 
             {(selectedVariants.length > 0 || selectedVariant) && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Duración</p>
-                <p className="text-sm">{totalDuration} min</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Duración</p>
+                <p className="text-xs md:text-sm">{totalDuration} min</p>
               </div>
             )}
           </div>
 
           {/* Column 3: Location and Specific Service */}
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Ubicación</p>
-              <p className="text-sm">
+              <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Ubicación</p>
+              <p className="text-xs md:text-sm">
                 {isLoadingLocation ? 'Cargando ubicación...' : clientLocation}
               </p>
             </div>
@@ -147,10 +147,10 @@ const BookingSummaryCard = ({
             {/* Specific service name */}
             {selectedVariants.length > 0 ? (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Servicios contratados</p>
-                <div className="space-y-1">
+                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Servicios contratados</p>
+                <div className="space-y-0.5 md:space-y-1">
                   {selectedVariants.map((variant, index) => (
-                    <p key={variant.id || index} className="text-sm">
+                    <p key={variant.id || index} className="text-xs md:text-sm">
                       {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                     </p>
                   ))}
@@ -158,8 +158,8 @@ const BookingSummaryCard = ({
               </div>
             ) : selectedVariant && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Servicio específico</p>
-                <p className="text-sm">{selectedVariant.name}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Servicio específico</p>
+                <p className="text-xs md:text-sm">{selectedVariant.name}</p>
               </div>
             )}
           </div>
@@ -180,8 +180,7 @@ const BookingSummaryCard = ({
           <Button
             onClick={onBooking}
             disabled={isLoading || !isEssentialDataValid}
-            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
-            size="lg"
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-2 md:py-3"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
