@@ -67,10 +67,31 @@ const handler = async (req: Request): Promise<Response> => {
       email,
       options: { redirectTo: resetUrl }
     });
+    
     if (linkError) {
       console.error('❌ Error generando enlace de recuperación:', linkError.message);
+      
+      // Por seguridad, si el usuario no existe, no revelamos esa información
+      // Simplemente retornamos éxito sin enviar el email
+      if (linkError.message.includes('User with this email not found') || 
+          linkError.message.includes('User not found')) {
+        console.log('ℹ️ Usuario no encontrado - retornando éxito por seguridad (no se envía email)');
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: "Si el correo existe en nuestro sistema, recibirás un enlace de recuperación"
+        }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        });
+      }
+      
+      // Si es otro tipo de error, sí lo lanzamos
       throw new Error(`No se pudo generar el enlace de recuperación: ${linkError.message}`);
     }
+    
     const recoveryLink = (linkData as any)?.properties?.action_link || (linkData as any)?.action_link;
     console.log('🔗 Recovery link generado:', recoveryLink);
 
