@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Search, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, Search, Activity, AlertTriangle, CheckCircle, RefreshCw, Clock, XCircle } from 'lucide-react';
 
 interface HealthCheckResult {
   status: string;
@@ -30,12 +31,64 @@ interface TransactionLookupResult {
   environment: string;
 }
 
+interface RecurringPaymentStatus {
+  appointment_id: string;
+  appointment_recurrence: string;
+  appointment_status: string;
+  payment_id: string;
+  payment_type: string;
+  payment_status: string;
+  amount: number;
+  created_at: string;
+  authorized_at: string | null;
+  captured_at: string | null;
+  client_name: string;
+  service_title: string;
+}
+
 export const OnvoPayDebugPanel = () => {
+  const queryClient = useQueryClient();
   const [healthData, setHealthData] = useState<HealthCheckResult | null>(null);
   const [transactionData, setTransactionData] = useState<TransactionLookupResult | null>(null);
   const [reconciliationData, setReconciliationData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [paymentIntentId, setPaymentIntentId] = useState('');
+
+  // Fetch recurring payments status
+  const { data: recurringPayments, isLoading: isLoadingRecurring, refetch: refetchRecurring } = useQuery({
+    queryKey: ['recurring-payments-debug'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_recurring_payments_status');
+      if (error) throw error;
+      return data as RecurringPaymentStatus[];
+    }
+  });
+
+  // Process pending recurring payment
+  const processPaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { data, error } = await supabase.functions.invoke('onvopay-capture', {
+        body: { paymentId }
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Pago procesado exitosamente",
+      });
+      refetchRecurring();
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
 
   const runHealthCheck = async () => {
     setLoading(true);
@@ -138,6 +191,40 @@ export const OnvoPayDebugPanel = () => {
     return <Badge variant={variant}>{status}</Badge>;
   };
 
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'captured':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'authorized':
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+      case 'pending_authorization':
+        return <AlertTriangle className="h-4 w-4 text-orange-600" />;
+      default:
+        return <XCircle className="h-4 w-4 text-red-600" />;
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'captured':
+        return 'bg-green-100 text-green-800';
+      case 'authorized':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'pending_authorization':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-red-100 text-red-800';
+    }
+  };
+
+  const pendingPayments = recurringPayments?.filter(
+    p => p.payment_status !== 'captured' && p.appointment_status === 'completed'
+  ) || [];
+
+  const capturedPayments = recurringPayments?.filter(
+    p => p.payment_status === 'captured'
+  ) || [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -145,12 +232,190 @@ export const OnvoPayDebugPanel = () => {
         <h2 className="text-2xl font-bold">OnvoPay Debug Panel</h2>
       </div>
 
-      <Tabs defaultValue="health" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="recurring" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="recurring">Recurring Payments</TabsTrigger>
           <TabsTrigger value="health">Health Check</TabsTrigger>
           <TabsTrigger value="lookup">Transaction Lookup</TabsTrigger>
           <TabsTrigger value="reconcile">Reconciliation</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="recurring" className="space-y-4">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Pagos Pendientes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600">
+                  {pendingPayments.length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Citas completadas sin cobro
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Pagos Capturados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600">
+                  {capturedPayments.length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Procesados correctamente
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Recurrentes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {recurringPayments?.length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Todas las citas recurrentes
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Pending Payments Alert */}
+          {pendingPayments.length > 0 && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                Hay {pendingPayments.length} pagos recurrentes pendientes de captura para citas completadas.
+                Estos pagos deberían haberse procesado automáticamente.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Pending Payments Table */}
+          {pendingPayments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                    Pagos Pendientes de Captura
+                  </CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => refetchRecurring()}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingRecurring ? 'animate-spin' : ''}`} />
+                    Actualizar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {pendingPayments.map((payment) => (
+                    <div
+                      key={payment.payment_id}
+                      className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{payment.client_name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {payment.appointment_recurrence}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {payment.service_title}
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Cita: {payment.appointment_status}</span>
+                          <span>Monto: ${payment.amount}</span>
+                          <span>
+                            Creado: {new Date(payment.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          {getPaymentStatusIcon(payment.payment_status)}
+                          <Badge className={getPaymentStatusColor(payment.payment_status)}>
+                            {payment.payment_status}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => processPaymentMutation.mutate(payment.payment_id)}
+                          disabled={processPaymentMutation.isPending}
+                        >
+                          {processPaymentMutation.isPending ? (
+                            <>
+                              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                              Procesando...
+                            </>
+                          ) : (
+                            'Capturar Ahora'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Captured Payments Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                Pagos Capturados ({capturedPayments.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {capturedPayments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No hay pagos capturados todavía
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {capturedPayments.slice(0, 10).map((payment) => (
+                    <div
+                      key={payment.payment_id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-green-50/50"
+                    >
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{payment.client_name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {payment.appointment_recurrence}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {payment.service_title} • ${payment.amount}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getPaymentStatusIcon(payment.payment_status)}
+                        <Badge className={getPaymentStatusColor(payment.payment_status)}>
+                          {payment.payment_status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="health" className="space-y-4">
           <Card>

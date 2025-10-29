@@ -2070,6 +2070,23 @@ export type Database = {
         Args: { listing_id: string; provider_id: string }
         Returns: number
       }
+      get_recurring_payments_status: {
+        Args: never
+        Returns: {
+          amount: number
+          appointment_id: string
+          appointment_recurrence: string
+          appointment_status: string
+          authorized_at: string
+          captured_at: string
+          client_name: string
+          created_at: string
+          payment_id: string
+          payment_status: string
+          payment_type: string
+          service_title: string
+        }[]
+      }
       mark_past_appointments_completed: { Args: never; Returns: number }
       migrate_all_provider_availability_and_generate_slots: {
         Args: never
