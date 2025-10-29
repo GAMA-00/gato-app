@@ -82,6 +82,15 @@ serve(async (req) => {
       throw new Error('Appointment no encontrado');
     }
 
+    // ✅ VALIDACIÓN CRÍTICA: Solo crear suscripciones para citas recurrentes
+    if (!appointment.recurrence || appointment.recurrence === 'none' || appointment.recurrence === '') {
+      const errorMsg = `No se puede crear suscripción para citas no recurrentes. Recurrence: ${appointment.recurrence}`;
+      console.error('❌', errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    console.log('✅ Validación: Appointment es recurrente:', appointment.recurrence);
+
     // Crear suscripción en ONVO Pay
     const subscriptionPayload = {
       amount: normalizedAmount,
