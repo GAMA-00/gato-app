@@ -29,26 +29,69 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isValidToken, setIsValidToken] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [hasRecoverySession, setHasRecoverySession] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Verificar si hay un token válido en la URL
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
+    let mounted = true;
 
-    if (accessToken && type === 'recovery') {
-      setIsValidToken(true);
-    } else {
-      toast({
-        title: 'Enlace inválido',
-        description: 'El enlace de recuperación no es válido o ha expirado',
-        variant: 'destructive',
-      });
-      setTimeout(() => navigate('/forgot-password'), 2000);
-    }
+    const checkRecoverySession = async () => {
+      try {
+        // Esperar un momento para que Supabase procese el hash
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+
+        if (error) {
+          console.error('Error getting session:', error);
+          toast({
+            title: 'Error',
+            description: 'No se pudo verificar la sesión de recuperación',
+            variant: 'destructive',
+          });
+          setTimeout(() => navigate('/forgot-password'), 2000);
+          return;
+        }
+
+        // Verificar si hay una sesión activa (significa que el token fue procesado correctamente)
+        if (session) {
+          console.log('Recovery session found:', session);
+          setHasRecoverySession(true);
+        } else {
+          console.log('No recovery session found');
+          toast({
+            title: 'Enlace inválido',
+            description: 'El enlace de recuperación no es válido o ha expirado',
+            variant: 'destructive',
+          });
+          setTimeout(() => navigate('/forgot-password'), 2000);
+        }
+      } catch (err) {
+        console.error('Error checking recovery session:', err);
+        if (mounted) {
+          toast({
+            title: 'Error',
+            description: 'Ocurrió un error al verificar el enlace',
+            variant: 'destructive',
+          });
+          setTimeout(() => navigate('/forgot-password'), 2000);
+        }
+      } finally {
+        if (mounted) {
+          setIsCheckingSession(false);
+        }
+      }
+    };
+
+    checkRecoverySession();
+
+    return () => {
+      mounted = false;
+    };
   }, [navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,13 +140,25 @@ const ResetPassword = () => {
     }
   };
 
-  if (!isValidToken) {
+  if (isCheckingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
             <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-muted-foreground" />
-            <p className="text-muted-foreground">Verificando enlace...</p>
+            <p className="text-muted-foreground">Verificando enlace de recuperación...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!hasRecoverySession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-muted-foreground">Redirigiendo...</p>
           </CardContent>
         </Card>
       </div>
