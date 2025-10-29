@@ -170,6 +170,18 @@
   .pb-safe {
     padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);
   }
+
+  /* Scroll-snap utilities for checkout */
+  .checkout-container {
+    scroll-behavior: smooth;
+  }
+
+  /* Smooth scroll snap on mobile */
+  @media (max-width: 768px) {
+    .checkout-container {
+      scroll-snap-type: y mandatory;
+    }
+  }
 }
 
 /* Calendar specific styles */

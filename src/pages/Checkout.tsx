@@ -4,13 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { SimplifiedCheckoutForm } from '@/components/payments/SimplifiedCheckoutForm';
-import PageLayout from '@/components/layout/PageLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { ProgressIndicator } from '@/components/checkout/ProgressIndicator';
+import { ScrollIndicator } from '@/components/checkout/ScrollIndicator';
 
 interface CheckoutData {
   serviceTitle: string;
@@ -125,42 +124,41 @@ export const Checkout = () => {
   const paymentType = isRecurringService ? 'subscription' : 'cash';
 
   return (
-    <PageLayout>
-      <div className="max-w-4xl mx-auto py-6 px-4">
-        {/* Header */}
-        <div className="mb-6">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Regresar
-          </Button>
-          <h1 className="text-2xl font-bold">Confirmar y Pagar</h1>
-          <p className="text-muted-foreground">
-            Revisa tu reserva y completa el pago
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          {/* Service and Price Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumen de Pago</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Service Info */}
+    <div className="checkout-container h-screen overflow-y-auto snap-y snap-mandatory">
+      {/* SECCIÓN 1: RESUMEN DE PAGO (100vh) */}
+      <section className="snap-start min-h-screen flex flex-col justify-between p-6 bg-background">
+        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
+          <ProgressIndicator step={1} />
+          
+          {/* Service Summary Card - Compacto */}
+          <Card className="mb-4">
+            <CardContent className="pt-6 space-y-3">
               <div>
                 <h3 className="font-semibold text-lg">{serviceTitle}</h3>
-                <p className="text-muted-foreground">Proveedor: {providerName}</p>
+                <p className="text-sm text-muted-foreground">Proveedor: {providerName}</p>
               </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {new Date(selectedDate).toLocaleDateString('es-ES', { 
+                    weekday: 'long', 
+                    day: 'numeric', 
+                    month: 'long' 
+                  })} - {selectedTime}
+                </span>
+                <span className="font-medium">{formatDuration(totalDuration)}</span>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Separator />
-
+          {/* Price Breakdown Card - Principal */}
+          <Card className="flex-1">
+            <CardHeader>
+              <CardTitle>Desglose de Pago</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {/* Services List */}
               <div className="space-y-3">
-                <h4 className="font-medium">Servicios seleccionados:</h4>
+                <h4 className="font-medium text-sm text-muted-foreground">Servicios:</h4>
                 {selectedVariants.map((variant, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <div>
@@ -178,15 +176,7 @@ export const Checkout = () => {
 
               <Separator />
 
-              {/* Duration */}
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Duración:</span>
-                <span className="font-medium">{formatDuration(totalDuration)}</span>
-              </div>
-
-              <Separator />
-
-              {/* Price Breakdown */}
+              {/* Price Summary */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Subtotal:</span>
@@ -196,10 +186,12 @@ export const Checkout = () => {
                   <span className="text-muted-foreground">IVA (13%):</span>
                   <span className="font-medium">{formatCurrency(priceBreakdown.iva)}</span>
                 </div>
-                <Separator />
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>TOTAL:</span>
-                  <span>{formatCurrency(priceBreakdown.total)}</span>
+                <Separator className="my-3" />
+                <div className="flex justify-between items-center">
+                  <span className="text-xl font-bold">TOTAL:</span>
+                  <span className="text-3xl font-bold text-primary">
+                    {formatCurrency(priceBreakdown.total)}
+                  </span>
                 </div>
               </div>
 
@@ -212,8 +204,20 @@ export const Checkout = () => {
               )}
             </CardContent>
           </Card>
+        </div>
 
-          {/* Payment Form - Ahora siempre visible */}
+        {/* Scroll Indicator */}
+        <div className="mt-6">
+          <ScrollIndicator />
+        </div>
+      </section>
+
+      {/* SECCIÓN 2: MÉTODO DE PAGO (100vh) */}
+      <section className="snap-start min-h-screen flex flex-col p-6 bg-background">
+        <div className="max-w-2xl mx-auto w-full flex-1">
+          <ProgressIndicator step={2} />
+          
+          {/* Payment Form */}
           <SimplifiedCheckoutForm
             amount={priceBreakdown.total}
             paymentType={paymentType}
@@ -222,7 +226,7 @@ export const Checkout = () => {
             onError={handlePaymentError}
           />
         </div>
-      </div>
-    </PageLayout>
+      </section>
+    </div>
   );
 };

@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Loader2, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +10,7 @@ import { SavedCardsSelector } from './SavedCardsSelector';
 import { NewCardForm } from './NewCardForm';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { updateUserProfile } from '@/utils/profileManagement';
+import { StickyPaymentFooter } from '@/components/checkout/StickyPaymentFooter';
 
 interface SimplifiedCheckoutFormProps {
   amount: number;
@@ -618,7 +617,8 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6">
+      {/* Selección de tarjeta */}
       {showNewCardForm ? (
         <NewCardForm
           onBack={() => setShowNewCardForm(false)}
@@ -633,87 +633,53 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         />
       )}
 
-      {/* Información de facturación */}
+      {/* Información de contacto - Compacto */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Shield className="h-5 w-5" />
             Información de Contacto
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            Estos campos se autocompletarán con tu perfil. Cualquier cambio se guardará para futuras reservas.
-          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono *</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="8123-4567"
-                value={billingData.phone}
-                onChange={(e) => setBillingData(prev => ({ ...prev, phone: e.target.value }))}
-                className={validationErrors.phone ? 'border-red-500' : ''}
-              />
-              {validationErrors.phone && (
-                <p className="text-sm text-red-500">{validationErrors.phone}</p>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Teléfono *</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="8123-4567"
+              value={billingData.phone}
+              onChange={(e) => setBillingData(prev => ({ ...prev, phone: e.target.value }))}
+              className={validationErrors.phone ? 'border-red-500' : ''}
+            />
+            {validationErrors.phone && (
+              <p className="text-sm text-red-500">{validationErrors.phone}</p>
+            )}
+          </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Dirección de facturación (opcional)</Label>
-              <Input
-                id="address"
-                placeholder="Se usará la ubicación del servicio si está vacío"
-                value={billingData.address}
-                onChange={(e) => setBillingData(prev => ({ ...prev, address: e.target.value }))}
-                className={validationErrors.address ? 'border-red-500' : ''}
-              />
-              {validationErrors.address && (
-                <p className="text-sm text-red-500">{validationErrors.address}</p>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Dirección (opcional)</Label>
+            <Input
+              id="address"
+              placeholder="Se usará la ubicación del servicio si está vacío"
+              value={billingData.address}
+              onChange={(e) => setBillingData(prev => ({ ...prev, address: e.target.value }))}
+              className={validationErrors.address ? 'border-red-500' : ''}
+            />
+            {validationErrors.address && (
+              <p className="text-sm text-red-500">{validationErrors.address}</p>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Resumen y botón de pago */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold">Total a pagar:</span>
-              <span className="text-2xl font-bold text-green-600">
-                ${amount.toFixed(2)} USD
-              </span>
-            </div>
-            
-            <Separator />
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
-              size="lg"
-              disabled={isProcessing || hasSubmitted}
-              onClick={handleSubmit}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                `Procesar Pago - $${amount.toFixed(2)} USD`
-              )}
-            </Button>
-            
-            <p className="text-xs text-muted-foreground text-center">
-              Tu información está protegida con encriptación de grado bancario
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Sticky Payment Footer */}
+      <StickyPaymentFooter
+        amount={amount}
+        isProcessing={isProcessing}
+        hasSubmitted={hasSubmitted}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 };
