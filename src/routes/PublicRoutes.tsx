@@ -10,6 +10,8 @@ import ProviderRegister from '@/pages/ProviderRegister';
 import TestComponent from '@/components/TestComponent';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Profile from '@/pages/Profile';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 
 const PublicRoutes = () => {
   return [
@@ -20,6 +22,8 @@ const PublicRoutes = () => {
     <Route key="provider-login" path="/provider/login" element={<ProviderLogin />} />,
     <Route key="register" path="/register" element={<Register />} />,
     <Route key="register-provider" path="/register-provider" element={<ProviderRegister />} />,
+    <Route key="forgot-password" path="/forgot-password" element={<ForgotPassword />} />,
+    <Route key="reset-password" path="/reset-password" element={<ResetPassword />} />,
     <Route 
       key="profile" 
       path="/profile" 

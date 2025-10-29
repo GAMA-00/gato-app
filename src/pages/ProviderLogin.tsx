@@ -125,7 +125,15 @@ const ProviderLogin = () => {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña</FormLabel>
+                    <div className="flex items-center justify-between mb-2">
+                      <FormLabel>Contraseña</FormLabel>
+                      <Link 
+                        to="/forgot-password" 
+                        className="text-xs text-primary hover:underline"
+                      >
+                        ¿Olvidaste tu contraseña?
+                      </Link>
+                    </div>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
