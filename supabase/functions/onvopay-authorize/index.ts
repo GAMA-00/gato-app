@@ -254,6 +254,17 @@ serve(async (req) => {
     // Usar descripción personalizada si se proporciona, sino generar automáticamente
     const description = formatPaymentDescription(appointment, body.description);
 
+    // Prepare ONVO headers with optional idempotency key
+    const onvoHeaders: Record<string, string> = {
+      'Authorization': `Bearer ${secretKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    if (body.idempotency_key) {
+      onvoHeaders['Idempotency-Key'] = body.idempotency_key;
+      console.log('🔑 Using idempotency key:', body.idempotency_key);
+    }
+
     const paymentIntentData = {
       amount: amountCents,
       currency: 'USD',
@@ -275,7 +286,7 @@ serve(async (req) => {
 
     let onvoResult: any;
     try {
-      onvoResult = await createPaymentIntent(paymentIntentData, secretKey, requestId);
+      onvoResult = await createPaymentIntent(paymentIntentData, secretKey, requestId, onvoHeaders);
     } catch (err: any) {
       // Handle service unavailability with CUSTOMER_OPTIONAL bypass
       if (err.status === 503 && CUSTOMER_OPTIONAL) {

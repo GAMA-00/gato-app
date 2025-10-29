@@ -151,6 +151,10 @@ serve(async (req) => {
       address: subscription.original_appointment_template?.client_address || ''
     };
 
+    // Generar idempotency key único para evitar dobles cobros
+    const idempotencyKey = `${subscription.id}_${subscription.external_reference}_${new Date().toISOString().split('T')[0]}`;
+    console.log('🔑 Idempotency key:', idempotencyKey);
+
     const { data: authResponse, error: authError } = await supabaseAdmin.functions.invoke(
       'onvopay-authorize',
       {
@@ -158,8 +162,9 @@ serve(async (req) => {
           appointmentId: subscription.external_reference,
           amount: subscription.amount,
           billing_info,
-          payment_type: 'recurring', // CRÍTICO: marcar como recurring para auto-captura
-          description: description // ✅ AGREGAR: descripción personalizada
+          payment_type: 'recurring',
+          description: description,
+          idempotency_key: idempotencyKey
         }
       }
     );
@@ -277,8 +282,35 @@ serve(async (req) => {
       stack: error.stack
     });
 
-    // Si llegamos aquí, incrementar failed_attempts
-    // (esto lo manejará el caller - trigger o cron)
+    // Incrementar failed_attempts en la suscripción
+    try {
+      const { data: currentSub } = await supabaseAdmin
+        .from('onvopay_subscriptions')
+        .select('failed_attempts, max_retry_attempts')
+        .eq('id', subscription_id)
+        .single();
+
+      const newFailedAttempts = (currentSub?.failed_attempts || 0) + 1;
+      const shouldCancel = newFailedAttempts >= (currentSub?.max_retry_attempts || 3);
+
+      const { error: updateError } = await supabaseAdmin
+        .from('onvopay_subscriptions')
+        .update({
+          failed_attempts: newFailedAttempts,
+          last_failure_reason: error.message,
+          status: shouldCancel ? 'cancelled' : 'active',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', subscription_id);
+
+      if (updateError) {
+        console.error('⚠️ Error actualizando failed_attempts:', updateError);
+      } else {
+        console.log(`📊 Failed attempts actualizados: ${newFailedAttempts}${shouldCancel ? ' (CANCELADA)' : ''}`);
+      }
+    } catch (updateErr) {
+      console.error('⚠️ Error en actualización de failed_attempts:', updateErr);
+    }
 
     return new Response(JSON.stringify({
       success: false,

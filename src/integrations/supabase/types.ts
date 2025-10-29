@@ -2109,6 +2109,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_pending_recurring_charges: {
+        Args: never
+        Returns: {
+          appointment_id: string
+          charge_status: string
+          message: string
+          subscription_id: string
+        }[]
+      }
       recalculate_all_provider_ratings: { Args: never; Returns: number }
       regenerate_slots_for_listing: {
         Args: { p_listing_id: string }

@@ -26,7 +26,8 @@ import type { OnvoPaymentIntentData } from './types.ts';
 export async function createPaymentIntent(
   paymentData: OnvoPaymentIntentData,
   secretKey: string,
-  requestId: string
+  requestId: string,
+  customHeaders?: Record<string, string>
 ): Promise<any> {
   const config = getOnvoConfig();
   const url = `${config.baseUrl}/v1/payment-intents`;
@@ -44,12 +45,16 @@ export async function createPaymentIntent(
   
   while (attempt <= maxRetries) {
     try {
+      // Merge default headers with custom headers (including idempotency key)
+      const headers = {
+        'Authorization': `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+        ...customHeaders
+      };
+
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${secretKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(paymentData),
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
