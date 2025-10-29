@@ -37,18 +37,9 @@ const ForgotPassword = () => {
         return;
       }
 
-      // Generar el link de reset usando Supabase Auth
       const redirectUrl = 'https://gato-app.com/reset-password';
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Enviar email personalizado con Resend
+      // Enviar email de recuperación usando Edge Function (con Resend)
       const { error: emailError } = await supabase.functions.invoke('send-password-reset', {
         body: {
           email: validation.data.email,
@@ -57,7 +48,7 @@ const ForgotPassword = () => {
       });
 
       if (emailError) {
-        console.warn('Warning: Custom email failed, but Supabase email was sent', emailError);
+        throw emailError;
       }
 
       setEmailSent(true);
