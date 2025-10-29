@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -110,8 +108,22 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
     const errors: Record<string, string> = {};
 
     // Validar teléfono (requerido por ONVO Pay)
-    if (!validatePhoneCR(billingData.phone)) {
-      errors.phone = 'Ingresa un número válido de 8 dígitos';
+    if (!billingData.phone) {
+      toast({
+        variant: "destructive",
+        title: "Información incompleta",
+        description: "Por favor actualiza tu perfil con un número de teléfono válido.",
+        duration: 6000
+      });
+      errors.phone = 'Teléfono requerido - actualiza tu perfil';
+    } else if (!validatePhoneCR(billingData.phone)) {
+      toast({
+        variant: "destructive",
+        title: "Teléfono inválido",
+        description: "El número de teléfono en tu perfil no es válido. Por favor actualízalo.",
+        duration: 6000
+      });
+      errors.phone = 'Número de teléfono inválido en perfil';
     }
 
     // Dirección es opcional - se usa la ubicación del servicio como fallback
@@ -633,45 +645,19 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         />
       )}
 
-      {/* Información de contacto - Compacto */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5" />
-            Información de Contacto
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone">Teléfono *</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="8123-4567"
-              value={billingData.phone}
-              onChange={(e) => setBillingData(prev => ({ ...prev, phone: e.target.value }))}
-              className={validationErrors.phone ? 'border-red-500' : ''}
-            />
-            {validationErrors.phone && (
-              <p className="text-sm text-red-500">{validationErrors.phone}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Dirección (opcional)</Label>
-            <Input
-              id="address"
-              placeholder="Se usará la ubicación del servicio si está vacío"
-              value={billingData.address}
-              onChange={(e) => setBillingData(prev => ({ ...prev, address: e.target.value }))}
-              className={validationErrors.address ? 'border-red-500' : ''}
-            />
-            {validationErrors.address && (
-              <p className="text-sm text-red-500">{validationErrors.address}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Indicador de datos cargados desde perfil */}
+      {billingData.phone && (
+        <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border/50">
+          <p className="flex items-center gap-2 font-medium">
+            <Shield className="h-4 w-4 text-primary" />
+            <span>Datos de contacto cargados desde tu perfil</span>
+          </p>
+          <p className="mt-1.5 ml-6">📱 {formatPhoneCR(billingData.phone)}</p>
+          {billingData.address && (
+            <p className="mt-1 ml-6">📍 {billingData.address}</p>
+          )}
+        </div>
+      )}
 
       {/* Sticky Payment Footer */}
       <StickyPaymentFooter
