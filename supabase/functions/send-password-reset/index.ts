@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('👤 User name resolved:', userName);
 
     console.log('📧 Preparing to send email via Resend...');
-    console.log('📧 From: Loop <onboarding@resend.dev>');
+    console.log('📧 From: Loop <no-reply@gato-app.com>');
     console.log('📧 To:', email);
     console.log('📧 Subject: Recuperación de contraseña - Loop');
 
