@@ -66,7 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('📧 Subject: Recuperación de contraseña - Loop');
 
     const emailResponse = await resend.emails.send({
-      from: "Loop <onboarding@resend.dev>",
+      from: "Loop <no-reply@gato-app.com>",
       to: [email],
       subject: "Recuperación de contraseña - Loop",
       html: `
