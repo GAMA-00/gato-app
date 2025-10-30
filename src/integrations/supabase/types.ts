@@ -2127,6 +2127,18 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: number
       }
+      retry_failed_recurring_charges: {
+        Args: never
+        Returns: {
+          amount: number
+          client_name: string
+          error_message: string
+          failed_attempts: number
+          provider_name: string
+          retry_status: string
+          subscription_id: string
+        }[]
+      }
       skip_next_membership_charge: {
         Args: { p_subscription_id: string }
         Returns: Json
