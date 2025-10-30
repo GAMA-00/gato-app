@@ -164,7 +164,7 @@ serve(async (req) => {
     };
 
     // Generar idempotency key único para evitar dobles cobros
-    const idempotencyKey = `${subscription.id}_${subscription.external_reference}_${new Date().toISOString().split('T')[0]}`;
+    const idempotencyKey = `${subscription.id}_${targetAppointmentId}_${new Date().toISOString().split('T')[0]}`;
     console.log('🔑 Idempotency key:', idempotencyKey);
 
     const { data: authResponse, error: authError } = await supabaseAdmin.functions.invoke(
@@ -296,6 +296,8 @@ serve(async (req) => {
 
     // Incrementar failed_attempts en la suscripción
     try {
+      const { subscription_id } = await req.json();
+      
       const { data: currentSub } = await supabaseAdmin
         .from('onvopay_subscriptions')
         .select('failed_attempts, max_retry_attempts')
