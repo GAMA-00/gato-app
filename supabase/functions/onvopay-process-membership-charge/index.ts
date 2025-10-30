@@ -78,24 +78,35 @@ serve(async (req) => {
       throw new Error('No hay payment_method_id guardado para esta suscripción');
     }
 
-    // Verificar que no haya un cobro duplicado en las últimas 24h
+    // Determinar el appointment_id objetivo (instancia real si se proporciona, o fallback)
+    const targetAppointmentId = appointment_id || subscription.external_reference;
+    
+    console.log('🎯 Target appointment ID:', {
+      provided_appointment_id: appointment_id,
+      subscription_external_reference: subscription.external_reference,
+      target_used: targetAppointmentId
+    });
+
+    // Verificar que no haya un cobro duplicado en las últimas 24h para ESTA INSTANCIA
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
     const { data: recentPayments } = await supabaseAdmin
       .from('onvopay_payments')
       .select('id')
-      .eq('appointment_id', subscription.external_reference)
+      .eq('appointment_id', targetAppointmentId)
       .eq('payment_type', 'recurring')
       .gte('created_at', oneDayAgo.toISOString())
       .limit(1);
 
     if (recentPayments && recentPayments.length > 0) {
-      console.log('⚠️ Ya existe un cobro reciente (últimas 24h), saltando...');
+      console.log('⚠️ Ya existe un cobro reciente (últimas 24h) para esta instancia, saltando...', {
+        target_appointment_id: targetAppointmentId
+      });
       return new Response(JSON.stringify({
         success: true,
         skipped: true,
-        message: 'Cobro ya procesado en las últimas 24 horas'
+        message: 'Cobro ya procesado en las últimas 24 horas para esta instancia'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -106,10 +117,11 @@ serve(async (req) => {
       client_id: subscription.client_id,
       provider_id: subscription.provider_id,
       has_payment_method: !!subscription.payment_method_id,
-      next_charge_date: subscription.next_charge_date
+      next_charge_date: subscription.next_charge_date,
+      target_appointment_id: targetAppointmentId
     });
 
-    // Obtener datos del appointment para generar descripción
+    // Obtener datos del appointment REAL para generar descripción y metadata
     const { data: appointmentData } = await supabaseAdmin
       .from('appointments')
       .select(`
@@ -121,7 +133,7 @@ serve(async (req) => {
           )
         )
       `)
-      .eq('id', subscription.external_reference)
+      .eq('id', targetAppointmentId)
       .single();
 
     // Generar descripción en formato correcto: "[Service Type] - [Recurrence]"
@@ -159,7 +171,7 @@ serve(async (req) => {
       'onvopay-authorize',
       {
         body: {
-          appointmentId: subscription.external_reference,
+          appointmentId: targetAppointmentId,
           amount: subscription.amount,
           billing_info,
           payment_type: 'recurring',

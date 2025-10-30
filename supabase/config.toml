@@ -76,3 +76,6 @@ verify_jwt = false
 
 [functions.onvopay-process-membership-charge]
 verify_jwt = false
+
+[functions.onvopay-sweep-completed-recurring]
+verify_jwt = false

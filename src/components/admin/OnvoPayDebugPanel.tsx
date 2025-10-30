@@ -169,6 +169,31 @@ export const OnvoPayDebugPanel = () => {
     }
   };
 
+  const sweepRecurringPayments = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('onvopay-sweep-completed-recurring');
+      if (error) throw error;
+      
+      toast({
+        title: "Barrido Completado",
+        description: `Procesadas ${data.summary.processed} de ${data.summary.found} citas`,
+      });
+      
+      // Refresh recurring payments list
+      refetchRecurring();
+    } catch (error: any) {
+      console.error('Sweep failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Barrido Fallido",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pass':
@@ -296,9 +321,30 @@ export const OnvoPayDebugPanel = () => {
           {pendingPayments.length > 0 && (
             <Alert className="border-orange-200 bg-orange-50">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
-                Hay {pendingPayments.length} pagos recurrentes pendientes de captura para citas completadas.
-                Estos pagos deberían haberse procesado automáticamente.
+              <AlertDescription className="text-orange-800 space-y-3">
+                <div>
+                  Hay {pendingPayments.length} pagos recurrentes pendientes de captura para citas completadas.
+                  Estos pagos deberían haberse procesado automáticamente.
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={sweepRecurringPayments}
+                  disabled={loading}
+                  className="bg-orange-100 hover:bg-orange-200 text-orange-900 border-orange-300"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-2" />
+                      Cobrar Citas Finalizadas
+                    </>
+                  )}
+                </Button>
               </AlertDescription>
             </Alert>
           )}
