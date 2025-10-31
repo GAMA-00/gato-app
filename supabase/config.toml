@@ -79,3 +79,6 @@ verify_jwt = false
 
 [functions.onvopay-sweep-completed-recurring]
 verify_jwt = false
+
+[functions.onvopay-initiate-recurring]
+verify_jwt = false

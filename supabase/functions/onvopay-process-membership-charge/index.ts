@@ -163,39 +163,75 @@ serve(async (req) => {
       address: subscription.original_appointment_template?.client_address || ''
     };
 
-    // Generar idempotency key único para evitar dobles cobros
-    const idempotencyKey = `${subscription.id}_${targetAppointmentId}_${new Date().toISOString().split('T')[0]}`;
-    console.log('🔑 Idempotency key:', idempotencyKey);
+    // 🆕 STEP 1: Check for existing pending_authorization payment for this appointment
+    let paymentIntentId = null;
 
-    const { data: authResponse, error: authError } = await supabaseAdmin.functions.invoke(
-      'onvopay-authorize',
-      {
-        body: {
-          appointmentId: targetAppointmentId,
-          amount: subscription.amount,
-          billing_info,
-          payment_type: 'recurring',
-          description: description,
-          idempotency_key: idempotencyKey
+    const { data: existingPayment } = await supabaseAdmin
+      .from('onvopay_payments')
+      .select('id, onvopay_payment_id, status')
+      .eq('appointment_id', targetAppointmentId)
+      .eq('payment_type', 'recurring')
+      .in('status', ['pending_authorization', 'authorized'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (existingPayment) {
+      console.log('✅ Found existing Payment Intent:', {
+        payment_id: existingPayment.id,
+        onvopay_payment_id: existingPayment.onvopay_payment_id,
+        status: existingPayment.status,
+      });
+      paymentIntentId = existingPayment.onvopay_payment_id;
+    } else {
+      console.log('🆕 No existing Payment Intent found, creating new one');
+
+      // Generate idempotency key
+      const idempotencyKey = `${subscription.id}_${targetAppointmentId}_${new Date().toISOString().split('T')[0]}`;
+      console.log('🔑 Idempotency key:', idempotencyKey);
+
+      // 🔧 CRITICAL FIX: Include card_data with payment_method_id when calling onvopay-authorize
+      const { data: authResponse, error: authError } = await supabaseAdmin.functions.invoke(
+        'onvopay-authorize',
+        {
+          body: {
+            appointmentId: targetAppointmentId,
+            amount: subscription.amount,
+            billing_info,
+            payment_type: 'recurring',
+            description: description,
+            idempotency_key: idempotencyKey,
+            card_data: {
+              payment_method_id: subscription.payment_method_id,
+            },
+          },
         }
-      }
-    );
+      );
 
-    if (authError || !authResponse?.success) {
-      console.error('❌ Error en onvopay-authorize:', authError);
-      throw new Error(`Error autorizando pago: ${authError?.message || authResponse?.error}`);
+      if (authError || !authResponse?.success) {
+        console.error('❌ Error creating Payment Intent:', authError);
+        throw new Error(`Failed to authorize payment: ${authError?.message || authResponse?.error}`);
+      }
+
+      console.log('✅ Payment Intent created:', {
+        payment_id: authResponse?.payment_id,
+        onvopay_payment_id: authResponse?.payment_intent_id,
+      });
+
+      paymentIntentId = authResponse?.payment_intent_id;
+      if (!paymentIntentId) {
+        throw new Error('No payment_intent_id returned from authorize');
+      }
     }
 
-    console.log('✅ Payment Intent creado:', authResponse.payment_intent_id);
-
-    // 3. Confirmar INMEDIATAMENTE con payment_method_id guardado
+    // 🆕 STEP 2: Confirm the Payment Intent (auto-capture for recurring)
     console.log('📡 Paso 2/3: Confirmando pago con método guardado...');
     
     const { data: confirmResponse, error: confirmError } = await supabaseAdmin.functions.invoke(
       'onvopay-confirm',
       {
         body: {
-          payment_intent_id: authResponse.payment_intent_id,
+          payment_intent_id: paymentIntentId,
           card_data: {
             payment_method_id: subscription.payment_method_id
           },
@@ -275,6 +311,55 @@ serve(async (req) => {
       amount: subscription.amount,
       duration: `${Date.now() - new Date(confirmResponse.timestamp || Date.now()).getTime()}ms`
     });
+
+    // 🆕 STEP 4: Initiate payment for the NEXT recurring instance
+    try {
+      console.log('🔍 Looking for next recurring instance to initiate...');
+      
+      // Get current appointment to find its recurring_rule_id
+      const { data: currentAppointment } = await supabaseAdmin
+        .from('appointments')
+        .select('recurring_rule_id')
+        .eq('id', targetAppointmentId)
+        .single();
+
+      if (currentAppointment?.recurring_rule_id) {
+        const { data: nextInstance } = await supabaseAdmin
+          .from('appointments')
+          .select('id, start_time')
+          .eq('recurring_rule_id', currentAppointment.recurring_rule_id)
+          .is('onvopay_payment_id', null)
+          .gt('end_time', new Date().toISOString())
+          .order('start_time', { ascending: true })
+          .limit(1)
+          .single();
+
+        if (nextInstance) {
+          console.log('🎬 Initiating payment for next instance:', nextInstance.id);
+          
+          const { error: initiateError } = await supabaseAdmin.functions.invoke(
+            'onvopay-initiate-recurring',
+            {
+              body: {
+                appointment_id: nextInstance.id,
+                force: false,
+              },
+            }
+          );
+
+          if (initiateError) {
+            console.error('⚠️ Failed to initiate next payment:', initiateError);
+          } else {
+            console.log('✅ Next payment initiated successfully for:', nextInstance.id);
+          }
+        } else {
+          console.log('ℹ️ No future instances found to initiate');
+        }
+      }
+    } catch (nextError: any) {
+      console.error('⚠️ Error initiating next payment (non-critical):', nextError.message);
+      // Non-critical error, don't fail the main response
+    }
 
     return new Response(JSON.stringify({
       success: true,

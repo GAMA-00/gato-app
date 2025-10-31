@@ -109,7 +109,31 @@ serve(async (req) => {
             .eq('id', appointment.id);
         }
 
-        // Buscar suscripción activa, priorizando recurring_rule_id
+        // 🆕 STEP 1: First check/initiate the "Iniciada" payment intent
+        console.log(`🎬 Step 1: Initiating payment intent for ${appointment.id}...`);
+        const { data: initiateResult, error: initiateError } = await supabaseAdmin.functions.invoke(
+          'onvopay-initiate-recurring',
+          {
+            body: {
+              appointment_id: appointment.id,
+              force: false,
+            },
+          }
+        );
+
+        if (initiateError) {
+          console.error(`❌ Failed to initiate payment for ${appointment.id}:`, initiateError);
+          results.failed.push({
+            id: appointment.id,
+            error: `Initiate error: ${initiateError.message}`
+          });
+          continue;
+        }
+
+        const wasInitiated = initiateResult?.initiated || initiateResult?.skipped;
+        console.log(`${wasInitiated ? '✅' : '⚠️'} Initiate result:`, initiateResult);
+
+        // 🆕 STEP 2: Find active subscription and process the charge
         let subscription = null;
 
         if (appointment.recurring_rule_id) {
@@ -152,8 +176,8 @@ serve(async (req) => {
 
         console.log(`✅ Found subscription ${subscription.id} for appointment ${appointment.id}`);
 
-        // Invocar onvopay-process-membership-charge
-        console.log(`📡 Invoking membership charge for appointment ${appointment.id}...`);
+        // 🆕 STEP 3: Invoke membership charge to confirm/capture the initiated payment
+        console.log(`💳 Step 2: Confirming/capturing payment for appointment ${appointment.id}...`);
         
         const { data: chargeResponse, error: chargeError } = await supabaseAdmin.functions.invoke(
           'onvopay-process-membership-charge',
