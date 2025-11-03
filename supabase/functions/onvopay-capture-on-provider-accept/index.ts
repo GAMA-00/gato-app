@@ -6,6 +6,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Calculate next charge date based on recurrence type
+ * Uses same logic as recurring appointments
+ */
+function calculateNextChargeDate(startTime: string, recurrence: string): string {
+  const start = new Date(startTime);
+  const next = new Date(start);
+  
+  switch (recurrence) {
+    case 'weekly':
+      next.setDate(next.getDate() + 7);
+      break;
+    case 'biweekly':
+      next.setDate(next.getDate() + 14);
+      break;
+    case 'triweekly':
+      next.setDate(next.getDate() + 21);
+      break;
+    case 'monthly':
+      next.setMonth(next.getMonth() + 1);
+      // Handle end of month edge cases
+      if (next.getDate() !== start.getDate()) {
+        next.setDate(0); // Set to last day of previous month
+      }
+      break;
+    default:
+      throw new Error(`Unknown recurrence type: ${recurrence}`);
+  }
+  
+  return next.toISOString().split('T')[0];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -205,15 +237,15 @@ serve(async (req) => {
         amount: payment.amount
       });
 
+      // FIX CRÍTICO: OnvoPay capture endpoint NO acepta parámetro 'amount'
+      // El monto ya está definido en el Payment Intent original
       const onvopayResponse = await fetch(captureUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: payment.amount
-        })
+        }
+        // Sin body - OnvoPay rechaza si enviamos { amount }
       });
 
       const responseText = await onvopayResponse.text();
@@ -291,28 +323,46 @@ serve(async (req) => {
         console.log(`🔄 Setting up recurring subscription for appointment ${appointmentId}...`);
         
         try {
-          // Find or update subscription with initial charge date
-          const { data: subscription, error: subError } = await supabaseAdmin
-            .from('onvopay_subscriptions')
-            .select('*')
-            .or(`external_reference.eq.${appointmentId},recurring_rule_id.eq.${appointment.recurring_rule_id}`)
-            .eq('status', 'active')
+          // Get appointment details to calculate next charge date
+          const { data: fullAppointment } = await supabaseAdmin
+            .from('appointments')
+            .select('start_time')
+            .eq('id', appointmentId)
             .single();
 
-          if (subscription && !subError) {
-            const today = new Date().toISOString().split('T')[0];
-            
-            await supabaseAdmin
+          if (fullAppointment) {
+            // Find or update subscription with initial charge date
+            const { data: subscription, error: subError } = await supabaseAdmin
               .from('onvopay_subscriptions')
-              .update({
-                initial_charge_date: today,
-                last_charge_date: today,
-                loop_status: 'manual_scheduling'
-              })
-              .eq('id', subscription.id);
+              .select('*')
+              .or(`external_reference.eq.${appointmentId},recurring_rule_id.eq.${appointment.recurring_rule_id}`)
+              .eq('status', 'active')
+              .single();
 
-            recurringSetup.push(appointmentId);
-            console.log(`✅ Recurring subscription setup completed for ${appointmentId}`);
+            if (subscription && !subError) {
+              const today = new Date().toISOString().split('T')[0];
+              
+              // Calculate next charge date based on recurrence type
+              const nextChargeDate = calculateNextChargeDate(fullAppointment.start_time, appointment.recurrence);
+              
+              await supabaseAdmin
+                .from('onvopay_subscriptions')
+                .update({
+                  initial_charge_date: today,
+                  last_charge_date: today,
+                  next_charge_date: nextChargeDate,
+                  loop_status: 'manual_scheduling', // Ready for automatic future charges
+                  failed_attempts: 0 // Reset on successful capture
+                })
+                .eq('id', subscription.id);
+
+              recurringSetup.push(appointmentId);
+              console.log(`✅ Recurring subscription setup completed for ${appointmentId}`, {
+                initial_charge_date: today,
+                next_charge_date: nextChargeDate,
+                recurrence: appointment.recurrence
+              });
+            }
           }
         } catch (setupError) {
           console.error(`⚠️ Error setting up recurring subscription for ${appointmentId}:`, setupError);

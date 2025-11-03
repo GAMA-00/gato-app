@@ -1,38 +1,83 @@
-/**
- * OnvoPay Process Recurring Charges
- * 
- * NEW FLOW (Post-Refactor):
- * This function now handles ONLY future recurring charges after the initial charge.
- * The initial charge is handled by the regular authorize → capture flow when provider accepts.
- * 
- * This scheduler runs periodically to:
- * 1. Find subscriptions with next_charge_date <= today
- * 2. Create Payment Intent using saved payment_method_id
- * 3. Confirm and capture the charge immediately
- * 4. Update next_charge_date for the next occurrence
- * 5. Create next appointment instance if needed
- */
-
-import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface SubscriptionToProcess {
+interface Subscription {
   id: string;
   client_id: string;
   provider_id: string;
   amount: number;
   interval_type: string;
-  interval_count: number;
-  payment_method_id: string;
   next_charge_date: string;
+  last_charge_date: string | null;
+  initial_charge_date: string | null;
+  payment_method_id: string | null;
   failed_attempts: number;
   max_retry_attempts: number;
-  external_reference: string;
+  external_reference: string | null;
+  original_appointment_template: any;
+  status: string;
+  loop_status: string;
+}
+
+/**
+ * Calculate next charge date based on interval type
+ */
+function calculateNextChargeDate(currentDate: string, intervalType: string): string {
+  const current = new Date(currentDate);
+  const next = new Date(current);
+  
+  switch (intervalType) {
+    case 'weekly':
+      next.setDate(next.getDate() + 7);
+      break;
+    case 'biweekly':
+      next.setDate(next.getDate() + 14);
+      break;
+    case 'triweekly':
+      next.setDate(next.getDate() + 21);
+      break;
+    case 'monthly':
+      next.setMonth(next.getMonth() + 1);
+      // Handle end of month edge cases
+      if (next.getDate() !== current.getDate()) {
+        next.setDate(0); // Set to last day of previous month
+      }
+      break;
+    default:
+      throw new Error(`Unknown interval type: ${intervalType}`);
+  }
+  
+  return next.toISOString().split('T')[0];
+}
+
+/**
+ * Get cycle number from initial charge date and interval
+ */
+function calculateCycleNumber(initialChargeDate: string, intervalType: string): number {
+  const initial = new Date(initialChargeDate);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - initial.getTime()) / (1000 * 60 * 60 * 24));
+  
+  switch (intervalType) {
+    case 'weekly':
+      return Math.floor(diffDays / 7) + 1;
+    case 'biweekly':
+      return Math.floor(diffDays / 14) + 1;
+    case 'triweekly':
+      return Math.floor(diffDays / 21) + 1;
+    case 'monthly':
+      const monthsDiff = (now.getFullYear() - initial.getFullYear()) * 12 + 
+                        (now.getMonth() - initial.getMonth());
+      return monthsDiff + 1;
+    default:
+      return 1;
+  }
 }
 
 serve(async (req) => {
@@ -41,198 +86,289 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const onvoSecretKey = Deno.env.get('ONVOPAY_SECRET_KEY')!;
+    console.log('🔄 INICIANDO PROCESO DE COBROS RECURRENTES:', new Date().toISOString());
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    console.log('🔄 Processing recurring charges...');
-    console.log(`📅 Current date: ${new Date().toISOString()}`);
+    const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
+    const ONVOPAY_API_URL = Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com';
 
-    // Find subscriptions that need to be charged today
+    if (!ONVOPAY_SECRET_KEY) {
+      throw new Error('ONVOPAY_SECRET_KEY not configured');
+    }
+
+    // 1. Get active subscriptions that need charging today or earlier
     const today = new Date().toISOString().split('T')[0];
-    
-    const { data: subscriptions, error: fetchError } = await supabase
+    console.log('📅 Buscando cobros pendientes hasta:', today);
+
+    const { data: subscriptions, error: fetchError } = await supabaseAdmin
       .from('onvopay_subscriptions')
       .select('*')
       .eq('status', 'active')
-      .eq('loop_status', 'manual_scheduling')
-      .not('payment_method_id', 'is', null)
       .lte('next_charge_date', today)
-      .order('next_charge_date', { ascending: true });
+      .not('payment_method_id', 'is', null);
 
     if (fetchError) {
-      throw new Error(`Failed to fetch subscriptions: ${fetchError.message}`);
+      console.error('❌ Error obteniendo suscripciones:', fetchError);
+      throw fetchError;
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      console.log('✅ No subscriptions to process today');
-      return new Response(
-        JSON.stringify({ success: true, processed: 0, message: 'No charges due today' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.log('✅ No hay cobros pendientes para hoy');
+      return new Response(JSON.stringify({ 
+        success: true,
+        processed: 0, 
+        message: 'No hay cobros pendientes'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    console.log(`📋 Found ${subscriptions.length} subscriptions to process`);
+    console.log(`📋 ${subscriptions.length} suscripciones para procesar`);
 
-    const results = {
-      successful: 0,
-      failed: 0,
-      errors: [] as Array<{ subscription_id: string; error: string }>
-    };
+    let processed = 0;
+    let failed = 0;
+    const results = [];
 
-    // Process each subscription
-    for (const subscription of subscriptions as SubscriptionToProcess[]) {
+    for (const sub of subscriptions as Subscription[]) {
+      console.log(`\n💳 Procesando suscripción ${sub.id} (cliente: ${sub.client_id})`);
+      
       try {
-        console.log(`\n💳 Processing subscription ${subscription.id} (amount: $${subscription.amount})`);
+        // Calculate cycle number
+        const cycleN = calculateCycleNumber(
+          sub.initial_charge_date || sub.next_charge_date, 
+          sub.interval_type
+        );
+        console.log(`🔢 Ciclo número: ${cycleN}`);
 
-        // Create Payment Intent
-        const paymentIntentResponse = await fetch(`https://api.onvopay.com/v1/payment-intents`, {
+        // Get customer's OnvoPay customer ID
+        const { data: customer, error: customerError } = await supabaseAdmin
+          .from('onvopay_customers')
+          .select('onvopay_customer_id')
+          .eq('client_id', sub.client_id)
+          .single();
+
+        if (customerError || !customer) {
+          throw new Error('Cliente no tiene customer_id de OnvoPay');
+        }
+
+        // STEP 1: Create "Iniciado" Payment Intent in OnvoPay
+        const idempotencyKey = `${sub.id}-cycle-${cycleN}`;
+        console.log('📝 Creando Payment Intent con idempotency:', idempotencyKey);
+
+        const paymentIntentPayload = {
+          amount: Math.round(sub.amount * 100), // Convert to cents
+          currency: 'USD',
+          capture: false, // Create as "Iniciado", capture next
+          customer_id: customer.onvopay_customer_id,
+          payment_method_id: sub.payment_method_id,
+          description: `Cobro Automático - Ciclo ${cycleN} - ${sub.interval_type}`,
+          metadata: {
+            subscription_id: sub.id,
+            cycle_n: cycleN,
+            frequency: sub.interval_type,
+            auto_charge: true,
+            tz: 'America/Costa_Rica',
+            created_by: 'gato-app-scheduler'
+          }
+        };
+
+        const createResponse = await fetch(`${ONVOPAY_API_URL}/v1/payment-intents`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${onvoSecretKey}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey
           },
-          body: JSON.stringify({
-            amount: Math.round(subscription.amount * 100), // Convert to cents
-            currency: 'USD',
-            customerId: subscription.client_id,
-            description: `Recurring charge - ${subscription.interval_type}`,
-            metadata: {
-              subscription_id: subscription.id,
-              charge_type: 'recurring',
-              interval: subscription.interval_type
+          body: JSON.stringify(paymentIntentPayload)
+        });
+
+        if (!createResponse.ok) {
+          const errorData = await createResponse.text();
+          throw new Error(`OnvoPay create failed: ${createResponse.status} - ${errorData}`);
+        }
+
+        const paymentIntent = await createResponse.json();
+        console.log('✅ Payment Intent creado:', paymentIntent.id);
+
+        // STEP 2: Immediately capture the payment (automatic recurring charge)
+        const captureIdempotencyKey = `${sub.id}-capture-${cycleN}`;
+        console.log('🎯 Capturando pago automáticamente:', captureIdempotencyKey);
+
+        // FIX CRÍTICO: OnvoPay capture NO acepta parámetro 'amount'
+        const captureResponse = await fetch(
+          `${ONVOPAY_API_URL}/v1/payment-intents/${paymentIntent.id}/capture`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${ONVOPAY_SECRET_KEY}`,
+              'Content-Type': 'application/json',
+              'Idempotency-Key': captureIdempotencyKey
             }
-          })
-        });
+            // IMPORTANT: No body with 'amount' - OnvoPay rejects it
+          }
+        );
 
-        if (!paymentIntentResponse.ok) {
-          throw new Error(`Failed to create Payment Intent: ${paymentIntentResponse.statusText}`);
+        if (!captureResponse.ok) {
+          const errorData = await captureResponse.text();
+          throw new Error(`OnvoPay capture failed: ${captureResponse.status} - ${errorData}`);
         }
 
-        const paymentIntent = await paymentIntentResponse.json();
-        console.log(`✅ Payment Intent created: ${paymentIntent.id}`);
+        const captureData = await captureResponse.json();
+        console.log('✅ Captura exitosa:', captureData.id);
 
-        // Confirm with saved payment method
-        const confirmResponse = await fetch(`https://api.onvopay.com/v1/payment-intents/${paymentIntent.id}/confirm`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${onvoSecretKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            paymentMethodId: subscription.payment_method_id
-          })
-        });
-
-        if (!confirmResponse.ok) {
-          throw new Error(`Failed to confirm payment: ${confirmResponse.statusText}`);
-        }
-
-        const confirmedIntent = await confirmResponse.json();
-        console.log(`✅ Payment confirmed and captured: ${confirmedIntent.id}`);
-
-        // Save payment record
-        await supabase
+        // STEP 3: Save payment record
+        const { error: paymentError } = await supabaseAdmin
           .from('onvopay_payments')
           .insert({
-            appointment_id: subscription.external_reference,
-            client_id: subscription.client_id,
-            provider_id: subscription.provider_id,
-            onvopay_payment_id: confirmedIntent.id,
-            amount: subscription.amount,
-            payment_type: 'recurring_charge',
-            status: 'captured',
+            appointment_id: sub.external_reference, // May be null for future cycles
+            client_id: sub.client_id,
+            provider_id: sub.provider_id,
+            amount: sub.amount * 100,
+            subtotal: sub.amount * 100,
+            iva_amount: 0,
             currency: 'USD',
-            captured_at: new Date().toISOString()
+            status: 'captured',
+            payment_type: 'recurring_charge',
+            onvopay_payment_id: paymentIntent.id,
+            onvopay_transaction_id: captureData.transaction_id || captureData.id,
+            captured_at: new Date().toISOString(),
+            billing_info: {},
+            cycle_metadata: {
+              cycle_n: cycleN,
+              auto_charge: true,
+              subscription_id: sub.id
+            }
           });
 
-        // Calculate next charge date
-        const currentDate = new Date(subscription.next_charge_date);
-        let nextChargeDate: Date;
-
-        switch (subscription.interval_type) {
-          case 'weekly':
-            nextChargeDate = new Date(currentDate.setDate(currentDate.getDate() + 7));
-            break;
-          case 'biweekly':
-            nextChargeDate = new Date(currentDate.setDate(currentDate.getDate() + 14));
-            break;
-          case 'three_weekly':
-            nextChargeDate = new Date(currentDate.setDate(currentDate.getDate() + 21));
-            break;
-          case 'monthly':
-            nextChargeDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
-            break;
-          default:
-            nextChargeDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
+        if (paymentError) {
+          console.error('⚠️ Error guardando payment:', paymentError);
         }
 
-        // Update subscription
-        await supabase
+        // STEP 4: Update subscription with next charge date
+        const nextChargeDate = calculateNextChargeDate(today, sub.interval_type);
+        console.log('📅 Próximo cobro programado para:', nextChargeDate);
+
+        const { error: updateError } = await supabaseAdmin
           .from('onvopay_subscriptions')
           .update({
             last_charge_date: today,
-            next_charge_date: nextChargeDate.toISOString().split('T')[0],
-            failed_attempts: 0
+            next_charge_date: nextChargeDate,
+            failed_attempts: 0 // Reset on success
           })
-          .eq('id', subscription.id);
+          .eq('id', sub.id);
 
-        results.successful++;
-        console.log(`✅ Subscription ${subscription.id} processed successfully. Next charge: ${nextChargeDate.toISOString().split('T')[0]}`);
-
-      } catch (error) {
-        console.error(`❌ Error processing subscription ${subscription.id}:`, error);
-        
-        // Increment failed attempts
-        const newFailedAttempts = (subscription.failed_attempts || 0) + 1;
-        const updateData: any = {
-          failed_attempts: newFailedAttempts,
-          last_failure_reason: error.message
-        };
-
-        // Cancel subscription if max retries reached
-        if (newFailedAttempts >= subscription.max_retry_attempts) {
-          updateData.status = 'cancelled';
-          updateData.loop_status = 'loop_cancelled';
-          console.log(`🚫 Subscription ${subscription.id} cancelled after ${newFailedAttempts} failed attempts`);
+        if (updateError) {
+          console.error('⚠️ Error actualizando subscription:', updateError);
         }
 
-        await supabase
-          .from('onvopay_subscriptions')
-          .update(updateData)
-          .eq('id', subscription.id);
+        // STEP 5: Optionally create next appointment (if template exists)
+        if (sub.original_appointment_template && sub.original_appointment_template.listing_id) {
+          console.log('📝 Creando próxima cita desde template...');
+          
+          const template = sub.original_appointment_template;
+          const nextStartTime = new Date(nextChargeDate + 'T' + (template.start_time || '09:00:00'));
+          const duration = template.duration || 60;
+          const nextEndTime = new Date(nextStartTime.getTime() + duration * 60000);
 
-        results.failed++;
-        results.errors.push({
-          subscription_id: subscription.id,
-          error: error.message
+          const { error: appointmentError } = await supabaseAdmin
+            .from('appointments')
+            .insert({
+              listing_id: template.listing_id,
+              client_id: sub.client_id,
+              provider_id: sub.provider_id,
+              start_time: nextStartTime.toISOString(),
+              end_time: nextEndTime.toISOString(),
+              status: 'confirmed', // Auto-confirmed for recurring
+              recurrence: sub.interval_type,
+              is_recurring_instance: true,
+              notes: template.notes || `Servicio Recurrente - Ciclo ${cycleN + 1}`,
+              client_name: template.client_name,
+              client_email: template.client_email,
+              client_phone: template.client_phone,
+              client_address: template.client_address
+            });
+
+          if (appointmentError) {
+            console.error('⚠️ Error creando appointment:', appointmentError);
+          } else {
+            console.log('✅ Próxima cita creada para:', nextStartTime.toISOString());
+          }
+        }
+
+        processed++;
+        results.push({
+          subscription_id: sub.id,
+          status: 'success',
+          payment_id: paymentIntent.id,
+          cycle_n: cycleN,
+          next_charge_date: nextChargeDate
+        });
+
+        console.log(`✅ Cobro procesado exitosamente para suscripción ${sub.id}`);
+
+      } catch (error: any) {
+        failed++;
+        console.error(`❌ Error procesando suscripción ${sub.id}:`, error.message);
+
+        // Increment failure counter
+        const newFailedAttempts = (sub.failed_attempts || 0) + 1;
+        const shouldPause = newFailedAttempts >= (sub.max_retry_attempts || 3);
+
+        await supabaseAdmin
+          .from('onvopay_subscriptions')
+          .update({
+            failed_attempts: newFailedAttempts,
+            last_failure_reason: error.message,
+            status: shouldPause ? 'needs_attention' : 'active',
+            loop_status: shouldPause ? 'paused' : 'manual_scheduling'
+          })
+          .eq('id', sub.id);
+
+        if (shouldPause) {
+          console.log(`🚫 Suscripción ${sub.id} pausada tras ${newFailedAttempts} intentos fallidos`);
+        } else {
+          console.log(`🔄 Reintento ${newFailedAttempts}/${sub.max_retry_attempts} programado`);
+        }
+
+        results.push({
+          subscription_id: sub.id,
+          status: 'failed',
+          error: error.message,
+          failed_attempts: newFailedAttempts,
+          paused: shouldPause
         });
       }
     }
 
-    console.log(`\n✅ Processing complete: ${results.successful} successful, ${results.failed} failed`);
+    console.log('\n✅ PROCESO COMPLETADO:', {
+      total: subscriptions.length,
+      exitosos: processed,
+      fallidos: failed,
+      timestamp: new Date().toISOString()
+    });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        total: subscriptions.length,
-        successful: results.successful,
-        failed: results.failed,
-        errors: results.errors
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      processed,
+      failed,
+      total: subscriptions.length,
+      results
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
-  } catch (error) {
-    console.error('❌ Fatal error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+  } catch (error: any) {
+    console.error('❌ ERROR CRÍTICO en process-recurring-charges:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message || 'Error desconocido'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });

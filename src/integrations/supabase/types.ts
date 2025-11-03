@@ -503,6 +503,7 @@ export type Database = {
           commission_amount: number
           created_at: string
           currency: string
+          cycle_metadata: Json | null
           error_details: Json | null
           external_reference: string | null
           failed_at: string | null
@@ -532,6 +533,7 @@ export type Database = {
           commission_amount?: number
           created_at?: string
           currency?: string
+          cycle_metadata?: Json | null
           error_details?: Json | null
           external_reference?: string | null
           failed_at?: string | null
@@ -561,6 +563,7 @@ export type Database = {
           commission_amount?: number
           created_at?: string
           currency?: string
+          cycle_metadata?: Json | null
           error_details?: Json | null
           external_reference?: string | null
           failed_at?: string | null
