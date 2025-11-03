@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Calendar, Home, Image, User, MessageSquare } from 'lucide-react';
 import ServiceVariantsSelector, { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import ProviderGallery from '@/components/providers/ProviderGallery';
 import ProviderAbout from '@/components/providers/ProviderAbout';
 import ProviderCertifications from '@/components/client/service/ProviderCertifications';
 import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 import ProviderReviews from '@/components/providers/ProviderReviews';
+import LevelBadge from '@/components/achievements/LevelBadge';
 import { ProviderProfile } from '@/lib/types';
+import { AchievementLevel } from '@/lib/achievementTypes';
 
 interface ServiceDetailTabsProps {
   serviceDescription: string;
@@ -18,6 +20,7 @@ interface ServiceDetailTabsProps {
   onBookService: () => void;
   transformedProvider: ProviderProfile;
   providerId: string;
+  providerLevel: AchievementLevel;
 }
 
 const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
@@ -28,6 +31,7 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
   onBookService,
   transformedProvider,
   providerId,
+  providerLevel,
 }) => {
   const [activeTab, setActiveTab] = useState('catalog');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -41,63 +45,84 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
   return (
     <div className="w-full">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 mb-4 sticky top-12 z-10 bg-muted">
-          <TabsTrigger value="catalog" className="flex items-center gap-2">
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Catálogo</span>
+        <TabsList className="w-full grid grid-cols-4 sticky top-12 z-10 bg-background border-b border-stone-200 rounded-none p-0 h-auto">
+          <TabsTrigger 
+            value="catalog"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+          >
+            Servicio
           </TabsTrigger>
-          <TabsTrigger value="gallery" className="flex items-center gap-2">
-            <Image className="h-4 w-4" />
-            <span className="hidden sm:inline">Galería</span>
+          <TabsTrigger 
+            value="gallery"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+          >
+            Galería
           </TabsTrigger>
-          <TabsTrigger value="about" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Sobre mí</span>
+          <TabsTrigger 
+            value="about"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+          >
+            Sobre mí
           </TabsTrigger>
-          <TabsTrigger value="reviews" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Reseñas</span>
+          <TabsTrigger 
+            value="reviews"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+          >
+            Reseñas
           </TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Catálogo */}
-        <TabsContent value="catalog" className="space-y-4">
-          {/* Descripción del servicio - Colapsada */}
-          <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-3 sm:p-4">
-            <h3 className="text-base font-medium mb-2">Descripción del servicio</h3>
-            <p className={`text-muted-foreground whitespace-pre-line text-sm leading-relaxed ${!isDescriptionExpanded ? 'line-clamp-2' : ''}`}>
+        <TabsContent value="catalog" className="space-y-6">
+          {/* Description - No Card */}
+          <div className="px-4 py-6">
+            <h3 className="text-base font-semibold mb-3">Descripción del servicio</h3>
+            <p 
+              className={`text-sm text-muted-foreground leading-relaxed whitespace-pre-line ${
+                !isDescriptionExpanded ? 'line-clamp-2' : ''
+              }`}
+            >
               {serviceDescription}
             </p>
-            <button
-              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-              className="text-primary text-sm font-medium mt-2 hover:underline"
-            >
-              {isDescriptionExpanded ? 'Ver menos' : 'Ver más'}
-            </button>
+            {serviceDescription.length > 100 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                className="mt-2 p-0 h-auto text-primary hover:text-primary/80"
+              >
+                {isDescriptionExpanded ? (
+                  <>
+                    Ver menos <ChevronUp className="h-4 w-4 ml-1" />
+                  </>
+                ) : (
+                  <>
+                    Ver más <ChevronDown className="h-4 w-4 ml-1" />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
-          {/* Catálogo de Servicios */}
-          {serviceVariants && serviceVariants.length > 0 && (
-            <div className="space-y-4 pb-24 sm:pb-6">
-              <ServiceVariantsSelector
-                variants={serviceVariants}
-                onSelectVariant={onSelectVariant}
-              />
-              
-              {/* Botón Agendar visible solo en desktop */}
-              <div className="hidden sm:flex justify-center w-full">
-                <Button 
-                  onClick={onBookService}
-                  size="lg"
-                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
-                  disabled={selectedVariants.length === 0}
-                >
-                  <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
-                  Agendar Servicio
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Service Variants Selector */}
+          <div className="px-4">
+            <ServiceVariantsSelector
+              variants={serviceVariants}
+              onSelectVariant={onSelectVariant}
+            />
+          </div>
+
+          {/* Desktop booking button */}
+          <div className="hidden sm:flex justify-center px-4 pb-6">
+            <Button 
+              onClick={onBookService}
+              size="lg"
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-12 py-4 shadow-lg"
+              disabled={selectedVariants.length === 0}
+            >
+              Reservar
+            </Button>
+          </div>
         </TabsContent>
 
         {/* Tab 2: Galería */}
@@ -106,7 +131,12 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
         </TabsContent>
 
         {/* Tab 3: Sobre mí */}
-        <TabsContent value="about" className="space-y-6">
+        <TabsContent value="about" className="space-y-4 px-4">
+          {/* Level Badge */}
+          <div className="flex justify-center py-2">
+            <LevelBadge level={providerLevel} size="md" />
+          </div>
+          
           <ProviderAbout provider={transformedProvider} />
           
           <ProviderCertifications 

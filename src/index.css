@@ -14,8 +14,8 @@
     --popover: 0 0% 98%;
     --popover-foreground: 240 5% 12%;
     
-    --primary: 240 5% 12%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 10 90% 66%;       /* Coral/naranja #FF6B5A */
+    --primary-foreground: 0 0% 100%;
     
     --secondary: 0 0% 94%;       /* #F0F0F0 - fondo alternativo */
     --secondary-foreground: 240 5% 12%;

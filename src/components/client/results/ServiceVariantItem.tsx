@@ -29,38 +29,25 @@ const ServiceVariantItem = ({
 
   return (
     <div className="space-y-3">
-      {/* Mobile layout */}
-      <div className="md:hidden">
-        <div className="py-3">
-          {/* Service name, price, and quantity on same line */}
-          <div className="flex items-center justify-between">
-            {/* Service name */}
-            <div className="flex-1">
-              <h4 className="font-medium text-base">{variant.name}</h4>
+      {/* Mobile layout - Compact card design */}
+      <div className="md:hidden bg-white rounded-lg p-4 shadow-sm">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <h4 className="font-semibold text-base">{variant.name}</h4>
+            <div className="flex items-center text-sm text-muted-foreground mt-1">
+              <Clock className="h-3 w-3 mr-1" />
+              <span>{formatDuration()}</span>
             </div>
-            
-            {/* Price */}
-            <ServicePrice
-              price={Number(variant.price)}
-              additionalPersonPrice={variant.additionalPersonPrice ? Number(variant.additionalPersonPrice) : undefined}
-              layout="mobile"
-              alignment="center"
-              className="mx-4"
-            />
-            
-            {/* Quantity controls */}
-            <QuantityControls
-              quantity={quantity}
-              onQuantityChange={onQuantityChange}
-              size="mobile"
-            />
           </div>
-          
-          {/* Duration below service name */}
-          <div className="flex items-center text-sm text-muted-foreground mt-1">
-            <Clock className="h-3 w-3 mr-1" />
-            <span>{formatDuration()}</span>
-          </div>
+          <span className="text-lg font-bold ml-4">${Number(variant.price)}</span>
+        </div>
+        
+        <div className="flex items-center justify-end gap-3 mt-3">
+          <QuantityControls
+            quantity={quantity}
+            onQuantityChange={onQuantityChange}
+            size="mobile"
+          />
         </div>
       </div>
 

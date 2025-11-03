@@ -5,17 +5,16 @@ import { useServiceDetail } from '@/components/client/service/useServiceDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
-import { Calendar, Star } from 'lucide-react';
-import ServiceDetailTabs from '@/components/client/service/ServiceDetailTabs';
-import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
-import LevelBadge from '@/components/achievements/LevelBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { getProviderLevelByJobs } from '@/lib/achievementTypes';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
-import UnifiedAvatar from '@/components/ui/unified-avatar';
+import ServiceDetailTabs from '@/components/client/service/ServiceDetailTabs';
+import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
+import ServiceHeroSection from '@/components/client/service/ServiceHeroSection';
+import ServiceMetricsGrid from '@/components/client/service/ServiceMetricsGrid';
 
 
 const ClientProviderServiceDetail = () => {
@@ -158,60 +157,55 @@ const ClientProviderServiceDetail = () => {
   // Get the real-time provider rating
   const providerRating = providerMerits?.averageRating || transformedProvider.rating;
 
+  // Calcular si el proveedor es nuevo (menos de 30 días desde created_at)
+  const isNewProvider = transformedProvider.joinDate ? 
+    (new Date().getTime() - new Date(transformedProvider.joinDate).getTime()) / (1000 * 60 * 60 * 24) < 30 
+    : false;
+
+  // Obtener imagen de fondo (primera de la galería o avatar)
+  const backgroundImage = transformedProvider.galleryImages?.[0] || transformedProvider.avatar;
+
   return (
     <>
       <Navbar />
-      <PageContainer>
-        <div className="space-y-3 sm:space-y-4">
-          {/* Provider Header - Compact Horizontal Layout */}
-          <div className="flex items-center gap-3 sm:gap-4 bg-white rounded-lg border border-stone-200 shadow-sm p-3 sm:p-4">
-            <UnifiedAvatar
-              src={transformedProvider.avatar}
-              name={transformedProvider.name}
-              className="h-16 w-16 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h1 className="text-lg sm:text-xl font-bold truncate">{transformedProvider.name}</h1>
-                <div className="flex items-center gap-1.5">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-semibold">{providerRating.toFixed(1)}</span>
-                </div>
-                <LevelBadge level={providerLevel.level} size="sm" />
-              </div>
-              <h2 className="text-base sm:text-lg font-semibold text-primary truncate">
-                {serviceDetails.title}
-              </h2>
-            </div>
-          </div>
+      <PageContainer className="space-y-0 pb-24 px-0">
+        {/* Hero Section */}
+        <ServiceHeroSection
+          backgroundImage={backgroundImage}
+          avatar={transformedProvider.avatar}
+          providerName={transformedProvider.name}
+          serviceTitle={serviceDetails.title || 'Cargando...'}
+        />
 
-          {/* Service Detail Tabs */}
-          <ServiceDetailTabs
-            serviceDescription={serviceDetails.description || ''}
-            serviceVariants={serviceDetails.serviceVariants || []}
-            selectedVariants={selectedVariants}
-            onSelectVariant={setSelectedVariants}
-            onBookService={handleBookService}
-            transformedProvider={transformedProvider}
-            providerId={providerId!}
-          />
-        </div>
+        {/* Metrics Grid */}
+        <ServiceMetricsGrid
+          rating={providerRating}
+          estimatedTime="1-2h"
+          isNew={isNewProvider}
+        />
 
-        {/* Fixed "Agendar Servicio" button for mobile */}
-        {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-          <div className="fixed bottom-20 left-0 right-0 px-4 sm:hidden z-20">
-            <Button 
-              onClick={handleBookService}
-              size="lg"
-              className="w-full bg-green-600 hover:bg-green-700 text-white shadow-2xl"
-              disabled={selectedVariants.length === 0}
-            >
-              <Calendar className="mr-2 h-5 w-5" />
-              Agendar Servicio
-            </Button>
-          </div>
-        )}
+        {/* Service Detail Tabs */}
+        <ServiceDetailTabs
+          serviceDescription={serviceDetails.description || ''}
+          serviceVariants={serviceDetails.serviceVariants || []}
+          selectedVariants={selectedVariants}
+          onSelectVariant={setSelectedVariants}
+          onBookService={handleBookService}
+          transformedProvider={transformedProvider}
+          providerId={providerId!}
+          providerLevel={providerLevel.level}
+        />
       </PageContainer>
+      
+      {/* Fixed booking button for mobile */}
+      {selectedVariants.length > 0 && (
+        <Button 
+          onClick={handleBookService}
+          className="fixed bottom-20 left-4 right-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xl z-20 h-14 text-lg font-semibold rounded-xl sm:hidden"
+        >
+          Reservar ({selectedVariants.length})
+        </Button>
+      )}
     </>
   );
 };

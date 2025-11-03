@@ -71,37 +71,29 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   }
   
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Catálogo</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Header columns - hidden on mobile */}
-        <div className="hidden md:grid grid-cols-12 gap-3 pb-2 mb-4 border-b text-sm font-medium text-muted-foreground">
-          <div className="col-span-5"></div>
-          <div className="col-span-3 text-left">Precio</div>
-          <div className="col-span-4 text-center">Cantidad</div>
-        </div>
-        
-        <div className="space-y-4">
-          {variants.map((variant) => {
-            const quantity = variantQuantities[variant.id] || 0;
-            const personQuantity = personQuantities[variant.id] || 1;
-            
-            return (
-              <ServiceVariantItem
-                key={variant.id}
-                variant={variant}
-                quantity={quantity}
-                personQuantity={personQuantity}
-                onQuantityChange={(change) => handleQuantityChange(variant.id, change)}
-                onPersonQuantityChange={(change) => handlePersonQuantityChange(variant.id, change)}
-              />
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="bg-stone-50 px-4 py-6 rounded-lg">
+      <h3 className="text-base font-medium text-stone-600 mb-4">
+        Servicios disponibles
+      </h3>
+      
+      <div className="space-y-3">
+        {variants.map((variant) => {
+          const quantity = variantQuantities[variant.id] || 0;
+          const personQuantity = personQuantities[variant.id] || 1;
+          
+          return (
+            <ServiceVariantItem
+              key={variant.id}
+              variant={variant}
+              quantity={quantity}
+              personQuantity={personQuantity}
+              onQuantityChange={(change) => handleQuantityChange(variant.id, change)}
+              onPersonQuantityChange={(change) => handlePersonQuantityChange(variant.id, change)}
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
