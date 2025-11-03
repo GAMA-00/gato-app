@@ -143,7 +143,7 @@ serve(async (req) => {
         .from('onvopay_payments')
         .select('id, status, onvopay_payment_id')
         .eq('appointment_id', appointment_id)
-        .eq('payment_type', 'recurring')
+        .eq('payment_type', 'recurring_initial')
         .in('status', ['pending_authorization', 'authorized', 'captured'])
         .order('created_at', { ascending: false })
         .limit(1)
@@ -202,6 +202,7 @@ serve(async (req) => {
     console.log('🔑 Idempotency key:', idempotencyKey);
 
     // 7. Invoke onvopay-authorize to create Payment Intent in "pending_authorization" state
+    // NEW FLOW: Use 'recurring_initial' type - will be captured when provider accepts (like prepaid)
     const { data: authResponse, error: authError } = await supabaseAdmin.functions.invoke(
       'onvopay-authorize',
       {
@@ -209,7 +210,7 @@ serve(async (req) => {
           appointmentId: appointment_id,
           amount: subscription.amount,
           billing_info,
-          payment_type: 'recurring',
+          payment_type: 'recurring_initial',  // Initial charge for membership
           description,
           idempotency_key: idempotencyKey,
           card_data: {

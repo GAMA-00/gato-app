@@ -80,5 +80,17 @@ verify_jwt = false
 [functions.onvopay-sweep-completed-recurring]
 verify_jwt = false
 
+## Recurring Payments Functions
 [functions.onvopay-initiate-recurring]
+verify_jwt = false
+
+[functions.process-recurring-charges]
+verify_jwt = false
+
+## DEPRECATED Recurring Functions (Old Flow - Keep for backwards compatibility)
+## These are no longer actively used after the recurring payments refactor
+[functions.onvopay-process-membership-charge]
+verify_jwt = false
+
+[functions.onvopay-sweep-completed-recurring]
 verify_jwt = false

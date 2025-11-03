@@ -25,10 +25,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // ✅ Verificar si son citas recurrentes primero (se cobrarán cuando se completen)
+    // Fetch appointments (including recurring ones - they now follow same flow)
     const { data: appointments, error: appointmentsError } = await supabaseAdmin
       .from('appointments')
-      .select('id, recurrence')
+      .select('id, recurrence, recurring_rule_id')
       .in('id', appointmentIds);
 
     if (appointmentsError) {
@@ -36,36 +36,21 @@ serve(async (req) => {
       throw new Error('Error fetching appointments: ' + appointmentsError.message);
     }
 
-    // ✅ Filtrar citas recurrentes (NO capturar ahora, se cobrarán cuando se completen)
+    console.log(`📋 Processing ${appointmentIds.length} appointments (including recurring)`);
+    
     const recurringAppointments = appointments?.filter(apt => 
       apt.recurrence && apt.recurrence !== 'none' && apt.recurrence !== ''
     ) || [];
-
-    const nonRecurringAppointmentIds = appointmentIds.filter(id => 
-      !recurringAppointments.find(apt => apt.id === id)
-    );
-
+    
     if (recurringAppointments.length > 0) {
-      console.log('⏭️ Skipping recurring appointments (will be charged on completion):', 
-        recurringAppointments.map(apt => ({ id: apt.id, recurrence: apt.recurrence }))
-      );
-    }
-
-    if (nonRecurringAppointmentIds.length === 0) {
-      console.log('✅ All appointments are recurring, no immediate capture needed');
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          message: 'All appointments are recurring - charges will be processed on completion',
-          skipped_recurring: recurringAppointments.map(apt => apt.id)
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.log(`🔄 ${recurringAppointments.length} recurring appointment(s) - will capture initial charge`);
     }
 
     const captureResults = [];
+    const recurringSetup = [];
 
-    for (const appointmentId of nonRecurringAppointmentIds) {
+    for (const appointmentId of appointmentIds) {
+      const appointment = appointments?.find(a => a.id === appointmentId);
       console.log(`\n🔍 Procesando cita ${appointmentId}...`);
       
       // Buscar pago autorizado o pendiente para esta cita
@@ -300,21 +285,54 @@ serve(async (req) => {
         amountCaptured: payment.amount,
         onvopayCaptureId: onvopayResult.id
       });
+
+      // NEW: If this is a recurring appointment, setup the subscription for future charges
+      if (appointment && appointment.recurrence && appointment.recurrence !== 'none') {
+        console.log(`🔄 Setting up recurring subscription for appointment ${appointmentId}...`);
+        
+        try {
+          // Find or update subscription with initial charge date
+          const { data: subscription, error: subError } = await supabaseAdmin
+            .from('onvopay_subscriptions')
+            .select('*')
+            .or(`external_reference.eq.${appointmentId},recurring_rule_id.eq.${appointment.recurring_rule_id}`)
+            .eq('status', 'active')
+            .single();
+
+          if (subscription && !subError) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            await supabaseAdmin
+              .from('onvopay_subscriptions')
+              .update({
+                initial_charge_date: today,
+                last_charge_date: today,
+                loop_status: 'manual_scheduling'
+              })
+              .eq('id', subscription.id);
+
+            recurringSetup.push(appointmentId);
+            console.log(`✅ Recurring subscription setup completed for ${appointmentId}`);
+          }
+        } catch (setupError) {
+          console.error(`⚠️ Error setting up recurring subscription for ${appointmentId}:`, setupError);
+        }
+      }
     }
 
     console.log('\n✅ PROCESO DE CAPTURA COMPLETADO:', {
       totalAppointments: appointmentIds.length,
-      processedNonRecurring: nonRecurringAppointmentIds.length,
-      skippedRecurring: recurringAppointments.length,
+      captured: captureResults.filter(r => r.status === 'captured').length,
+      recurringSetup: recurringSetup.length,
       results: captureResults
     });
 
     return new Response(JSON.stringify({
       success: true,
       results: captureResults,
-      skipped_recurring: recurringAppointments.map(apt => apt.id),
-      message: recurringAppointments.length > 0 
-        ? `${recurringAppointments.length} recurring appointment(s) will be charged on completion`
+      recurring_setup: recurringSetup,
+      message: recurringSetup.length > 0 
+        ? `${recurringSetup.length} recurring subscription(s) activated for future charges`
         : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -640,12 +640,16 @@ export type Database = {
           failed_attempts: number | null
           id: string
           inherit_original_data: boolean
+          initial_charge_date: string | null
           interval_count: number
           interval_type: string
           last_charge_date: string | null
           last_failure_reason: string | null
+          loop_metadata: Json | null
+          loop_status: string | null
           max_retry_attempts: number | null
           next_charge_date: string
+          onvopay_loop_id: string | null
           onvopay_subscription_id: string | null
           original_appointment_template: Json | null
           payment_method_id: string | null
@@ -664,12 +668,16 @@ export type Database = {
           failed_attempts?: number | null
           id?: string
           inherit_original_data?: boolean
+          initial_charge_date?: string | null
           interval_count?: number
           interval_type: string
           last_charge_date?: string | null
           last_failure_reason?: string | null
+          loop_metadata?: Json | null
+          loop_status?: string | null
           max_retry_attempts?: number | null
           next_charge_date: string
+          onvopay_loop_id?: string | null
           onvopay_subscription_id?: string | null
           original_appointment_template?: Json | null
           payment_method_id?: string | null
@@ -688,12 +696,16 @@ export type Database = {
           failed_attempts?: number | null
           id?: string
           inherit_original_data?: boolean
+          initial_charge_date?: string | null
           interval_count?: number
           interval_type?: string
           last_charge_date?: string | null
           last_failure_reason?: string | null
+          loop_metadata?: Json | null
+          loop_status?: string | null
           max_retry_attempts?: number | null
           next_charge_date?: string
+          onvopay_loop_id?: string | null
           onvopay_subscription_id?: string | null
           original_appointment_template?: Json | null
           payment_method_id?: string | null
