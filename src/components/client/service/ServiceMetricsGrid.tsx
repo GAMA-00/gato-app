@@ -13,7 +13,7 @@ const ServiceMetricsGrid = ({
   providerLevel
 }: ServiceMetricsGridProps) => {
   return (
-    <div className="grid grid-cols-2 gap-6 px-4 py-4 border-b border-stone-200">
+    <div className="grid grid-cols-2 gap-6 px-4 py-3 border-b border-stone-200">
       {/* Rating */}
       <div className="flex flex-col items-center gap-1">
         <Star className="h-5 w-5 text-primary fill-primary" />

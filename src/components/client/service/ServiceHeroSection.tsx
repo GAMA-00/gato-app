@@ -15,20 +15,20 @@ const ServiceHeroSection = ({
   serviceTitle
 }: ServiceHeroSectionProps) => {
   return (
-    <div className="bg-background pt-6 pb-4 px-4">
+    <div className="bg-background pt-4 pb-2 px-4">
       {/* Avatar centered */}
-      <div className="flex justify-center mb-4">
+      <div className="flex justify-center mb-3">
         <UnifiedAvatar 
           src={avatar}
           name={providerName}
-          className="h-24 w-24 border-4 border-white shadow-xl ring-4 ring-primary"
+          className="h-20 w-20 border-3 border-white shadow-lg ring-3 ring-primary"
         />
       </div>
 
       {/* Provider info - centered */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold mb-1">{providerName}</h1>
-        <p className="text-lg text-muted-foreground">{serviceTitle}</p>
+        <h1 className="text-xl font-bold mb-0.5">{providerName}</h1>
+        <p className="text-base text-muted-foreground">{serviceTitle}</p>
       </div>
     </div>
   );

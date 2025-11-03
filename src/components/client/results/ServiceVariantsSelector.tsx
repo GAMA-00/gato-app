@@ -71,10 +71,10 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   }
   
   return (
-    <div className="bg-stone-50 px-4 py-6 rounded-lg">
-      <h3 className="text-base font-medium text-stone-600 mb-4">
-        Servicios disponibles
-      </h3>
+      <div className="bg-stone-50 px-4 py-4 rounded-lg">
+        <h3 className="text-base font-bold text-foreground mb-3">
+          Catálogo de Servicios
+        </h3>
       
       <div className="space-y-3">
         {variants.map((variant) => {
