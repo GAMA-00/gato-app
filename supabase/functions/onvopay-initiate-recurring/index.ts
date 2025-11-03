@@ -216,6 +216,17 @@ serve(async (req) => {
           card_data: {
             payment_method_id: subscription.payment_method_id,
           },
+          // ✅ METADATA para mejor visibilidad en OnvoPay dashboard
+          metadata: {
+            appointment_id,
+            subscription_id: subscription.id,
+            recurring_rule_id: appointment.recurring_rule_id,
+            cycle_n: 0,
+            frequency: appointment.recurrence,
+            tz: 'America/Costa_Rica',
+            created_by: 'gato-app',
+            display_name: `${serviceType} - ${recurrenceLabel} - Ciclo Inicial`
+          }
         },
       }
     );

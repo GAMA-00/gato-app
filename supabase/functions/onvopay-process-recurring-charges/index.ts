@@ -85,6 +85,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ⚠️ DEPRECATED: Este edge function ya no es necesario
+  // OnvoPay Loops gestiona los cobros automáticos ahora
+  console.warn('⚠️ DEPRECATED: onvopay-process-recurring-charges');
+  console.warn('OnvoPay Loops gestiona los cobros recurrentes automáticamente.');
+  console.warn('Este función permanece solo para compatibilidad temporal.');
+  
+  return new Response(JSON.stringify({
+    deprecated: true,
+    message: 'Este edge function está deprecado. Usa OnvoPay Loops via onvopay-create-loop.',
+    recommendation: 'Los cobros automáticos ahora son gestionados por OnvoPay Loops API.',
+    migration_date: '2025-11-03'
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 200
+  });
+
+  // Código original comentado para referencia
+  /*
   try {
     console.log('🔄 INICIANDO PROCESO DE COBROS RECURRENTES:', new Date().toISOString());
 
@@ -371,4 +389,5 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
+  */
 });

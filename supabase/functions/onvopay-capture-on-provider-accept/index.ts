@@ -318,12 +318,12 @@ serve(async (req) => {
         onvopayCaptureId: onvopayResult.id
       });
 
-      // NEW: If this is a recurring appointment, setup the subscription for future charges
+      // NEW: If this is a recurring appointment, setup OnvoPay Loop for automatic future charges
       if (appointment && appointment.recurrence && appointment.recurrence !== 'none') {
-        console.log(`🔄 Setting up recurring subscription for appointment ${appointmentId}...`);
+        console.log(`🔄 Setting up OnvoPay Loop for recurring appointment ${appointmentId}...`);
         
         try {
-          // Get appointment details to calculate next charge date
+          // Get appointment details
           const { data: fullAppointment } = await supabaseAdmin
             .from('appointments')
             .select('start_time')
@@ -331,7 +331,7 @@ serve(async (req) => {
             .single();
 
           if (fullAppointment) {
-            // Find or update subscription with initial charge date
+            // Find subscription
             const { data: subscription, error: subError } = await supabaseAdmin
               .from('onvopay_subscriptions')
               .select('*')
@@ -341,31 +341,46 @@ serve(async (req) => {
 
             if (subscription && !subError) {
               const today = new Date().toISOString().split('T')[0];
-              
-              // Calculate next charge date based on recurrence type
               const nextChargeDate = calculateNextChargeDate(fullAppointment.start_time, appointment.recurrence);
               
+              // Update subscription first
               await supabaseAdmin
                 .from('onvopay_subscriptions')
                 .update({
                   initial_charge_date: today,
                   last_charge_date: today,
                   next_charge_date: nextChargeDate,
-                  loop_status: 'manual_scheduling', // Ready for automatic future charges
-                  failed_attempts: 0 // Reset on successful capture
+                  failed_attempts: 0
                 })
                 .eq('id', subscription.id);
 
-              recurringSetup.push(appointmentId);
-              console.log(`✅ Recurring subscription setup completed for ${appointmentId}`, {
+              // Create OnvoPay Loop for automatic future charges
+              console.log('📡 Creating OnvoPay Loop via onvopay-create-loop...');
+              const { data: loopResponse, error: loopError } = await supabaseAdmin.functions.invoke(
+                'onvopay-create-loop',
+                {
+                  body: {
+                    subscription_id: subscription.id
+                  }
+                }
+              );
+
+              if (loopError) {
+                console.error('⚠️ Error creating OnvoPay Loop (non-critical):', loopError);
+              } else {
+                console.log('✅ OnvoPay Loop created successfully:', loopResponse?.loop_id);
+                recurringSetup.push(appointmentId);
+              }
+
+              console.log(`✅ Recurring setup completed for ${appointmentId}`, {
                 initial_charge_date: today,
                 next_charge_date: nextChargeDate,
-                recurrence: appointment.recurrence
+                loop_id: loopResponse?.loop_id
               });
             }
           }
         } catch (setupError) {
-          console.error(`⚠️ Error setting up recurring subscription for ${appointmentId}:`, setupError);
+          console.error(`⚠️ Error setting up recurring for ${appointmentId}:`, setupError);
         }
       }
     }
