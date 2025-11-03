@@ -190,6 +190,23 @@ export function useRecurringBooking() {
         } catch (slotError) {
           console.warn('⚠️ Error bloqueando slots recurrentes (no crítico):', slotError);
         }
+
+        // Iniciar Payment Intent en OnvoPay para visibilidad en dashboard
+        console.log('💳 Iniciando Payment Intent en OnvoPay para cita recurrente:', createdId);
+        try {
+          const { data: initResp, error: initErr } = await supabase.functions.invoke(
+            'onvopay-initiate-recurring',
+            { body: { appointment_id: createdId, force: false } }
+          );
+          
+          if (initErr) {
+            console.warn('⚠️ Error iniciando Payment Intent (no crítico):', initErr);
+          } else {
+            console.log('✅ Payment Intent iniciado:', initResp);
+          }
+        } catch (paymentError) {
+          console.warn('⚠️ Error al iniciar pago recurrente (no crítico):', paymentError);
+        }
       }
 
       // Obtener la cita completa para mantener compatibilidad con el resto del flujo
