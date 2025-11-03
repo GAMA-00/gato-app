@@ -30,6 +30,7 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
   providerId,
 }) => {
   const [activeTab, setActiveTab] = useState('catalog');
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -40,7 +41,7 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
   return (
     <div className="w-full">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 mb-6">
+        <TabsList className="w-full grid grid-cols-4 mb-4 sticky top-12 z-10 bg-muted">
           <TabsTrigger value="catalog" className="flex items-center gap-2">
             <Home className="h-4 w-4" />
             <span className="hidden sm:inline">Catálogo</span>
@@ -60,25 +61,31 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
         </TabsList>
 
         {/* Tab 1: Catálogo */}
-        <TabsContent value="catalog" className="space-y-6">
-          {/* Descripción del servicio */}
-          <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
-            <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
+        <TabsContent value="catalog" className="space-y-4">
+          {/* Descripción del servicio - Colapsada */}
+          <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-3 sm:p-4">
+            <h3 className="text-base font-medium mb-2">Descripción del servicio</h3>
+            <p className={`text-muted-foreground whitespace-pre-line text-sm leading-relaxed ${!isDescriptionExpanded ? 'line-clamp-2' : ''}`}>
               {serviceDescription}
             </p>
+            <button
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="text-primary text-sm font-medium mt-2 hover:underline"
+            >
+              {isDescriptionExpanded ? 'Ver menos' : 'Ver más'}
+            </button>
           </div>
 
           {/* Catálogo de Servicios */}
           {serviceVariants && serviceVariants.length > 0 && (
-            <div className="space-y-6">
+            <div className="space-y-4 pb-24 sm:pb-6">
               <ServiceVariantsSelector
                 variants={serviceVariants}
                 onSelectVariant={onSelectVariant}
               />
               
-              {/* Botón Agendar dentro del catálogo */}
-              <div className="flex justify-center w-full">
+              {/* Botón Agendar visible solo en desktop */}
+              <div className="hidden sm:flex justify-center w-full">
                 <Button 
                   onClick={onBookService}
                   size="lg"
@@ -114,21 +121,6 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
           <ProviderReviews provider={transformedProvider} />
         </TabsContent>
       </Tabs>
-
-      {/* Botón sticky al fondo en móvil (solo visible en tab catálogo) */}
-      {activeTab === 'catalog' && serviceVariants && serviceVariants.length > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t shadow-lg sm:hidden z-10">
-          <Button 
-            onClick={onBookService}
-            size="lg"
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-            disabled={selectedVariants.length === 0}
-          >
-            <Calendar className="mr-2 h-5 w-5" />
-            Agendar Servicio
-          </Button>
-        </div>
-      )}
     </div>
   );
 };

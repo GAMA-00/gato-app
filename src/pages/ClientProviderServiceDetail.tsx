@@ -4,14 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useServiceDetail } from '@/components/client/service/useServiceDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
-import BackButton from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
-import { Calendar } from 'lucide-react';
+import { Calendar, Star } from 'lucide-react';
 import ServiceDetailTabs from '@/components/client/service/ServiceDetailTabs';
 import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProviderLevelByJobs } from '@/lib/achievementTypes';
 import { useQuery } from '@tanstack/react-query';
@@ -118,7 +116,9 @@ const ClientProviderServiceDetail = () => {
           <p className="text-muted-foreground mb-4">
             No se pudo cargar la información del servicio
           </p>
-          <BackButton onClick={handleBack} />
+          <Button variant="outline" onClick={handleBack}>
+            Volver
+          </Button>
         </div>
       </PageContainer>
       </div>
@@ -154,64 +154,41 @@ const ClientProviderServiceDetail = () => {
 
   // Get provider level based on completed jobs (real achievement level)
   const providerLevel = getProviderLevelByJobs(completedJobsCount);
-
-  // Transform service type data for ServiceDescription component
-  const serviceTypeData = {
-    id: serviceDetails.service_type?.id,
-    name: serviceDetails.service_type?.name || serviceDetails.title,
-    category: {
-      id: serviceDetails.service_type?.category?.id,
-      name: serviceDetails.service_type?.category?.name || serviceDetails.service_type?.category?.label || 'Servicio',
-      label: serviceDetails.service_type?.category?.label || serviceDetails.service_type?.category?.name || 'Servicio'
-    }
-  };
+  
+  // Get the real-time provider rating
+  const providerRating = providerMerits?.averageRating || transformedProvider.rating;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
       <Navbar />
-      <PageContainer title="" subtitle="">
-        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-          {/* Back button */}
-          <div className="w-full">
-            <BackButton onClick={handleBack} className="mb-4" />
-          </div>
-
-          {/* Header: Foto de Perfil, Nombre, Calificación y Nivel */}
-          <div className="text-center space-y-4 w-full">
-            <UnifiedAvatar 
+      <PageContainer>
+        <div className="space-y-3 sm:space-y-4">
+          {/* Provider Header - Compact Horizontal Layout */}
+          <div className="flex items-center gap-3 sm:gap-4 bg-white rounded-lg border border-stone-200 shadow-sm p-3 sm:p-4">
+            <UnifiedAvatar
               src={transformedProvider.avatar}
               name={transformedProvider.name}
-              size="xl"
-              className="h-24 w-24 sm:h-32 sm:w-32 mx-auto border-4 border-luxury-navy shadow-lg"
+              className="h-16 w-16 flex-shrink-0"
             />
-            
-            <div className="w-full px-2">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-luxury-navy mb-2 break-words leading-tight">
-                {transformedProvider.name}
-              </h1>
-              
-              {/* Calificación y Nivel */}
-              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap mb-2">
-                <div className="flex items-center gap-2">
-                  <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium text-lg">
-                    {providerMerits?.averageRating?.toFixed(1) || transformedProvider.rating.toFixed(1)}
-                  </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-lg sm:text-xl font-bold truncate">{transformedProvider.name}</h1>
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-sm font-semibold">{providerRating.toFixed(1)}</span>
                 </div>
-                <LevelBadge level={providerLevel.level} size="md" />
+                <LevelBadge level={providerLevel.level} size="sm" />
               </div>
-
-              {/* Título del Servicio */}
-              <h2 className="text-lg sm:text-xl font-semibold text-luxury-navy mt-4">
+              <h2 className="text-base sm:text-lg font-semibold text-primary truncate">
                 {serviceDetails.title}
               </h2>
             </div>
           </div>
 
-          {/* Navegación con Tabs */}
+          {/* Service Detail Tabs */}
           <ServiceDetailTabs
-            serviceDescription={serviceDetails.description}
-            serviceVariants={serviceDetails.serviceVariants}
+            serviceDescription={serviceDetails.description || ''}
+            serviceVariants={serviceDetails.serviceVariants || []}
             selectedVariants={selectedVariants}
             onSelectVariant={setSelectedVariants}
             onBookService={handleBookService}
@@ -219,8 +196,23 @@ const ClientProviderServiceDetail = () => {
             providerId={providerId!}
           />
         </div>
+
+        {/* Fixed "Agendar Servicio" button for mobile */}
+        {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
+          <div className="fixed bottom-20 left-0 right-0 px-4 sm:hidden z-20">
+            <Button 
+              onClick={handleBookService}
+              size="lg"
+              className="w-full bg-green-600 hover:bg-green-700 text-white shadow-2xl"
+              disabled={selectedVariants.length === 0}
+            >
+              <Calendar className="mr-2 h-5 w-5" />
+              Agendar Servicio
+            </Button>
+          </div>
+        )}
       </PageContainer>
-    </div>
+    </>
   );
 };
 

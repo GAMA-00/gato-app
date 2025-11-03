@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useNavigate, useLocation } from 'react-router-dom';
 import UserInfo from './UserInfo';
 import { NavItems } from './NavItems';
 
@@ -12,13 +13,32 @@ interface MobileNavProps {
 }
 
 const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isServiceDetailPage = location.pathname.includes('/client/service/');
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   return (
-    <div className="w-full h-16 fixed top-0 left-0 z-50 border-b bg-white py-2 px-4 flex items-center justify-between">
-      <div className="flex items-center">
+    <div className="w-full h-12 fixed top-0 left-0 z-50 border-b bg-white px-3 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        {isServiceDetailPage && (
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleBack}
+            className="h-8 w-8 text-gray-700 hover:bg-gray-100"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Volver</span>
+          </Button>
+        )}
         <img 
           src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png" 
           alt="Gato" 
-          className="h-12 w-auto object-contain"
+          className="h-8 w-auto object-contain"
         />
       </div>
       
