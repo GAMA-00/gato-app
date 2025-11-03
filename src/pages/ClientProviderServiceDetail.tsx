@@ -178,11 +178,10 @@ const ClientProviderServiceDetail = () => {
         />
 
         {/* Metrics Grid */}
-        <ServiceMetricsGrid
-          rating={providerRating}
-          estimatedTime="1-2h"
-          isNew={isNewProvider}
-        />
+      <ServiceMetricsGrid 
+        rating={providerRating}
+        providerLevel={providerLevel.level}
+      />
 
         {/* Service Detail Tabs */}
         <ServiceDetailTabs
