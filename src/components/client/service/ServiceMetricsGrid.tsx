@@ -13,16 +13,16 @@ const ServiceMetricsGrid = ({
   providerLevel
 }: ServiceMetricsGridProps) => {
   return (
-    <div className="grid grid-cols-2 gap-6 px-4 py-3 border-b border-stone-200">
+    <div className="grid grid-cols-2 gap-4 px-4 py-2 border-b border-stone-200">
       {/* Rating */}
-      <div className="flex flex-col items-center gap-1">
-        <Star className="h-5 w-5 text-primary fill-primary" />
-        <span className="text-lg font-semibold">{rating.toFixed(1)}</span>
+      <div className="flex flex-col items-center gap-0.5">
+        <Star className="h-4 w-4 text-primary fill-primary" />
+        <span className="text-base font-semibold">{rating.toFixed(1)}</span>
       </div>
       
       {/* Nivel de Experiencia Real */}
-      <div className="flex flex-col items-center gap-1">
-        <LevelBadge level={providerLevel} size="md" showText={true} />
+      <div className="flex flex-col items-center gap-0.5">
+        <LevelBadge level={providerLevel} size="sm" showText={true} />
       </div>
     </div>
   );

@@ -48,35 +48,35 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
         <TabsList className="w-full grid grid-cols-4 sticky top-12 z-10 bg-background border-b border-stone-200 rounded-none p-0 h-auto">
           <TabsTrigger 
             value="catalog"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-2 text-sm"
           >
             Servicio
           </TabsTrigger>
           <TabsTrigger 
             value="gallery"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-2 text-sm"
           >
             Galería
           </TabsTrigger>
           <TabsTrigger 
             value="about"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-2 text-sm"
           >
             Sobre mí
           </TabsTrigger>
           <TabsTrigger 
             value="reviews"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-3"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-2 text-sm"
           >
             Reseñas
           </TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Catálogo */}
-        <TabsContent value="catalog" className="space-y-6">
+        <TabsContent value="catalog" className="space-y-3">
           {/* Description - No Card */}
-          <div className="px-4 py-6">
-            <h3 className="text-base font-semibold mb-3">Descripción del servicio</h3>
+          <div className="px-4 py-3">
+            <h3 className="text-sm font-semibold mb-2">Descripción del servicio</h3>
             <p 
               className={`text-sm text-muted-foreground leading-relaxed whitespace-pre-line ${
                 !isDescriptionExpanded ? 'line-clamp-2' : ''
@@ -89,15 +89,15 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                className="mt-2 p-0 h-auto text-primary hover:text-primary/80"
+                className="mt-1 p-0 h-auto text-primary hover:text-primary/80 text-sm"
               >
                 {isDescriptionExpanded ? (
                   <>
-                    Ver menos <ChevronUp className="h-4 w-4 ml-1" />
+                    Ver menos <ChevronUp className="h-3 w-3 ml-1" />
                   </>
                 ) : (
                   <>
-                    Ver más <ChevronDown className="h-4 w-4 ml-1" />
+                    Ver más <ChevronDown className="h-3 w-3 ml-1" />
                   </>
                 )}
               </Button>
