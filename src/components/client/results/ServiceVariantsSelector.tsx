@@ -73,7 +73,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Servicios disponibles</CardTitle>
+        <CardTitle className="text-lg">Catálogo</CardTitle>
       </CardHeader>
       <CardContent>
         {/* Header columns - hidden on mobile */}

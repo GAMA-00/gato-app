@@ -7,12 +7,8 @@ import Navbar from '@/components/layout/Navbar';
 import BackButton from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
-import ServiceDescription from '@/components/client/service/ServiceDescription';
-import ProviderGallery from '@/components/providers/ProviderGallery';
-import ProviderAbout from '@/components/providers/ProviderAbout';
-import ProviderCertifications from '@/components/client/service/ProviderCertifications';
-import ServiceVariantsSelector, { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
-import PriceInformation from '@/components/client/service/PriceInformation';
+import ServiceDetailTabs from '@/components/client/service/ServiceDetailTabs';
+import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star } from 'lucide-react';
@@ -20,10 +16,8 @@ import { toast } from 'sonner';
 import { getProviderLevelByJobs } from '@/lib/achievementTypes';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import ProviderReviews from '@/components/providers/ProviderReviews';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
 import UnifiedAvatar from '@/components/ui/unified-avatar';
-import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 
 
 const ClientProviderServiceDetail = () => {
@@ -182,117 +176,48 @@ const ClientProviderServiceDetail = () => {
             <BackButton onClick={handleBack} className="mb-4" />
           </div>
 
-          {/* 1. Foto de Perfil, Nombre, Calificación y Nivel */}
+          {/* Header: Foto de Perfil, Nombre, Calificación y Nivel */}
           <div className="text-center space-y-4 w-full">
             <UnifiedAvatar 
               src={transformedProvider.avatar}
               name={transformedProvider.name}
               size="xl"
-              className="h-32 w-32 mx-auto border-4 border-luxury-navy shadow-lg"
+              className="h-24 w-24 sm:h-32 sm:w-32 mx-auto border-4 border-luxury-navy shadow-lg"
             />
             
             <div className="w-full px-2">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-luxury-navy mb-3 break-words leading-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-luxury-navy mb-2 break-words leading-tight">
                 {transformedProvider.name}
               </h1>
               
-              {/* Calificación y Nivel de Experiencia */}
-              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
-                 <div className="flex items-center gap-2">
-                   <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium text-lg">
-                      {providerMerits?.averageRating?.toFixed(1) || transformedProvider.rating.toFixed(1)}
-                    </span>
-                 </div>
+              {/* Calificación y Nivel */}
+              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap mb-2">
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  <span className="font-medium text-lg">
+                    {providerMerits?.averageRating?.toFixed(1) || transformedProvider.rating.toFixed(1)}
+                  </span>
+                </div>
                 <LevelBadge level={providerLevel.level} size="md" />
               </div>
+
+              {/* Título del Servicio */}
+              <h2 className="text-lg sm:text-xl font-semibold text-luxury-navy mt-4">
+                {serviceDetails.title}
+              </h2>
             </div>
           </div>
 
-          {/* 2. Título del Servicio */}
-          <div className="w-full">
-            <h2 className="text-xl sm:text-2xl font-semibold text-luxury-navy mb-4">
-              {serviceDetails.title}
-            </h2>
-          </div>
-
-          {/* 3. Descripción del servicio */}
-          <div className="space-y-4 w-full">
-            <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-medium mb-3">Descripción del servicio</h3>
-              <p className="text-muted-foreground whitespace-pre-line text-sm sm:text-base leading-relaxed">
-                {serviceDetails.description}
-              </p>
-            </div>
-          </div>
-
-
-          {/* 4. Servicios Disponibles */}
-          {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-            <div className="space-y-6 w-full">
-              <div>
-                <ServiceVariantsSelector
-                  variants={serviceDetails.serviceVariants}
-                  onSelectVariant={setSelectedVariants}
-                />
-              </div>
-              
-              {/* Botón "Agendar Servicio" dentro de servicios */}
-              <div className="flex justify-center w-full">
-                <Button 
-                  onClick={handleBookService}
-                  size="lg"
-                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
-                  disabled={selectedVariants.length === 0}
-                >
-                  <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
-                  Agendar Servicio
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* 5. Galería de trabajos */}
-          <div className="w-full">
-            <ProviderGallery provider={transformedProvider} />
-          </div>
-
-          {/* 6. Sobre Mí */}
-          <div className="w-full">
-            <ProviderAbout provider={transformedProvider} />
-          </div>
-
-          {/* 7. Certificación Profesional */}
-          <div className="w-full">
-            <ProviderCertifications 
-              certifications={transformedProvider.certificationFiles}
-            />
-          </div>
-
-          {/* 8. Equipo */}
-          <div className="w-full">
-            <TeamPhotoSection providerId={providerId!} />
-          </div>
-
-          {/* 9. Comentarios de clientes */}
-          <div className="w-full">
-            <ProviderReviews provider={transformedProvider} />
-          </div>
-
-          {/* Botón "Agendar Servicio" final */}
-          {serviceDetails.serviceVariants && serviceDetails.serviceVariants.length > 0 && (
-            <div className="flex justify-center w-full py-6">
-              <Button 
-                onClick={handleBookService}
-                size="lg"
-                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 shadow-lg"
-                disabled={selectedVariants.length === 0}
-              >
-                <Calendar className="mr-3 h-5 w-5 sm:h-6 sm:w-6" />
-                Agendar Servicio
-              </Button>
-            </div>
-          )}
+          {/* Navegación con Tabs */}
+          <ServiceDetailTabs
+            serviceDescription={serviceDetails.description}
+            serviceVariants={serviceDetails.serviceVariants}
+            selectedVariants={selectedVariants}
+            onSelectVariant={setSelectedVariants}
+            onBookService={handleBookService}
+            transformedProvider={transformedProvider}
+            providerId={providerId!}
+          />
         </div>
       </PageContainer>
     </div>
