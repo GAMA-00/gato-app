@@ -606,7 +606,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Selección de tarjeta */}
       {showNewCardForm ? (
         <NewCardForm
@@ -624,10 +624,10 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       {/* Indicador de datos cargados desde perfil */}
       {billingData.phone && (
-        <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border/50">
-          <p className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            <span>Datos de contacto: {formatPhoneCR(billingData.phone)}</span>
+        <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-md border border-border/30">
+          <p className="flex items-center gap-1.5">
+            <Shield className="h-3 w-3 text-primary flex-shrink-0" />
+            <span>Contacto: {formatPhoneCR(billingData.phone)}</span>
           </p>
         </div>
       )}
