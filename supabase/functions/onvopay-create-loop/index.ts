@@ -35,6 +35,25 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ❌ OnvoPay does not support /v1/loops endpoint
+  console.error('❌ [onvopay-create-loop] DEPRECATED: OnvoPay /v1/loops endpoint not supported');
+  
+  return new Response(
+    JSON.stringify({ 
+      success: false, 
+      error: "Cannot POST /v1/loops",
+      details: "OnvoPay does not support /v1/loops endpoint. Use manual recurring payments instead.",
+      deprecated: true,
+      recommendation: "Use onvopay-initiate-recurring for manual recurring payments"
+    }),
+    {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 410, // Gone - endpoint no longer available
+    }
+  );
+
+  // Original code commented out for reference
+  /*
   try {
     const { subscription_id }: CreateLoopRequest = await req.json();
 

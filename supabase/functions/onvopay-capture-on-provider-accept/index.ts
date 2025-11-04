@@ -101,6 +101,44 @@ serve(async (req) => {
             'Aún no se ha creado el pago'
           ]
         });
+
+        // 🔄 Si es recurrente, iniciar cobro inicial ahora
+        if (appointment?.recurrence && appointment.recurrence !== 'none' && appointment.recurrence !== 'once') {
+          console.log('🔄 Recurring appointment sin pago previo - iniciando cobro inicial');
+
+          try {
+            const { data: recurringResult, error: recurringError } = await supabaseAdmin.functions.invoke(
+              'onvopay-initiate-recurring',
+              { body: { appointment_id: appointmentId } }
+            );
+
+            if (recurringError) {
+              console.error('❌ Error initiating recurring payment:', recurringError);
+              captureResults.push({
+                appointmentId,
+                status: 'recurring_setup_failed',
+                error: recurringError.message
+              });
+            } else {
+              console.log('✅ Recurring payment initiated successfully');
+              captureResults.push({
+                appointmentId,
+                status: 'recurring_setup_success',
+                payment_id: recurringResult?.payment_id
+              });
+            }
+          } catch (error) {
+            console.error('❌ Exception calling onvopay-initiate-recurring:', error);
+            captureResults.push({
+              appointmentId,
+              status: 'recurring_setup_error',
+              error: (error as any).message
+            });
+          }
+
+          continue;
+        }
+
         captureResults.push({
           appointmentId,
           status: 'no_payment_found',
@@ -329,20 +367,45 @@ serve(async (req) => {
         onvopayCaptureId: onvopayResult.id
       });
 
-      // NOTE: Loop creation removed from here - now handled in checkout flow
-      // Recurring appointments already have Loop created and first charge captured
-      if (appointment.recurrence && 
+      // For recurring appointments, trigger initial charge after capture
+      if (appointment?.recurrence && 
           appointment.recurrence !== 'none' && 
           appointment.recurrence !== 'once') {
         
-        console.log('ℹ️ Recurring appointment - Loop already active from checkout');
+        console.log('🔄 Recurring appointment - triggering initial charge');
         
-        recurringActivations.push({
-          appointment_id: appointmentId,
-          status: 'loop_already_active',
-          payment_captured: true,
-          note: 'OnvoPay Loop was created during booking checkout'
-        });
+        // Call onvopay-initiate-recurring to charge the first payment
+        try {
+          const { data: recurringResult, error: recurringError } = await supabaseAdmin.functions.invoke(
+            'onvopay-initiate-recurring',
+            {
+              body: { appointment_id: appointmentId }
+            }
+          );
+
+          if (recurringError) {
+            console.error('❌ Error initiating recurring payment:', recurringError);
+            recurringSetup.push({
+              appointment_id: appointmentId,
+              status: 'recurring_setup_failed',
+              error: recurringError.message
+            });
+          } else {
+            console.log('✅ Recurring payment initiated successfully');
+            recurringSetup.push({
+              appointment_id: appointmentId,
+              status: 'recurring_setup_success',
+              payment_id: recurringResult?.payment_id
+            });
+          }
+        } catch (error) {
+          console.error('❌ Exception calling onvopay-initiate-recurring:', error);
+          recurringSetup.push({
+            appointment_id: appointmentId,
+            status: 'recurring_setup_error',
+            error: error.message
+          });
+        }
       }
     }
 

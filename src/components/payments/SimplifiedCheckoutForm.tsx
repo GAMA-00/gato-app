@@ -275,11 +275,10 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       let finalPaymentData: any = null;
 
-      // 🔥 NUEVO FLUJO: Servicios recurrentes con OnvoPay Loop
+      // 🔄 SERVICIOS RECURRENTES: Solo crear subscription (cobro manual después)
       if (isRecurring && paymentMethodId) {
-        console.log('🔄 NUEVO FLUJO: Crear OnvoPay Loop inmediatamente');
+        console.log('🔄 Servicio recurrente: Crear subscription para cobros futuros');
 
-        // PASO 1: Crear subscription local con payment_method_id
         const subscriptionResponse = await supabase.functions.invoke(
           'onvopay-create-subscription',
           {
@@ -301,81 +300,17 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         const subscriptionData = subscriptionResponse.data;
         const subscriptionError = subscriptionResponse.error;
 
-        console.log('📋 Subscription response:', {
-          data: subscriptionData,
-          error: subscriptionError
-        });
-
         if (subscriptionError || !subscriptionData?.success) {
-          console.error('❌ Subscription creation failed - rolling back');
-
-          // Rollback: cancelar appointment
-          await supabase
-            .from('appointments')
-            .update({ 
-              status: 'cancelled',
-              cancellation_reason: 'Error al crear suscripción'
-            })
-            .eq('id', newAppointmentId);
-
+          console.error('❌ Subscription creation failed');
           throw new Error(subscriptionData?.error || subscriptionError?.message || 'No se pudo crear la suscripción');
         }
 
-        const dbSubscriptionId = subscriptionData.db_subscription_id;
-        console.log('✅ Subscription created with ID:', dbSubscriptionId);
-
-        // PASO 2: Crear OnvoPay Loop (cobro automático del primer pago y futuros)
-        console.log('📡 Creando OnvoPay Loop para cobros automáticos...');
-
-        const loopResponse = await supabase.functions.invoke(
-          'onvopay-create-loop',
-          {
-            body: { subscription_id: dbSubscriptionId }
-          }
-        );
-
-        const loopData = loopResponse.data;
-        const loopError = loopResponse.error;
-
-        console.log('🔄 Loop creation response:', {
-          data: loopData,
-          error: loopError
-        });
-
-        if (loopError || !loopData?.success) {
-          console.error('❌ OnvoPay Loop creation failed - rolling back');
-
-          // Rollback completo: cancelar subscription y appointment
-          await supabase
-            .from('onvopay_subscriptions')
-            .update({ 
-              status: 'cancelled',
-              loop_status: 'failed'
-            })
-            .eq('id', dbSubscriptionId);
-
-          await supabase
-            .from('appointments')
-            .update({ 
-              status: 'cancelled',
-              cancellation_reason: 'Error al activar suscripción recurrente'
-            })
-            .eq('id', newAppointmentId);
-
-          throw new Error(loopData?.error || loopError?.message || 'No se pudo activar la suscripción recurrente con OnvoPay');
-        }
-
-        console.log('✅ OnvoPay Loop creado exitosamente:', {
-          loop_id: loopData.loop_id,
-          initial_charge_captured: loopData.initial_charge_captured
-        });
+        console.log('✅ Subscription created - initial payment will be processed when provider accepts');
 
         finalPaymentData = {
-          subscription_id: dbSubscriptionId,
-          loop_id: loopData.loop_id,
-          payment_id: loopData.initial_payment_id,
-          status: 'loop_active',
-          next_charge_at: loopData.next_charge_at
+          subscription_id: subscriptionData.db_subscription_id,
+          status: 'subscription_created',
+          note: 'Payment will be processed when provider accepts'
         };
       } else {
         // ✅ SERVICIOS "UNA VEZ": Flujo normal (authorize → capture al aceptar)
