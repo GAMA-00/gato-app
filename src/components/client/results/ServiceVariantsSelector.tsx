@@ -3,6 +3,8 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ServiceVariant } from '@/components/client/service/types';
 import ServiceVariantItem from './ServiceVariantItem';
+import { ChevronDown } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface ServiceVariantWithQuantity extends ServiceVariant {
   quantity: number;
@@ -17,6 +19,7 @@ interface ServiceVariantsSelectorProps {
 const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsSelectorProps) => {
   const [variantQuantities, setVariantQuantities] = React.useState<{ [key: string]: number }>({});
   const [personQuantities, setPersonQuantities] = React.useState<{ [key: string]: number }>({});
+  const isMobile = useIsMobile();
   
   const handleQuantityChange = (variantId: string, change: number) => {
     const currentQuantity = variantQuantities[variantId] || 0;
@@ -72,9 +75,17 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   
   return (
       <div className="bg-stone-50 px-4 py-3 rounded-lg">
-        <h3 className="text-sm font-bold text-foreground mb-2">
-          Catálogo de Servicios
-        </h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-bold text-foreground">
+            Catálogo de Servicios
+          </h3>
+          {isMobile && (
+            <ChevronDown 
+              className="h-4 w-4 text-primary animate-bounce" 
+              aria-label="Desliza para ver más servicios"
+            />
+          )}
+        </div>
       
       <div className="space-y-3">
         {variants.map((variant) => {
