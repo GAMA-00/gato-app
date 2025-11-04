@@ -1,5 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -43,82 +44,134 @@ export const useAutoCreatePostPaymentInvoices = (providerId?: string) => {
   return useQuery({
     queryKey: ['auto-create-invoices', providerId],
     queryFn: async () => {
-      if (!providerId) return [];
+      if (!providerId) return { created: 0, message: 'No provider ID' };
 
-      // Get completed post-payment appointments that don't have invoices
-      const { data: completedAppointments, error } = await supabase
+      console.log('Checking for completed services that need invoicing...');
+
+      // Get completed appointments for post-payment services
+      const { data: completedServices, error: servicesError } = await supabase
         .from('appointments')
         .select(`
-          *,
+          id,
+          provider_id,
+          client_id,
+          listing_id,
           listings!inner(
-            id,
-            title,
             base_price,
             is_post_payment
           )
         `)
         .eq('provider_id', providerId)
         .eq('status', 'completed')
-        .eq('listings.is_post_payment', true)
-        .lt('end_time', new Date().toISOString())
-        .is('price_finalized', false);
+        .eq('listings.is_post_payment', true);
 
-      if (error) {
-        console.error('Error fetching completed post-payment appointments:', error);
-        return [];
+      if (servicesError) {
+        console.error('Error fetching completed services:', servicesError);
+        throw servicesError;
       }
 
-      if (!completedAppointments?.length) return [];
+      if (!completedServices?.length) {
+        console.log('No completed post-payment services found');
+        return { created: 0, message: 'No completed services' };
+      }
 
-      // Check which appointments already have invoices
-      const appointmentIds = completedAppointments.map(apt => apt.id);
-      const { data: existingInvoices } = await supabase
+      // Get existing invoices for these appointments
+      const appointmentIds = completedServices.map(s => s.id);
+      const { data: existingInvoices, error: invoicesError } = await supabase
         .from('post_payment_invoices')
         .select('appointment_id')
         .in('appointment_id', appointmentIds);
 
-      const existingInvoiceAppointmentIds = new Set(
-        existingInvoices?.map(inv => inv.appointment_id) || []
-      );
-
-      // Create draft invoices for appointments that don't have them
-      const appointmentsNeedingInvoices = completedAppointments.filter(
-        apt => !existingInvoiceAppointmentIds.has(apt.id)
-      );
-
-      for (const appointment of appointmentsNeedingInvoices) {
-        try {
-          await supabase.from('post_payment_invoices').insert({
-            appointment_id: appointment.id,
-            provider_id: providerId,
-            client_id: appointment.client_id,
-            base_price: appointment.listings.base_price,
-            total_price: appointment.listings.base_price,
-            status: 'draft'
-          });
-
-          console.log(`Auto-created invoice for appointment ${appointment.id}`);
-        } catch (error) {
-          console.error(`Error creating auto-invoice for appointment ${appointment.id}:`, error);
-        }
+      if (invoicesError) {
+        console.error('Error fetching existing invoices:', invoicesError);
+        throw invoicesError;
       }
 
-      // Invalidate related queries to trigger refetch
-      if (appointmentsNeedingInvoices.length > 0) {
-        queryClient.invalidateQueries({ queryKey: ['pending-invoices'] });
+      const invoicedAppointmentIds = new Set(existingInvoices?.map(inv => inv.appointment_id) || []);
+      
+      // Filter out appointments that already have invoices
+      const servicesNeedingInvoices = completedServices.filter(
+        service => !invoicedAppointmentIds.has(service.id)
+      );
+
+      if (servicesNeedingInvoices.length === 0) {
+        console.log('All completed services already have invoices');
+        return { created: 0, message: 'All invoiced' };
       }
 
-      return appointmentsNeedingInvoices;
+      console.log(`Creating ${servicesNeedingInvoices.length} draft invoices...`);
+
+      // Create draft invoices for services without invoices
+      const invoicesToCreate = servicesNeedingInvoices.map(service => ({
+        appointment_id: service.id,
+        provider_id: service.provider_id,
+        client_id: service.client_id,
+        base_price: (service.listings as any)?.base_price || 0,
+        total_price: (service.listings as any)?.base_price || 0,
+        status: 'draft' as const,
+      }));
+
+      const { error: createError } = await supabase
+        .from('post_payment_invoices')
+        .insert(invoicesToCreate);
+
+      if (createError) {
+        console.error('Error creating draft invoices:', createError);
+        throw createError;
+      }
+
+      console.log(`Successfully created ${invoicesToCreate.length} draft invoices`);
+
+      // Invalidate related queries
+      await queryClient.invalidateQueries({ queryKey: ['pending-invoices'] });
+      await queryClient.invalidateQueries({ queryKey: ['post-payment-services'] });
+
+      return { 
+        created: invoicesToCreate.length, 
+        message: `Created ${invoicesToCreate.length} invoices` 
+      };
     },
     enabled: !!providerId,
-    refetchInterval: 60000, // Check every minute for new completed services
+    refetchInterval: 10000, // Reduced from 30s to 10s as fallback (trigger is primary)
   });
 };
 
-// Hook for providers to get their pending invoices (draft/rejected/submitted)
+// Hook to fetch pending invoices for provider (draft, rejected, submitted)
 export const usePendingInvoices = (providerId?: string) => {
+  const queryClient = useQueryClient();
+  
   // Auto-create invoices for completed post-payment services
   useAutoCreatePostPaymentInvoices(providerId);
+
+  // Real-time subscription to appointments for instant invoice updates
+  useEffect(() => {
+    if (!providerId) return;
+
+    const channel = supabase
+      .channel('provider-completed-appointments')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'appointments',
+          filter: `provider_id=eq.${providerId}`
+        },
+        (payload) => {
+          // If an appointment changed to completed, invalidate queries
+          if (payload.new.status === 'completed' && payload.old.status !== 'completed') {
+            console.log('📊 Appointment completed, refreshing invoices');
+            queryClient.invalidateQueries({ queryKey: ['pending-invoices'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-invoices-count'] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [providerId, queryClient]);
 
   return useQuery({
     queryKey: ['pending-invoices', providerId],
@@ -141,7 +194,7 @@ export const usePendingInvoices = (providerId?: string) => {
         `)
         .eq('provider_id', providerId)
         .in('status', ['draft', 'rejected', 'submitted'])
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching pending invoices:', error);
