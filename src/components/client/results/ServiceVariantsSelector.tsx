@@ -23,24 +23,18 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   const catalogEndRef = React.useRef<HTMLDivElement>(null);
 
   const scrollToEnd = () => {
-    if (!catalogEndRef.current) return;
-    
-    // Obtener el contenedor principal que tiene scroll
-    const element = catalogEndRef.current;
-    
-    // Calcular la posición donde queremos hacer scroll
-    // getBoundingClientRect().top nos da la distancia desde el top del viewport
-    // window.scrollY nos da el scroll actual
-    const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-    
-    // Offset para dejar espacio para navbar (48px) + tabs (48px) + margen (100px)
-    const offset = 196;
-    
-    // Hacer scroll suave
-    window.scrollTo({
-      top: elementPosition - offset,
-      behavior: 'smooth'
-    });
+    // Scroll al final de la pantalla/página
+    const totalHeight = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+
+    window.scrollTo({ top: totalHeight, behavior: 'smooth' });
+
+    // Fallback para iOS/Safari si hay layout reflow durante el scroll
+    setTimeout(() => {
+      window.scrollTo({ top: totalHeight, behavior: 'smooth' });
+    }, 60);
   };
   
   const handleQuantityChange = (variantId: string, change: number) => {
