@@ -24,15 +24,24 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
 
   const scrollToEnd = () => {
     const el = catalogEndRef.current;
-    if (!el) return;
 
-    // Usa scrollIntoView para desplazar el contenedor con scroll correcto
-    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    // Elemento que realmente controla el scroll del documento
+    const scrollingEl = document.scrollingElement || document.documentElement;
 
-    // Fallback breve para navegadores que interrumpen el scroll (iOS/Safari)
+    // Calcular el máximo desplazamiento posible (final del scroll)
+    const maxScrollTop = (scrollingEl.scrollHeight || document.body.scrollHeight) - window.innerHeight;
+
+    // Desplazamiento suave hasta el final
+    window.scrollTo({ top: Math.max(0, maxScrollTop + 2), behavior: 'smooth' });
+
+    // Fallback para asegurar que llegue al final en iOS/Safari y con reflows
+    requestAnimationFrame(() => {
+      el?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
     setTimeout(() => {
-      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 80);
+      const newMax = (document.scrollingElement || document.documentElement).scrollHeight - window.innerHeight;
+      window.scrollTo({ top: Math.max(0, newMax + 2), behavior: 'smooth' });
+    }, 180);
   };
   
   const handleQuantityChange = (variantId: string, change: number) => {
