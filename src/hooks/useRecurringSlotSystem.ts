@@ -157,7 +157,7 @@ export const useRecurringSlotSystem = ({
           *,
           listings(title, duration)
         `)
-        .in('recurrence', ['weekly', 'biweekly', 'triweekly', 'monthly'])
+        .in('recurrence', ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly'])
         .in('status', ['confirmed', 'pending'])
         .order('created_at', { ascending: true });
 
@@ -307,7 +307,7 @@ export const useNextClientAppointment = (clientId?: string) => {
           listings(title, duration)
         `)
         .eq('client_id', clientId)
-        .in('recurrence', ['weekly', 'biweekly', 'triweekly', 'monthly'])
+        .in('recurrence', ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly'])
         .in('status', ['confirmed', 'pending']);
 
       // Get exceptions
