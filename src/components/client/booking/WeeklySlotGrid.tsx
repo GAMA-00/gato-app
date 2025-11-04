@@ -330,31 +330,23 @@ const WeeklySlotGrid = ({
           </Button>
         </div>
 
-        <div className="relative overflow-hidden rounded-md border border-warning/30 bg-warning/5 p-2 md:p-3">
-          {hasRecommended && (
+        {hasRecommended && (
+          <div className="relative overflow-hidden rounded-md border border-warning/30 bg-warning/5 p-2 md:p-3">
             <span
               aria-hidden
               className="pointer-events-none absolute right-0 top-0 w-0 h-0 border-t-[16px] border-l-[16px] md:border-t-[20px] md:border-l-[20px] border-t-warning border-l-transparent"
             />
-          )}
-          <div className="text-xs md:text-sm font-medium text-warning">
-            {hasRecommended ? 'Horario recomendado' : 'Horarios disponibles'}
-          </div>
-          {hasRecommended ? (
-            <>
-              <p className="text-xs text-muted-foreground mt-1">
-                El proveedor ya se encuentra en tu condominio en esos horarios.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Reservá en esos espacios para organizar mejor su agenda.
-              </p>
-            </>
-          ) : (
+            <div className="text-xs md:text-sm font-medium text-warning">
+              Horario recomendado
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Selecciona el horario que mejor te convenga.
+              El proveedor ya se encuentra en tu condominio en esos horarios.
             </p>
-          )}
-        </div>
+            <p className="text-xs text-muted-foreground">
+              Reservá en esos espacios para organizar mejor su agenda.
+            </p>
+          </div>
+        )}
 
         {/* Slots Grid */}
         <div className="space-y-4 md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 md:gap-4 lg:gap-5 xl:gap-6 md:space-y-0">
