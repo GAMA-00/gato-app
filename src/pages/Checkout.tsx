@@ -15,8 +15,6 @@ interface CheckoutData {
   serviceTitle: string;
   providerName: string;
   selectedVariants: any[];
-  selectedDate: Date;
-  selectedTime: string;
   clientLocation: string;
   bookingData: any;
   totalPrice: number;
@@ -61,23 +59,10 @@ export const Checkout = () => {
     serviceTitle,
     providerName,
     selectedVariants,
-    selectedDate,
-    selectedTime,
     clientLocation,
     bookingData,
     totalPrice
   } = checkoutData;
-
-  const totalDuration = selectedVariants.reduce((sum, variant) => 
-    sum + (Number(variant.duration) * variant.quantity), 0
-  );
-
-  const formatDuration = (minutes: number) => {
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}${mins > 0 ? `h ${mins}m` : 'h'}`;
-  };
 
   // Calculate price breakdown with correct IVA (13%)
   const calculatePriceBreakdown = (subtotalPrice: number) => {
@@ -136,19 +121,6 @@ export const Checkout = () => {
               <div>
                 <h3 className="font-semibold text-lg">{serviceTitle}</h3>
                 <p className="text-sm text-muted-foreground">Proveedor: {providerName}</p>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {(() => {
-                    const dateStr = new Date(selectedDate).toLocaleDateString('es-ES', { 
-                      weekday: 'long', 
-                      day: 'numeric', 
-                      month: 'long' 
-                    });
-                    return dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
-                  })()} - {selectedTime}
-                </span>
-                <span className="font-medium">{formatDuration(totalDuration)}</span>
               </div>
             </CardContent>
           </Card>
