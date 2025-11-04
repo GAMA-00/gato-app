@@ -99,37 +99,69 @@ serve(async (req) => {
       console.log('🔍 Subscription search by recurring_rule_id:', subscription?.id || 'NOT FOUND');
     }
 
-    // Fallback: search by client_id + provider_id
-    if (!subscription) {
-      const { data: subByClientProvider } = await supabaseAdmin
-        .from('onvopay_subscriptions')
-        .select('*')
-        .eq('client_id', appointment.client_id)
-        .eq('provider_id', appointment.provider_id)
-        .eq('status', 'active')
-        .not('payment_method_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+  // ✅ CAMBIO 6: Buscar por external_reference (appointment_id) primero para evitar ambigüedades
+  if (!subscription) {
+    console.log('📋 No subscription found by recurring_rule_id, searching by appointment_id (external_reference)');
+    const { data: subByAppointment } = await supabaseAdmin
+      .from('onvopay_subscriptions')
+      .select('*')
+      .eq('external_reference', appointment_id)
+      .eq('status', 'active')
+      .not('payment_method_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-      subscription = subByClientProvider;
-      console.log('🔍 Subscription fallback (client/provider):', subscription?.id || 'NOT FOUND');
-    }
+    subscription = subByAppointment;
+    console.log('🔍 Subscription search by external_reference (appointment_id):', subscription?.id || 'NOT FOUND');
+  }
 
-    if (!subscription || !subscription.payment_method_id) {
-      console.log('⚠️ No active subscription with payment_method_id found, skipping initiation');
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          skipped: true, 
-          reason: 'No active subscription with payment method' 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
+  // Fallback final: search by client_id + provider_id (última opción)
+  if (!subscription) {
+    console.log('📋 No subscription found by appointment_id, searching by client and provider (last resort)');
+    const { data: subByClientProvider } = await supabaseAdmin
+      .from('onvopay_subscriptions')
+      .select('*')
+      .eq('client_id', appointment.client_id)
+      .eq('provider_id', appointment.provider_id)
+      .eq('status', 'active')
+      .not('payment_method_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    subscription = subByClientProvider;
+    console.log('🔍 Subscription fallback (client/provider):', subscription?.id || 'NOT FOUND');
+  }
+
+  // ✅ CAMBIO 3: Validar si es cobro inicial o futuro
+  if (!subscription || !subscription.payment_method_id) {
+    const isInitialCharge = !appointment.onvopay_payment_id;
+    
+    if (isInitialCharge) {
+      console.error('❌ No active subscription found for initial charge:', {
+        appointment_id,
+        hasRecurringRule: !!appointment.recurring_rule_id,
+        hasSubscription: !!subscription,
+        hasPaymentMethod: !!subscription?.payment_method_id
+      });
+      throw new Error('No se encontró suscripción activa con método de pago. La suscripción debe crearse antes del cobro inicial.');
     }
+    
+    // Para cobros futuros programados, skip es aceptable
+    console.log('⚠️ No active subscription with payment_method_id found, skipping non-initial charge');
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        skipped: true, 
+        reason: 'No active subscription with payment method (non-initial charge)' 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
+  }
 
     console.log('✅ Active subscription found:', {
       subscription_id: subscription.id,

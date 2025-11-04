@@ -199,16 +199,25 @@ export function useRecurringBooking() {
             { body: { appointment_id: createdId, force: false } }
           );
           
-          if (initErr || !initResp?.success) {
-            console.error('❌ Error procesando cobro inicial:', initErr || initResp);
+          // ✅ CAMBIO 2: Tratar 'skipped: true' como error para cobros iniciales
+          if (initErr || !initResp?.success || initResp?.skipped) {
+            console.error('❌ Failed to initiate recurring payment:', {
+              error: initErr,
+              response: initResp,
+              wasSkipped: initResp?.skipped
+            });
             
-            // CRÍTICO: Si el cobro falla, cancelar la cita
+            // CRÍTICO: Si el cobro falla o fue skipped, cancelar la cita
             await supabase
               .from('appointments')
               .update({ status: 'cancelled' })
               .eq('id', createdId);
+
+            const errorMessage = initResp?.skipped 
+              ? 'No se encontró suscripción activa. Por favor intenta nuevamente.'
+              : (initResp?.message || 'No se pudo procesar el cobro inicial. Tu reserva no fue completada.');
             
-            throw new Error(initResp?.message || 'No se pudo procesar el cobro inicial. Tu reserva no fue completada.');
+            throw new Error(errorMessage);
           }
           
           console.log('✅ Cobro inicial procesado exitosamente:', initResp);
