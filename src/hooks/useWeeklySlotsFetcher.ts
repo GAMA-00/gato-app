@@ -708,25 +708,16 @@ export const useWeeklySlotsFetcher = ({
         const apptEnds = apptEndMinutesByDate[dateKey] || new Set<number>();
         const step = slotStepByDate[dateKey] || 60;
         
-        // OPCIÓN A (Prioridad): Adyacente a citas confirmadas
+        // Slot recomendado: Adyacente a citas confirmadas (antes o después)
         const isAdjacentToAppointment = apptStarts.has(slotMin + step) || apptEnds.has(slotMin);
-        
-        // OPCIÓN C (Fallback): Primer slot del día SOLO si no hay citas en ese día
-        const dayHasNoAppointments = !daysWithAppointments.has(dateKey);
-        const availableSlotsInDay = slotsByDay[dateKey].filter(slot => slot.isAvailable);
-        const isFirstSlotOfDay = availableSlotsInDay.length > 0 && 
-                                 availableSlotsInDay[0].id === s.id;
-        const isFirstSlotFallback = dayHasNoAppointments && isFirstSlotOfDay;
-        
-        // Recomendado si cumple Opción A (prioridad) o Opción C (fallback)
-        const isRecommended = isAdjacentToAppointment || isFirstSlotFallback;
+        const isRecommended = isAdjacentToAppointment;
         
         // Logging para debug
         if (isRecommended) {
           console.log('⭐ Slot marcado como recomendado:', {
             date: dateKey,
             time: s.time,
-            reason: isAdjacentToAppointment ? 'adyacente_a_cita_confirmada' : 'primer_slot_del_dia',
+            reason: 'adyacente_a_cita_confirmada',
             dayHasAppointments: daysWithAppointments.has(dateKey)
           });
         }
