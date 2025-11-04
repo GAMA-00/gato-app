@@ -96,56 +96,60 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
               }`}
               onClick={() => onCardSelect(method.id)}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-6 rounded ${color} flex items-center justify-center flex-shrink-0`}>
-                    <CreditCard className="h-3.5 w-3.5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{method.cardholder_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {method.card_number} • Exp: {method.expiry_date}
-                    </p>
-                  </div>
+              {/* Badge en esquina superior derecha */}
+              {isSelected && (
+                <Badge variant="default" className="absolute top-2 right-2 text-xs px-2 py-0">
+                  Seleccionada
+                </Badge>
+              )}
+              
+              <div className="flex items-start gap-2 pr-24">
+                <div className={`w-8 h-5 rounded ${color} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                  <CreditCard className="h-3 w-3 text-white" />
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  {isSelected && (
-                    <Badge variant="default" className="text-xs px-2 py-0.5">
-                      Seleccionada
-                    </Badge>
-                  )}
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-destructive/10"
-                        disabled={isDeleting}
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm truncate">{method.cardholder_name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {method.card_number}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Exp: {method.expiry_date}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Botón eliminar en la parte inferior */}
+              <div className="absolute bottom-2 right-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 hover:bg-destructive/10"
+                      disabled={isDeleting}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar tarjeta?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. La tarjeta {method.card_number} será eliminada permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => handleDeleteCard(method.id, e)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar tarjeta?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta acción no se puede deshacer. La tarjeta {method.card_number} será eliminada permanentemente.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={(e) => handleDeleteCard(method.id, e)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           );
