@@ -279,7 +279,7 @@ export const useCalendarRecurringSystem = ({
           )
         `)
         .eq('provider_id', providerId)
-        .in('status', ['pending', 'confirmed', 'completed', 'scheduled'])
+        .in('status', ['pending', 'confirmed', 'completed'])
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: true });
@@ -307,7 +307,7 @@ export const useCalendarRecurringSystem = ({
           )
         `)
         .eq('recurring_rules.provider_id', providerId)
-        .in('status', ['scheduled', 'confirmed'])
+        .in('status', ['pending', 'confirmed', 'completed'])
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: true });

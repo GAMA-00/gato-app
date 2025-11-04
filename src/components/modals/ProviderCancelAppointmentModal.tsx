@@ -46,7 +46,24 @@ export const ProviderCancelAppointmentModal: React.FC<ProviderCancelAppointmentM
     setIsSubmitting(true);
     
     try {
-      // 1. Actualizar el estado de la cita a cancelada con documentación completa
+      // 1. Cancel appointment atomically using database function
+      console.log('🔄 Cancelling appointment atomically...');
+      const { data, error: updateError } = await supabase
+        .rpc('cancel_appointment_atomic', {
+          p_appointment_id: appointment.id,
+          p_cancel_future: false,
+          p_reason: `provider_cancelled: ${cancellationReason.trim()}`,
+          p_cancelled_by: user?.id
+        });
+
+      if (updateError) {
+        console.error('❌ Error cancelling appointment:', updateError);
+        throw updateError;
+      }
+      
+      console.log('✅ Appointment successfully cancelled:', data);
+      
+      // 2. Add refund documentation as admin notes
       const refundDocumentation = `
 DOCUMENTACIÓN DE REEMBOLSO
 ==========================
@@ -68,26 +85,14 @@ El cliente será notificado sobre el proceso de reembolso y los tiempos estimado
 
 Fecha de documentación: ${new Date().toLocaleString()}
       `.trim();
-
-      console.log('🔄 Updating appointment status to cancelled...');
-      const { error: updateError } = await supabase
-        .from('appointments')
-        .update({ 
-          status: 'cancelled',
-          cancellation_reason: cancellationReason.trim(),
-          cancellation_time: new Date().toISOString(),
-          admin_notes: refundDocumentation,
-          last_modified_by: user?.id,
-          last_modified_at: new Date().toISOString()
-        })
-        .eq('id', appointment.id);
-
-      if (updateError) {
-        console.error('❌ Error updating appointment:', updateError);
-        throw updateError;
-      }
       
-      console.log('✅ Appointment successfully cancelled');
+      // Update admin notes separately
+      await supabase
+        .from('appointments')
+        .update({ admin_notes: refundDocumentation })
+        .eq('id', appointment.id);
+      
+      console.log('✅ Refund documentation added');
 
       toast.success('Cita cancelada y documentación de reembolso creada');
       

@@ -25,6 +25,8 @@ export type Database = {
           client_name: string | null
           client_phone: string | null
           created_at: string
+          created_by_user: string | null
+          created_from: string | null
           custom_variable_selections: Json | null
           custom_variables_total_price: number | null
           end_time: string
@@ -60,6 +62,8 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          created_by_user?: string | null
+          created_from?: string | null
           custom_variable_selections?: Json | null
           custom_variables_total_price?: number | null
           end_time: string
@@ -95,6 +99,8 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          created_by_user?: string | null
+          created_from?: string | null
           custom_variable_selections?: Json | null
           custom_variables_total_price?: number | null
           end_time?: string
@@ -1900,6 +1906,34 @@ export type Database = {
           },
         ]
       }
+      unified_appointments: {
+        Row: {
+          client_address: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          created_at: string | null
+          created_by_user: string | null
+          created_from: string | null
+          end_time: string | null
+          external_booking: boolean | null
+          final_price: number | null
+          id: string | null
+          is_recurring_instance: boolean | null
+          listing_id: string | null
+          notes: string | null
+          price_finalized: boolean | null
+          provider_id: string | null
+          recurrence: string | null
+          recurrence_group_id: string | null
+          residencia_id: string | null
+          source_type: string | null
+          start_time: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       advance_recurring_appointment: {
@@ -1931,9 +1965,29 @@ export type Database = {
         Args: { new_role: string; target_user_id: string }
         Returns: boolean
       }
+      cancel_appointment_atomic: {
+        Args: {
+          p_appointment_id: string
+          p_cancel_future?: boolean
+          p_cancelled_by?: string
+          p_reason?: string
+        }
+        Returns: {
+          affected_count: number
+          message: string
+        }[]
+      }
       cancel_membership_subscription: {
         Args: { p_subscription_id: string }
         Returns: Json
+      }
+      check_appointment_consistency: {
+        Args: never
+        Returns: {
+          details: string
+          issue_count: number
+          issue_type: string
+        }[]
       }
       check_recurring_availability: {
         Args: {

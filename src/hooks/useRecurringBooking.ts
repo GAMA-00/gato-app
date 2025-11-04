@@ -207,11 +207,13 @@ export function useRecurringBooking() {
               wasSkipped: initResp?.skipped
             });
             
-            // CRÍTICO: Si el cobro falla o fue skipped, cancelar la cita
-            await supabase
-              .from('appointments')
-              .update({ status: 'cancelled' })
-              .eq('id', createdId);
+            // CRÍTICO: Si el cobro falla o fue skipped, cancelar la cita atómicamente
+            await supabase.rpc('cancel_appointment_atomic', {
+              p_appointment_id: createdId,
+              p_cancel_future: false,
+              p_reason: 'payment_failed',
+              p_cancelled_by: null
+            });
 
             const errorMessage = initResp?.skipped 
               ? 'No se encontró suscripción activa. Por favor intenta nuevamente.'

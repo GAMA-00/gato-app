@@ -12,72 +12,10 @@ interface ProcessBookingParams {
   approvedInvoices: Set<string>;
 }
 
-// Enhanced function to calculate next occurrence ONLY for active recurring appointments
-function calculateNextOccurrenceForRecurring(
-  startTime: string,
-  recurrence: string,
-  status: string,
-  notes?: string
-): Date {
-  const originalDate = new Date(startTime);
-  const now = new Date();
-  
-  // For non-recurring appointments, always use original date
-  if (!recurrence || recurrence === 'none') {
-    return originalDate;
-  }
-  
-  // CRITICAL: Don't calculate next occurrence for completed appointments
-  // For cancelled appointments, only skip if they were actually skipped (have the special note)
-  const isSkipped = status === 'cancelled' && notes?.includes('[SKIPPED BY CLIENT]');
-  if (status === 'completed' || (status === 'cancelled' && !isSkipped)) {
-    logger.debug(`${status} appointment - using original date: ${originalDate.toISOString()}`);
-    return originalDate;
-  }
-  
-  // For active recurring appointments, calculate next future occurrence if original date has passed
-  const validRecurrences = ['weekly', 'biweekly', 'triweekly', 'monthly'];
-  const activeStatuses = ['pending', 'confirmed'];
-  
-  if (validRecurrences.includes(recurrence) && activeStatuses.includes(status)) {
-    // If original date is in the future, use it
-    if (originalDate > now) {
-      logger.debug(`Future appointment - using original date: ${originalDate.toISOString()}`);
-      return originalDate;
-    }
-    
-    // If original date has passed, calculate next occurrence
-    let nextDate = new Date(originalDate);
-    
-    switch (recurrence) {
-      case 'weekly':
-        while (nextDate <= now) {
-          nextDate.setDate(nextDate.getDate() + 7);
-        }
-        break;
-      case 'biweekly':
-        while (nextDate <= now) {
-          nextDate.setDate(nextDate.getDate() + 14);
-        }
-        break;
-      case 'triweekly':
-        while (nextDate <= now) {
-          nextDate.setDate(nextDate.getDate() + 21);
-        }
-        break;
-      case 'monthly':
-        while (nextDate <= now) {
-          nextDate.setMonth(nextDate.getMonth() + 1);
-        }
-        break;
-    }
-    
-    logger.debug(`Next occurrence calculated for ${status} ${recurrence} appointment: original=${originalDate.toISOString()}, next=${nextDate.toISOString()}`);
-    return nextDate;
-  }
-  
-  // For all other cases (cancelled, rejected, etc.), use original date
-  return originalDate;
+// CRITICAL: Always use the exact date from DB - no transformations
+// This ensures consistency across all views (client bookings, provider calendar, dashboard)
+function getAppointmentDate(startTime: string): Date {
+  return new Date(startTime);
 }
 
 export function processClientBooking({
@@ -96,13 +34,9 @@ export function processClientBooking({
   // Construir ubicación
   const location = buildAppointmentLocation(appointment, userData);
   
-  // Calcular próxima fecha de ocurrencia real con lógica mejorada para recurrencias
-  const nextOccurrenceDate = calculateNextOccurrenceForRecurring(
-    appointment.start_time,
-    appointment.recurrence,
-    appointment.status,
-    appointment.notes
-  );
+  // CRITICAL: Use exact date from DB without transformation
+  // This ensures the same date appears in all views
+  const appointmentDate = getAppointmentDate(appointment.start_time);
 
   // Determinar si es post-pago y si puede ser calificado
   const isPostPayment = service?.is_post_payment || false;
@@ -114,7 +48,7 @@ export function processClientBooking({
     serviceName: service?.title || 'Servicio',
     subcategory: service?.service_types?.name || 'Servicio',
     categoryId: service?.service_types?.service_categories?.name || 'other',
-    date: nextOccurrenceDate,
+    date: appointmentDate,
     status: appointment.status as ClientBooking['status'],
     recurrence: appointment.recurrence || 'none',
     providerId: appointment.provider_id,

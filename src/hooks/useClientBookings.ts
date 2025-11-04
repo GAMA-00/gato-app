@@ -42,8 +42,8 @@ export const useClientBookings = () => {
       bookingLogger.userAction('Obteniendo reservas para usuario:', user.id);
 
       try {
-        // Removed auto-rating to prevent active bookings from disappearing
-        // Obtener citas básicas
+        // Fetch appointment data with unified status filter
+        // CRITICAL: Use same status filter as unified appointments system
         const { data: appointments, error } = await supabase
           .from('appointments')
           .select(`
@@ -64,7 +64,7 @@ export const useClientBookings = () => {
             client_name
           `)
           .eq('client_id', user.id)
-          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rejected', 'rescheduled'])
+          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rejected'])
           .order('start_time', { ascending: false });
 
         if (error) {
@@ -218,37 +218,43 @@ export const useClientBookings = () => {
         bookingLogger.info('=== RESULTADOS FINALES CLIENT BOOKINGS ===');
         bookingLogger.dataProcessing(`Procesadas ${processedBookings.length} reservas`);
 
-        // *** DEDUPLICACIÓN MEJORADA: Solo eliminar duplicados reales ***
-        logger.systemOperation('=== INICIANDO PROCESO DE DEDUPLICACIÓN MEJORADA ===');
+        // CRITICAL: Unified deduplication logic (same as useUnifiedAppointments)
+        // Key format: dateTime-providerId-clientId-listingId (without status to prevent duplicates)
+        logger.systemOperation('=== INICIANDO DEDUPLICACIÓN UNIFICADA ===');
         const uniqueBookingsMap = new Map<string, ClientBooking>();
         
         processedBookings.forEach(booking => {
-          // Crear clave única incluyendo STATUS para evitar conflictos entre completed/active
-          const dateKey = booking.date.toISOString().split('T')[0]; // Solo fecha YYYY-MM-DD
-          const timeKey = booking.date.toISOString().split('T')[1].substring(0, 5); // Solo hora HH:MM
-          const uniqueKey = `${booking.listingId}-${booking.providerId}-${dateKey}-${timeKey}-${booking.status}`;
+          // Create time slot key matching unified system
+          const timeSlotKey = `${booking.date.toISOString()}-${booking.providerId}-${user.id}-${booking.listingId}`;
           
-          logger.debug(`Evaluando cita ${booking.id}: clave=${uniqueKey}, servicio=${booking.serviceName}, status=${booking.status}`);
+          logger.debug(`Evaluando cita ${booking.id}: clave=${timeSlotKey}, servicio=${booking.serviceName}, status=${booking.status}`);
           
-          if (uniqueBookingsMap.has(uniqueKey)) {
-            const existingBooking = uniqueBookingsMap.get(uniqueKey)!;
-            logger.warn(`DUPLICADO REAL DETECTADO: ${booking.serviceName} el ${dateKey} a las ${timeKey} (${booking.status})`);
-            logger.debug(`   - Existente: ID=${existingBooking.id}`);
-            logger.debug(`   - Nuevo: ID=${booking.id}`);
-            
-            // Solo reemplazar si es la misma cita exacta (mismo ID base para recurrentes)
-            const existingBaseId = existingBooking.id.split('-recurring-')[0];
-            const newBaseId = booking.id.split('-recurring-')[0];
-            
-            if (existingBaseId === newBaseId || booking.id > existingBooking.id) {
-              uniqueBookingsMap.set(uniqueKey, booking);
-              logger.debug(`   Cita reemplazada por ser más reciente`);
-            } else {
-              logger.debug(`   Cita mantenida (IDs diferentes)`);
-            }
-          } else {
-            uniqueBookingsMap.set(uniqueKey, booking);
+          const existingBooking = uniqueBookingsMap.get(timeSlotKey);
+          
+          if (!existingBooking) {
+            uniqueBookingsMap.set(timeSlotKey, booking);
             logger.debug(`   Cita única agregada`);
+          } else {
+            logger.warn(`DUPLICADO DETECTADO: ${booking.serviceName} - ${booking.date.toISOString()}`);
+            logger.debug(`   - Existente: ID=${existingBooking.id}, recurring=${existingBooking.isRecurringInstance}`);
+            logger.debug(`   - Nuevo: ID=${booking.id}, recurring=${booking.isRecurringInstance}`);
+            
+            // Priority: regular appointment > recurring instance
+            const isRegular = !booking.isRecurringInstance;
+            const existingIsRegular = !existingBooking.isRecurringInstance;
+            
+            if (isRegular && !existingIsRegular) {
+              uniqueBookingsMap.set(timeSlotKey, booking);
+              logger.debug(`   Reemplazado por appointment regular`);
+            } else if (isRegular === existingIsRegular) {
+              // Same type, keep most recent by creation
+              if (booking.date >= existingBooking.date) {
+                uniqueBookingsMap.set(timeSlotKey, booking);
+                logger.debug(`   Reemplazado por ser más reciente`);
+              }
+            } else {
+              logger.debug(`   Mantenido (existing es regular)`);
+            }
           }
         });
         

@@ -87,36 +87,32 @@ export const CancelAppointmentModal = ({
         throw error;
       }
     } else {
-      // Para citas no recurrentes: cancelar normalmente
-      console.log('Canceling single appointment:', appointmentId);
+      // Para citas no recurrentes: usar función atómica
+      console.log('Canceling single appointment atomically:', appointmentId);
       
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'cancelled',
-          cancellation_time: new Date().toISOString()
-        })
-        .eq('id', appointmentId);
+      const { data, error } = await supabase
+        .rpc('cancel_appointment_atomic', {
+          p_appointment_id: appointmentId,
+          p_cancel_future: false,
+          p_reason: 'user_cancelled',
+          p_cancelled_by: null // Uses auth.uid()
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error canceling appointment:', error);
+        throw error;
+      }
 
-      // Auto-limpiar la cita cancelada después de 3 segundos
-      setTimeout(async () => {
-        try {
-          await supabase
-            .from('appointments')
-            .delete()
-            .eq('id', appointmentId)
-            .eq('status', 'cancelled');
-          
-          queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-        } catch (deleteError) {
-          console.warn('Could not auto-clean cancelled appointment:', deleteError);
-        }
-      }, 3000);
-
+      console.log('✅ Appointment cancelled:', data);
       toast.success('Cita cancelada exitosamente');
-      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      
+      // Invalidate all relevant queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
+      ]);
+      
       onClose();
     }
   });

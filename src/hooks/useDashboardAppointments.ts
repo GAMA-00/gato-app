@@ -48,8 +48,8 @@ export const useDashboardAppointments = () => {
         try {
           if (!app || app.status === 'cancelled' || app.status === 'rejected') return;
           
-          // Include 'scheduled' status for recurring instances
-          if (!['pending', 'confirmed', 'completed', 'scheduled'].includes(app.status)) {
+          // CRITICAL: Use same status filter as unified system
+          if (!['pending', 'confirmed', 'completed'].includes(app.status)) {
             console.log(`Skipping appointment ${app.id} with status: ${app.status}`);
             return;
           }
@@ -211,7 +211,7 @@ export const useDashboardAppointments = () => {
       try {
         const now = new Date();
         const toUpdate = appointments.filter(
-          app => (app.status === 'confirmed' || app.status === 'scheduled') && 
+          app => app.status === 'confirmed' && 
                  new Date(app.end_time) < now &&
                  !app.is_recurring_instance // Only update regular appointments, not recurring instances
         );
