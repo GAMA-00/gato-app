@@ -343,10 +343,10 @@ const WeeklySlotGrid = ({
           {hasRecommended ? (
             <>
               <p className="text-xs text-muted-foreground mt-1">
-                El proveedor ya se encuentra en el condominio antes o después de estos horarios.
+                El proveedor ya se encuentra en tu condominio en esos horarios.
               </p>
               <p className="text-xs text-muted-foreground">
-                Reservá estos espacios para ayudar a ordenar su agenda.
+                Reservá en esos espacios para organizar mejor su agenda.
               </p>
             </>
           ) : (
