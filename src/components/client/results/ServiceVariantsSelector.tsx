@@ -20,6 +20,11 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   const [variantQuantities, setVariantQuantities] = React.useState<{ [key: string]: number }>({});
   const [personQuantities, setPersonQuantities] = React.useState<{ [key: string]: number }>({});
   const isMobile = useIsMobile();
+  const catalogEndRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToEnd = () => {
+    catalogEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  };
   
   const handleQuantityChange = (variantId: string, change: number) => {
     const currentQuantity = variantQuantities[variantId] || 0;
@@ -80,13 +85,16 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
             Catálogo de Servicios
           </h3>
           {isMobile && (
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 border-2 border-primary animate-bounce">
+            <button
+              onClick={scrollToEnd}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 border-2 border-primary animate-bounce hover:bg-primary/30 transition-colors active:scale-95"
+              aria-label="Desliza para ver más servicios"
+            >
               <ChevronDown 
                 className="h-6 w-6 text-primary" 
                 strokeWidth={3}
-                aria-label="Desliza para ver más servicios"
               />
-            </div>
+            </button>
           )}
         </div>
       
@@ -106,6 +114,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
             />
           );
         })}
+        <div ref={catalogEndRef} />
       </div>
     </div>
   );
