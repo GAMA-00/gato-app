@@ -58,6 +58,16 @@ export const PaymentStatusTracker: React.FC<PaymentStatusTrackerProps> = ({
   }, [payment?.status, onStatusChange]);
 
 const getStatusInfo = (status: string, payment?: any) => {
+  // ✅ NUEVO: Manejar pagos recurrentes con estado 'captured'
+  if (payment?.payment_type === 'recurring_initial' && status === 'captured') {
+    return {
+      icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
+      title: 'Cobro Inicial Procesado',
+      description: 'Tu primer pago fue procesado exitosamente. Los próximos cobros se realizarán automáticamente según la frecuencia configurada.',
+      color: 'green'
+    };
+  }
+
   const statusMap = {
     'pending_authorization': {
       icon: <Clock className="h-12 w-12 text-blue-500" />,
@@ -97,7 +107,7 @@ const getStatusInfo = (status: string, payment?: any) => {
     }
   };
 
-  // Manejar suscripciones
+  // Manejar suscripciones (legacy)
   if (payment?.payment_type === 'subscription' && status !== 'failed') {
     return {
       icon: <CheckCircle2 className="h-12 w-12 text-green-500" />,
@@ -170,7 +180,11 @@ const getStatusInfo = (status: string, payment?: any) => {
             <div className="flex justify-between text-sm">
               <span>Tipo:</span>
               <span className="capitalize">
-                {payment.payment_type === 'cash' ? 'Pago único' : 'Suscripción'}
+                {payment.payment_type === 'recurring_initial' 
+                  ? 'Suscripción (Cobro inicial)' 
+                  : payment.payment_type === 'cash' 
+                  ? 'Pago único' 
+                  : 'Suscripción'}
               </span>
             </div>
           </div>

@@ -191,21 +191,32 @@ export function useRecurringBooking() {
           console.warn('⚠️ Error bloqueando slots recurrentes (no crítico):', slotError);
         }
 
-        // Iniciar Payment Intent en OnvoPay para visibilidad en dashboard
-        console.log('💳 Iniciando Payment Intent en OnvoPay para cita recurrente:', createdId);
+        // Iniciar Payment Intent y PROCESAR COBRO INICIAL inmediatamente
+        console.log('💳 Iniciando y capturando pago recurrente inicial:', createdId);
         try {
           const { data: initResp, error: initErr } = await supabase.functions.invoke(
             'onvopay-initiate-recurring',
             { body: { appointment_id: createdId, force: false } }
           );
           
-          if (initErr) {
-            console.warn('⚠️ Error iniciando Payment Intent (no crítico):', initErr);
-          } else {
-            console.log('✅ Payment Intent iniciado:', initResp);
+          if (initErr || !initResp?.success) {
+            console.error('❌ Error procesando cobro inicial:', initErr || initResp);
+            
+            // CRÍTICO: Si el cobro falla, cancelar la cita
+            await supabase
+              .from('appointments')
+              .update({ status: 'cancelled' })
+              .eq('id', createdId);
+            
+            throw new Error(initResp?.message || 'No se pudo procesar el cobro inicial. Tu reserva no fue completada.');
           }
-        } catch (paymentError) {
-          console.warn('⚠️ Error al iniciar pago recurrente (no crítico):', paymentError);
+          
+          console.log('✅ Cobro inicial procesado exitosamente:', initResp);
+          toast.success('¡Cobro inicial procesado! Tu suscripción está activa.');
+          
+        } catch (paymentError: any) {
+          console.error('❌ Excepción al procesar cobro inicial:', paymentError);
+          throw new Error(paymentError.message || 'Error procesando el cobro inicial. Por favor, intenta nuevamente.');
         }
       }
 

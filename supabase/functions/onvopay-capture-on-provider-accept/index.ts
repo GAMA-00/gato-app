@@ -85,18 +85,17 @@ serve(async (req) => {
       const appointment = appointments?.find(a => a.id === appointmentId);
       console.log(`\n🔍 Procesando cita ${appointmentId}...`);
       
-      // Buscar pago autorizado o pendiente para esta cita
+      // Buscar pago autorizado, pendiente, o ya capturado para esta cita
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from('onvopay_payments')
         .select('id, status, onvopay_payment_id, amount, payment_type, client_id')
         .eq('appointment_id', appointmentId)
-        .in('status', ['pending_authorization', 'authorized'])
+        .in('status', ['pending_authorization', 'authorized', 'captured'])
         .single();
 
       if (paymentError || !payment) {
-        console.log(`⚠️ No hay pago autorizado para appointment ${appointmentId}`, {
+        console.log(`⚠️ No hay pago para appointment ${appointmentId}`, {
           possibleReasons: [
-            'Ya fue capturado anteriormente',
             'Es un pago postpago (no requiere prepago)',
             'El pago falló y fue marcado como failed',
             'Aún no se ha creado el pago'
@@ -105,7 +104,19 @@ serve(async (req) => {
         captureResults.push({
           appointmentId,
           status: 'no_payment_found',
-          message: 'No authorized payment found (may be post-payment or already captured)'
+          message: 'No payment found (may be post-payment)'
+        });
+        continue;
+      }
+
+      // ✅ NUEVO: Saltear si el pago ya está captured (pagos recurrentes)
+      if (payment.status === 'captured') {
+        console.log(`✅ Payment already captured for appointment ${appointmentId} (recurring payment captured on booking)`);
+        captureResults.push({
+          appointmentId,
+          paymentId: payment.id,
+          status: 'already_captured',
+          message: 'Pago recurrente ya fue capturado al crear la cita'
         });
         continue;
       }

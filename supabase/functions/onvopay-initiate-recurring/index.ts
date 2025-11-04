@@ -201,8 +201,7 @@ serve(async (req) => {
     const idempotencyKey = `${subscription.id}_${appointment_id}_init`;
     console.log('🔑 Idempotency key:', idempotencyKey);
 
-    // 7. Invoke onvopay-authorize to create Payment Intent in "pending_authorization" state
-    // NEW FLOW: Use 'recurring_initial' type - will be captured when provider accepts (like prepaid)
+    // 7. Invoke onvopay-authorize to create Payment Intent
     const { data: authResponse, error: authError } = await supabaseAdmin.functions.invoke(
       'onvopay-authorize',
       {
@@ -215,6 +214,10 @@ serve(async (req) => {
           idempotency_key: idempotencyKey,
           card_data: {
             payment_method_id: subscription.payment_method_id,
+            last4: subscription.card_last4,
+            brand: subscription.card_brand,
+            exp_month: subscription.card_exp_month,
+            exp_year: subscription.card_exp_year
           },
           // ✅ METADATA para mejor visibilidad en OnvoPay dashboard
           metadata: {
@@ -242,15 +245,59 @@ serve(async (req) => {
       status: authResponse?.status,
     });
 
+    // ✅ PASO 8: Confirmar y Capturar INMEDIATAMENTE para pagos recurrentes
+    console.log('🔄 Confirming and capturing recurring payment immediately...');
+    
+    const confirmPayload = {
+      payment_intent_id: authResponse.onvopay_payment_id,
+      card_data: {
+        payment_method_id: subscription.payment_method_id,
+        last4: subscription.card_last4,
+        brand: subscription.card_brand,
+        exp_month: subscription.card_exp_month,
+        exp_year: subscription.card_exp_year
+      }
+    };
+
+    const { data: confirmResponse, error: confirmError } = await supabaseAdmin.functions.invoke(
+      'onvopay-confirm',
+      { body: confirmPayload }
+    );
+
+    if (confirmError || !confirmResponse?.success) {
+      console.error('❌ onvopay-confirm failed:', confirmError || confirmResponse);
+      
+      // Si la confirmación falla, marcar el pago como fallido
+      await supabaseAdmin
+        .from('onvopay_payments')
+        .update({ 
+          status: 'failed',
+          onvopay_response: { error: confirmError || confirmResponse?.error }
+        })
+        .eq('id', authResponse.payment_id);
+      
+      throw new Error(confirmResponse?.message || 'Error al confirmar el cobro inicial. No se realizó ningún cargo.');
+    }
+
+    console.log('✅ Recurring payment confirmed and captured immediately', {
+      paymentId: authResponse.payment_id,
+      appointmentId: appointment_id,
+      amount: authResponse.amount,
+      status: confirmResponse.status,
+      capturedAt: confirmResponse.captured_at
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         initiated: true,
         payment_id: authResponse?.payment_id,
         onvopay_payment_id: authResponse?.onvopay_payment_id,
-        status: authResponse?.status,
+        status: 'captured',
+        captured_at: confirmResponse.captured_at,
         subscription_id: subscription.id,
         appointment_id,
+        message: 'Cobro inicial procesado exitosamente. Suscripción activa.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, Calendar, CreditCard, Repeat } from 'lucide-react';
+import { ArrowLeft, CheckCircle, CheckCircle2, Calendar, CreditCard, Repeat } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -105,10 +105,10 @@ export const RecurringBookingConfirmation = () => {
             <CheckCircle2 className="h-16 w-16 text-green-600" />
             <div>
               <h1 className="text-2xl font-bold text-green-900 mb-2">
-                Cita Recurrente Reservada con Éxito
+                ¡Suscripción Activa!
               </h1>
               <p className="text-green-800 text-lg">
-                El cobro se realizará al completarse cada servicio.
+                Tu cobro inicial fue procesado exitosamente.
               </p>
             </div>
           </div>
@@ -167,11 +167,24 @@ export const RecurringBookingConfirmation = () => {
           </div>
 
           {/* Payment Note */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-            <p className="text-sm text-blue-900">
-              <strong>💡 Importante:</strong> El primer cobro se realizará cuando se complete el servicio el <strong>{firstChargeDate}</strong>. 
-              Los cobros siguientes se procesarán automáticamente al finalizar cada servicio según la frecuencia seleccionada.
-            </p>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-6">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-green-900">
+                  <strong>✅ Cobro inicial completado:</strong> Tu primer pago de <strong>${amount.toFixed(2)} USD</strong> fue procesado exitosamente.
+                </p>
+                <p className="text-sm text-green-800 mt-2">
+                  Los próximos cobros se realizarán automáticamente cada <strong>{recurrenceLabel.toLowerCase()}</strong> según la frecuencia configurada.
+                </p>
+                {subscriptionData?.card_last4 && (
+                  <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" />
+                    Tarjeta guardada: •••• {subscriptionData.card_last4}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
