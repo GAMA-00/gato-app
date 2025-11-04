@@ -80,10 +80,13 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
             Catálogo de Servicios
           </h3>
           {isMobile && (
-            <ChevronDown 
-              className="h-4 w-4 text-primary animate-bounce" 
-              aria-label="Desliza para ver más servicios"
-            />
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 border-2 border-primary animate-bounce">
+              <ChevronDown 
+                className="h-6 w-6 text-primary" 
+                strokeWidth={3}
+                aria-label="Desliza para ver más servicios"
+              />
+            </div>
           )}
         </div>
       
