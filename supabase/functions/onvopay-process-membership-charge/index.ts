@@ -1,15 +1,13 @@
 /**
- * Edge Function: onvopay-process-membership-charge
+ * OnvoPay Process Membership Charge
  * 
- * Procesa un cobro recurrente individual de forma síncrona cuando:
- * 1. Un appointment con membresía se completa (trigger automático)
- * 2. Un cron job detecta cobros pendientes (backup)
+ * ⚠️ DEPRECATION WARNING: Esta función está siendo reemplazada por OnvoPay Loop.
  * 
- * Responsabilidades:
- * - Crear Payment Intent (authorize)
- * - Confirmar INMEDIATAMENTE con payment_method_id guardado
- * - Auto-capturar INMEDIATAMENTE (es pago recurrente)
- * - Actualizar next_charge_date y contadores
+ * NUEVO FLUJO (desde 2025-11):
+ * - Suscripciones nuevas usan OnvoPay Loop (cobros automáticos)
+ * - Esta función solo procesa suscripciones legacy con loop_status: 'manual_scheduling'
+ * 
+ * Si una suscripción tiene loop_status: 'active', OnvoPay maneja los cobros automáticamente.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -43,9 +41,41 @@ serve(async (req) => {
       throw new Error('subscription_id es requerido');
     }
 
-    console.log('📋 Procesando cobro recurrente:', {
+    console.log('⚠️ [DEPRECATED] onvopay-process-membership-charge - Use OnvoPay Loop for new subscriptions');
+    console.log('💳 [onvopay-process-membership-charge] Processing charge for subscription:', subscription_id);
+
+    // Fetch subscription details
+    const { data: subscription, error: subError } = await supabaseAdmin
+      .from('onvopay_subscriptions')
+      .select('*')
+      .eq('id', subscription_id)
+      .single();
+
+    if (subError || !subscription) {
+      throw new Error(`Subscription not found: ${subscription_id}`);
+    }
+
+    // Validar: No procesar suscripciones con Loop activo
+    if (subscription.loop_status === 'active') {
+      console.log('⏭️ Skipping subscription with active OnvoPay Loop:', subscription_id);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          skipped: true,
+          message: 'Esta suscripción usa OnvoPay Loop. Los cobros son automáticos.',
+          subscription_id
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
+    console.log('📋 Processing legacy subscription charge:', {
       subscription_id,
       appointment_id,
+      loop_status: subscription.loop_status,
       requestId
     });
 

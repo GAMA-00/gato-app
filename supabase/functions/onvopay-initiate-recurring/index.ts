@@ -1,10 +1,18 @@
 /**
  * OnvoPay Initiate Recurring Payment
  * 
- * Crea una transacción en estado "Iniciada" (pending_authorization) para una cita recurrente.
- * Esta función se invoca automáticamente al crear una cita recurrente o manualmente por el sweeper.
+ * ⚠️ DEPRECATION WARNING: Esta función está siendo reemplazada por OnvoPay Loop.
  * 
- * Flow: Appointment Created → Payment Intent "Iniciada" → (on completion) → Confirm/Capture
+ * NUEVO FLUJO (desde 2025-11):
+ * - Servicios recurrentes usan OnvoPay Loop que cobra automáticamente
+ * - El primer pago se cobra al crear el Loop durante el checkout
+ * - Los cobros futuros son manejados por OnvoPay automáticamente
+ * 
+ * Esta función solo se mantiene para:
+ * - Suscripciones legacy con loop_status: 'manual_scheduling'
+ * - Debugging y transición gradual
+ * 
+ * Para nuevas suscripciones, usar: onvopay-create-loop
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -29,9 +37,10 @@ serve(async (req) => {
   try {
     const { appointment_id, force = false }: InitiateRecurringRequest = await req.json();
 
-    console.log('🎬 [onvopay-initiate-recurring] Starting payment initiation', {
+    console.log('⚠️ [DEPRECATED] onvopay-initiate-recurring called - consider using OnvoPay Loop instead');
+    console.log('🔄 [onvopay-initiate-recurring] Starting recurring payment initiation', {
       appointment_id,
-      force,
+      force
     });
 
     if (!appointment_id) {

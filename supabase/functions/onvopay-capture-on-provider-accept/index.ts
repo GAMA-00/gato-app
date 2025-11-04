@@ -329,70 +329,20 @@ serve(async (req) => {
         onvopayCaptureId: onvopayResult.id
       });
 
-      // NEW: If this is a recurring appointment, setup OnvoPay Loop for automatic future charges
-      if (appointment && appointment.recurrence && appointment.recurrence !== 'none') {
-        console.log(`🔄 Setting up OnvoPay Loop for recurring appointment ${appointmentId}...`);
+      // NOTE: Loop creation removed from here - now handled in checkout flow
+      // Recurring appointments already have Loop created and first charge captured
+      if (appointment.recurrence && 
+          appointment.recurrence !== 'none' && 
+          appointment.recurrence !== 'once') {
         
-        try {
-          // Get appointment details
-          const { data: fullAppointment } = await supabaseAdmin
-            .from('appointments')
-            .select('start_time')
-            .eq('id', appointmentId)
-            .single();
-
-          if (fullAppointment) {
-            // Find subscription
-            const { data: subscription, error: subError } = await supabaseAdmin
-              .from('onvopay_subscriptions')
-              .select('*')
-              .or(`external_reference.eq.${appointmentId},recurring_rule_id.eq.${appointment.recurring_rule_id}`)
-              .eq('status', 'active')
-              .single();
-
-            if (subscription && !subError) {
-              const today = new Date().toISOString().split('T')[0];
-              const nextChargeDate = calculateNextChargeDate(fullAppointment.start_time, appointment.recurrence);
-              
-              // Update subscription first
-              await supabaseAdmin
-                .from('onvopay_subscriptions')
-                .update({
-                  initial_charge_date: today,
-                  last_charge_date: today,
-                  next_charge_date: nextChargeDate,
-                  failed_attempts: 0
-                })
-                .eq('id', subscription.id);
-
-              // Create OnvoPay Loop for automatic future charges
-              console.log('📡 Creating OnvoPay Loop via onvopay-create-loop...');
-              const { data: loopResponse, error: loopError } = await supabaseAdmin.functions.invoke(
-                'onvopay-create-loop',
-                {
-                  body: {
-                    subscription_id: subscription.id
-                  }
-                }
-              );
-
-              if (loopError) {
-                console.error('⚠️ Error creating OnvoPay Loop (non-critical):', loopError);
-              } else {
-                console.log('✅ OnvoPay Loop created successfully:', loopResponse?.loop_id);
-                recurringSetup.push(appointmentId);
-              }
-
-              console.log(`✅ Recurring setup completed for ${appointmentId}`, {
-                initial_charge_date: today,
-                next_charge_date: nextChargeDate,
-                loop_id: loopResponse?.loop_id
-              });
-            }
-          }
-        } catch (setupError) {
-          console.error(`⚠️ Error setting up recurring for ${appointmentId}:`, setupError);
-        }
+        console.log('ℹ️ Recurring appointment - Loop already active from checkout');
+        
+        recurringActivations.push({
+          appointment_id: appointmentId,
+          status: 'loop_already_active',
+          payment_captured: true,
+          note: 'OnvoPay Loop was created during booking checkout'
+        });
       }
     }
 

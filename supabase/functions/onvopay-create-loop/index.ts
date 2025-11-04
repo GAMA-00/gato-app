@@ -139,9 +139,12 @@ serve(async (req) => {
         interval: intervalConfig.interval,
         interval_count: intervalConfig.interval_count,
         description: description,
+        charge_immediately: true, // 🔥 CRÍTICO: Cobrar primer pago al crear Loop
+        billing_cycle_anchor: subscription.start_date || new Date().toISOString(),
         metadata: {
           subscription_id: subscription.id,
           recurring_rule_id: subscription.recurring_rule_id,
+          appointment_id: subscription.external_reference,
           app: 'gato-app',
           tz: 'America/Costa_Rica',
         },
@@ -167,15 +170,50 @@ serve(async (req) => {
       loop_id: loopData.id,
       status: loopData.status,
       next_charge_at: loopData.next_charge_at,
+      initial_charge: loopData.initial_charge,
     });
 
-    // 6. Update subscription with Loop details
+    // 6. Handle initial charge if present
+    let initialPaymentId = null;
+    if (loopData.initial_charge) {
+      console.log('💳 Loop includes initial charge:', loopData.initial_charge);
+
+      const { data: paymentRecord, error: paymentError } = await supabaseAdmin
+        .from('onvopay_payments')
+        .insert({
+          appointment_id: subscription.external_reference,
+          client_id: subscription.client_id,
+          provider_id: subscription.provider_id,
+          amount: subscription.amount,
+          payment_type: 'recurring_initial',
+          status: loopData.initial_charge.status || 'captured',
+          onvopay_payment_id: loopData.initial_charge.id,
+          onvopay_transaction_id: loopData.initial_charge.charge_id || loopData.initial_charge.id,
+          payment_method: 'card',
+          authorized_at: new Date().toISOString(),
+          captured_at: loopData.initial_charge.captured_at || new Date().toISOString(),
+          onvopay_response: loopData.initial_charge
+        })
+        .select()
+        .single();
+
+      if (paymentError) {
+        console.error('⚠️ Error creating initial payment record:', paymentError);
+      } else {
+        initialPaymentId = paymentRecord?.id;
+        console.log('✅ Initial payment record created:', initialPaymentId);
+      }
+    }
+
+    // 7. Update subscription with Loop details
     const { error: updateError } = await supabaseAdmin
       .from('onvopay_subscriptions')
       .update({
         onvopay_loop_id: loopData.id,
         loop_status: 'active',
         loop_metadata: loopData,
+        initial_charge_date: loopData.initial_charge ? new Date().toISOString() : null,
+        last_charge_date: loopData.initial_charge ? new Date().toISOString() : null,
         next_charge_date: loopData.next_charge_at?.split('T')[0] || subscription.next_charge_date,
       })
       .eq('id', subscription_id);
@@ -185,6 +223,20 @@ serve(async (req) => {
       // Don't throw - Loop was created successfully in OnvoPay
     }
 
+    // 8. Update appointment with payment and loop info
+    if (subscription.external_reference && initialPaymentId) {
+      await supabaseAdmin
+        .from('appointments')
+        .update({
+          onvopay_payment_id: initialPaymentId,
+          onvopay_subscription_id: subscription_id,
+          status: 'confirmed' // Loop cobró exitosamente
+        })
+        .eq('id', subscription.external_reference);
+
+      console.log('✅ Appointment updated with payment and subscription info');
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -192,6 +244,8 @@ serve(async (req) => {
         loop_status: loopData.status,
         next_charge_at: loopData.next_charge_at,
         subscription_id: subscription_id,
+        initial_payment_id: initialPaymentId,
+        initial_charge_captured: !!loopData.initial_charge,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

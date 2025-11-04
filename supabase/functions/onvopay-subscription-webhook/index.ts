@@ -6,6 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mapeo de eventos de OnvoPay Loops y eventos legacy
+const LOOP_EVENTS: Record<string, string> = {
+  'loop.charge.succeeded': 'charge_succeeded',
+  'loop.charge.failed': 'charge_failed',
+  'loop.cancelled': 'subscription_cancelled',
+  'loop.paused': 'subscription_paused',
+  'loop.resumed': 'subscription_resumed',
+  // Eventos legacy (mantener por compatibilidad)
+  'invoice.payment_succeeded': 'charge_succeeded',
+  'subscription.charge.succeeded': 'charge_succeeded',
+  'charge.succeeded': 'charge_succeeded'
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,88 +31,205 @@ serve(async (req) => {
     );
 
     const webhookPayload = await req.json();
+    
+    console.log('📥 [onvopay-subscription-webhook] Received webhook:', {
+      type: webhookPayload.type,
+      data: webhookPayload.data
+    });
+
     const eventType = webhookPayload.type;
+    const normalizedEvent = LOOP_EVENTS[eventType];
 
-    console.log('📨 Webhook received:', eventType, webhookPayload);
+    if (!normalizedEvent) {
+      console.log('⚠️ Unknown event type:', eventType);
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
 
-    // Handle subscription payment success
-    if (eventType === 'invoice.payment_succeeded' || 
-        eventType === 'subscription.charge.succeeded' ||
-        eventType === 'charge.succeeded') {
+    // Extract Loop/Subscription ID (priorizar loop_id sobre subscription_id)
+    const loopId = webhookPayload.data?.loop_id || 
+                   webhookPayload.data?.subscription_id ||
+                   webhookPayload.data?.id;
+
+    console.log('🔍 Searching for subscription with loop_id or subscription_id:', loopId);
+
+    // Handle successful charges (Loop o Legacy)
+    if (normalizedEvent === 'charge_succeeded') {
+      const chargeAmount = webhookPayload.data?.amount_paid || 
+                          webhookPayload.data?.amount || 
+                          0;
       
-      const subscriptionId = webhookPayload.data?.subscription_id || webhookPayload.data?.subscription;
-      const chargeAmount = webhookPayload.data?.amount_paid || webhookPayload.data?.amount;
-      const onvopayInvoiceId = webhookPayload.data?.id;
-      const chargeId = webhookPayload.data?.charge_id || webhookPayload.data?.id;
+      const onvopayInvoiceId = webhookPayload.data?.invoice_id || 
+                              webhookPayload.data?.invoice || 
+                              null;
 
-      if (!subscriptionId) {
-        console.log('⚠️ No subscription_id in webhook, skipping');
-        return new Response(JSON.stringify({ received: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      const chargeId = webhookPayload.data?.charge_id || 
+                      webhookPayload.data?.charge || 
+                      webhookPayload.data?.id ||
+                      null;
 
-      // Get subscription details
+      const nextChargeAt = webhookPayload.data?.next_charge_at || null;
+
+      console.log('💳 Processing charge:', { loopId, chargeId, chargeAmount, nextChargeAt });
+
+      // Find subscription by loop_id (prioridad) o onvopay_subscription_id (legacy)
       const { data: subscription, error: subError } = await supabase
         .from('onvopay_subscriptions')
-        .select('*, appointments:external_reference(*)')
-        .eq('onvopay_subscription_id', subscriptionId)
+        .select('*')
+        .or(`onvopay_loop_id.eq.${loopId},onvopay_subscription_id.eq.${loopId}`)
         .single();
 
       if (subError || !subscription) {
-        console.error('❌ Subscription not found:', subscriptionId, subError);
-        return new Response(JSON.stringify({ received: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        console.error('❌ Subscription not found for loop/subscription ID:', loopId, subError);
+        return new Response(
+          JSON.stringify({ 
+            received: true, 
+            error: 'Subscription not found' 
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
       }
+
+      console.log('✅ Subscription found:', {
+        id: subscription.id,
+        client_id: subscription.client_id,
+        loop_status: subscription.loop_status
+      });
 
       // Check if payment already recorded
       const { data: existingPayment } = await supabase
         .from('onvopay_payments')
         .select('id')
-        .eq('onvopay_payment_id', onvopayInvoiceId)
+        .eq('onvopay_payment_id', chargeId)
         .single();
 
       if (existingPayment) {
-        console.log('⚠️ Payment already recorded, skipping:', onvopayInvoiceId);
+        console.log('⚠️ Payment already recorded, skipping:', chargeId);
         return new Response(JSON.stringify({ received: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // Create payment record for this recurring charge
+      // Insert payment record
       const { error: paymentError } = await supabase
         .from('onvopay_payments')
         .insert({
           appointment_id: subscription.external_reference,
           client_id: subscription.client_id,
           provider_id: subscription.provider_id,
-          onvopay_payment_id: onvopayInvoiceId,
-          onvopay_transaction_id: chargeId,
-          amount: chargeAmount,
-          subtotal: chargeAmount,
-          iva_amount: 0,
-          payment_type: 'recurring',
-          payment_method: 'card',
+          amount: chargeAmount / 100,
+          payment_type: subscription.loop_status === 'active' ? 'recurring_charge' : 'recurring_charge_legacy',
           status: 'captured',
-          onvopay_response: webhookPayload.data,
+          onvopay_invoice_id: onvopayInvoiceId,
+          onvopay_transaction_id: chargeId,
+          payment_method: 'card',
           authorized_at: new Date().toISOString(),
-          captured_at: new Date().toISOString()
+          captured_at: new Date().toISOString(),
+          onvopay_response: webhookPayload.data
         });
 
       if (paymentError) {
         console.error('❌ Error creating payment record:', paymentError);
       } else {
-        console.log('✅ Recurring payment recorded');
+        console.log('✅ Payment record created successfully');
       }
 
-      // Update subscription next_charge_date
-      const nextChargeDate = webhookPayload.data?.next_payment_date;
-      if (nextChargeDate) {
+      // Update subscription's next charge date and last charge date
+      const updateData: any = {
+        last_charge_date: new Date().toISOString(),
+        failed_attempts: 0 // Reset failed attempts on success
+      };
+
+      if (nextChargeAt) {
+        updateData.next_charge_date = nextChargeAt.split('T')[0];
+      }
+
+      await supabase
+        .from('onvopay_subscriptions')
+        .update(updateData)
+        .eq('id', subscription.id);
+
+      console.log('✅ Subscription updated with charge dates');
+    }
+
+    // Handle failed charges
+    if (normalizedEvent === 'charge_failed') {
+      console.log('❌ Processing failed charge for loop:', loopId);
+
+      const { data: subscription } = await supabase
+        .from('onvopay_subscriptions')
+        .select('*')
+        .or(`onvopay_loop_id.eq.${loopId},onvopay_subscription_id.eq.${loopId}`)
+        .single();
+
+      if (subscription) {
+        const newFailedAttempts = (subscription.failed_attempts || 0) + 1;
+        const shouldCancel = newFailedAttempts >= 3;
+
         await supabase
           .from('onvopay_subscriptions')
-          .update({ next_charge_date: nextChargeDate })
+          .update({
+            failed_attempts: newFailedAttempts,
+            status: shouldCancel ? 'cancelled' : subscription.status,
+            loop_status: shouldCancel ? 'cancelled' : subscription.loop_status
+          })
           .eq('id', subscription.id);
+
+        console.log(`⚠️ Failed attempt ${newFailedAttempts}/3 for subscription ${subscription.id}`);
+
+        if (shouldCancel) {
+          console.log('🚫 Subscription cancelled after 3 failed attempts');
+          
+          // Cancel future appointments
+          await supabase
+            .from('appointments')
+            .update({ 
+              status: 'cancelled',
+              cancellation_reason: 'Subscription cancelled: payment failures'
+            })
+            .eq('client_id', subscription.client_id)
+            .eq('provider_id', subscription.provider_id)
+            .gt('start_time', new Date().toISOString());
+        }
+      }
+    }
+
+    // Handle subscription cancellation
+    if (normalizedEvent === 'subscription_cancelled') {
+      console.log('🚫 Processing subscription cancellation for loop:', loopId);
+
+      const { data: subscription } = await supabase
+        .from('onvopay_subscriptions')
+        .select('*')
+        .or(`onvopay_loop_id.eq.${loopId},onvopay_subscription_id.eq.${loopId}`)
+        .single();
+
+      if (subscription) {
+        await supabase
+          .from('onvopay_subscriptions')
+          .update({
+            status: 'cancelled',
+            loop_status: 'cancelled'
+          })
+          .eq('id', subscription.id);
+
+        // Cancel future appointments
+        await supabase
+          .from('appointments')
+          .update({ 
+            status: 'cancelled',
+            cancellation_reason: 'Subscription cancelled by OnvoPay'
+          })
+          .eq('client_id', subscription.client_id)
+          .eq('provider_id', subscription.provider_id)
+          .gt('start_time', new Date().toISOString());
+
+        console.log('✅ Subscription and future appointments cancelled');
       }
     }
 
