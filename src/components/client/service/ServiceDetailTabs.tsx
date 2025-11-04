@@ -132,11 +132,6 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
 
         {/* Tab 3: Sobre mí */}
         <TabsContent value="about" className="space-y-4 px-4">
-          {/* Level Badge */}
-          <div className="flex justify-center py-2">
-            <LevelBadge level={providerLevel} size="md" />
-          </div>
-          
           <ProviderAbout provider={transformedProvider} />
           
           <ProviderCertifications 
