@@ -25,16 +25,20 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   const scrollToEnd = () => {
     if (!catalogEndRef.current) return;
     
-    // Obtener la posición absoluta del elemento
+    // Obtener el contenedor principal que tiene scroll
     const element = catalogEndRef.current;
-    const elementTop = element.getBoundingClientRect().top + window.pageYOffset;
     
-    // Ajustar por elementos fixed: navbar (48px) + tabs (48px) + espacio inferior (100px)
+    // Calcular la posición donde queremos hacer scroll
+    // getBoundingClientRect().top nos da la distancia desde el top del viewport
+    // window.scrollY nos da el scroll actual
+    const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+    
+    // Offset para dejar espacio para navbar (48px) + tabs (48px) + margen (100px)
     const offset = 196;
     
-    // Hacer scroll suave hacia esa posición
+    // Hacer scroll suave
     window.scrollTo({
-      top: elementTop - offset,
+      top: elementPosition - offset,
       behavior: 'smooth'
     });
   };
