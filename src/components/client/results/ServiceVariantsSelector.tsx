@@ -23,7 +23,29 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   const catalogEndRef = React.useRef<HTMLDivElement>(null);
 
   const scrollToEnd = () => {
-    catalogEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    if (!catalogEndRef.current) return;
+    
+    // Obtener la posición del elemento de referencia
+    const element = catalogEndRef.current;
+    const elementRect = element.getBoundingClientRect();
+    const absoluteElementTop = elementRect.top + window.pageYOffset;
+    
+    // Calcular la altura de elementos fixed (navbar + tabs + bottom nav)
+    const fixedHeaderHeight = 48; // Navbar height
+    const fixedTabsHeight = 48; // Tabs height  
+    const bottomNavHeight = 80; // Mobile bottom nav
+    const totalFixedHeight = fixedHeaderHeight + fixedTabsHeight + bottomNavHeight;
+    
+    // Calcular la posición de scroll óptima
+    // Queremos que el final del catálogo esté visible, pero no pegado al fondo
+    const viewportHeight = window.innerHeight;
+    const optimalScrollPosition = absoluteElementTop - viewportHeight + totalFixedHeight + 40;
+    
+    // Hacer scroll suave a la posición calculada
+    window.scrollTo({
+      top: Math.max(0, optimalScrollPosition),
+      behavior: 'smooth'
+    });
   };
   
   const handleQuantityChange = (variantId: string, change: number) => {
