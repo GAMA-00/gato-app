@@ -25,25 +25,16 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   const scrollToEnd = () => {
     if (!catalogEndRef.current) return;
     
-    // Obtener la posición del elemento de referencia
+    // Obtener la posición absoluta del elemento
     const element = catalogEndRef.current;
-    const elementRect = element.getBoundingClientRect();
-    const absoluteElementTop = elementRect.top + window.pageYOffset;
+    const elementTop = element.getBoundingClientRect().top + window.pageYOffset;
     
-    // Calcular la altura de elementos fixed (navbar + tabs + bottom nav)
-    const fixedHeaderHeight = 48; // Navbar height
-    const fixedTabsHeight = 48; // Tabs height  
-    const bottomNavHeight = 80; // Mobile bottom nav
-    const totalFixedHeight = fixedHeaderHeight + fixedTabsHeight + bottomNavHeight;
+    // Ajustar por elementos fixed: navbar (48px) + tabs (48px) + espacio inferior (100px)
+    const offset = 196;
     
-    // Calcular la posición de scroll óptima
-    // Queremos que el final del catálogo esté visible, pero no pegado al fondo
-    const viewportHeight = window.innerHeight;
-    const optimalScrollPosition = absoluteElementTop - viewportHeight + totalFixedHeight + 40;
-    
-    // Hacer scroll suave a la posición calculada
+    // Hacer scroll suave hacia esa posición
     window.scrollTo({
-      top: Math.max(0, optimalScrollPosition),
+      top: elementTop - offset,
       behavior: 'smooth'
     });
   };
