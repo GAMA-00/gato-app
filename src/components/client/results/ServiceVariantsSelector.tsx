@@ -23,18 +23,16 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   const catalogEndRef = React.useRef<HTMLDivElement>(null);
 
   const scrollToEnd = () => {
-    // Scroll al final de la pantalla/página
-    const totalHeight = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight
-    );
+    const el = catalogEndRef.current;
+    if (!el) return;
 
-    window.scrollTo({ top: totalHeight, behavior: 'smooth' });
+    // Usa scrollIntoView para desplazar el contenedor con scroll correcto
+    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
-    // Fallback para iOS/Safari si hay layout reflow durante el scroll
+    // Fallback breve para navegadores que interrumpen el scroll (iOS/Safari)
     setTimeout(() => {
-      window.scrollTo({ top: totalHeight, behavior: 'smooth' });
-    }, 60);
+      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 80);
   };
   
   const handleQuantityChange = (variantId: string, change: number) => {
