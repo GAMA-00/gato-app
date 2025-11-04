@@ -33,7 +33,7 @@ const ClientBookings = () => {
   
   // Filtrar SOLO citas futuras - tanto únicas como recurrentes
   const now = new Date();
-  const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
+  const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
   
   
   const activeBookings = bookings?.filter(booking => {
