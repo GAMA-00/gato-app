@@ -202,6 +202,7 @@ export const Checkout = () => {
                 <div className="bg-blue-50 p-3 rounded-lg mt-4">
                   <p className="text-sm text-blue-700">
                     <strong>Servicio Recurrente:</strong> Este pago se procesará automáticamente según la frecuencia seleccionada ({
+                      bookingData.recurrenceType === 'daily' ? 'Diaria' :
                       bookingData.recurrenceType === 'weekly' ? 'Semanal' :
                       bookingData.recurrenceType === 'biweekly' ? 'Quincenal' :
                       bookingData.recurrenceType === 'triweekly' ? 'Trisemanal' :

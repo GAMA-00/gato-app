@@ -28,10 +28,14 @@ const RecurrenceSelector = ({
               Reserve su campo fijo
             </Label>
             <RadioGroup value={selectedFrequency} onValueChange={onFrequencyChange}>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="once" id="once" />
                   <Label htmlFor="once" className="cursor-pointer">Una vez</Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                  <RadioGroupItem value="daily" id="daily" />
+                  <Label htmlFor="daily" className="cursor-pointer">Diaria</Label>
                 </div>
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="weekly" id="weekly" />
@@ -52,6 +56,15 @@ const RecurrenceSelector = ({
               </div>
             </RadioGroup>
           </div>
+          
+          {/* Warning for daily recurrence */}
+          {selectedFrequency === 'daily' && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800 font-medium">
+                ⚠️ Servicio Diario: Este servicio se repetirá todos los días. Asegúrese de que esta frecuencia sea la adecuada para sus necesidades.
+              </p>
+            </div>
+          )}
           
           {/* Reminder message */}
           <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">

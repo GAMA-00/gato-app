@@ -12,7 +12,7 @@ import { format, addDays, addWeeks, addMonths, isSameDay, startOfDay } from 'dat
 import { calculateMonthlyByWeekPattern, getWeekPattern } from './monthlyRecurrenceUtils';
 
 export interface OptimizedRecurrenceConfig {
-  type: 'once' | 'weekly' | 'biweekly' | 'triweekly' | 'monthly';
+  type: 'once' | 'daily' | 'weekly' | 'biweekly' | 'triweekly' | 'monthly';
   startDate: Date;
   endDate?: Date; // Opcional para recurrencia infinita
   maxOccurrences?: number; // Límite de ocurrencias
@@ -72,6 +72,10 @@ export function generateRecurrenceOccurrences(
 
     // Calcular la siguiente ocurrencia
     switch (type) {
+      case 'daily':
+        currentDate = addDays(currentDate, 1);
+        break;
+      
       case 'weekly':
         currentDate = addWeeks(currentDate, 1);
         break;
@@ -159,6 +163,9 @@ export function formatRecurrenceDescription(config: OptimizedRecurrenceConfig): 
   switch (type) {
     case 'once':
       return 'Una sola vez';
+    
+    case 'daily':
+      return 'Todos los días';
     
     case 'weekly':
       return 'Cada semana';

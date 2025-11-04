@@ -10,7 +10,8 @@
 /** Tipos de recurrencia normalizados */
 export type RecurrenceType = 
   | 'none'      // Una sola vez
-  | 'once'      // Alias para 'none' 
+  | 'once'      // Alias para 'none'
+  | 'daily'     // Todos los días
   | 'weekly'    // Cada semana
   | 'biweekly'  // Cada 2 semanas (quincenal)
   | 'triweekly' // Cada 3 semanas (trisemanal)

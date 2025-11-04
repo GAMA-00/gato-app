@@ -12,6 +12,7 @@ const ONVOPAY_API_URL = Deno.env.get('ONVOPAY_API_URL') || 'https://api.onvopay.
 
 // Mapeo de tipos de recurrencia a intervalos de ONVO Pay
 const RECURRENCE_MAP: Record<string, { interval: string; interval_count: number }> = {
+  'daily': { interval: 'day', interval_count: 1 },
   'weekly': { interval: 'week', interval_count: 1 },
   'biweekly': { interval: 'week', interval_count: 2 },
   'triweekly': { interval: 'week', interval_count: 3 },
@@ -57,7 +58,7 @@ serve(async (req) => {
     }
 
     // Validación explícita de recurrenceType para constraint de BD
-    const validIntervalTypes = ['weekly', 'biweekly', 'triweekly', 'monthly'];
+    const validIntervalTypes = ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly'];
     if (!validIntervalTypes.includes(recurrenceType)) {
       throw new Error(`Tipo de recurrencia inválido: ${recurrenceType}. Valores válidos: ${validIntervalTypes.join(', ')}`);
     }
