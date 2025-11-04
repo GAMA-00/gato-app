@@ -1,18 +1,11 @@
 /**
  * OnvoPay Initiate Recurring Payment
  * 
- * ⚠️ DEPRECATION WARNING: Esta función está siendo reemplazada por OnvoPay Loop.
+ * Crea e inmediatamente captura el primer pago para servicios recurrentes.
+ * Los cobros futuros son manejados por process-recurring-charges scheduler.
  * 
- * NUEVO FLUJO (desde 2025-11):
- * - Servicios recurrentes usan OnvoPay Loop que cobra automáticamente
- * - El primer pago se cobra al crear el Loop durante el checkout
- * - Los cobros futuros son manejados por OnvoPay automáticamente
- * 
- * Esta función solo se mantiene para:
- * - Suscripciones legacy con loop_status: 'manual_scheduling'
- * - Debugging y transición gradual
- * 
- * Para nuevas suscripciones, usar: onvopay-create-loop
+ * NOTA: OnvoPay no soporta subscripciones automáticas nativas (no existe /v1/loops).
+ * Este sistema manual es la única opción viable con OnvoPay.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -37,8 +30,7 @@ serve(async (req) => {
   try {
     const { appointment_id, force = false }: InitiateRecurringRequest = await req.json();
 
-    console.log('⚠️ [DEPRECATED] onvopay-initiate-recurring called - consider using OnvoPay Loop instead');
-    console.log('🔄 [onvopay-initiate-recurring] Starting recurring payment initiation', {
+    console.log('🔄 [onvopay-initiate-recurring] Processing recurring payment', {
       appointment_id,
       force
     });
