@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ServiceVariantsSelector, { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import ProviderGallery from '@/components/providers/ProviderGallery';
@@ -34,13 +33,18 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
   providerLevel,
 }) => {
   const [activeTab, setActiveTab] = useState('catalog');
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     // Scroll to top when changing tabs
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Limitar la descripción a 200 caracteres máximo
+  const maxDescriptionLength = 200;
+  const displayDescription = serviceDescription.length > maxDescriptionLength 
+    ? serviceDescription.substring(0, maxDescriptionLength) + '...'
+    : serviceDescription;
 
   return (
     <div className="w-full">
@@ -77,31 +81,9 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
           {/* Description - No Card */}
           <div className="px-4 py-3">
             <h3 className="text-sm font-semibold mb-2">Descripción del servicio</h3>
-            <p 
-              className={`text-sm text-muted-foreground leading-relaxed whitespace-pre-line ${
-                !isDescriptionExpanded ? 'line-clamp-2' : ''
-              }`}
-            >
-              {serviceDescription}
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {displayDescription}
             </p>
-            {serviceDescription.length > 100 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                className="mt-1 p-0 h-auto text-primary hover:text-primary/80 text-sm"
-              >
-                {isDescriptionExpanded ? (
-                  <>
-                    Ver menos <ChevronUp className="h-3 w-3 ml-1" />
-                  </>
-                ) : (
-                  <>
-                    Ver más <ChevronDown className="h-3 w-3 ml-1" />
-                  </>
-                )}
-              </Button>
-            )}
           </div>
 
           {/* Service Variants Selector */}
