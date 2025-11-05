@@ -4,6 +4,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
+import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnifiedRecurringAppointments } from '@/hooks/useUnifiedRecurringAppointments';
@@ -36,11 +37,18 @@ const Calendar = () => {
     [appointments]
   );
 
+  // Fallback mensual simple si el unificado llega vacío
+  const { data: fallbackMonthly = [] } = useCalendarAppointments(currentDate);
+  const fallbackVisible = React.useMemo(
+    () => (fallbackMonthly || []).filter(a => ['pending','confirmed'].includes(a.status)),
+    [fallbackMonthly]
+  );
+
+  const finalAppointments = visibleAppointments.length > 0 ? visibleAppointments : fallbackVisible;
+
   React.useEffect(() => {
-    if (visibleAppointments.length > 0) {
-      console.log('Calendar loaded with', visibleAppointments.length, 'visible appointments');
-    }
-  }, [visibleAppointments.length]);
+    console.log('Calendar unified count:', visibleAppointments.length, 'fallback count:', fallbackVisible.length, 'final:', finalAppointments.length);
+  }, [visibleAppointments.length, fallbackVisible.length, finalAppointments.length]);
 
   if (isLoading) {
     return (
@@ -90,7 +98,7 @@ const Calendar = () => {
         {/* Optimized Calendar view with recurring instances */}
         <div className="w-full">
           <CalendarView 
-            appointments={visibleAppointments} 
+            appointments={finalAppointments} 
             currentDate={currentDate}
             onDateChange={setCurrentDate}
           />

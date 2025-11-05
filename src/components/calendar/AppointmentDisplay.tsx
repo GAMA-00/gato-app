@@ -20,6 +20,7 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }
 
 // Constants for time calculations
 const CALENDAR_START_HOUR = 6; // 6 AM
+const CALENDAR_END_HOUR = 20; // 8 PM
 const MINUTES_PER_HOUR = 60;
 const PIXELS_PER_HOUR = 48;
 
@@ -52,6 +53,12 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
   
   const topPosition = (minutesFromCalendarStart / MINUTES_PER_HOUR) * PIXELS_PER_HOUR;
   const appointmentHeight = Math.max((totalDurationMinutes / MINUTES_PER_HOUR) * PIXELS_PER_HOUR, 20);
+  
+  // Clamp to visible calendar window so items outside 6–20h are hinted at the edges
+  const CONTAINER_HEIGHT_PX = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * PIXELS_PER_HOUR;
+  const clampedTop = Math.max(0, topPosition);
+  const clampedBottom = Math.min(CONTAINER_HEIGHT_PX, clampedTop + appointmentHeight);
+  const clampedHeight = Math.max(20, clampedBottom - clampedTop);
 
   // Use scheduled status for recurring instances if no specific status
   const appointmentStatus = appointment.status || 'scheduled';
@@ -86,10 +93,6 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
   const personName = getPersonName();
   const serviceName = appointment.listings?.title || appointment.service_title || 'Servicio';
 
-  // Don't render if outside visible hours
-  if (startHour < CALENDAR_START_HOUR || startHour >= 20) {
-    return null;
-  }
 
   // Get status label
   const getStatusLabel = () => {
@@ -156,8 +159,8 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
         isExternal && "border-r-2 border-r-blue-400"
       )}
       style={{
-        top: `${topPosition}px`,
-        height: expanded ? undefined : `${appointmentHeight}px`,
+        top: `${clampedTop}px`,
+        height: expanded ? undefined : `${clampedHeight}px`,
         background: expanded ? '#fff' : statusColor.bg,
         borderLeftColor: statusColor.border,
         color: statusColor.text,

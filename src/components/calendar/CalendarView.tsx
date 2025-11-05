@@ -34,8 +34,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   // Filter appointments for this specific day
   const dayAppointments = appointments.filter(appointment => {
     const appointmentDate = new Date(appointment.start_time);
-    const appointmentDateString = format(appointmentDate, 'yyyy-MM-dd');
-    return appointmentDateString === dateString;
+    return isSameDay(appointmentDate, date);
   });
 
   

@@ -107,18 +107,6 @@ export const useUnifiedRecurringAppointments = ({
             duration,
             service_variants,
             custom_variable_groups
-          ),
-          client_data:users!appointments_client_id_fkey (
-            id,
-            name,
-            house_number,
-            condominium_text,
-            condominium_name,
-            residencias (
-              id,
-              name,
-              address
-            )
           )
         `)
         .eq(roleFilter, userId)
@@ -186,18 +174,6 @@ export const useUnifiedRecurringAppointments = ({
             duration,
             service_variants,
             custom_variable_groups
-          ),
-          client_data:users!appointments_client_id_fkey (
-            id,
-            name,
-            house_number,
-            condominium_text,
-            condominium_name,
-            residencias (
-              id,
-              name,
-              address
-            )
           )
         `)
         .eq(roleFilter, userId)
@@ -280,8 +256,7 @@ export const useUnifiedRecurringAppointments = ({
           
           // Build complete location for virtual instance
           const complete_location = buildAppointmentLocation({
-            appointment: fullAppointment,
-            clientData: fullAppointment.client_data
+            appointment: fullAppointment
           });
           
           return {
@@ -306,7 +281,7 @@ export const useUnifiedRecurringAppointments = ({
             listings: fullAppointment.listings,
             service_title: fullAppointment.listings?.title,
             complete_location,
-            client_data: fullAppointment.client_data,
+            
           };
         });
 
@@ -319,8 +294,7 @@ export const useUnifiedRecurringAppointments = ({
       ].map(apt => {
         // Build complete location for each appointment
         const complete_location = buildAppointmentLocation({
-          appointment: apt,
-          clientData: apt.client_data
+          appointment: apt
         });
         
         return {
