@@ -32,8 +32,36 @@ export interface ClientBooking {
   canRate: boolean;
 }
 
+// Helpers to build robust fallback plan keys
+const getTimeParts = (startTime: string) => {
+  const d = new Date(startTime);
+  const hh = d.getHours().toString().padStart(2, '0');
+  const mm = d.getMinutes().toString().padStart(2, '0');
+  const dow = d.getDay();
+  const dom = d.getDate();
+  return { hh, mm, dow, dom };
+};
+
+const buildFallbackKey = (a: any): string => {
+  const { hh, mm, dow, dom } = getTimeParts(a.start_time);
+  const base = `${a.provider_id}-${a.listing_id}`;
+  switch (a.recurrence) {
+    case 'daily':
+      return `${base}-daily-${hh}:${mm}`;
+    case 'weekly':
+      return `${base}-weekly-${dow}-${hh}:${mm}`;
+    case 'biweekly':
+      return `${base}-biweekly-${dow}-${hh}:${mm}`;
+    case 'triweekly':
+      return `${base}-triweekly-${dow}-${hh}:${mm}`;
+    case 'monthly':
+      return `${base}-monthly-${dom}-${hh}:${mm}`;
+    default:
+      return `${base}-pattern-${dow}-${hh}:${mm}`;
+  }
+};
+
 // Helper function to get only the next occurrence of each recurring plan
-// NOW SIMPLIFIED: Uses only original_appointment_id for grouping
 const getNextRecurringOccurrence = (appointments: any[]): any[] => {
   const now = new Date();
   const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
@@ -49,7 +77,7 @@ const getNextRecurringOccurrence = (appointments: any[]): any[] => {
     !validRecurrences.has(a.recurrence || 'none')
   );
   
-  // Group ONLY by original_appointment_id (all appointments now have it)
+  // Group by recurring plan using original_appointment_id only
   const recurringGroups = new Map<string, any[]>();
   
   recurring.forEach(appointment => {
@@ -254,13 +282,30 @@ export const useClientBookings = () => {
           .eq('is_recurring_instance', false)
           .in('recurrence', ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly']);
 
-        // Create map: provider-listing-recurrence-hour-minute → base_id
+        // Create map with recurrence-specific key (includes dow/dom when applicable)
         const baseAppointmentMap = new Map<string, string>();
+        const makeKey = (recurrence: string, start: string, providerId: string, listingId: string) => {
+          const dt = new Date(start);
+          const hh = dt.getHours();
+          const mm = dt.getMinutes();
+          const dow = dt.getDay();
+          const dom = dt.getDate();
+          const base = `${providerId}-${listingId}`;
+          switch (recurrence) {
+            case 'daily':
+              return `${base}-daily-${hh}-${mm}`;
+            case 'weekly':
+            case 'biweekly':
+            case 'triweekly':
+              return `${base}-${recurrence}-${dow}-${hh}-${mm}`;
+            case 'monthly':
+              return `${base}-monthly-${dom}-${hh}-${mm}`;
+            default:
+              return `${base}-pattern-${dow}-${hh}-${mm}`;
+          }
+        };
         baseAppointmentsForMatching?.forEach(base => {
-          const date = new Date(base.start_time);
-          const hour = date.getHours();
-          const minute = date.getMinutes();
-          const key = `${base.provider_id}-${base.listing_id}-${base.recurrence}-${hour}-${minute}`;
+          const key = makeKey(base.recurrence, base.start_time, base.provider_id, base.listing_id);
           baseAppointmentMap.set(key, base.id);
         });
 
@@ -274,10 +319,7 @@ export const useClientBookings = () => {
           }
           
           // Materialized instance - find its base
-          const date = new Date(apt.start_time);
-          const hour = date.getHours();
-          const minute = date.getMinutes();
-          const key = `${apt.provider_id}-${apt.listing_id}-${apt.recurrence}-${hour}-${minute}`;
+          const key = makeKey(apt.recurrence, apt.start_time, apt.provider_id, apt.listing_id);
           const baseId = baseAppointmentMap.get(key);
           
           if (baseId) {
