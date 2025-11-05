@@ -143,13 +143,13 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             }
           }
 
-          // Determine real duration: prioritize slot_size, then standard_duration, then listing.duration, then first variant duration, fallback 60
+          // Determine real duration: prioritize first variant duration, then listing.duration, then standard_duration, fallback 60
           let variantDuration: number | undefined = undefined;
           if (firstVariant && typeof firstVariant === 'object' && 'duration' in firstVariant) {
             const d = Number((firstVariant as any).duration);
             variantDuration = isNaN(d) ? undefined : d;
           }
-          const computedDuration = Number(listing.slot_size) || Number(listing.standard_duration) || Number(listing.duration) || (variantDuration ?? 0) || 60;
+          const computedDuration = (variantDuration ?? 0) || Number(listing.duration) || Number(listing.standard_duration) || 60;
 
           const processedProvider = {
             id: listing.provider_id,
