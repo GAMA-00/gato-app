@@ -160,8 +160,12 @@ const ClientBookings = () => {
   const fourDaysAgo = new Date();
   fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
   
+  // Filtrar tarjetas descartadas desde localStorage
+  const dismissedRatings = JSON.parse(localStorage.getItem('dismissedRatings') || '[]');
+  
   const completedBookings = allCompletedBookings.filter(booking => 
-    booking.date > fourDaysAgo // Solo mostrar servicios completados en los últimos 4 días
+    booking.date > fourDaysAgo && // Solo mostrar servicios completados en los últimos 4 días
+    !dismissedRatings.includes(booking.id) // Excluir tarjetas descartadas
   );
 
   // Separar citas post-pago pendientes de factura vs listas para calificar
