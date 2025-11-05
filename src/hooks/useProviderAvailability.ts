@@ -121,7 +121,7 @@ export const useProviderAvailability = ({
         .from('appointments')
         .select('id, start_time, end_time, recurrence, client_id, provider_id, listing_id, status')
         .eq('provider_id', providerId)
-        .in('recurrence', ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly'])
+        .in('recurrence', ['weekly', 'biweekly', 'triweekly', 'monthly'])
         .in('status', ['pending', 'confirmed']);
 
       let exceptions: any[] = [];

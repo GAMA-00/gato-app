@@ -11,7 +11,7 @@ export function useClientAppointmentsCount() {
     if (!bookings || !user || user.role !== 'client') return 0;
     
     const now = new Date();
-    const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
+    const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
     
     console.log('=== CALCULATING APPOINTMENTS COUNT (UNIFIED SYSTEM) ===');
     console.log(`Total bookings: ${bookings.length}`);

@@ -29,14 +29,6 @@ export const RECURRENCE_INFO_MAP: Record<RecurrenceType, RecurrenceInfo> = {
     icon: 'Calendar',
     description: 'Servicio único, no se repetirá'
   },
-  daily: {
-    type: 'daily',
-    label: 'Diaria',
-    shortLabel: 'Dia',
-    color: 'bg-red-100 text-red-800 border-red-300',
-    icon: 'CalendarClock',
-    description: 'Se repite todos los días a la misma hora'
-  },
   weekly: {
     type: 'weekly',
     label: 'Semanal',
@@ -82,13 +74,6 @@ export const RECURRENCE_SELECTOR_OPTIONS: RecurrenceSelectorOption[] = [
     label: 'Una vez',
     description: 'Servicio único',
     icon: 'Calendar',
-    popular: true
-  },
-  {
-    value: 'daily',
-    label: 'Diaria',
-    description: 'Todos los días',
-    icon: 'CalendarClock',
     popular: true
   },
   {

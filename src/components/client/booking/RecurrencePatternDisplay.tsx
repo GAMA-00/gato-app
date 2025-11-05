@@ -34,7 +34,6 @@ const RecurrencePatternDisplay = ({
 
   const getFrequencyText = (freq: string) => {
     switch (freq) {
-      case 'daily': return 'Diaria';
       case 'weekly': return 'Semanal';
       case 'biweekly': return 'Quincenal';
       case 'triweekly': return 'Trisemanal';
@@ -45,9 +44,6 @@ const RecurrencePatternDisplay = ({
 
   const getPatternDescription = () => {
     switch (frequency) {
-      case 'daily':
-        return 'Todos los días';
-      
       case 'weekly':
         return `Cada ${formatDateES(selectedDate, 'EEEE', { locale: es })}`;
       
@@ -74,11 +70,6 @@ const RecurrencePatternDisplay = ({
     // Generar 3 ejemplos de fechas futuras
     for (let i = 0; i < 3; i++) {
       switch (frequency) {
-        case 'daily':
-          currentDate = new Date(currentDate);
-          currentDate.setDate(currentDate.getDate() + 1);
-          break;
-        
         case 'weekly':
           currentDate = new Date(currentDate);
           currentDate.setDate(currentDate.getDate() + 7);

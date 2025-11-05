@@ -28,13 +28,6 @@ export function normalizeRecurrence(recurrence: string | null | undefined): Recu
     case 'una vez':
     case 'single':
       return 'once';
-    case 'daily':
-    case 'diaria':
-    case 'diario':
-    case 'day':
-    case 'cada dia':
-    case 'todos los dias':
-      return 'daily';
     case 'weekly':
     case 'semanal':
     case 'week':
@@ -95,9 +88,6 @@ export function calculateNextOccurrence(
   originalDate?: Date
 ): Date {
   switch (recurrenceType) {
-    case 'daily':
-      return addDays(currentDate, 1);
-    
     case 'weekly':
       return addWeeks(currentDate, 1);
     
@@ -136,10 +126,6 @@ export function findFirstValidOccurrence(
   let candidate = new Date(Math.max(startDate.getTime(), ruleStartDate.getTime()));
   
   switch (recurrenceType) {
-    case 'daily':
-      // Para recurrencia diaria, no requiere ajuste de día específico
-      break;
-      
     case 'weekly':
       if (targetDayOfWeek !== undefined) {
         // Encontrar el próximo día de la semana correcto
@@ -215,9 +201,6 @@ export function shouldGenerateInstance(
   const daysDiff = Math.floor((targetDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24));
   
   switch (recurrenceType) {
-    case 'daily':
-      return daysDiff >= 0;
-    
     case 'weekly':
       return daysDiff >= 0 && daysDiff % 7 === 0 && getDay(targetDate) === getDay(originalDate);
     

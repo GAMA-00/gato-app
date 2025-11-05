@@ -46,8 +46,6 @@ const buildFallbackKey = (a: any): string => {
   const { hh, mm, dow, dom } = getTimeParts(a.start_time);
   const base = `${a.provider_id}-${a.listing_id}`;
   switch (a.recurrence) {
-    case 'daily':
-      return `${base}-daily-${hh}:${mm}`;
     case 'weekly':
       return `${base}-weekly-${dow}-${hh}:${mm}`;
     case 'biweekly':
@@ -64,7 +62,7 @@ const buildFallbackKey = (a: any): string => {
 // Helper function to get only the next occurrence of each recurring plan
 const getNextRecurringOccurrence = (appointments: any[]): any[] => {
   const now = new Date();
-  const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
+  const validRecurrences = new Set(['weekly','biweekly','triweekly','monthly']);
 
   // Robust recurring detection (materialized instances often have recurrence='none')
   const isRecurring = (a: any) => {

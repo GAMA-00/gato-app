@@ -20,7 +20,7 @@ export const RecurringAppointmentAdvancer = ({
 
   useEffect(() => {
     // Auto-advance recurring appointments when completed
-    const validPatterns = ['daily','weekly','biweekly','triweekly','monthly'] as const;
+    const validPatterns = ['weekly','biweekly','triweekly','monthly'] as const;
     const isValidRecurrence = recurrence && validPatterns.includes(recurrence as any);
     
     if (isCompleted && isValidRecurrence) {

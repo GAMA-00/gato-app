@@ -20,9 +20,6 @@ export function calculateNextOccurrence(
   }
   
   switch (recurrence) {
-    case 'daily':
-      return calculateDailyOccurrence(appointmentTime, now);
-    
     case 'weekly':
       return calculateWeeklyOccurrence(appointmentTime, now);
     
@@ -39,19 +36,6 @@ export function calculateNextOccurrence(
       console.log(`⚠️ Tipo de recurrencia desconocido: ${recurrence}, usando fecha original`);
       return appointmentTime;
   }
-}
-
-function calculateDailyOccurrence(appointmentTime: Date, now: Date): Date {
-  let nextDate = new Date(now);
-  nextDate.setHours(appointmentTime.getHours(), appointmentTime.getMinutes(), 0, 0);
-  
-  // Si la hora de hoy ya pasó, programar para mañana
-  if (nextDate <= now) {
-    nextDate.setDate(nextDate.getDate() + 1);
-  }
-  
-  console.log(`⏰ Próxima ocurrencia diaria: ${nextDate.toLocaleString()}`);
-  return nextDate;
 }
 
 function calculateWeeklyOccurrence(appointmentTime: Date, now: Date): Date {
