@@ -97,6 +97,7 @@ export const useUnifiedRecurringAppointments = ({
         .eq(roleFilter, userId)
         .in('status', statusFilter)
         .gte('start_time', startOfDay(startDate).toISOString())
+        .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: true });
 
       if (appointmentsError) {
@@ -106,15 +107,26 @@ export const useUnifiedRecurringAppointments = ({
 
       console.log(`Fetched ${realAppointments?.length || 0} real appointments from DB`);
 
-      // 2. Identify recurring appointments (base appointments with recurrence)
+      // 2. Separate materialized instances from potential base appointments
+      const materializedInstances = (realAppointments || []).filter(apt => 
+        apt.is_recurring_instance === true
+      );
+
+      const nonRecurringAppointments = (realAppointments || []).filter(apt =>
+        !apt.recurrence || apt.recurrence === 'none' || apt.recurrence === 'once'
+      );
+
+      // Only look for base appointments if they explicitly have is_recurring_instance === false
       const recurringBaseAppointments = (realAppointments || []).filter(apt => 
         apt.recurrence && 
         apt.recurrence !== 'none' && 
         apt.recurrence !== 'once' &&
-        !apt.is_recurring_instance // Only base appointments, not instances
+        apt.is_recurring_instance === false // Explicitly false, not just falsy
       );
 
-      console.log(`Found ${recurringBaseAppointments.length} recurring base appointments`);
+      console.log(`Found ${materializedInstances.length} materialized instances`);
+      console.log(`Found ${nonRecurringAppointments.length} non-recurring appointments`);
+      console.log(`Found ${recurringBaseAppointments.length} recurring base appointments for virtual calculation`);
 
       // 3. Fetch exceptions for these recurring appointments
       let exceptions: RecurringException[] = [];
@@ -175,12 +187,17 @@ export const useUnifiedRecurringAppointments = ({
 
       console.log(`Created ${virtualAppointments.length} virtual appointment objects`);
 
-      // 6. Combine real appointments with virtual instances
-      const realAppointmentsMapped: UnifiedAppointment[] = (realAppointments || []).map(apt => ({
+      // 6. Map only materialized instances and non-recurring appointments (skip base appointments that will be virtually calculated)
+      const realAppointmentsMapped: UnifiedAppointment[] = [
+        ...materializedInstances,
+        ...nonRecurringAppointments
+      ].map(apt => ({
         ...apt,
         source_type: 'appointment' as const,
         service_title: apt.listings?.title,
       }));
+
+      console.log(`Mapped ${realAppointmentsMapped.length} real appointments (materialized + non-recurring)`);
 
       const allAppointments = [...realAppointmentsMapped, ...virtualAppointments];
 
