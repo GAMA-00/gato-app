@@ -164,7 +164,7 @@ export const Checkout = () => {
                 <Separator className="my-3" />
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-bold">TOTAL:</span>
-                  <span className="text-3xl font-bold text-primary">
+                  <span className="text-3xl font-bold text-success">
                     {formatCurrency(priceBreakdown.total)}
                   </span>
                 </div>
