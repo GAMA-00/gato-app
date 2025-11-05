@@ -22,7 +22,7 @@ export const StickyPaymentFooter: React.FC<StickyPaymentFooterProps> = ({
         {/* Total */}
         <div className="flex items-center justify-between">
           <span className="text-lg font-semibold">Total:</span>
-          <span className="text-2xl font-bold text-primary">
+          <span className="text-2xl font-bold text-success">
             {formatCurrency(amount)}
           </span>
         </div>
