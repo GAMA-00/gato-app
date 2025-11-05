@@ -200,7 +200,39 @@ export const useUnifiedRecurringAppointments = ({
 
       console.log(`Unified ${unifiedBaseAppointments.length} unique recurring base appointments for calculation`);
 
-      // 3. Fetch exceptions for these recurring appointments
+      // 3. Fetch client data for building locations
+      const clientIds = Array.from(new Set([
+        ...((realAppointments || []).map(a => a.client_id).filter(Boolean) as string[]),
+        ...((unifiedBaseAppointments || []).map((a: any) => a.client_id).filter(Boolean) as string[]),
+      ]));
+
+      let clientsMap = new Map<string, any>();
+      if (clientIds.length > 0) {
+        const { data: clients, error: clientsError } = await supabase
+          .from('users')
+          .select(`
+            id,
+            name,
+            house_number,
+            condominium_text,
+            condominium_name,
+            residencia_id,
+            residencias (
+              id,
+              name
+            )
+          `)
+          .in('id', clientIds);
+
+        if (clientsError) {
+          console.warn('Users fetch failed; falling back to appointment data for locations', clientsError);
+        } else if (clients && clients.length > 0) {
+          clientsMap = new Map(clients.map((c: any) => [c.id, c]));
+          console.log(`Fetched ${clients.length} client profiles for location building`);
+        }
+      }
+
+      // 4. Fetch exceptions for these recurring appointments
       let exceptions: RecurringException[] = [];
       if (unifiedBaseAppointments.length > 0) {
         const appointmentIds = unifiedBaseAppointments.map(a => a.id);
@@ -258,9 +290,11 @@ export const useUnifiedRecurringAppointments = ({
               ? 'bg-orange-100 border-orange-300 text-orange-700' 
               : undefined;
           
-          // Build complete location for virtual instance
+          // Build complete location for virtual instance using client data when available
+          const clientData = clientsMap.get(baseAppointment.client_id);
           const complete_location = buildAppointmentLocation({
-            appointment: fullAppointment
+            appointment: fullAppointment,
+            clientData
           });
           
           return {
@@ -274,7 +308,7 @@ export const useUnifiedRecurringAppointments = ({
             provider_id: baseAppointment.provider_id,
             client_id: baseAppointment.client_id,
             listing_id: baseAppointment.listing_id,
-            client_name: baseAppointment.client_name,
+            client_name: baseAppointment.client_name || clientData?.name,
             provider_name: baseAppointment.provider_name,
             client_address: fullAppointment.client_address,
             notes: baseAppointment.notes,
@@ -287,7 +321,7 @@ export const useUnifiedRecurringAppointments = ({
             listings: fullAppointment.listings,
             service_title: fullAppointment.listings?.title,
             complete_location,
-            
+            client_data: clientData || null,
           };
         });
 
@@ -298,9 +332,11 @@ export const useUnifiedRecurringAppointments = ({
         ...materializedInstances,
         ...nonRecurringAppointments
       ].map(apt => {
-        // Build complete location for each appointment
+        // Build complete location for each appointment using client data when available
+        const clientData = clientsMap.get(apt.client_id);
         const complete_location = buildAppointmentLocation({
-          appointment: apt
+          appointment: apt,
+          clientData
         });
         
         return {
@@ -308,6 +344,7 @@ export const useUnifiedRecurringAppointments = ({
           source_type: 'appointment' as const,
           service_title: apt.listings?.title,
           complete_location,
+          client_data: clientData || null,
         };
       });
 
