@@ -4,6 +4,7 @@ import { ClientBooking } from '@/hooks/useClientBookings';
 import { BookingCard } from '@/components/client/booking/BookingCard';
 import { BookingSkeleton } from '@/components/client/booking/BookingSkeleton';
 import { RecurringAppointmentAdvancer } from '@/components/client/booking/RecurringAppointmentAdvancer';
+import { useDailyRecurrenceGenerator } from '@/hooks/useDailyRecurrenceGenerator';
 
 interface BookingsListProps {
   bookings: ClientBooking[];
@@ -51,8 +52,23 @@ export const BookingsList = ({
               onAdvanced={onRated}
             />
           )}
+          {/* Proactively generate next instance for daily appointments */}
+          {booking.recurrence === 'daily' && ['confirmed', 'pending'].includes(booking.status) && (
+            <DailyInstanceGenerator
+              appointmentId={booking.id}
+              recurrence={booking.recurrence}
+              status={booking.status}
+              startTime={booking.date.toISOString()}
+            />
+          )}
         </div>
       ))}
     </div>
   );
+};
+
+// Component wrapper for the daily generator hook
+const DailyInstanceGenerator = ({ appointmentId, recurrence, status, startTime }: any) => {
+  useDailyRecurrenceGenerator({ appointmentId, recurrence, status, startTime });
+  return null;
 };

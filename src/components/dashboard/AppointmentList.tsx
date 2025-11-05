@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import AppointmentCard from './AppointmentCard';
 import AppointmentListHeader from './AppointmentListHeader';
+import { useDailyRecurrenceGenerator } from '@/hooks/useDailyRecurrenceGenerator';
 
 interface AppointmentListProps {
   appointments: any[];
@@ -97,14 +98,24 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
         {filteredAppointments.length > 0 ? (
           <div className="divide-y">
             {filteredAppointments.map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                user={user}
-                isPending={isPending}
-                onAccept={isPending ? handleAcceptAppointment : undefined}
-                onReject={isPending ? handleRejectAppointment : undefined}
-              />
+              <React.Fragment key={appointment.id}>
+                <AppointmentCard
+                  appointment={appointment}
+                  user={user}
+                  isPending={isPending}
+                  onAccept={isPending ? handleAcceptAppointment : undefined}
+                  onReject={isPending ? handleRejectAppointment : undefined}
+                />
+                {/* Proactively generate next instance for daily appointments */}
+                {appointment.recurrence === 'daily' && ['confirmed', 'pending'].includes(appointment.status) && (
+                  <DailyInstanceGenerator
+                    appointmentId={appointment.id}
+                    recurrence={appointment.recurrence}
+                    status={appointment.status}
+                    startTime={appointment.start_time}
+                  />
+                )}
+              </React.Fragment>
             ))}
           </div>
         ) : (
@@ -115,6 +126,12 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
       </CardContent>
     </Card>
   );
+};
+
+// Component wrapper for the daily generator hook
+const DailyInstanceGenerator = ({ appointmentId, recurrence, status, startTime }: any) => {
+  useDailyRecurrenceGenerator({ appointmentId, recurrence, status, startTime });
+  return null;
 };
 
 export default AppointmentList;
