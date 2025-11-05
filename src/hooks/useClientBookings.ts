@@ -276,7 +276,7 @@ const { data: baseAppointmentsForMatching } = await supabase
           .from('appointments')
           .select('id, provider_id, listing_id, recurrence, start_time, recurring_rule_id')
           .eq('is_recurring_instance', false)
-          .in('recurrence', ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly']);
+          .in('recurrence', ['weekly', 'biweekly', 'triweekly', 'monthly']);
 
 // Create map with recurrence-specific key (includes dow/dom when applicable)
 const baseAppointmentMap = new Map<string, { id: string; recurring_rule_id?: string }>();
@@ -288,8 +288,6 @@ const makeKey = (recurrence: string, start: string, providerId: string, listingI
   const dom = dt.getDate();
   const base = `${providerId}-${listingId}`;
   switch (recurrence) {
-    case 'daily':
-      return `${base}-daily-${hh}-${mm}`;
     case 'weekly':
     case 'biweekly':
     case 'triweekly':

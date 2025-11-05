@@ -183,6 +183,7 @@ export const useUnifiedRecurringAppointments = ({
         .neq('recurrence', 'none')
         .neq('recurrence', 'once')
         .eq('is_recurring_instance', false)
+        .in('status', ['confirmed', 'pending'])
         .lte('start_time', normalizedEnd.toISOString());
 
       if (baseAllError) {
