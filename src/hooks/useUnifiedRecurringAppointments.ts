@@ -153,12 +153,77 @@ export const useUnifiedRecurringAppointments = ({
 
       console.log(`Found ${materializedInstances.length} materialized instances`);
       console.log(`Found ${nonRecurringAppointments.length} non-recurring appointments`);
-      console.log(`Found ${recurringBaseAppointments.length} recurring base appointments for virtual calculation`);
+      console.log(`Found ${recurringBaseAppointments.length} recurring base appointments IN RANGE`);
+
+      // 2b. Fetch ALL recurring base appointments (not limited by start date range)
+      // This ensures we capture recurring series that started before our range but have future instances
+      const { data: recurringBaseAll, error: baseAllError } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          start_time,
+          end_time,
+          status,
+          recurrence,
+          provider_id,
+          client_id,
+          listing_id,
+          client_name,
+          provider_name,
+          client_address,
+          notes,
+          is_recurring_instance,
+          recurrence_group_id,
+          external_booking,
+          final_price,
+          custom_variables_total_price,
+          custom_variable_selections,
+          listings (
+            id,
+            title,
+            is_post_payment,
+            base_price,
+            duration,
+            service_variants,
+            custom_variable_groups
+          ),
+          client_data:users!appointments_client_id_fkey (
+            id,
+            name,
+            house_number,
+            condominium_text,
+            condominium_name,
+            residencias (
+              id,
+              name,
+              address
+            )
+          )
+        `)
+        .eq(roleFilter, userId)
+        .neq('recurrence', 'none')
+        .neq('recurrence', 'once')
+        .eq('is_recurring_instance', false)
+        .lte('start_time', normalizedEnd.toISOString());
+
+      if (baseAllError) {
+        console.error('Error fetching all recurring bases:', baseAllError);
+      }
+
+      console.log(`Fetched ${recurringBaseAll?.length || 0} total recurring base appointments (all time)`);
+
+      // 2c. Unify recurring bases: combine in-range and all-time bases, removing duplicates
+      const baseById = new Map();
+      recurringBaseAppointments.forEach(b => baseById.set(b.id, b));
+      (recurringBaseAll || []).forEach(b => baseById.set(b.id, b));
+      const unifiedBaseAppointments = Array.from(baseById.values());
+
+      console.log(`Unified ${unifiedBaseAppointments.length} unique recurring base appointments for calculation`);
 
       // 3. Fetch exceptions for these recurring appointments
       let exceptions: RecurringException[] = [];
-      if (recurringBaseAppointments.length > 0) {
-        const appointmentIds = recurringBaseAppointments.map(a => a.id);
+      if (unifiedBaseAppointments.length > 0) {
+        const appointmentIds = unifiedBaseAppointments.map(a => a.id);
         const { data: exceptionsData, error: exceptionsError } = await supabase
           .from('recurring_exceptions')
           .select('*')
@@ -176,9 +241,9 @@ export const useUnifiedRecurringAppointments = ({
       }
 
       // 4. Calculate virtual instances for recurring appointments
-      const virtualInstances: CalculatedRecurringInstance[] = recurringBaseAppointments.length > 0
+      const virtualInstances: CalculatedRecurringInstance[] = unifiedBaseAppointments.length > 0
         ? getAllRecurringInstances(
-            recurringBaseAppointments as RecurringAppointment[],
+            unifiedBaseAppointments as RecurringAppointment[],
             exceptions,
             startDate,
             endDate,
@@ -298,9 +363,15 @@ export const useUnifiedRecurringAppointments = ({
       console.log(`=== UNIFIED RESULT: ${unifiedAppointments.length} total appointments ===`);
       console.log(`Real: ${realAppointmentsMapped.length}, Virtual: ${virtualAppointments.length}, Deduplicated: ${unifiedAppointments.length}`);
 
-      // 9. Filter out cancelled and rejected appointments for display consistency
-      const filteredUnified = unifiedAppointments.filter(a => !['cancelled', 'rejected'].includes(a.status));
-      console.log(`Filtered out cancelled/rejected. Final count: ${filteredUnified.length}`);
+      // 9. Filter out cancelled, rejected, and optionally completed appointments
+      let filteredUnified = unifiedAppointments.filter(a => !['cancelled', 'rejected'].includes(a.status));
+      
+      if (!includeCompleted) {
+        filteredUnified = filteredUnified.filter(a => a.status !== 'completed');
+        console.log(`Filtered out cancelled/rejected/completed. Final count: ${filteredUnified.length}`);
+      } else {
+        console.log(`Filtered out cancelled/rejected. Final count: ${filteredUnified.length}`);
+      }
 
       return filteredUnified;
     },

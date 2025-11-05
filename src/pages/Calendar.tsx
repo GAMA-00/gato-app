@@ -27,7 +27,7 @@ const Calendar = () => {
     userRole: 'provider',
     startDate,
     endDate,
-    includeCompleted: true
+    includeCompleted: false
   });
 
   // Log controlado y filtrado de citas visibles (sin canceladas/rechazadas)
