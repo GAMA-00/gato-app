@@ -65,49 +65,47 @@ const buildFallbackKey = (a: any): string => {
 const getNextRecurringOccurrence = (appointments: any[]): any[] => {
   const now = new Date();
   const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
-  
-  // Separate recurring from non-recurring
-  const recurring = appointments.filter(a => 
-    validRecurrences.has(a.recurrence || 'none') && 
-    new Date(a.start_time) > now &&
-    ['pending', 'confirmed'].includes(a.status)
+
+  // Robust recurring detection (materialized instances often have recurrence='none')
+  const isRecurring = (a: any) => {
+    return a?.is_recurring_instance === true
+      || !!a?.recurring_rule_id
+      || (!!a?.original_appointment_id && a.original_appointment_id !== a.id)
+      || validRecurrences.has(a?.recurrence || 'none');
+  };
+
+  // Plan identifier hierarchy for grouping recurring series
+  const planIdFor = (a: any) =>
+    a?.recurring_rule_id || a?.recurrence_group_id || a?.original_appointment_id || buildFallbackKey(a);
+
+  // Separate and filter only future, active recurring appointments
+  const recurring = appointments.filter(a =>
+    isRecurring(a) && new Date(a.start_time) > now && ['pending','confirmed'].includes(a.status)
   );
-  
-  const nonRecurring = appointments.filter(a => 
-    !validRecurrences.has(a.recurrence || 'none')
+
+  // Keep non-recurring as-is; they will be processed later in pipeline
+  const nonRecurring = appointments.filter(a => !isRecurring(a));
+
+  // Group by plan and pick the earliest upcoming occurrence per plan
+  const groups = new Map<string, any[]>();
+  for (const a of recurring) {
+    const key = planIdFor(a);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(a);
+  }
+
+  const nextRecurring = Array.from(groups.values()).map(group =>
+    group.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0]
   );
-  
-  // Group by recurring plan using original_appointment_id only
-  const recurringGroups = new Map<string, any[]>();
-  
-  recurring.forEach(appointment => {
-    const planId = appointment.original_appointment_id || appointment.id;
-    
-    if (!recurringGroups.has(planId)) {
-      recurringGroups.set(planId, []);
-    }
-    recurringGroups.get(planId)!.push(appointment);
-  });
-  
-  // From each group, take only the next (earliest in time)
-  const nextRecurring: any[] = [];
-  
-  recurringGroups.forEach((group) => {
-    // Sort by date and take the first
-    const sorted = group.sort((a, b) => 
-      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-    );
-    nextRecurring.push(sorted[0]);
-  });
-  
-  bookingLogger.info(`📊 Recurring appointments filtered:`, {
+
+  bookingLogger.info('📊 Recurring normalized:', {
     totalRecurring: recurring.length,
-    uniquePlans: recurringGroups.size,
+    uniquePlans: groups.size,
     nextOccurrencesShown: nextRecurring.length,
     nonRecurring: nonRecurring.length,
-    finalTotal: nextRecurring.length + nonRecurring.length
+    finalTotal: nextRecurring.length + nonRecurring.length,
   });
-  
+
   return [...nextRecurring, ...nonRecurring];
 };
 
@@ -276,61 +274,63 @@ export const useClientBookings = () => {
         bookingLogger.info('=== ENRIQUECIENDO INSTANCIAS MATERIALIZADAS ===');
         
         // Fetch all base appointments to match materialized instances
-        const { data: baseAppointmentsForMatching } = await supabase
+const { data: baseAppointmentsForMatching } = await supabase
           .from('appointments')
-          .select('id, provider_id, listing_id, recurrence, start_time')
+          .select('id, provider_id, listing_id, recurrence, start_time, recurring_rule_id')
           .eq('is_recurring_instance', false)
           .in('recurrence', ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly']);
 
-        // Create map with recurrence-specific key (includes dow/dom when applicable)
-        const baseAppointmentMap = new Map<string, string>();
-        const makeKey = (recurrence: string, start: string, providerId: string, listingId: string) => {
-          const dt = new Date(start);
-          const hh = dt.getHours();
-          const mm = dt.getMinutes();
-          const dow = dt.getDay();
-          const dom = dt.getDate();
-          const base = `${providerId}-${listingId}`;
-          switch (recurrence) {
-            case 'daily':
-              return `${base}-daily-${hh}-${mm}`;
-            case 'weekly':
-            case 'biweekly':
-            case 'triweekly':
-              return `${base}-${recurrence}-${dow}-${hh}-${mm}`;
-            case 'monthly':
-              return `${base}-monthly-${dom}-${hh}-${mm}`;
-            default:
-              return `${base}-pattern-${dow}-${hh}-${mm}`;
-          }
-        };
-        baseAppointmentsForMatching?.forEach(base => {
-          const key = makeKey(base.recurrence, base.start_time, base.provider_id, base.listing_id);
-          baseAppointmentMap.set(key, base.id);
-        });
+// Create map with recurrence-specific key (includes dow/dom when applicable)
+const baseAppointmentMap = new Map<string, { id: string; recurring_rule_id?: string }>();
+const makeKey = (recurrence: string, start: string, providerId: string, listingId: string) => {
+  const dt = new Date(start);
+  const hh = dt.getHours();
+  const mm = dt.getMinutes();
+  const dow = dt.getDay();
+  const dom = dt.getDate();
+  const base = `${providerId}-${listingId}`;
+  switch (recurrence) {
+    case 'daily':
+      return `${base}-daily-${hh}-${mm}`;
+    case 'weekly':
+    case 'biweekly':
+    case 'triweekly':
+      return `${base}-${recurrence}-${dow}-${hh}-${mm}`;
+    case 'monthly':
+      return `${base}-monthly-${dom}-${hh}-${mm}`;
+    default:
+      return `${base}-pattern-${dow}-${hh}-${mm}`;
+  }
+};
+baseAppointmentsForMatching?.forEach(base => {
+  const key = makeKey(base.recurrence, base.start_time, base.provider_id, base.listing_id);
+  baseAppointmentMap.set(key, { id: base.id, recurring_rule_id: (base as any).recurring_rule_id });
+});
 
         bookingLogger.debug(`Mapa de bases creado: ${baseAppointmentMap.size} entradas`);
 
-        // Enrich appointments with original_appointment_id
-        const enrichedAppointments = filteredAppointments.map(apt => {
-          if (apt.original_appointment_id) {
-            // Already has it (virtual instance)
-            return apt;
-          }
-          
-          // Materialized instance - find its base
-          const key = makeKey(apt.recurrence, apt.start_time, apt.provider_id, apt.listing_id);
-          const baseId = baseAppointmentMap.get(key);
-          
-          if (baseId) {
-            bookingLogger.debug(`Instancia materializada ${apt.id} vinculada a base ${baseId}`);
-          }
-          
-          return {
-            ...apt,
-            original_appointment_id: baseId || apt.id // Fallback to own ID if no base found
-          };
-        });
+// Enrich appointments with original_appointment_id and recurring_rule_id
+const enrichedAppointments = filteredAppointments.map(apt => {
+  if (apt.original_appointment_id) {
+    // Already has it (virtual instance)
+    return apt;
+  }
+  
+  // Materialized instance - find its base
+  const key = makeKey(apt.recurrence, apt.start_time, apt.provider_id, apt.listing_id);
+  const base = baseAppointmentMap.get(key);
+  
+  if (base?.id) {
+    bookingLogger.debug(`Instancia materializada ${apt.id} vinculada a base ${base.id}`);
+  }
+  
+  return {
+    ...apt,
+    original_appointment_id: base?.id || apt.id, // Fallback to own ID if no base found
+    // If instance lacks recurring_rule_id, inherit from base
+    recurring_rule_id: apt.recurring_rule_id || base?.recurring_rule_id,
+  };
+});
 
         bookingLogger.info(`Enriquecimiento completado: ${enrichedAppointments.filter(a => a.original_appointment_id).length} appointments con original_appointment_id`);
 
