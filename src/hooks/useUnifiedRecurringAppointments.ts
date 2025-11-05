@@ -174,6 +174,8 @@ export const useUnifiedRecurringAppointments = ({
         .filter(instance => instance.status !== 'cancelled') // Skip cancelled instances
         .map(instance => {
           const baseAppointment = instance.original_appointment;
+          // Cast to any to access extended properties from DB query
+          const fullAppointment = baseAppointment as any;
           
           // Use rescheduled times if available, otherwise use calculated times
           const startTime = instance.new_start_time ?? instance.start_time;
@@ -202,6 +204,7 @@ export const useUnifiedRecurringAppointments = ({
             listing_id: baseAppointment.listing_id,
             client_name: baseAppointment.client_name,
             provider_name: baseAppointment.provider_name,
+            client_address: fullAppointment.client_address,
             notes: baseAppointment.notes,
             is_recurring_instance: true,
             original_appointment_id: baseAppointment.id,
@@ -209,6 +212,10 @@ export const useUnifiedRecurringAppointments = ({
             external_booking: false,
             rescheduled_style: rescheduledStyle,
             reschedule_notes: instance.exception?.notes,
+            listings: fullAppointment.listings,
+            service_title: fullAppointment.listings?.title,
+            complete_location: fullAppointment.complete_location,
+            client_data: fullAppointment.client_data,
           };
         });
 
