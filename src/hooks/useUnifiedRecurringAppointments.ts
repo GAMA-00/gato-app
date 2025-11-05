@@ -98,7 +98,11 @@ export const useUnifiedRecurringAppointments = ({
           listings (
             id,
             title,
-            is_post_payment
+            is_post_payment,
+            base_price,
+            duration,
+            service_variants,
+            custom_variable_groups
           )
         `)
         .eq(roleFilter, userId)
