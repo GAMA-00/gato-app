@@ -188,6 +188,11 @@ function findFirstValidOccurrence(startDate: Date, rule: RecurringRule, ruleStar
   console.log(`  Candidate start: ${format(candidate, 'yyyy-MM-dd')} (day ${getDay(candidate)})`);
   
   switch (rule.recurrence_type) {
+    case 'daily':
+      // For daily recurrence, start from the latest of rule start or range start
+      console.log(`  ✅ Daily recurrence starts at: ${format(candidate, 'yyyy-MM-dd')}`);
+      break;
+      
     case 'weekly':
       // If we're starting from the rule's start date and it matches, use it
       if (candidate.getTime() === ruleStartDate.getTime() && getDay(candidate) === rule.day_of_week) {
@@ -236,6 +241,8 @@ function findFirstValidOccurrence(startDate: Date, rule: RecurringRule, ruleStar
 // Get the next occurrence for a recurring rule
 function getNextOccurrence(currentDate: Date, rule: RecurringRule, ruleStartDate: Date): Date {
   switch (rule.recurrence_type) {
+    case 'daily':
+      return addDays(currentDate, 1);
     case 'weekly':
       return addWeeks(currentDate, 1);
     case 'biweekly':
