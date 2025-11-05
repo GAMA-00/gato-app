@@ -32,13 +32,33 @@ export interface ClientBooking {
   canRate: boolean;
 }
 
-// Helper to extract stable weekly pattern for fallback grouping
-const extractWeeklyKey = (startTime: string): string => {
-  const date = new Date(startTime);
-  const dow = date.getDay(); // 0=Sunday, 6=Saturday
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${dow}-${hours}:${minutes}`;
+// Helpers to build robust fallback plan keys
+const getTimeParts = (startTime: string) => {
+  const d = new Date(startTime);
+  const hh = d.getHours().toString().padStart(2, '0');
+  const mm = d.getMinutes().toString().padStart(2, '0');
+  const dow = d.getDay();
+  const dom = d.getDate();
+  return { hh, mm, dow, dom };
+};
+
+const buildFallbackKey = (a: any): string => {
+  const { hh, mm, dow, dom } = getTimeParts(a.start_time);
+  const base = `${a.provider_id}-${a.listing_id}`;
+  switch (a.recurrence) {
+    case 'daily':
+      return `${base}-daily-${hh}:${mm}`;
+    case 'weekly':
+      return `${base}-weekly-${dow}-${hh}:${mm}`;
+    case 'biweekly':
+      return `${base}-biweekly-${dow}-${hh}:${mm}`;
+    case 'triweekly':
+      return `${base}-triweekly-${dow}-${hh}:${mm}`;
+    case 'monthly':
+      return `${base}-monthly-${dom}-${hh}:${mm}`;
+    default:
+      return `${base}-pattern-${dow}-${hh}:${mm}`;
+  }
 };
 
 // Helper function to get only the next occurrence of each recurring plan
@@ -61,12 +81,12 @@ const getNextRecurringOccurrence = (appointments: any[]): any[] => {
   const recurringGroups = new Map<string, any[]>();
   
   recurring.forEach(appointment => {
-    // Robust plan identification with multiple fallbacks
+    // Priority: DB-provided stable identifiers, then deterministic fallback
     const planId = 
       appointment.recurrence_group_id || 
       appointment.recurring_rule_id || 
       appointment.original_appointment_id || 
-      `${appointment.provider_id}-${appointment.listing_id}-${extractWeeklyKey(appointment.start_time)}`;
+      buildFallbackKey(appointment);
     
     if (!recurringGroups.has(planId)) {
       recurringGroups.set(planId, []);
