@@ -53,8 +53,8 @@ const getNextRecurringOccurrence = (appointments: any[]): any[] => {
   const recurringGroups = new Map<string, any[]>();
   
   recurring.forEach(appointment => {
-    // Identify the base plan ID
-    const planId = appointment.original_appointment_id || appointment.id;
+    // Identify the base plan ID using recurrence_group_id as primary key
+    const planId = appointment.recurrence_group_id || appointment.original_appointment_id || appointment.id;
     
     if (!recurringGroups.has(planId)) {
       recurringGroups.set(planId, []);
@@ -73,7 +73,13 @@ const getNextRecurringOccurrence = (appointments: any[]): any[] => {
     nextRecurring.push(sorted[0]);
   });
   
-  bookingLogger.info(`📊 Filtering recurring: ${recurring.length} total → ${recurringGroups.size} unique plans → ${nextRecurring.length} next occurrences`);
+  bookingLogger.info(`📊 Filtering recurring appointments:`, {
+    totalRecurring: recurring.length,
+    uniquePlans: recurringGroups.size,
+    nextOccurrencesShown: nextRecurring.length,
+    nonRecurring: nonRecurring.length,
+    finalTotal: nextRecurring.length + nonRecurring.length
+  });
   
   return [...nextRecurring, ...nonRecurring];
 };

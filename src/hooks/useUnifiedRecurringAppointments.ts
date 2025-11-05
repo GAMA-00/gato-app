@@ -265,6 +265,7 @@ export const useUnifiedRecurringAppointments = ({
             end_time: endTime.toISOString(),
             status: computedStatus,
             recurrence: baseAppointment.recurrence,
+            recurrence_group_id: fullAppointment.recurrence_group_id,
             provider_id: baseAppointment.provider_id,
             client_id: baseAppointment.client_id,
             listing_id: baseAppointment.listing_id,
