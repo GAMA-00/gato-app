@@ -32,6 +32,15 @@ export interface ClientBooking {
   canRate: boolean;
 }
 
+// Helper to extract stable weekly pattern for fallback grouping
+const extractWeeklyKey = (startTime: string): string => {
+  const date = new Date(startTime);
+  const dow = date.getDay(); // 0=Sunday, 6=Saturday
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${dow}-${hours}:${minutes}`;
+};
+
 // Helper function to get only the next occurrence of each recurring plan
 const getNextRecurringOccurrence = (appointments: any[]): any[] => {
   const now = new Date();
@@ -48,13 +57,16 @@ const getNextRecurringOccurrence = (appointments: any[]): any[] => {
     !validRecurrences.has(a.recurrence || 'none')
   );
   
-  // Group by recurring plan
-  // Key: original_appointment_id (for virtual) or id (for real base)
+  // Group by recurring plan with robust key hierarchy
   const recurringGroups = new Map<string, any[]>();
   
   recurring.forEach(appointment => {
-    // Identify the base plan ID using recurrence_group_id as primary key
-    const planId = appointment.recurrence_group_id || appointment.original_appointment_id || appointment.id;
+    // Robust plan identification with multiple fallbacks
+    const planId = 
+      appointment.recurrence_group_id || 
+      appointment.recurring_rule_id || 
+      appointment.original_appointment_id || 
+      `${appointment.provider_id}-${appointment.listing_id}-${extractWeeklyKey(appointment.start_time)}`;
     
     if (!recurringGroups.has(planId)) {
       recurringGroups.set(planId, []);
@@ -73,7 +85,7 @@ const getNextRecurringOccurrence = (appointments: any[]): any[] => {
     nextRecurring.push(sorted[0]);
   });
   
-  bookingLogger.info(`📊 Filtering recurring appointments:`, {
+  bookingLogger.info(`📊 Recurring appointments filtered:`, {
     totalRecurring: recurring.length,
     uniquePlans: recurringGroups.size,
     nextOccurrencesShown: nextRecurring.length,

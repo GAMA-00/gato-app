@@ -32,6 +32,7 @@ export interface UnifiedAppointment {
   original_appointment_id?: string;
   source_type: 'appointment' | 'virtual_instance';
   recurrence_group_id?: string;
+  recurring_rule_id?: string;
   external_booking?: boolean;
   complete_location?: string;
   client_data?: any;
@@ -95,6 +96,7 @@ export const useUnifiedRecurringAppointments = ({
           notes,
           is_recurring_instance,
           recurrence_group_id,
+          recurring_rule_id,
           external_booking,
           final_price,
           custom_variables_total_price,
@@ -162,6 +164,7 @@ export const useUnifiedRecurringAppointments = ({
           notes,
           is_recurring_instance,
           recurrence_group_id,
+          recurring_rule_id,
           external_booking,
           final_price,
           custom_variables_total_price,
@@ -266,6 +269,7 @@ export const useUnifiedRecurringAppointments = ({
             status: computedStatus,
             recurrence: baseAppointment.recurrence,
             recurrence_group_id: fullAppointment.recurrence_group_id,
+            recurring_rule_id: fullAppointment.recurring_rule_id,
             provider_id: baseAppointment.provider_id,
             client_id: baseAppointment.client_id,
             listing_id: baseAppointment.listing_id,
