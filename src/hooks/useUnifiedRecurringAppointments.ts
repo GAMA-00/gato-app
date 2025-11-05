@@ -1,0 +1,221 @@
+/**
+ * Unified Recurring Appointments Hook
+ * Combines real appointments from DB with virtually calculated recurring instances
+ * Ensures consistency across Calendar, Dashboard, and Bookings sections
+ */
+
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { addDays, startOfDay } from 'date-fns';
+import { 
+  getAllRecurringInstances, 
+  type RecurringAppointment,
+  type RecurringException,
+  type CalculatedRecurringInstance 
+} from '@/utils/simplifiedRecurrenceUtils';
+
+export interface UnifiedAppointment {
+  id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  recurrence: string;
+  provider_id: string;
+  client_id: string;
+  listing_id: string;
+  client_name?: string;
+  provider_name?: string;
+  client_address?: string;
+  notes?: string;
+  is_recurring_instance: boolean;
+  original_appointment_id?: string;
+  source_type: 'appointment' | 'virtual_instance';
+  recurrence_group_id?: string;
+  external_booking?: boolean;
+  complete_location?: string;
+  client_data?: any;
+  listings?: any;
+  service_title?: string;
+}
+
+interface UseUnifiedRecurringAppointmentsOptions {
+  userId?: string;
+  userRole?: 'client' | 'provider';
+  startDate?: Date;
+  endDate?: Date;
+  includeCompleted?: boolean;
+}
+
+export const useUnifiedRecurringAppointments = ({
+  userId,
+  userRole,
+  startDate = new Date(),
+  endDate = addDays(new Date(), 365),
+  includeCompleted = true
+}: UseUnifiedRecurringAppointmentsOptions) => {
+  
+  return useQuery({
+    queryKey: ['unified-recurring-appointments', userId, userRole, startDate.toISOString(), endDate.toISOString()],
+    queryFn: async (): Promise<UnifiedAppointment[]> => {
+      if (!userId || !userRole) return [];
+
+      console.log('=== UNIFIED RECURRING APPOINTMENTS CALCULATION ===');
+      console.log('User:', userId, 'Role:', userRole);
+      console.log('Date range:', startDate.toISOString(), 'to', endDate.toISOString());
+
+      // 1. Fetch real appointments from database
+      const statusFilter = includeCompleted 
+        ? ['pending', 'confirmed', 'completed', 'cancelled', 'rejected']
+        : ['pending', 'confirmed'];
+
+      const roleFilter = userRole === 'client' ? 'client_id' : 'provider_id';
+
+      const { data: realAppointments, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          start_time,
+          end_time,
+          status,
+          recurrence,
+          provider_id,
+          client_id,
+          listing_id,
+          client_name,
+          provider_name,
+          client_address,
+          notes,
+          is_recurring_instance,
+          recurrence_group_id,
+          external_booking,
+          listings (
+            id,
+            title,
+            is_post_payment
+          )
+        `)
+        .eq(roleFilter, userId)
+        .in('status', statusFilter)
+        .gte('start_time', startOfDay(startDate).toISOString())
+        .order('start_time', { ascending: true });
+
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
+        throw appointmentsError;
+      }
+
+      console.log(`Fetched ${realAppointments?.length || 0} real appointments from DB`);
+
+      // 2. Identify recurring appointments (base appointments with recurrence)
+      const recurringBaseAppointments = (realAppointments || []).filter(apt => 
+        apt.recurrence && 
+        apt.recurrence !== 'none' && 
+        apt.recurrence !== 'once' &&
+        !apt.is_recurring_instance // Only base appointments, not instances
+      );
+
+      console.log(`Found ${recurringBaseAppointments.length} recurring base appointments`);
+
+      // 3. Fetch exceptions for these recurring appointments
+      let exceptions: RecurringException[] = [];
+      if (recurringBaseAppointments.length > 0) {
+        const appointmentIds = recurringBaseAppointments.map(a => a.id);
+        const { data: exceptionsData, error: exceptionsError } = await supabase
+          .from('recurring_exceptions')
+          .select('*')
+          .in('appointment_id', appointmentIds);
+
+        if (exceptionsError) {
+          console.error('Error fetching exceptions:', exceptionsError);
+        } else {
+          exceptions = (exceptionsData || []).map(ex => ({
+            ...ex,
+            action_type: ex.action_type as 'cancelled' | 'rescheduled'
+          })) as RecurringException[];
+          console.log(`Fetched ${exceptions.length} exceptions`);
+        }
+      }
+
+      // 4. Calculate virtual instances for recurring appointments
+      const virtualInstances: CalculatedRecurringInstance[] = recurringBaseAppointments.length > 0
+        ? getAllRecurringInstances(
+            recurringBaseAppointments as RecurringAppointment[],
+            exceptions,
+            startDate,
+            endDate,
+            userRole === 'provider' ? userId : undefined
+          )
+        : [];
+
+      console.log(`Calculated ${virtualInstances.length} virtual recurring instances`);
+
+      // 5. Convert virtual instances to UnifiedAppointment format
+      const virtualAppointments: UnifiedAppointment[] = virtualInstances
+        .filter(instance => instance.status !== 'cancelled') // Skip cancelled instances
+        .map(instance => {
+          const baseAppointment = instance.original_appointment;
+          return {
+            id: `virtual-${baseAppointment.id}-${instance.date.toISOString()}`,
+            start_time: instance.start_time.toISOString(),
+            end_time: instance.end_time.toISOString(),
+            status: baseAppointment.status,
+            recurrence: baseAppointment.recurrence,
+            provider_id: baseAppointment.provider_id,
+            client_id: baseAppointment.client_id,
+            listing_id: baseAppointment.listing_id,
+            client_name: baseAppointment.client_name,
+            provider_name: baseAppointment.provider_name,
+            notes: baseAppointment.notes,
+            is_recurring_instance: true,
+            original_appointment_id: baseAppointment.id,
+            source_type: 'virtual_instance' as const,
+            external_booking: false,
+          };
+        });
+
+      console.log(`Created ${virtualAppointments.length} virtual appointment objects`);
+
+      // 6. Combine real appointments with virtual instances
+      const realAppointmentsMapped: UnifiedAppointment[] = (realAppointments || []).map(apt => ({
+        ...apt,
+        source_type: 'appointment' as const,
+        service_title: apt.listings?.title,
+      }));
+
+      const allAppointments = [...realAppointmentsMapped, ...virtualAppointments];
+
+      // 7. Deduplicate: prioritize real appointments over virtual instances
+      const deduplicationMap = new Map<string, UnifiedAppointment>();
+
+      allAppointments.forEach(apt => {
+        const key = `${apt.start_time}-${apt.provider_id}-${apt.client_id}-${apt.listing_id}`;
+        const existing = deduplicationMap.get(key);
+
+        if (!existing) {
+          deduplicationMap.set(key, apt);
+        } else {
+          // Prioritize real appointments over virtual instances
+          if (apt.source_type === 'appointment' && existing.source_type === 'virtual_instance') {
+            deduplicationMap.set(key, apt);
+            console.log(`Replaced virtual instance with real appointment at ${apt.start_time}`);
+          }
+        }
+      });
+
+      const unifiedAppointments = Array.from(deduplicationMap.values());
+
+      // 8. Sort chronologically
+      unifiedAppointments.sort((a, b) => 
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
+
+      console.log(`=== UNIFIED RESULT: ${unifiedAppointments.length} total appointments ===`);
+      console.log(`Real: ${realAppointmentsMapped.length}, Virtual: ${virtualAppointments.length}, Deduplicated: ${unifiedAppointments.length}`);
+
+      return unifiedAppointments;
+    },
+    enabled: !!userId && !!userRole,
+    staleTime: 30000, // 30 seconds
+    retry: 2,
+  });
+};

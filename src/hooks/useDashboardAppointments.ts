@@ -3,13 +3,24 @@ import { useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useStats } from '@/hooks/useStats';
-import { startOfToday, startOfTomorrow, isSameDay } from 'date-fns';
+import { startOfToday, startOfTomorrow, isSameDay, addDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
+import { useUnifiedRecurringAppointments } from './useUnifiedRecurringAppointments';
 
 export const useDashboardAppointments = () => {
   const { user } = useAuth();
+  
+  // Use unified recurring appointments system for consistency with calendar and bookings
+  const { data: unifiedAppointments = [], isLoading: isLoadingUnified } = useUnifiedRecurringAppointments({
+    userId: user?.id,
+    userRole: user?.role as 'provider' | 'client',
+    startDate: new Date(),
+    endDate: addDays(new Date(), 7), // Load appointments for the next week
+    includeCompleted: true,
+  });
+  
   const { data: appointments = [], isLoading: isLoadingAppointments, error: appointmentsError } = useAppointments();
   const { data: stats, isLoading: isLoadingStats, error: statsError } = useStats();
   const queryClient = useQueryClient();
@@ -22,10 +33,13 @@ export const useDashboardAppointments = () => {
   console.log("Appointments loading:", isLoadingAppointments, "Count:", appointments?.length || 0);
   console.log("Stats loading:", isLoadingStats);
   
-  // Enhanced appointment filtering with deduplication and GUARANTEED LOCATION CONSTRUCTION
+  // Enhanced appointment filtering using unified recurring system
   const { todaysAppointments, tomorrowsAppointments, activeAppointmentsToday } = useMemo(() => {
+    // Use unified appointments (real + virtual instances) for consistency
+    const appointmentsToProcess = unifiedAppointments.length > 0 ? unifiedAppointments : appointments;
+    
     // Safe defaults in case of empty or undefined appointments
-    if (!appointments || !Array.isArray(appointments) || appointments.length === 0) {
+    if (!appointmentsToProcess || !Array.isArray(appointmentsToProcess) || appointmentsToProcess.length === 0) {
       console.log("No appointments available for filtering");
       return {
         todaysAppointments: [],
@@ -37,14 +51,14 @@ export const useDashboardAppointments = () => {
     try {
       const now = new Date();
       
-      console.log("=== FILTERING APPOINTMENTS WITH LOCATION VERIFICATION ===");
-      console.log(`Processing ${appointments.length} total appointments`);
+      console.log("=== FILTERING UNIFIED APPOINTMENTS WITH LOCATION VERIFICATION ===");
+      console.log(`Processing ${appointmentsToProcess.length} total unified appointments (real + virtual)`);
       
       // Create a Map to deduplicate appointments by time slot
       const appointmentsByTimeSlot = new Map();
       
-      // Process appointments and maintain chronological order regardless of recurrence type
-      appointments.forEach(app => {
+      // Process unified appointments (real + virtual instances)
+      appointmentsToProcess.forEach(app => {
         try {
           if (!app || app.status === 'cancelled' || app.status === 'rejected') return;
           
@@ -201,7 +215,7 @@ export const useDashboardAppointments = () => {
         activeAppointmentsToday: []
       };
     }
-  }, [appointments, today, tomorrow]);
+  }, [unifiedAppointments, appointments, today, tomorrow]);
 
   // Optimized auto-update for completed appointments (reduced frequency)
   useEffect(() => {

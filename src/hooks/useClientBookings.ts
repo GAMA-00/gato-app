@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { processClientBooking } from '@/utils/clientBookingProcessor';
 import { logger, bookingLogger, locationLogger } from '@/utils/logger';
+import { useUnifiedRecurringAppointments } from './useUnifiedRecurringAppointments';
 
 export interface ClientBooking {
   id: string;
@@ -32,61 +33,41 @@ export interface ClientBooking {
 
 export const useClientBookings = () => {
   const { user } = useAuth();
+  
+  // Use unified recurring appointments system for consistency with calendar
+  const { data: unifiedAppointments = [], isLoading: isLoadingUnified } = useUnifiedRecurringAppointments({
+    userId: user?.id,
+    userRole: 'client',
+    includeCompleted: true,
+  });
 
   return useQuery({
-    queryKey: ['client-bookings', user?.id],
+    queryKey: ['client-bookings', user?.id, unifiedAppointments.length],
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
-      bookingLogger.info('=== INICIO CONSULTA CLIENT BOOKINGS ===');
-      bookingLogger.userAction('Obteniendo reservas para usuario:', user.id);
+      bookingLogger.info('=== INICIO CONSULTA CLIENT BOOKINGS (UNIFIED SYSTEM) ===');
+      bookingLogger.userAction('Procesando reservas unificadas para usuario:', user.id);
 
       try {
-        // Fetch appointment data with unified status filter
-        // CRITICAL: Use same status filter as unified appointments system
-        const { data: appointments, error } = await supabase
-          .from('appointments')
-          .select(`
-            id,
-            start_time,
-            end_time,
-            status,
-            recurrence,
-            provider_id,
-            client_id,
-            external_booking,
-            client_address,
-            listing_id,
-            recurrence_group_id,
-            notes,
-            is_recurring_instance,
-            provider_name,
-            client_name
-          `)
-          .eq('client_id', user.id)
-          .in('status', ['pending', 'confirmed', 'completed', 'cancelled', 'rejected'])
-          .order('start_time', { ascending: false });
-
-        if (error) {
-          logger.error('Error obteniendo citas:', error);
-          throw error;
-        }
+        // Use unified appointments (real + virtual recurring instances)
+        const appointments = unifiedAppointments;
 
         // Filtrar citas saltadas (cancelled con nota especial)
-        const filteredAppointments = appointments?.filter(apt => {
+        const filteredAppointments = appointments.filter(apt => {
           const isSkipped = apt.status === 'cancelled' && apt.notes?.includes('[SKIPPED BY CLIENT]');
           if (isSkipped) {
             bookingLogger.debug(`Cita saltada filtrada: ${apt.id}`);
           }
           return !isSkipped;
-        }) || [];
+        });
 
-        if (!filteredAppointments?.length) {
+        if (!filteredAppointments.length) {
           bookingLogger.info('No se encontraron citas para el cliente');
           return [];
         }
 
-        bookingLogger.dataProcessing(`Encontradas ${filteredAppointments.length} citas (${appointments?.length || 0} antes de filtrar saltadas)`);
+        bookingLogger.dataProcessing(`Procesando ${filteredAppointments.length} citas unificadas (${appointments.length} antes de filtrar saltadas)`);
 
         // Obtener información de servicios incluyendo is_post_payment
         const listingIds = [...new Set(filteredAppointments.map(a => a.listing_id).filter(Boolean))];
@@ -203,10 +184,15 @@ export const useClientBookings = () => {
         locationLogger.debug('Número de casa:', userData?.house_number);
         locationLogger.debug('=== FIN DATOS USUARIO ===');
 
-        // Procesar citas con cálculo optimizado de próxima ocurrencia
+        // Procesar citas unificadas
         const processedBookings = filteredAppointments.map(appointment => {
           return processClientBooking({
-            appointment,
+            appointment: {
+              ...appointment,
+              // Ensure date is properly formatted for processing
+              start_time: appointment.start_time,
+              end_time: appointment.end_time,
+            },
             servicesMap,
             providersMap,
             ratedIds,
@@ -285,7 +271,7 @@ export const useClientBookings = () => {
         throw error;
       }
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !isLoadingUnified,
     retry: 3,
     retryDelay: 1000,
   });
