@@ -18,9 +18,9 @@ const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
 
-  // Calculate date range: 4 weeks back to 52 weeks forward (matching previous behavior)
-  const startDate = subWeeks(new Date(), 4);
-  const endDate = addWeeks(new Date(), 52);
+  // Calcular rango: 4 semanas atrás a 52 semanas adelante (estable)
+  const startDate = React.useMemo(() => subWeeks(new Date(), 4), []);
+  const endDate = React.useMemo(() => addWeeks(new Date(), 52), []);
 
   const { data: appointments = [], isLoading } = useUnifiedRecurringAppointments({
     userId: user?.id,
@@ -30,12 +30,17 @@ const Calendar = () => {
     includeCompleted: true
   });
 
-  // Only log on significant changes
+  // Log controlado y filtrado de citas visibles (sin canceladas/rechazadas)
+  const visibleAppointments = React.useMemo(
+    () => (appointments || []).filter(a => !['cancelled', 'rejected'].includes(a.status)),
+    [appointments]
+  );
+
   React.useEffect(() => {
-    if (appointments.length > 0) {
-      console.log('Calendar loaded with', appointments.length, 'appointments');
+    if (visibleAppointments.length > 0) {
+      console.log('Calendar loaded with', visibleAppointments.length, 'visible appointments');
     }
-  }, [appointments.length]);
+  }, [visibleAppointments.length]);
 
   if (isLoading) {
     return (
@@ -85,7 +90,7 @@ const Calendar = () => {
         {/* Optimized Calendar view with recurring instances */}
         <div className="w-full">
           <CalendarView 
-            appointments={appointments} 
+            appointments={visibleAppointments} 
             currentDate={currentDate}
             onDateChange={setCurrentDate}
           />

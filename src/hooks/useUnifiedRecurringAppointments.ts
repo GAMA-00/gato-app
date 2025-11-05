@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { addDays, startOfDay } from 'date-fns';
+import { addDays, startOfDay, endOfDay } from 'date-fns';
 import { 
   getAllRecurringInstances, 
   type RecurringAppointment,
@@ -54,14 +54,19 @@ export const useUnifiedRecurringAppointments = ({
   includeCompleted = true
 }: UseUnifiedRecurringAppointmentsOptions) => {
   
+  const normalizedStart = startOfDay(startDate);
+  const normalizedEnd = endOfDay(endDate);
+  const normalizedStartKey = normalizedStart.toISOString().slice(0, 10);
+  const normalizedEndKey = normalizedEnd.toISOString().slice(0, 10);
+  
   return useQuery({
-    queryKey: ['unified-recurring-appointments', userId, userRole, startDate.toISOString(), endDate.toISOString()],
+    queryKey: ['unified-recurring-appointments', userId, userRole, normalizedStartKey, normalizedEndKey],
     queryFn: async (): Promise<UnifiedAppointment[]> => {
       if (!userId || !userRole) return [];
 
       console.log('=== UNIFIED RECURRING APPOINTMENTS CALCULATION ===');
       console.log('User:', userId, 'Role:', userRole);
-      console.log('Date range:', startDate.toISOString(), 'to', endDate.toISOString());
+      console.log('Date range:', normalizedStart.toISOString(), 'to', normalizedEnd.toISOString());
 
       // 1. Fetch real appointments from database
       const statusFilter = includeCompleted 
@@ -96,8 +101,8 @@ export const useUnifiedRecurringAppointments = ({
         `)
         .eq(roleFilter, userId)
         .in('status', statusFilter)
-        .gte('start_time', startOfDay(startDate).toISOString())
-        .lte('start_time', endDate.toISOString())
+        .gte('start_time', normalizedStart.toISOString())
+        .lte('start_time', normalizedEnd.toISOString())
         .order('start_time', { ascending: true });
 
       if (appointmentsError) {
@@ -229,7 +234,11 @@ export const useUnifiedRecurringAppointments = ({
       console.log(`=== UNIFIED RESULT: ${unifiedAppointments.length} total appointments ===`);
       console.log(`Real: ${realAppointmentsMapped.length}, Virtual: ${virtualAppointments.length}, Deduplicated: ${unifiedAppointments.length}`);
 
-      return unifiedAppointments;
+      // 9. Filter out cancelled and rejected appointments for display consistency
+      const filteredUnified = unifiedAppointments.filter(a => !['cancelled', 'rejected'].includes(a.status));
+      console.log(`Filtered out cancelled/rejected. Final count: ${filteredUnified.length}`);
+
+      return filteredUnified;
     },
     enabled: !!userId && !!userRole,
     staleTime: 30000, // 30 seconds
