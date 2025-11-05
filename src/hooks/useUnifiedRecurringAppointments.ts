@@ -36,6 +36,8 @@ export interface UnifiedAppointment {
   client_data?: any;
   listings?: any;
   service_title?: string;
+  rescheduled_style?: string;
+  reschedule_notes?: string;
 }
 
 interface UseUnifiedRecurringAppointmentsOptions {
@@ -167,15 +169,33 @@ export const useUnifiedRecurringAppointments = ({
       console.log(`Calculated ${virtualInstances.length} virtual recurring instances`);
 
       // 5. Convert virtual instances to UnifiedAppointment format
+      const now = new Date();
       const virtualAppointments: UnifiedAppointment[] = virtualInstances
         .filter(instance => instance.status !== 'cancelled') // Skip cancelled instances
         .map(instance => {
           const baseAppointment = instance.original_appointment;
+          
+          // Use rescheduled times if available, otherwise use calculated times
+          const startTime = instance.new_start_time ?? instance.start_time;
+          const endTime = instance.new_end_time ?? instance.end_time;
+          
+          // Compute instance-specific status based on actual time, not base appointment status
+          const computedStatus = 
+            endTime < now
+              ? 'completed'
+              : (baseAppointment.status === 'pending' ? 'pending' : 'confirmed');
+          
+          // Check if this instance was rescheduled
+          const rescheduledStyle = 
+            instance.status === 'rescheduled' 
+              ? 'bg-orange-100 border-orange-300 text-orange-700' 
+              : undefined;
+          
           return {
-            id: `virtual-${baseAppointment.id}-${instance.date.toISOString()}`,
-            start_time: instance.start_time.toISOString(),
-            end_time: instance.end_time.toISOString(),
-            status: baseAppointment.status,
+            id: `virtual-${baseAppointment.id}-${startTime.toISOString()}`,
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            status: computedStatus,
             recurrence: baseAppointment.recurrence,
             provider_id: baseAppointment.provider_id,
             client_id: baseAppointment.client_id,
@@ -187,6 +207,8 @@ export const useUnifiedRecurringAppointments = ({
             original_appointment_id: baseAppointment.id,
             source_type: 'virtual_instance' as const,
             external_booking: false,
+            rescheduled_style: rescheduledStyle,
+            reschedule_notes: instance.exception?.notes,
           };
         });
 
