@@ -56,11 +56,10 @@ export function RobustBookingButton({
 
       if (result.success && result.data) {
         console.log('✅ Reserva creada exitosamente:', result.data);
-        toast.success('¡Reserva confirmada exitosamente!', {
-          duration: 4000,
-          icon: <CheckCircle className="h-4 w-4" />
+        onSuccess?.({
+          ...result.data,
+          bookingType: bookingData.recurrenceType !== 'once' ? 'recurring' : 'once'
         });
-        onSuccess?.(result.data);
       } else {
         console.error('❌ Error en reserva:', result.error);
         toast.error(result.error || 'No se pudo crear la reserva', {

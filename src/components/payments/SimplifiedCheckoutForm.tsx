@@ -546,23 +546,11 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         successMessage = "Pago autorizado. Se cobrará al completar el servicio.";
       }
       
-      toast({
-        title: "Proceso exitoso",
-        description: successMessage,
-      });
-
       // Redirigir según tipo de servicio
       if (isRecurring) {
-        // Para citas recurrentes, usar página específica sin payment tracking
-        window.location.href = `/recurring-booking-confirmation/${newAppointmentId}`;
+        window.location.href = `/booking-confirmation/${newAppointmentId}?type=recurring`;
       } else {
-        // Para citas "una vez", flujo normal con payment tracking
-        onSuccess({
-          ...finalPaymentData,
-          appointmentId: newAppointmentId,
-          status: 'pending',
-          isRecurring: false
-        });
+        window.location.href = `/booking-confirmation/${newAppointmentId}?type=once`;
       }
 
     } catch (error: any) {
