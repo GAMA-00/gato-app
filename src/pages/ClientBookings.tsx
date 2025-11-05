@@ -35,8 +35,53 @@ const ClientBookings = () => {
   const now = new Date();
   const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
   
+  // Función para agrupar citas recurrentes y mantener solo la próxima
+  const getNextRecurringAppointments = (bookings: any[]) => {
+    // Separar citas recurrentes de únicas
+    const recurring = bookings.filter(b => 
+      validRecurrences.has(b.recurrence) && 
+      b.date > now &&
+      ['pending', 'confirmed'].includes(b.status)
+    );
+    
+    const nonRecurring = bookings.filter(b => 
+      !validRecurrences.has(b.recurrence) ||
+      b.recurrence === 'once' ||
+      b.recurrence === 'none'
+    );
+    
+    // Agrupar citas recurrentes por: listing_id + provider_id + recurrence + hora
+    const recurringGroups = new Map<string, any[]>();
+    
+    recurring.forEach(booking => {
+      // Crear clave única que identifica el "plan recurrente"
+      const hour = booking.date.getHours();
+      const minute = booking.date.getMinutes();
+      const groupKey = `${booking.listingId}-${booking.providerId}-${booking.recurrence}-${hour}:${minute}`;
+      
+      if (!recurringGroups.has(groupKey)) {
+        recurringGroups.set(groupKey, []);
+      }
+      recurringGroups.get(groupKey)!.push(booking);
+    });
+    
+    // De cada grupo, tomar solo la cita más cercana (próxima)
+    const nextRecurringAppointments: any[] = [];
+    
+    recurringGroups.forEach((group) => {
+      // Ordenar por fecha ascendente y tomar la primera (más próxima)
+      const sorted = group.sort((a, b) => a.date.getTime() - b.date.getTime());
+      nextRecurringAppointments.push(sorted[0]);
+    });
+    
+    // Combinar citas recurrentes filtradas con citas únicas
+    return [...nextRecurringAppointments, ...nonRecurring];
+  };
   
-  const activeBookings = bookings?.filter(booking => {
+  // Aplicar la función de agrupación antes de filtrar
+  const filteredBookings = bookings ? getNextRecurringAppointments(bookings) : [];
+  
+  const activeBookings = filteredBookings.filter(booking => {
     // Excluir citas canceladas, rechazadas o completadas
     if (['cancelled', 'rejected', 'completed'].includes(booking.status)) {
       return false;
