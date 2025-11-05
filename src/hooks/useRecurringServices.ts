@@ -53,7 +53,7 @@ export function useRecurringServices() {
           `)
           .eq('client_id', user.id)
           .in('status', ['pending', 'confirmed'])
-          .in('recurrence', ['weekly', 'biweekly', 'triweekly', 'monthly']);
+          .in('recurrence', ['daily', 'weekly', 'biweekly', 'triweekly', 'monthly']);
 
         if (error) {
           console.error('❌ Error fetching recurring appointments:', error);

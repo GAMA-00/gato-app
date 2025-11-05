@@ -29,8 +29,9 @@ export async function validateSlotAvailabilityForBooking(
 
     // 1. Validar que el slot es válido para la recurrencia seleccionada
     if (recurrence !== 'once') {
-      const normalizeRecurrenceType = (rec: string): 'once' | 'weekly' | 'biweekly' | 'triweekly' | 'monthly' => {
+      const normalizeRecurrenceType = (rec: string): 'once' | 'daily' | 'weekly' | 'biweekly' | 'triweekly' | 'monthly' => {
         switch (rec?.toLowerCase()) {
+          case 'daily': return 'daily';
           case 'weekly': return 'weekly';
           case 'biweekly': return 'biweekly';
           case 'triweekly': return 'triweekly';
