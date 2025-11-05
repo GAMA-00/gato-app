@@ -6,31 +6,29 @@ import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useRecurringSlotSystem } from '@/hooks/useRecurringSlotSystem';
+import { useUnifiedRecurringAppointments } from '@/hooks/useUnifiedRecurringAppointments';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Settings } from 'lucide-react';
-import { format } from 'date-fns';
+import { subWeeks, addWeeks } from 'date-fns';
 
 const Calendar = () => {
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
 
-  const { data: appointments = [], isLoading, refetch } = useRecurringSlotSystem({
-    selectedDate: currentDate,
-    providerId: user?.id
+  // Calculate date range: 4 weeks back to 52 weeks forward (matching previous behavior)
+  const startDate = subWeeks(new Date(), 4);
+  const endDate = addWeeks(new Date(), 52);
+
+  const { data: appointments = [], isLoading } = useUnifiedRecurringAppointments({
+    userId: user?.id,
+    userRole: 'provider',
+    startDate,
+    endDate,
+    includeCompleted: true
   });
-
-  // Force refresh to see the updated data after migration
-  React.useEffect(() => {
-    if (user?.id) {
-      refetch();
-    }
-  }, [user?.id, refetch]);
-
-  
 
   // Only log on significant changes
   React.useEffect(() => {
