@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,14 +32,68 @@ export interface ClientBooking {
   canRate: boolean;
 }
 
+// Helper function to get only the next occurrence of each recurring plan
+const getNextRecurringOccurrence = (appointments: any[]): any[] => {
+  const now = new Date();
+  const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
+  
+  // Separate recurring from non-recurring
+  const recurring = appointments.filter(a => 
+    validRecurrences.has(a.recurrence || 'none') && 
+    new Date(a.start_time) > now &&
+    ['pending', 'confirmed'].includes(a.status)
+  );
+  
+  const nonRecurring = appointments.filter(a => 
+    !validRecurrences.has(a.recurrence || 'none')
+  );
+  
+  // Group by recurring plan
+  // Key: original_appointment_id (for virtual) or id (for real base)
+  const recurringGroups = new Map<string, any[]>();
+  
+  recurring.forEach(appointment => {
+    // Identify the base plan ID
+    const planId = appointment.original_appointment_id || appointment.id;
+    
+    if (!recurringGroups.has(planId)) {
+      recurringGroups.set(planId, []);
+    }
+    recurringGroups.get(planId)!.push(appointment);
+  });
+  
+  // From each group, take only the next (earliest in time)
+  const nextRecurring: any[] = [];
+  
+  recurringGroups.forEach((group) => {
+    // Sort by date and take the first
+    const sorted = group.sort((a, b) => 
+      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    );
+    nextRecurring.push(sorted[0]);
+  });
+  
+  bookingLogger.info(`📊 Filtering recurring: ${recurring.length} total → ${recurringGroups.size} unique plans → ${nextRecurring.length} next occurrences`);
+  
+  return [...nextRecurring, ...nonRecurring];
+};
+
 export const useClientBookings = () => {
   const { user } = useAuth();
+  
+  // Limit date range to 90 days to optimize instance generation
+  const endDate = React.useMemo(() => {
+    const end = new Date();
+    end.setDate(end.getDate() + 90);
+    return end;
+  }, []);
   
   // Use unified recurring appointments system for consistency with calendar
   const { data: unifiedAppointments = [], isLoading: isLoadingUnified } = useUnifiedRecurringAppointments({
     userId: user?.id,
     userRole: 'client',
     includeCompleted: true,
+    endDate: endDate,
   });
 
   return useQuery({
@@ -184,8 +239,15 @@ export const useClientBookings = () => {
         locationLogger.debug('Número de casa:', userData?.house_number);
         locationLogger.debug('=== FIN DATOS USUARIO ===');
 
+        // FILTER: Show only next occurrence of each recurring plan
+        const filteredForDisplay = getNextRecurringOccurrence(
+          filteredAppointments.filter(a => !['cancelled', 'rejected'].includes(a.status))
+        );
+        
+        bookingLogger.info(`📋 Appointments after filtering next occurrences: ${filteredForDisplay.length} (from ${filteredAppointments.length} total)`);
+
         // Procesar citas unificadas
-        const processedBookings = filteredAppointments.map(appointment => {
+        const processedBookings = filteredForDisplay.map(appointment => {
           return processClientBooking({
             appointment: {
               ...appointment,
