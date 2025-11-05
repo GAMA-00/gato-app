@@ -13,6 +13,7 @@ import {
   type RecurringException,
   type CalculatedRecurringInstance 
 } from '@/utils/simplifiedRecurrenceUtils';
+import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 
 export interface UnifiedAppointment {
   id: string;
@@ -95,6 +96,9 @@ export const useUnifiedRecurringAppointments = ({
           is_recurring_instance,
           recurrence_group_id,
           external_booking,
+          final_price,
+          custom_variables_total_price,
+          custom_variable_selections,
           listings (
             id,
             title,
@@ -103,6 +107,18 @@ export const useUnifiedRecurringAppointments = ({
             duration,
             service_variants,
             custom_variable_groups
+          ),
+          client_data:users!appointments_client_id_fkey (
+            id,
+            name,
+            house_number,
+            condominium_text,
+            condominium_name,
+            residencias (
+              id,
+              name,
+              address
+            )
           )
         `)
         .eq(roleFilter, userId)
@@ -197,6 +213,12 @@ export const useUnifiedRecurringAppointments = ({
               ? 'bg-orange-100 border-orange-300 text-orange-700' 
               : undefined;
           
+          // Build complete location for virtual instance
+          const complete_location = buildAppointmentLocation({
+            appointment: fullAppointment,
+            clientData: fullAppointment.client_data
+          });
+          
           return {
             id: `virtual-${baseAppointment.id}-${startTime.toISOString()}`,
             start_time: startTime.toISOString(),
@@ -218,7 +240,7 @@ export const useUnifiedRecurringAppointments = ({
             reschedule_notes: instance.exception?.notes,
             listings: fullAppointment.listings,
             service_title: fullAppointment.listings?.title,
-            complete_location: fullAppointment.complete_location,
+            complete_location,
             client_data: fullAppointment.client_data,
           };
         });
@@ -229,11 +251,20 @@ export const useUnifiedRecurringAppointments = ({
       const realAppointmentsMapped: UnifiedAppointment[] = [
         ...materializedInstances,
         ...nonRecurringAppointments
-      ].map(apt => ({
-        ...apt,
-        source_type: 'appointment' as const,
-        service_title: apt.listings?.title,
-      }));
+      ].map(apt => {
+        // Build complete location for each appointment
+        const complete_location = buildAppointmentLocation({
+          appointment: apt,
+          clientData: apt.client_data
+        });
+        
+        return {
+          ...apt,
+          source_type: 'appointment' as const,
+          service_title: apt.listings?.title,
+          complete_location,
+        };
+      });
 
       console.log(`Mapped ${realAppointmentsMapped.length} real appointments (materialized + non-recurring)`);
 
