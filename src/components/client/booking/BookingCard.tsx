@@ -35,6 +35,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showCancelAllDialog, setShowCancelAllDialog] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const queryClient = useQueryClient();
   const isRecurring = booking.recurrence && booking.recurrence !== 'none';
   const isCompleted = booking.status === 'completed';
@@ -203,8 +204,29 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     return status;
   };
   
+  const handleDismissRating = () => {
+    setIsDismissed(true);
+    toast.success('Tarjeta descartada');
+  };
+  
+  // No mostrar la tarjeta si fue descartada
+  if (isDismissed) {
+    return null;
+  }
+  
   return (
-    <Card className="overflow-hidden animate-scale-in rounded-[14px] shadow-sm border border-gray-200">
+    <Card className="overflow-hidden animate-scale-in rounded-[14px] shadow-sm border border-gray-200 relative">
+      {/* Botón X para descartar solo en tarjetas de calificación */}
+      {isCompleted && !booking.isRated && booking.canRate && (
+        <button
+          onClick={handleDismissRating}
+          className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors group"
+          aria-label="Descartar calificación"
+        >
+          <X className="h-4 w-4 text-gray-500 group-hover:text-gray-700" />
+        </button>
+      )}
+      
       <CardContent className="p-4">
         <div className="flex flex-col space-y-2">
           {/* Línea 1 y 2: Título + Proveedor | Badges */}
