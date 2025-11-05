@@ -23,6 +23,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           description,
           base_price,
           duration,
+          slot_size,
+          standard_duration,
           provider_id,
           gallery_images,
           service_variants
@@ -133,12 +135,21 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
 
           // Get price from first service variant or base_price
           let displayPrice = listing.base_price || 0;
+          let firstVariant: any | undefined;
           if (listing.service_variants && Array.isArray(listing.service_variants) && listing.service_variants.length > 0) {
-            const firstVariant = listing.service_variants[0];
+            firstVariant = listing.service_variants[0];
             if (firstVariant && typeof firstVariant === 'object' && 'price' in firstVariant) {
               displayPrice = Number(firstVariant.price) || listing.base_price || 0;
             }
           }
+
+          // Determine real duration: prioritize slot_size, then standard_duration, then listing.duration, then first variant duration, fallback 60
+          let variantDuration: number | undefined = undefined;
+          if (firstVariant && typeof firstVariant === 'object' && 'duration' in firstVariant) {
+            const d = Number((firstVariant as any).duration);
+            variantDuration = isNaN(d) ? undefined : d;
+          }
+          const computedDuration = Number(listing.slot_size) || Number(listing.standard_duration) || Number(listing.duration) || (variantDuration ?? 0) || 60;
 
           const processedProvider = {
             id: listing.provider_id,
@@ -146,7 +157,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             avatar: provider?.avatar_url && provider.avatar_url.trim() !== '' ? provider.avatar_url : null,
             rating: rating,
             price: displayPrice,
-            duration: listing.duration || 60,
+            duration: computedDuration,
             serviceName: listing.title || 'Servicio',
             serviceId: listing.id,
             listingId: listing.id, // Added listing ID for per-service recurring clients count
