@@ -183,7 +183,7 @@ export const useUnifiedRecurringAppointments = ({
         .neq('recurrence', 'none')
         .neq('recurrence', 'once')
         .eq('is_recurring_instance', false)
-        .in('status', ['confirmed', 'pending'])
+        .in('status', ['confirmed', 'pending', 'completed'])
         .lte('start_time', normalizedEnd.toISOString());
 
       if (baseAllError) {
@@ -282,7 +282,9 @@ export const useUnifiedRecurringAppointments = ({
           const computedStatus = 
             endTime < now
               ? 'completed'
-              : (baseAppointment.status === 'pending' ? 'pending' : 'confirmed');
+              : (baseAppointment.status === 'completed' 
+                  ? 'confirmed'  // If base is completed, future instances are still confirmed
+                  : (baseAppointment.status === 'pending' ? 'pending' : 'confirmed'));
           
           // Check if this instance was rescheduled
           const rescheduledStyle = 
