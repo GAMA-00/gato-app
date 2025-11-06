@@ -91,13 +91,7 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto">
-          <h2 className={`font-semibold mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>No se encontraron profesionales</h2>
-          <p className={`text-muted-foreground mb-6 ${isMobile ? 'text-sm' : 'text-base'}`}>
-            No hay profesionales disponibles para este servicio en este momento.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Intenta con otro servicio o vuelve más tarde.
-          </p>
+          <h2 className={`font-semibold ${isMobile ? 'text-lg' : 'text-xl'}`}>No se encontraron profesionales</h2>
         </div>
       </div>
     );
