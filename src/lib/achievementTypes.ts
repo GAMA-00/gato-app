@@ -35,7 +35,7 @@ export const ACHIEVEMENT_LEVELS: AchievementLevelInfo[] = [
   {
     level: 'nuevo',
     name: 'Nuevo',
-    description: 'Proveedor recién registrado comenzando su trayectoria profesional',
+    description: 'Proveedor recién registrado comenzando su trayectoria',
     minJobs: 0,
     maxJobs: 29,
     color: '#3B82F6',
