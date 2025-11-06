@@ -85,7 +85,7 @@ const ClientProviderServiceDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#FAFAFA]">
         <Navbar />
         <PageContainer title="Cargando..." subtitle="">
           <div className="max-w-4xl mx-auto space-y-6">
@@ -108,7 +108,7 @@ const ClientProviderServiceDetail = () => {
 
   if (error || !serviceDetails) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#FAFAFA]">
       <Navbar />
       <PageContainer title="Error" subtitle="">
         <div className="max-w-4xl mx-auto text-center py-12">

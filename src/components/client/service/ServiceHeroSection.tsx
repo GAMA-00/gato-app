@@ -15,7 +15,7 @@ const ServiceHeroSection = ({
   serviceTitle
 }: ServiceHeroSectionProps) => {
   return (
-    <div className="bg-background pt-3 pb-1 px-4">
+    <div className="pt-3 pb-1 px-4">
       {/* Avatar centered */}
       <div className="flex justify-center mb-2">
         <UnifiedAvatar 

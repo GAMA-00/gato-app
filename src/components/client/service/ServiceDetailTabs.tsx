@@ -49,8 +49,8 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
   return (
     <div className="w-full">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 sticky top-12 z-10 bg-background border-b border-stone-200 rounded-none p-0 h-auto">
-          <TabsTrigger 
+        <TabsList className="w-full grid grid-cols-4 sticky top-12 z-10 bg-[#FAFAFA] border-b border-stone-200 rounded-none p-0 h-auto">
+          <TabsTrigger
             value="catalog"
             className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none py-2 text-sm"
           >
