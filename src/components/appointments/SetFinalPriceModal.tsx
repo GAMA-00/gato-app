@@ -65,16 +65,40 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
   // Mutation para guardar el precio final
   const setFinalPriceMutation = useMutation({
     mutationFn: async (price: number) => {
-      // Actualizar el appointment con el precio final
-      const { error: appointmentError } = await supabase
-        .from('appointments')
-        .update({ 
-          final_price: price,
-          status: 'completed'
-        })
-        .eq('id', appointment.id);
+      // CRITICAL: Check if this is a recurring base appointment
+      // Base recurring appointments should NOT be marked as completed
+      // to allow future virtual instances to be generated
+      const isRecurringBase = appointment.recurrence && 
+                             appointment.recurrence !== 'none';
 
-      if (appointmentError) throw appointmentError;
+      if (isRecurringBase) {
+        // For recurring base appointments: only update price, keep status as 'confirmed'
+        // This allows the system to continue generating future virtual instances
+        console.log(`⚠️ Completing recurring base appointment ${appointment.id} - keeping status as 'confirmed'`);
+        const { error: appointmentError } = await supabase
+          .from('appointments')
+          .update({ 
+            final_price: price,
+            price_finalized: true
+            // NOT updating status to 'completed' - keep it as 'confirmed'
+          })
+          .eq('id', appointment.id);
+
+        if (appointmentError) throw appointmentError;
+      } else {
+        // For regular appointments: mark as completed
+        console.log(`✅ Completing regular appointment ${appointment.id}`);
+        const { error: appointmentError } = await supabase
+          .from('appointments')
+          .update({ 
+            final_price: price,
+            status: 'completed',
+            price_finalized: true
+          })
+          .eq('id', appointment.id);
+
+        if (appointmentError) throw appointmentError;
+      }
 
       // Guardar en el historial de precios
       const { error: historyError } = await supabase
