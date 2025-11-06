@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Navbar from '@/components/layout/Navbar';
 
@@ -15,15 +15,6 @@ const BookingSummary = () => {
       <Navbar />
       <PageContainer title="Resumen de Reserva" subtitle="Confirmación de tu cita">
         <div className="space-y-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/client/categories')}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al inicio
-          </Button>
-          
           <Card className="p-6 text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">¡Reserva Confirmada!</h2>

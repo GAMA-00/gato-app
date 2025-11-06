@@ -1,15 +1,13 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ServiceTypeCard from '@/components/client/ServiceTypeCard';
 import CategoryDetailsLoading from '@/components/client/CategoryDetailsLoading';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
-import BackButton from '@/components/ui/back-button';
 
 const ClientCategoryDetails = () => {
   const { categoryId } = useParams();
-  const navigate = useNavigate();
 
   const { data: categoryData, isLoading: categoryLoading } = useQuery({
     queryKey: ['category', categoryId],
@@ -80,15 +78,8 @@ const ClientCategoryDetails = () => {
 
   return (
     <ClientPageLayout>
-      <div className="space-y-4">
-        {/* Back button positioned at top left */}
-        <div className="flex justify-start">
-          <BackButton 
-            onClick={() => navigate('/client/categories')}
-          />
-        </div>
-        
-        {/* Centered title - larger and closer */}
+      <div className="space-y-6">
+        {/* Centered title */}
         <div className="text-center">
           <h1 className="text-3xl font-semibold text-[#2D2D2D]">
             {categoryLabel}

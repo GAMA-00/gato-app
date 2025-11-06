@@ -94,10 +94,6 @@ const ClientServiceDetail = () => {
         <Navbar />
         <PageContainer title="Detalle del Servicio" subtitle="Cargando...">
           <div className="space-y-4">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
             <Skeleton className="h-64 w-full rounded-lg" />
             <Skeleton className="h-32 w-full rounded-lg" />
           </div>
@@ -111,14 +107,6 @@ const ClientServiceDetail = () => {
       <>
         <Navbar />
         <PageContainer title="Servicio no encontrado">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(-1)}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
           <p>El servicio que buscas no existe.</p>
         </PageContainer>
       </>
@@ -132,15 +120,6 @@ const ClientServiceDetail = () => {
       <Navbar />
       <PageContainer title={service.title} subtitle={`Por ${userData.name || 'Proveedor'}`}>
         <div className="space-y-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(-1)}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
-          
           <div className="bg-white rounded-lg p-6 shadow-sm border">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

@@ -1,13 +1,11 @@
 
 import React from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import BackButton from '@/components/ui/back-button';
+import { useSearchParams } from 'react-router-dom';
 import ProvidersList from '@/components/client/results/ProvidersList';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
 
 const ClientResultsView = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const query = searchParams.get('q');
   const serviceId = searchParams.get('serviceId');
   const categoryName = searchParams.get('categoryName');
@@ -17,18 +15,10 @@ const ClientResultsView = () => {
     return (
       <ClientPageLayout>
         <div className="space-y-6">
-          {/* Header with back button on top left and title below */}
-          <div className="space-y-3">
-            {/* Back button - top left corner */}
-            <div>
-              <BackButton onClick={() => navigate(-1)} label="Volver" className="h-10" />
-            </div>
-            
-            {/* Title - centered below back button */}
-            <h1 className="text-lg font-semibold text-[#2D2D2D] text-center">
-              Profesionales Disponibles
-            </h1>
-          </div>
+          {/* Title - centered */}
+          <h1 className="text-lg font-semibold text-[#2D2D2D] text-center">
+            Profesionales Disponibles
+          </h1>
           
           <ProvidersList
             categoryName={categoryName || ''} 
@@ -46,7 +36,6 @@ const ClientResultsView = () => {
       subtitle={`Buscando: ${query}`}
     >
       <div className="space-y-6">
-        <BackButton onClick={() => navigate(-1)} />
         <div className="text-center py-12">
           <p className="text-muted-foreground">
             Funcionalidad de búsqueda en desarrollo

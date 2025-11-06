@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PaymentStatusTracker } from '@/components/payments/PaymentStatusTracker';
 import PageLayout from '@/components/layout/PageLayout';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export const PaymentStatus = () => {
   const { paymentId } = useParams<{ paymentId: string }>();
@@ -29,17 +28,6 @@ export const PaymentStatus = () => {
   return (
     <PageLayout>
       <div className="max-w-2xl mx-auto py-8 px-4">
-        <div className="mb-6">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
-          </Button>
-        </div>
-        
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-4">Solicitud de Reserva Enviada</h1>
           

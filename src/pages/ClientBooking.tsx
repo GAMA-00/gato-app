@@ -10,7 +10,6 @@ import { buildCompleteLocation } from '@/utils/locationBuilder';
 import { RobustBookingSystem } from '@/utils/robustBookingSystem';
 import PageLayout from '@/components/layout/PageLayout';
 import { toast } from 'sonner';
-import BookingHeader from '@/components/client/booking/BookingHeader';
 import NewBookingForm from '@/components/client/booking/NewBookingForm';
 import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
 
@@ -108,7 +107,6 @@ const ClientBooking = () => {
           <p className="text-muted-foreground mb-4">
             No se pudo cargar la información del servicio
           </p>
-          <BookingHeader onBackClick={handleBackNavigation} />
         </div>
       </PageLayout>
     );
@@ -241,8 +239,10 @@ const ClientBooking = () => {
 
   return (
     <PageLayout>
-      {/* Back button positioned in top left corner above title */}
-      <BookingHeader onBackClick={handleBackNavigation} />
+      {/* Title */}
+      <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
+        Reservar Servicio
+      </h1>
 
       {/* Single Column Layout - Same for Desktop and Mobile */}
       <div className="max-w-2xl mx-auto space-y-6">
