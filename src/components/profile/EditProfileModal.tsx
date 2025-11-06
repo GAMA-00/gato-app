@@ -5,9 +5,7 @@ import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
-import { uploadCertificationFiles, uploadGalleryImages } from '@/utils/uploadService';
 import { supabase } from '@/integrations/supabase/client';
-import { formatPhoneForDisplay } from '@/utils/phoneUtils';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import UnifiedAvatar from '@/components/ui/unified-avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Upload, X, Plus, FileText, Image, Key } from 'lucide-react';
+import { Upload, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import PasswordChangeModal from './PasswordChangeModal';
 import ClientResidenceField from '@/components/auth/ClientResidenceField';
@@ -54,12 +52,7 @@ const providerProfileSchema = z.object({
     .length(12, 'El número debe tener exactamente 8 dígitos')
     .optional()
     .or(z.literal('')),
-  residenciaId: z.string().optional(),
-  condominiumId: z.string().optional(),
-  houseNumber: z.string().optional(),
-  condominiumText: z.string().optional(),
   aboutMe: z.string().optional(),
-  experienceYears: z.number().min(0).max(50).optional(),
 });
 
 type ClientFormData = z.infer<typeof clientProfileSchema>;
@@ -77,15 +70,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
-  const [certificationFiles, setCertificationFiles] = useState<File[]>([]);
-  const [galleryImages, setGalleryImages] = useState<File[]>([]);
-  const [existingCertifications, setExistingCertifications] = useState<string[]>([]);
-  const [existingGalleryImages, setExistingGalleryImages] = useState<string[]>([]);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const certificationInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const isProvider = user?.role === 'provider';
 
@@ -106,12 +93,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     defaultValues: {
       name: '',
       phone: '',
-      residenciaId: '',
-      condominiumId: '',
-      houseNumber: '',
-      condominiumText: '',
       aboutMe: '',
-      experienceYears: 0,
     },
   });
 
@@ -122,29 +104,21 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     if (profile) {
       console.log('=== Updating form with profile data ===', profile);
       
-      const commonData = {
-        name: profile.name || '',
-        phone: profile.phone || '',
-        residenciaId: profile.residencia_id || '',
-        condominiumId: profile.condominium_id || '',
-        houseNumber: profile.house_number || '',
-        condominiumText: profile.condominium_text || profile.condominium_name || '',
-      };
-
-      clientForm.reset(commonData);
-      
       if (isProvider) {
         providerForm.reset({
-          ...commonData,
+          name: profile.name || '',
+          phone: profile.phone || '',
           aboutMe: profile.about_me || '',
-          experienceYears: profile.experience_years || 0,
         });
-      }
-
-      // Load existing files
-      if (profile.certification_files && Array.isArray(profile.certification_files)) {
-        const certUrls = profile.certification_files.map((cert: any) => cert.url || cert).filter(Boolean);
-        setExistingCertifications(certUrls);
+      } else {
+        clientForm.reset({
+          name: profile.name || '',
+          phone: profile.phone || '',
+          residenciaId: profile.residencia_id || '',
+          condominiumId: profile.condominium_id || '',
+          houseNumber: profile.house_number || '',
+          condominiumText: profile.condominium_text || profile.condominium_name || '',
+        });
       }
 
       setAvatarPreview(profile.avatar_url || '');
@@ -189,27 +163,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     }
   };
 
-  const handleCertificationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setCertificationFiles(prev => [...prev, ...files]);
-  };
-
-  const handleGalleryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setGalleryImages(prev => [...prev, ...files]);
-  };
-
-  const removeCertification = (index: number) => {
-    setCertificationFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const removeGalleryImage = (index: number) => {
-    setGalleryImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const removeExistingCertification = (index: number) => {
-    setExistingCertifications(prev => prev.filter((_, i) => i !== index));
-  };
 
   const onSubmit = async (values: ClientFormData | ProviderFormData) => {
     if (!user?.id) return;
@@ -220,20 +173,20 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
 
       let avatarUrl = profile?.avatar_url || '';
       
-          // Upload new avatar if changed
-          if (avatarFile) {
-            console.log('Uploading new avatar with unified system...');
-            try {
-              toast.info('📸 Subiendo imagen de perfil...');
-              
-              // Usar el sistema unificado como la galería
-              avatarUrl = await unifiedAvatarUpload(avatarFile, user.id);
-              console.log('✅ Avatar subido exitosamente:', avatarUrl);
-              
-              toast.success('✅ Imagen de perfil actualizada');
-              
-              // Invalidar cache de React Query en lugar de reload
-              invalidateProfile();
+      // Upload new avatar if changed
+      if (avatarFile) {
+        console.log('Uploading new avatar with unified system...');
+        try {
+          toast.info('📸 Subiendo imagen de perfil...');
+          
+          // Usar el sistema unificado como la galería
+          avatarUrl = await unifiedAvatarUpload(avatarFile, user.id);
+          console.log('✅ Avatar subido exitosamente:', avatarUrl);
+          
+          toast.success('✅ Imagen de perfil actualizada');
+          
+          // Invalidar cache de React Query en lugar de reload
+          invalidateProfile();
           
         } catch (error: any) {
           console.error('Avatar upload failed:', error);
@@ -257,86 +210,58 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
         }
       }
 
-      // Upload new certification files
-      let allCertificationUrls = [...existingCertifications];
-      if (certificationFiles.length > 0) {
-        console.log('Uploading certification files...');
-        const newCertUrls = await uploadCertificationFiles(certificationFiles, user.id);
-        allCertificationUrls = [...allCertificationUrls, ...newCertUrls];
-      }
-
-      // Upload new gallery images
-      let allGalleryUrls = [...existingGalleryImages];
-      if (galleryImages.length > 0) {
-        console.log('Uploading gallery images...');
-        const newGalleryUrls = await uploadGalleryImages(galleryImages, user.id);
-        allGalleryUrls = [...allGalleryUrls, ...newGalleryUrls];
-      }
-
-      // Resolve condominium name if needed
-      let resolvedCondominiumName = values.condominiumText || '';
-      
-      if (values.condominiumId && !resolvedCondominiumName) {
-        console.log('Resolving condominium name for ID:', values.condominiumId);
-        
-        if (values.condominiumId.startsWith('static-')) {
-          // Static condominium from predefined list
-          const condominiumNames = [
-            'El Carao', 'La Ceiba', 'Guayaquil', 'Ilang-Ilang', 'Nogal', 
-            'Guayacán Real', 'Cedro Alto', 'Roble Sabana', 'Alamo', 'Guaitil'
-          ];
-          const index = parseInt(values.condominiumId.replace('static-', ''));
-          if (index >= 0 && index < condominiumNames.length) {
-            resolvedCondominiumName = condominiumNames[index];
-          }
-        } else {
-          // Database condominium - fetch name
-          try {
-            const { data: condominiumData, error } = await supabase
-              .from('condominiums')
-              .select('name')
-              .eq('id', values.condominiumId)
-              .single();
-              
-            if (!error && condominiumData) {
-              resolvedCondominiumName = condominiumData.name;
-            }
-          } catch (error) {
-            console.error('Failed to resolve condominium name:', error);
-          }
-        }
-      }
-
-      console.log('Profile update data:', {
-        residencia_id: values.residenciaId,
-        condominium_id: values.condominiumId,
-        condominium_name: resolvedCondominiumName,
-        house_number: values.houseNumber
-      });
-
       // Prepare update data
       const updateData: any = {
         name: values.name,
         phone: values.phone || '',
-        residencia_id: values.residenciaId || null,
-        condominium_id: values.condominiumId || null,
-        house_number: values.houseNumber || '',
-        condominium_text: resolvedCondominiumName,
-        condominium_name: resolvedCondominiumName,
         avatar_url: avatarUrl,
       };
 
       // Add provider-specific fields
       if (isProvider && 'aboutMe' in values) {
         updateData.about_me = values.aboutMe || '';
-        updateData.experience_years = values.experienceYears || 0;
+      }
+      
+      // Only clients have location data
+      if (!isProvider && 'residenciaId' in values) {
+        let resolvedCondominiumName = values.condominiumText || '';
         
-        // Save certification files as JSON
-        if (allCertificationUrls.length > 0) {
-          updateData.certification_files = JSON.stringify(
-            allCertificationUrls.map(url => ({ url, name: 'Certificación', type: 'file' }))
-          );
+        if (values.condominiumId && !resolvedCondominiumName) {
+          console.log('Resolving condominium name for ID:', values.condominiumId);
+          
+          if (values.condominiumId.startsWith('static-')) {
+            // Static condominium from predefined list
+            const condominiumNames = [
+              'El Carao', 'La Ceiba', 'Guayaquil', 'Ilang-Ilang', 'Nogal', 
+              'Guayacán Real', 'Cedro Alto', 'Roble Sabana', 'Alamo', 'Guaitil'
+            ];
+            const index = parseInt(values.condominiumId.replace('static-', ''));
+            if (index >= 0 && index < condominiumNames.length) {
+              resolvedCondominiumName = condominiumNames[index];
+            }
+          } else {
+            // Database condominium - fetch name
+            try {
+              const { data: condominiumData, error } = await supabase
+                .from('condominiums')
+                .select('name')
+                .eq('id', values.condominiumId)
+                .single();
+                
+              if (!error && condominiumData) {
+                resolvedCondominiumName = condominiumData.name;
+              }
+            } catch (error) {
+              console.error('Failed to resolve condominium name:', error);
+            }
+          }
         }
+
+        updateData.residencia_id = values.residenciaId || null;
+        updateData.condominium_id = values.condominiumId || null;
+        updateData.house_number = values.houseNumber || '';
+        updateData.condominium_text = resolvedCondominiumName;
+        updateData.condominium_name = resolvedCondominiumName;
       }
 
       console.log('=== Updating user data ===', updateData);
@@ -438,172 +363,38 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
               />
             </div>
 
-            {/* Location Info */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Información de Ubicación</h3>
-              <ClientResidenceField
-                residencias={residencias}
-                isSubmitting={isLoading}
-                loadingResidencias={loadingResidencias}
-                form={form}
-              />
-            </div>
+            {/* Location Info - SOLO PARA CLIENTES */}
+            {!isProvider && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Información de Ubicación</h3>
+                <ClientResidenceField
+                  residencias={residencias}
+                  isSubmitting={isLoading}
+                  loadingResidencias={loadingResidencias}
+                  form={form}
+                />
+              </div>
+            )}
 
             {/* Provider-specific fields */}
             {isProvider && (
-              <>
-                <FormField
-                  control={providerForm.control}
-                  name="aboutMe"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Acerca de mí</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field} 
-                          placeholder="Cuéntanos sobre tu experiencia y servicios..."
-                          className="min-h-[100px]"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={providerForm.control}
-                  name="experienceYears"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Años de Experiencia</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="number" 
-                          min="0" 
-                          max="50"
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Existing Certifications */}
-                <div>
-                  <FormLabel>Certificaciones Actuales</FormLabel>
-                  <Card className="mt-2">
-                    <CardContent className="pt-4">
-                      {existingCertifications.length > 0 && (
-                        <div className="mb-4 space-y-2">
-                          {existingCertifications.map((url, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                              <div className="flex items-center space-x-2">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm">Certificación {index + 1}</span>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeExistingCertification(index)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => certificationInputRef.current?.click()}
-                        className="w-full"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Agregar Nuevas Certificaciones
-                      </Button>
-                      <input
-                        ref={certificationInputRef}
-                        type="file"
-                        multiple
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="hidden"
-                        onChange={handleCertificationChange}
+              <FormField
+                control={providerForm.control}
+                name="aboutMe"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Acerca de mí</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        placeholder="Cuéntanos sobre tu experiencia y servicios..."
+                        className="min-h-[100px]"
                       />
-                      
-                      {certificationFiles.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                          {certificationFiles.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                              <span className="text-sm text-blue-700">Nuevo: {file.name}</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeCertification(index)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Gallery */}
-                <div>
-                  <FormLabel>Galería de Trabajos</FormLabel>
-                  <Card className="mt-2">
-                    <CardContent className="pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => galleryInputRef.current?.click()}
-                        className="w-full"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Agregar Imágenes
-                      </Button>
-                      <input
-                        ref={galleryInputRef}
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleGalleryChange}
-                      />
-                      
-                      {galleryImages.length > 0 && (
-                        <div className="mt-4 grid grid-cols-3 gap-2">
-                          {galleryImages.map((image, index) => (
-                            <div key={index} className="relative">
-                              <img 
-                                src={URL.createObjectURL(image)} 
-                                alt={`Nueva imagen ${index + 1}`} 
-                                className="w-full h-20 object-cover rounded"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute top-0 right-0 h-6 w-6 p-0 bg-red-500 text-white hover:bg-red-600"
-                                onClick={() => removeGalleryImage(index)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             {/* Password Change Section */}
