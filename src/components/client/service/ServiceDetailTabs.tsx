@@ -80,7 +80,7 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
         <TabsContent value="catalog" className="space-y-3">
           {/* Description - No Card */}
           <div className="px-4 py-3">
-            <h3 className="text-sm font-semibold mb-2">Descripción del servicio</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">Descripción del servicio</h3>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
               {displayDescription}
             </p>

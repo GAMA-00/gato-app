@@ -99,7 +99,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
   return (
       <div className="bg-stone-50 px-4 py-3 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-foreground">
+          <h3 className="text-sm font-semibold text-foreground">
             Catálogo de Servicios
           </h3>
           {isMobile && (
