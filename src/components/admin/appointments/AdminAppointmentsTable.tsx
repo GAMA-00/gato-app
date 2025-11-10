@@ -26,22 +26,13 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
   const [page, setPage] = useState(0);
   useRealtimeAppointments();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['admin-appointments', searchQuery, page],
     queryFn: async () => {
       let query = supabase
         .from('appointments')
         .select(
-          `
-          id,
-          start_time,
-          recurrence,
-          client:users!appointments_client_id_fkey(name),
-          provider:users!appointments_provider_id_fkey(name),
-          listing:listings!appointments_listing_id_fkey(
-            service_type:service_types!listings_service_type_id_fkey(name)
-          )
-        `,
+          'id, start_time, recurrence, client_name, provider_name, listing_id',
           { count: 'exact' }
         )
         .order('start_time', { ascending: true })
@@ -60,6 +51,10 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
 
   if (isLoading) {
     return <div className="text-center py-8 text-muted-foreground">Cargando...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-destructive">Error al cargar citas: {error.message}</div>;
   }
 
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
@@ -90,9 +85,9 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
                     <div className="font-medium">{date}</div>
                     <div className="text-sm text-muted-foreground">{time}</div>
                   </TableCell>
-                  <TableCell>{apt.client?.name || '—'}</TableCell>
-                  <TableCell>{apt.provider?.name || '—'}</TableCell>
-                  <TableCell>{apt.listing?.service_type?.name || '—'}</TableCell>
+                  <TableCell>{apt.client_name || '—'}</TableCell>
+                  <TableCell>{apt.provider_name || '—'}</TableCell>
+                  <TableCell>—</TableCell>
                   <TableCell>{recurrenceLabels[apt.recurrence] || apt.recurrence}</TableCell>
                 </TableRow>
               );

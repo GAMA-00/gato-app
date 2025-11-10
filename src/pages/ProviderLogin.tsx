@@ -21,7 +21,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const ProviderLogin = () => {
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,12 +36,20 @@ const ProviderLogin = () => {
 
   // Redirect authenticated users
   useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log('ProviderLogin: User authenticated, role:', user.role);
-      const redirectTo = user.role === 'admin' ? '/admin/dashboard' : user.role === 'provider' ? '/dashboard' : '/client/categories';
-      navigate(redirectTo, { replace: true });
+    if (isAuthenticated && !isLoading) {
+      const role = profile?.role || user?.role;
+      if (role) {
+        console.log('ProviderLogin: User authenticated, redirecting to role:', role);
+        if (role === 'admin') {
+          navigate('/admin/dashboard', { replace: true });
+        } else if (role === 'provider') {
+          navigate('/dashboard', { replace: true });
+        } else if (role === 'client') {
+          navigate('/client/categories', { replace: true });
+        }
+      }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, isLoading, profile, user, navigate]);
 
   const onSubmit = async (values: LoginFormValues) => {
     if (isSubmitting) return;
