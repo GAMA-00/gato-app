@@ -49,6 +49,26 @@ export default function AppointmentDetail() {
     enabled: !!appointment?.onvopay_payment_id,
   });
 
+  const { data: subscription } = useQuery({
+    queryKey: ['admin-appointment-subscription', appointment?.onvopay_subscription_id],
+    queryFn: async () => {
+      if (!appointment?.onvopay_subscription_id) return null;
+      
+      const { data, error } = await supabase
+        .from('onvopay_subscriptions')
+        .select('*')
+        .eq('id', appointment.onvopay_subscription_id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!appointment?.onvopay_subscription_id,
+  });
+
   const { data: systemSettings } = useQuery({
     queryKey: ['system-settings'],
     queryFn: async () => {
@@ -96,17 +116,57 @@ export default function AppointmentDetail() {
 
   const statusInfo = statusLabels[appointment.status] || { label: appointment.status, variant: 'outline' };
 
-  // Cálculos financieros
-  const finalPrice = appointment.final_price ? parseFloat(appointment.final_price.toString()) : 0;
+  // Traducciones
+  const intervalTypeLabels: Record<string, string> = {
+    daily: 'Diaria',
+    weekly: 'Semanal',
+    biweekly: 'Quincenal',
+    triweekly: 'Cada 3 semanas',
+    monthly: 'Mensual',
+  };
+
+  const paymentTypeLabels: Record<string, string> = {
+    one_time: 'Pago único',
+    recurring_initial: 'Primer cobro recurrente',
+    recurring_charge: 'Cobro recurrente',
+  };
+
+  const paymentStatusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    pending_authorization: { label: 'Pendiente', variant: 'secondary' },
+    authorized: { label: 'Autorizado', variant: 'default' },
+    captured: { label: 'Capturado', variant: 'default' },
+    failed: { label: 'Fallido', variant: 'destructive' },
+    cancelled: { label: 'Cancelado', variant: 'destructive' },
+  };
+
+  const subscriptionStatusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
+    active: { label: 'Activa', variant: 'default' },
+    cancelled: { label: 'Cancelada', variant: 'destructive' },
+    paused: { label: 'Pausada', variant: 'secondary' },
+  };
+
+  // Cálculos financieros - priorizar precio de Onvopay si final_price es NULL
+  const paymentAmount = payment?.amount ? parseFloat(payment.amount.toString()) : 0;
+  const finalPrice = appointment.final_price 
+    ? parseFloat(appointment.final_price.toString())
+    : paymentAmount;
+  
   const commissionRate = systemSettings?.commission_rate || 20;
   const commission = (finalPrice * commissionRate) / 100;
   const providerEarnings = finalPrice - commission;
 
   // Información del pago de Onvopay
-  const paymentAmount = payment?.amount ? parseFloat(payment.amount.toString()) : 0;
   const paymentSubtotal = payment?.subtotal ? parseFloat(payment.subtotal.toString()) : 0;
   const paymentIVA = payment?.iva_amount ? parseFloat(payment.iva_amount.toString()) : 0;
   const paymentCommission = payment?.commission_amount ? parseFloat(payment.commission_amount.toString()) : 0;
+
+  const paymentStatusInfo = payment?.status 
+    ? paymentStatusLabels[payment.status] || { label: payment.status, variant: 'outline' }
+    : null;
+
+  const subscriptionStatusInfo = subscription?.status
+    ? subscriptionStatusLabels[subscription.status] || { label: subscription.status, variant: 'secondary' }
+    : null;
 
   return (
     <div className="space-y-6">
@@ -283,6 +343,231 @@ export default function AppointmentDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Información de Pago Onvopay */}
+      {payment && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              {appointment.onvopay_subscription_id ? 'Información de Suscripción (Pago Recurrente)' : 'Información de Pago Onvopay'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {appointment.onvopay_subscription_id && subscription ? (
+              <div className="space-y-6">
+                {/* Estado y frecuencia */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-2">Estado Suscripción</div>
+                    {subscriptionStatusInfo && (
+                      <Badge variant={subscriptionStatusInfo.variant} className="text-sm">
+                        {subscriptionStatusInfo.label}
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-2">Frecuencia</div>
+                    <div className="font-medium">
+                      {intervalTypeLabels[subscription.interval_type] || subscription.interval_type}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Cobro actual */}
+                <div>
+                  <div className="text-sm font-semibold mb-3">💳 Cobro Actual</div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Estado:</span>
+                      <div>
+                        {paymentStatusInfo && (
+                          <Badge variant={paymentStatusInfo.variant} className="text-xs">
+                            {paymentStatusInfo.label}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {payment.captured_at && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fecha de cobro:</span>
+                        <span className="font-medium">
+                          {formatInTimeZone(new Date(payment.captured_at), TIMEZONE, 'dd/MM/yyyy HH:mm')}
+                        </span>
+                      </div>
+                    )}
+                    {payment.authorized_at && !payment.captured_at && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fecha de autorización:</span>
+                        <span className="font-medium">
+                          {formatInTimeZone(new Date(payment.authorized_at), TIMEZONE, 'dd/MM/yyyy HH:mm')}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Monto:</span>
+                      <span className="font-semibold">${paymentAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Próximo cobro */}
+                {subscription.status === 'active' && subscription.next_charge_date && (
+                  <>
+                    <Separator />
+                    <div>
+                      <div className="text-sm font-semibold mb-3">📅 Próximo Cobro</div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Fecha programada:</span>
+                          <span className="font-medium">
+                            {formatInTimeZone(new Date(subscription.next_charge_date), TIMEZONE, 'dd/MM/yyyy')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Monto estimado:</span>
+                          <span className="font-medium">${parseFloat(subscription.amount.toString()).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Último cobro previo */}
+                {subscription.last_charge_date && (
+                  <>
+                    <Separator />
+                    <div>
+                      <div className="text-sm text-muted-foreground">Último cobro previo</div>
+                      <div className="font-medium">
+                        {formatInTimeZone(new Date(subscription.last_charge_date), TIMEZONE, 'dd/MM/yyyy')}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <Separator />
+
+                {/* IDs de Onvopay */}
+                <div>
+                  <div className="text-sm font-semibold mb-3">🔑 IDs de Onvopay</div>
+                  <div className="space-y-2 text-xs">
+                    {subscription.onvopay_subscription_id && (
+                      <div>
+                        <span className="text-muted-foreground">Subscription ID: </span>
+                        <span className="font-mono">{subscription.onvopay_subscription_id}</span>
+                      </div>
+                    )}
+                    {subscription.onvopay_loop_id && (
+                      <div>
+                        <span className="text-muted-foreground">Loop ID: </span>
+                        <span className="font-mono">{subscription.onvopay_loop_id}</span>
+                      </div>
+                    )}
+                    {payment.onvopay_payment_id && (
+                      <div>
+                        <span className="text-muted-foreground">Payment ID (actual): </span>
+                        <span className="font-mono">{payment.onvopay_payment_id}</span>
+                      </div>
+                    )}
+                    {payment.onvopay_transaction_id && (
+                      <div>
+                        <span className="text-muted-foreground">Transaction ID (actual): </span>
+                        <span className="font-mono">{payment.onvopay_transaction_id}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Pago único */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-2">Estado del Pago</div>
+                    {paymentStatusInfo && (
+                      <Badge variant={paymentStatusInfo.variant} className="text-sm">
+                        {paymentStatusInfo.label}
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-2">Tipo de Pago</div>
+                    <div className="font-medium">
+                      {paymentTypeLabels[payment.payment_type] || payment.payment_type}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Fechas */}
+                <div className="space-y-2 text-sm">
+                  {payment.authorized_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Autorizado:</span>
+                      <span className="font-medium">
+                        {formatInTimeZone(new Date(payment.authorized_at), TIMEZONE, 'dd/MM/yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
+                  {payment.captured_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Capturado:</span>
+                      <span className="font-medium">
+                        {formatInTimeZone(new Date(payment.captured_at), TIMEZONE, 'dd/MM/yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
+                  {payment.failed_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Falló:</span>
+                      <span className="font-medium text-destructive">
+                        {formatInTimeZone(new Date(payment.failed_at), TIMEZONE, 'dd/MM/yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
+                  {payment.cancelled_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cancelado:</span>
+                      <span className="font-medium text-destructive">
+                        {formatInTimeZone(new Date(payment.cancelled_at), TIMEZONE, 'dd/MM/yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* IDs */}
+                <div>
+                  <div className="text-sm font-semibold mb-3">🔑 IDs de Onvopay</div>
+                  <div className="space-y-2 text-xs">
+                    {payment.onvopay_payment_id && (
+                      <div>
+                        <span className="text-muted-foreground">Payment ID: </span>
+                        <span className="font-mono">{payment.onvopay_payment_id}</span>
+                      </div>
+                    )}
+                    {payment.onvopay_transaction_id && (
+                      <div>
+                        <span className="text-muted-foreground">Transaction ID: </span>
+                        <span className="font-mono">{payment.onvopay_transaction_id}</span>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-muted-foreground">Método de pago: </span>
+                      <span>{payment.payment_method}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Información adicional */}
       <Card>
