@@ -10,6 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PublicRoutes from './routes/PublicRoutes';
 import ProviderRoutes from './routes/ProviderRoutes';
 import ClientRoutes from './routes/ClientRoutes';
+import { AdminRoutes } from './routes/AdminRoutes';
 import ClientPreloader from './components/client/ClientPreloader';
 import AvatarTest from './components/debug/AvatarTest';
 
@@ -43,6 +44,7 @@ function App() {
               <ClientPreloader />
               <Routes>
                 <Route path="/avatar-test" element={<AvatarTest />} />
+                <Route path="/admin/*" element={<AdminRoutes />} />
                 {PublicRoutes()}
                 {ProviderRoutes()}
                 {ClientRoutes()}

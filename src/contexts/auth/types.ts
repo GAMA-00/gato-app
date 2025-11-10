@@ -3,7 +3,7 @@ export interface User {
   id: string;
   email: string;
   name?: string;
-  role: 'client' | 'provider';
+  role: 'client' | 'provider' | 'admin';
   phone?: string;
   avatar_url?: string;
 }
@@ -16,7 +16,7 @@ export interface UserProfile {
   avatar_url?: string;
   about_me?: string;
   experience_years?: number;
-  role: 'client' | 'provider';
+  role: 'client' | 'provider' | 'admin';
   residencia_id?: string;
   condominium_id?: string;
   condominium_name?: string;

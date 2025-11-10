@@ -233,6 +233,47 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          appointment_id: string | null
+          created_at: string | null
+          email_type: string
+          error_message: string | null
+          id: string
+          recipient: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string | null
+          email_type: string
+          error_message?: string | null
+          id?: string
+          recipient: string
+          sent_at?: string | null
+          status: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string | null
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           appointment_id: string
@@ -2166,6 +2207,7 @@ export type Database = {
           service_title: string
         }[]
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       mark_past_appointments_completed: { Args: never; Returns: number }
       migrate_all_provider_availability_and_generate_slots: {
         Args: never
