@@ -8,16 +8,22 @@ interface ProtectedAdminRouteProps {
 }
 
 export const ProtectedAdminRoute = ({ children }: ProtectedAdminRouteProps) => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Priorizar profile.role sobre user.role (más confiable desde BD)
+  const effectiveRole = profile?.role || user?.role;
+
   useEffect(() => {
-    if (!isLoading && user?.role !== 'admin') {
+    // Solo redirigir si ya no está cargando y el rol definitivo no es admin
+    if (!isLoading && effectiveRole && effectiveRole !== 'admin') {
+      console.log('ProtectedAdminRoute: Non-admin user, redirecting to login');
       navigate('/login', { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [effectiveRole, isLoading, navigate]);
 
-  if (isLoading) {
+  // Mostrar loading mientras se verifica la sesión O mientras se carga el perfil
+  if (isLoading || (user && !profile)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -25,5 +31,11 @@ export const ProtectedAdminRoute = ({ children }: ProtectedAdminRouteProps) => {
     );
   }
 
-  return user?.role === 'admin' ? <>{children}</> : null;
+  // Verificar autenticación
+  if (!user) {
+    return null;
+  }
+
+  // Verificar rol admin (priorizar profile)
+  return effectiveRole === 'admin' ? <>{children}</> : null;
 };

@@ -9,7 +9,7 @@ export const createUserFromSession = (authUser: SupabaseUser): User => {
     id: authUser.id,
     name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
     email: authUser.email || '',
-    role: role === 'provider' ? 'provider' : 'client',
+    role: role === 'admin' ? 'admin' : (role === 'provider' ? 'provider' : 'client'),
     avatar_url: authUser.user_metadata?.avatar_url || '',
     phone: authUser.user_metadata?.phone || ''
   };
