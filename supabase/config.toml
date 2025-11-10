@@ -100,3 +100,6 @@ verify_jwt = false
 
 [functions.onvopay-sweep-completed-recurring]
 verify_jwt = false
+
+[functions.send-appointment-email]
+verify_jwt = false
