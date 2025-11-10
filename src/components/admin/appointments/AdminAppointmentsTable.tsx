@@ -48,10 +48,7 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (searchQuery) {
-        // Search by ID or names
-        query = query.or(
-          `id.ilike.%${searchQuery}%`
-        );
+        query = query.ilike('id', `%${searchQuery}%`);
       }
 
       const { data, error, count } = await query;

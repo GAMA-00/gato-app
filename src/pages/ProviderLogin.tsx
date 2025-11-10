@@ -38,7 +38,7 @@ const ProviderLogin = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log('ProviderLogin: User authenticated, role:', user.role);
-      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
+      const redirectTo = user.role === 'admin' ? '/admin/dashboard' : user.role === 'provider' ? '/dashboard' : '/client/categories';
       navigate(redirectTo, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);

@@ -1743,6 +1743,7 @@ export type Database = {
           has_payment_method: boolean | null
           house_number: string | null
           id: string
+          is_active: boolean | null
           name: string | null
           phone: string | null
           residencia_id: string | null
@@ -1764,6 +1765,7 @@ export type Database = {
           has_payment_method?: boolean | null
           house_number?: string | null
           id: string
+          is_active?: boolean | null
           name?: string | null
           phone?: string | null
           residencia_id?: string | null
@@ -1785,6 +1787,7 @@ export type Database = {
           has_payment_method?: boolean | null
           house_number?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string | null
           phone?: string | null
           residencia_id?: string | null
@@ -2278,6 +2281,7 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: number
       }
+      toggle_user_active: { Args: { _user_id: string }; Returns: undefined }
       unblock_recurring_slots: {
         Args: { p_recurring_rule_id: string }
         Returns: number

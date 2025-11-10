@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 const PAGE_SIZE = 25;
 
@@ -14,13 +16,30 @@ interface AdminUsersTableProps {
 
 export const AdminUsersTable = ({ role, searchQuery }: AdminUsersTableProps) => {
   const [page, setPage] = useState(0);
+  const queryClient = useQueryClient();
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.rpc('toggle_user_active', {
+        _user_id: userId
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('Usuario actualizado correctamente');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Error al actualizar usuario');
+    }
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users', role, searchQuery, page],
     queryFn: async () => {
       let query = supabase
         .from('users')
-        .select('id, name, email, phone, created_at', { count: 'exact' })
+        .select('id, name, email, phone, created_at, is_active', { count: 'exact' })
         .eq('role', role)
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -52,6 +71,8 @@ export const AdminUsersTable = ({ role, searchQuery }: AdminUsersTableProps) => 
               <TableHead>Email</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Fecha de registro</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -62,6 +83,21 @@ export const AdminUsersTable = ({ role, searchQuery }: AdminUsersTableProps) => 
                 <TableCell>{user.phone || '—'}</TableCell>
                 <TableCell>
                   {new Date(user.created_at).toLocaleDateString('es-CR')}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={user.is_active ? "default" : "secondary"}>
+                    {user.is_active ? 'Activo' : 'Inactivo'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleActiveMutation.mutate(user.id)}
+                    disabled={toggleActiveMutation.isPending}
+                  >
+                    {user.is_active ? 'Desactivar' : 'Activar'}
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

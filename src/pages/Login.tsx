@@ -41,7 +41,7 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log('Login: User already authenticated, redirecting...');
-      const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
+      const redirectTo = user.role === 'admin' ? '/admin/dashboard' : user.role === 'provider' ? '/dashboard' : '/client/categories';
       navigate(redirectTo, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
