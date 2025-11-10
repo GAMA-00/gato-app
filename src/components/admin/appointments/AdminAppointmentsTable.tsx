@@ -35,7 +35,12 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
       let query = supabase
         .from('appointments')
         .select(
-          'id, start_time, recurrence, client_name, provider_name, listing_id, status, final_price, onvopay_payment_id',
+          `id, start_time, recurrence, client_name, provider_name, listing_id, status, final_price, onvopay_payment_id,
+          listings!inner(
+            service_types!inner(
+              name
+            )
+          )`,
           { count: 'exact' }
         )
         .order('start_time', { ascending: true })
@@ -72,6 +77,7 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
               <TableHead>Fecha</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Proveedor</TableHead>
+              <TableHead>Tipo de Servicio</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Recurrencia</TableHead>
@@ -102,6 +108,9 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
                   </TableCell>
                   <TableCell>{apt.client_name || '—'}</TableCell>
                   <TableCell>{apt.provider_name || '—'}</TableCell>
+                  <TableCell>
+                    {(apt.listings as any)?.service_types?.name || '—'}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                   </TableCell>

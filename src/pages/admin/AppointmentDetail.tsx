@@ -19,7 +19,14 @@ export default function AppointmentDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          *,
+          listings!inner(
+            service_types!inner(
+              name
+            )
+          )
+        `)
         .eq('id', id)
         .single();
 
@@ -193,6 +200,13 @@ export default function AppointmentDetail() {
             <div>
               <div className="text-sm text-muted-foreground">ID de Cita</div>
               <div className="font-mono text-sm">{appointment.id}</div>
+            </div>
+            <Separator />
+            <div>
+              <div className="text-sm text-muted-foreground">Tipo de Servicio</div>
+              <div className="font-medium">
+                {(appointment.listings as any)?.service_types?.name || 'No especificado'}
+              </div>
             </div>
             <Separator />
             <div>
