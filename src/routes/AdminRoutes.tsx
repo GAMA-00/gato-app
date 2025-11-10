@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/admin/layout/AdminLayout';
 import { ProtectedAdminRoute } from '@/components/admin/ProtectedAdminRoute';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminAppointments from '@/pages/admin/AdminAppointments';
+import AppointmentDetail from '@/pages/admin/AppointmentDetail';
 import AdminClients from '@/pages/admin/AdminClients';
 import AdminProviders from '@/pages/admin/AdminProviders';
 
@@ -13,6 +14,7 @@ export const AdminRoutes = () => (
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="appointments" element={<AdminAppointments />} />
+        <Route path="appointments/:id" element={<AppointmentDetail />} />
         <Route path="clients" element={<AdminClients />} />
         <Route path="providers" element={<AdminProviders />} />
       </Routes>

@@ -5,7 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatInTimeZone } from 'date-fns-tz';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 const TIMEZONE = 'America/Costa_Rica';
 const PAGE_SIZE = 25;
@@ -24,6 +26,7 @@ interface AdminAppointmentsTableProps {
 
 export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTableProps) => {
   const [page, setPage] = useState(0);
+  const navigate = useNavigate();
   useRealtimeAppointments();
 
   const { data, isLoading, error } = useQuery({
@@ -32,7 +35,7 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
       let query = supabase
         .from('appointments')
         .select(
-          'id, start_time, recurrence, client_name, provider_name, listing_id',
+          'id, start_time, recurrence, client_name, provider_name, listing_id, status, final_price, onvopay_payment_id',
           { count: 'exact' }
         )
         .order('start_time', { ascending: true })
@@ -66,11 +69,13 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
           <TableHeader>
             <TableRow>
               <TableHead>ID Appointment</TableHead>
-              <TableHead>Fecha de la próxima cita</TableHead>
-              <TableHead>Nombre del cliente</TableHead>
-              <TableHead>Nombre del proveedor</TableHead>
-              <TableHead>Tipo de servicio</TableHead>
-              <TableHead>Tipo de recurrencia</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Proveedor</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Precio</TableHead>
+              <TableHead>Recurrencia</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -78,8 +83,18 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
               const date = formatInTimeZone(new Date(apt.start_time), TIMEZONE, 'dd/MM/yyyy');
               const time = formatInTimeZone(new Date(apt.start_time), TIMEZONE, 'HH:mm');
               
+              const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+                pending: { label: 'Pendiente', variant: 'secondary' },
+                confirmed: { label: 'Confirmada', variant: 'default' },
+                completed: { label: 'Completada', variant: 'outline' },
+                cancelled: { label: 'Cancelada', variant: 'destructive' },
+                rejected: { label: 'Rechazada', variant: 'destructive' },
+              };
+              
+              const statusInfo = statusLabels[apt.status] || { label: apt.status, variant: 'outline' };
+              
               return (
-                <TableRow key={apt.id}>
+                <TableRow key={apt.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/appointments/${apt.id}`)}>
                   <TableCell className="font-mono text-xs">{apt.id.slice(0, 8)}</TableCell>
                   <TableCell>
                     <div className="font-medium">{date}</div>
@@ -87,8 +102,29 @@ export const AdminAppointmentsTable = ({ searchQuery }: AdminAppointmentsTablePr
                   </TableCell>
                   <TableCell>{apt.client_name || '—'}</TableCell>
                   <TableCell>{apt.provider_name || '—'}</TableCell>
-                  <TableCell>—</TableCell>
+                  <TableCell>
+                    <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {apt.final_price ? (
+                      <span className="font-medium">${parseFloat(apt.final_price.toString()).toFixed(2)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>{recurrenceLabels[apt.recurrence] || apt.recurrence}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/admin/appointments/${apt.id}`);
+                      }}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
