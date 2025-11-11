@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logger } from '@/utils/logger';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 const RECURRENCE_LABELS: Record<string, string> = {
   'weekly': 'Semanal',
@@ -69,7 +70,10 @@ export const RecurringBookingConfirmation = () => {
     return (
       <PageLayout>
         <div className="max-w-2xl mx-auto py-8 px-4">
-          <div className="text-center">Cargando...</div>
+          <LoadingScreen 
+            message="Cargando detalles de la reserva recurrente..."
+            fullScreen={false}
+          />
         </div>
       </PageLayout>
     );

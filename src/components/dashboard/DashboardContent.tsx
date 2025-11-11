@@ -1,11 +1,12 @@
 import React from 'react';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AppointmentList from '@/components/dashboard/AppointmentList';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 
 interface DashboardContentProps {
@@ -59,10 +60,12 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           {/* Stats loaded separately, don't block main content */}
           {isLoadingStats ? (
             <div className="h-32 bg-muted rounded-lg animate-pulse flex items-center justify-center">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Cargando estadísticas...</span>
-              </div>
+              <LoadingScreen 
+                message="Cargando estadísticas..."
+                fullScreen={false}
+                size="sm"
+                className="h-auto"
+              />
             </div>
           ) : stats && !statsError ? (
             <DashboardStats stats={stats} />

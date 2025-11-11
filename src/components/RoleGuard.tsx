@@ -3,6 +3,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -26,27 +27,15 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
   // Show loading during authentication check or logout process
   if (isLoading || isLoggingOut) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-sm text-muted-foreground">
-            {isLoggingOut ? 'Cerrando sesión...' : 'Verificando acceso...'}
-          </p>
-        </div>
-      </div>
+      <LoadingScreen 
+        message={isLoggingOut ? 'Cerrando sesión...' : 'Verificando acceso...'}
+      />
     );
   }
 
   // During logout process, don't perform any redirects - just show loading
   if (isLoggingOut) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-sm text-muted-foreground">Cerrando sesión...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Cerrando sesión..." />;
   }
 
   // Not authenticated - redirect to appropriate login

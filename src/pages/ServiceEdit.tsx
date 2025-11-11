@@ -9,6 +9,7 @@ import { Service } from '@/lib/types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 const ServiceEdit = () => {
   const navigate = useNavigate();
@@ -204,9 +205,11 @@ const ServiceEdit = () => {
       <>
         <Navbar />
         <PageContainer title="Cargando...">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          </div>
+          <LoadingScreen 
+            message="Cargando información del servicio..."
+            fullScreen={false}
+            className="min-h-[400px]"
+          />
         </PageContainer>
       </>
     );

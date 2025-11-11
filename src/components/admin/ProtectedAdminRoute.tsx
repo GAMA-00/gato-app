@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 interface ProtectedAdminRouteProps {
   children: React.ReactNode;
@@ -25,11 +25,7 @@ export const ProtectedAdminRoute = ({ children }: ProtectedAdminRouteProps) => {
 
   // Mostrar loading mientras se verifica la sesión O mientras se carga el perfil
   if (isLoading || (user && !profile)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingScreen message="Verificando permisos..." />;
   }
 
   // Verificar autenticación

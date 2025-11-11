@@ -3,6 +3,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,14 +23,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   // Mostrar loading solo mientras se verifica la sesión inicial
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-          <p className="text-sm text-muted-foreground">Verificando sesión...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Verificando sesión..." />;
   }
 
   // Si no está autenticado, redirigir al login

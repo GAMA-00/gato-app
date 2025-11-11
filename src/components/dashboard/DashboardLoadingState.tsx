@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 const DashboardLoadingState: React.FC = () => {
   const [loadingTime, setLoadingTime] = useState(0);
@@ -49,21 +49,17 @@ const DashboardLoadingState: React.FC = () => {
       <Navbar />
       <div className="md:ml-52">
         <PageContainer title="Inicio" subtitle="Cargando tu información...">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-              <div className="space-y-2">
-                <p className="text-lg font-medium">Cargando dashboard...</p>
-                <p className="text-sm text-muted-foreground">
-                  Obteniendo tus citas de hoy y mañana ({loadingTime}s)
-                </p>
-                {loadingTime > 5 && (
-                  <p className="text-xs text-yellow-600">
-                    Esto está tardando más de lo normal...
-                  </p>
-                )}
-              </div>
-            </div>
+          <div className="py-12">
+            <LoadingScreen 
+              message={`Cargando dashboard... Obteniendo tus citas de hoy y mañana (${loadingTime}s)`}
+              fullScreen={false}
+              size="md"
+            />
+            {loadingTime > 5 && (
+              <p className="text-xs text-yellow-600 text-center mt-4">
+                Esto está tardando más de lo normal...
+              </p>
+            )}
           </div>
         </PageContainer>
       </div>
