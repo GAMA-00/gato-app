@@ -1,0 +1,88 @@
+name: Security & Code Quality Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  console-check:
+    name: Check for console statements
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Check for console.* in critical paths
+        run: |
+          echo "Checking for console statements in services and hooks..."
+          
+          # Check services (must be 0)
+          SERVICES_COUNT=$(grep -r "console\." src/services/ | wc -l || echo "0")
+          echo "Console statements in src/services/: $SERVICES_COUNT"
+          
+          if [ "$SERVICES_COUNT" -gt 0 ]; then
+            echo "❌ FAILED: Found console.* in src/services/"
+            grep -r "console\." src/services/
+            exit 1
+          fi
+          
+          echo "✅ PASSED: No console.* in src/services/"
+          
+      - name: Verify ESLint no-console rule
+        run: |
+          echo "Verifying ESLint configuration..."
+          
+          if ! grep -q '"no-console"' eslint.config.js; then
+            echo "❌ FAILED: no-console rule not found in eslint.config.js"
+            exit 1
+          fi
+          
+          echo "✅ PASSED: no-console rule is configured"
+
+  lint-and-build:
+    name: Lint and Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: false
+      
+      - name: TypeScript Build
+        run: npm run build
+        continue-on-error: false
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+      
+      - name: Check for vulnerable dependencies
+        run: |
+          if npm audit --audit-level=critical | grep -q "found"; then
+            echo "❌ Critical vulnerabilities found"
+            npm audit --audit-level=critical
+            exit 1
+          fi
+          echo "✅ No critical vulnerabilities"

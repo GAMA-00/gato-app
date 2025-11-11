@@ -180,79 +180,60 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
               .map((file: any) => file.url || file.downloadUrl || '')
               .filter(Boolean);
             
-            console.log("Images extracted from certification files:", imageFilesFromCerts);
-            galleryImages = [...galleryImages, ...imageFilesFromCerts];
+            if (imageFilesFromCerts.length > 0) {
+              galleryImages = [...galleryImages, ...imageFilesFromCerts];
+            }
           }
         } catch (error) {
-          console.error("❌ Error parsing certification files:", error);
+          logger.error("Error parsing certification files", { error });
         }
       }
       
       // Get gallery images from the listing's gallery_images column (PRIORITY)
       if (listing.gallery_images) {
-        console.log("🖼️ Processing listing gallery images...");
         try {
           const listingGalleryImages = typeof listing.gallery_images === 'string'
             ? JSON.parse(listing.gallery_images)
             : listing.gallery_images;
             
-          console.log("Parsed listing gallery images:", listingGalleryImages);
-            
           if (Array.isArray(listingGalleryImages)) {
             const validListingImages = listingGalleryImages.filter(Boolean);
-            console.log("Valid listing gallery images:", validListingImages);
             galleryImages = [...validListingImages, ...galleryImages];
           }
         } catch (error) {
-          console.error("❌ Error parsing gallery images from listing:", error);
+          logger.error("Error parsing gallery images from listing", { error });
         }
       }
       
       // Try to get images from the listing's service_variants gallery_images (FALLBACK)
       if (listing.service_variants) {
-        console.log("📋 Processing service variants for gallery images...");
         try {
           const serviceVariants = typeof listing.service_variants === 'string' 
             ? JSON.parse(listing.service_variants) 
             : listing.service_variants;
-          
-          console.log("Parsed service variants:", serviceVariants);
           
           if (serviceVariants && typeof serviceVariants === 'object' && 'gallery_images' in serviceVariants) {
             const imagesData = typeof serviceVariants.gallery_images === 'string'
               ? JSON.parse(serviceVariants.gallery_images)
               : serviceVariants.gallery_images;
               
-            console.log("Gallery images from service variants:", imagesData);
-              
             if (Array.isArray(imagesData)) {
               const listingImages = imagesData.map((image: any) => 
                 typeof image === 'string' ? image : (image.url || image.downloadUrl || '')
               ).filter(Boolean);
               
-              console.log("Valid images from service variants:", listingImages);
               galleryImages = [...galleryImages, ...listingImages];
             }
           }
         } catch (error) {
-          console.error("❌ Error parsing gallery images from service variants:", error);
+          logger.error("Error parsing gallery images from service variants", { error });
         }
       }
       
-      console.log("🖼️ FINAL GALLERY IMAGES ANALYSIS:");
-      console.log("Total gallery images found:", galleryImages.length);
-      console.log("Gallery images array:", galleryImages);
-      console.log("Gallery images details:", galleryImages.map((img, index) => ({
-        index,
-        url: img,
-        type: typeof img,
-        length: img?.length,
-        isValid: !!img && typeof img === 'string' && img.trim() !== '',
-        domain: img ? new URL(img).hostname : 'invalid'
-      })));
-      
-      console.log("Provider avatar URL:", providerData.avatar_url);
-      console.log("Provider name:", providerData.name);
+      logger.debug("Gallery images processed", { 
+        totalCount: galleryImages.length,
+        hasProvider: !!providerData.avatar_url
+      });
       
       const hasCertifications = certificationFiles.length > 0;
       
@@ -275,7 +256,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
             }));
           }
         } catch (error) {
-          console.error("Error parsing service variants:", error);
+          logger.error("Error parsing service variants", { error });
         }
       }
       
