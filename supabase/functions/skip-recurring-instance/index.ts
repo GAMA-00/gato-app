@@ -29,11 +29,28 @@ serve(async (req) => {
 
     console.log(`⏭️ Skipping recurring instance: ${appointmentId}`);
 
+    // Extract real appointment ID if this is a virtual ID (format: virtual-{uuid}-{datetime})
+    let realAppointmentId = appointmentId;
+    let virtualDateTime: Date | null = null;
+    
+    if (appointmentId.startsWith('virtual-')) {
+      const parts = appointmentId.split('-');
+      // virtual-{uuid parts joined with dashes}-{datetime}
+      // UUID has 5 parts when split by '-', so we take elements 1-5
+      if (parts.length >= 6) {
+        realAppointmentId = parts.slice(1, 6).join('-');
+        // Extract the datetime from the last part
+        const dateTimePart = parts.slice(6).join('-');
+        virtualDateTime = new Date(dateTimePart);
+        console.log(`📋 Extracted real appointment ID: ${realAppointmentId}, target date: ${virtualDateTime.toISOString()}`);
+      }
+    }
+
     // Get the appointment details
     const { data: appointment, error: appointmentError } = await supabaseClient
       .from('appointments')
       .select('*')
-      .eq('id', appointmentId)
+      .eq('id', realAppointmentId)
       .single();
 
     if (appointmentError || !appointment) {
@@ -62,7 +79,8 @@ serve(async (req) => {
     console.log(`📅 Original appointment start: ${originalStart.toISOString()}`);
 
     // Calculate the next future occurrence (targetStart) to skip
-    let targetStart = new Date(originalStart);
+    // If we have a virtual datetime, use that as the target
+    let targetStart = virtualDateTime || new Date(originalStart);
     
     // Helper function to add interval based on recurrence type
     const addInterval = (date: Date): Date => {
@@ -84,9 +102,11 @@ serve(async (req) => {
       return newDate;
     };
 
-    // If base appointment is in the past, advance to the next future occurrence
-    while (targetStart <= now) {
-      targetStart = addInterval(targetStart);
+    // If base appointment is in the past and we don't have a virtual datetime, advance to the next future occurrence
+    if (!virtualDateTime) {
+      while (targetStart <= now) {
+        targetStart = addInterval(targetStart);
+      }
     }
 
     console.log(`🎯 Target occurrence to skip: ${targetStart.toISOString()}`);
@@ -126,7 +146,7 @@ serve(async (req) => {
     const { error: exceptionError } = await supabaseClient
       .from('recurring_exceptions')
       .insert({
-        appointment_id: appointmentId,
+        appointment_id: realAppointmentId,
         exception_date: exceptionDate,
         action_type: 'skip',
         notes: 'Instance skipped by client'
