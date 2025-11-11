@@ -7,6 +7,7 @@ import { useGroupedPendingRequests } from '@/hooks/useGroupedPendingRequests';
 import { useRequestActions } from '@/hooks/useRequestActions';
 import RequestsHeader from './RequestsHeader';
 import RequestCard from './RequestCard';
+import { logger } from '@/utils/logger';
 
 interface JobRequestsGroupedProps {
   onAcceptRequest?: (request: any) => void;
@@ -24,17 +25,17 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
   // Only show component for providers
   if (user?.role !== 'provider') return null;
   
-  console.log("📋 JobRequestsGrouped: Grouped requests:", groupedRequests);
-  console.log("📋 JobRequestsGrouped: User:", user?.id, user?.role);
-  console.log("📋 JobRequestsGrouped: Processing state:", isProcessing);
+  logger.debug("📋 JobRequestsGrouped: Grouped requests:", { requests: groupedRequests });
+  logger.debug("📋 JobRequestsGrouped: User:", { userId: user?.id, role: user?.role });
+  logger.debug("📋 JobRequestsGrouped: Processing state:", { isProcessing });
 
   const onAccept = (request: any) => {
-    console.log("📋 JobRequestsGrouped: onAccept called with request:", request.id);
+    logger.debug("📋 JobRequestsGrouped: onAccept called with request:", { requestId: request.id });
     handleAccept(request, onAcceptRequest);
   };
   
   const onDecline = (request: any) => {
-    console.log("📋 JobRequestsGrouped: onDecline called with request:", request.id);
+    logger.debug("📋 JobRequestsGrouped: onDecline called with request:", { requestId: request.id });
     handleDecline(request, onDeclineRequest);
   };
 
@@ -54,7 +55,12 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
         ) : groupedRequests.length > 0 ? (
           <div className="space-y-4">
             {groupedRequests.map((request: any) => {
-              console.log(`Rendering request ${request.id}: clientName="${request.client_name}", isGroup=${request.appointment_count > 1}, appointmentCount=${request.appointment_count}`);
+              logger.debug('Rendering request', { 
+                requestId: request.id, 
+                clientName: request.client_name, 
+                isGroup: request.appointment_count > 1, 
+                appointmentCount: request.appointment_count 
+              });
               
               return (
                 <RequestCard

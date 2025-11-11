@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { formatDateES } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 import { CheckCircle, XCircle, Calendar, Clock, Loader2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface AvailabilitySlotPreviewProps {
   availability: any;
@@ -46,48 +47,48 @@ const AvailabilitySlotPreview: React.FC<AvailabilitySlotPreviewProps> = ({
 
   // Debug logs for tracking state changes
   useEffect(() => {
-    console.log('=== AVAILABILITY SLOT PREVIEW DEBUG ===');
-    console.log('Total slots in state:', slots.length);
-    console.log('Available dates raw:', availableDates.length, availableDates);
-    console.log('Slots by date keys:', Object.keys(slotsByDate));
-    console.log('Stats:', stats);
+    logger.debug('=== AVAILABILITY SLOT PREVIEW DEBUG ===');
+    logger.debug('Total slots in state:', { length: slots.length });
+    logger.debug('Available dates raw:', { length: availableDates.length, dates: availableDates });
+    logger.debug('Slots by date keys:', { keys: Object.keys(slotsByDate) });
+    logger.debug('Stats:', stats);
     
     Object.entries(slotsByDate).forEach(([date, daySlots]: [string, any]) => {
-      console.log(`Date ${date}: ${Array.isArray(daySlots) ? daySlots.length : 0} slots`);
+      logger.debug(`Date ${date}: ${Array.isArray(daySlots) ? daySlots.length : 0} slots`);
     });
   }, [slots, slotsByDate, availableDates, stats]);
 
   // Filter and sort available dates using slotsByDate directly to avoid race conditions
   const validAvailableDates = useMemo(() => {
-    console.log('=== FILTERING AVAILABLE DATES ===');
-    console.log('Input availableDates:', availableDates.length, availableDates);
-    console.log('Slots state count:', slots.length);
-    console.log('slotsByDate keys:', Object.keys(slotsByDate));
+    logger.debug('=== FILTERING AVAILABLE DATES ===');
+    logger.debug('Input availableDates:', { length: availableDates.length, dates: availableDates });
+    logger.debug('Slots state count:', { count: slots.length });
+    logger.debug('slotsByDate keys:', { keys: Object.keys(slotsByDate) });
     
     // Get dates directly from slotsByDate keys which are already in correct format
     const dateKeys = Object.keys(slotsByDate);
-    console.log('Using slotsByDate keys directly:', dateKeys);
+    logger.debug('Using slotsByDate keys directly:', { keys: dateKeys });
     
     if (dateKeys.length === 0) {
-      console.log('No dates in slotsByDate yet');
+      logger.debug('No dates in slotsByDate yet');
       return [];
     }
     
     const today = new Date();
     const todayStr = format(today, 'yyyy-MM-dd');
-    console.log('Today reference:', todayStr);
+    logger.debug('Today reference:', { todayStr });
     
     // Convert date keys to Date objects and filter (include today and future dates)
     const validDates = dateKeys
       .filter(dateKey => {
         const isValidDate = dateKey >= todayStr; // Compare date strings directly
-        console.log(`  Date ${dateKey}: isValidDate=${isValidDate} (today: ${todayStr})`);
+        logger.debug(`  Date ${dateKey}: isValidDate=${isValidDate} (today: ${todayStr})`);
         return isValidDate;
       })
       .map(dateKey => new Date(dateKey))
       .sort((a, b) => a.getTime() - b.getTime());
     
-    console.log('Valid dates result:', validDates.length, validDates.map(d => format(d, 'yyyy-MM-dd')));
+    logger.debug('Valid dates result:', { length: validDates.length, dates: validDates.map(d => format(d, 'yyyy-MM-dd')) });
     return validDates;
   }, [slotsByDate]);
 

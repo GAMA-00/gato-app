@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle, XCircle, FileImage, Calendar, User, DollarSign, AlertTriangle, Download, Eye, File } from 'lucide-react';
 import { useInvoiceApprovalMutation, useInvoiceItems } from '@/hooks/usePostPaymentInvoices';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface PostPaymentReviewProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
 
     setIsProcessing(true);
     try {
-      console.log(`🔄 Processing ${approved ? 'approval' : 'rejection'} for invoice:`, invoice.id);
+      logger.info('Processing approval', { approved, invoiceId: invoice.id });
       
       // La mutation ya maneja todo el flujo (incluido el cargo de pago T2 si es aprobado)
       await approvalMutation.mutateAsync({
@@ -64,7 +65,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      console.error('❌ Error processing approval:', error);
+      logger.error('Error processing approval:', { error, invoiceId: invoice.id });
       toast.error(error.message || 'Error al procesar la respuesta. Intente nuevamente.');
     } finally {
       setIsProcessing(false);
@@ -128,7 +129,7 @@ const PostPaymentReview: React.FC<PostPaymentReviewProps> = ({
       window.URL.revokeObjectURL(downloadUrl);
       toast.success('Archivo descargado correctamente');
     } catch (error) {
-      console.error('Error downloading file:', error);
+      logger.error('Error downloading file:', { error, url, fileName });
       toast.error('Error al descargar el archivo');
     }
   };

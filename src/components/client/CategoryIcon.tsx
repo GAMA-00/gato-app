@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Book, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { iconMap, categoryLabels, categoryImageUrls } from '@/constants/categoryConstants';
+import { logger } from '@/utils/logger';
 
 interface CategoryIconProps {
   categoryName: string;
@@ -42,7 +43,7 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({ categoryName, isMobile, isV
           setImageLoaded(true);
         }}
         onError={() => {
-          console.warn(`Image failed to load for ${categoryName}:`, imageUrl);
+          logger.warn('Image failed to load', { categoryName, imageUrl });
           setImageError(true);
         }}
         style={{

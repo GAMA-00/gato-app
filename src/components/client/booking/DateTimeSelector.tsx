@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatDateES } from '@/lib/utils';
 import { useProviderAvailability } from '@/hooks/useProviderAvailability';
+import { logger } from '@/utils/logger';
 
 interface DateTimeSelectorProps {
   selectedDate: Date | undefined;
@@ -47,12 +48,14 @@ const DateTimeSelector = ({
   // Log availability data for debugging
   React.useEffect(() => {
     if (selectedDate) {
-      console.log('DateTimeSelector - Provider ID:', providerId);
-      console.log('DateTimeSelector - Selected date:', format(selectedDate, 'yyyy-MM-dd'));
-      console.log('DateTimeSelector - Service duration:', serviceDuration);
-      console.log('DateTimeSelector - Frequency:', selectedFrequency);
-      console.log('DateTimeSelector - Available slots:', availableTimeSlots);
-      console.log('DateTimeSelector - Is loading:', isLoading);
+      logger.debug('DateTimeSelector availability data', {
+        providerId,
+        selectedDate: format(selectedDate, 'yyyy-MM-dd'),
+        serviceDuration,
+        frequency: selectedFrequency,
+        availableSlots: availableTimeSlots.length,
+        isLoading
+      });
     }
   }, [availableTimeSlots, selectedDate, providerId, serviceDuration, selectedFrequency, isLoading]);
 

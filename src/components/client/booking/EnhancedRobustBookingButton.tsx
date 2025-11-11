@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RobustBookingSystem } from '@/utils/robustBookingSystem';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
+import { logger } from '@/utils/logger';
 
 interface EnhancedRobustBookingButtonProps {
   bookingData: {
@@ -38,13 +39,21 @@ export function EnhancedRobustBookingButton({
     setAttemptCount(0);
 
     const isRecurring = bookingData.recurrenceType !== 'once';
-    console.log(`🚀 Iniciando booking ${isRecurring ? 'recurrente' : 'único'}: ${bookingData.recurrenceType}`);
+    logger.info('Iniciando booking', { 
+      isRecurring, 
+      recurrenceType: bookingData.recurrenceType,
+      listingId: bookingData.listingId
+    });
 
     try {
       const result = await RobustBookingSystem.createBooking(
         async () => {
           setAttemptCount(prev => prev + 1);
-          console.log(`📞 Attempt ${attemptCount + 1} - Creating ${isRecurring ? 'recurring' : 'single'} booking`);
+          logger.debug('Booking attempt', { 
+            attempt: attemptCount + 1, 
+            isRecurring,
+            recurrenceType: bookingData.recurrenceType
+          });
           return await createRecurringBooking(bookingData);
         },
         {
@@ -69,11 +78,11 @@ export function EnhancedRobustBookingButton({
         
         onSuccess?.();
       } else {
-        console.error('❌ Booking failed after all attempts:', result.error);
+        logger.error('Booking failed after all attempts:', { error: result.error });
         toast.error(result.error || 'No se pudo completar la reserva', { duration: 5000 });
       }
     } catch (error) {
-      console.error('💥 Unexpected booking error:', error);
+      logger.error('Unexpected booking error:', { error });
       toast.error('Error inesperado al procesar la reserva', { duration: 5000 });
     } finally {
       setIsProcessing(false);

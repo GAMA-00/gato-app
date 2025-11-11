@@ -6,6 +6,7 @@ import CustomVariableSelector from './CustomVariableSelector';
 import RecurrencePatternDisplay from './RecurrencePatternDisplay';
 import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import { CustomVariableGroup } from '@/lib/types';
+import { logger } from '@/utils/logger';
 
 interface NewBookingFormProps {
   selectedFrequency: string;
@@ -56,8 +57,8 @@ const NewBookingForm = ({
   // Calculate required slots based on slot size and total duration
   const requiredSlots = Math.ceil(totalServiceDuration / slotSize);
 
-  console.log('📊 NewBookingForm calculations:', {
-    selectedVariants,
+  logger.debug('NewBookingForm calculations', {
+    selectedVariants: selectedVariants.length,
     totalServiceDuration,
     slotSize,
     requiredSlots

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRecurrenceInfo } from '@/utils/recurrenceUtils';
+import { logger } from '@/utils/logger';
 
 interface RecurrenceIndicatorProps {
   recurrence: string;
@@ -43,7 +44,7 @@ export const RecurrenceIndicator = ({
     lg: 'h-4 w-4'
   };
 
-  console.log('RecurrenceIndicator - Rendering with info:', info);
+  logger.debug('RecurrenceIndicator - Rendering', { info, recurrence, isRecurringInstance });
 
   return (
     <Badge 

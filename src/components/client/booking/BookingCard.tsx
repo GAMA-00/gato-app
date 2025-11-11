@@ -57,7 +57,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const handleSkipAppointment = async () => {
     // Prevenir ejecuciones duplicadas
     if (isProcessing.current) {
-      console.log('⏳ Operación ya en proceso, ignorando click duplicado');
+      logger.warn('Operación ya en proceso, ignorando click duplicado');
       return;
     }
 
@@ -74,7 +74,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         });
 
         if (error) {
-          console.error('❌ Edge function error:', error);
+          logger.error('Edge function error:', { error, appointmentId: booking.id });
           throw new Error(error.message || 'Failed to skip recurring instance');
         }
 
@@ -82,7 +82,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           throw new Error(data?.error || 'Failed to skip recurring instance');
         }
 
-        console.log('✅ Successfully skipped recurring instance:', data);
+        logger.info('Successfully skipped recurring instance:', { data });
         toast.success('Próxima cita mostrada');
         
         // Invalidación optimizada con refetch solo de queries activas
@@ -103,7 +103,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         
       } else {
         // Para citas no recurrentes: cancelar normalmente
-        console.log('Canceling single appointment:', booking.id);
+        logger.info('Canceling single appointment:', { appointmentId: booking.id });
         
         const { error } = await supabase
           .from('appointments')
@@ -126,7 +126,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             
             queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
           } catch (deleteError) {
-            console.warn('Could not auto-clean cancelled appointment:', deleteError);
+            logger.warn('Could not auto-clean cancelled appointment:', { deleteError, appointmentId: booking.id });
           }
         }, 3000);
 
@@ -134,7 +134,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
       }
     } catch (error) {
-      console.error('❌ Error:', error);
+      logger.error('Error in skip/cancel operation:', { error, appointmentId: booking.id });
       toast.error(error instanceof Error ? error.message : 'Error al procesar la solicitud');
     } finally {
       setIsLoading(false);
@@ -145,7 +145,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const handleCancelAllFuture = async () => {
     // Prevenir ejecuciones duplicadas
     if (isProcessing.current) {
-      console.log('⏳ Operación ya en proceso, ignorando click duplicado');
+      logger.warn('Operación ya en proceso, ignorando click duplicado');
       return;
     }
 
@@ -153,7 +153,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     setIsLoading(true);
     
     try {
-      console.log('🚫 Canceling recurring appointment series using edge function:', booking.id);
+      logger.info('Canceling recurring appointment series using edge function:', { appointmentId: booking.id });
       
       // Use the secure edge function to cancel the entire recurring series
       const { data, error } = await supabase.functions.invoke('cancel-recurring-series', {
@@ -161,7 +161,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
       });
 
       if (error) {
-        console.error('❌ Edge function error:', error);
+        logger.error('Edge function error:', { error, appointmentId: booking.id });
         throw new Error(error.message || 'Failed to cancel recurring series');
       }
 
@@ -169,7 +169,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         throw new Error(data?.error || 'Failed to cancel recurring series');
       }
 
-      console.log('✅ Successfully cancelled recurring series:', data);
+      logger.info('Successfully cancelled recurring series:', { data });
       
       toast.success('Plan recurrente cancelado');
       
@@ -192,7 +192,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
       ]);
       
     } catch (error) {
-      console.error('❌ Error cancelling recurring series:', error);
+      logger.error('Error cancelling recurring series:', { error, appointmentId: booking.id });
       toast.error(error instanceof Error ? error.message : 'Error al cancelar la serie de citas');
     } finally {
       setIsLoading(false);

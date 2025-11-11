@@ -23,6 +23,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger';
 
 interface ProviderSlotBlockingGridProps {
   providerId: string;
@@ -64,8 +65,13 @@ const ProviderSlotBlockingGrid = ({
       return slotDate >= startDate && slotDate <= endDate;
     });
     
-    console.log(`📅 Semana ${currentWeek}: Filtrando slots entre ${format(startDate, 'yyyy-MM-dd')} y ${format(endDate, 'yyyy-MM-dd')}`);
-    console.log(`📊 Slots totales: ${slots.length}, Slots en esta semana: ${weekSlots.length}`);
+    logger.debug('Semana slots filtering', { 
+      week: currentWeek, 
+      start: format(startDate, 'yyyy-MM-dd'), 
+      end: format(endDate, 'yyyy-MM-dd'),
+      totalSlots: slots.length,
+      weekSlots: weekSlots.length
+    });
     
     return groupSlotsByDate(weekSlots);
   }, [slots, startDate, endDate, currentWeek]);
@@ -163,7 +169,7 @@ const ProviderSlotBlockingGrid = ({
       });
 
     } catch (error) {
-      console.error(`Error al ${action} slot:`, error);
+      logger.error(`Error al ${action} slot:`, { error, slotId, action });
       toast({
         title: 'Error',
         description: `No se pudo ${action} el horario. Intenta nuevamente.`,
