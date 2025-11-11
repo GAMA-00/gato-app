@@ -2,15 +2,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProcessedProvider } from './types';
+import { logger } from '@/utils/logger';
 
 export const useProvidersQuery = (serviceId: string, categoryName: string) => {
   return useQuery({
     queryKey: ['providers', serviceId, categoryName],
     queryFn: async (): Promise<ProcessedProvider[]> => {
-      console.log("useProvidersQuery called with:", { serviceId, categoryName });
+      logger.debug("useProvidersQuery called", { serviceId, categoryName });
       
       if (!serviceId) {
-        console.log("No serviceId provided, returning empty array");
+        logger.debug("No serviceId provided, returning empty array");
         return [];
       }
 
@@ -33,20 +34,20 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         .eq('is_active', true);
 
       if (listingsError) {
-        console.error("Error fetching listings:", listingsError);
+        logger.error("Error fetching listings", listingsError);
         throw listingsError;
       }
 
       if (!listings || listings.length === 0) {
-        console.log("No listings found for serviceId:", serviceId);
+        logger.debug("No listings found for serviceId", { serviceId });
         return [];
       }
 
-      console.log("Found listings:", listings);
+      logger.debug("Found listings", { count: listings.length });
 
       // Get unique provider IDs
       const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
-      console.log("Provider IDs to fetch:", providerIds);
+      logger.debug("Provider IDs to fetch", { providerIds });
 
       // Fetch provider information separately with optimized query
       const { data: providers, error: providersError } = await supabase
@@ -63,15 +64,11 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
         .in('id', providerIds);
 
       if (providersError) {
-        console.error("Error fetching providers:", providersError);
+        logger.error("Error fetching providers", providersError);
         throw providersError;
       }
 
-      console.log("Fetched providers with avatar data:", providers?.map(p => ({
-        id: p.id,
-        name: p.name,
-        avatar_url: p.avatar_url
-      })));
+      logger.debug("Fetched providers", { count: providers?.length });
 
       // Create a map for quick provider lookup
       const providersMap = providers?.reduce((acc, provider) => {
@@ -86,14 +83,14 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             .rpc('get_recurring_clients_count', { provider_id: providerId });
             
           if (error) {
-            console.error('Error fetching recurring clients count for provider:', providerId, error);
+            logger.error('Error fetching recurring clients count', { providerId, error });
             return { providerId, count: 0 };
           }
           
           const count = Number(data);
           return { providerId, count: isNaN(count) ? 0 : count };
         } catch (error) {
-          console.error('Error in recurring clients RPC for provider:', providerId, error);
+          logger.error('Error in recurring clients RPC', { providerId, error });
           return { providerId, count: 0 };
         }
       });
@@ -121,7 +118,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
               }
             }
           } catch (e) {
-            console.error("Error parsing gallery images:", e);
+            logger.error("Error parsing gallery images", { error: e });
           }
 
           // Calculate join date from created_at
@@ -172,9 +169,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             joinDate: joinDate
           };
 
-          console.log("Processed provider:", {
+          logger.debug("Processed provider", {
             name: processedProvider.name,
-            avatar: processedProvider.avatar,
             id: processedProvider.id,
             listingId: processedProvider.listingId
           });
@@ -182,7 +178,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           return processedProvider;
         });
 
-      console.log("Final processed providers:", processedProviders);
+      logger.debug("Final processed providers", { count: processedProviders.length });
       return processedProviders;
     },
     enabled: !!serviceId,

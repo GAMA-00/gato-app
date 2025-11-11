@@ -15,22 +15,25 @@ import { z } from 'zod';
 
 /**
  * DTO for updating listings
+ * All fields are optional to support partial updates
+ * Note: Complex JSON fields (service_variants, gallery_images, etc.) are not validated with Zod
+ * to maintain compatibility with Supabase Json type
  */
 export const UpdateListingSchema = z.object({
-  title: z.string().optional(),
+  title: z.string().min(1).optional(),
   description: z.string().optional(),
-  base_price: z.number().optional(),
-  duration: z.number().optional(),
-  standard_duration: z.number().optional(),
+  base_price: z.number().positive().optional(),
+  duration: z.number().positive().optional(),
+  standard_duration: z.number().positive().optional(),
   is_active: z.boolean().optional(),
-  service_variants: z.any().optional(),
-  gallery_images: z.any().optional(),
+  service_variants: z.any().optional(), // Json type from Supabase
+  gallery_images: z.any().optional(), // Json type from Supabase
   is_post_payment: z.boolean().optional(),
   use_custom_variables: z.boolean().optional(),
-  custom_variable_groups: z.any().optional(),
-  availability: z.any().optional(),
-  slot_preferences: z.any().optional(),
-  slot_size: z.number().optional(),
+  custom_variable_groups: z.any().optional(), // Json type from Supabase
+  availability: z.any().optional(), // Json type from Supabase
+  slot_preferences: z.any().optional(), // Json type from Supabase
+  slot_size: z.number().positive().optional(),
   service_type_id: z.string().uuid().optional()
 });
 

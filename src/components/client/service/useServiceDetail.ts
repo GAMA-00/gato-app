@@ -6,22 +6,22 @@ import { ServiceDetailData, CertificationFile } from './types';
 import { ProviderData } from '@/components/client/results/types';
 import { useEffect } from 'react';
 import { preloadImages } from '@/hooks/useImagePreload';
+import { logger } from '@/utils/logger';
 
 export const useServiceDetail = (providerId?: string, serviceId?: string, userId?: string) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['service-detail', serviceId, providerId],
     queryFn: async () => {
       if (!serviceId || !providerId) {
-        console.error("Missing serviceId or providerId:", { serviceId, providerId });
+        logger.error("Missing serviceId or providerId", { serviceId, providerId });
         return null;
       }
       
-      console.log("=== STARTING SERVICE DETAIL FETCH ===");
-      console.log("Fetching listing details for:", { serviceId, providerId });
+      logger.debug("Starting service detail fetch", { serviceId, providerId });
       
       // Get current auth status
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("Current auth session:", session ? "User authenticated" : "No auth session");
+      logger.debug("Auth session status", { authenticated: !!session });
       
       // Get listing details including gallery_images and slot_size
       const { data: listing, error } = await supabase
@@ -42,29 +42,32 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         .single();
         
       if (error) {
-        console.error("Error fetching service details:", error);
+        logger.error("Error fetching service details", error);
         toast.error("Error al obtener detalles del servicio");
         throw error;
       }
       
-      console.log("✅ Listing data fetched successfully:", listing);
-      console.log("🖼️ Listing gallery_images raw:", listing.gallery_images);
-      console.log("📋 Listing service_variants raw:", listing.service_variants);
+      logger.debug("Listing data fetched successfully", { 
+        listingId: listing.id,
+        hasGalleryImages: !!listing.gallery_images,
+        hasServiceVariants: !!listing.service_variants
+      });
       
       // Debug: First check if provider exists in users table without role filter
-      console.log("=== CHECKING PROVIDER EXISTENCE ===");
+      logger.debug("Checking provider existence", { providerId });
       const { data: allProviderData, error: allProviderError } = await supabase
         .from('users')
         .select('id, name, role')
         .eq('id', providerId);
         
-      console.log("All provider data (no role filter):", allProviderData);
       if (allProviderError) {
-        console.error("Error checking provider existence:", allProviderError);
+        logger.error("Error checking provider existence", allProviderError);
+      } else {
+        logger.debug("Provider check result", { found: allProviderData?.length });
       }
       
       // Get provider data from users table with role filter
-      console.log("=== FETCHING PROVIDER WITH ROLE FILTER ===");
+      logger.debug("Fetching provider with role filter");
       const { data: providerQueryData, error: providerError } = await supabase
         .from('users')
         .select(`
@@ -84,22 +87,18 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         .maybeSingle();
         
       if (providerError) {
-        console.error("Error fetching provider details:", providerError);
-        console.error("Provider error details:", {
-          code: providerError.code,
-          message: providerError.message,
-          details: providerError.details,
-          hint: providerError.hint
-        });
+        logger.error("Error fetching provider details", providerError);
       }
       
-      console.log("Provider data from DB (with role filter):", providerQueryData);
-      console.log("🗂️ Provider certification_files raw:", providerQueryData?.certification_files);
+      logger.debug("Provider data fetched", { 
+        found: !!providerQueryData,
+        hasCertifications: !!providerQueryData?.certification_files
+      });
       
       // If no provider found with role=provider, try without role filter
       let providerData = providerQueryData;
       if (!providerData) {
-        console.log("⚠️ Provider not found with role=provider, trying without role filter...");
+        logger.debug("Trying fallback provider fetch without role filter");
         const { data: fallbackProviderData, error: fallbackError } = await supabase
           .from('users')
           .select(`
@@ -118,37 +117,29 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           .maybeSingle();
           
         if (fallbackError) {
-          console.error("Error fetching fallback provider:", fallbackError);
-          console.error("Fallback error details:", {
-            code: fallbackError.code,
-            message: fallbackError.message,
-            details: fallbackError.details,
-            hint: fallbackError.hint
-          });
+          logger.error("Error fetching fallback provider", fallbackError);
         }
         
-        console.log("Fallback provider data:", fallbackProviderData);
+        logger.debug("Fallback provider data fetched", { found: !!fallbackProviderData });
         providerData = fallbackProviderData;
       }
       
       // If still no provider found, return null to show error
       if (!providerData) {
-        console.error("❌ Provider not found in database after all attempts");
-        console.error("ProviderId attempted:", providerId);
+        logger.error("Provider not found after all attempts", { providerId });
         return null;
       }
       
-      console.log("✅ Final provider data to use:", {
+      logger.debug("Final provider data", { 
         id: providerData.id,
         name: providerData.name,
-        role: providerData.role,
-        avatar_url: providerData.avatar_url
+        hasAvatar: !!providerData.avatar_url
       });
       
       // Get client residence info if userId provided
       let clientResidencia = null;
       if (userId) {
-        console.log("=== FETCHING CLIENT RESIDENCE ===");
+        logger.debug("Fetching client residence", { userId });
         const { data: clientData } = await supabase
           .from('users')
           .select('residencia_id, residencias(name, address)')
@@ -156,7 +147,6 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           .eq('role', 'client')
           .maybeSingle();
           
-        console.log("Client residence data:", clientData);
         clientResidencia = clientData?.residencias;
       }
       
@@ -164,17 +154,14 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       let certificationFiles: CertificationFile[] = [];
       let galleryImages: string[] = [];
       
-      console.log("=== PROCESSING IMAGES AND CERTIFICATIONS ===");
+      logger.debug("Processing images and certifications");
       
       // Parse certification files if available
       if (providerData.certification_files) {
-        console.log("🗂️ Processing certification files...");
         try {
           const filesData = typeof providerData.certification_files === 'string' 
             ? JSON.parse(providerData.certification_files) 
             : providerData.certification_files;
-          
-          console.log("Parsed certification files data:", filesData);
           
           if (Array.isArray(filesData)) {
             certificationFiles = filesData.map((file: any) => ({
@@ -184,19 +171,11 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
               size: file.size || 0
             }));
             
-            console.log("Processed certification files:", certificationFiles);
-            
             // Extract image files from certification_files for gallery
             const imageFilesFromCerts = filesData
               .filter((file: any) => {
                 const fileType = file.type || file.contentType || '';
-                const isImage = fileType.startsWith('image/');
-                console.log("Checking if file is image:", {
-                  file: file.name || 'unnamed',
-                  fileType,
-                  isImage
-                });
-                return isImage;
+                return fileType.startsWith('image/');
               })
               .map((file: any) => file.url || file.downloadUrl || '')
               .filter(Boolean);
