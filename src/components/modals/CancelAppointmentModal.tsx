@@ -68,6 +68,7 @@ export const CancelAppointmentModal = ({
         toast.success('Se saltó esta fecha. Verás la siguiente instancia de la serie.');
         
         await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
           queryClient.invalidateQueries({ queryKey: ['appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
@@ -141,6 +142,7 @@ export const CancelAppointmentModal = ({
       
       // Invalidate ALL possible query keys to ensure UI updates
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
