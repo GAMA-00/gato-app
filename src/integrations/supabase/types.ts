@@ -2105,22 +2105,43 @@ export type Database = {
         Returns: undefined
       }
       auto_rate_old_appointments: { Args: never; Returns: number }
-      block_recurring_slots: {
-        Args: { p_months_ahead?: number; p_recurring_rule_id: string }
-        Returns: number
-      }
+      block_recurring_slots:
+        | {
+            Args: {
+              p_end_time: string
+              p_listing_id: string
+              p_provider_id: string
+              p_start_date: string
+              p_start_time: string
+              p_weeks_ahead?: number
+            }
+            Returns: number
+          }
+        | {
+            Args: { p_months_ahead?: number; p_recurring_rule_id: string }
+            Returns: number
+          }
       block_recurring_slots_for_appointment: {
         Args: { p_appointment_id: string; p_months_ahead?: number }
         Returns: number
       }
-      calculate_next_occurrence_sql: {
-        Args: {
-          original_date: string
-          recurrence_type: string
-          reference_date?: string
-        }
-        Returns: string
-      }
+      calculate_next_occurrence_sql:
+        | {
+            Args: {
+              original_date: string
+              recurrence_type: string
+              reference_date?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_interval_count?: number
+              p_last_date: string
+              p_recurrence_type: string
+            }
+            Returns: string
+          }
       calculate_refund_percentage: {
         Args: { appointment_start: string; cancellation_time: string }
         Returns: number
@@ -2147,11 +2168,7 @@ export type Database = {
       }
       check_appointment_consistency: {
         Args: never
-        Returns: {
-          details: string
-          issue_count: number
-          issue_type: string
-        }[]
+        Returns: Record<string, unknown>
       }
       check_recurring_availability: {
         Args: {
@@ -2165,7 +2182,9 @@ export type Database = {
       clean_duplicate_slots: { Args: never; Returns: number }
       cleanup_and_regenerate_slots: { Args: never; Returns: number }
       cleanup_old_pending_appointments: { Args: never; Returns: number }
-      consolidate_multiple_listings: { Args: never; Returns: number }
+      consolidate_multiple_listings:
+        | { Args: never; Returns: number }
+        | { Args: { p_provider_id: string }; Returns: undefined }
       create_appointment_with_slot: {
         Args: {
           p_client_address?: string
@@ -2276,10 +2295,15 @@ export type Database = {
         Args: { p_rule_id: string; p_weeks_ahead?: number }
         Returns: number
       }
-      generate_recurring_instances: {
-        Args: { end_range: string; rule_id: string; start_range: string }
-        Returns: number
-      }
+      generate_recurring_instances:
+        | {
+            Args: { end_range: string; rule_id: string; start_range: string }
+            Returns: number
+          }
+        | {
+            Args: { p_recurring_rule_id: string; p_weeks_ahead?: number }
+            Returns: number
+          }
       get_provider_achievements_data: {
         Args: { p_provider_id: string }
         Returns: {
@@ -2413,10 +2437,18 @@ export type Database = {
         Returns: number
       }
       toggle_user_active: { Args: { _user_id: string }; Returns: undefined }
-      unblock_recurring_slots: {
-        Args: { p_recurring_rule_id: string }
-        Returns: number
-      }
+      unblock_recurring_slots:
+        | { Args: { p_recurring_rule_id: string }; Returns: number }
+        | {
+            Args: {
+              p_end_time: string
+              p_listing_id: string
+              p_provider_id: string
+              p_start_date: string
+              p_start_time: string
+            }
+            Returns: number
+          }
       unblock_recurring_slots_for_appointment: {
         Args: { p_appointment_id: string }
         Returns: number
