@@ -525,6 +525,13 @@ export type Database = {
             foreignKeyName: "onvopay_customers_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "provider_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_customers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "providers_view"
             referencedColumns: ["id"]
           },
@@ -647,6 +654,13 @@ export type Database = {
             foreignKeyName: "onvopay_payments_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "provider_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "providers_view"
             referencedColumns: ["id"]
           },
@@ -662,6 +676,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_payments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_public_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -777,6 +798,13 @@ export type Database = {
             foreignKeyName: "onvopay_subscriptions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "provider_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "providers_view"
             referencedColumns: ["id"]
           },
@@ -792,6 +820,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onvopay_subscriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_public_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -935,6 +970,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "provider_public_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1161,6 +1203,13 @@ export type Database = {
             foreignKeyName: "provider_availability_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
+            referencedRelation: "provider_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_availability_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
             referencedRelation: "providers_view"
             referencedColumns: ["id"]
           },
@@ -1332,6 +1381,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_time_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_public_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1714,6 +1770,13 @@ export type Database = {
             foreignKeyName: "team_members_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
+            referencedRelation: "provider_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
             referencedRelation: "providers_view"
             referencedColumns: ["id"]
           },
@@ -1725,6 +1788,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
@@ -1880,6 +1967,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      provider_public_profiles: {
+        Row: {
+          about_me: string | null
+          avatar_url: string | null
+          average_rating: number | null
+          certification_files: Json | null
+          created_at: string | null
+          experience_years: number | null
+          id: string | null
+          name: string | null
+        }
+        Insert: {
+          about_me?: string | null
+          avatar_url?: string | null
+          average_rating?: never
+          certification_files?: Json | null
+          created_at?: string | null
+          experience_years?: number | null
+          id?: string | null
+          name?: string | null
+        }
+        Update: {
+          about_me?: string | null
+          avatar_url?: string | null
+          average_rating?: never
+          certification_files?: Json | null
+          created_at?: string | null
+          experience_years?: number | null
+          id?: string | null
+          name?: string | null
+        }
+        Relationships: []
       }
       providers_view: {
         Row: {
@@ -2210,6 +2330,17 @@ export type Database = {
           service_title: string
         }[]
       }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       mark_past_appointments_completed: { Args: never; Returns: number }
       migrate_all_provider_availability_and_generate_slots: {
@@ -2302,7 +2433,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "provider" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2429,6 +2560,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "provider", "client"],
+    },
   },
 } as const
