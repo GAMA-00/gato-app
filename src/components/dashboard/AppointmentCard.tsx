@@ -13,6 +13,7 @@ import {
   getInitials 
 } from '@/utils/appointmentUtils';
 import { formatServiceDetails } from '@/utils/serviceDetailsFormatter';
+import { logger } from '@/utils/logger';
 
 interface AppointmentCardProps {
   appointment: any;
@@ -36,8 +37,9 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   const locationInfo = getLocationInfo(appointment);
   const serviceDetails = formatServiceDetails(appointment);
 
-  console.log(`📍 DASHBOARD CARD: Rendering appointment ${appointment.id} with location:`, locationInfo);
-  console.log(`📋 DASHBOARD CARD: Appointment data:`, {
+  logger.debug('Rendering dashboard appointment card', {
+    appointmentId: appointment.id,
+    locationInfo,
     displayName,
     serviceName,
     isExternal,

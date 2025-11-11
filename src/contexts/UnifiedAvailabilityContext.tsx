@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { WeeklyAvailability } from '@/lib/types';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface UnifiedAvailabilityContextType {
   syncAvailabilityToListing: (availability: WeeklyAvailability) => Promise<void>;
@@ -31,7 +32,7 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
     }
 
     try {
-      console.log('Syncing availability to all user listings:', availability);
+      logger.info('Syncing availability to all user listings', { availability });
       
       // Update ALL user's active listings with the availability data
       const { data: updatedListings, error: updateError } = await supabase
@@ -44,13 +45,13 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
         .select('id');
 
       if (updateError) {
-        console.error('Error updating listings availability:', updateError);
+        logger.error('Error updating listings availability', updateError);
         throw updateError;
       }
 
-      console.log(`Availability synchronized to ${updatedListings?.length || 0} active listings successfully`);
+      logger.info(`Availability synchronized to ${updatedListings?.length || 0} active listings successfully`);
     } catch (error) {
-      console.error('Error in syncAvailabilityToListing:', error);
+      logger.error('Error in syncAvailabilityToListing', error);
       throw error;
     }
   }, [user?.id]);
@@ -61,8 +62,7 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
     }
 
     try {
-      console.log('=== UNIFIED CONTEXT DEBUG ===');
-      console.log('Loading availability for user:', user.id);
+      logger.debug('Loading availability for user', { userId: user.id });
       
       // Get provider's listing with availability
       const { data: listing, error: listingError } = await supabase
@@ -72,34 +72,33 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
         .eq('is_active', true)
         .maybeSingle();
 
-      console.log('Listing query result:', { listing, error: listingError });
+      logger.debug('Listing query result', { hasListing: !!listing, error: listingError });
 
       if (listingError) {
-        console.error('Error getting provider listing:', listingError);
+        logger.error('Error getting provider listing', listingError);
         throw listingError;
       }
 
       if (!listing || !listing.availability) {
-        console.log('No listing found or no availability data in listing');
-        console.log('Listing exists:', !!listing);
-        console.log('Availability field:', listing?.availability);
+        logger.debug('No listing found or no availability data in listing', { 
+          listingExists: !!listing,
+          availabilityField: listing?.availability
+        });
         return null;
       }
 
-      console.log('Raw availability from DB:', listing.availability);
-      console.log('Availability type:', typeof listing.availability);
+      logger.debug('Raw availability from DB', { availability: listing.availability, type: typeof listing.availability });
 
       // Parse and return availability
       const availability = typeof listing.availability === 'string' 
         ? JSON.parse(listing.availability)
         : listing.availability;
 
-      console.log('Parsed availability:', availability);
-      console.log('=== END UNIFIED CONTEXT DEBUG ===');
+      logger.debug('Parsed availability', { availability });
 
       return availability as WeeklyAvailability;
     } catch (error) {
-      console.error('Error in loadAvailabilityFromListing:', error);
+      logger.error('Error in loadAvailabilityFromListing', error);
       return null;
     }
   }, [user?.id]);
@@ -114,7 +113,7 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
     queryClient.invalidateQueries({ queryKey: ['appointments'] });
     queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
     
-    console.log('Availability change notified - all related caches invalidated');
+    logger.info('Availability change notified - all related caches invalidated');
   }, [queryClient, user?.id]);
 
   return (

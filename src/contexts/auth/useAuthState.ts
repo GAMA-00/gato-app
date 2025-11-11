@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { User, UserProfile } from './types';
+import { logger } from '@/utils/logger';
 
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -14,7 +15,7 @@ export const useAuthState = () => {
 
   const updateUserPaymentMethod = (hasPayment: boolean) => {
     if (user) {
-      console.log('Payment method updated:', hasPayment);
+      logger.info('Payment method updated', { hasPayment });
     }
   };
 

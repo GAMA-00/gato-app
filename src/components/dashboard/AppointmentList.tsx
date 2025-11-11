@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import AppointmentCard from './AppointmentCard';
 import AppointmentListHeader from './AppointmentListHeader';
+import { logger } from '@/utils/logger';
 
 interface AppointmentListProps {
   appointments: any[];
@@ -26,7 +27,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
-  console.log(`AppointmentList "${title}" received ${appointments?.length || 0} appointments:`, appointments);
+  logger.debug('AppointmentList rendering', { title, count: appointments?.length || 0 });
   
   // Filter out completed appointments for the "Today's appointments" list
   const filteredAppointments = (appointments || []).filter(appointment => {
@@ -45,7 +46,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     return true;
   });
 
-  console.log(`After filtering, ${filteredAppointments.length} appointments remain for "${title}"`);
+  logger.debug('After filtering', { title, remainingCount: filteredAppointments.length });
   
   const handleAcceptAppointment = async (appointmentId: string) => {
     try {

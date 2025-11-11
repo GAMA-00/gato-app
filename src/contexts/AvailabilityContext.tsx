@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useCallback, useRef } from 'react';
+import { logger } from '@/utils/logger';
 
 interface AvailabilityContextType {
   notifyAvailabilityChange: (providerId: string) => void;
@@ -19,19 +20,19 @@ export const AvailabilityProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const listenersRef = useRef<Record<string, (() => void)[]>>({});
 
   const notifyAvailabilityChange = useCallback((providerId: string) => {
-    console.log('Notificando cambio de disponibilidad para proveedor:', providerId);
+    logger.info('Notificando cambio de disponibilidad para proveedor', { providerId });
     const listeners = listenersRef.current[providerId] || [];
     listeners.forEach(callback => {
       try {
         callback();
       } catch (error) {
-        console.error('Error executing availability change callback:', error);
+        logger.error('Error executing availability change callback', error);
       }
     });
   }, []);
 
   const subscribeToAvailabilityChanges = useCallback((providerId: string, callback: () => void) => {
-    console.log('Suscribiendo hook a cambios de disponibilidad para proveedor:', providerId);
+    logger.info('Suscribiendo hook a cambios de disponibilidad para proveedor', { providerId });
     
     if (!listenersRef.current[providerId]) {
       listenersRef.current[providerId] = [];

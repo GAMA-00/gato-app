@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import DashboardStats from '@/components/dashboard/DashboardStats';
+import { logger } from '@/utils/logger';
 
 interface DashboardErrorStateProps {
   error: any;
@@ -19,10 +20,10 @@ const DashboardErrorState: React.FC<DashboardErrorStateProps> = ({
   statsError, 
   isLoadingStats 
 }) => {
-  console.error("Dashboard appointments error:", error);
+  logger.error('Dashboard appointments error', error);
   
   const handleRetry = () => {
-    console.log("Retrying dashboard load...");
+    logger.info('Retrying dashboard load...');
     window.location.reload();
   };
   
@@ -53,7 +54,7 @@ const DashboardErrorState: React.FC<DashboardErrorStateProps> = ({
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => console.log("Error details:", error)}
+                  onClick={() => logger.error('Error details', error)}
                 >
                   Ver detalles en consola
                 </Button>

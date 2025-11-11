@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, ExternalLink } from 'lucide-react';
 import { CertificationFile } from './types';
+import { logger } from '@/utils/logger';
 
 interface ProviderCertificationsProps {
   certifications: CertificationFile[] | null | undefined;
@@ -43,7 +44,7 @@ const ProviderCertifications = ({ certifications }: ProviderCertificationsProps)
       
       link.click();
     } catch (error) {
-      console.error('Error opening certification:', error);
+      logger.error('Error opening certification', error);
       // Fallback a window.open
       window.open(file.url, '_blank');
     }

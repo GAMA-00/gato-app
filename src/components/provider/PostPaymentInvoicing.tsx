@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { useInvoiceMutation, useSubmitInvoiceMutation, useInvoiceItems } from '@/hooks/usePostPaymentInvoices';
 import { EvidenceUploader } from './EvidenceUploader';
+import { logger } from '@/utils/logger';
 
 const invoiceItemSchema = z.object({
   item_name: z.string()
@@ -198,7 +199,7 @@ const PostPaymentInvoicing: React.FC<PostPaymentInvoicingProps> = ({
         setHasUnsavedChanges(false);
       }
     } catch (error) {
-      console.error('Error saving invoice:', error);
+      logger.error('Error saving invoice', error);
       toast.error('Error al guardar la factura');
     } finally {
       if (submitForApproval) {

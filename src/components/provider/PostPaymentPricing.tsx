@@ -24,6 +24,7 @@ import { Plus, X, DollarSign, FileText, Camera } from 'lucide-react';
 import { useUpdateFinalPrice } from '@/hooks/usePostPaymentServices';
 import { toast } from 'sonner';
 import { EvidenceUploader } from '@/components/provider/EvidenceUploader';
+import { logger } from '@/utils/logger';
 
 const costItemSchema = z.object({
   description: z.string().min(1, 'Descripción requerida'),
@@ -100,7 +101,7 @@ const PostPaymentPricing: React.FC<PostPaymentPricingProps> = ({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error setting final price:', error);
+      logger.error('Error setting final price', error);
       toast.error('Error al establecer el precio final');
     } finally {
       setIsSubmitting(false);

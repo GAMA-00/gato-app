@@ -12,6 +12,7 @@ import { AuthContextType } from './auth/types';
 import { useAuthState } from './auth/useAuthState';
 import { useAuthActions } from './auth/useAuthActions';
 import { createUserFromSession, fetchUserProfile } from './auth/utils';
+import { authLogger } from '@/utils/logger';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -40,17 +41,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   useEffect(() => {
-    console.log('AuthContext: Initializing authentication');
+    authLogger.info('Initializing authentication');
     
     // Timeout de seguridad para evitar carga infinita
     initTimeoutRef.current = setTimeout(() => {
-      console.log('AuthContext: Initialization timeout - forcing completion');
+      authLogger.warn('Initialization timeout - forcing completion');
       setIsLoading(false);
     }, 5000); // Reducido a 5 segundos
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log('AuthContext: Auth state changed -', event, !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
+        authLogger.debug('Auth state changed', { event, hasSession: !!currentSession, isLoggingOut: isLoggingOutRef.current });
         
         if (initTimeoutRef.current) {
           clearTimeout(initTimeoutRef.current);
@@ -58,12 +59,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (isLoggingOutRef.current) {
-          console.log('AuthContext: Ignoring auth event during logout process');
+          authLogger.debug('Ignoring auth event during logout process');
           return;
         }
         
         if (event === 'SIGNED_OUT' || !currentSession) {
-          console.log('AuthContext: User signed out, clearing state');
+          authLogger.info('User signed out, clearing state');
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -72,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && currentSession?.user) {
-          console.log('AuthContext: Setting user from session, event:', event);
+          authLogger.info('Setting user from session', { event });
           setSession(currentSession);
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
@@ -92,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
               })
               .catch(error => {
-                console.log('AuthContext: Profile fetch failed:', error);
+                authLogger.error('Profile fetch failed', error);
               })
               .finally(() => {
                 if (!isLoggingOutRef.current) {
@@ -101,14 +102,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
           }, 0);
           
-          console.log('AuthContext: User set successfully:', userData.role);
+          authLogger.info('User set successfully', { role: userData.role });
         }
       }
     );
 
     // Verificar sesión existente
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      console.log('AuthContext: Initial session check -', !!currentSession, 'isLoggingOut:', isLoggingOutRef.current);
+      authLogger.debug('Initial session check', { hasSession: !!currentSession, isLoggingOut: isLoggingOutRef.current });
       
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
@@ -117,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!isLoggingOutRef.current) {
         if (currentSession?.user) {
-          console.log('AuthContext: Setting initial session');
+          authLogger.info('Setting initial session');
           setSession(currentSession);
           const userData = createUserFromSession(currentSession.user);
           setUser(userData);
@@ -136,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
               })
               .catch(error => {
-                console.log('AuthContext: Initial profile fetch failed:', error);
+                authLogger.error('Initial profile fetch failed', error);
               })
               .finally(() => {
                 if (!isLoggingOutRef.current) {
@@ -145,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
           }, 0);
           
-          console.log('AuthContext: Initial user set:', userData.role);
+          authLogger.info('Initial user set', { role: userData.role });
         } else {
           setSession(null);
           setUser(null);
@@ -155,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
     }).catch(error => {
-      console.error('AuthContext: Error getting initial session:', error);
+      authLogger.error('Error getting initial session', error);
       setIsLoading(false);
     });
 
@@ -167,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  console.log('AuthContext: Current state -', { 
+  authLogger.debug('Current state', { 
     isLoading, 
     isAuthenticated, 
     hasUser: !!user, 

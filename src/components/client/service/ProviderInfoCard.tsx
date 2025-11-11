@@ -9,6 +9,7 @@ import LevelBadge from '@/components/achievements/LevelBadge';
 import { useProviderMerits } from '@/hooks/useProviderMerits';
 import { AchievementLevel } from '@/lib/achievementTypes';
 import ProviderAvatar from '@/components/ui/provider-avatar';
+import { logger } from '@/utils/logger';
 
 interface ProviderInfoCardProps {
   provider: ProviderData;
@@ -19,7 +20,7 @@ const ProviderInfoCard = ({
   provider, 
   clientResidencia 
 }: ProviderInfoCardProps) => {
-  console.log('ProviderInfoCard - Provider data:', {
+  logger.debug('ProviderInfoCard - Provider data', {
     name: provider?.name,
     avatar_url: provider?.avatar_url,
     id: provider?.id

@@ -1,6 +1,7 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { User, UserProfile } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import { authLogger } from '@/utils/logger';
 
 export const createUserFromSession = (authUser: SupabaseUser): User => {
   const role = authUser.user_metadata?.role || 'client';
@@ -17,7 +18,7 @@ export const createUserFromSession = (authUser: SupabaseUser): User => {
 
 export const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
-    console.log('AuthContext: Fetching user profile for:', userId);
+    authLogger.debug('Fetching user profile', { userId });
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -25,21 +26,21 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
       .single();
 
     if (error) {
-      console.log('AuthContext: Profile fetch error (non-blocking):', error.message);
+      authLogger.warn('Profile fetch error (non-blocking)', { message: error.message });
       return null;
     }
 
-    console.log('AuthContext: Profile fetched successfully');
+    authLogger.info('Profile fetched successfully');
     return data as UserProfile;
   } catch (error) {
-    console.log('AuthContext: Profile fetch exception (non-blocking):', error);
+    authLogger.warn('Profile fetch exception (non-blocking)', error);
     return null;
   }
 };
 
 export const clearSupabaseStorage = () => {
   try {
-    console.log('AuthContext: Clearing Supabase storage');
+    authLogger.debug('Clearing Supabase storage');
     
     const supabasePatterns = [
       'supabase.auth.',
@@ -63,7 +64,7 @@ export const clearSupabaseStorage = () => {
     }
     
     keysToRemove.forEach(key => {
-      console.log('AuthContext: Removing localStorage key:', key);
+      authLogger.debug('Removing localStorage key', { key });
       localStorage.removeItem(key);
     });
     
@@ -79,11 +80,11 @@ export const clearSupabaseStorage = () => {
     }
     
     sessionKeysToRemove.forEach(key => {
-      console.log('AuthContext: Removing sessionStorage key:', key);
+      authLogger.debug('Removing sessionStorage key', { key });
       sessionStorage.removeItem(key);
     });
     
   } catch (error) {
-    console.error('AuthContext: Error clearing storage:', error);
+    authLogger.error('Error clearing storage', error);
   }
 };
