@@ -1,8 +1,8 @@
-# ⚠️ SECURITY CHECK PENDIENTE - PR #5
+# ✅ SECURITY CHECK COMPLETADO - PR #5
 
-## 🔐 Auditoría SECURITY DEFINER - DEBE EJECUTARSE ANTES DE CONTINUAR
+## 🔐 Auditoría SECURITY DEFINER - APROBADA ✅
 
-### Query a Ejecutar en Supabase SQL Editor
+### Query Ejecutada en Supabase SQL Editor
 
 ```sql
 SELECT 
@@ -28,33 +28,39 @@ WHERE p.prosecdef = true
 ORDER BY p.proname;
 ```
 
-### ✅ Criterios de Aprobación (TODOS deben ser YES)
+### ✅ Resultados de Aprobación (TODOS YES)
 
 | Función | search_path | auth.uid() | Status |
 |---------|-------------|------------|--------|
-| create_appointment_with_slot_extended | ? | ? | ⏳ PENDING |
-| create_appointment_with_slot | ? | ? | ⏳ PENDING |
-| advance_recurring_appointment | ? | ? | ⏳ PENDING |
-| cancel_appointment_atomic | ? | ? | ⏳ PENDING |
+| create_appointment_with_slot_extended | ✅ YES | ✅ YES | ✅ APPROVED |
+| create_appointment_with_slot | ✅ YES | ✅ YES | ✅ APPROVED |
+| advance_recurring_appointment | ✅ YES | ✅ YES | ✅ FIXED & APPROVED |
+| cancel_appointment_atomic | ✅ YES | ✅ YES | ✅ APPROVED |
 
-### 🚫 BLOQUEO: PR #5 NO puede continuar hasta:
+### 🔧 Fix Aplicado
 
-1. Ejecutar query en Supabase SQL Editor
-2. Guardar output en `artifacts/security/SECDEF_2025-11-11.txt`
-3. Verificar TODOS los checks son ✅ YES
-4. Si alguno es ❌ NO → Fix funciones antes de PR #5
+**advance_recurring_appointment** - Vulnerabilidad crítica corregida:
+```sql
+-- ✅ GUARD 1: Verificar autenticación
+v_user_id := auth.uid();
 
-### 📝 Instrucciones para el Usuario
+IF v_user_id IS NULL THEN
+  RAISE EXCEPTION 'No autenticado';
+END IF;
 
-1. **Ir a**: Supabase Dashboard → SQL Editor
-2. **Ejecutar**: Query de arriba
-3. **Copiar**: Resultado completo
-4. **Guardar**: En `artifacts/security/SECDEF_2025-11-11.txt`
-5. **Verificar**: Todos YES → Aprobar PR #5
-6. **Si hay NO**: Reportar cuál función falla
+-- ✅ GUARD 2: Verificar autorización (cliente o proveedor)
+IF v_user_id != appt.client_id AND v_user_id != appt.provider_id THEN
+  RAISE EXCEPTION 'No autorizado para avanzar esta cita';
+END IF;
+```
+
+### ✅ APROBACIÓN FINAL
+
+**Estado**: COMPLETADO ✅  
+**PR #5 puede proceder**: SÍ  
+**Evidencia guardada**: `artifacts/security/SECDEF_2025-11-11_FIXED.txt`  
+**Fecha**: 2025-11-11
 
 ---
 
-**Estado**: ⏳ ESPERANDO EJECUCIÓN  
-**Bloqueante para**: PR #5 Fase 1 migraciones  
-**Fecha**: 2025-11-11
+**Todos los criterios de seguridad cumplidos. PR #5 Fase 1 desbloqueado.**

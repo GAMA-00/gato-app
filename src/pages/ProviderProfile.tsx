@@ -13,6 +13,7 @@ import TeamPhotoSection from '@/components/team/TeamPhotoSection';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ListingService } from '@/services/listingService';
 import Navbar from '@/components/layout/Navbar';
 import { ServiceCategoryGroup } from '@/lib/types';
 
@@ -39,21 +40,7 @@ const ProviderProfile = () => {
     queryFn: async (): Promise<ServiceCategoryGroup[]> => {
       if (!providerId) return [];
       
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          service_types (
-            name,
-            service_categories (
-              name
-            )
-          )
-        `)
-        .eq('provider_id', providerId)
-        .eq('is_active', true);
-        
-      if (error) throw error;
+      const data = await ListingService.getActiveListings(providerId);
       
       // Group by category
       const grouped = (data || []).reduce((acc: { [key: string]: ServiceCategoryGroup }, listing: any) => {

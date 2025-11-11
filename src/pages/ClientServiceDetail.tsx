@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import PageContainer from '@/components/layout/PageContainer';
+import { ListingService } from '@/services/listingService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,26 +33,9 @@ const ClientServiceDetail = () => {
   const { data: service, isLoading } = useQuery({
     queryKey: ['service-detail', serviceId],
     queryFn: async (): Promise<ValidServiceData | null> => {
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          id,
-          title,
-          description,
-          base_price,
-          duration,
-          users!listings_provider_id_fkey (
-            id,
-            name,
-            avatar_url,
-            average_rating,
-            phone
-          )
-        `)
-        .eq('id', serviceId)
-        .single();
-        
-      if (error) throw error;
+      if (!serviceId) return null;
+      
+      const data = await ListingService.getListingById(serviceId);
       
       // Use more lenient type checking that matches Supabase query structure
       if (!data || !data.users || typeof data.users !== 'object') {

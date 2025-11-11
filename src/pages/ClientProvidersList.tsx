@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import PageContainer from '@/components/layout/PageContainer';
+import { ListingService } from '@/services/listingService';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, User } from 'lucide-react';
@@ -34,20 +35,7 @@ const ClientProvidersList = () => {
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers', serviceType],
     queryFn: async (): Promise<ValidListing[]> => {
-      let query = supabase
-        .from('listings')
-        .select(`
-          id,
-          title,
-          description,
-          base_price,
-          users!listings_provider_id_fkey (
-            id,
-            name,
-            avatar_url,
-            average_rating
-          )
-        `);
+      let serviceTypeId: string | undefined;
       
       if (serviceType) {
         // First get service_type_id
@@ -57,13 +45,10 @@ const ClientProvidersList = () => {
           .eq('name', serviceType)
           .single();
           
-        if (serviceTypeData) {
-          query = query.eq('service_type_id', serviceTypeData.id);
-        }
+        serviceTypeId = serviceTypeData?.id;
       }
       
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await ListingService.getActiveListingsWithProvider(serviceTypeId);
       
       // Filter out items with invalid users data and ensure proper typing
       const validListings: ValidListing[] = [];

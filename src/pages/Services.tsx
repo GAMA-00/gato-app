@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/layout/Navbar';
+import { ListingService } from '@/services/listingService';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
@@ -28,27 +28,10 @@ const Services = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          service_types!inner(
-            id,
-            name,
-            service_categories!inner(
-              id,
-              name,
-              label
-            )
-          )
-        `)
-        .eq('provider_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await ListingService.getProviderListings(user.id);
       
       // Map database result to Service interface with proper type casting
-      const mappedServices: Service[] = (data || []).map(listing => ({
+      const mappedServices: Service[] = (data || []).map((listing: any) => ({
         id: listing.id,
         name: listing.title, // Map title to name
         subcategoryId: listing.service_type_id,

@@ -244,4 +244,42 @@ export class ListingService {
     logger.debug(`getListingsBasic - Fetched ${data?.length || 0} listings`);
     return data || [];
   }
+
+  /**
+   * Get active listings with provider info (for client-facing lists)
+   * Used by: Client provider lists, search results
+   */
+  static async getActiveListingsWithProvider(serviceTypeId?: string) {
+    logger.debug(`getActiveListingsWithProvider - serviceTypeId: ${serviceTypeId || 'all'}`);
+
+    let query = supabase
+      .from('listings')
+      .select(`
+        id,
+        title,
+        description,
+        base_price,
+        users!listings_provider_id_fkey (
+          id,
+          name,
+          avatar_url,
+          average_rating
+        )
+      `)
+      .eq('is_active', true);
+
+    if (serviceTypeId) {
+      query = query.eq('service_type_id', serviceTypeId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error('getActiveListingsWithProvider - Error:', error);
+      throw error;
+    }
+
+    logger.debug(`getActiveListingsWithProvider - Fetched ${data?.length || 0} listings`);
+    return data || [];
+  }
 }

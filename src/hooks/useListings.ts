@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Service, ServiceVariant } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
+import { ListingService } from '@/services/listingService';
 
 // Define the shape of the listings data returned from Supabase
 interface ListingData {
@@ -44,75 +45,67 @@ export const useListings = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          service_type:service_type_id(
-            name,
-            category:category_id(name)
-          )
-        `)
-        .eq('provider_id', user.id);
+      try {
+        const data = await ListingService.getProviderListings(user.id);
         
-      if (error) {
-        toast.error('Error loading listings: ' + error.message);
+        return (data as any[]).map(listing => {
+          // Parse service variants if available
+          let serviceVariants: ServiceVariant[] = [];
+          try {
+            if (listing.service_variants) {
+              serviceVariants = JSON.parse(JSON.stringify(listing.service_variants));
+            }
+          } catch (e) {
+            console.error("Error parsing service variants:", e);
+          }
+          
+          // Parse gallery images if available
+          let galleryImages: string[] = [];
+          try {
+            if (listing.gallery_images) {
+              const parsed = typeof listing.gallery_images === 'string' 
+                ? JSON.parse(listing.gallery_images)
+                : listing.gallery_images;
+              galleryImages = Array.isArray(parsed) ? parsed : [];
+            }
+          } catch (e) {
+            console.error("Error parsing gallery images:", e);
+          }
+          
+          // Parse availability if available
+          let availability = {};
+          try {
+            if (listing.availability) {
+              availability = typeof listing.availability === 'string' 
+                ? JSON.parse(listing.availability)
+                : listing.availability;
+            }
+          } catch (e) {
+            console.error("Error parsing availability:", e);
+          }
+          
+          return {
+            id: listing.id,
+            name: listing.title,
+            subcategoryId: listing.service_type_id,
+            category: listing.service_types?.service_categories?.name,
+            duration: listing.duration,
+            price: listing.base_price,
+            description: listing.description,
+            residenciaIds: [],
+            createdAt: new Date(listing.created_at),
+            providerId: listing.provider_id,
+            providerName: user.name || '',
+            serviceVariants: serviceVariants,
+            galleryImages: galleryImages,
+            availability: availability
+          };
+        }) as Service[];
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+        toast.error('Error loading listings');
         throw error;
       }
-      
-      return (data as ListingData[]).map(listing => {
-        // Parse service variants if available
-        let serviceVariants: ServiceVariant[] = [];
-        try {
-          if (listing.service_variants) {
-            serviceVariants = JSON.parse(JSON.stringify(listing.service_variants));
-          }
-        } catch (e) {
-          console.error("Error parsing service variants:", e);
-        }
-        
-        // Parse gallery images if available
-        let galleryImages: string[] = [];
-        try {
-          if (listing.gallery_images) {
-            const parsed = typeof listing.gallery_images === 'string' 
-              ? JSON.parse(listing.gallery_images)
-              : listing.gallery_images;
-            galleryImages = Array.isArray(parsed) ? parsed : [];
-          }
-        } catch (e) {
-          console.error("Error parsing gallery images:", e);
-        }
-        
-        // Parse availability if available
-        let availability = {};
-        try {
-          if (listing.availability) {
-            availability = typeof listing.availability === 'string' 
-              ? JSON.parse(listing.availability)
-              : listing.availability;
-          }
-        } catch (e) {
-          console.error("Error parsing availability:", e);
-        }
-        
-        return {
-          id: listing.id,
-          name: listing.title,
-          subcategoryId: listing.service_type_id,
-          category: listing.service_type?.category?.name,
-          duration: listing.duration,
-          price: listing.base_price,
-          description: listing.description,
-          residenciaIds: [],
-          createdAt: new Date(listing.created_at),
-          providerId: listing.provider_id,
-          providerName: user.name || '',
-          serviceVariants: serviceVariants,
-          galleryImages: galleryImages,
-          availability: availability
-        };
-      }) as Service[];
     },
     enabled: !!isAuthenticated && !!user?.id
   });
