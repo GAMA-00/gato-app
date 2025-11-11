@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { logger } from '@/utils/logger';
+import { invalidateAppointments, invalidateCalendarAppointments } from '@/utils/queryInvalidation';
 
 interface JobRequestsProps {
   onAcceptRequest?: (request: any) => void;
@@ -49,8 +50,8 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       
       toast.success("Solicitud aceptada");
       
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      await invalidateAppointments(queryClient, user?.id);
+      await invalidateCalendarAppointments(queryClient, user?.id);
       
       if (onAcceptRequest) {
         onAcceptRequest(request);
@@ -71,8 +72,8 @@ const JobRequests: React.FC<JobRequestsProps> = ({
       
       toast.success("Solicitud rechazada");
       
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      await invalidateAppointments(queryClient, user?.id);
+      await invalidateCalendarAppointments(queryClient, user?.id);
       
       if (onDeclineRequest) {
         onDeclineRequest(requestId);

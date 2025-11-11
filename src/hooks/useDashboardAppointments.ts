@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 import { useUnifiedRecurringAppointments } from './useUnifiedRecurringAppointments';
+import { invalidateAppointments } from '@/utils/queryInvalidation';
 
 export const useDashboardAppointments = () => {
   const { user } = useAuth();
@@ -248,7 +249,7 @@ export const useDashboardAppointments = () => {
           );
           
           await Promise.all(updatePromises);
-          queryClient.invalidateQueries({ queryKey: ['appointments'] });
+          await invalidateAppointments(queryClient, user?.id);
         }
       } catch (error) {
         console.error("Error updating appointment statuses:", error);

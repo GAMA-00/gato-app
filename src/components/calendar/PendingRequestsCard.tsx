@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { usePendingRequests } from '@/hooks/usePendingRequests';
 import { logger } from '@/utils/logger';
+import { invalidateAppointments, invalidateCalendarAppointments } from '@/utils/queryInvalidation';
 
 const PendingRequestsCard: React.FC = () => {
   const { data: pendingRequests = [], isLoading, isError, error } = usePendingRequests();
@@ -39,11 +40,11 @@ const PendingRequestsCard: React.FC = () => {
       
       toast.success("Solicitud aceptada");
       
-      // Invalidate all related queries to ensure UI updates
+      // Invalidate all related queries using centralized utilities
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        invalidateAppointments(queryClient, user?.id),
+        invalidateCalendarAppointments(queryClient, user?.id),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
       ]);
       
@@ -66,11 +67,11 @@ const PendingRequestsCard: React.FC = () => {
       
       toast.success("Solicitud rechazada");
       
-      // Invalidate all related queries to ensure UI updates
+      // Invalidate all related queries using centralized utilities
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        invalidateAppointments(queryClient, user?.id),
+        invalidateCalendarAppointments(queryClient, user?.id),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
       ]);
       

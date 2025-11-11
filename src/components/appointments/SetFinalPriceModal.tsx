@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Appointment } from '@/lib/types';
 import { logger } from '@/utils/logger';
+import { invalidateAppointments } from '@/utils/queryInvalidation';
 
 interface SetFinalPriceModalProps {
   isOpen: boolean;
@@ -116,9 +117,9 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
 
       return price;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Precio final guardado correctamente');
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      await invalidateAppointments(queryClient);
       queryClient.invalidateQueries({ queryKey: ['price-history'] });
       onSuccess?.();
       onClose();
