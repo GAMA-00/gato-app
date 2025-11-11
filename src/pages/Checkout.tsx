@@ -10,6 +10,7 @@ import { formatCurrency } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { ProgressIndicator } from '@/components/checkout/ProgressIndicator';
 import { ScrollIndicator } from '@/components/checkout/ScrollIndicator';
+import { logger } from '@/utils/logger';
 
 interface CheckoutData {
   serviceTitle: string;
@@ -89,7 +90,7 @@ export const Checkout = () => {
   };
 
   const handlePaymentError = (error: Error) => {
-    console.error('Payment error:', error);
+    logger.error('Payment error:', error);
     
     // Don't show additional error for service unavailability - already handled in form
     if (error.message === "SERVICE_TEMPORARILY_UNAVAILABLE") {

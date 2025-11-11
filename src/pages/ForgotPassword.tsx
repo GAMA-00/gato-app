@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Mail, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import { logger } from '@/utils/logger';
 
 const emailSchema = z.object({
   email: z.string().email({ message: 'Correo electrónico inválido' }).trim().toLowerCase(),
@@ -57,7 +58,7 @@ const ForgotPassword = () => {
         description: 'Si el correo existe en nuestro sistema, recibirás un enlace de recuperación',
       });
     } catch (error: any) {
-      console.error('Error sending password reset:', error);
+      logger.error('Error sending password reset:', error);
       toast({
         title: 'Error',
         description: error.message || 'No se pudo enviar el email de recuperación',

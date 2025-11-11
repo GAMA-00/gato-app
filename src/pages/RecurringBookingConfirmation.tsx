@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle, CheckCircle2, Calendar, CreditCard, Repeat } fr
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { logger } from '@/utils/logger';
 
 const RECURRENCE_LABELS: Record<string, string> = {
   'weekly': 'Semanal',
@@ -37,7 +38,7 @@ export const RecurringBookingConfirmation = () => {
           .single();
 
         if (aptError || !appointment) {
-          console.error('Error fetching appointment:', aptError);
+          logger.error('Error fetching appointment:', aptError);
           navigate('/dashboard');
           return;
         }
@@ -55,7 +56,7 @@ export const RecurringBookingConfirmation = () => {
 
         setSubscriptionData(subscription);
       } catch (error) {
-        console.error('Error loading booking confirmation:', error);
+        logger.error('Error loading booking confirmation:', error);
       } finally {
         setLoading(false);
       }

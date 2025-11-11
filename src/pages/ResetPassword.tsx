@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Lock, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
+import { logger } from '@/utils/logger';
 
 const passwordSchema = z.object({
   password: z
@@ -47,7 +48,7 @@ const ResetPassword = () => {
         if (!mounted) return;
 
         if (error) {
-          console.error('Error getting session:', error);
+          logger.error('Error getting session:', error);
           toast({
             title: 'Error',
             description: 'No se pudo verificar la sesión de recuperación',
@@ -59,10 +60,10 @@ const ResetPassword = () => {
 
         // Verificar si hay una sesión activa (significa que el token fue procesado correctamente)
         if (session) {
-          console.log('Recovery session found:', session);
+          logger.debug('Recovery session found:', session);
           setHasRecoverySession(true);
         } else {
-          console.log('No recovery session found');
+          logger.debug('No recovery session found');
           toast({
             title: 'Enlace inválido',
             description: 'El enlace de recuperación no es válido o ha expirado',
@@ -71,7 +72,7 @@ const ResetPassword = () => {
           setTimeout(() => navigate('/forgot-password'), 2000);
         }
       } catch (err) {
-        console.error('Error checking recovery session:', err);
+        logger.error('Error checking recovery session:', err);
         if (mounted) {
           toast({
             title: 'Error',
@@ -129,7 +130,7 @@ const ResetPassword = () => {
       // Redirigir al login después de 2 segundos
       setTimeout(() => navigate('/client/login'), 2000);
     } catch (error: any) {
-      console.error('Error updating password:', error);
+      logger.error('Error updating password:', error);
       toast({
         title: 'Error',
         description: error.message || 'No se pudo actualizar la contraseña',

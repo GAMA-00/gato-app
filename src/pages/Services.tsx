@@ -14,6 +14,7 @@ import { useServiceMutations } from '@/hooks/useServiceMutations';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 
 const Services = () => {
   const navigate = useNavigate();
@@ -84,7 +85,7 @@ const Services = () => {
           toast.success('Anuncio eliminado exitosamente');
         },
         onError: (error) => {
-          console.error('Error deleting service:', error);
+          logger.error('Error deleting service:', error);
           toast.error('Error al eliminar el anuncio');
         },
       });
@@ -102,7 +103,7 @@ const Services = () => {
           setIsSubmitting(false);
         },
         onError: (error) => {
-          console.error('Error creating service:', error);
+          logger.error('Error creating service:', error);
           toast.error('Error al crear el anuncio');
           setIsSubmitting(false);
         },

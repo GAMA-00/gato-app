@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 
 export function useAppointmentCompletion() {
   const { user } = useAuth();
@@ -14,11 +15,11 @@ export function useAppointmentCompletion() {
       const { data, error } = await supabase.rpc('mark_past_appointments_completed');
       
       if (error) {
-        console.error('Error marking past appointments as completed:', error);
+        logger.error('Error marking past appointments as completed:', error);
         return null;
       }
       
-      console.log(`Marked ${data} past appointments as completed`);
+      logger.info(`Marked ${data} past appointments as completed`);
       return data;
     },
     enabled: !!user,

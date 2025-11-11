@@ -1,5 +1,6 @@
 
 import * as React from "react"
+import { logger } from '@/utils/logger';
 
 const MOBILE_BREAKPOINT = 768
 
@@ -14,7 +15,7 @@ export function useIsMobile() {
     const checkMobile = () => {
       const currentIsMobile = window.innerWidth < MOBILE_BREAKPOINT;
       setIsMobile(currentIsMobile)
-      console.log("Screen width changed:", window.innerWidth, "isMobile:", currentIsMobile)
+      logger.debug("Screen width changed:", { width: window.innerWidth, isMobile: currentIsMobile })
     }
     
     // Comprobar inmediatamente al cargar

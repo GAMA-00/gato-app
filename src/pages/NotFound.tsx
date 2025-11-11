@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from '@/utils/logger';
 
 const NotFound = () => {
   const location = useLocation();
@@ -10,12 +11,11 @@ const NotFound = () => {
   const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    console.error(
-      "404 Error: Usuario intentó acceder a una ruta inexistente:",
-      location.pathname,
-      "User authenticated:", isAuthenticated,
-      "User role:", user?.role
-    );
+    logger.error("404 Error: Usuario intentó acceder a una ruta inexistente:", {
+      path: location.pathname,
+      authenticated: isAuthenticated,
+      userRole: user?.role
+    });
   }, [location.pathname, user?.role, isAuthenticated]);
 
   const handleGoBack = () => {
