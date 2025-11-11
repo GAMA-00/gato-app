@@ -13,7 +13,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
 interface SavedCardsSelectorProps {
@@ -28,6 +27,7 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
   onAddNewCard
 }) => {
   const { paymentMethods, deletePaymentMethod, isDeleting } = usePaymentMethods();
+  const [cardToDelete, setCardToDelete] = useState<PaymentMethod | null>(null);
 
   // Filter out cards without onvopay_payment_method_id (legacy cards)
   const validCards = paymentMethods.filter(pm => !!pm.onvopay_payment_method_id);
@@ -120,36 +120,18 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
               
               {/* Botón eliminar en la parte inferior */}
               <div className="absolute bottom-2 right-2">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 hover:bg-destructive/10"
-                      disabled={isDeleting}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Eliminar tarjeta?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción no se puede deshacer. La tarjeta {method.card_number} será eliminada permanentemente.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={(e) => handleDeleteCard(method.id, e)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Eliminar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 hover:bg-destructive/10"
+                  disabled={isDeleting}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCardToDelete(method);
+                  }}
+                >
+                  <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                </Button>
               </div>
             </div>
           );
@@ -163,6 +145,37 @@ export const SavedCardsSelector: React.FC<SavedCardsSelectorProps> = ({
           <Plus className="h-4 w-4 mr-2" />
           Agregar Nueva Tarjeta
         </Button>
+
+        {/* AlertDialog único fuera del loop */}
+        <AlertDialog 
+          open={!!cardToDelete} 
+          onOpenChange={(open) => !open && setCardToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar tarjeta?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. La tarjeta {cardToDelete?.card_number} será eliminada permanentemente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setCardToDelete(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  if (cardToDelete) {
+                    handleDeleteCard(cardToDelete.id, e);
+                    setCardToDelete(null);
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
