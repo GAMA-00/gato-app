@@ -214,11 +214,18 @@ serve(async (req) => {
     // 5. Fetch listing to build description
     const { data: listing } = await supabaseAdmin
       .from('listings')
-      .select('service_types')
+      .select(`
+        title,
+        service_types (
+          name
+        )
+      `)
       .eq('id', appointment.listing_id)
       .single();
 
-    const serviceType = listing?.service_types?.[0] || 'Servicio';
+    const serviceType = listing?.service_types?.name || 
+                       listing?.title || 
+                       'Servicio';
     const recurrenceLabel = appointment.recurrence === 'weekly' 
       ? 'Semanal' 
       : appointment.recurrence === 'biweekly' 

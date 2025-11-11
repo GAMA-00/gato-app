@@ -132,6 +132,13 @@ serve(async (req) => {
       .eq('id', targetAppointmentId)
       .single();
 
+    console.log('📊 Appointment data for description:', {
+      appointmentData,
+      serviceTypeName: appointmentData?.listings?.service_types?.name,
+      listingTitle: appointmentData?.listings?.title,
+      recurrence: appointmentData?.recurrence
+    });
+
     // Generar descripción en formato correcto: "[Service Type] - [Recurrence]"
     const serviceTypeName = appointmentData?.listings?.service_types?.name || 
                            appointmentData?.listings?.title || 
@@ -144,7 +151,9 @@ serve(async (req) => {
       'monthly': 'Mensual'
     };
 
-    const recurrenceText = recurrenceMap[subscription.interval_type] || subscription.interval_type;
+    const recurrenceText = recurrenceMap[appointmentData?.recurrence || subscription.interval_type] || 
+                          recurrenceMap[subscription.interval_type] || 
+                          subscription.interval_type;
     const description = `${serviceTypeName} - ${recurrenceText}`;
 
     console.log('📝 Descripción del cobro:', description);
