@@ -5,7 +5,6 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { addDays, startOfDay, endOfDay } from 'date-fns';
 import { 
   getAllRecurringInstances, 
@@ -14,6 +13,12 @@ import {
   type CalculatedRecurringInstance 
 } from '@/utils/simplifiedRecurrenceUtils';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
+import { 
+  fetchUnifiedRecurringAppointments, 
+  fetchAllRecurringBases,
+  fetchClientsData,
+  fetchRecurringExceptions
+} from '@/services/appointmentService';
 
 export interface UnifiedAppointment {
   id: string;
@@ -72,55 +77,18 @@ export const useUnifiedRecurringAppointments = ({
       console.log('User:', userId, 'Role:', userRole);
       console.log('Date range:', normalizedStart.toISOString(), 'to', normalizedEnd.toISOString());
 
-      // 1. Fetch real appointments from database
+      // 1. Fetch real appointments from database using service
       const statusFilter = includeCompleted 
         ? ['pending', 'confirmed', 'completed', 'cancelled', 'rejected']
         : ['pending', 'confirmed'];
 
-      const roleFilter = userRole === 'client' ? 'client_id' : 'provider_id';
-
-      const { data: realAppointments, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          start_time,
-          end_time,
-          status,
-          recurrence,
-          provider_id,
-          client_id,
-          listing_id,
-          client_name,
-          provider_name,
-          client_address,
-          notes,
-          is_recurring_instance,
-          recurrence_group_id,
-          recurring_rule_id,
-          external_booking,
-          final_price,
-          custom_variables_total_price,
-          custom_variable_selections,
-          listings (
-            id,
-            title,
-            is_post_payment,
-            base_price,
-            duration,
-            service_variants,
-            custom_variable_groups
-          )
-        `)
-        .eq(roleFilter, userId)
-        .in('status', statusFilter)
-        .gte('start_time', normalizedStart.toISOString())
-        .lte('start_time', normalizedEnd.toISOString())
-        .order('start_time', { ascending: true });
-
-      if (appointmentsError) {
-        console.error('Error fetching appointments:', appointmentsError);
-        throw appointmentsError;
-      }
+      const realAppointments = await fetchUnifiedRecurringAppointments(
+        userId,
+        userRole,
+        statusFilter,
+        normalizedStart,
+        normalizedEnd
+      );
 
       console.log(`Fetched ${realAppointments?.length || 0} real appointments from DB`);
 
@@ -145,48 +113,16 @@ export const useUnifiedRecurringAppointments = ({
       console.log(`Found ${nonRecurringAppointments.length} non-recurring appointments`);
       console.log(`Found ${recurringBaseAppointments.length} recurring base appointments IN RANGE`);
 
-      // 2b. Fetch ALL recurring base appointments (not limited by start date range)
+      // 2b. Fetch ALL recurring base appointments using service
       // This ensures we capture recurring series that started before our range but have future instances
-      const { data: recurringBaseAll, error: baseAllError } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          start_time,
-          end_time,
-          status,
-          recurrence,
-          provider_id,
-          client_id,
-          listing_id,
-          client_name,
-          provider_name,
-          client_address,
-          notes,
-          is_recurring_instance,
-          recurrence_group_id,
-          recurring_rule_id,
-          external_booking,
-          final_price,
-          custom_variables_total_price,
-          custom_variable_selections,
-          listings (
-            id,
-            title,
-            is_post_payment,
-            base_price,
-            duration,
-            service_variants,
-            custom_variable_groups
-          )
-        `)
-        .eq(roleFilter, userId)
-        .neq('recurrence', 'none')
-        .neq('recurrence', 'once')
-        .eq('is_recurring_instance', false)
-        .in('status', ['confirmed', 'pending', 'completed'])
-        .lte('start_time', normalizedEnd.toISOString());
-
-      if (baseAllError) {
+      let recurringBaseAll: any[] = [];
+      try {
+        recurringBaseAll = await fetchAllRecurringBases(
+          userId,
+          userRole,
+          normalizedEnd
+        );
+      } catch (baseAllError) {
         console.error('Error fetching all recurring bases:', baseAllError);
       }
 
@@ -208,47 +144,30 @@ export const useUnifiedRecurringAppointments = ({
 
       let clientsMap = new Map<string, any>();
       if (clientIds.length > 0) {
-        const { data: clients, error: clientsError } = await supabase
-          .from('users')
-          .select(`
-            id,
-            name,
-            house_number,
-            condominium_text,
-            condominium_name,
-            residencia_id,
-            residencias (
-              id,
-              name
-            )
-          `)
-          .in('id', clientIds);
-
-        if (clientsError) {
+        try {
+          const clients = await fetchClientsData(clientIds);
+          if (clients && clients.length > 0) {
+            clientsMap = new Map(clients.map((c: any) => [c.id, c]));
+            console.log(`Fetched ${clients.length} client profiles for location building`);
+          }
+        } catch (clientsError) {
           console.warn('Users fetch failed; falling back to appointment data for locations', clientsError);
-        } else if (clients && clients.length > 0) {
-          clientsMap = new Map(clients.map((c: any) => [c.id, c]));
-          console.log(`Fetched ${clients.length} client profiles for location building`);
         }
       }
 
-      // 4. Fetch exceptions for these recurring appointments
+      // 4. Fetch exceptions for these recurring appointments using service
       let exceptions: RecurringException[] = [];
       if (unifiedBaseAppointments.length > 0) {
         const appointmentIds = unifiedBaseAppointments.map(a => a.id);
-        const { data: exceptionsData, error: exceptionsError } = await supabase
-          .from('recurring_exceptions')
-          .select('*')
-          .in('appointment_id', appointmentIds);
-
-        if (exceptionsError) {
-          console.error('Error fetching exceptions:', exceptionsError);
-        } else {
+        try {
+          const exceptionsData = await fetchRecurringExceptions(appointmentIds);
           exceptions = (exceptionsData || []).map(ex => ({
             ...ex,
             action_type: ex.action_type as 'cancelled' | 'rescheduled'
           })) as RecurringException[];
           console.log(`Fetched ${exceptions.length} exceptions`);
+        } catch (exceptionsError) {
+          console.error('Error fetching exceptions:', exceptionsError);
         }
       }
 

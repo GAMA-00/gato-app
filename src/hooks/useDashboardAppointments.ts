@@ -11,11 +11,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useStats } from '@/hooks/useStats';
 import { startOfToday, startOfTomorrow, isSameDay, addDays } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 import { useUnifiedRecurringAppointments } from './useUnifiedRecurringAppointments';
 import { invalidateAppointments } from '@/utils/queryInvalidation';
+import { updateAppointmentStatus } from '@/services/appointmentService';
 
 export const useDashboardAppointments = () => {
   const { user } = useAuth();
@@ -242,10 +242,7 @@ export const useDashboardAppointments = () => {
           console.log("Updating status for", toUpdate.length, "completed appointments");
           
           const updatePromises = toUpdate.map(app =>
-            supabase
-              .from('appointments')
-              .update({ status: 'completed' })
-              .eq('id', app.id)
+            updateAppointmentStatus(app.id, 'completed')
           );
           
           await Promise.all(updatePromises);

@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { startOfToday, endOfDay, addDays, addWeeks } from 'date-fns';
+import { startOfToday, endOfDay, addDays } from 'date-fns';
 import { buildAppointmentLocation } from '@/utils/appointmentLocationHelper';
 import { useCalendarRecurringSystem } from '@/hooks/useCalendarRecurringSystem';
 import { logger, apiLogger } from '@/utils/logger';
+import { fetchAppointmentsWithListings, fetchClientsData } from '@/services/appointmentService';
 
 export const useAppointments = () => {
   const { user } = useAuth();
@@ -28,34 +28,11 @@ export const useAppointments = () => {
       apiLogger.debug(`User ID: ${user.id}, Role: ${user.role}`);
 
       try {
-        // Step 1: Get basic appointments with listings data
-        let query = supabase
-          .from('appointments')
-          .select(`
-            *,
-            listings(
-              title,
-              duration,
-              base_price,
-              service_variants,
-              custom_variable_groups
-            )
-          `)
-          .order('start_time', { ascending: true });
-
-        // Filter by user role
-        if (user.role === 'provider') {
-          query = query.eq('provider_id', user.id);
-        } else if (user.role === 'client') {
-          query = query.eq('client_id', user.id);
-        }
-
-        const { data: appointments, error: appointmentsError } = await query;
-
-        if (appointmentsError) {
-          logger.error('Error fetching appointments:', appointmentsError);
-          return [];
-        }
+        // Step 1: Get basic appointments with listings data using service
+        const appointments = await fetchAppointmentsWithListings(
+          user.id,
+          user.role as 'provider' | 'client'
+        );
 
         if (!appointments || appointments.length === 0) {
           logger.info('No appointments found');
@@ -78,31 +55,11 @@ export const useAppointments = () => {
 
         let clientsData = [];
         if (clientIds.length > 0) {
-          logger.debug('Fetching client data for IDs:', clientIds);
-          
-          const { data: clients, error: clientsError } = await supabase
-            .from('users')
-            .select(`
-              id,
-              name,
-              phone,
-              email,
-              house_number,
-              condominium_text,
-              condominium_name,
-              residencia_id,
-              residencias(
-                id,
-                name
-              )
-            `)
-            .in('id', clientIds);
-
-          if (clientsError) {
-            logger.error('Error fetching clients data:', clientsError);
-          } else {
-            clientsData = clients || [];
+          try {
+            clientsData = await fetchClientsData(clientIds);
             logger.dataProcessing(`Fetched data for ${clientsData.length} clients`);
+          } catch (clientsError) {
+            logger.error('Error fetching clients data:', clientsError);
           }
         }
 
