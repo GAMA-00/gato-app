@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const [showCancelAllDialog, setShowCancelAllDialog] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const queryClient = useQueryClient();
+  const isProcessing = useRef(false);
   const isRecurring = booking.recurrence && booking.recurrence !== 'none';
   const isCompleted = booking.status === 'completed';
   const isSkipped = booking.status === 'cancelled' && booking.notes?.includes('[SKIPPED BY CLIENT]');
@@ -54,7 +55,15 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   });
   
   const handleSkipAppointment = async () => {
+    // Prevenir ejecuciones duplicadas
+    if (isProcessing.current) {
+      console.log('⏳ Operación ya en proceso, ignorando click duplicado');
+      return;
+    }
+
+    isProcessing.current = true;
     setIsLoading(true);
+    
     try {
       if (isRecurring) {
         // Para citas recurrentes: usar la función para saltar solo esta instancia
@@ -76,18 +85,21 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         console.log('✅ Successfully skipped recurring instance:', data);
         toast.success('Próxima cita mostrada');
         
+        // Invalidación optimizada con refetch solo de queries activas
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+          queryClient.invalidateQueries({ 
+            queryKey: ['unified-recurring-appointments'],
+            refetchType: 'active'
+          }),
+          queryClient.invalidateQueries({ 
+            queryKey: ['client-bookings'],
+            refetchType: 'active'
+          }),
           queryClient.invalidateQueries({ queryKey: ['appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
         ]);
-        
-        // Force refetch after a short delay
-        setTimeout(() => {
-          queryClient.refetchQueries({ queryKey: ['client-bookings'] });
-        }, 500);
         
       } else {
         // Para citas no recurrentes: cancelar normalmente
@@ -126,11 +138,20 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
       toast.error(error instanceof Error ? error.message : 'Error al procesar la solicitud');
     } finally {
       setIsLoading(false);
+      isProcessing.current = false;
     }
   };
 
   const handleCancelAllFuture = async () => {
+    // Prevenir ejecuciones duplicadas
+    if (isProcessing.current) {
+      console.log('⏳ Operación ya en proceso, ignorando click duplicado');
+      return;
+    }
+
+    isProcessing.current = true;
     setIsLoading(true);
+    
     try {
       console.log('🚫 Canceling recurring appointment series using edge function:', booking.id);
       
@@ -152,9 +173,16 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
       
       toast.success('Plan recurrente cancelado');
       
-      // Invalidate ALL possible query keys to ensure UI updates
+      // Invalidación optimizada con refetch solo de queries activas
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+        queryClient.invalidateQueries({ 
+          queryKey: ['unified-recurring-appointments'],
+          refetchType: 'active'
+        }),
+        queryClient.invalidateQueries({ 
+          queryKey: ['client-bookings'],
+          refetchType: 'active'
+        }),
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
@@ -163,16 +191,12 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         queryClient.resetQueries({ queryKey: ['client-bookings'] })
       ]);
       
-      // Force a complete refetch after a short delay
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ['client-bookings'] });
-      }, 500);
-      
     } catch (error) {
       console.error('❌ Error cancelling recurring series:', error);
       toast.error(error instanceof Error ? error.message : 'Error al cancelar la serie de citas');
     } finally {
       setIsLoading(false);
+      isProcessing.current = false;
     }
   };
   
