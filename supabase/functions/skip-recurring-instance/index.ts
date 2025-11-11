@@ -46,15 +46,57 @@ serve(async (req) => {
       }
     }
 
-    // Get the appointment details
-    const { data: appointment, error: appointmentError } = await supabaseClient
-      .from('appointments')
-      .select('*')
-      .eq('id', realAppointmentId)
-      .single();
+    // Try to get the appointment details using multiple strategies
+    let appointment: any = null;
 
-    if (appointmentError || !appointment) {
-      console.error('❌ Error fetching appointment:', appointmentError);
+    // 1) By exact ID (base appointment)
+    {
+      const { data, error } = await supabaseClient
+        .from('appointments')
+        .select('*')
+        .eq('id', realAppointmentId)
+        .single();
+      if (!error && data) {
+        appointment = data;
+        console.log(`📋 Found appointment by id: ${realAppointmentId}`);
+      } else {
+        console.warn('⚠️ Not found by id, trying recurrence_group_id (base)...');
+      }
+    }
+
+    // 2) By recurrence_group_id and is_recurring_instance=false (true base)
+    if (!appointment) {
+      const { data: baseByGroup, error: baseByGroupError } = await supabaseClient
+        .from('appointments')
+        .select('*')
+        .eq('recurrence_group_id', realAppointmentId)
+        .eq('is_recurring_instance', false)
+        .limit(1)
+        .maybeSingle();
+      if (!baseByGroupError && baseByGroup) {
+        appointment = baseByGroup;
+        console.log(`📋 Found base by recurrence_group_id: ${realAppointmentId}`);
+      } else {
+        console.warn('⚠️ Base not found by group, trying any member in the group...');
+      }
+    }
+
+    // 3) Any appointment in the group (fallback)
+    if (!appointment) {
+      const { data: anyInGroup, error: anyInGroupError } = await supabaseClient
+        .from('appointments')
+        .select('*')
+        .eq('recurrence_group_id', realAppointmentId)
+        .limit(1)
+        .maybeSingle();
+      if (!anyInGroupError && anyInGroup) {
+        appointment = anyInGroup;
+        console.log(`📋 Found a group member for: ${realAppointmentId}`);
+      }
+    }
+
+    if (!appointment) {
+      console.error('❌ Appointment not found after all strategies');
       return new Response(
         JSON.stringify({ error: 'Appointment not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
