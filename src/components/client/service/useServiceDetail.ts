@@ -296,7 +296,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
             ? JSON.parse(listing.custom_variable_groups) 
             : listing.custom_variable_groups;
         } catch (error) {
-          console.error("Error parsing custom variable groups:", error);
+          logger.error("Error parsing custom variable groups", { error });
         }
       }
       
@@ -321,12 +321,12 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         use_custom_variables: listing.use_custom_variables || false
       } as ServiceDetailData;
       
-      console.log("=== FINAL SERVICE DETAIL RESULT ===");
-      console.log("Service title:", finalResult.title);
-      console.log("Provider name:", finalResult.provider.name);
-      console.log("Service variants count:", finalResult.serviceVariants.length);
-      console.log("Gallery images count:", finalResult.galleryImages.length);
-      console.log("Final gallery images:", finalResult.galleryImages);
+      logger.debug("Service detail result ready", {
+        serviceTitle: finalResult.title,
+        providerName: finalResult.provider.name,
+        variantsCount: finalResult.serviceVariants.length,
+        galleryCount: finalResult.galleryImages.length
+      });
       
       return finalResult;
     },
@@ -336,8 +336,7 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
 
   useEffect(() => {
     if (error) {
-      console.error("=== QUERY ERROR ===");
-      console.error("Error in service details query:", error);
+      logger.error("Query error in service details", error);
       toast.error("No se pudo cargar la información del servicio");
     }
   }, [error]);
