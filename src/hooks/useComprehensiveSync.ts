@@ -3,6 +3,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { 
+  invalidateListings, 
+  invalidateProviderAvailability,
+  invalidateProviderSlots,
+  invalidateUserProfile,
+  forceFullProviderSync
+} from '@/utils/queryInvalidation';
 
 /**
  * Hook para manejar la sincronización completa y en tiempo real
@@ -31,14 +38,9 @@ export const useComprehensiveSync = () => {
         async (payload) => {
           console.log('📡 Cambio en listings detectado:', payload.eventType);
           
-          // Invalidar todos los caches relacionados con listings
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['listings'] }),
-            queryClient.invalidateQueries({ queryKey: ['provider-availability'] }),
-            queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] }),
-            queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
-            queryClient.invalidateQueries({ queryKey: ['unified-availability'] })
-          ]);
+          // Invalidar caches relacionados con listings usando utilidad centralizada
+          await invalidateListings(queryClient, user.id);
+          await invalidateProviderAvailability(queryClient, user.id);
 
           console.log('✅ Caches invalidados por cambio en listings');
         }
@@ -59,13 +61,9 @@ export const useComprehensiveSync = () => {
         async (payload) => {
           console.log('📡 Cambio en perfil de usuario detectado:', payload.new);
           
-          // Invalidar todos los caches relacionados con el perfil
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
-            queryClient.invalidateQueries({ queryKey: ['provider-profile'] }),
-            queryClient.invalidateQueries({ queryKey: ['listings'] }),
-            queryClient.invalidateQueries({ queryKey: ['providers'] })
-          ]);
+          // Invalidar caches relacionados con perfil usando utilidad centralizada
+          await invalidateUserProfile(queryClient, user.id);
+          await invalidateListings(queryClient, user.id);
 
           // Refetch datos críticos
           queryClient.refetchQueries({ queryKey: ['user-profile', user.id] });
@@ -90,13 +88,8 @@ export const useComprehensiveSync = () => {
         async (payload) => {
           console.log('📡 Cambio en disponibilidad detectado:', payload.eventType);
           
-          // Invalidar caches de disponibilidad
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['provider-availability'] }),
-            queryClient.invalidateQueries({ queryKey: ['availability-settings'] }),
-            queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] }),
-            queryClient.invalidateQueries({ queryKey: ['weekly-slots'] })
-          ]);
+          // Invalidar caches de disponibilidad usando utilidad centralizada
+          await invalidateProviderAvailability(queryClient, user.id);
 
           console.log('✅ Disponibilidad sincronizada');
         }
@@ -117,13 +110,8 @@ export const useComprehensiveSync = () => {
         async (payload) => {
           console.log('📡 Cambio en slots detectado:', payload.eventType);
           
-          // Invalidar caches de slots
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] }),
-            queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
-            queryClient.invalidateQueries({ queryKey: ['provider-slots'] }),
-            queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
-          ]);
+          // Invalidar caches de slots usando utilidad centralizada
+          await invalidateProviderSlots(queryClient, user.id);
 
           console.log('✅ Slots sincronizados');
         }
@@ -148,25 +136,8 @@ export const useComprehensiveSync = () => {
     console.log('🔄 Forzando sincronización completa...');
     
     try {
-      // Invalidar TODOS los caches
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['listings'] }),
-        queryClient.invalidateQueries({ queryKey: ['provider-availability'] }),
-        queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] }),
-        queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
-        queryClient.invalidateQueries({ queryKey: ['unified-availability'] }),
-        queryClient.invalidateQueries({ queryKey: ['availability-settings'] }),
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
-        queryClient.invalidateQueries({ queryKey: ['provider-profile'] }),
-        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
-      ]);
-
-      // Forzar refetch de datos críticos
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['listings', user.id] }),
-        queryClient.refetchQueries({ queryKey: ['user-profile', user.id] }),
-        queryClient.refetchQueries({ queryKey: ['provider-availability', user.id] })
-      ]);
+      // Usar utilidad centralizada para sincronización completa
+      await forceFullProviderSync(queryClient, user.id);
 
       console.log('✅ Sincronización completa exitosa');
       toast.success('Todas las secciones sincronizadas');

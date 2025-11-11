@@ -63,12 +63,13 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   );
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} role="status" aria-live="polite">
       <Loader2 
         className={cn(
           'animate-spin text-primary',
           sizeClasses[size]
         )} 
+        aria-hidden="true"
       />
       {message && (
         <p className={messageClasses}>
