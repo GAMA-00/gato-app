@@ -190,7 +190,7 @@ serve(async (req) => {
       .insert({
         appointment_id: realAppointmentId,
         exception_date: exceptionDate,
-        action_type: 'skip',
+        action_type: 'cancelled',
         notes: 'Instance skipped by client'
       })
       .select()
@@ -198,65 +198,12 @@ serve(async (req) => {
 
     if (exceptionError) {
       console.log(`⚠️ Error creating recurring exception (may already exist): ${exceptionError}`);
-      // Not critical - appointment deletion will still work
+      // Not critical - continue with the operation
     } else {
       console.log(`✅ Created recurring exception for ${exceptionDate}`);
     }
 
-    // Step 3: Mark appointment as 'cancelled' instead of deleting it
-    // This preserves the recurring pattern while skipping this specific instance
-    console.log(`⏭️ Marking appointment ${appointmentId} as cancelled (skipped)`);
-    
-    const { error: updateError } = await supabaseClient
-      .from('appointments')
-      .update({
-        status: 'cancelled',
-        notes: `${appointment.notes || ''}\n[SKIPPED BY CLIENT]`.trim(),
-        last_modified_by: appointment.client_id,
-        last_modified_at: new Date().toISOString()
-      })
-      .eq('id', appointmentId);
-
-    if (updateError) {
-      console.error('❌ Error updating appointment to cancelled (skipped):', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to skip appointment' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Step 4: Create the following occurrence (after the skipped one) to maintain the series
-    console.log(`🔄 Creating following occurrence for ${appointment.recurrence} appointment`);
-    
-    const { error: nextAppointmentError } = await supabaseClient
-      .from('appointments')
-      .insert({
-        listing_id: appointment.listing_id,
-        client_id: appointment.client_id,
-        provider_id: appointment.provider_id,
-        residencia_id: appointment.residencia_id,
-        start_time: followingStart.toISOString(),
-        end_time: followingEnd.toISOString(),
-        status: 'confirmed',
-        recurrence: appointment.recurrence,
-        notes: appointment.notes,
-        client_name: appointment.client_name,
-        client_phone: appointment.client_phone,
-        client_email: appointment.client_email,
-        client_address: appointment.client_address,
-        external_booking: appointment.external_booking || false,
-        is_recurring_instance: true,
-        recurrence_group_id: appointment.recurrence_group_id
-      });
-
-    if (nextAppointmentError) {
-      console.log(`⚠️ Error creating following occurrence (non-critical): ${nextAppointmentError.message}`);
-      // Don't fail the skip operation if we can't create the next occurrence
-    } else {
-      console.log(`✅ Created following ${appointment.recurrence} occurrence for ${followingStart.toISOString()}`);
-    }
-
-    console.log('✅ Successfully skipped recurring instance and created next occurrence');
+    console.log('✅ Successfully skipped recurring instance');
 
     return new Response(
       JSON.stringify({ 
