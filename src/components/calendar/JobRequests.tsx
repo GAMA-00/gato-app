@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/utils/logger';
 
 interface JobRequestsProps {
   onAcceptRequest?: (request: any) => void;
@@ -34,8 +35,8 @@ const JobRequests: React.FC<JobRequestsProps> = ({
     appointment.status === 'pending'
   );
   
-  console.log("Pending requests in JobRequests component:", pendingRequests);
-  console.log("All appointments:", appointments);
+  logger.debug("Pending requests in JobRequests component:", pendingRequests);
+  logger.debug("All appointments:", appointments);
   
   const handleAccept = async (request: any) => {
     try {
@@ -131,7 +132,11 @@ const JobRequests: React.FC<JobRequestsProps> = ({
             {pendingRequests.map((request: any) => {
               const isExternal = request.external_booking;
               
-              console.log(`Rendering request ${request.id}: clientName="${request.client_name}", isExternal=${isExternal}, location="${request.client_location}"`);
+              logger.debug(`Rendering request ${request.id}`, { 
+                clientName: request.client_name, 
+                isExternal, 
+                location: request.client_location 
+              });
               
               return (
                 <div key={request.id} className="border rounded-lg p-4 bg-amber-50 border-amber-200">

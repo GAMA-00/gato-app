@@ -24,6 +24,13 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      "no-console": ["error", { "allow": [] }],
+    },
+  },
+  {
+    files: ["src/utils/logger.ts"],
+    rules: {
+      "no-console": "off",
     },
   }
 );

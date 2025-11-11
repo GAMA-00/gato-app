@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -13,7 +14,7 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
   const { isAuthenticated, user, isLoading, isLoggingOut } = useAuth();
   const location = useLocation();
 
-  console.log('RoleGuard: Checking access -', { 
+  logger.debug('RoleGuard: Checking access -', { 
     isLoading, 
     isAuthenticated, 
     userRole: user?.role, 
@@ -51,20 +52,24 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
   // Not authenticated - redirect to appropriate login
   if (!isAuthenticated) {
     const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
-    console.log('RoleGuard: User not authenticated, redirecting to:', loginPath);
+    logger.debug('RoleGuard: User not authenticated, redirecting to:', loginPath);
     return <Navigate to={loginPath} replace />;
   }
 
   // No user data - redirect to appropriate login
   if (!user) {
     const loginPath = allowedRole === 'client' ? '/client/login' : '/provider/login';
-    console.log('RoleGuard: No user data, redirecting to:', loginPath);
+    logger.debug('RoleGuard: No user data, redirecting to:', loginPath);
     return <Navigate to={loginPath} replace />;
   }
 
   // Wrong role - redirect to their correct home or specified redirect
   if (user && user.role !== allowedRole) {
-    console.log('RoleGuard: Wrong role access attempt -', user.role, 'tried to access', allowedRole, 'area');
+    logger.debug('RoleGuard: Wrong role access attempt', { 
+      userRole: user.role, 
+      allowedRole, 
+      attempted: 'access'
+    });
     
     if (redirectTo) {
       return <Navigate to={redirectTo} replace />;
@@ -72,11 +77,11 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
     
     // Default redirects based on user's actual role
     const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
-    console.log('RoleGuard: Redirecting to user home:', userHomePath);
+    logger.debug('RoleGuard: Redirecting to user home:', userHomePath);
     return <Navigate to={userHomePath} replace />;
   }
 
-  console.log('RoleGuard: Access granted for role:', allowedRole);
+  logger.debug('RoleGuard: Access granted for role:', allowedRole);
   return <>{children}</>;
 };
 

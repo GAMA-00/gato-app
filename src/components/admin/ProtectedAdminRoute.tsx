@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface ProtectedAdminRouteProps {
   children: React.ReactNode;
@@ -17,7 +18,7 @@ export const ProtectedAdminRoute = ({ children }: ProtectedAdminRouteProps) => {
   useEffect(() => {
     // Solo redirigir si ya no está cargando y el rol definitivo no es admin
     if (!isLoading && effectiveRole && effectiveRole !== 'admin') {
-      console.log('ProtectedAdminRoute: Non-admin user, redirecting to login');
+      logger.debug('ProtectedAdminRoute: Non-admin user, redirecting to login');
       navigate('/login', { replace: true });
     }
   }, [effectiveRole, isLoading, navigate]);

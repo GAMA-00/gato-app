@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { usePendingRequests } from '@/hooks/usePendingRequests';
+import { logger } from '@/utils/logger';
 
 const PendingRequestsCard: React.FC = () => {
   const { data: pendingRequests = [], isLoading, isError, error } = usePendingRequests();
@@ -21,13 +22,13 @@ const PendingRequestsCard: React.FC = () => {
   // Only show component for providers
   if (user?.role !== 'provider') return null;
   
-  console.log("PendingRequestsCard - Pending requests:", pendingRequests);
-  console.log("PendingRequestsCard - Loading:", isLoading);
-  console.log("PendingRequestsCard - Error:", error);
+  logger.debug("PendingRequestsCard - Pending requests:", pendingRequests);
+  logger.debug("PendingRequestsCard - Loading:", isLoading);
+  logger.debug("PendingRequestsCard - Error:", error);
   
   const handleAccept = async (request: any) => {
     try {
-      console.log("Accepting request:", request.id);
+      logger.info("Accepting request:", request.id);
       
       const { error } = await supabase
         .from('appointments')
@@ -47,14 +48,14 @@ const PendingRequestsCard: React.FC = () => {
       ]);
       
     } catch (error: any) {
-      console.error("Error accepting request:", error);
+      logger.error("Error accepting request:", error);
       toast.error(`Error: ${error.message}`);
     }
   };
   
   const handleDecline = async (requestId: string) => {
     try {
-      console.log("Declining request:", requestId);
+      logger.info("Declining request:", requestId);
       
       const { error } = await supabase
         .from('appointments')
@@ -74,7 +75,7 @@ const PendingRequestsCard: React.FC = () => {
       ]);
       
     } catch (error: any) {
-      console.error("Error declining request:", error);
+      logger.error("Error declining request:", error);
       toast.error(`Error: ${error.message}`);
     }
   };
@@ -92,7 +93,7 @@ const PendingRequestsCard: React.FC = () => {
   };
 
   // Debug render
-  console.log("PendingRequestsCard rendering with:", {
+  logger.debug("PendingRequestsCard rendering with:", {
     isLoading,
     isError,
     requestsCount: pendingRequests.length,
@@ -139,7 +140,7 @@ const PendingRequestsCard: React.FC = () => {
             {pendingRequests.map((request: any) => {
               const isExternal = request.is_external || request.external_booking;
               
-              console.log(`Rendering request ${request.id}:`, {
+              logger.debug(`Rendering request ${request.id}:`, {
                 clientName: request.client_name,
                 isExternal,
                 location: request.client_location,

@@ -1,5 +1,6 @@
 
 import React, { Component, ReactNode } from 'react';
+import { logger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -18,18 +19,18 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    console.error('ErrorBoundary - Error caught:', error);
+    logger.error('ErrorBoundary - Error caught:', error);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary - Full error details:', error, errorInfo);
+    logger.error('ErrorBoundary - Full error details:', { error, errorInfo });
     this.setState({ errorInfo });
   }
 
   render() {
     if (this.state.hasError) {
-      console.log('ErrorBoundary - Rendering error UI');
+      logger.info('ErrorBoundary - Rendering error UI');
       return (
         <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
           <div className="text-center space-y-4 max-w-2xl">

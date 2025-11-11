@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 
 interface AuthRouteProps {
   children: React.ReactNode;
@@ -10,7 +11,7 @@ interface AuthRouteProps {
 const AuthRoute = ({ children }: AuthRouteProps) => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
-  console.log('AuthRoute: State check -', { isLoading, isAuthenticated, userRole: user?.role });
+  logger.debug('AuthRoute: State check -', { isLoading, isAuthenticated, userRole: user?.role });
 
   // Mostrar loading durante la verificación inicial
   if (isLoading) {
@@ -27,11 +28,11 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
   // Si está autenticado, redirigir según el rol
   if (isAuthenticated && user) {
     const redirectTo = user.role === 'provider' ? '/dashboard' : '/client/categories';
-    console.log('AuthRoute: User authenticated, redirecting to:', redirectTo);
+    logger.debug('AuthRoute: User authenticated, redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  console.log('AuthRoute: Showing auth content');
+  logger.debug('AuthRoute: Showing auth content');
   return <>{children}</>;
 };
 

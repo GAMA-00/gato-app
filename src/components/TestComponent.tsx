@@ -1,8 +1,9 @@
 
 import React from 'react';
+import { logger } from '@/utils/logger';
 
 const TestComponent: React.FC = () => {
-  console.log("TestComponent - Rendering");
+  logger.debug("TestComponent - Rendering");
   
   return (
     <div className="p-4 bg-green-100 border border-green-300 rounded">

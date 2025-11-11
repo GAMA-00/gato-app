@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface RequestActionsProps {
   request: any;
@@ -14,14 +15,14 @@ const RequestActions: React.FC<RequestActionsProps> = ({ request, onAccept, onDe
   const isGroup = request.appointment_count > 1;
 
   const handleAcceptClick = () => {
-    console.log("🟢 BUTTON: Accept button clicked for request:", request.id);
-    console.log("🟢 BUTTON: Request details:", request);
+    logger.debug("Accept button clicked for request:", request.id);
+    logger.debug("Request details:", request);
     onAccept(request);
   };
 
   const handleDeclineClick = () => {
-    console.log("🔴 BUTTON: Decline button clicked for request:", request.id);
-    console.log("🔴 BUTTON: Request details:", request);
+    logger.debug("Decline button clicked for request:", request.id);
+    logger.debug("Request details:", request);
     onDecline(request);
   };
 

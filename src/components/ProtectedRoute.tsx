@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,7 +12,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
-  console.log('ProtectedRoute: State check -', { 
+  logger.debug('ProtectedRoute: State check -', { 
     isLoading, 
     isAuthenticated, 
     userRole: user?.role, 
@@ -33,28 +34,28 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   // Si no está autenticado, redirigir al login
   if (!isAuthenticated) {
-    console.log('ProtectedRoute: User not authenticated, redirecting to login');
+    logger.debug('ProtectedRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   // Si no tiene usuario (caso edge), redirigir al login
   if (!user) {
-    console.log('ProtectedRoute: No user data, redirecting to login');
+    logger.debug('ProtectedRoute: No user data, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   // Verificar si el rol del usuario está permitido
   if (!allowedRoles.includes(user.role)) {
-    console.log('ProtectedRoute: User role not allowed, user role:', user.role, 'allowed:', allowedRoles);
+    logger.debug('ProtectedRoute: User role not allowed', { userRole: user.role, allowedRoles });
     
     // Redirigir según el rol del usuario
     const redirectTo = user.role === 'client' ? '/client/categories' : '/dashboard';
     
-    console.log('ProtectedRoute: Redirecting to:', redirectTo);
+    logger.debug('ProtectedRoute: Redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  console.log('ProtectedRoute: Access granted, showing content');
+  logger.debug('ProtectedRoute: Access granted, showing content');
   return <>{children}</>;
 };
 

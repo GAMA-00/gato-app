@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Appointment } from '@/lib/types';
+import { logger } from '@/utils/logger';
 
 interface SetFinalPriceModalProps {
   isOpen: boolean;
@@ -74,7 +75,7 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
       if (isRecurringBase) {
         // For recurring base appointments: only update price, keep status as 'confirmed'
         // This allows the system to continue generating future virtual instances
-        console.log(`⚠️ Completing recurring base appointment ${appointment.id} - keeping status as 'confirmed'`);
+        logger.warn(`Completing recurring base appointment ${appointment.id} - keeping status as 'confirmed'`);
         const { error: appointmentError } = await supabase
           .from('appointments')
           .update({ 
@@ -87,7 +88,7 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
         if (appointmentError) throw appointmentError;
       } else {
         // For regular appointments: mark as completed
-        console.log(`✅ Completing regular appointment ${appointment.id}`);
+        logger.info(`Completing regular appointment ${appointment.id}`);
         const { error: appointmentError } = await supabase
           .from('appointments')
           .update({ 
@@ -123,7 +124,7 @@ const SetFinalPriceModal: React.FC<SetFinalPriceModalProps> = ({
       onClose();
     },
     onError: (error) => {
-      console.error('Error al guardar precio final:', error);
+      logger.error('Error al guardar precio final:', error);
       toast.error('Error al guardar el precio final');
     }
   });

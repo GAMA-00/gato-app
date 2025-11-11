@@ -17,6 +17,7 @@ import ClientResidenceField from './ClientResidenceField';
 import ProviderResidencesField from './ProviderResidencesField';
 import { unifiedAvatarUpload } from '@/utils/unifiedAvatarUpload';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 // Esquema simplificado sin confirmación de contraseña
 export const registerSchema = z.object({
@@ -110,7 +111,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   const onSubmit = async (values: RegisterFormValues) => {
     if (isSubmitting) {
-      console.log('Ya hay un envío en curso, ignorando');
+      logger.debug('Ya hay un envío en curso, ignorando');
       return;
     }
     
@@ -121,7 +122,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       // Store profile image for later upload after user creation
       let profileImageToUpload = null;
       if (userRole === 'provider' && values.profileImage) {
-        console.log('Storing profile image for post-registration upload...');
+        logger.debug('Storing profile image for post-registration upload...');
         profileImageToUpload = values.profileImage;
       }
       
@@ -145,7 +146,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         return;
       }
 
-      console.log('Datos de registro:', values);
+      logger.info('Datos de registro:', values);
       
       const userData = {
         name: values.name,
@@ -161,7 +162,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const result = await signUp(values.email, values.password, userData);
       
       if (result.error) {
-        console.error('Error durante el registro:', result.error);
+        logger.error('Error durante el registro:', result.error);
         
         if (result.error.message.includes('teléfono ya está en uso')) {
           setRegistrationError('Este número de teléfono ya está registrado. Por favor, utilice otro número.');
@@ -174,17 +175,17 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           setRegistrationError(result.error.message || "Error desconocido");
         }
       } else if (result.data?.user) {
-        console.log('RegisterForm: Registro exitoso! User ID:', result.data.user.id);
-        console.log('RegisterForm: User metadata sent:', userData);
+        logger.info('RegisterForm: Registro exitoso! User ID:', result.data.user.id);
+        logger.info('RegisterForm: User metadata sent:', userData);
         
         // Upload avatar after user creation if provided - FIX usando unified system
         if (profileImageToUpload && result.data.user.id) {
-          console.log('🔵 RegisterForm: Uploading avatar with unified system...');
+          logger.info('🔵 RegisterForm: Uploading avatar with unified system...');
           try {
             const avatarUrl = await unifiedAvatarUpload(profileImageToUpload, result.data.user.id);
-            console.log('✅ RegisterForm: Avatar uploaded successfully:', avatarUrl);
+            logger.info('✅ RegisterForm: Avatar uploaded successfully:', avatarUrl);
           } catch (avatarError) {
-            console.warn('⚠️ RegisterForm: Avatar upload failed:', avatarError);
+            logger.warn('⚠️ RegisterForm: Avatar upload failed:', avatarError);
             // No bloqueamos el registro si falla el avatar
           }
         }
@@ -196,7 +197,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         }
       }
     } catch (error: any) {
-      console.error('Error capturado en onSubmit:', error);
+      logger.error('Error capturado en onSubmit:', error);
       setRegistrationError(error.message || "Error desconocido durante el registro");
     } finally {
       setIsSubmitting(false);

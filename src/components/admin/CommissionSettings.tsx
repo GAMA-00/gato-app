@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Percent } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 interface CommissionSettingsProps {
   currentRate: number;
@@ -43,7 +44,7 @@ const CommissionSettings: React.FC<CommissionSettingsProps> = ({
       await onUpdate(rate);
       toast.success('Tasa de comisión actualizada exitosamente');
     } catch (error) {
-      console.error('Error updating commission rate:', error);
+      logger.error('Error updating commission rate:', error);
       toast.error('Error al actualizar la tasa de comisión');
     } finally {
       setIsUpdating(false);

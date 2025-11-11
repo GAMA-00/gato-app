@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Search, Activity, AlertTriangle, CheckCircle, RefreshCw, Clock, XCircle } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface HealthCheckResult {
   status: string;
@@ -101,7 +102,7 @@ export const OnvoPayDebugPanel = () => {
         description: `Status: ${data.status}`,
       });
     } catch (error: any) {
-      console.error('Health check failed:', error);
+      logger.error('Health check failed:', error);
       toast({
         variant: "destructive",
         title: "Health Check Failed",
@@ -134,7 +135,7 @@ export const OnvoPayDebugPanel = () => {
         description: `Found: ${data.onvoPayment ? 'Yes' : 'No'}`,
       });
     } catch (error: any) {
-      console.error('Transaction lookup failed:', error);
+      logger.error('Transaction lookup failed:', error);
       toast({
         variant: "destructive",
         title: "Lookup Failed",
@@ -158,7 +159,7 @@ export const OnvoPayDebugPanel = () => {
         description: `Checked ${data.summary.totalChecked} transactions`,
       });
     } catch (error: any) {
-      console.error('Reconciliation failed:', error);
+      logger.error('Reconciliation failed:', error);
       toast({
         variant: "destructive",
         title: "Reconciliation Failed",
@@ -183,7 +184,7 @@ export const OnvoPayDebugPanel = () => {
       // Refresh recurring payments list
       refetchRecurring();
     } catch (error: any) {
-      console.error('Sweep failed:', error);
+      logger.error('Sweep failed:', error);
       toast({
         variant: "destructive",
         title: "Barrido Fallido",

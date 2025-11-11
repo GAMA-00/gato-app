@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { logger } from '@/utils/logger';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { AvailabilityProvider } from './contexts/AvailabilityContext';
@@ -19,7 +20,7 @@ const queryClient = new QueryClient();
 // Debug component to log route changes
 const RouteDebugger = () => {
   const location = useLocation();
-  console.log('App - Current route:', location.pathname);
+  logger.debug('App - Current route:', location.pathname);
   return null;
 };
 
@@ -30,7 +31,7 @@ const GlobalSyncProvider = () => {
 };
 
 function App() {
-  console.log('App - Component render');
+  logger.debug('App - Component render');
   
   return (
     <Router>
