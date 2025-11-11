@@ -115,6 +115,7 @@ export const apiLogger = new Logger({ prefix: 'API' });
 export const calendarLogger = new Logger({ prefix: 'CALENDAR' });
 export const recurringLogger = new Logger({ prefix: 'RECURRING' });
 export const locationLogger = new Logger({ prefix: 'LOCATION' });
+export const authLogger = new Logger({ prefix: 'AUTH' });
 
 // For backwards compatibility, maintain console.log behavior in development
 export const devLog = (message: string, data?: any) => {

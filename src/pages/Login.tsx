@@ -12,6 +12,7 @@ import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { authLogger } from '@/utils/logger';
 
 const loginSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -42,7 +43,7 @@ const Login = () => {
     if (isAuthenticated && !isLoading) {
       const role = profile?.role || user?.role;
       if (role) {
-        console.log('Login: User authenticated, redirecting to role:', role);
+        authLogger.info('User authenticated, redirecting to role', { role });
         if (role === 'admin') {
           navigate('/admin/dashboard', { replace: true });
         } else if (role === 'provider') {
@@ -61,20 +62,20 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      console.log('Login: Starting login process for:', values.email);
+      authLogger.info('Starting login process', { email: values.email });
       const result = await login(values.email, values.password);
       
       if (result.success) {
-        console.log('Login: Login successful');
+        authLogger.info('Login successful');
         toast.success('¡Inicio de sesión exitoso!');
         // No need to redirect here, useEffect will handle it
       } else {
-        console.log('Login: Login failed -', result.error);
+        authLogger.warn('Login failed', { error: result.error });
         setLoginError(result.error || 'Error al iniciar sesión');
         toast.error(result.error || 'Error al iniciar sesión');
       }
     } catch (error) {
-      console.error('Login: Submission error:', error);
+      authLogger.error('Submission error', error);
       const errorMessage = 'Error inesperado al iniciar sesión';
       setLoginError(errorMessage);
       toast.error(errorMessage);

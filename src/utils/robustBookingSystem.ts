@@ -1,3 +1,10 @@
+/**
+ * ⚠️ DO_NOT_CHANGE_BEHAVIOR ⚠️
+ * Este archivo maneja lógica crítica de reintentos y estados de booking.
+ * Solo se permiten refactors no funcionales previamente aprobados.
+ * Cualquier cambio en flujo debe tener aprobación explícita + tests en staging.
+ */
+
 import { toast } from 'sonner';
 
 export interface BookingResult {

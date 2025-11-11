@@ -1,4 +1,11 @@
 
+/**
+ * ⚠️ DO_NOT_CHANGE_BEHAVIOR ⚠️
+ * Este archivo maneja autenticación, sesiones y roles de usuario.
+ * Solo se permiten refactors no funcionales previamente aprobados.
+ * Cualquier cambio en flujo debe tener aprobación explícita + tests en staging.
+ */
+
 import React, { createContext, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType } from './auth/types';

@@ -8,6 +8,7 @@ import { useServiceMutations } from '@/hooks/useServiceMutations';
 import { Service } from '@/lib/types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 const ServiceEdit = () => {
   const navigate = useNavigate();
@@ -151,16 +152,10 @@ const ServiceEdit = () => {
             : (providerData?.certification_files ? [providerData.certification_files] : []),
         };
 
-        console.log('=== SERVICEEDIT DEBUG (FIXED) ===');
-        console.log('Raw data from DB:', {
-          availability: listingData.availability,
-          standard_duration: listingData.standard_duration,
-          duration: listingData.duration,
-          service_variants: listingData.service_variants,
-          residenciaIds: residenciaIds
+        logger.debug('Service data loaded', { 
+          rawData: { availability: listingData.availability, standard_duration: listingData.standard_duration },
+          processedData: transformedData 
         });
-        console.log('Processed service data:', transformedData);
-        console.log('=== END SERVICEEDIT DEBUG ===');
 
         setServiceData(transformedData);
       } catch (error) {
@@ -176,8 +171,7 @@ const ServiceEdit = () => {
   }, [id, navigate]);
 
   const handleSubmit = (updatedServiceData: Partial<Service>) => {
-    console.log('=== SERVICEEDIT: Updating service ===');
-    console.log('Updated service data:', updatedServiceData);
+    logger.info('Updating service', { serviceId: id, updatedServiceData });
     
     setIsSubmitting(true);
     
@@ -186,8 +180,7 @@ const ServiceEdit = () => {
       ...updatedServiceData 
     }, {
       onSuccess: (data) => {
-        console.log('=== SERVICEEDIT: Mutation successful ===');
-        console.log('Updated service data:', data);
+        logger.info('Service update successful', { data });
         setIsSubmitting(false);
         setIsFormOpen(false);
         toast.success('Anuncio actualizado exitosamente');

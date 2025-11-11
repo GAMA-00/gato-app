@@ -1,4 +1,11 @@
 
+/**
+ * ⚠️ DO_NOT_CHANGE_BEHAVIOR ⚠️
+ * Este archivo maneja filtros y auto-updates críticos del dashboard.
+ * Solo se permiten refactors no funcionales previamente aprobados.
+ * Cualquier cambio en flujo debe tener aprobación explícita + tests en staging.
+ */
+
 import { useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';

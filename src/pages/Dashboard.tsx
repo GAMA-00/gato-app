@@ -6,6 +6,7 @@ import DashboardErrorState from '@/components/dashboard/DashboardErrorState';
 import DashboardContent from '@/components/dashboard/DashboardContent';
 import PostPaymentGate from '@/components/dashboard/PostPaymentGate';
 import ClientPostPaymentGate from '@/components/client/PostPaymentGate';
+import { logger } from '@/utils/logger';
 
 const Dashboard = () => {
   const {
@@ -19,10 +20,12 @@ const Dashboard = () => {
     tomorrowsAppointments
   } = useDashboardAppointments();
 
-  console.log("=== DASHBOARD RENDER ===");
-  console.log("Dashboard - User:", user?.id, user?.role);
-  console.log("Dashboard - Appointments loading:", isLoadingAppointments);
-  console.log("Dashboard - Stats loading:", isLoadingStats);
+  logger.debug('Dashboard render', { 
+    userId: user?.id, 
+    role: user?.role,
+    appointmentsLoading: isLoadingAppointments,
+    statsLoading: isLoadingStats
+  });
 
   // Enhanced loading state with timeout protection
   if (isLoadingAppointments) {

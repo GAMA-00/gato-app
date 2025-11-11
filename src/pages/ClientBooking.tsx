@@ -12,6 +12,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import { toast } from 'sonner';
 import NewBookingForm from '@/components/client/booking/NewBookingForm';
 import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
+import { bookingLogger, locationLogger } from '@/utils/logger';
 
 const ClientBooking = () => {
   const { serviceId } = useParams();
@@ -113,7 +114,7 @@ const ClientBooking = () => {
   }
 
   const handleBooking = async () => {
-    console.log('=== INICIANDO PROCESO DE CHECKOUT ===');
+    bookingLogger.info('Iniciando proceso de checkout');
     
     // VALIDATION
     if (!user) {
@@ -229,13 +230,13 @@ const ClientBooking = () => {
     isExternal: false
   });
 
-  console.log('Complete user data for location:', {
+  locationLogger.debug('Complete user data for location', {
     residenciaName: completeUserData?.residencias?.name,
     condominiumName: completeUserData?.condominium_text,
     houseNumber: completeUserData?.house_number
   });
 
-  console.log('Final client location:', clientLocation);
+  locationLogger.debug('Final client location', clientLocation);
 
   return (
     <PageLayout>

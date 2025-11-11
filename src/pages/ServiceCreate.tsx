@@ -7,6 +7,7 @@ import ServiceForm from '@/components/services/ServiceForm';
 import { useServiceMutations } from '@/hooks/useServiceMutations';
 import { Service } from '@/lib/types';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 const ServiceCreate = () => {
   const navigate = useNavigate();
@@ -15,15 +16,13 @@ const ServiceCreate = () => {
   const { createListingMutation } = useServiceMutations();
 
   const handleSubmit = (serviceData: Partial<Service>) => {
-    console.log('=== SERVICECREATE: Creating new service ===');
-    console.log('Service data received:', serviceData);
+    logger.info('Creating new service', { serviceData });
     
     setIsSubmitting(true);
     
     createListingMutation.mutate(serviceData, {
       onSuccess: (data) => {
-        console.log('=== SERVICECREATE: Mutation successful ===');
-        console.log('Created service data:', data);
+        logger.info('Service creation successful', { data });
         setIsFormOpen(false);
         navigate('/services');
       },

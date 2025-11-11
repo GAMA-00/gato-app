@@ -5,7 +5,7 @@ import CalendarView from '@/components/calendar/CalendarView';
 import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
 import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
-
+import { calendarLogger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnifiedRecurringAppointments } from '@/hooks/useUnifiedRecurringAppointments';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,7 +47,11 @@ const Calendar = () => {
   const finalAppointments = visibleAppointments.length > 0 ? visibleAppointments : fallbackVisible;
 
   React.useEffect(() => {
-    console.log('Calendar unified count:', visibleAppointments.length, 'fallback count:', fallbackVisible.length, 'final:', finalAppointments.length);
+    calendarLogger.debug('Appointments count', { 
+      unified: visibleAppointments.length, 
+      fallback: fallbackVisible.length, 
+      final: finalAppointments.length 
+    });
   }, [visibleAppointments.length, fallbackVisible.length, finalAppointments.length]);
 
   if (isLoading) {

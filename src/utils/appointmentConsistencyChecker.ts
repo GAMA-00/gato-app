@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export interface ConsistencyIssue {
   issue_type: string;
@@ -30,7 +31,7 @@ export interface ConsistencyCheckResult {
  * Performs comprehensive consistency check on appointment data
  */
 export async function checkAppointmentConsistency(): Promise<ConsistencyCheckResult> {
-  console.log('🔍 Running appointment consistency check...');
+  logger.info('Running appointment consistency check');
   
   try {
     // 1. Call DB function to check for common issues
@@ -38,15 +39,17 @@ export async function checkAppointmentConsistency(): Promise<ConsistencyCheckRes
       .rpc('check_appointment_consistency');
     
     if (dbError) {
-      console.error('Error checking consistency:', dbError);
+      logger.error('Error checking consistency', dbError);
       throw dbError;
     }
     
-    const issues: ConsistencyIssue[] = (dbIssues || []).map((issue: any) => ({
-      issue_type: issue.issue_type,
-      issue_count: Number(issue.issue_count),
-      details: issue.details
-    }));
+    const issues: ConsistencyIssue[] = Array.isArray(dbIssues) 
+      ? dbIssues.map((issue: any) => ({
+          issue_type: issue.issue_type,
+          issue_count: Number(issue.issue_count),
+          details: issue.details
+        }))
+      : [];
     
     // 2. Count total appointments
     const { count: totalCount, error: countError } = await supabase
@@ -79,23 +82,25 @@ export async function checkAppointmentConsistency(): Promise<ConsistencyCheckRes
     };
     
     if (result.isConsistent) {
-      console.log('✅ Appointment data is CONSISTENT');
+      logger.info('Appointment data is CONSISTENT');
     } else {
-      console.warn('⚠️ Appointment data has INCONSISTENCIES:');
+      logger.warn('Appointment data has INCONSISTENCIES');
       issues.forEach(issue => {
         if (issue.issue_count > 0) {
-          console.warn(`  - ${issue.issue_type}: ${issue.issue_count} issues - ${issue.details}`);
+          logger.warn(`${issue.issue_type}: ${issue.issue_count} issues - ${issue.details}`);
         }
       });
     }
     
-    console.log(`📊 Total appointments: ${result.totalAppointments}`);
-    console.log(`📊 Unified view count: ${result.unifiedAppointments}`);
+    logger.debug('Appointment stats', { 
+      totalAppointments: result.totalAppointments,
+      unifiedViewCount: result.unifiedAppointments
+    });
     
     return result;
     
   } catch (error) {
-    console.error('❌ Error running consistency check:', error);
+    logger.error('Error running consistency check', error);
     throw error;
   }
 }
@@ -104,27 +109,27 @@ export async function checkAppointmentConsistency(): Promise<ConsistencyCheckRes
  * Logs inconsistencies to console with detailed formatting
  */
 export function logConsistencyReport(result: ConsistencyCheckResult) {
-  console.log('\n' + '='.repeat(60));
-  console.log('📋 APPOINTMENT CONSISTENCY REPORT');
-  console.log('='.repeat(60));
-  console.log(`Timestamp: ${new Date(result.timestamp).toLocaleString()}`);
-  console.log(`Status: ${result.isConsistent ? '✅ CONSISTENT' : '⚠️ INCONSISTENT'}`);
-  console.log(`Total Appointments: ${result.totalAppointments}`);
-  console.log(`Unified View Count: ${result.unifiedAppointments}`);
-  console.log('-'.repeat(60));
+  logger.info('\n' + '='.repeat(60));
+  logger.info('📋 APPOINTMENT CONSISTENCY REPORT');
+  logger.info('='.repeat(60));
+  logger.info(`Timestamp: ${new Date(result.timestamp).toLocaleString()}`);
+  logger.info(`Status: ${result.isConsistent ? '✅ CONSISTENT' : '⚠️ INCONSISTENT'}`);
+  logger.info(`Total Appointments: ${result.totalAppointments}`);
+  logger.info(`Unified View Count: ${result.unifiedAppointments}`);
+  logger.info('-'.repeat(60));
   
   if (result.issues.length === 0) {
-    console.log('No issues found.');
+    logger.info('No issues found.');
   } else {
-    console.log('Issues Found:');
+    logger.info('Issues Found:');
     result.issues.forEach((issue, index) => {
-      console.log(`\n${index + 1}. ${issue.issue_type.toUpperCase()}`);
-      console.log(`   Count: ${issue.issue_count}`);
-      console.log(`   Details: ${issue.details}`);
+      logger.info(`\n${index + 1}. ${issue.issue_type.toUpperCase()}`);
+      logger.info(`   Count: ${issue.issue_count}`);
+      logger.info(`   Details: ${issue.details}`);
     });
   }
   
-  console.log('='.repeat(60) + '\n');
+  logger.info('='.repeat(60) + '\n');
 }
 
 /**

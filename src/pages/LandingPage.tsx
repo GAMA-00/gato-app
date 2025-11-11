@@ -3,11 +3,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { User, Briefcase } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 const LandingPage = () => {
   const navigate = useNavigate();
 
-  console.log('LandingPage: Rendering landing page');
+  logger.debug('Rendering landing page');
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -36,7 +37,7 @@ const LandingPage = () => {
           {/* Client Button - Black */}
           <Button 
             onClick={() => {
-              console.log('LandingPage: Navigating to client login');
+              logger.debug('Navigating to client login');
               navigate('/client/login');
             }}
             className="w-full h-14 bg-black text-white hover:bg-gray-800 rounded-xl text-base font-medium"
@@ -49,7 +50,7 @@ const LandingPage = () => {
           {/* Provider Button - White with border */}
           <Button 
             onClick={() => {
-              console.log('LandingPage: Navigating to provider login');
+              logger.debug('Navigating to provider login');
               navigate('/provider/login');
             }}
             variant="outline"

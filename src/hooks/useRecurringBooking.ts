@@ -1,4 +1,11 @@
 
+/**
+ * ⚠️ DO_NOT_CHANGE_BEHAVIOR ⚠️
+ * Este archivo maneja lógica crítica de pagos/billing OnvoPay recurrentes.
+ * Solo se permiten refactors no funcionales previamente aprobados.
+ * Cualquier cambio en flujo debe tener aprobación explícita + tests en staging.
+ */
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

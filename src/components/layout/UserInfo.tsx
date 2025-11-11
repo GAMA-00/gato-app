@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, UserCircle } from 'lucide-react';
+import { authLogger } from '@/utils/logger';
 
 interface UserInfoProps {
   isClientSection: boolean;
@@ -24,26 +25,25 @@ const UserInfo = ({ isClientSection }: UserInfoProps) => {
       return; // Prevent multiple logout attempts
     }
     
-    console.log('UserInfo: Logout button clicked');
+    authLogger.debug('Logout button clicked');
     
     try {
       setIsLoggingOutLocal(true);
-      console.log('UserInfo: Calling logout function');
+      authLogger.debug('Calling logout function');
       await logout();
     } catch (error) {
-      console.error('UserInfo: Error during logout:', error);
+      authLogger.error('Error during logout', error);
       setIsLoggingOutLocal(false);
     }
   };
   
   const handleProfileNavigation = () => {
-    console.log('UserInfo: Navigating to profile page');
-    console.log('UserInfo: Current user role:', user?.role);
+    authLogger.debug('Navigating to profile page', { role: user?.role });
     try {
       navigate('/profile');
-      console.log('UserInfo: Navigation to /profile successful');
+      authLogger.debug('Navigation to /profile successful');
     } catch (error) {
-      console.error('UserInfo: Navigation error:', error);
+      authLogger.error('Navigation error', error);
     }
   };
 
