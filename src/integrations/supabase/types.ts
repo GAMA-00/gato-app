@@ -2118,7 +2118,7 @@ export type Database = {
             Returns: number
           }
         | {
-            Args: { p_months_ahead?: number; p_recurring_rule_id: string }
+            Args: { p_months_ahead: number; p_recurring_rule_id: string }
             Returns: number
           }
       block_recurring_slots_for_appointment: {
@@ -2130,7 +2130,7 @@ export type Database = {
             Args: {
               original_date: string
               recurrence_type: string
-              reference_date?: string
+              reference_date: string
             }
             Returns: string
           }
