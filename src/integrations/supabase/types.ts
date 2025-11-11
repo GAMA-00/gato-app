@@ -2393,7 +2393,6 @@ export type Database = {
             Args: {
               p_appointment_id: string
               p_client_id: string
-              p_comment?: string
               p_provider_id: string
               p_rating: number
             }
@@ -2403,6 +2402,7 @@ export type Database = {
             Args: {
               p_appointment_id: string
               p_client_id: string
+              p_comment?: string
               p_provider_id: string
               p_rating: number
             }
