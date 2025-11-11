@@ -19,6 +19,7 @@ import { es } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRescheduleRecurringInstance } from '@/hooks/useRecurringExceptions';
 import { validateBookingSlot } from '@/utils/bookingValidation';
+import { logger } from '@/utils/logger';
 
 interface RescheduleAppointmentModalProps {
   isOpen: boolean;
@@ -66,17 +67,17 @@ export const RescheduleAppointmentModal = ({
           .single();
 
         if (error) {
-          console.error('Error fetching service duration:', error);
+          logger.error('Error fetching service duration', { error, listingId });
           return;
         }
 
         if (listing) {
           const duration = listing.standard_duration || listing.duration || initialDuration;
           setActualServiceDuration(duration);
-          console.log('Service duration loaded:', duration, 'minutes');
+          logger.debug('Service duration loaded', { duration, listingId });
         }
       } catch (error) {
-        console.error('Error loading service duration:', error);
+        logger.error('Error loading service duration', { error, listingId });
       }
     };
 
@@ -145,7 +146,7 @@ export const RescheduleAppointmentModal = ({
           onClose();
         },
         onError: (error) => {
-          console.error('Error rescheduling single appointment:', error);
+          logger.error('Error rescheduling single appointment', { error, appointmentId });
           toast.error('Error al reagendar la cita');
         },
         onSettled: () => {
@@ -153,7 +154,7 @@ export const RescheduleAppointmentModal = ({
         }
       });
     } catch (error: any) {
-      console.error('Error rescheduling single appointment:', error);
+      logger.error('Error rescheduling single appointment', { error, appointmentId });
       toast.error(`Error al reagendar: ${error.message}`);
       setIsLoading(false);
     }
@@ -202,7 +203,7 @@ export const RescheduleAppointmentModal = ({
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       onClose();
     } catch (error: any) {
-      console.error('Error rescheduling recurring appointment:', error);
+      logger.error('Error rescheduling recurring appointment', { error, appointmentId });
       toast.error(`Error al reagendar serie: ${error.message}`);
     } finally {
       setIsLoading(false);

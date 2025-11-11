@@ -1,6 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/utils/logger';
 
 export function useCondominiums(residenciaId?: string) {
   return useQuery({
@@ -8,7 +9,7 @@ export function useCondominiums(residenciaId?: string) {
     queryFn: async () => {
       if (!residenciaId) return [];
       
-      console.log('Fetching condominiums for residencia:', residenciaId);
+      logger.debug('Fetching condominiums', { residenciaId });
       
       const { data: condominiums, error } = await supabase
         .from('condominiums')
@@ -17,11 +18,11 @@ export function useCondominiums(residenciaId?: string) {
         .order('name');
         
       if (error) {
-        console.error('Error fetching condominiums:', error);
+        logger.error('Error fetching condominiums', { error, residenciaId });
         throw error;
       }
       
-      console.log('Condominiums fetched:', condominiums);
+      logger.debug('Condominiums fetched', { count: condominiums?.length, residenciaId });
       return condominiums || [];
     },
     enabled: !!residenciaId,

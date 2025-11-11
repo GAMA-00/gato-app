@@ -8,6 +8,7 @@ import ProviderCard, { ProviderCardSkeleton } from './ProviderCard';
 import { useProvidersQuery } from './useProvidersQuery';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 interface ProvidersListProps {
   categoryName: string;
@@ -15,7 +16,7 @@ interface ProvidersListProps {
 }
 
 const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
-  console.log("ProvidersList rendered with:", { categoryName, serviceId });
+  logger.debug("ProvidersList rendered", { categoryName, serviceId });
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
@@ -34,7 +35,7 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
         .single();
         
       if (error) {
-        console.error("Error fetching service info:", error);
+        logger.error("Error fetching service info", { error, serviceId });
         return null;
       }
       
@@ -44,13 +45,13 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   });
   
   const handleProviderSelection = (selectedProvider: any) => {
-    console.log("Provider selected:", selectedProvider);
+    logger.debug("Provider selected", { provider: selectedProvider });
     
     // Navigate to the provider's service detail page for booking
     // Using the provider ID and their service ID
     const primaryService = selectedProvider.serviceId || selectedProvider.id;
     
-    console.log("Navigating to service detail:", {
+    logger.debug("Navigating to service detail", {
       providerId: selectedProvider.id,
       serviceId: primaryService
     });
@@ -76,7 +77,7 @@ const ProvidersList = ({ categoryName, serviceId }: ProvidersListProps) => {
   }
   
   if (error) {
-    console.error("Error in ProvidersList:", error);
+    logger.error("Error in ProvidersList", { error });
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />

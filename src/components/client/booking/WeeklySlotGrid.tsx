@@ -22,6 +22,7 @@ import {
   getWeekLabel
 } from '@/utils/temporalSlotFiltering';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { logger } from '@/utils/logger';
 
 interface WeeklySlotGridProps {
   providerId: string;
@@ -60,7 +61,7 @@ const WeeklySlotGrid = ({
   const calculatedRequiredSlots = Math.ceil(actualTotalDuration / slotSize);
   const slotsNeeded = Math.max(calculatedRequiredSlots, 1);
 
-  console.log('🎯 Slot calculation:', {
+  logger.debug('Slot calculation', {
     totalServiceDuration,
     serviceDuration,
     requiredSlots,
@@ -73,7 +74,7 @@ const WeeklySlotGrid = ({
   // Calculate correct week boundaries
   const { startDate: weekStartDate, endDate: weekEndDate } = calculateWeekDateRange(currentWeek);
   
-  console.log('🏠 Cliente Residencia ID:', profile?.residencia_id);
+  logger.debug('Cliente Residencia ID', { residenciaId: profile?.residencia_id });
 
   const {
     slotGroups,
@@ -131,7 +132,7 @@ const WeeklySlotGrid = ({
       
       if (!currentSlot || !currentSlot.isAvailable) {
         isContiguous = false;
-        console.log(`❌ Slot ${i} no disponible en posición ${startIndex + i}`);
+        logger.warn('Slot no disponible', { slotIndex: i, position: startIndex + i });
         break;
       }
       
@@ -144,7 +145,13 @@ const WeeklySlotGrid = ({
         
         if (currentTime !== expectedTime) {
           isContiguous = false;
-          console.log(`❌ Gap detectado entre ${prevSlot.time} y ${currentSlot.time} (esperado: ${Math.floor(expectedTime/60)}:${String(expectedTime%60).padStart(2,'0')})`);
+          const expectedHour = Math.floor(expectedTime/60);
+          const expectedMin = String(expectedTime%60).padStart(2,'0');
+          logger.warn('Gap detectado', { 
+            prevTime: prevSlot.time, 
+            currentTime: currentSlot.time, 
+            expected: `${expectedHour}:${expectedMin}` 
+          });
           toast.error(`Hay un hueco entre ${prevSlot.time} y ${currentSlot.time}. Selecciona un horario con ${slotsNeeded} slots consecutivos sin interrupciones.`);
           break;
         }
@@ -169,7 +176,12 @@ const WeeklySlotGrid = ({
     
     onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved);
     
-    console.log(`✅ Reservados ${consecutiveSlotIds.length} slots CONTIGUOS (${slot.time}-${endHour}:${String(endMin).padStart(2,'0')}) = ${totalDurationReserved} min`);
+    logger.info('Reservados slots contiguos', { 
+      count: consecutiveSlotIds.length,
+      startTime: slot.time,
+      endTime: `${endHour}:${String(endMin).padStart(2,'0')}`,
+      duration: totalDurationReserved
+    });
     toast.success(`Horario reservado: ${slot.time} - ${endHour}:${String(endMin).padStart(2,'0')} (${slotsNeeded} slots consecutivos)`);
   };
 

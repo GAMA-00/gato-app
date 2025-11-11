@@ -1,6 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/utils/logger';
 
 export function useCategories() {
   return useQuery({
@@ -14,7 +15,7 @@ export function useCategories() {
           .order('name');
         
         if (categoriesError) {
-          console.error('Error fetching categories:', categoriesError);
+          logger.error('Error fetching categories', { error: categoriesError });
           throw categoriesError;
         }
 
@@ -25,7 +26,7 @@ export function useCategories() {
           .order('name');
         
         if (serviceTypesError) {
-          console.error('Error fetching service types:', serviceTypesError);
+          logger.error('Error fetching service types', { error: serviceTypesError });
           throw serviceTypesError;
         }
 
@@ -43,7 +44,7 @@ export function useCategories() {
           serviceTypesByCategory
         };
       } catch (error) {
-        console.error('Error in useCategories hook:', error);
+        logger.error('Error in useCategories hook', { error });
         throw error;
       }
     }

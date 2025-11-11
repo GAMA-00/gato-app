@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export const useCommissionRate = () => {
   const { data: commissionRate = 20, isLoading } = useQuery({
@@ -14,13 +15,13 @@ export const useCommissionRate = () => {
           .maybeSingle();
         
         if (error) {
-          console.warn('Error fetching commission rate, using default:', error);
+          logger.warn('Error fetching commission rate, using default', { error });
           return 20; // Default fallback
         }
         
         return data?.commission_rate || 20;
       } catch (error) {
-        console.warn('Error in commission rate query, using default:', error);
+        logger.warn('Error in commission rate query, using default', { error });
         return 20; // Default fallback
       }
     },

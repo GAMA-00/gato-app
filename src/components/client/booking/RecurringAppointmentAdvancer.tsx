@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface RecurringAppointmentAdvancerProps {
   appointmentId: string;
@@ -25,7 +26,7 @@ export const RecurringAppointmentAdvancer = ({
     
     if (isCompleted && isValidRecurrence) {
       const advanceAppointment = async () => {
-        console.log('🔄 Auto-advancing recurring appointment:', appointmentId, 'recurrence:', recurrence);
+        logger.info('Auto-advancing recurring appointment', { appointmentId, recurrence });
         
         try {
           const { data: appointmentData } = await supabase
@@ -35,19 +36,19 @@ export const RecurringAppointmentAdvancer = ({
             .single();
             
           if (!appointmentData) {
-            console.log('❌ Appointment not found for advancing');
+            logger.warn('Appointment not found for advancing', { appointmentId });
             return;
           }
 
           // Don't advance if the series was canceled by the client
           if (appointmentData.status === 'cancelled') {
-            console.log('⏹️ Appointment was cancelled, skipping advancement');
+            logger.info('Appointment was cancelled, skipping advancement', { appointmentId });
             return;
           }
 
           // Don't advance if recurrence was removed (set to 'none')
           if (appointmentData.recurrence === 'none' || !appointmentData.recurrence) {
-            console.log('⏹️ Recurrence was removed, skipping advancement');
+            logger.info('Recurrence was removed, skipping advancement', { appointmentId });
             return;
           }
 
@@ -71,30 +72,32 @@ export const RecurringAppointmentAdvancer = ({
           }) || [];
 
           if (sameTimeSeriesAppointments.length > 0) {
-            console.log('⏭️ Future appointment already exists in this specific series, skipping advancement');
-            console.log('🕐 Current time pattern:', currentTimeOfDay);
-            console.log('📅 Existing future appointments:', sameTimeSeriesAppointments.map(apt => ({
-              id: apt.id,
-              time: new Date(apt.start_time).toTimeString().substr(0, 5),
-              date: new Date(apt.start_time).toDateString()
-            })));
+            logger.info('Future appointment already exists in series, skipping', {
+              appointmentId,
+              currentTimeOfDay,
+              futureAppointments: sameTimeSeriesAppointments.map(apt => ({
+                id: apt.id,
+                time: new Date(apt.start_time).toTimeString().substr(0, 5),
+                date: new Date(apt.start_time).toDateString()
+              }))
+            });
             return;
           }
           
-          console.log('📅 Appointment to advance:', appointmentData);
+          logger.debug('Appointment to advance', { appointmentData });
           
           const { data, error } = await supabase.rpc('advance_recurring_appointment', {
             p_appointment_id: appointmentId
           });
 
           if (error) {
-            console.error('❌ Error advancing recurring appointment:', error);
+            logger.error('Error advancing recurring appointment', { error, appointmentId });
             // Still refresh UI in case of partial success
             queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
             return;
           }
 
-          console.log('✅ Recurring appointment advanced successfully, result:', data);
+          logger.info('Recurring appointment advanced successfully', { data, appointmentId });
           
           // Invalidate all relevant queries to refresh UI
           queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
@@ -105,7 +108,7 @@ export const RecurringAppointmentAdvancer = ({
           
           toast.success('Tu próxima cita recurrente ha sido programada automáticamente');
         } catch (error) {
-          console.error('❌ Error in auto-advance:', error);
+          logger.error('Error in auto-advance', { error, appointmentId });
           // Still refresh UI to show current state
           queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
         }

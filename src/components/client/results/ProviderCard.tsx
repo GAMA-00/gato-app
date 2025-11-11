@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useProviderServiceMerits } from '@/hooks/useProviderServiceMerits';
 import ProviderAvatar from '@/components/ui/provider-avatar';
+import { logger } from '@/utils/logger';
 
 // Skeleton loader component
 export const ProviderCardSkeleton = () => {
@@ -57,7 +58,7 @@ interface ProviderCardProps {
 }
 
 const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
-  console.log('ProviderCard - Provider data:', {
+  logger.debug('ProviderCard data', {
     name: provider.name,
     avatar: provider.avatar,
     id: provider.id,

@@ -4,6 +4,7 @@ import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { RobustBookingSystem } from '@/utils/robustBookingSystem';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface RobustBookingButtonProps {
   bookingData: {
@@ -40,7 +41,7 @@ export function RobustBookingButton({
     setAttemptCount(0);
 
     try {
-      console.log('🚀 Iniciando proceso de reserva robusto');
+      logger.info('Iniciando proceso de reserva robusto', { listingId: bookingData.listingId });
       
       const result = await RobustBookingSystem.createBooking(
         async () => {
@@ -55,13 +56,13 @@ export function RobustBookingButton({
       );
 
       if (result.success && result.data) {
-        console.log('✅ Reserva creada exitosamente:', result.data);
+        logger.info('Reserva creada exitosamente', { data: result.data });
         onSuccess?.({
           ...result.data,
           bookingType: bookingData.recurrenceType !== 'once' ? 'recurring' : 'once'
         });
       } else {
-        console.error('❌ Error en reserva:', result.error);
+        logger.error('Error en reserva', { error: result.error });
         toast.error(result.error || 'No se pudo crear la reserva', {
           duration: 5000,
           icon: <AlertCircle className="h-4 w-4" />,
@@ -72,7 +73,7 @@ export function RobustBookingButton({
         });
       }
     } catch (error: any) {
-      console.error('💥 Error inesperado en booking:', error);
+      logger.error('Error inesperado en booking', { error });
       toast.error('Error inesperado. Por favor intenta de nuevo.', {
         duration: 5000,
         icon: <AlertCircle className="h-4 w-4" />
