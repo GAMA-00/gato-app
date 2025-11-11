@@ -29,11 +29,23 @@ serve(async (req) => {
 
     console.log(`🚫 Starting cancellation of recurring series for appointment: ${appointmentId}`);
 
+    // Extract real appointment ID if this is a virtual ID (format: virtual-{uuid}-{datetime})
+    let realAppointmentId = appointmentId;
+    if (appointmentId.startsWith('virtual-')) {
+      const parts = appointmentId.split('-');
+      // virtual-{uuid parts joined with dashes}-{datetime}
+      // UUID has 5 parts when split by '-', so we take elements 1-5
+      if (parts.length >= 6) {
+        realAppointmentId = parts.slice(1, 6).join('-');
+        console.log(`📋 Extracted real appointment ID from virtual ID: ${realAppointmentId}`);
+      }
+    }
+
     // Get the appointment details
     const { data: appointment, error: appointmentError } = await supabaseClient
       .from('appointments')
       .select('*')
-      .eq('id', appointmentId)
+      .eq('id', realAppointmentId)
       .single();
 
     if (appointmentError || !appointment) {
