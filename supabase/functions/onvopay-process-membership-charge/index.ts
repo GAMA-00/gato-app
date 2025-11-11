@@ -28,9 +28,21 @@ serve(async (req) => {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // Validate scheduler/internal authorization
+    const authHeader = req.headers.get('authorization');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!authHeader || !authHeader.includes(serviceRoleKey || '')) {
+      console.error('🚫 Unauthorized access attempt to scheduler function');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Internal function only' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      serviceRoleKey ?? ''
     );
 
     const { subscription_id, appointment_id } = await req.json();

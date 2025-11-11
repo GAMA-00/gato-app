@@ -69,10 +69,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.onvopay-capture-on-provider-accept]
-verify_jwt = false
+verify_jwt = true
 
 [functions.onvopay-capture-on-invoice-approval]
-verify_jwt = false
+verify_jwt = true
 
 [functions.onvopay-process-membership-charge]
 verify_jwt = false
@@ -85,7 +85,7 @@ verify_jwt = false
 ## ============================================================
 
 [functions.onvopay-initiate-recurring]
-verify_jwt = false
+verify_jwt = true
 
 [functions.onvopay-create-loop]
 verify_jwt = false
@@ -102,4 +102,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-appointment-email]
-verify_jwt = false
+verify_jwt = true
