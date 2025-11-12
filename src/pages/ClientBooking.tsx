@@ -275,7 +275,7 @@ const ClientBooking = () => {
       )}
 
       {/* Single Column Layout - Same for Desktop and Mobile */}
-      <div className="max-w-2xl mx-auto space-y-4">
+      <div className="max-w-2xl mx-auto space-y-3">
         {/* Booking Form with Step Navigation */}
         <NewBookingForm
           currentStep={currentStep}

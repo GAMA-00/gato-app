@@ -141,7 +141,7 @@ const NewBookingForm = ({
 
       {/* Step 3: Summary with Notes */}
       {currentStep === 3 && (
-        <>
+        <div className="space-y-2">
           {/* Custom Variables */}
           {customVariableGroups && customVariableGroups.length > 0 && onCustomVariableSelectionsChange && (
             <CustomVariableSelector
@@ -156,7 +156,7 @@ const NewBookingForm = ({
             notes={notes}
             onNotesChange={onNotesChange}
           />
-        </>
+        </div>
       )}
     </div>
   );

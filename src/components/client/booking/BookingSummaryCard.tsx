@@ -94,49 +94,49 @@ const BookingSummaryCard = ({
   
   return (
     <Card className="w-full">
-      <CardHeader className="pb-2 pt-3 px-4">
-        <CardTitle className="text-base font-semibold">Resumen de Reserva</CardTitle>
+      <CardHeader className="pb-1.5 pt-2 px-3">
+        <CardTitle className="text-sm font-semibold">Resumen de Reserva</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4">
+      <CardContent className="space-y-2 px-3 pb-3">
         {/* Compact Information Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {/* Column 1 */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-0.5">Servicio</p>
-              <p className="text-sm font-medium">{serviceTitle}</p>
+              <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Servicio</p>
+              <p className="text-xs font-medium">{serviceTitle}</p>
             </div>
             
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-0.5">Proveedor</p>
-              <p className="text-xs">{providerName}</p>
+              <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Proveedor</p>
+              <p className="text-[10px]">{providerName}</p>
             </div>
 
             {(selectedVariants.length > 0 || selectedVariant) && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-0.5">Duración</p>
-                <p className="text-xs">{totalDuration} min</p>
+                <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Duración</p>
+                <p className="text-[10px]">{totalDuration} min</p>
               </div>
             )}
           </div>
 
           {/* Column 2 */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {selectedDate && selectedTime && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-0.5">Fecha y hora</p>
-                <p className="text-xs">
+                <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Fecha y hora</p>
+                <p className="text-[10px]">
                   {formatDateES(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                 </p>
-                <p className="text-xs">
+                <p className="text-[10px]">
                   {selectedTime} ({getRecurrenceText(selectedFrequency)})
                 </p>
               </div>
             )}
 
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-0.5">Ubicación</p>
-              <p className="text-xs">
+              <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Ubicación</p>
+              <p className="text-[10px]">
                 {isLoadingLocation ? 'Cargando...' : clientLocation}
               </p>
             </div>
@@ -145,11 +145,11 @@ const BookingSummaryCard = ({
 
         {/* Services List - Full Width */}
         {selectedVariants.length > 0 && (
-          <div className="border-t pt-2">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Servicios contratados</p>
+          <div className="border-t pt-1.5">
+            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Servicios contratados</p>
             <div className="space-y-0.5">
               {selectedVariants.map((variant, index) => (
-                <p key={variant.id || index} className="text-xs">
+                <p key={variant.id || index} className="text-[10px]">
                   {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                 </p>
               ))}
@@ -158,32 +158,32 @@ const BookingSummaryCard = ({
         )}
 
         {/* Service Information - Compact */}
-        <div className="border-l-4 border-l-blue-500 bg-blue-50/50 border border-blue-200 rounded p-3">
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <h4 className="font-semibold text-blue-900 text-sm">Política de cancelación</h4>
+        <div className="border-l-4 border-l-blue-500 bg-blue-50/50 border border-blue-200 rounded p-2">
+          <div className="flex items-start gap-1.5">
+            <Info className="h-3 w-3 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-semibold text-blue-900 text-[11px]">Política de cancelación</h4>
               
-              <div className="space-y-1.5 text-xs text-blue-800">
+              <div className="space-y-1 text-[10px] text-blue-800">
                 {isPostPayment && (
-                  <div className="flex items-start gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-1"></span>
+                  <div className="flex items-start gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0 mt-1"></span>
                     <span><span className="font-medium">Post pago:</span> insumos adicionales se facturarán al completar el servicio</span>
                   </div>
                 )}
                 
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-green-600 flex-shrink-0 mt-1"></span>
+                <div className="flex items-start gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-600 flex-shrink-0 mt-1"></span>
                   <span>+24h gratis</span>
                 </div>
                 
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0 mt-1"></span>
+                <div className="flex items-start gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0 mt-1"></span>
                   <span>2-24h multa 20%</span>
                 </div>
                 
-                <div className="flex items-start gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-red-600 flex-shrink-0 mt-1"></span>
+                <div className="flex items-start gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 flex-shrink-0 mt-1"></span>
                   <span>-2h multa 50%</span>
                 </div>
               </div>
@@ -197,17 +197,17 @@ const BookingSummaryCard = ({
             bookingData={bookingData}
             onSuccess={onBookingSuccess}
             disabled={!isEssentialDataValid}
-            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl py-3"
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl py-2.5 text-sm"
           />
         ) : (
           <Button
             onClick={onBooking}
             disabled={isLoading || !isEssentialDataValid}
-            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm py-3"
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl py-2.5 text-sm"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                 <span>Procesando...</span>
               </div>
             ) : (
