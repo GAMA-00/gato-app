@@ -79,7 +79,7 @@ const NewBookingForm = ({
     <div className="space-y-6">
       {/* Step 1: Recurrence Selection */}
       {currentStep === 1 && (
-        <>
+        <div className="pb-24 md:pb-0">
           <RecurrenceSelector
             selectedFrequency={selectedFrequency}
             onFrequencyChange={onFrequencyChange}
@@ -87,7 +87,7 @@ const NewBookingForm = ({
           
           {/* Next Button - Show when frequency is selected */}
           {selectedFrequency && (
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t md:relative md:border-0 md:p-0">
+            <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t z-50 md:relative md:bottom-0 md:border-0 md:p-0 md:mt-6">
               <button
                 onClick={onNextStep}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 md:py-3 rounded-lg font-medium"
@@ -96,12 +96,12 @@ const NewBookingForm = ({
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Step 2: Time Selection */}
       {currentStep === 2 && (
-        <>
+        <div className="pb-24 md:pb-0">
           <WeeklySlotGrid
             providerId={providerId}
             listingId={listingId}
@@ -125,7 +125,7 @@ const NewBookingForm = ({
 
           {/* Next Button - Show when time is selected */}
           {selectedDate && selectedTime && (
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t md:relative md:border-0 md:p-0">
+            <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t z-50 md:relative md:bottom-0 md:border-0 md:p-0 md:mt-6">
               <button
                 onClick={onNextStep}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 md:py-3 rounded-lg font-medium"
@@ -134,7 +134,7 @@ const NewBookingForm = ({
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Step 3: Summary with Notes */}
