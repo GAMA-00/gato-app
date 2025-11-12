@@ -23,7 +23,7 @@ import { getServiceTypeIcon } from '@/utils/serviceIconUtils';
 import { getRecurrenceInfo } from '@/utils/recurrenceUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { logger, bookingLogger } from '@/utils/logger';
 
 interface BookingCardProps {
@@ -32,7 +32,6 @@ interface BookingCardProps {
 }
 
 export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showCancelAllDialog, setShowCancelAllDialog] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -41,6 +40,55 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const isRecurring = booking.recurrence && booking.recurrence !== 'none';
   const isCompleted = booking.status === 'completed';
   const isSkipped = booking.status === 'cancelled' && booking.notes?.includes('[SKIPPED BY CLIENT]');
+
+  // Optimistic mutation for single appointment cancellation
+  const cancelSingleMutation = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'cancelled',
+          cancellation_time: new Date().toISOString()
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+    },
+    onMutate: async (appointmentId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['client-bookings'] });
+
+      // Snapshot the previous value
+      const previousBookings = queryClient.getQueryData(['client-bookings']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['client-bookings'], (old: any) => {
+        if (!old) return old;
+        return old.map((b: ClientBooking) => 
+          b.id === appointmentId 
+            ? { ...b, status: 'cancelled', cancellation_time: new Date().toISOString() }
+            : b
+        );
+      });
+
+      // Show success immediately
+      toast.success('Cita cancelada');
+
+      return { previousBookings };
+    },
+    onError: (error, appointmentId, context) => {
+      // Rollback on error
+      if (context?.previousBookings) {
+        queryClient.setQueryData(['client-bookings'], context.previousBookings);
+      }
+      logger.error('Error canceling appointment:', { error, appointmentId });
+      toast.error('Error al cancelar la cita');
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+    }
+  });
   
   bookingLogger.debug('BookingCard - Booking data:', {
     id: booking.id,
@@ -56,13 +104,12 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   
   const handleSkipAppointment = async () => {
     // Prevenir ejecuciones duplicadas
-    if (isProcessing.current) {
+    if (isProcessing.current || cancelSingleMutation.isPending) {
       logger.warn('Operación ya en proceso, ignorando click duplicado');
       return;
     }
 
     isProcessing.current = true;
-    setIsLoading(true);
     
     try {
       if (isRecurring) {
@@ -102,40 +149,26 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
         ]);
         
       } else {
-        // Para citas no recurrentes: cancelar normalmente
-        logger.info('Canceling single appointment:', { appointmentId: booking.id });
-        
-        const { error } = await supabase
-          .from('appointments')
-          .update({
-            status: 'cancelled',
-            cancellation_time: new Date().toISOString()
-          })
-          .eq('id', booking.id);
-
-        if (error) throw error;
-
-        toast.success('Cita cancelada');
-        queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+        // Para citas no recurrentes: usar optimistic update
+        logger.info('Canceling single appointment with optimistic update:', { appointmentId: booking.id });
+        cancelSingleMutation.mutate(booking.id);
       }
     } catch (error) {
       logger.error('Error in skip/cancel operation:', { error, appointmentId: booking.id });
       toast.error(error instanceof Error ? error.message : 'Error al procesar la solicitud');
     } finally {
-      setIsLoading(false);
       isProcessing.current = false;
     }
   };
 
   const handleCancelAllFuture = async () => {
     // Prevenir ejecuciones duplicadas
-    if (isProcessing.current) {
+    if (isProcessing.current || cancelSingleMutation.isPending) {
       logger.warn('Operación ya en proceso, ignorando click duplicado');
       return;
     }
 
     isProcessing.current = true;
-    setIsLoading(true);
     
     try {
       logger.info('Canceling recurring appointment series using edge function:', { appointmentId: booking.id });
@@ -180,7 +213,6 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
       logger.error('Error cancelling recurring series:', { error, appointmentId: booking.id });
       toast.error(error instanceof Error ? error.message : 'Error al cancelar la serie de citas');
     } finally {
-      setIsLoading(false);
       isProcessing.current = false;
     }
   };
@@ -331,7 +363,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                   size="lg"
                   className="w-full h-11 text-sm font-medium text-blue-600 bg-white border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 flex items-center justify-center gap-2 transition-colors"
                   onClick={() => setShowSkipDialog(true)}
-                  disabled={isLoading}
+                  disabled={cancelSingleMutation.isPending}
                 >
                   <SkipForward className="h-4 w-4" />
                   <span>Saltar la próxima cita</span>
@@ -350,7 +382,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
                     setShowSkipDialog(true);
                   }
                 }}
-                disabled={isLoading}
+                disabled={cancelSingleMutation.isPending}
               >
                 <X className="h-4 w-4" />
                 <span>{isRecurring ? 'Cancelar plan recurrente' : 'Cancelar'}</span>
