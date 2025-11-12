@@ -262,6 +262,23 @@ export function useRecurringBooking() {
 
       console.log('Cita creada exitosamente:', appointment);
 
+      // BACKUP: Llamar directamente al edge function para envío de email
+      // Esto complementa el trigger de base de datos
+      console.log('📧 Invocando edge function de email como respaldo...');
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-appointment-email', {
+          body: { appointment_id: createdId }
+        });
+        
+        if (emailError) {
+          console.warn('⚠️ Error al invocar edge function de email (no crítico):', emailError);
+        } else {
+          console.log('✅ Edge function de email invocado exitosamente');
+        }
+      } catch (emailErr) {
+        console.warn('⚠️ Excepción al invocar email (no crítico):', emailErr);
+      }
+
       // Generate future recurring instances asynchronously (don't block main booking)
       if (data.recurrenceType !== 'once' && appointment.id) {
         console.log('Scheduling future recurring instances for appointment:', appointment.id);
