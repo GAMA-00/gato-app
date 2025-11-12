@@ -20,30 +20,18 @@ const formatPhoneForDisplay = (phone: string | null | undefined): string => {
   return phone;
 };
 
-// Helper to build location string
+// Helper to build location string for email (simplified format)
 const buildLocationString = (apt: any, clientData: any): string => {
-  // External booking - use client_address
+  // External booking - use client_address only
   if (apt.external_booking || apt.is_external) {
     return apt.client_address || 'Ubicación externa';
   }
   
-  // Internal booking - build from residencia + condominium + house
-  const parts: string[] = [];
+  // Internal booking - build as "Condominium, Casa X" (no residencia in email)
+  const condominium = clientData?.condominium_text || clientData?.condominium_name || '—';
+  const houseNumber = clientData?.house_number || '—';
   
-  if (clientData?.residencias?.name) {
-    parts.push(clientData.residencias.name);
-  }
-  
-  const condominium = clientData?.condominium_text || clientData?.condominium_name;
-  if (condominium) {
-    parts.push(condominium);
-  }
-  
-  if (clientData?.house_number) {
-    parts.push(`Casa ${clientData.house_number}`);
-  }
-  
-  return parts.length > 0 ? parts.join(' - ') : 'Ubicación no especificada';
+  return `${condominium}, Casa ${houseNumber}`;
 };
 
 // Map recurrence to Spanish
@@ -140,7 +128,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Gato <tech.gatoapp@outlook.com>',
+        from: 'Gato <onboarding@resend.dev>',
         to: ['tech.gatoapp@outlook.com'],
         subject: 'Nueva Reserva',
         html: `
