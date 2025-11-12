@@ -158,22 +158,22 @@ const BookingSummaryCard = ({
         )}
 
         {/* Service Information - Compact */}
-        <div className="border-l-4 border-l-blue-500 bg-blue-50/50 border border-blue-200 rounded p-2">
+        <div className="border-l-4 border-l-blue-500 bg-blue-50/50 border border-blue-200 rounded p-3">
           <div className="flex items-start gap-2">
-            <Info className="h-3 w-3 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-1.5">
-              <h4 className="font-semibold text-blue-900 text-xs">Política de cancelación</h4>
+            <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-900 text-sm">Política de cancelación</h4>
               
-              <div className="space-y-1 text-[10px] text-blue-800">
+              <div className="space-y-1.5 text-xs text-blue-800">
                 {isPostPayment && (
-                  <div className="flex items-start gap-1">
-                    <span className="text-[10px]">•</span>
+                  <div className="flex items-start gap-1.5">
+                    <span>•</span>
                     <span><span className="font-medium">Post pago:</span> insumos adicionales se facturarán al completar el servicio</span>
                   </div>
                 )}
                 
-                <div className="flex items-start gap-1">
-                  <span className="text-[10px]">•</span>
+                <div className="flex items-start gap-1.5">
+                  <span>•</span>
                   <span><span className="font-medium">Cancelación:</span> +24h gratis, 2-24h multa 20%, -2h multa 50%</span>
                 </div>
               </div>
