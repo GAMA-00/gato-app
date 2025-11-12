@@ -5,7 +5,7 @@
  * Modal especializado para cancelar citas usando el sistema base
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { X, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useModalLoading } from './BaseBookingModal';
+import { logger } from '@/utils/logger';
 
 // ===== TIPOS =====
 
@@ -42,108 +43,152 @@ export const CancelAppointmentModal = ({
 }: CancelAppointmentModalProps) => {
   const { isLoading, withLoading } = useModalLoading();
   const queryClient = useQueryClient();
+  const isProcessing = useRef(false);
 
   // ===== FUNCIONES DE CANCELACIÓN =====
 
   const handleCancelSingle = () => withLoading(async () => {
-    if (isRecurring) {
-      // Para citas recurrentes: usar la nueva función para saltar solo esta instancia
-      console.log('🔄 Skipping recurring instance using edge function:', appointmentId);
-      
-      try {
+    // Prevenir ejecuciones duplicadas
+    if (isProcessing.current) {
+      logger.warn('Operación ya en proceso, ignorando click duplicado');
+      return;
+    }
+
+    isProcessing.current = true;
+
+    try {
+      if (isRecurring) {
+        // Para citas recurrentes: usar la nueva función para saltar solo esta instancia
+        logger.systemOperation('Skipping recurring instance using edge function:', appointmentId);
+        
+        // Toast inmediato para feedback
+        toast.loading('Saltando cita...', { id: 'skip-appointment' });
+
         const { data, error } = await supabase.functions.invoke('skip-recurring-instance', {
           body: { appointmentId }
         });
 
         if (error) {
-          console.error('❌ Edge function error:', error);
+          logger.error('Edge function error:', { error, appointmentId });
+          toast.dismiss('skip-appointment');
           throw new Error(error.message || 'Failed to skip recurring instance');
         }
 
         if (!data?.success) {
+          toast.dismiss('skip-appointment');
           throw new Error(data?.error || 'Failed to skip recurring instance');
         }
 
-        console.log('✅ Successfully skipped recurring instance:', data);
-        toast.success('Se saltó esta fecha. Verás la siguiente instancia de la serie.');
+        logger.info('Successfully skipped recurring instance:', { data });
+        toast.success('Próxima cita mostrada', { id: 'skip-appointment' });
         
+        // Invalidación optimizada con refetch solo de queries activas
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] }),
-          queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+          queryClient.invalidateQueries({ 
+            queryKey: ['unified-recurring-appointments'],
+            refetchType: 'active'
+          }),
+          queryClient.invalidateQueries({ 
+            queryKey: ['client-bookings'],
+            refetchType: 'active'
+          }),
           queryClient.invalidateQueries({ queryKey: ['appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
           queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
         ]);
         
-        // Force refetch after a short delay
-        setTimeout(() => {
-          queryClient.refetchQueries({ queryKey: ['client-bookings'] });
-        }, 500);
+        onClose();
+      } else {
+        // Para citas no recurrentes: usar función atómica
+        logger.info('Canceling single appointment atomically:', { appointmentId });
+        
+        // Toast inmediato para feedback
+        toast.loading('Cancelando cita...', { id: 'cancel-appointment' });
+        
+        const { data, error } = await supabase
+          .rpc('cancel_appointment_atomic', {
+            p_appointment_id: appointmentId,
+            p_cancel_future: false,
+            p_reason: 'user_cancelled',
+            p_cancelled_by: null // Uses auth.uid()
+          });
+
+        if (error) {
+          logger.error('Error canceling appointment:', { error, appointmentId });
+          toast.dismiss('cancel-appointment');
+          throw error;
+        }
+
+        logger.info('Appointment cancelled:', { data });
+        toast.success('Cita cancelada', { id: 'cancel-appointment' });
+        
+        // Invalidate all relevant queries with optimized refetch
+        await Promise.all([
+          queryClient.invalidateQueries({ 
+            queryKey: ['client-bookings'],
+            refetchType: 'active'
+          }),
+          queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+          queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
+        ]);
         
         onClose();
-      } catch (error) {
-        console.error('❌ Error skipping recurring instance:', error);
-        toast.error(error instanceof Error ? error.message : 'Error al saltar la cita');
-        throw error;
       }
-    } else {
-      // Para citas no recurrentes: usar función atómica
-      console.log('Canceling single appointment atomically:', appointmentId);
-      
-      const { data, error } = await supabase
-        .rpc('cancel_appointment_atomic', {
-          p_appointment_id: appointmentId,
-          p_cancel_future: false,
-          p_reason: 'user_cancelled',
-          p_cancelled_by: null // Uses auth.uid()
-        });
-
-      if (error) {
-        console.error('Error canceling appointment:', error);
-        throw error;
-      }
-
-      console.log('✅ Appointment cancelled:', data);
-      toast.success('Cita cancelada exitosamente');
-      
-      // Invalidate all relevant queries
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
-        queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] })
-      ]);
-      
-      onClose();
+    } catch (error) {
+      logger.error('Error in cancel/skip operation:', { error, appointmentId });
+      toast.error(error instanceof Error ? error.message : 'Error al procesar la solicitud');
+      throw error;
+    } finally {
+      isProcessing.current = false;
     }
   });
 
   const handleCancelRecurring = () => withLoading(async () => {
-    console.log('🚫 Canceling recurring appointment series using edge function:', appointmentId);
-    
+    // Prevenir ejecuciones duplicadas
+    if (isProcessing.current) {
+      logger.warn('Operación ya en proceso, ignorando click duplicado');
+      return;
+    }
+
+    isProcessing.current = true;
+
     try {
+      logger.info('Canceling recurring appointment series using edge function:', { appointmentId });
+      
+      // Toast inmediato para feedback
+      toast.loading('Cancelando plan recurrente...', { id: 'cancel-series' });
+
       // Use the secure edge function to cancel the entire recurring series
       const { data, error } = await supabase.functions.invoke('cancel-recurring-series', {
         body: { appointmentId }
       });
 
       if (error) {
-        console.error('❌ Edge function error:', error);
+        logger.error('Edge function error:', { error, appointmentId });
+        toast.dismiss('cancel-series');
         throw new Error(error.message || 'Failed to cancel recurring series');
       }
 
       if (!data?.success) {
+        toast.dismiss('cancel-series');
         throw new Error(data?.error || 'Failed to cancel recurring series');
       }
 
-      console.log('✅ Successfully cancelled recurring series:', data);
+      logger.info('Successfully cancelled recurring series:', { data });
       
-      toast.success(`Serie de citas recurrentes cancelada (${data.cancelledCount || 0} citas)`);
+      toast.success('Plan recurrente cancelado', { id: 'cancel-series' });
       
-      // Invalidate ALL possible query keys to ensure UI updates
+      // Invalidación optimizada con refetch solo de queries activas
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] }),
-        queryClient.invalidateQueries({ queryKey: ['client-bookings'] }),
+        queryClient.invalidateQueries({ 
+          queryKey: ['unified-recurring-appointments'],
+          refetchType: 'active'
+        }),
+        queryClient.invalidateQueries({ 
+          queryKey: ['client-bookings'],
+          refetchType: 'active'
+        }),
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['recurring-appointments'] }),
@@ -152,16 +197,13 @@ export const CancelAppointmentModal = ({
         queryClient.resetQueries({ queryKey: ['client-bookings'] })
       ]);
       
-      // Force a complete refetch after a short delay
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ['client-bookings'] });
-      }, 500);
-      
       onClose();
     } catch (error) {
-      console.error('❌ Error cancelling recurring series:', error);
+      logger.error('Error cancelling recurring series:', { error, appointmentId });
       toast.error(error instanceof Error ? error.message : 'Error al cancelar la serie de citas');
       throw error;
+    } finally {
+      isProcessing.current = false;
     }
   });
 
