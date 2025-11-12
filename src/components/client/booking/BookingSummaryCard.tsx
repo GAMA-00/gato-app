@@ -167,14 +167,24 @@ const BookingSummaryCard = ({
               <div className="space-y-1.5 text-xs text-blue-800">
                 {isPostPayment && (
                   <div className="flex items-start gap-1.5">
-                    <span>•</span>
+                    <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-1"></span>
                     <span><span className="font-medium">Post pago:</span> insumos adicionales se facturarán al completar el servicio</span>
                   </div>
                 )}
                 
                 <div className="flex items-start gap-1.5">
-                  <span>•</span>
-                  <span><span className="font-medium">Cancelación:</span> +24h gratis, 2-24h multa 20%, -2h multa 50%</span>
+                  <span className="w-2 h-2 rounded-full bg-green-600 flex-shrink-0 mt-1"></span>
+                  <span>+24h gratis</span>
+                </div>
+                
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0 mt-1"></span>
+                  <span>2-24h multa 20%</span>
+                </div>
+                
+                <div className="flex items-start gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-600 flex-shrink-0 mt-1"></span>
+                  <span>-2h multa 50%</span>
                 </div>
               </div>
             </div>
