@@ -48,9 +48,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let appointmentIdForLog: string | null = null;
   try {
     const { appointment_id } = await req.json();
-
+    appointmentIdForLog = appointment_id;
     if (!appointment_id) {
       throw new Error('appointment_id is required');
     }
@@ -132,35 +133,31 @@ serve(async (req) => {
         to: ['tech.gatoapp@outlook.com'],
         subject: 'Nueva Reserva',
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">📅 Nueva reserva creada</h2>
-            
-            <h3 style="color: #555; margin-top: 30px;">👤 CLIENTE</h3>
-            <p><strong>Enviar WhatsApp a:</strong> <a href="https://wa.me/${clientPhoneWhatsApp}" style="color: #25D366;">${clientPhoneDisplay}</a></p>
-            <p><strong>Mensaje para cliente:</strong></p>
-            <blockquote style="background: #f5f5f5; border-left: 4px solid #ddd; padding: 15px; margin: 10px 0;">
-              Hola ${clientName} 👋 Tu cita para el servicio ${serviceName} ha sido registrada con éxito.<br>
-              📍Ubicación: ${location}<br>
-              📅 Fecha: ${dateLong}<br>
-              🕒 Hora: ${time}<br>
-              🔁 Recurrencia: ${recurrenceText}<br>
-              Te confirmaremos por WhatsApp antes del servicio. Gracias por usar Gato 🐈‍⬛
-            </blockquote>
-            
-            <h3 style="color: #555; margin-top: 30px;">👨‍🔧 PROVEEDOR</h3>
-            <p><strong>Enviar WhatsApp a:</strong> <a href="https://wa.me/${providerPhoneWhatsApp}" style="color: #25D366;">${providerPhoneDisplay}</a></p>
-            <p><strong>Mensaje para proveedor:</strong></p>
-            <blockquote style="background: #f5f5f5; border-left: 4px solid #ddd; padding: 15px; margin: 10px 0;">
-              Hola ${providerName} 👋 Tenés una nueva solicitud para el servicio ${serviceName}.<br>
-              📍Ubicación: ${location}<br>
-              📅 Fecha: ${dateLong}<br>
-              🕒 Hora: ${time}<br>
-              🔁 Recurrencia: ${recurrenceText}<br>
-              Por favor confirmá tu disponibilidad en la app.
-            </blockquote>
-            
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #888; font-size: 12px;"><em>Este correo es solo informativo. Los mensajes de WhatsApp se enviarán manualmente por el administrador.</em></p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; color: #111;">
+          📅 Nueva reserva creada<br><br>
+
+          👤 CLIENTE<br>
+          Enviar WhatsApp a: <a href="https://wa.me/${clientPhoneWhatsApp}" style="color:#25D366;text-decoration:none;">${clientPhoneDisplay}</a><br>
+          Mensaje para cliente:<br>
+          Hola ${clientName} 👋 Tu cita para el servicio ${serviceName} ha sido registrada con éxito.<br>
+          📍Ubicación: ${location}<br>
+          📅 Fecha: ${dateLong}<br>
+          🕒 Hora: ${time}<br>
+          🔁 Recurrencia: ${recurrenceText}<br>
+          Te confirmaremos por WhatsApp antes del servicio. Gracias por usar Gato 🐈‍⬛<br><br>
+
+          👨‍🔧 PROVEEDOR<br>
+          Enviar WhatsApp a: <a href="https://wa.me/${providerPhoneWhatsApp}" style="color:#25D366;text-decoration:none;">${providerPhoneDisplay}</a><br>
+          Mensaje para proveedor:<br>
+          Hola ${providerName} 👋 Tenés una nueva solicitud para el servicio ${serviceName}.<br>
+          📍Ubicación: ${location}<br>
+          📅 Fecha: ${dateLong}<br>
+          🕒 Hora: ${time}<br>
+          🔁 Recurrencia: ${recurrenceText}<br>
+          Por favor confirmá tu disponibilidad en la app.<br><br>
+
+          ────────────────────────────<br>
+          Este correo es solo informativo. Los mensajes de WhatsApp se enviarán manualmente por el administrador.
           </div>
         `,
       }),
@@ -194,23 +191,23 @@ serve(async (req) => {
     console.error('Error in send-appointment-email:', error);
     
     // Try to log failed email attempt
-    if (error.appointment_id) {
-      try {
+    try {
+      if (appointmentIdForLog) {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         await supabase.from('email_logs').insert({
-          appointment_id: error.appointment_id,
+          appointment_id: appointmentIdForLog,
           email_type: 'appointment_created',
           recipient: 'tech.gatoapp@outlook.com',
           status: 'failed',
-          error_message: error.message,
+          error_message: error?.message || String(error),
         });
-      } catch (logError) {
-        console.error('Failed to log error:', logError);
       }
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error?.message || 'Internal Server Error' }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
