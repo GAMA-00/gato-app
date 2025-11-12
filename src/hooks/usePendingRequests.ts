@@ -98,9 +98,9 @@ export function usePendingRequests() {
 
             const processed = {
               ...appointment,
-              client_name: isExternal 
-                ? (appointment.client_name || 'Cliente Externo')
-                : (clientInfo?.name || 'Cliente sin nombre'),
+              client_name: appointment.client_name || (isExternal 
+                ? 'Cliente Externo'
+                : (clientInfo?.name || 'Cliente sin nombre')),
               client_phone: isExternal 
                 ? appointment.client_phone 
                 : clientInfo?.phone,
