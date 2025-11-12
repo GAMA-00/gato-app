@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildLocationString } from "@/utils/locationUtils";
+import { buildAppointmentLocation } from "@/utils/appointmentLocationHelper";
 
 interface GroupedRequest {
   id: string;
@@ -50,6 +50,11 @@ export function useGroupedPendingRequests() {
               duration,
               service_variants,
               custom_variable_groups
+            ),
+            residencias (
+              id,
+              name,
+              address
             )
           `)
           .eq('provider_id', user.id)
@@ -85,9 +90,13 @@ export function useGroupedPendingRequests() {
                   email,
                   house_number,
                   residencia_id,
-                  condominium_id,
                   condominium_text,
-                  condominium_name
+                  condominium_name,
+                  residencias (
+                    id,
+                    name,
+                    address
+                  )
                 `)
                 .eq('id', appointment.client_id)
                 .eq('role', 'client')
@@ -98,39 +107,10 @@ export function useGroupedPendingRequests() {
               } else if (clientData) {
                 clientInfo = clientData;
                 
-                // Resolve residencia name if we have an ID (from user or appointment)
-                let residenciaName = '';
-                const residenciaIdToResolve = clientData.residencia_id || appointment.residencia_id;
-                if (residenciaIdToResolve) {
-                  try {
-                    const { data: residenciaData } = await supabase
-                      .from('residencias')
-                      .select('name')
-                      .eq('id', residenciaIdToResolve)
-                      .single();
-                    
-                    if (residenciaData) {
-                      residenciaName = residenciaData.name;
-                    }
-                  } catch (error) {
-                    console.warn('Failed to fetch residencia name:', error);
-                  }
-                }
-                
-                console.log(`🐛 Location data for appointment ${appointment.id}:`, {
-                  residencia_id: clientData.residencia_id,
-                  residenciaName,
-                  condominium_text: clientData.condominium_text,
-                  condominium_name: clientData.condominium_name,
-                  house_number: clientData.house_number
-                });
-                
-                // Build location string using buildLocationString utility
-                clientLocation = buildLocationString({
-                  residenciaName,
-                  condominiumName: clientData.condominium_text || clientData.condominium_name,
-                  houseNumber: clientData.house_number,
-                  isExternal: false
+                // Build location using the unified helper
+                clientLocation = buildAppointmentLocation({
+                  appointment,
+                  clientData
                 });
                 
                 console.log(`🎯 Final location for appointment ${appointment.id}: "${clientLocation}"`);
@@ -142,9 +122,9 @@ export function useGroupedPendingRequests() {
 
             return {
               ...appointment,
-              client_name: isExternal 
-                ? (appointment.client_name || 'Cliente Externo')
-                : (clientInfo?.name || 'Cliente sin nombre'),
+              client_name: appointment.client_name || clientInfo?.name || (isExternal 
+                ? 'Cliente Externo'
+                : 'Cliente sin nombre'),
               client_phone: isExternal 
                 ? appointment.client_phone 
                 : clientInfo?.phone,
@@ -152,9 +132,9 @@ export function useGroupedPendingRequests() {
                 ? appointment.client_email 
                 : clientInfo?.email,
               client_location: isExternal 
-                ? buildLocationString({
-                    clientAddress: appointment.client_address,
-                    isExternal: true
+                ? buildAppointmentLocation({
+                    appointment,
+                    clientData: null
                   })
                 : clientLocation,
               is_external: isExternal,

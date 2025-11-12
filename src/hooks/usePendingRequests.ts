@@ -30,6 +30,11 @@ export function usePendingRequests() {
               description,
               base_price,
               duration
+            ),
+            residencias (
+              id,
+              name,
+              address
             )
           `)
           .eq('provider_id', user.id)
@@ -72,7 +77,8 @@ export function usePendingRequests() {
                   condominium_name,
                   residencias (
                     id,
-                    name
+                    name,
+                    address
                   )
                 `)
                 .eq('id', appointment.client_id)
