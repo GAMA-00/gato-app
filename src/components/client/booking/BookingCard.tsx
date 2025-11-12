@@ -115,21 +115,6 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
 
         if (error) throw error;
 
-        // Auto-limpiar la cita cancelada después de 3 segundos
-        setTimeout(async () => {
-          try {
-            await supabase
-              .from('appointments')
-              .delete()
-              .eq('id', booking.id)
-              .eq('status', 'cancelled');
-            
-            queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-          } catch (deleteError) {
-            logger.warn('Could not auto-clean cancelled appointment:', { deleteError, appointmentId: booking.id });
-          }
-        }, 3000);
-
         toast.success('Cita cancelada');
         queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
       }
