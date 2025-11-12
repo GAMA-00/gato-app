@@ -9,6 +9,7 @@ import { CustomVariableGroup } from '@/lib/types';
 import { logger } from '@/utils/logger';
 
 interface NewBookingFormProps {
+  currentStep: number;
   selectedFrequency: string;
   onFrequencyChange: (frequency: string) => void;
   selectedDate: Date | undefined;
@@ -18,17 +19,19 @@ interface NewBookingFormProps {
   onTimeChange: (time: string) => void;
   onDurationChange: (duration: number, slotIds?: string[]) => void;
   providerId: string;
-  listingId: string; // Añadir listingId
+  listingId: string;
   selectedVariants: ServiceVariantWithQuantity[];
   notes: string;
   onNotesChange: (notes: string) => void;
   customVariableGroups?: CustomVariableGroup[];
   customVariableSelections?: any;
   onCustomVariableSelectionsChange?: (selections: any, totalPrice: number) => void;
-  slotSize?: number; // Tamaño de slot del servicio
+  slotSize?: number;
+  onNextStep: () => void;
 }
 
 const NewBookingForm = ({
+  currentStep,
   selectedFrequency,
   onFrequencyChange,
   selectedDate,
@@ -38,14 +41,15 @@ const NewBookingForm = ({
   onTimeChange,
   onDurationChange,
   providerId,
-  listingId, // Añadir listingId
+  listingId,
   selectedVariants,
   notes,
   onNotesChange,
   customVariableGroups,
   customVariableSelections,
   onCustomVariableSelectionsChange,
-  slotSize = 60 // Default slot size
+  slotSize = 60,
+  onNextStep
 }: NewBookingFormProps) => {
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
@@ -73,48 +77,85 @@ const NewBookingForm = ({
 
   return (
     <div className="space-y-6">
-      {/* 1. Recurrence Selection - FIRST, before slot selection */}
-      <RecurrenceSelector
-        selectedFrequency={selectedFrequency}
-        onFrequencyChange={onFrequencyChange}
-      />
-
-      {/* 2. Optimized Weekly Slot Grid - Schedule Selection */}
-      <WeeklySlotGrid
-        providerId={providerId}
-        listingId={listingId}
-        serviceDuration={selectedVariants[0]?.duration || 60}
-        selectedSlots={selectedSlotIds}
-        onSlotSelect={handleSlotSelect}
-        recurrence={selectedFrequency}
-        requiredSlots={requiredSlots}
-        slotSize={slotSize}
-        totalServiceDuration={totalServiceDuration}
-      />
-
-      {/* 3. Recurrence Pattern Display - After schedule selection */}
-      {selectedFrequency !== 'once' && selectedDate && selectedTime && (
-        <RecurrencePatternDisplay
-          frequency={selectedFrequency}
-          selectedDate={selectedDate}
-          selectedTime={selectedTime}
-        />
+      {/* Step 1: Recurrence Selection */}
+      {currentStep === 1 && (
+        <>
+          <RecurrenceSelector
+            selectedFrequency={selectedFrequency}
+            onFrequencyChange={onFrequencyChange}
+          />
+          
+          {/* Next Button - Show when frequency is selected */}
+          {selectedFrequency && (
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t md:relative md:border-0 md:p-0">
+              <button
+                onClick={onNextStep}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 md:py-3 rounded-lg font-medium"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* 4. Custom Variables */}
-      {customVariableGroups && customVariableGroups.length > 0 && onCustomVariableSelectionsChange && (
-        <CustomVariableSelector
-          customVariableGroups={customVariableGroups}
-          onSelectionChange={onCustomVariableSelectionsChange}
-          initialSelection={customVariableSelections}
-        />
+      {/* Step 2: Time Selection */}
+      {currentStep === 2 && (
+        <>
+          <WeeklySlotGrid
+            providerId={providerId}
+            listingId={listingId}
+            serviceDuration={selectedVariants[0]?.duration || 60}
+            selectedSlots={selectedSlotIds}
+            onSlotSelect={handleSlotSelect}
+            recurrence={selectedFrequency}
+            requiredSlots={requiredSlots}
+            slotSize={slotSize}
+            totalServiceDuration={totalServiceDuration}
+          />
+
+          {/* Recurrence Pattern Display */}
+          {selectedFrequency !== 'once' && selectedDate && selectedTime && (
+            <RecurrencePatternDisplay
+              frequency={selectedFrequency}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+            />
+          )}
+
+          {/* Next Button - Show when time is selected */}
+          {selectedDate && selectedTime && (
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t md:relative md:border-0 md:p-0">
+              <button
+                onClick={onNextStep}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 md:py-3 rounded-lg font-medium"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* 5. Notes */}
-      <NotesSection
-        notes={notes}
-        onNotesChange={onNotesChange}
-      />
+      {/* Step 3: Summary with Notes */}
+      {currentStep === 3 && (
+        <>
+          {/* Custom Variables */}
+          {customVariableGroups && customVariableGroups.length > 0 && onCustomVariableSelectionsChange && (
+            <CustomVariableSelector
+              customVariableGroups={customVariableGroups}
+              onSelectionChange={onCustomVariableSelectionsChange}
+              initialSelection={customVariableSelections}
+            />
+          )}
+
+          {/* Notes - Reduced size */}
+          <NotesSection
+            notes={notes}
+            onNotesChange={onNotesChange}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -24,6 +24,9 @@ const ClientBooking = () => {
   // Get data from navigation state
   const { providerId, serviceDetails, selectedVariants } = location.state || {};
 
+  // Step navigation state
+  const [currentStep, setCurrentStep] = useState(1);
+
   // Booking form state
   const [selectedFrequency, setSelectedFrequency] = useState('once');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -247,8 +250,9 @@ const ClientBooking = () => {
 
       {/* Single Column Layout - Same for Desktop and Mobile */}
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Booking Form */}
+        {/* Booking Form with Step Navigation */}
         <NewBookingForm
+          currentStep={currentStep}
           selectedFrequency={selectedFrequency}
           onFrequencyChange={setSelectedFrequency}
           selectedDate={selectedDate}
@@ -272,28 +276,31 @@ const ClientBooking = () => {
             setCustomVariablesTotalPrice(totalPrice);
           }}
           slotSize={slotSize}
+          onNextStep={() => setCurrentStep(prev => prev + 1)}
         />
 
-        {/* Booking Summary */}
-        <BookingSummaryCard
-          serviceTitle={serviceDetails.title}
-          providerName={serviceDetails.provider?.name}
-          selectedVariant={selectedVariant}
-          selectedVariants={selectedVariants}
-          selectedDate={selectedDate}
-          selectedTime={selectedTime}
-          clientLocation={clientLocation}
-          isLoadingLocation={isLoadingUserData}
-          isBookingValid={isBookingValid}
-          isLoading={isLoading}
-          onBooking={handleBooking}
-          formatPrice={formatPrice}
-          getRecurrenceText={getRecurrenceText}
-          selectedFrequency={selectedFrequency}
-          customVariablesTotalPrice={customVariablesTotalPrice}
-          selectedSlotIds={selectedSlotIds}
-          isPostPayment={serviceDetails?.is_post_payment || false}
-        />
+        {/* Booking Summary - Only show on Step 3 */}
+        {currentStep === 3 && (
+          <BookingSummaryCard
+            serviceTitle={serviceDetails.title}
+            providerName={serviceDetails.provider?.name}
+            selectedVariant={selectedVariant}
+            selectedVariants={selectedVariants}
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            clientLocation={clientLocation}
+            isLoadingLocation={isLoadingUserData}
+            isBookingValid={isBookingValid}
+            isLoading={isLoading}
+            onBooking={handleBooking}
+            formatPrice={formatPrice}
+            getRecurrenceText={getRecurrenceText}
+            selectedFrequency={selectedFrequency}
+            customVariablesTotalPrice={customVariablesTotalPrice}
+            selectedSlotIds={selectedSlotIds}
+            isPostPayment={serviceDetails?.is_post_payment || false}
+          />
+        )}
       </div>
     </PageLayout>
   );
