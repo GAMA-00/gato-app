@@ -218,6 +218,10 @@ export const useUnifiedRecurringAppointments = ({
             clientData
           });
           
+          // CRITICAL FIX: Ensure client_name is always populated for virtual instances
+          const client_name = baseAppointment.client_name || clientData?.name || 
+            (fullAppointment.external_booking ? 'Cliente Externo' : 'Cliente sin nombre');
+          
           return {
             id: `virtual-${baseAppointment.id}-${startTime.toISOString()}`,
             start_time: startTime.toISOString(),
@@ -229,7 +233,7 @@ export const useUnifiedRecurringAppointments = ({
             provider_id: baseAppointment.provider_id,
             client_id: baseAppointment.client_id,
             listing_id: baseAppointment.listing_id,
-            client_name: baseAppointment.client_name || clientData?.name,
+            client_name,
             provider_name: baseAppointment.provider_name,
             client_address: fullAppointment.client_address,
             notes: baseAppointment.notes,
@@ -260,8 +264,13 @@ export const useUnifiedRecurringAppointments = ({
           clientData
         });
         
+        // CRITICAL FIX: Ensure client_name is always populated from clientData if missing
+        const client_name = apt.client_name || clientData?.name || 
+          (apt.external_booking ? 'Cliente Externo' : 'Cliente sin nombre');
+        
         return {
           ...apt,
+          client_name,
           source_type: 'appointment' as const,
           service_title: apt.listings?.title,
           complete_location,
