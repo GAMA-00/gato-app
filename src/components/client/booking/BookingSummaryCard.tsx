@@ -93,136 +93,99 @@ const BookingSummaryCard = ({
   const isEssentialDataValid = selectedDate && selectedTime && (selectedVariant || selectedVariants.length > 0);
   
   return (
-    <Card className="w-full">{/* Removed sticky positioning */}
-      <CardHeader className="pb-2 md:pb-4 pt-3 md:pt-6 px-4 md:px-6">
-        <CardTitle className="text-base md:text-lg">Resumen de Reserva</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-2 pt-3 px-4">
+        <CardTitle className="text-base font-semibold">Resumen de Reserva</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 md:space-y-6 px-4 md:px-6">
-        {/* Information organized in 2 columns on mobile, 3 on desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
-          {/* Column 1: Service and Provider */}
-          <div className="space-y-2 md:space-y-3">
+      <CardContent className="space-y-3 px-4 pb-4">
+        {/* Compact Information Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Column 1 */}
+          <div className="space-y-2">
             <div>
-              <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Servicio</p>
-              <p className="text-sm md:text-base font-medium">{serviceTitle}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-0.5">Servicio</p>
+              <p className="text-sm font-medium">{serviceTitle}</p>
             </div>
             
             <div>
-              <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Proveedor</p>
-              <p className="text-xs md:text-sm">{providerName}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-0.5">Proveedor</p>
+              <p className="text-xs">{providerName}</p>
             </div>
+
+            {(selectedVariants.length > 0 || selectedVariant) && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">Duración</p>
+                <p className="text-xs">{totalDuration} min</p>
+              </div>
+            )}
           </div>
 
-          {/* Column 2: Date, Time and Duration */}
-          <div className="space-y-2 md:space-y-3">
+          {/* Column 2 */}
+          <div className="space-y-2">
             {selectedDate && selectedTime && (
               <div>
-                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Fecha y hora</p>
-                <p className="text-xs md:text-sm">
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">Fecha y hora</p>
+                <p className="text-xs">
                   {formatDateES(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                 </p>
-                <p className="text-xs md:text-sm">
+                <p className="text-xs">
                   {selectedTime} ({getRecurrenceText(selectedFrequency)})
                 </p>
               </div>
             )}
 
-            {(selectedVariants.length > 0 || selectedVariant) && (
-              <div>
-                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Duración</p>
-                <p className="text-xs md:text-sm">{totalDuration} min</p>
-              </div>
-            )}
-          </div>
-
-          {/* Column 3: Location and Specific Service */}
-          <div className="space-y-2 md:space-y-3">
             <div>
-              <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Ubicación</p>
-              <p className="text-xs md:text-sm">
-                {isLoadingLocation ? 'Cargando ubicación...' : clientLocation}
+              <p className="text-xs font-medium text-muted-foreground mb-0.5">Ubicación</p>
+              <p className="text-xs">
+                {isLoadingLocation ? 'Cargando...' : clientLocation}
               </p>
             </div>
-
-            {/* Specific service name */}
-            {selectedVariants.length > 0 ? (
-              <div>
-                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Servicios contratados</p>
-                <div className="space-y-0.5 md:space-y-1">
-                  {selectedVariants.map((variant, index) => (
-                    <p key={variant.id || index} className="text-xs md:text-sm">
-                      {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            ) : selectedVariant && (
-              <div>
-                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-0.5 md:mb-1">Servicio específico</p>
-                <p className="text-xs md:text-sm">{selectedVariant.name}</p>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Service Information - For both prepago and postpago */}
-        <ServiceInfo isPostPayment={isPostPayment} />
+        {/* Services List - Full Width */}
+        {selectedVariants.length > 0 && (
+          <div className="border-t pt-2">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Servicios contratados</p>
+            <div className="space-y-0.5">
+              {selectedVariants.map((variant, index) => (
+                <p key={variant.id || index} className="text-xs">
+                  {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
 
-        {/* ROBUST Booking Button with Simplified Validation */}
+        {/* Booking Button - Compact */}
         {bookingData ? (
           <RobustBookingButton
             bookingData={bookingData}
             onSuccess={onBookingSuccess}
             disabled={!isEssentialDataValid}
-            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl"
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl py-3"
           />
         ) : (
           <Button
             onClick={onBooking}
             disabled={isLoading || !isEssentialDataValid}
-            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-2 md:py-3"
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm py-3"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                <span className="animate-pulse">Procesando reserva...</span>
+                <span>Procesando...</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <span>Continuar al Pago</span>
-                <span className="text-xs opacity-80">→</span>
-              </div>
+              "Continuar al Pago"
             )}
           </Button>
         )}
 
-        {/* Simplified validation feedback */}
-        {!isEssentialDataValid && !isLoading && (
-          <div className="text-sm text-muted-foreground text-center space-y-1">
-            <div className="bg-muted/50 p-2 rounded-md">
-              <p className="font-medium">Para continuar:</p>
-              <ul className="text-xs mt-1 space-y-0.5">
-                {!selectedDate && <li>• Selecciona una fecha</li>}
-                {!selectedTime && <li>• Selecciona una hora de inicio</li>}
-                {(!selectedVariant && selectedVariants.length === 0) && <li>• Selecciona un servicio</li>}
-              </ul>
-            </div>
-          </div>
-        )}
-        
-        {/* SUCCESS feedback when all requirements are met */}
+        {/* Compact feedback */}
         {isEssentialDataValid && !isLoading && (
-          <div className="text-sm text-green-600 text-center flex items-center justify-center gap-1">
-            <span className="text-green-600">✓</span>
-            <span>Listo para confirmar tu reserva</span>
-          </div>
-        )}
-
-        {/* User data loading indicator - Non-blocking */}
-        {isLoadingLocation && (
-          <div className="text-xs text-blue-600 text-center flex items-center justify-center gap-1">
-            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            Cargando datos del usuario...
+          <div className="text-xs text-green-600 text-center">
+            ✓ Listo para confirmar
           </div>
         )}
       </CardContent>

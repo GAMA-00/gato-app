@@ -10,15 +10,15 @@ interface NotesSectionProps {
 const NotesSection = ({ notes, onNotesChange }: NotesSectionProps) => {
   return (
     <Card>
-      <CardContent className="pt-6">
-        <label className="text-sm font-medium mb-2 block text-foreground">
+      <CardContent className="pt-4 pb-3 px-4">
+        <label className="text-sm font-medium mb-1.5 block text-foreground">
           Notas adicionales (opcional)
         </label>
         <textarea
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           placeholder="Instrucciones especiales, preferencias, etc."
-          className="w-full p-2.5 border rounded-lg min-h-[80px] resize-none text-sm"
+          className="w-full p-2 border rounded-lg min-h-[60px] resize-none text-sm"
         />
       </CardContent>
     </Card>

@@ -243,13 +243,15 @@ const ClientBooking = () => {
 
   return (
     <PageLayout>
-      {/* Title */}
-      <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
-        Reservar Servicio
-      </h1>
+      {/* Title - Hide on step 3 */}
+      {currentStep !== 3 && (
+        <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
+          Reservar Servicio
+        </h1>
+      )}
 
       {/* Single Column Layout - Same for Desktop and Mobile */}
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-4">
         {/* Booking Form with Step Navigation */}
         <NewBookingForm
           currentStep={currentStep}
