@@ -162,7 +162,7 @@ const BookingSummaryCard = ({
           <div className="flex items-start gap-2">
             <Info className="h-3 w-3 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-1.5">
-              <h4 className="font-semibold text-blue-900 text-xs">Información importante</h4>
+              <h4 className="font-semibold text-blue-900 text-xs">Política de cancelación</h4>
               
               <div className="space-y-1 text-[10px] text-blue-800">
                 {isPostPayment && (
@@ -171,11 +171,6 @@ const BookingSummaryCard = ({
                     <span><span className="font-medium">Post pago:</span> insumos adicionales se facturarán al completar el servicio</span>
                   </div>
                 )}
-                
-                <div className="flex items-start gap-1">
-                  <span className="text-[10px]">•</span>
-                  <span><span className="font-medium">Materiales:</span> el proveedor incluye materiales básicos</span>
-                </div>
                 
                 <div className="flex items-start gap-1">
                   <span className="text-[10px]">•</span>
