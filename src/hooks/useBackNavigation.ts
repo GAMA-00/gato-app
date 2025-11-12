@@ -1,6 +1,23 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Global state to track the current booking step
+let currentBookingStep = 1;
+let bookingStepSetter: ((step: number) => void) | null = null;
+
+export const setBookingStep = (step: number) => {
+  currentBookingStep = step;
+};
+
+export const registerBookingStepSetter = (setter: (step: number) => void) => {
+  bookingStepSetter = setter;
+};
+
+export const unregisterBookingStepSetter = () => {
+  bookingStepSetter = null;
+  currentBookingStep = 1;
+};
+
 export const useBackNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,6 +50,20 @@ export const useBackNavigation = () => {
 
   // Define navigation logic for specific routes
   const handleBack = () => {
+    // Handle booking flow multi-step navigation
+    if (currentPath.match(/^\/client\/booking\/[^/]+$/)) {
+      if (currentBookingStep > 1 && bookingStepSetter) {
+        // Navigate to previous step
+        bookingStepSetter(currentBookingStep - 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      } else {
+        // If on first step, go back to categories
+        navigate('/client/categories');
+        return;
+      }
+    }
+
     // Client category details -> categories list
     if (currentPath.match(/^\/client\/category\/[^/]+$/)) {
       navigate('/client/categories');

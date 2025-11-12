@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import NewBookingForm from '@/components/client/booking/NewBookingForm';
 import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
 import { bookingLogger, locationLogger } from '@/utils/logger';
+import { setBookingStep, registerBookingStepSetter, unregisterBookingStepSetter } from '@/hooks/useBackNavigation';
 
 const ClientBooking = () => {
   const { serviceId } = useParams();
@@ -26,6 +27,19 @@ const ClientBooking = () => {
 
   // Step navigation state
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Register step setter for back navigation
+  useEffect(() => {
+    registerBookingStepSetter(setCurrentStep);
+    return () => {
+      unregisterBookingStepSetter();
+    };
+  }, []);
+
+  // Update global step state whenever currentStep changes
+  useEffect(() => {
+    setBookingStep(currentStep);
+  }, [currentStep]);
 
   // Booking form state
   const [selectedFrequency, setSelectedFrequency] = useState('once');
