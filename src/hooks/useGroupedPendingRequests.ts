@@ -50,11 +50,6 @@ export function useGroupedPendingRequests() {
               duration,
               service_variants,
               custom_variable_groups
-            ),
-            residencias (
-              id,
-              name,
-              address
             )
           `)
           .eq('provider_id', user.id)
