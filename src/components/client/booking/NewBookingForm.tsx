@@ -28,6 +28,7 @@ interface NewBookingFormProps {
   onCustomVariableSelectionsChange?: (selections: any, totalPrice: number) => void;
   slotSize?: number;
   onNextStep: () => void;
+  onPrevStep: () => void;
 }
 
 const NewBookingForm = ({
@@ -49,7 +50,8 @@ const NewBookingForm = ({
   customVariableSelections,
   onCustomVariableSelectionsChange,
   slotSize = 60,
-  onNextStep
+  onNextStep,
+  onPrevStep
 }: NewBookingFormProps) => {
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
@@ -123,15 +125,23 @@ const NewBookingForm = ({
             />
           )}
 
-          {/* Next Button - Show when time is selected */}
-          {selectedDate && selectedTime && (
+          {/* Navigation Buttons */}
+          {(selectedDate && selectedTime) && (
             <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t z-50 md:relative md:bottom-0 md:border-0 md:p-0 md:mt-6">
-              <button
-                onClick={onNextStep}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 md:py-3 rounded-lg font-medium"
-              >
-                Siguiente
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={onPrevStep}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 transition-all duration-300 text-sm md:text-base py-3 rounded-lg font-medium"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={onNextStep}
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 rounded-lg font-medium"
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -139,7 +149,14 @@ const NewBookingForm = ({
 
       {/* Step 3: Summary with Notes */}
       {currentStep === 3 && (
-        <>
+        <div className="pb-20 md:pb-0">
+          <button
+            onClick={onPrevStep}
+            className="w-full mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 transition-all duration-300 text-sm md:text-base py-3 rounded-lg font-medium"
+          >
+            Anterior
+          </button>
+          
           {/* Custom Variables */}
           {customVariableGroups && customVariableGroups.length > 0 && onCustomVariableSelectionsChange && (
             <CustomVariableSelector
@@ -154,7 +171,7 @@ const NewBookingForm = ({
             notes={notes}
             onNotesChange={onNotesChange}
           />
-        </>
+        </div>
       )}
     </div>
   );

@@ -37,6 +37,16 @@ const ClientBooking = () => {
   const [customVariableSelections, setCustomVariableSelections] = useState<any>({});
   const [customVariablesTotalPrice, setCustomVariablesTotalPrice] = useState<number>(0);
 
+  const handleNextStep = () => {
+    setCurrentStep(prev => Math.min(prev + 1, 3));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Query to get complete user data from database
   const { data: completeUserData, isLoading: isLoadingUserData } = useQuery({
     queryKey: ['complete-user-data', user?.id],
@@ -278,7 +288,8 @@ const ClientBooking = () => {
             setCustomVariablesTotalPrice(totalPrice);
           }}
           slotSize={slotSize}
-          onNextStep={() => setCurrentStep(prev => prev + 1)}
+          onNextStep={handleNextStep}
+          onPrevStep={handlePrevStep}
         />
 
         {/* Booking Summary - Only show on Step 3 */}
