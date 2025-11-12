@@ -103,19 +103,19 @@ const BookingSummaryCard = ({
           {/* Column 1 */}
           <div className="space-y-1.5">
             <div>
-              <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Servicio</p>
-              <p className="text-xs font-medium">{serviceTitle}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-0.5">Servicio</p>
+              <p className="text-sm font-medium">{serviceTitle}</p>
             </div>
             
             <div>
-              <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Proveedor</p>
-              <p className="text-[10px]">{providerName}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-0.5">Proveedor</p>
+              <p className="text-xs">{providerName}</p>
             </div>
 
             {(selectedVariants.length > 0 || selectedVariant) && (
               <div>
-                <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Duración</p>
-                <p className="text-[10px]">{totalDuration} min</p>
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">Duración</p>
+                <p className="text-xs">{totalDuration} min</p>
               </div>
             )}
           </div>
@@ -124,19 +124,19 @@ const BookingSummaryCard = ({
           <div className="space-y-1.5">
             {selectedDate && selectedTime && (
               <div>
-                <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Fecha y hora</p>
-                <p className="text-[10px]">
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">Fecha y hora</p>
+                <p className="text-xs">
                   {formatDateES(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
                 </p>
-                <p className="text-[10px]">
+                <p className="text-xs">
                   {selectedTime} ({getRecurrenceText(selectedFrequency)})
                 </p>
               </div>
             )}
 
             <div>
-              <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Ubicación</p>
-              <p className="text-[10px]">
+              <p className="text-xs font-medium text-muted-foreground mb-0.5">Ubicación</p>
+              <p className="text-xs">
                 {isLoadingLocation ? 'Cargando...' : clientLocation}
               </p>
             </div>
@@ -146,10 +146,10 @@ const BookingSummaryCard = ({
         {/* Services List - Full Width */}
         {selectedVariants.length > 0 && (
           <div className="border-t pt-1.5">
-            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Servicios contratados</p>
+            <p className="text-xs font-medium text-muted-foreground mb-0.5">Servicios contratados</p>
             <div className="space-y-0.5">
               {selectedVariants.map((variant, index) => (
-                <p key={variant.id || index} className="text-[10px]">
+                <p key={variant.id || index} className="text-xs">
                   {variant.name} {variant.quantity > 1 && <span className="text-muted-foreground">x{variant.quantity}</span>}
                 </p>
               ))}
@@ -162,9 +162,9 @@ const BookingSummaryCard = ({
           <div className="flex items-start gap-1.5">
             <Info className="h-3 w-3 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h4 className="font-semibold text-blue-900 text-[11px]">Política de cancelación</h4>
+              <h4 className="font-semibold text-blue-900 text-xs">Política de cancelación</h4>
               
-              <div className="space-y-1 text-[10px] text-blue-800">
+              <div className="space-y-1 text-xs text-blue-800">
                 {isPostPayment && (
                   <div className="flex items-start gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0 mt-1"></span>
