@@ -4,6 +4,8 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, X, RotateCcw, SkipForward } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RescheduleConfirmModal } from './RescheduleConfirmModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,8 +34,11 @@ interface BookingCardProps {
 }
 
 export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
+  const navigate = useNavigate();
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showCancelAllDialog, setShowCancelAllDialog] = useState(false);
+  const [showRescheduleRecurringModal, setShowRescheduleRecurringModal] = useState(false);
+  const [showRescheduleSingleModal, setShowRescheduleSingleModal] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const queryClient = useQueryClient();
   const isProcessing = useRef(false);
@@ -255,6 +260,70 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
     }
     toast.success('Tarjeta descartada');
   };
+
+  const handleRescheduleRecurring = async () => {
+    if (isProcessing.current) return;
+    isProcessing.current = true;
+
+    try {
+      // 1. Saltar la próxima cita usando edge function existente
+      const { error } = await supabase.functions.invoke('skip-recurring-instance', {
+        body: { appointmentId: booking.id }
+      });
+
+      if (error) throw error;
+
+      // 2. Navegar a página de booking en modo reschedule
+      navigate(`/client/booking/${booking.listingId}?mode=reschedule`, {
+        state: {
+          rescheduleData: {
+            appointmentId: booking.id,
+            providerId: booking.providerId,
+            listingId: booking.listingId,
+            isRecurring: true,
+            originalDate: booking.date,
+            serviceName: booking.serviceName
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Error starting reschedule:', { error });
+      toast.error('Error al iniciar reagendamiento');
+    } finally {
+      isProcessing.current = false;
+      setShowRescheduleRecurringModal(false);
+    }
+  };
+
+  const handleRescheduleSingle = async () => {
+    if (isProcessing.current) return;
+    isProcessing.current = true;
+
+    try {
+      // 1. Cancelar la cita única original
+      cancelSingleMutation.mutate(booking.id);
+
+      // 2. Navegar a página de booking en modo reschedule
+      navigate(`/client/booking/${booking.listingId}?mode=reschedule`, {
+        state: {
+          rescheduleData: {
+            appointmentId: booking.id,
+            providerId: booking.providerId,
+            listingId: booking.listingId,
+            isRecurring: false,
+            originalDate: booking.date,
+            serviceName: booking.serviceName
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Error starting reschedule:', { error });
+      toast.error('Error al iniciar reagendamiento');
+    } finally {
+      isProcessing.current = false;
+      setShowRescheduleSingleModal(false);
+    }
+  };
   
   // No mostrar la tarjeta si fue descartada
   if (isDismissed) {
@@ -356,37 +425,70 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           {/* Botones de acción */}
           {(booking.status === 'pending' || booking.status === 'confirmed') && (
             <div className="flex flex-col gap-2 pt-2">
-              {/* Para citas RECURRENTES: mostrar botón Saltar */}
+              {/* Para citas RECURRENTES */}
               {isRecurring && (
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="w-full h-11 text-sm font-medium text-blue-600 bg-white border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 flex items-center justify-center gap-2 transition-colors"
-                  onClick={() => setShowSkipDialog(true)}
-                  disabled={cancelSingleMutation.isPending}
-                >
-                  <SkipForward className="h-4 w-4" />
-                  <span>Saltar la próxima cita</span>
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="w-full h-11 text-sm font-medium text-blue-600 bg-white border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 flex items-center justify-center gap-2 transition-colors"
+                    onClick={() => setShowSkipDialog(true)}
+                    disabled={cancelSingleMutation.isPending}
+                  >
+                    <SkipForward className="h-4 w-4" />
+                    <span>Saltar la próxima cita</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="default"
+                    size="lg"
+                    className="w-full h-11 text-sm font-medium text-white bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 transition-colors"
+                    onClick={() => setShowRescheduleRecurringModal(true)}
+                    disabled={cancelSingleMutation.isPending}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    <span>Reagendar próxima cita</span>
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="w-full h-11 text-sm font-medium text-red-600 bg-white border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 flex items-center justify-center gap-2 transition-colors"
+                    onClick={() => setShowCancelAllDialog(true)}
+                    disabled={cancelSingleMutation.isPending}
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Cancelar plan recurrente</span>
+                  </Button>
+                </>
               )}
               
-              {/* Botón de cancelar: diferente texto según tipo */}
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="w-full h-11 text-sm font-medium text-red-600 bg-white border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 flex items-center justify-center gap-2 transition-colors"
-                onClick={() => {
-                  if (isRecurring) {
-                    setShowCancelAllDialog(true);
-                  } else {
-                    setShowSkipDialog(true);
-                  }
-                }}
-                disabled={cancelSingleMutation.isPending}
-              >
-                <X className="h-4 w-4" />
-                <span>{isRecurring ? 'Cancelar plan recurrente' : 'Cancelar'}</span>
-              </Button>
+              {/* Para citas ÚNICAS */}
+              {!isRecurring && (
+                <>
+                  <Button 
+                    variant="default"
+                    size="lg"
+                    className="w-full h-11 text-sm font-medium text-white bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 transition-colors"
+                    onClick={() => setShowRescheduleSingleModal(true)}
+                    disabled={cancelSingleMutation.isPending}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    <span>Reagendar cita</span>
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="w-full h-11 text-sm font-medium text-red-600 bg-white border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 flex items-center justify-center gap-2 transition-colors"
+                    onClick={() => setShowSkipDialog(true)}
+                    disabled={cancelSingleMutation.isPending}
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Cancelar</span>
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -446,6 +548,23 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* Modales de reagendamiento */}
+      <RescheduleConfirmModal
+        isOpen={showRescheduleRecurringModal}
+        onClose={() => setShowRescheduleRecurringModal(false)}
+        onConfirm={handleRescheduleRecurring}
+        isRecurring={true}
+        isLoading={isProcessing.current}
+      />
+
+      <RescheduleConfirmModal
+        isOpen={showRescheduleSingleModal}
+        onClose={() => setShowRescheduleSingleModal(false)}
+        onConfirm={handleRescheduleSingle}
+        isRecurring={false}
+        isLoading={isProcessing.current}
+      />
     </Card>
   );
 };

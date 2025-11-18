@@ -29,6 +29,9 @@ interface NewBookingFormProps {
   slotSize?: number;
   onNextStep: () => void;
   onPrevStep: () => void;
+  isRescheduleMode?: boolean;
+  onReschedule?: () => void;
+  serviceDetails?: any;
 }
 
 const NewBookingForm = ({
@@ -51,7 +54,10 @@ const NewBookingForm = ({
   onCustomVariableSelectionsChange,
   slotSize = 60,
   onNextStep,
-  onPrevStep
+  onPrevStep,
+  isRescheduleMode = false,
+  onReschedule,
+  serviceDetails
 }: NewBookingFormProps) => {
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
@@ -129,10 +135,10 @@ const NewBookingForm = ({
           {selectedDate && selectedTime && (
             <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t z-50 md:relative md:bottom-0 md:border-0 md:p-0 md:mt-6">
               <button
-                onClick={onNextStep}
+                onClick={isRescheduleMode ? onReschedule : onNextStep}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 rounded-lg font-medium"
               >
-                Siguiente
+                {isRescheduleMode ? 'Reagendar' : 'Siguiente'}
               </button>
             </div>
           )}
