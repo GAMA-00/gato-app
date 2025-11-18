@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRecurringBooking } from '@/hooks/useRecurringBooking';
 import { validateBookingSlot } from '@/utils/bookingValidation';
@@ -10,6 +10,8 @@ import { buildCompleteLocation } from '@/utils/locationBuilder';
 import { RobustBookingSystem } from '@/utils/robustBookingSystem';
 import PageLayout from '@/components/layout/PageLayout';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import NewBookingForm from '@/components/client/booking/NewBookingForm';
 import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
 import { bookingLogger, locationLogger } from '@/utils/logger';
@@ -21,12 +23,17 @@ const ClientBooking = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { createRecurringBooking, isLoading } = useRecurringBooking();
+  const queryClient = useQueryClient();
 
   // Get data from navigation state
-  const { providerId, serviceDetails, selectedVariants } = location.state || {};
+  const { providerId, serviceDetails, selectedVariants, rescheduleData } = location.state || {};
+
+  // Detect reschedule mode from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const isRescheduleMode = searchParams.get('mode') === 'reschedule';
 
   // Step navigation state
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(isRescheduleMode ? 2 : 1);
 
   // Register step setter for back navigation
   useEffect(() => {
@@ -40,6 +47,15 @@ const ClientBooking = () => {
   useEffect(() => {
     setBookingStep(currentStep);
   }, [currentStep]);
+
+  // Pre-load reschedule data if in reschedule mode
+  useEffect(() => {
+    if (isRescheduleMode && rescheduleData) {
+      setCurrentStep(2);
+      // Pre-set frequency to 'once' for rescheduled appointments
+      setSelectedFrequency('once');
+    }
+  }, [isRescheduleMode, rescheduleData]);
 
   // Booking form state
   const [selectedFrequency, setSelectedFrequency] = useState('once');
@@ -124,8 +140,79 @@ const ClientBooking = () => {
   const handleBackNavigation = () => {
     // Scroll to top before navigation
     window.scrollTo(0, 0);
-    // Navigate back to categories page
-    navigate('/client/categories');
+    
+    // If in reschedule mode, go back to bookings
+    if (isRescheduleMode) {
+      navigate('/client/bookings');
+    } else {
+      // Navigate back to categories page
+      navigate('/client/categories');
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!user || !selectedDate || !selectedTime || !rescheduleData) {
+      toast.error('Información incompleta para reagendar');
+      return;
+    }
+
+    try {
+      // Create start and end times
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const startDateTime = new Date(selectedDate);
+      startDateTime.setHours(hours, minutes, 0, 0);
+      
+      const endDateTime = new Date(startDateTime);
+      const duration = totalDuration > 0 ? totalDuration : (selectedVariant?.duration || 60);
+      endDateTime.setMinutes(endDateTime.getMinutes() + duration);
+
+      // Get client address from complete user data
+      let clientAddress = '';
+      
+      if (completeUserData?.condominium_text && completeUserData?.house_number) {
+        clientAddress = `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`;
+      } else if (user.phone) {
+        clientAddress = `Dirección temporal - Tel: ${user.phone}`;
+      } else {
+        clientAddress = 'Dirección a confirmar por cliente';
+      }
+
+      // Create new appointment as "once" type
+      const { data: newAppointment, error } = await supabase
+        .from('appointments')
+        .insert({
+          listing_id: rescheduleData.listingId,
+          provider_id: rescheduleData.providerId,
+          client_id: user.id,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          status: 'pending',
+          recurrence: 'none',
+          is_recurring_instance: false,
+          client_name: user.name,
+          client_email: user.email,
+          client_phone: user.phone,
+          client_address: clientAddress,
+          notes: `Reagendada desde: ${format(rescheduleData.originalDate, 'dd/MM/yyyy')}`,
+          created_from: 'client_app'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Invalidar queries
+      await queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
+      await queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] });
+
+      // Mostrar éxito y navegar
+      toast.success('Cita reagendada exitosamente');
+      navigate('/client/bookings');
+
+    } catch (error) {
+      bookingLogger.error('Error rescheduling appointment:', { error });
+      toast.error('Error al reagendar la cita');
+    }
   };
 
   if (!serviceDetails || !providerId || !selectedVariants) {
@@ -267,11 +354,29 @@ const ClientBooking = () => {
 
   return (
     <PageLayout>
-      {/* Title - Hide on step 3 */}
-      {currentStep !== 3 && (
+      {/* Title - Hide on step 3 or if in reschedule mode */}
+      {currentStep !== 3 && !isRescheduleMode && (
         <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
           Reservar Servicio
         </h1>
+      )}
+
+      {isRescheduleMode && (
+        <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
+          Reagendar Cita
+        </h1>
+      )}
+
+      {/* Info card para modo reschedule */}
+      {isRescheduleMode && rescheduleData && (
+        <div className="max-w-2xl mx-auto mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <p className="text-sm text-blue-800 font-medium">
+            <strong>Cita original:</strong> {format(rescheduleData.originalDate, "dd/MM/yyyy 'a las' HH:mm", { locale: es })}
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            Selecciona un nuevo horario para recibir el servicio
+          </p>
+        </div>
       )}
 
       {/* Single Column Layout - Same for Desktop and Mobile */}
@@ -304,10 +409,13 @@ const ClientBooking = () => {
           slotSize={slotSize}
           onNextStep={handleNextStep}
           onPrevStep={handlePrevStep}
+          isRescheduleMode={isRescheduleMode}
+          onReschedule={handleReschedule}
+          serviceDetails={serviceDetails}
         />
 
-        {/* Booking Summary - Only show on Step 3 */}
-        {currentStep === 3 && (
+        {/* Booking Summary - Only show on Step 3 and not in reschedule mode */}
+        {currentStep === 3 && !isRescheduleMode && (
           <BookingSummaryCard
             serviceTitle={serviceDetails.title}
             providerName={serviceDetails.provider?.name}
