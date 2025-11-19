@@ -108,6 +108,63 @@ const ClientBooking = () => {
     enabled: !!user?.id,
   });
 
+  // Query to load service data when in reschedule mode
+  const { data: rescheduleServiceData, isLoading: isLoadingRescheduleService } = useQuery({
+    queryKey: ['reschedule-service', rescheduleData?.listingId],
+    queryFn: async () => {
+      if (!rescheduleData?.listingId) return null;
+      
+      const { data, error } = await supabase
+        .from('listings')
+        .select(`
+          id,
+          title,
+          slot_size,
+          is_post_payment,
+          custom_variable_groups,
+          service_variants,
+          service_types (
+            name,
+            category_id
+          ),
+          users!listings_provider_id_fkey (
+            id,
+            name
+          )
+        `)
+        .eq('id', rescheduleData.listingId)
+        .single();
+      
+      if (error) throw error;
+      
+      // Transform data to match expected structure
+      return {
+        ...data,
+        provider: data.users
+      };
+    },
+    enabled: isRescheduleMode && !!rescheduleData?.listingId,
+  });
+
+  // Use effective variables based on mode
+  const effectiveServiceDetails = isRescheduleMode 
+    ? rescheduleServiceData 
+    : serviceDetails;
+
+  const effectiveProviderId = isRescheduleMode 
+    ? rescheduleData?.providerId 
+    : providerId;
+
+  const effectiveSelectedVariants = isRescheduleMode && rescheduleServiceData?.service_variants
+    ? (Array.isArray(rescheduleServiceData.service_variants) 
+        ? rescheduleServiceData.service_variants.slice(0, 1).map((v: any) => ({
+            ...v,
+            quantity: 1,
+            personQuantity: 1
+          }))
+        : [])
+    : selectedVariants;
+
   // Enhanced scroll to top when component mounts
   useEffect(() => {
     // Force immediate scroll to top
@@ -133,9 +190,9 @@ const ClientBooking = () => {
   }, []);
 
   // Enhanced validation - More permissive for better UX
-  const isBookingValid = selectedDate && selectedTime && selectedVariants?.length > 0 && !isLoadingUserData;
-  const selectedVariant = selectedVariants?.[0];
-  const slotSize = serviceDetails?.slot_size || 60; // Default to 60 if not specified
+  const isBookingValid = selectedDate && selectedTime && effectiveSelectedVariants?.length > 0 && !isLoadingUserData;
+  const selectedVariant = effectiveSelectedVariants?.[0];
+  const slotSize = effectiveServiceDetails?.slot_size || 60; // Default to 60 if not specified
 
   const handleBackNavigation = () => {
     // Scroll to top before navigation
@@ -215,13 +272,32 @@ const ClientBooking = () => {
     }
   };
 
-  if (!serviceDetails || !providerId || !selectedVariants) {
+  // Show loading state while fetching reschedule service data
+  if (isRescheduleMode && isLoadingRescheduleService) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="ml-3 text-muted-foreground">Cargando información del servicio...</p>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Validate we have the required data
+  if (!effectiveServiceDetails || !effectiveProviderId || !effectiveSelectedVariants) {
     return (
       <PageLayout>
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">
             No se pudo cargar la información del servicio
           </p>
+          <button
+            onClick={() => navigate('/client/bookings')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+          >
+            Volver a Mis Reservas
+          </button>
         </div>
       </PageLayout>
     );
@@ -268,7 +344,7 @@ const ClientBooking = () => {
       }
 
       // Calculate total price
-      const totalPrice = selectedVariants.reduce((sum, variant) => {
+      const totalPrice = effectiveSelectedVariants.reduce((sum, variant) => {
         const basePrice = Number(variant.price) * variant.quantity;
         const additionalPersonPrice = variant.personQuantity && variant.additionalPersonPrice 
           ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
@@ -290,7 +366,7 @@ const ClientBooking = () => {
         customVariablesTotalPrice: customVariablesTotalPrice,
         selectedSlotIds: selectedSlotIds.length > 0 ? selectedSlotIds : undefined,
         totalDuration: totalDuration > 0 ? totalDuration : undefined,
-        providerId
+        providerId: effectiveProviderId
       };
 
       // Scroll to top before navigating to checkout
@@ -299,9 +375,9 @@ const ClientBooking = () => {
       // Navigate to checkout with all data
       navigate('/checkout', {
         state: {
-          serviceTitle: serviceDetails.title,
-          providerName: serviceDetails.provider?.name,
-          selectedVariants,
+          serviceTitle: effectiveServiceDetails.title,
+          providerName: effectiveServiceDetails.provider?.name,
+          selectedVariants: effectiveSelectedVariants,
           selectedDate,
           selectedTime,
           clientLocation,
@@ -395,12 +471,12 @@ const ClientBooking = () => {
             setTotalDuration(duration);
             setSelectedSlotIds(slotIds || []);
           }}
-          providerId={providerId}
-          listingId={serviceId || ''}
-          selectedVariants={selectedVariants}
+          providerId={effectiveProviderId}
+          listingId={serviceId || rescheduleData?.listingId || ''}
+          selectedVariants={effectiveSelectedVariants}
           notes={notes}
           onNotesChange={setNotes}
-          customVariableGroups={serviceDetails.custom_variable_groups}
+          customVariableGroups={effectiveServiceDetails.custom_variable_groups}
           customVariableSelections={customVariableSelections}
           onCustomVariableSelectionsChange={(selections, totalPrice) => {
             setCustomVariableSelections(selections);
@@ -411,14 +487,14 @@ const ClientBooking = () => {
           onPrevStep={handlePrevStep}
           isRescheduleMode={isRescheduleMode}
           onReschedule={handleReschedule}
-          serviceDetails={serviceDetails}
+          serviceDetails={effectiveServiceDetails}
         />
 
         {/* Booking Summary - Only show on Step 3 and not in reschedule mode */}
         {currentStep === 3 && !isRescheduleMode && (
           <BookingSummaryCard
-            serviceTitle={serviceDetails.title}
-            providerName={serviceDetails.provider?.name}
+            serviceTitle={effectiveServiceDetails.title}
+            providerName={effectiveServiceDetails.provider?.name}
             selectedVariant={selectedVariant}
             selectedVariants={selectedVariants}
             selectedDate={selectedDate}
