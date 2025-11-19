@@ -108,11 +108,14 @@ const ClientBooking = () => {
     enabled: !!user?.id,
   });
 
+  // Make reschedule mode self-sufficient using serviceId from URL
+  const listingIdForReschedule = serviceId || rescheduleData?.listingId || null;
+
   // Query to load service data when in reschedule mode
   const { data: rescheduleServiceData, isLoading: isLoadingRescheduleService } = useQuery({
-    queryKey: ['reschedule-service', rescheduleData?.listingId],
+    queryKey: ['reschedule-service', listingIdForReschedule],
     queryFn: async () => {
-      if (!rescheduleData?.listingId) return null;
+      if (!listingIdForReschedule) return null;
       
       const { data, error } = await supabase
         .from('listings')
@@ -132,7 +135,7 @@ const ClientBooking = () => {
             name
           )
         `)
-        .eq('id', rescheduleData.listingId)
+        .eq('id', listingIdForReschedule)
         .single();
       
       if (error) throw error;
@@ -143,27 +146,25 @@ const ClientBooking = () => {
         provider: data.users
       };
     },
-    enabled: isRescheduleMode && !!rescheduleData?.listingId,
+    enabled: isRescheduleMode && !!listingIdForReschedule,
   });
 
-  // Use effective variables based on mode
+  // Use effective variables based on mode - robust fallbacks
   const effectiveServiceDetails = isRescheduleMode 
     ? rescheduleServiceData 
     : serviceDetails;
 
   const effectiveProviderId = isRescheduleMode 
-    ? rescheduleData?.providerId 
+    ? (rescheduleData?.providerId || rescheduleServiceData?.provider?.[0]?.id || '')
     : providerId;
 
-  const effectiveSelectedVariants = isRescheduleMode && rescheduleServiceData?.service_variants
-    ? (Array.isArray(rescheduleServiceData.service_variants) 
-        ? rescheduleServiceData.service_variants.slice(0, 1).map((v: any) => ({
-            ...v,
-            quantity: 1,
-            personQuantity: 1
-          }))
-        : [])
-    : selectedVariants;
+  const effectiveSelectedVariants = isRescheduleMode && Array.isArray(rescheduleServiceData?.service_variants)
+    ? rescheduleServiceData.service_variants.slice(0, 1).map((v: any) => ({
+        ...v,
+        quantity: 1,
+        personQuantity: 1
+      }))
+    : (selectedVariants || []);
 
   // Enhanced scroll to top when component mounts
   useEffect(() => {
@@ -208,7 +209,7 @@ const ClientBooking = () => {
   };
 
   const handleReschedule = async () => {
-    if (!user || !selectedDate || !selectedTime || !rescheduleData) {
+    if (!user || !selectedDate || !selectedTime) {
       toast.error('Información incompleta para reagendar');
       return;
     }
@@ -234,12 +235,21 @@ const ClientBooking = () => {
         clientAddress = 'Dirección a confirmar por cliente';
       }
 
+      // Construct robust listing and provider IDs
+      const listingIdToUse = rescheduleData?.listingId || serviceId || effectiveServiceDetails?.id;
+      const providerIdToUse = rescheduleData?.providerId || effectiveProviderId;
+
+      if (!listingIdToUse || !providerIdToUse) {
+        toast.error('Error: información del servicio incompleta');
+        return;
+      }
+
       // Create new appointment as "once" type
       const { data: newAppointment, error } = await supabase
         .from('appointments')
         .insert({
-          listing_id: rescheduleData.listingId,
-          provider_id: rescheduleData.providerId,
+          listing_id: listingIdToUse,
+          provider_id: providerIdToUse,
           client_id: user.id,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
@@ -250,7 +260,9 @@ const ClientBooking = () => {
           client_email: user.email,
           client_phone: user.phone,
           client_address: clientAddress,
-          notes: `Reagendada desde: ${format(rescheduleData.originalDate, 'dd/MM/yyyy')}`,
+          notes: rescheduleData?.originalDate
+            ? `Reagendada desde: ${format(rescheduleData.originalDate, 'dd/MM/yyyy')}`
+            : 'Cita reagendada desde Mis Reservas',
           created_from: 'client_app'
         })
         .select()
@@ -284,8 +296,8 @@ const ClientBooking = () => {
     );
   }
 
-  // Validate we have the required data
-  if (!effectiveServiceDetails || !effectiveProviderId || !effectiveSelectedVariants) {
+  // Validate we have the required data (relaxed - don't block on variants)
+  if (!effectiveServiceDetails || !effectiveProviderId) {
     return (
       <PageLayout>
         <div className="text-center py-12">
