@@ -327,8 +327,8 @@ const ClientBooking = () => {
 
   // Differentiated validation: more permissive for reschedule mode
   if (isRescheduleMode) {
-    // In reschedule mode, we need at least listingId, providerId, and serviceDetails
-    if (!listingIdForBooking || !effectiveProviderId || !effectiveServiceDetails) {
+    // En modo reagendar solo necesitamos IDs mínimos para cargar horarios
+    if (!listingIdForBooking || !effectiveProviderId) {
       return (
         <PageLayout>
           <div className="text-center py-12">
