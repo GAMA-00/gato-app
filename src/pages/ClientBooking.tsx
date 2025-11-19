@@ -242,6 +242,12 @@ const ClientBooking = () => {
   };
 
   const handleReschedule = async () => {
+    // Guard against multiple rapid clicks
+    if (isRescheduling) {
+      bookingLogger.warn('handleReschedule called while already processing');
+      return;
+    }
+
     // Detailed logging for debugging
     bookingLogger.debug('handleReschedule called', {
       hasUser: !!user,
@@ -346,9 +352,16 @@ const ClientBooking = () => {
       toast.success('Cita reagendada exitosamente');
       navigate('/client/bookings');
 
-    } catch (error) {
+    } catch (error: any) {
       bookingLogger.error('Error rescheduling appointment:', { error });
-      toast.error('Error al reagendar la cita');
+      
+      // Show actual error message to user for better debugging
+      const errorMessage = 
+        error?.message || 
+        (typeof error === 'string' ? error : null) || 
+        'Error al reagendar la cita';
+      
+      toast.error(errorMessage);
     } finally {
       setIsRescheduling(false);
     }

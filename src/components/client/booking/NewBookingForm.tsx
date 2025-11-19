@@ -6,6 +6,7 @@ import RecurrencePatternDisplay from './RecurrencePatternDisplay';
 import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
 import { CustomVariableGroup } from '@/lib/types';
 import { logger } from '@/utils/logger';
+import { toast } from 'sonner';
 
 interface NewBookingFormProps {
   currentStep: number;
@@ -77,11 +78,37 @@ const NewBookingForm = ({
     requiredSlots
   });
 
+  // Runtime validation for reschedule mode
+  if (isRescheduleMode && !onReschedule) {
+    logger.error('NewBookingForm: isRescheduleMode=true pero onReschedule no fue provisto');
+  }
+
   const handleSlotSelect = (slotIds: string[], date: Date, time: string, duration: number) => {
     setSelectedSlotIds(slotIds);
     onDateChange(date);
     onTimeChange(time);
     onDurationChange(duration, slotIds);
+  };
+
+  const handleButtonClick = () => {
+    if (isRescheduleMode) {
+      logger.info('Reagendar button clicked', {
+        hasOnReschedule: !!onReschedule,
+        selectedDate,
+        selectedTime,
+        providerId,
+        listingId
+      });
+
+      if (!onReschedule) {
+        toast.error('No se pudo iniciar el reagendo. Por favor vuelve a intentar desde "Mis Reservas".');
+        return;
+      }
+
+      onReschedule();
+    } else {
+      onNextStep();
+    }
   };
 
   return (
@@ -136,7 +163,7 @@ const NewBookingForm = ({
           {selectedDate && selectedTime && (
             <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t z-50 md:relative md:bottom-0 md:border-0 md:p-0 md:mt-6">
               <button
-                onClick={isRescheduleMode ? () => { onReschedule && onReschedule(); } : onNextStep}
+                onClick={handleButtonClick}
                 disabled={isRescheduleMode && isLoadingReschedule}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
