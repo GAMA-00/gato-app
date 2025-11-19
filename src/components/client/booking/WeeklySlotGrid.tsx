@@ -273,7 +273,7 @@ const WeeklySlotGrid = ({
           <img src={calendarIcon} alt="Calendar" className="h-12 w-12 flex-shrink-0" />
           <div className="flex-1">
             <CardTitle className="text-lg md:text-xl">
-              Selecciona la hora de inicio
+              Seleccione su horario
             </CardTitle>
             {slotsNeeded > 1 && (
               <CardDescription className="mt-2">
