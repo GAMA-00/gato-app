@@ -121,6 +121,7 @@ const ClientBooking = () => {
         .from('listings')
         .select(`
           id,
+          provider_id,
           title,
           slot_size,
           is_post_payment,
@@ -155,7 +156,7 @@ const ClientBooking = () => {
     : serviceDetails;
 
   const effectiveProviderId = isRescheduleMode 
-    ? (rescheduleData?.providerId || rescheduleServiceData?.provider?.[0]?.id || '')
+    ? (rescheduleData?.providerId || rescheduleServiceData?.provider_id || '')
     : providerId;
 
   const effectiveSelectedVariants = isRescheduleMode && Array.isArray(rescheduleServiceData?.service_variants)
