@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import RecurrenceSelector from './RecurrenceSelector';
 import WeeklySlotGrid from './WeeklySlotGrid';
-import NotesSection from './NotesSection';
 import CustomVariableSelector from './CustomVariableSelector';
 import RecurrencePatternDisplay from './RecurrencePatternDisplay';
 import { ServiceVariantWithQuantity } from '@/components/client/results/ServiceVariantsSelector';
@@ -162,12 +161,6 @@ const NewBookingForm = ({
               initialSelection={customVariableSelections}
             />
           )}
-
-          {/* Notes - Reduced size */}
-          <NotesSection
-            notes={notes}
-            onNotesChange={onNotesChange}
-          />
         </div>
       )}
     </div>

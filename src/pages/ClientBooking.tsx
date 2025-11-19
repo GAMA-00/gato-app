@@ -615,6 +615,8 @@ const ClientBooking = () => {
             customVariablesTotalPrice={customVariablesTotalPrice}
             selectedSlotIds={selectedSlotIds}
             isPostPayment={serviceDetails?.is_post_payment || false}
+            notes={notes}
+            onNotesChange={setNotes}
           />
         )}
       </div>

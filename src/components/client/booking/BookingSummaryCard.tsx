@@ -45,6 +45,9 @@ interface BookingSummaryCardProps {
   onBookingSuccess?: (appointment: any) => void;
   hasPostPaymentCosts?: boolean;
   isPostPayment?: boolean;
+  // Notes props
+  notes?: string;
+  onNotesChange?: (notes: string) => void;
 }
 
 const BookingSummaryCard = ({
@@ -68,7 +71,9 @@ const BookingSummaryCard = ({
   bookingData,
   onBookingSuccess,
   hasPostPaymentCosts = false,
-  isPostPayment = false
+  isPostPayment = false,
+  notes = '',
+  onNotesChange
 }: BookingSummaryCardProps) => {
   // Calculate totals for multiple variants (including per-person pricing if present)
   const totalPrice = selectedVariants.length > 0 
@@ -95,7 +100,7 @@ const BookingSummaryCard = ({
   return (
     <Card className="w-full">
       <CardHeader className="pb-1.5 pt-2 px-3">
-        <CardTitle className="text-sm font-semibold">Resumen de Reserva</CardTitle>
+        <CardTitle className="text-lg font-semibold">Resumen de Reserva</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 px-3 pb-3">
         {/* Compact Information Grid */}
@@ -190,6 +195,22 @@ const BookingSummaryCard = ({
             </div>
           </div>
         </div>
+
+        {/* Notes Section - Now positioned right before button */}
+        {onNotesChange && (
+          <div>
+            <label className="text-xs font-medium mb-1 block text-foreground">
+              Notas adicionales (opcional)
+            </label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => onNotesChange(e.target.value)}
+              placeholder="Instrucciones especiales, preferencias, etc."
+              className="w-full p-1.5 border rounded-lg text-xs"
+            />
+          </div>
+        )}
 
         {/* Booking Button - Compact */}
         {bookingData ? (
