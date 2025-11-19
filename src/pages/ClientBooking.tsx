@@ -124,6 +124,8 @@ const ClientBooking = () => {
           provider_id,
           title,
           slot_size,
+          standard_duration,
+          duration,
           is_post_payment,
           custom_variable_groups,
           service_variants,
@@ -137,9 +139,14 @@ const ClientBooking = () => {
           )
         `)
         .eq('id', listingIdForReschedule)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        bookingLogger.error('Error loading reschedule service:', { error });
+        return null;
+      }
+      
+      if (!data) return null;
       
       // Transform data to match expected structure
       return {
@@ -155,16 +162,26 @@ const ClientBooking = () => {
     ? rescheduleServiceData 
     : serviceDetails;
 
+  // Unified listing ID for booking
+  const listingIdForBooking = serviceId || rescheduleData?.listingId || effectiveServiceDetails?.id || '';
+
   const effectiveProviderId = isRescheduleMode 
-    ? (rescheduleData?.providerId || rescheduleServiceData?.provider_id || '')
+    ? (rescheduleData?.providerId || rescheduleServiceData?.provider_id || providerId || '')
     : providerId;
 
+  // Reinforce variants with fallback duration if variants are not available
   const effectiveSelectedVariants = isRescheduleMode && Array.isArray(rescheduleServiceData?.service_variants)
     ? rescheduleServiceData.service_variants.slice(0, 1).map((v: any) => ({
         ...v,
         quantity: 1,
         personQuantity: 1
       }))
+    : isRescheduleMode && rescheduleServiceData
+    ? [{
+        duration: rescheduleServiceData.slot_size || rescheduleServiceData.standard_duration || rescheduleServiceData.duration || 60,
+        quantity: 1,
+        personQuantity: 1
+      }]
     : (selectedVariants || []);
 
   // Enhanced scroll to top when component mounts
@@ -236,11 +253,8 @@ const ClientBooking = () => {
         clientAddress = 'Dirección a confirmar por cliente';
       }
 
-      // Construct robust listing and provider IDs
-      const listingIdToUse = rescheduleData?.listingId || serviceId || effectiveServiceDetails?.id;
-      const providerIdToUse = rescheduleData?.providerId || effectiveProviderId;
-
-      if (!listingIdToUse || !providerIdToUse) {
+      // Use the unified constants
+      if (!listingIdForBooking || !effectiveProviderId) {
         toast.error('Error: información del servicio incompleta');
         return;
       }
@@ -249,8 +263,8 @@ const ClientBooking = () => {
       const { data: newAppointment, error } = await supabase
         .from('appointments')
         .insert({
-          listing_id: listingIdToUse,
-          provider_id: providerIdToUse,
+          listing_id: listingIdForBooking,
+          provider_id: effectiveProviderId,
           client_id: user.id,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
@@ -297,23 +311,45 @@ const ClientBooking = () => {
     );
   }
 
-  // Validate we have the required data (relaxed - don't block on variants)
-  if (!effectiveServiceDetails || !effectiveProviderId) {
-    return (
-      <PageLayout>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">
-            No se pudo cargar la información del servicio
-          </p>
-          <button
-            onClick={() => navigate('/client/bookings')}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-          >
-            Volver a Mis Reservas
-          </button>
-        </div>
-      </PageLayout>
-    );
+  // Differentiated validation: more permissive for reschedule mode
+  if (isRescheduleMode) {
+    // In reschedule mode, we need at least listingId and providerId
+    if (!listingIdForBooking || !effectiveProviderId) {
+      return (
+        <PageLayout>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">
+              No se pudo cargar la información del servicio
+            </p>
+            <button
+              onClick={() => navigate('/client/bookings')}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            >
+              Volver a Mis Reservas
+            </button>
+          </div>
+        </PageLayout>
+      );
+    }
+  } else {
+    // Normal mode requires full service details
+    if (!effectiveServiceDetails || !effectiveProviderId) {
+      return (
+        <PageLayout>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">
+              No se pudo cargar la información del servicio
+            </p>
+            <button
+              onClick={() => navigate('/client/categories')}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            >
+              Volver a Categorías
+            </button>
+          </div>
+        </PageLayout>
+      );
+    }
   }
 
   const handleBooking = async () => {
@@ -485,7 +521,7 @@ const ClientBooking = () => {
             setSelectedSlotIds(slotIds || []);
           }}
           providerId={effectiveProviderId}
-          listingId={serviceId || rescheduleData?.listingId || ''}
+          listingId={listingIdForBooking}
           selectedVariants={effectiveSelectedVariants}
           notes={notes}
           onNotesChange={setNotes}
