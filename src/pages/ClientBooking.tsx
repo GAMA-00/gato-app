@@ -184,6 +184,20 @@ const ClientBooking = () => {
       }]
     : (selectedVariants || []);
 
+  // Debug logging for reschedule mode
+  useEffect(() => {
+    if (isRescheduleMode) {
+      bookingLogger.debug('Reschedule mode data check', {
+        listingIdForReschedule,
+        hasRescheduleServiceData: !!rescheduleServiceData,
+        isLoadingRescheduleService,
+        effectiveServiceDetails: !!effectiveServiceDetails,
+        listingIdForBooking,
+        effectiveProviderId
+      });
+    }
+  }, [isRescheduleMode, rescheduleServiceData, isLoadingRescheduleService, effectiveServiceDetails, listingIdForBooking, effectiveProviderId, listingIdForReschedule]);
+
   // Enhanced scroll to top when component mounts
   useEffect(() => {
     // Force immediate scroll to top
@@ -313,8 +327,8 @@ const ClientBooking = () => {
 
   // Differentiated validation: more permissive for reschedule mode
   if (isRescheduleMode) {
-    // In reschedule mode, we need at least listingId and providerId
-    if (!listingIdForBooking || !effectiveProviderId) {
+    // In reschedule mode, we need at least listingId, providerId, and serviceDetails
+    if (!listingIdForBooking || !effectiveProviderId || !effectiveServiceDetails) {
       return (
         <PageLayout>
           <div className="text-center py-12">
@@ -525,7 +539,7 @@ const ClientBooking = () => {
           selectedVariants={effectiveSelectedVariants}
           notes={notes}
           onNotesChange={setNotes}
-          customVariableGroups={effectiveServiceDetails.custom_variable_groups}
+          customVariableGroups={effectiveServiceDetails?.custom_variable_groups}
           customVariableSelections={customVariableSelections}
           onCustomVariableSelectionsChange={(selections, totalPrice) => {
             setCustomVariableSelections(selections);
