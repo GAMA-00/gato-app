@@ -66,6 +66,7 @@ const ClientBooking = () => {
   const [notes, setNotes] = useState('');
   const [customVariableSelections, setCustomVariableSelections] = useState<any>({});
   const [customVariablesTotalPrice, setCustomVariablesTotalPrice] = useState<number>(0);
+  const [isRescheduling, setIsRescheduling] = useState(false);
 
   const handleNextStep = () => {
     setCurrentStep(prev => Math.min(prev + 1, 3));
@@ -269,14 +270,7 @@ const ClientBooking = () => {
       return;
     }
 
-    // Ensure we have at least one variant with duration
-    if (!effectiveSelectedVariants || effectiveSelectedVariants.length === 0) {
-      bookingLogger.error('Missing selected variants', {
-        effectiveSelectedVariants
-      });
-      toast.error('Error: no se pudo determinar la duración del servicio');
-      return;
-    }
+    setIsRescheduling(true);
 
     try {
       // Create start and end times
@@ -285,7 +279,18 @@ const ClientBooking = () => {
       startDateTime.setHours(hours, minutes, 0, 0);
       
       const endDateTime = new Date(startDateTime);
-      const duration = totalDuration > 0 ? totalDuration : (selectedVariant?.duration || 60);
+      
+      // Calculate duration robustly:
+      // 1. Use totalDuration if already calculated by slot grid
+      // 2. Otherwise use listing configuration (slot_size, standard_duration, duration)
+      // 3. Fallback to 60 minutes as safe default
+      const fallbackDurationFromListing =
+        effectiveServiceDetails?.slot_size ||
+        effectiveServiceDetails?.standard_duration ||
+        effectiveServiceDetails?.duration ||
+        60;
+
+      const duration = totalDuration > 0 ? totalDuration : fallbackDurationFromListing;
       endDateTime.setMinutes(endDateTime.getMinutes() + duration);
 
       bookingLogger.debug('Creating rescheduled appointment', {
@@ -344,6 +349,8 @@ const ClientBooking = () => {
     } catch (error) {
       bookingLogger.error('Error rescheduling appointment:', { error });
       toast.error('Error al reagendar la cita');
+    } finally {
+      setIsRescheduling(false);
     }
   };
 
@@ -585,7 +592,7 @@ const ClientBooking = () => {
         isRescheduleMode={isRescheduleMode}
         onReschedule={handleReschedule}
         serviceDetails={effectiveServiceDetails}
-        isLoadingReschedule={isLoadingRescheduleService}
+        isLoadingReschedule={isRescheduling}
       />
 
         {/* Booking Summary - Only show on Step 3 and not in reschedule mode */}
