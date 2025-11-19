@@ -324,6 +324,8 @@ const ClientBooking = () => {
           notes: rescheduleData?.originalDate
             ? `Reagendada desde: ${format(rescheduleData.originalDate, 'dd/MM/yyyy')}`
             : 'Cita reagendada desde Mis Reservas',
+          external_booking: false,
+          created_by_user: user.id,
           created_from: 'client_app'
         })
         .select()
