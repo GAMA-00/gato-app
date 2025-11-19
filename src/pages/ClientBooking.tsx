@@ -241,8 +241,40 @@ const ClientBooking = () => {
   };
 
   const handleReschedule = async () => {
+    // Detailed logging for debugging
+    bookingLogger.debug('handleReschedule called', {
+      hasUser: !!user,
+      selectedDate,
+      selectedTime,
+      listingIdForBooking,
+      effectiveProviderId,
+      effectiveSelectedVariants: effectiveSelectedVariants?.length,
+      totalDuration,
+      rescheduleData,
+      isLoadingRescheduleService
+    });
+
     if (!user || !selectedDate || !selectedTime) {
       toast.error('Información incompleta para reagendar');
+      return;
+    }
+
+    // Validate required data
+    if (!listingIdForBooking || !effectiveProviderId) {
+      bookingLogger.error('Missing required IDs for rescheduling', {
+        listingIdForBooking,
+        effectiveProviderId
+      });
+      toast.error('Error: información del servicio incompleta');
+      return;
+    }
+
+    // Ensure we have at least one variant with duration
+    if (!effectiveSelectedVariants || effectiveSelectedVariants.length === 0) {
+      bookingLogger.error('Missing selected variants', {
+        effectiveSelectedVariants
+      });
+      toast.error('Error: no se pudo determinar la duración del servicio');
       return;
     }
 
@@ -256,6 +288,12 @@ const ClientBooking = () => {
       const duration = totalDuration > 0 ? totalDuration : (selectedVariant?.duration || 60);
       endDateTime.setMinutes(endDateTime.getMinutes() + duration);
 
+      bookingLogger.debug('Creating rescheduled appointment', {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime.toISOString(),
+        duration
+      });
+
       // Get client address from complete user data
       let clientAddress = '';
       
@@ -265,12 +303,6 @@ const ClientBooking = () => {
         clientAddress = `Dirección temporal - Tel: ${user.phone}`;
       } else {
         clientAddress = 'Dirección a confirmar por cliente';
-      }
-
-      // Use the unified constants
-      if (!listingIdForBooking || !effectiveProviderId) {
-        toast.error('Error: información del servicio incompleta');
-        return;
       }
 
       // Create new appointment as "once" type
@@ -540,18 +572,19 @@ const ClientBooking = () => {
           notes={notes}
           onNotesChange={setNotes}
           customVariableGroups={effectiveServiceDetails?.custom_variable_groups}
-          customVariableSelections={customVariableSelections}
-          onCustomVariableSelectionsChange={(selections, totalPrice) => {
-            setCustomVariableSelections(selections);
-            setCustomVariablesTotalPrice(totalPrice);
-          }}
-          slotSize={slotSize}
-          onNextStep={handleNextStep}
-          onPrevStep={handlePrevStep}
-          isRescheduleMode={isRescheduleMode}
-          onReschedule={handleReschedule}
-          serviceDetails={effectiveServiceDetails}
-        />
+        customVariableSelections={customVariableSelections}
+        onCustomVariableSelectionsChange={(selections, totalPrice) => {
+          setCustomVariableSelections(selections);
+          setCustomVariablesTotalPrice(totalPrice);
+        }}
+        slotSize={slotSize}
+        onNextStep={handleNextStep}
+        onPrevStep={handlePrevStep}
+        isRescheduleMode={isRescheduleMode}
+        onReschedule={handleReschedule}
+        serviceDetails={effectiveServiceDetails}
+        isLoadingReschedule={isLoadingRescheduleService}
+      />
 
         {/* Booking Summary - Only show on Step 3 and not in reschedule mode */}
         {currentStep === 3 && !isRescheduleMode && (

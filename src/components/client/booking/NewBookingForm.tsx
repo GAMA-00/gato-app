@@ -32,6 +32,7 @@ interface NewBookingFormProps {
   isRescheduleMode?: boolean;
   onReschedule?: () => void;
   serviceDetails?: any;
+  isLoadingReschedule?: boolean;
 }
 
 const NewBookingForm = ({
@@ -57,7 +58,8 @@ const NewBookingForm = ({
   onPrevStep,
   isRescheduleMode = false,
   onReschedule,
-  serviceDetails
+  serviceDetails,
+  isLoadingReschedule = false
 }: NewBookingFormProps) => {
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
@@ -136,9 +138,13 @@ const NewBookingForm = ({
             <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t z-50 md:relative md:bottom-0 md:border-0 md:p-0 md:mt-6">
               <button
                 onClick={isRescheduleMode ? onReschedule : onNextStep}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 rounded-lg font-medium"
+                disabled={isRescheduleMode && isLoadingReschedule}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isRescheduleMode ? 'Reagendar' : 'Siguiente'}
+                {isRescheduleMode 
+                  ? (isLoadingReschedule ? 'Cargando...' : 'Reagendar')
+                  : 'Siguiente'
+                }
               </button>
             </div>
           )}
