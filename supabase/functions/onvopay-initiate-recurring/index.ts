@@ -226,14 +226,15 @@ serve(async (req) => {
     const serviceType = listing?.service_types?.name || 
                        listing?.title || 
                        'Servicio';
-    const recurrenceLabel = appointment.recurrence === 'weekly' 
-      ? 'Semanal' 
-      : appointment.recurrence === 'biweekly' 
-      ? 'Quincenal'
-      : appointment.recurrence === 'monthly'
-      ? 'Mensual'
-      : 'Recurrente';
+    // Mapeo completo de tipos de recurrencia a español
+    const recurrenceMap: Record<string, string> = {
+      'weekly': 'Semanal',
+      'biweekly': 'Quincenal',
+      'triweekly': 'Trisemanal',
+      'monthly': 'Mensual'
+    };
     
+    const recurrenceLabel = recurrenceMap[appointment.recurrence] || 'Recurrente';
     const description = `${serviceType} - ${recurrenceLabel}`;
     console.log('📝 Payment description:', description);
 
