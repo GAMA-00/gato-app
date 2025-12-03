@@ -22,9 +22,6 @@ export const useComprehensiveSync = () => {
   useEffect(() => {
     if (!user?.id || user.role !== 'provider') return;
 
-    console.log('🔗 Configurando sincronización comprehensiva en tiempo real...');
-
-    // Channel para cambios en listings
     const listingsChannel = supabase
       .channel(`comprehensive-listings-sync-${user.id}`)
       .on(
@@ -36,18 +33,12 @@ export const useComprehensiveSync = () => {
           filter: `provider_id=eq.${user.id}`
         },
         async (payload) => {
-          console.log('📡 Cambio en listings detectado:', payload.eventType);
-          
-          // Invalidar caches relacionados con listings usando utilidad centralizada
           await invalidateListings(queryClient, user.id);
           await invalidateProviderAvailability(queryClient, user.id);
-
-          console.log('✅ Caches invalidados por cambio en listings');
         }
       )
       .subscribe();
 
-    // Channel para cambios en perfil de usuario
     const userProfileChannel = supabase
       .channel(`comprehensive-users-sync-${user.id}`)
       .on(
@@ -59,22 +50,14 @@ export const useComprehensiveSync = () => {
           filter: `id=eq.${user.id}`
         },
         async (payload) => {
-          console.log('📡 Cambio en perfil de usuario detectado:', payload.new);
-          
-          // Invalidar caches relacionados con perfil usando utilidad centralizada
           await invalidateUserProfile(queryClient, user.id);
           await invalidateListings(queryClient, user.id);
-
-          // Refetch datos críticos
           queryClient.refetchQueries({ queryKey: ['user-profile', user.id] });
-          
-          console.log('✅ Perfil sincronizado en todas las secciones');
           toast.success('Perfil actualizado automáticamente');
         }
       )
       .subscribe();
 
-    // Channel para cambios en availability del proveedor
     const availabilityChannel = supabase
       .channel(`comprehensive-availability-sync-${user.id}`)
       .on(
@@ -86,17 +69,11 @@ export const useComprehensiveSync = () => {
           filter: `provider_id=eq.${user.id}`
         },
         async (payload) => {
-          console.log('📡 Cambio en disponibilidad detectado:', payload.eventType);
-          
-          // Invalidar caches de disponibilidad usando utilidad centralizada
           await invalidateProviderAvailability(queryClient, user.id);
-
-          console.log('✅ Disponibilidad sincronizada');
         }
       )
       .subscribe();
 
-    // Channel para cambios en slots de tiempo
     const slotsChannel = supabase
       .channel(`comprehensive-slots-sync-${user.id}`)
       .on(
@@ -108,18 +85,12 @@ export const useComprehensiveSync = () => {
           filter: `provider_id=eq.${user.id}`
         },
         async (payload) => {
-          console.log('📡 Cambio en slots detectado:', payload.eventType);
-          
-          // Invalidar caches de slots usando utilidad centralizada
           await invalidateProviderSlots(queryClient, user.id);
-
-          console.log('✅ Slots sincronizados');
         }
       )
       .subscribe();
 
     return () => {
-      console.log('🧹 Limpiando listeners de sincronización comprehensiva');
       supabase.removeChannel(listingsChannel);
       supabase.removeChannel(userProfileChannel);
       supabase.removeChannel(availabilityChannel);
@@ -132,18 +103,11 @@ export const useComprehensiveSync = () => {
    */
   const forceFullSync = async () => {
     if (!user?.id) return;
-
-    console.log('🔄 Forzando sincronización completa...');
     
     try {
-      // Usar utilidad centralizada para sincronización completa
       await forceFullProviderSync(queryClient, user.id);
-
-      console.log('✅ Sincronización completa exitosa');
       toast.success('Todas las secciones sincronizadas');
-
     } catch (error) {
-      console.error('❌ Error en sincronización completa:', error);
       toast.error('Error sincronizando datos');
     }
   };

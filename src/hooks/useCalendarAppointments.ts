@@ -43,9 +43,9 @@ interface EnhancedAppointment extends AppointmentData {
   } | null;
   residencias: null;
   complete_location: string;
-  rescheduled_style?: string; // Nuevo campo para el estilo
-  reschedule_notes?: string; // Notas de reagendamiento
-  is_rescheduled_appointment?: boolean; // Para identificar citas reagendadas
+  rescheduled_style?: string;
+  reschedule_notes?: string;
+  is_rescheduled_appointment?: boolean;
 }
 
 export const useCalendarAppointments = (currentDate: Date) => {
@@ -58,266 +58,212 @@ export const useCalendarAppointments = (currentDate: Date) => {
     queryKey: ['calendar-appointments', user?.id, format(startDate, 'yyyy-MM-dd'), format(endDate, 'yyyy-MM-dd')],
     queryFn: async (): Promise<EnhancedAppointment[]> => {
       if (!user?.id) {
-        console.log('No user ID available for calendar');
         return [];
       }
 
-      try {
-        console.log('Fetching calendar appointments for provider:', user.id);
-        console.log('Date range:', format(startDate, 'yyyy-MM-dd'), 'to', format(endDate, 'yyyy-MM-dd'));
+      const { data: allAppointments, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          provider_id,
+          client_id,
+          listing_id,
+          start_time,
+          end_time,
+          status,
+          notes,
+          client_address,
+          client_phone,
+          client_email,
+          client_name,
+          provider_name,
+          external_booking,
+          is_recurring_instance,
+          recurring_rule_id,
+          recurrence,
+          created_at
+        `)
+        .eq('provider_id', user.id)
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
+        .in('status', ['pending', 'confirmed', 'completed'])
+        .order('start_time', { ascending: true });
 
-        // First, fetch appointments to get their IDs  
-        const { data: allAppointments, error: appointmentsError } = await supabase
-          .from('appointments')
-          .select(`
-            id,
-            provider_id,
-            client_id,
-            listing_id,
-            start_time,
-            end_time,
-            status,
-            notes,
-            client_address,
-            client_phone,
-            client_email,
-            client_name,
-            provider_name,
-            external_booking,
-            is_recurring_instance,
-            recurring_rule_id,
-            recurrence,
-            created_at
-          `)
-          .eq('provider_id', user.id)
-          .gte('start_time', startDate.toISOString())
-          .lte('start_time', endDate.toISOString())
-          .in('status', ['pending', 'confirmed', 'completed'])
-          .order('start_time', { ascending: true });
+      if (appointmentsError) {
+        throw new Error(`Error fetching appointments: ${appointmentsError.message}`);
+      }
 
-        if (appointmentsError) {
-          console.error('Error fetching appointments:', appointmentsError);
-          throw new Error(`Error fetching appointments: ${appointmentsError.message}`);
-        }
+      const appointmentsList = allAppointments || [];
 
-        const appointmentsList = allAppointments || [];
-        console.log(`Found ${appointmentsList.length} total appointments for calendar`);
-
-        // Then fetch ALL recurring exceptions for these appointments
-        const allAppointmentIds = appointmentsList.map(apt => apt.id);
-        let exceptions: any[] = [];
-        
-        if (allAppointmentIds.length > 0) {
-          console.log(`🔍 Fetching exceptions for ${allAppointmentIds.length} appointments`);
-          const { data: exceptionsData } = await supabase
-            .from('recurring_exceptions')
-            .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
-            .in('appointment_id', allAppointmentIds);
-            
-          exceptions = exceptionsData || [];
-        }
+      const allAppointmentIds = appointmentsList.map(apt => apt.id);
+      let exceptions: any[] = [];
+      
+      if (allAppointmentIds.length > 0) {
+        const { data: exceptionsData } = await supabase
+          .from('recurring_exceptions')
+          .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes, created_at, updated_at')
+          .in('appointment_id', allAppointmentIds);
           
-        console.log(`📊 Found ${exceptions.length} total exceptions for appointments`);
+        exceptions = exceptionsData || [];
+      }
 
-        // Get appointments that have rescheduled exceptions (to filter them out later)
-        const rescheduledAppointmentIds = new Set(
-          exceptions
-            .filter(ex => ex.action_type === 'rescheduled')
-            .map(ex => ex.appointment_id)
-        );
+      const rescheduledAppointmentIds = new Set(
+        exceptions
+          .filter(ex => ex.action_type === 'rescheduled')
+          .map(ex => ex.appointment_id)
+      );
+
+      const filteredAppointments = appointmentsList.filter(apt => {
+        return !rescheduledAppointmentIds.has(apt.id);
+      });
+
+      const rescheduledExceptions = exceptions.filter(ex => 
+        ex.action_type === 'rescheduled' && ex.new_start_time && ex.new_end_time
+      );
+      
+      for (const exception of rescheduledExceptions) {
+        const newStartTime = new Date(exception.new_start_time);
+        const newEndTime = new Date(exception.new_end_time);
         
-        console.log(`🚫 Found ${rescheduledAppointmentIds.size} appointments with reschedule exceptions that should be filtered out`);
-
-        // Filter out original appointments that have been rescheduled (Option B)
-        const filteredAppointments = appointmentsList.filter(apt => {
-          const isRescheduled = rescheduledAppointmentIds.has(apt.id);
-          if (isRescheduled) {
-            console.log(`🚫 Filtering out original rescheduled appointment ${apt.id} on ${format(new Date(apt.start_time), 'yyyy-MM-dd')}`);
-          }
-          return !isRescheduled;
-        });
-
-        console.log(`After filtering: ${filteredAppointments.length} appointments remain`);
-
-        // Create virtual appointments for rescheduled instances that fall within our date range
-        const rescheduledExceptions = exceptions.filter(ex => 
-          ex.action_type === 'rescheduled' && ex.new_start_time && ex.new_end_time
-        );
-        
-        for (const exception of rescheduledExceptions) {
-          const newStartTime = new Date(exception.new_start_time);
-          const newEndTime = new Date(exception.new_end_time);
-          
-          // Check if the new date falls within our calendar range
-          if (newStartTime >= startDate && newStartTime <= endDate) {
-            const originalAppointment = allAppointments.find(apt => apt.id === exception.appointment_id);
-            if (originalAppointment) {
-              console.log(`📅 Creating virtual rescheduled appointment for ${exception.appointment_id} on ${format(newStartTime, 'yyyy-MM-dd')}`);
-              // Create a virtual appointment for the rescheduled instance
-              const rescheduledAppointment: AppointmentData = {
-                ...originalAppointment,
-                id: `${originalAppointment.id}_rescheduled_${exception.id}`, // Unique ID
-                start_time: newStartTime.toISOString(),
-                end_time: newEndTime.toISOString(),
-                notes: exception.notes || originalAppointment.notes,
-                is_recurring_instance: true
-              };
-              
-              filteredAppointments.push(rescheduledAppointment);
-            }
-          }
-        }
-
-        // Get unique listing IDs for a separate query
-        const listingIds = [...new Set(appointmentsList.map(apt => apt.listing_id).filter(Boolean))];
-        
-        // Fetch listings data separately
-        let listingsMap: Record<string, any> = {};
-        if (listingIds.length > 0) {
-          try {
-            const { data: listings, error: listingsError } = await supabase
-              .from('listings')
-              .select(`
-                id,
-                title,
-                service_type_id,
-                service_types!inner(name)
-              `)
-              .in('id', listingIds);
-
-            if (!listingsError && listings) {
-              listingsMap = listings.reduce((acc, listing) => {
-                acc[listing.id] = {
-                  title: listing.title,
-                  service_type_id: listing.service_type_id,
-                  service_types: listing.service_types
-                };
-                return acc;
-              }, {} as Record<string, any>);
-            } else {
-              console.warn('Could not fetch listings data:', listingsError);
-            }
-          } catch (listingsError) {
-            console.warn('Error fetching listings:', listingsError);
-          }
-        }
-
-        // Get unique client IDs for user data
-        const clientIds = [...new Set(appointmentsList.map(apt => apt.client_id).filter(Boolean))];
-        
-        // Fetch users data separately with complete location info
-        let usersMap: Record<string, any> = {};
-        if (clientIds.length > 0) {
-          try {
-            const { data: users, error: usersError } = await supabase
-              .from('users')
-              .select(`
-                id,
-                name,
-                phone,
-                email,
-                condominium_name,
-                condominium_text,
-                house_number,
-                residencias (
-                  id,
-                  name
-                )
-              `)
-              .in('id', clientIds);
-
-            if (!usersError && users) {
-              usersMap = users.reduce((acc, user) => {
-                acc[user.id] = {
-                  name: user.name || '',
-                  phone: user.phone || '',
-                  email: user.email || '',
-                  condominium_name: user.condominium_name,
-                  condominium_text: user.condominium_text,
-                  house_number: user.house_number,
-                  residencias: user.residencias
-                };
-                return acc;
-              }, {} as Record<string, any>);
-            } else {
-              console.warn('Could not fetch users data:', usersError);
-            }
-          } catch (usersError) {
-            console.warn('Error fetching users:', usersError);
-          }
-        }
-
-        // Transform appointments with enhanced data and location building
-        const enhancedAppointments: EnhancedAppointment[] = filteredAppointments
-          .map(appointment => {
-            const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
-            
-            // Build complete location using the shared helper
-            const completeLocation = buildAppointmentLocation({
-              appointment,
-              clientData: clientUser
-            });
-
-            // Check if this is a rescheduled appointment and add styling
-            const isRescheduledAppointment = appointment.id.includes('_rescheduled_');
-            let rescheduledStyle = '';
-            let rescheduleNotes = '';
-            
-            console.log(`🔍 Checking appointment ${appointment.id} on ${format(new Date(appointment.start_time), 'yyyy-MM-dd')}:`);
-            console.log(`  - Recurrence: ${appointment.recurrence}`);
-            console.log(`  - Is rescheduled appointment: ${isRescheduledAppointment}`);
-            console.log(`  - Exceptions count: ${exceptions.length}`);
-            
-            // Check for rescheduling for ALL appointments (not just recurring ones)
-            if (!isRescheduledAppointment) {
-              const appointmentDate = new Date(appointment.start_time);
-              const rescheduleInfo = getAppointmentRescheduleInfo(
-                {
-                  id: appointment.id,
-                  provider_id: appointment.provider_id,
-                  client_id: appointment.client_id || '',
-                  start_time: appointment.start_time,
-                  end_time: appointment.end_time,
-                  recurrence: appointment.recurrence || 'none',
-                  status: appointment.status,
-                  listing_id: appointment.listing_id
-                },
-                appointmentDate,
-                exceptions
-              );
-              rescheduledStyle = rescheduleInfo.styleClass;
-              rescheduleNotes = rescheduleInfo.notes || '';
-              
-              console.log(`  - Reschedule info:`, rescheduleInfo);
-            }
-
-            console.log(`✅ CALENDAR: Final location for appointment ${appointment.id}: "${completeLocation}"`);
-
-            return {
-              ...appointment,
-              listings: listingsMap[appointment.listing_id] || null,
-              users: clientUser,
-              residencias: clientUser?.residencias || null,
-              complete_location: completeLocation,
-              rescheduled_style: rescheduledStyle,
-              reschedule_notes: rescheduleNotes,
-              is_rescheduled_appointment: isRescheduledAppointment
+        if (newStartTime >= startDate && newStartTime <= endDate) {
+          const originalAppointment = allAppointments.find(apt => apt.id === exception.appointment_id);
+          if (originalAppointment) {
+            const rescheduledAppointment: AppointmentData = {
+              ...originalAppointment,
+              id: `${originalAppointment.id}_rescheduled_${exception.id}`,
+              start_time: newStartTime.toISOString(),
+              end_time: newEndTime.toISOString(),
+              notes: exception.notes || originalAppointment.notes,
+              is_recurring_instance: true
             };
+            
+            filteredAppointments.push(rescheduledAppointment);
+          }
+        }
+      }
+
+      const listingIds = [...new Set(appointmentsList.map(apt => apt.listing_id).filter(Boolean))];
+      
+      let listingsMap: Record<string, any> = {};
+      if (listingIds.length > 0) {
+        try {
+          const { data: listings, error: listingsError } = await supabase
+            .from('listings')
+            .select(`
+              id,
+              title,
+              service_type_id,
+              service_types!inner(name)
+            `)
+            .in('id', listingIds);
+
+          if (!listingsError && listings) {
+            listingsMap = listings.reduce((acc, listing) => {
+              acc[listing.id] = {
+                title: listing.title,
+                service_type_id: listing.service_type_id,
+                service_types: listing.service_types
+              };
+              return acc;
+            }, {} as Record<string, any>);
+          }
+        } catch (listingsError) {
+          // Continue without listings
+        }
+      }
+
+      const clientIds = [...new Set(appointmentsList.map(apt => apt.client_id).filter(Boolean))];
+      
+      let usersMap: Record<string, any> = {};
+      if (clientIds.length > 0) {
+        try {
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select(`
+              id,
+              name,
+              phone,
+              email,
+              condominium_name,
+              condominium_text,
+              house_number,
+              residencias (
+                id,
+                name
+              )
+            `)
+            .in('id', clientIds);
+
+          if (!usersError && users) {
+            usersMap = users.reduce((acc, user) => {
+              acc[user.id] = {
+                name: user.name || '',
+                phone: user.phone || '',
+                email: user.email || '',
+                condominium_name: user.condominium_name,
+                condominium_text: user.condominium_text,
+                house_number: user.house_number,
+                residencias: user.residencias
+              };
+              return acc;
+            }, {} as Record<string, any>);
+          }
+        } catch (usersError) {
+          // Continue without users
+        }
+      }
+
+      const enhancedAppointments: EnhancedAppointment[] = filteredAppointments
+        .map(appointment => {
+          const clientUser = appointment.client_id ? usersMap[appointment.client_id] : null;
+          
+          const completeLocation = buildAppointmentLocation({
+            appointment,
+            clientData: clientUser
           });
 
-        console.log(`Successfully processed ${enhancedAppointments.length} appointments for calendar`);
-        return enhancedAppointments;
-        
-      } catch (error) {
-        console.error('Error in calendar appointments query:', error);
-        throw error;
-      }
+          const isRescheduledAppointment = appointment.id.includes('_rescheduled_');
+          let rescheduledStyle = '';
+          let rescheduleNotes = '';
+          
+          if (!isRescheduledAppointment) {
+            const appointmentDate = new Date(appointment.start_time);
+            const rescheduleInfo = getAppointmentRescheduleInfo(
+              {
+                id: appointment.id,
+                provider_id: appointment.provider_id,
+                client_id: appointment.client_id || '',
+                start_time: appointment.start_time,
+                end_time: appointment.end_time,
+                recurrence: appointment.recurrence || 'none',
+                status: appointment.status,
+                listing_id: appointment.listing_id
+              },
+              appointmentDate,
+              exceptions
+            );
+            rescheduledStyle = rescheduleInfo.styleClass;
+            rescheduleNotes = rescheduleInfo.notes || '';
+          }
+
+          return {
+            ...appointment,
+            listings: listingsMap[appointment.listing_id] || null,
+            users: clientUser,
+            residencias: clientUser?.residencias || null,
+            complete_location: completeLocation,
+            rescheduled_style: rescheduledStyle,
+            reschedule_notes: rescheduleNotes,
+            is_rescheduled_appointment: isRescheduledAppointment
+          };
+        });
+
+      return enhancedAppointments;
     },
     enabled: !!user?.id,
-    staleTime: 60000, // 1 minute
-    refetchInterval: 120000, // 2 minutes
+    staleTime: 60000,
+    refetchInterval: 120000,
     retry: (failureCount, error) => {
-      console.error(`Calendar query failed (attempt ${failureCount + 1}):`, error);
       return failureCount < 2;
     }
   });
