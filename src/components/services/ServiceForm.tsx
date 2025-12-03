@@ -280,11 +280,46 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
     } as Partial<Service>);
   };
 
+  // Watch required fields for real-time validation indicator
+  const watchedValues = form.watch(['name', 'subcategoryId', 'description', 'serviceVariants', 'residenciaIds']);
+
+  // Function to get list of incomplete required fields
+  const getIncompleteRequiredFields = (): string[] => {
+    const values = form.getValues();
+    const incompleteFields: string[] = [];
+    
+    if (!values.name || values.name.trim() === '') {
+      incompleteFields.push('Nombre del servicio');
+    }
+    if (!values.subcategoryId) {
+      incompleteFields.push('Categoría del servicio');
+    }
+    if (!values.description || values.description.length < 10) {
+      incompleteFields.push('Descripción (mín. 10 caracteres)');
+    }
+    if (!values.serviceVariants || values.serviceVariants.length === 0) {
+      incompleteFields.push('Variantes del servicio');
+    } else {
+      const hasInvalidVariant = values.serviceVariants.some(v => 
+        !v.name || !v.price || Number(v.price) <= 0
+      );
+      if (hasInvalidVariant) {
+        incompleteFields.push('Nombre/precio de variantes');
+      }
+    }
+    if (!values.residenciaIds || values.residenciaIds.length === 0) {
+      incompleteFields.push('Residencias');
+    }
+    
+    return incompleteFields;
+  };
+
   if (!isOpen) return null;
 
   const CurrentStepComponent = steps[currentStep].component;
   const isLastStep = currentStep === steps.length - 1;
   const isFirstStep = currentStep === 0;
+  const incompleteFields = isLastStep ? getIncompleteRequiredFields() : [];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 z-50 overflow-y-auto">
@@ -330,6 +365,17 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
 
             {/* Footer */}
             <div className="p-6 border-t bg-gray-50 rounded-b-lg">
+              {/* Indicador de campos incompletos - solo en último paso */}
+              {isLastStep && incompleteFields.length > 0 && (
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <p className="text-destructive text-sm font-medium">
+                    ⚠️ Campos obligatorios pendientes:
+                  </p>
+                  <p className="text-destructive/80 text-sm mt-1">
+                    {incompleteFields.join(', ')}
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-2 w-full items-stretch">
                 <Button 
                   type="button" 
