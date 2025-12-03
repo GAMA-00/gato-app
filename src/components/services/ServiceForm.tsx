@@ -360,22 +360,39 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                       console.log('=== Submit button clicked ===');
                       console.log('Form values before submit:', form.getValues());
                       console.log('Form errors before submit:', form.formState.errors);
-                      console.log('Form isValid before submit:', form.formState.isValid);
                       
-                      const formData = form.getValues();
-                      const hasErrors = Object.keys(form.formState.errors).length > 0;
-                      
-                      if (hasErrors) {
-                        console.error('Form has validation errors:', form.formState.errors);
-                        toast({
-                          variant: "destructive",
-                          title: "Error de validación", 
-                          description: "Por favor revisa los campos marcados en rojo"
-                        });
-                        return;
-                      }
-                      
-                      form.handleSubmit(handleFormSubmit)();
+                      // Trigger validation first
+                      form.trigger().then((isValid) => {
+                        console.log('Form validation result:', isValid);
+                        
+                        if (!isValid) {
+                          const errors = form.formState.errors;
+                          console.error('Form has validation errors:', errors);
+                          
+                          // Build specific error message
+                          const errorFields = Object.keys(errors);
+                          const errorMessage = errorFields.length > 0 
+                            ? `Campos con errores: ${errorFields.join(', ')}`
+                            : 'Por favor revisa los campos marcados en rojo';
+                          
+                          toast({
+                            variant: "destructive",
+                            title: "Error de validación", 
+                            description: errorMessage
+                          });
+                          return;
+                        }
+                        
+                        // If valid, submit the form
+                        form.handleSubmit(handleFormSubmit, (validationErrors) => {
+                          console.error('Submit validation errors:', validationErrors);
+                          toast({
+                            variant: "destructive",
+                            title: "Error de validación",
+                            description: "Por favor completa todos los campos requeridos"
+                          });
+                        })();
+                      });
                     }}
                     className="h-12 w-full min-w-0 justify-center text-sm sm:text-base px-2 sm:px-4"
                   >

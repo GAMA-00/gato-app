@@ -29,6 +29,10 @@ const ServiceCreate = () => {
       onError: (error) => {
         console.error('=== SERVICECREATE: Mutation failed ===');
         console.error('Error details:', error);
+        toast.error('Error al crear el anuncio. Por favor intenta de nuevo.');
+      },
+      onSettled: () => {
+        // Siempre resetear isSubmitting, independientemente de éxito o error
         setIsSubmitting(false);
       }
     });
