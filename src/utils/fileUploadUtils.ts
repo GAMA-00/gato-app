@@ -29,7 +29,7 @@ export const uploadCertificationFiles = async (
         console.log('Content-Type will be set to:', file.type);
         
         const { error: uploadError } = await supabase.storage
-          .from('certifications')
+          .from('Certification Documents')
           .upload(fileName, fileBuffer, {
             cacheControl: '3600',
             upsert: true,
@@ -42,7 +42,7 @@ export const uploadCertificationFiles = async (
         }
         
         const { data: publicUrlData } = supabase.storage
-          .from('certifications')
+          .from('Certification Documents')
           .getPublicUrl(fileName);
           
         console.log('File uploaded successfully. Public URL:', publicUrlData.publicUrl);
