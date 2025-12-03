@@ -18,8 +18,6 @@ import TeamMemberModal from './TeamMemberModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const TeamSection: React.FC = () => {
-  console.log("=== TEAM SECTION RENDER ===");
-  
   const { user, profile } = useAuth();
   const { data: teamMembers = [], isLoading, error } = useTeamMembers();
   const createMember = useCreateTeamMember();
@@ -32,90 +30,61 @@ const TeamSection: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingMember, setEditingMember] = useState<TeamMember | undefined>();
 
-  console.log("TeamSection - User:", user?.id);
-  console.log("TeamSection - Profile:", profile?.name);
-  console.log("TeamSection - Team members:", teamMembers?.length || 0);
-  console.log("TeamSection - Loading:", isLoading);
-  console.log("TeamSection - Error:", error);
-
-  // Only show auxiliary team members, not the leader
   const allMembers = teamMembers;
 
   const handleCreateMember = () => {
-    console.log("TeamSection - Creating new member");
     setModalMode('create');
     setEditingMember(undefined);
     setModalOpen(true);
   };
 
   const handleEditMember = (member: TeamMember) => {
-    console.log("TeamSection - Editing member:", member.id);
     setModalMode('edit');
     setEditingMember(member);
     setModalOpen(true);
   };
 
   const handleDeleteMember = (memberId: string) => {
-    console.log("TeamSection - Deleting member:", memberId);
     if (confirm('¿Estás seguro de que quieres eliminar este miembro del equipo?')) {
       deleteMember.mutate(memberId);
     }
   };
 
   const handleSaveMember = async (data: TeamMemberFormData, photoFile?: File) => {
-    console.log("=== HANDLING SAVE MEMBER ===");
-    console.log("Mode:", modalMode);
-    console.log("Member data:", data);
-    console.log("Has photo file:", !!photoFile);
-
     try {
       if (modalMode === 'create') {
-        console.log("🔵 Creating new team member...");
-        
-        // First create the member without photo
         const result = await createMember.mutateAsync(data);
-        console.log("✅ Member created with ID:", result.id);
         
-        // If there's a photo, upload it now with the real member ID
         if (photoFile && user?.id) {
-          console.log("🔵 Uploading photo for member:", result.id);
           await photoUploadMutation.mutateAsync({
             memberId: result.id,
             photoFile: photoFile,
             providerId: user.id
           });
-          console.log("✅ Photo uploaded successfully");
         }
         
       } else if (modalMode === 'edit' && editingMember) {
-        console.log("🔵 Updating existing team member...");
-        
         await updateMember.mutateAsync({
           id: editingMember.id,
           ...data
         });
         
-        // If there's a new photo, upload it
         if (photoFile && user?.id) {
-          console.log("🔵 Uploading new photo for member:", editingMember.id);
           await photoUploadMutation.mutateAsync({
             memberId: editingMember.id,
             photoFile: photoFile,
             providerId: user.id
           });
-          console.log("✅ Photo updated successfully");
         }
       }
       
       setModalOpen(false);
     } catch (error) {
-      console.error("Error in handleSaveMember:", error);
+      // Error handled by mutation
     }
   };
 
-  // Error state
   if (error) {
-    console.error("TeamSection - Error loading team members:", error);
     return (
       <Card className={isMobile ? "mx-2" : ""}>
         <CardHeader className={isMobile ? "px-4 py-4" : ""}>
@@ -138,9 +107,7 @@ const TeamSection: React.FC = () => {
     );
   }
 
-  // Loading state with improved skeleton
   if (isLoading) {
-    console.log("TeamSection - Showing loading state");
     return (
       <Card className={isMobile ? "mx-2" : ""}>
         <CardHeader className={`flex flex-row items-center justify-between ${isMobile ? "px-4 py-4" : ""}`}>
@@ -170,8 +137,6 @@ const TeamSection: React.FC = () => {
       </Card>
     );
   }
-
-  console.log("TeamSection - Rendering main content with", allMembers.length, "members");
 
   return (
     <>

@@ -11,49 +11,37 @@ export const useTeamMembers = () => {
   return useQuery({
     queryKey: ['team-members', user?.id],
     queryFn: async (): Promise<TeamMember[]> => {
-      console.log("=== FETCHING TEAM MEMBERS ===");
-      console.log("User ID:", user?.id);
-      
       if (!user?.id) {
-        console.log("No user ID, returning empty array");
         return [];
       }
 
-      try {
-        const { data, error } = await supabase
-          .from('team_members')
-          .select('*')
-          .eq('provider_id', user.id)
-          .order('position_order', { ascending: true });
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('provider_id', user.id)
+        .order('position_order', { ascending: true });
 
-        if (error) {
-          console.error("Supabase error fetching team members:", error);
-          throw error;
-        }
-
-        console.log("Team members fetched successfully:", data?.length || 0);
-
-        return (data || []).map(member => ({
-          id: member.id,
-          providerId: member.provider_id,
-          name: member.name,
-          cedula: member.cedula,
-          phone: member.phone,
-          photoUrl: member.photo_url,
-          criminalRecordFileUrl: member.criminal_record_file_url,
-          role: member.role as 'lider' | 'auxiliar',
-          positionOrder: member.position_order,
-          createdAt: member.created_at,
-          updatedAt: member.updated_at
-        }));
-      } catch (error) {
-        console.error("Error in useTeamMembers queryFn:", error);
+      if (error) {
         throw error;
       }
+
+      return (data || []).map(member => ({
+        id: member.id,
+        providerId: member.provider_id,
+        name: member.name,
+        cedula: member.cedula,
+        phone: member.phone,
+        photoUrl: member.photo_url,
+        criminalRecordFileUrl: member.criminal_record_file_url,
+        role: member.role as 'lider' | 'auxiliar',
+        positionOrder: member.position_order,
+        createdAt: member.created_at,
+        updatedAt: member.updated_at
+      }));
     },
     enabled: !!user?.id,
     retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -63,74 +51,54 @@ export const useCreateTeamMember = () => {
 
   return useMutation({
     mutationFn: async (memberData: TeamMemberFormData & { photoFile?: File }) => {
-      console.log("=== CREATING TEAM MEMBER ===");
-      console.log("Member data:", memberData);
-      
       if (!user?.id) throw new Error('Usuario no autenticado');
 
-      try {
-        // Get next position order
-        const { data: existingMembers } = await supabase
-          .from('team_members')
-          .select('position_order')
-          .eq('provider_id', user.id)
-          .order('position_order', { ascending: false })
-          .limit(1);
+      const { data: existingMembers } = await supabase
+        .from('team_members')
+        .select('position_order')
+        .eq('provider_id', user.id)
+        .order('position_order', { ascending: false })
+        .limit(1);
 
-        const nextOrder = existingMembers?.[0]?.position_order ? existingMembers[0].position_order + 1 : 1;
+      const nextOrder = existingMembers?.[0]?.position_order ? existingMembers[0].position_order + 1 : 1;
 
-        // First, create the team member without photo
-        const { data, error } = await supabase
-          .from('team_members')
-          .insert({
-            provider_id: user.id,
-            name: memberData.name,
-            cedula: memberData.cedula,
-            phone: memberData.phone,
-            photo_url: null, // Will be updated after photo upload
-            criminal_record_file_url: memberData.criminalRecordFileUrl,
-            role: 'auxiliar',
-            position_order: nextOrder
-          })
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from('team_members')
+        .insert({
+          provider_id: user.id,
+          name: memberData.name,
+          cedula: memberData.cedula,
+          phone: memberData.phone,
+          photo_url: null,
+          criminal_record_file_url: memberData.criminalRecordFileUrl,
+          role: 'auxiliar',
+          position_order: nextOrder
+        })
+        .select()
+        .single();
 
-        if (error) {
-          console.error("Supabase error creating team member:", error);
-          throw error;
-        }
-
-        console.log("Team member created successfully:", data.id);
-
-        // Now upload photo if needed
-        if (memberData.photoUrl === 'PENDING_UPLOAD') {
-          console.log("🔵 Uploading photo for real member ID:", data.id);
-          // Note: We need to get the photoFile from somewhere - this will be handled in the component
-          // For now, just return the data without photo
-        } else if (memberData.photoUrl && memberData.photoUrl !== 'PENDING_UPLOAD') {
-          // Update with existing photo URL
-          const { error: updateError } = await supabase
-            .from('team_members')
-            .update({ photo_url: memberData.photoUrl })
-            .eq('id', data.id);
-
-          if (updateError) {
-            console.error("Error updating photo URL:", updateError);
-          }
-        }
-
-        return data;
-      } catch (error) {
-        console.error("Error in useCreateTeamMember:", error);
+      if (error) {
         throw error;
       }
+
+      if (memberData.photoUrl && memberData.photoUrl !== 'PENDING_UPLOAD') {
+        const { error: updateError } = await supabase
+          .from('team_members')
+          .update({ photo_url: memberData.photoUrl })
+          .eq('id', data.id);
+
+        if (updateError) {
+          // Continue without photo
+        }
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members', user?.id] });
       toast.success('Miembro del equipo agregado correctamente');
     },
     onError: (error) => {
-      console.error('Error creating team member:', error);
       toast.error('Error al agregar miembro del equipo');
     }
   });
@@ -142,43 +110,31 @@ export const useUpdateTeamMember = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...memberData }: { id: string } & Partial<TeamMemberFormData>) => {
-      console.log("=== UPDATING TEAM MEMBER ===");
-      console.log("Member ID:", id);
-      console.log("Update data:", memberData);
-      
-      try {
-        const { data, error } = await supabase
-          .from('team_members')
-          .update({
-            name: memberData.name,
-            cedula: memberData.cedula,
-            phone: memberData.phone,
-            photo_url: memberData.photoUrl,
-            criminal_record_file_url: memberData.criminalRecordFileUrl,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id)
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from('team_members')
+        .update({
+          name: memberData.name,
+          cedula: memberData.cedula,
+          phone: memberData.phone,
+          photo_url: memberData.photoUrl,
+          criminal_record_file_url: memberData.criminalRecordFileUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-        if (error) {
-          console.error("Supabase error updating team member:", error);
-          throw error;
-        }
-
-        console.log("Team member updated successfully:", data.id);
-        return data;
-      } catch (error) {
-        console.error("Error in useUpdateTeamMember:", error);
+      if (error) {
         throw error;
       }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members', user?.id] });
       toast.success('Miembro del equipo actualizado correctamente');
     },
     onError: (error) => {
-      console.error('Error updating team member:', error);
       toast.error('Error al actualizar miembro del equipo');
     }
   });
@@ -190,23 +146,12 @@ export const useDeleteTeamMember = () => {
 
   return useMutation({
     mutationFn: async (memberId: string) => {
-      console.log("=== DELETING TEAM MEMBER ===");
-      console.log("Member ID:", memberId);
-      
-      try {
-        const { error } = await supabase
-          .from('team_members')
-          .delete()
-          .eq('id', memberId);
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', memberId);
 
-        if (error) {
-          console.error("Supabase error deleting team member:", error);
-          throw error;
-        }
-
-        console.log("Team member deleted successfully");
-      } catch (error) {
-        console.error("Error in useDeleteTeamMember:", error);
+      if (error) {
         throw error;
       }
     },
@@ -215,7 +160,6 @@ export const useDeleteTeamMember = () => {
       toast.success('Miembro del equipo eliminado correctamente');
     },
     onError: (error) => {
-      console.error('Error deleting team member:', error);
       toast.error('Error al eliminar miembro del equipo');
     }
   });
