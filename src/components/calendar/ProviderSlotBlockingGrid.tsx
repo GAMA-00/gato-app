@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useProviderSlotManagement } from '@/hooks/useProviderSlotManagement';
 import { groupSlotsByDate } from '@/utils/weeklySlotUtils';
+import { WeeklySlot } from '@/lib/weeklySlotTypes';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatDateES } from '@/lib/utils';
@@ -57,10 +58,19 @@ const ProviderSlotBlockingGrid = ({
     daysAhead: daysInWeek
   });
 
-  // Group slots by date y filtrar solo los slots de ESTA semana específica
+  // Estado local para actualizaciones optimistas
+  const [localSlots, setLocalSlots] = useState<WeeklySlot[]>([]);
+
+  // Sincronizar estado local cuando slots del hook cambien
+  useEffect(() => {
+    setLocalSlots(slots);
+  }, [slots]);
+
+  // Group slots by date usando localSlots para actualizaciones instantáneas
   const slotGroups = useMemo(() => {
+    const slotsToUse = localSlots.length > 0 ? localSlots : slots;
     // Filtrar slots que estén exactamente dentro del rango de esta semana
-    const weekSlots = slots.filter(slot => {
+    const weekSlots = slotsToUse.filter(slot => {
       const slotDate = slot.date;
       return slotDate >= startDate && slotDate <= endDate;
     });
@@ -69,14 +79,14 @@ const ProviderSlotBlockingGrid = ({
       week: currentWeek, 
       start: format(startDate, 'yyyy-MM-dd'), 
       end: format(endDate, 'yyyy-MM-dd'),
-      totalSlots: slots.length,
+      totalSlots: slotsToUse.length,
       weekSlots: weekSlots.length
     });
     
     return groupSlotsByDate(weekSlots);
-  }, [slots, startDate, endDate, currentWeek]);
+  }, [localSlots, slots, startDate, endDate, currentWeek]);
 
-  const handleSlotToggle = async (slotId: string, date: Date, time: string) => {
+  const handleSlotToggle = useCallback(async (slotId: string, date: Date, time: string) => {
     const slot = slotGroups
       .flatMap(group => group.slots)
       .find(s => s.id === slotId);
@@ -95,6 +105,18 @@ const ProviderSlotBlockingGrid = ({
 
     const isCurrentlyAvailable = slot.isAvailable;
     const action = isCurrentlyAvailable ? 'bloquear' : 'desbloquear';
+    
+    // Guardar estado previo para rollback en caso de error
+    const previousLocalSlots = [...localSlots];
+    
+    // ✅ ACTUALIZACIÓN OPTIMISTA - Cambiar color inmediatamente
+    setLocalSlots(prevSlots => 
+      prevSlots.map(s => 
+        s.id === slotId 
+          ? { ...s, isAvailable: !isCurrentlyAvailable } 
+          : s
+      )
+    );
     
     setBlockingSlots(prev => new Set(prev).add(slotId));
 
@@ -159,8 +181,8 @@ const ProviderSlotBlockingGrid = ({
         }
       }
 
-      // Actualizar la UI local y refrescar
-      await refreshSlots();
+      // Refresh silencioso en segundo plano para sincronizar con servidor
+      refreshSlots();
       
       toast({
         title: `Horario ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'}`,
@@ -169,6 +191,9 @@ const ProviderSlotBlockingGrid = ({
       });
 
     } catch (error) {
+      // ❌ Si falla, revertir al estado anterior
+      setLocalSlots(previousLocalSlots);
+      
       logger.error(`Error al ${action} slot:`, { error, slotId, action });
       toast({
         title: 'Error',
@@ -182,7 +207,7 @@ const ProviderSlotBlockingGrid = ({
         return newSet;
       });
     }
-  };
+  }, [slotGroups, localSlots, providerId, listingId, serviceDuration, refreshSlots, toast]);
 
   const goToPreviousWeek = () => {
     if (currentWeek > 0) {
