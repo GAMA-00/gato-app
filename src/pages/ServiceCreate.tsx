@@ -18,21 +18,34 @@ const ServiceCreate = () => {
   const handleSubmit = (serviceData: Partial<Service>) => {
     logger.info('Creating new service', { serviceData });
     
+    // Validación básica antes de enviar
+    if (!serviceData.name?.trim()) {
+      toast.error('El nombre del servicio es requerido');
+      return;
+    }
+    if (!serviceData.subcategoryId) {
+      toast.error('Debes seleccionar una categoría de servicio');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     createListingMutation.mutate(serviceData, {
       onSuccess: (data) => {
-        logger.info('Service creation successful', { data });
+        logger.info('✅ Service creation successful', { listingId: data?.id });
+        toast.success('¡Anuncio creado exitosamente!');
         setIsFormOpen(false);
         navigate('/services');
       },
-      onError: (error) => {
-        console.error('=== SERVICECREATE: Mutation failed ===');
-        console.error('Error details:', error);
-        toast.error('Error al crear el anuncio. Por favor intenta de nuevo.');
+      onError: (error: any) => {
+        logger.error('❌ Service creation failed', { 
+          message: error?.message, 
+          details: error 
+        });
+        const errorMessage = error?.message || 'Error desconocido';
+        toast.error(`Error al crear el anuncio: ${errorMessage}`);
       },
       onSettled: () => {
-        // Siempre resetear isSubmitting, independientemente de éxito o error
         setIsSubmitting(false);
       }
     });

@@ -33,7 +33,7 @@ export const useServiceMutations = () => {
   const createListingMutation = useMutation({
     mutationFn: async (serviceData: Partial<Service>) => {
       console.log('=== CREATING LISTING ===');
-      console.log('Service data:', serviceData);
+      console.log('Service data received:', serviceData);
 
       // Get provider_id securely from auth if not provided
       let providerId = serviceData.providerId;
@@ -59,14 +59,40 @@ export const useServiceMutations = () => {
         serviceData.hasCertifications || false
       );
 
+      // ✅ CORREGIDO: Calcular duration desde la primera variante con fallback
+      const firstVariant = serviceData.serviceVariants?.[0];
+      const calculatedDuration = firstVariant?.duration 
+        ? Number(firstVariant.duration) 
+        : (serviceData.duration ? Number(serviceData.duration) : 60);
+      
+      // ✅ CORREGIDO: Calcular base_price desde la primera variante si el precio raíz es 0
+      const rootPrice = Number(serviceData.price) || 0;
+      const calculatedBasePrice = rootPrice > 0 
+        ? rootPrice 
+        : (firstVariant?.price ? Number(firstVariant.price) : 0);
+
+      // ✅ VALIDACIÓN: Verificar campos críticos antes de insertar
+      if (!serviceData.name?.trim()) {
+        throw new Error('El nombre del servicio es requerido');
+      }
+      if (!serviceData.subcategoryId) {
+        throw new Error('La categoría del servicio es requerida');
+      }
+      if (calculatedDuration < 2 || isNaN(calculatedDuration)) {
+        throw new Error(`Duración inválida: ${calculatedDuration}. Debe ser al menos 2 minutos.`);
+      }
+      if (calculatedBasePrice <= 0 || isNaN(calculatedBasePrice)) {
+        throw new Error(`Precio base inválido: ${calculatedBasePrice}. Debe ser mayor a 0.`);
+      }
+
       const listingData: CreateListingData = {
-        title: serviceData.name!,
-        description: serviceData.description!,
-        base_price: Number(serviceData.price),
-        duration: Number(serviceData.duration), // Mantener por compatibilidad
-        standard_duration: Number(serviceData.duration), // Fuente de verdad
-        slot_size: Number(serviceData.slotSize ?? 60),
-        service_type_id: serviceData.subcategoryId!,
+        title: serviceData.name.trim(),
+        description: serviceData.description || '',
+        base_price: calculatedBasePrice,
+        duration: calculatedDuration,
+        standard_duration: calculatedDuration,
+        slot_size: Number(serviceData.slotSize ?? calculatedDuration),
+        service_type_id: serviceData.subcategoryId,
         provider_id: providerId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         service_variants: serviceData.serviceVariants || [],
@@ -77,7 +103,12 @@ export const useServiceMutations = () => {
         slot_preferences: serviceData.slotPreferences || {},
       };
 
-      console.log('Listing data to insert:', listingData);
+      console.log('=== VALIDATED LISTING DATA ===');
+      console.log('title:', listingData.title);
+      console.log('service_type_id:', listingData.service_type_id);
+      console.log('standard_duration:', listingData.standard_duration);
+      console.log('base_price:', listingData.base_price);
+      console.log('Full listing data:', listingData);
 
       // Insertar el listing
       const { data: listing, error: listingError } = await supabase
@@ -202,13 +233,25 @@ export const useServiceMutations = () => {
         serviceData.hasCertifications || false
       );
 
+      // ✅ CORREGIDO: Calcular duration desde la primera variante con fallback
+      const firstVariant = serviceData.serviceVariants?.[0];
+      const calculatedDuration = firstVariant?.duration 
+        ? Number(firstVariant.duration) 
+        : (serviceData.duration ? Number(serviceData.duration) : undefined);
+      
+      // ✅ CORREGIDO: Calcular base_price desde la primera variante si el precio raíz es 0
+      const rootPrice = serviceData.price ? Number(serviceData.price) : 0;
+      const calculatedBasePrice = rootPrice > 0 
+        ? rootPrice 
+        : (firstVariant?.price ? Number(firstVariant.price) : undefined);
+
       const listingData: Partial<CreateListingData> = {
         title: serviceData.name,
         description: serviceData.description,
-        base_price: serviceData.price ? Number(serviceData.price) : undefined,
-        duration: serviceData.duration ? Number(serviceData.duration) : undefined, // Mantener por compatibilidad
-        standard_duration: serviceData.duration ? Number(serviceData.duration) : undefined, // Fuente de verdad
-        slot_size: serviceData.slotSize ? Number(serviceData.slotSize) : undefined,
+        base_price: calculatedBasePrice,
+        duration: calculatedDuration,
+        standard_duration: calculatedDuration,
+        slot_size: serviceData.slotSize ? Number(serviceData.slotSize) : calculatedDuration,
         service_type_id: serviceData.subcategoryId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         service_variants: serviceData.serviceVariants,
