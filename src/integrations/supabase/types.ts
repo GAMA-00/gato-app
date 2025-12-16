@@ -2319,6 +2319,15 @@ export type Database = {
       generate_provider_time_slots:
         | {
             Args: {
+              p_end_date: string
+              p_listing_id: string
+              p_provider_id: string
+              p_start_date: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
               p_days_of_week: string[]
               p_end_date: string
               p_end_time: string
@@ -2327,15 +2336,6 @@ export type Database = {
               p_slot_duration_minutes: number
               p_start_date: string
               p_start_time: string
-            }
-            Returns: number
-          }
-        | {
-            Args: {
-              p_end_date: string
-              p_listing_id: string
-              p_provider_id: string
-              p_start_date: string
             }
             Returns: number
           }
@@ -2353,11 +2353,11 @@ export type Database = {
       }
       generate_recurring_instances:
         | {
-            Args: { end_range: string; rule_id: string; start_range: string }
+            Args: { p_recurring_rule_id: string; p_weeks_ahead?: number }
             Returns: number
           }
         | {
-            Args: { p_recurring_rule_id: string; p_weeks_ahead?: number }
+            Args: { end_range: string; rule_id: string; start_range: string }
             Returns: number
           }
       get_provider_achievements_data: {
@@ -2494,7 +2494,6 @@ export type Database = {
       }
       toggle_user_active: { Args: { _user_id: string }; Returns: undefined }
       unblock_recurring_slots:
-        | { Args: { p_recurring_rule_id: string }; Returns: number }
         | {
             Args: {
               p_end_time: string
@@ -2505,6 +2504,7 @@ export type Database = {
             }
             Returns: number
           }
+        | { Args: { p_recurring_rule_id: string }; Returns: number }
       unblock_recurring_slots_for_appointment: {
         Args: { p_appointment_id: string }
         Returns: number

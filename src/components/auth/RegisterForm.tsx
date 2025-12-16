@@ -361,7 +361,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
+                      <FormLabel className="text-base font-medium">Número de telefono celular</FormLabel>
                   <FormControl>
                     <PhoneInput
                       value={field.value}
@@ -501,7 +501,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base font-medium">Número de Teléfono</FormLabel>
+                  <FormLabel className="text-base font-medium">Número de telefono celular</FormLabel>
               <FormControl>
                 <PhoneInput
                   value={field.value}
