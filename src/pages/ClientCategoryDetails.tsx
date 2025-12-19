@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ServiceTypeCard from '@/components/client/ServiceTypeCard';
 import CategoryDetailsLoading from '@/components/client/CategoryDetailsLoading';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
+import { useServiceTypeAvailability } from '@/hooks/useServiceTypeAvailability';
+import { serviceTypeOrderByCategory, categoriesWithoutReorder } from '@/constants/serviceTypeOrderConstants';
 
 const ClientCategoryDetails = () => {
   const { categoryId } = useParams();
+  const { availableServiceTypeIds, isLoading: availabilityLoading } = useServiceTypeAvailability();
 
   const { data: categoryData, isLoading: categoryLoading } = useQuery({
     queryKey: ['category', categoryId],
@@ -33,42 +36,56 @@ const ClientCategoryDetails = () => {
         .eq('category_id', categoryData.id);
         
       if (error) throw error;
-      
-      // Orden personalizado para la categoría "Hogar"
-      const customOrder = [
-        'Lavacar',
-        'Chef privado',
-        'Hidrolavado (ventanas, fachadas, aceras)',
-        'Fumigación',
-        'Mantenimiento',
-        'Jardinero',
-        'Planchado',
-        'Floristería'
-      ];
-      
-      const sortedData = (data || []).sort((a, b) => {
-        const indexA = customOrder.indexOf(a.name);
-        const indexB = customOrder.indexOf(b.name);
-        
-        // Si ambos están en el orden personalizado, usar ese orden
-        if (indexA !== -1 && indexB !== -1) {
-          return indexA - indexB;
-        }
-        
-        // Si solo uno está en el orden personalizado, ponerlo primero
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        
-        // Si ninguno está en el orden personalizado, mantener orden alfabético
-        return a.name.localeCompare(b.name);
-      });
-      
-      return sortedData;
+      return data || [];
     },
     enabled: !!categoryData?.id,
   });
 
-  const isLoading = categoryLoading || serviceTypesLoading;
+  // Ordenar service types dinámicamente
+  const sortedServiceTypes = useMemo(() => {
+    if (!serviceTypes.length) return [];
+    
+    // Si la categoría no debe reordenarse, devolver tal cual
+    if (categoriesWithoutReorder.includes(categoryId || '')) {
+      return serviceTypes;
+    }
+
+    // Obtener el orden preferido para esta categoría
+    const preferredOrder = serviceTypeOrderByCategory[categoryId || ''] || [];
+
+    // Separar service types con y sin providers
+    const withProviders = serviceTypes.filter(st => availableServiceTypeIds.has(st.id));
+    const withoutProviders = serviceTypes.filter(st => !availableServiceTypeIds.has(st.id));
+
+    // Ordenar los que tienen providers según el orden preferido
+    const orderedWithProviders = [...withProviders].sort((a, b) => {
+      const indexA = preferredOrder.findIndex(name => 
+        a.name.toLowerCase().includes(name.toLowerCase()) || 
+        name.toLowerCase().includes(a.name.toLowerCase())
+      );
+      const indexB = preferredOrder.findIndex(name => 
+        b.name.toLowerCase().includes(name.toLowerCase()) || 
+        name.toLowerCase().includes(b.name.toLowerCase())
+      );
+
+      // Si ambos están en el orden preferido
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      // Si solo uno está en el orden preferido, ponerlo primero
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      // Si ninguno está, ordenar alfabéticamente
+      return a.name.localeCompare(b.name);
+    });
+
+    // Ordenar los sin providers alfabéticamente
+    const orderedWithoutProviders = [...withoutProviders].sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+
+    return [...orderedWithProviders, ...orderedWithoutProviders];
+  }, [serviceTypes, availableServiceTypeIds, categoryId]);
+
+  const isLoading = categoryLoading || serviceTypesLoading || availabilityLoading;
 
   if (isLoading) {
     return <CategoryDetailsLoading />;
@@ -86,7 +103,7 @@ const ClientCategoryDetails = () => {
           </h1>
         </div>
         
-        {serviceTypes.length === 0 ? (
+        {sortedServiceTypes.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
               No hay tipos de servicio disponibles para esta categoría.
@@ -94,12 +111,13 @@ const ClientCategoryDetails = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {serviceTypes.map((serviceType) => (
+            {sortedServiceTypes.map((serviceType) => (
               <ServiceTypeCard
                 key={serviceType.id}
                 serviceType={serviceType}
                 categoryId={categoryId || ''}
                 categoryLabel={categoryLabel}
+                hasProviders={availableServiceTypeIds.has(serviceType.id)}
               />
             ))}
           </div>
