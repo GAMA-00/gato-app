@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_stat_offsets: {
+        Row: {
+          created_at: string
+          id: string
+          offset_value: number
+          reset_at: string
+          reset_by: string | null
+          stat_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          offset_value?: number
+          reset_at?: string
+          reset_by?: string | null
+          stat_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          offset_value?: number
+          reset_at?: string
+          reset_by?: string | null
+          stat_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           admin_notes: string | null

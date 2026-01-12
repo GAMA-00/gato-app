@@ -7,18 +7,24 @@ export default function AdminDashboard() {
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      const [usersRes, appointmentsRes, paymentsRes] = await Promise.all([
+      const [usersRes, appointmentsRes, paymentsRes, offsetsRes] = await Promise.all([
         supabase.from('users').select('id', { count: 'exact', head: true }),
         supabase.from('appointments').select('id', { count: 'exact', head: true }),
         supabase.from('onvopay_payments').select('amount').eq('status', 'captured'),
+        supabase.from('admin_stat_offsets').select('stat_name, offset_value'),
       ]);
 
       const totalRevenue = paymentsRes.data?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
+      
+      // Get offsets for resetting counters
+      const offsets = offsetsRes.data || [];
+      const appointmentsOffset = offsets.find(o => o.stat_name === 'total_appointments')?.offset_value || 0;
+      const revenueOffset = offsets.find(o => o.stat_name === 'total_revenue')?.offset_value || 0;
 
       return {
         totalUsers: usersRes.count || 0,
-        totalAppointments: appointmentsRes.count || 0,
-        totalRevenue,
+        totalAppointments: Math.max(0, (appointmentsRes.count || 0) - Number(appointmentsOffset)),
+        totalRevenue: Math.max(0, totalRevenue - Number(revenueOffset)),
       };
     },
   });
