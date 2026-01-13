@@ -2,14 +2,15 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Clock } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, type CurrencyCode } from '@/utils/currencyUtils';
 
 interface PriceInformationProps {
   basePrice: number;
   duration: number;
+  currency?: CurrencyCode;
 }
 
-const PriceInformation = ({ basePrice, duration }: PriceInformationProps) => {
+const PriceInformation = ({ basePrice, duration, currency = 'USD' }: PriceInformationProps) => {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -19,7 +20,7 @@ const PriceInformation = ({ basePrice, duration }: PriceInformationProps) => {
         <div className="space-y-3">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Precio base</span>
-            <span>${formatCurrency(basePrice)}/servicio</span>
+            <span>{formatCurrency(basePrice, currency)}/servicio</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Duración estándar</span>

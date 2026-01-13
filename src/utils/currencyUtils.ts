@@ -1,27 +1,52 @@
 /**
  * Utility functions for standardized currency formatting across the app
- * All prices in the app should be displayed in USD (dollars)
+ * Supports USD (dollars) and CRC (colones)
  */
 
+export type CurrencyCode = 'USD' | 'CRC';
+
+export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
+  USD: '$',
+  CRC: '₡'
+};
+
+export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
+  USD: 'USD (Dólares)',
+  CRC: 'CRC (Colones)'
+};
+
 /**
- * Formats a price value as USD currency
+ * Formats a price value as currency
  * @param price - The price value (number, string, or null/undefined)
- * @returns Formatted price string (e.g., "$1,234", "$1,234.56", "$0")
+ * @param currency - Currency code: 'USD' or 'CRC' (default: 'USD')
+ * @returns Formatted price string (e.g., "$1,234", "₡13,500")
  */
-export const formatCurrency = (price: number | string | null | undefined): string => {
-  if (price === null || price === undefined) return '$0';
+export const formatCurrency = (
+  price: number | string | null | undefined,
+  currency: CurrencyCode = 'USD'
+): string => {
+  if (price === null || price === undefined) return currency === 'CRC' ? '₡0' : '$0';
   
   const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
   
-  if (isNaN(numericPrice) || numericPrice < 0) return '$0';
+  if (isNaN(numericPrice) || numericPrice < 0) return currency === 'CRC' ? '₡0' : '$0';
   
-  // Always format as USD with proper formatting
-  return new Intl.NumberFormat('en-US', {
+  // Format based on currency
+  const locale = currency === 'CRC' ? 'es-CR' : 'en-US';
+  
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'USD',
+    currency: currency,
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2
+    maximumFractionDigits: currency === 'CRC' ? 0 : 2
   }).format(numericPrice);
+};
+
+/**
+ * Gets the currency symbol for a currency code
+ */
+export const getCurrencySymbol = (currency: CurrencyCode = 'USD'): string => {
+  return CURRENCY_SYMBOLS[currency] || '$';
 };
 
 /**

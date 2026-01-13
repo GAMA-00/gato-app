@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useProviderServiceMerits } from '@/hooks/useProviderServiceMerits';
 import ProviderAvatar from '@/components/ui/provider-avatar';
 import { logger } from '@/utils/logger';
+import { getCurrencySymbol } from '@/utils/currencyUtils';
 
 // Skeleton loader component
 export const ProviderCardSkeleton = () => {
@@ -203,7 +204,9 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
               {provider.duration % 60 > 0 ? ` ${provider.duration % 60} min` : ''}
             </span>
             <span className="mx-1.5">·</span>
-            <span className="font-semibold text-[#2D2D2D]">${provider.price}</span>
+            <span className="font-semibold text-[#2D2D2D]">
+              {getCurrencySymbol(provider.currency || 'USD')}{provider.price.toLocaleString(provider.currency === 'CRC' ? 'es-CR' : 'en-US')}
+            </span>
           </div>
           
           {/* CTA: "Ver detalles" con chevron */}

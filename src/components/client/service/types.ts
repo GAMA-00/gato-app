@@ -1,4 +1,6 @@
 
+import { CurrencyCode } from '@/lib/types';
+
 export interface ClientResidencia {
   id?: string;
   name: string;
@@ -15,6 +17,7 @@ export interface ServiceDetailData {
   service_type_id: string;
   is_active: boolean;
   is_post_payment: boolean;
+  currency?: CurrencyCode;
   gallery_images?: string[];
   galleryImages?: string[];
   service_type?: {

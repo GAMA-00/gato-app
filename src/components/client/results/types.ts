@@ -1,4 +1,6 @@
 
+import { CurrencyCode } from '@/lib/types';
+
 // Adding joinDate to ProcessedProvider interface
 export interface ProcessedProvider {
   id: string;
@@ -19,6 +21,7 @@ export interface ProcessedProvider {
   hasCertifications: boolean;
   ratingCount: number;
   joinDate?: Date; // Added for provider level calculation
+  currency?: CurrencyCode; // Currency for price display
 }
 
 export interface ProviderData {

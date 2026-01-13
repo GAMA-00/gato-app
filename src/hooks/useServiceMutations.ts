@@ -15,6 +15,7 @@ interface CreateListingData {
   service_type_id: string;
   provider_id: string;
   is_post_payment: boolean;
+  currency: 'USD' | 'CRC';
   service_variants?: any[];
   gallery_images?: string[];
   custom_variable_groups?: any[];
@@ -85,6 +86,7 @@ export const useServiceMutations = () => {
         service_type_id: serviceData.subcategoryId,
         provider_id: providerId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
+        currency: serviceData.currency || 'USD',
         service_variants: serviceData.serviceVariants || [],
         gallery_images: galleryImageUrls,
         custom_variable_groups: serviceData.customVariableGroups || [],
@@ -213,6 +215,7 @@ export const useServiceMutations = () => {
         slot_size: serviceData.slotSize ? Number(serviceData.slotSize) : calculatedDuration,
         service_type_id: serviceData.subcategoryId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
+        currency: serviceData.currency || 'USD',
         service_variants: serviceData.serviceVariants,
         gallery_images: galleryImageUrls.length > 0 ? galleryImageUrls : undefined,
         custom_variable_groups: serviceData.customVariableGroups,
