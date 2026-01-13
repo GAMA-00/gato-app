@@ -39,8 +39,9 @@ const ProviderSlotBlockingGrid = ({
 }: ProviderSlotBlockingGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [blockingSlots, setBlockingSlots] = useState<Set<string>>(new Set());
-  // Estado para rastrear actualizaciones optimistas pendientes (proteger de sobrescritura por server data)
-  const [pendingUpdates, setPendingUpdates] = useState<Map<string, boolean>>(new Map());
+  // Estado para rastrear actualizaciones optimistas pendientes con confirmación
+  // Guarda el estado deseado y timestamp para detectar confirmación del servidor
+  const [pendingUpdates, setPendingUpdates] = useState<Map<string, { desiredIsAvailable: boolean; startedAt: number }>>(new Map());
   const { toast } = useToast();
 
   // Usar semanas calendario reales (lunes a domingo)
@@ -64,25 +65,73 @@ const ProviderSlotBlockingGrid = ({
   const [localSlots, setLocalSlots] = useState<WeeklySlot[]>([]);
 
   // Sincronizar estado local cuando slots del hook cambien, PERO respetar actualizaciones pendientes
+  // y detectar confirmación del servidor para liberar el pendingUpdate
   useEffect(() => {
     if (pendingUpdates.size === 0) {
       // No hay actualizaciones pendientes, sincronizar normalmente
       setLocalSlots(slots);
     } else {
-      // Hay actualizaciones pendientes, fusionar inteligentemente
-      setLocalSlots(prevLocal => {
-        const newSlots = slots.map(slot => {
-          // Si este slot tiene una actualización pendiente, mantener el valor local
-          if (pendingUpdates.has(slot.id)) {
-            const localSlot = prevLocal.find(s => s.id === slot.id);
-            return localSlot || slot;
+      // Hay actualizaciones pendientes, fusionar inteligentemente y verificar confirmación
+      const confirmedSlotIds: string[] = [];
+      
+      const newSlots = slots.map(slot => {
+        const pending = pendingUpdates.get(slot.id);
+        if (pending) {
+          // Verificar si el servidor confirmó el cambio
+          if (slot.isAvailable === pending.desiredIsAvailable) {
+            // ✅ Servidor confirmó el estado deseado - marcar para limpiar
+            confirmedSlotIds.push(slot.id);
+            return slot; // Usar el dato del servidor (confirmado)
+          } else {
+            // ⏳ Servidor aún no refleja el cambio - mantener estado optimista
+            return { ...slot, isAvailable: pending.desiredIsAvailable };
           }
-          return slot;
-        });
-        return newSlots;
+        }
+        return slot;
       });
+      
+      setLocalSlots(newSlots);
+      
+      // Limpiar slots confirmados del pendingUpdates
+      if (confirmedSlotIds.length > 0) {
+        setPendingUpdates(prev => {
+          const next = new Map(prev);
+          confirmedSlotIds.forEach(id => next.delete(id));
+          return next;
+        });
+        logger.debug('Slots confirmados por servidor:', { confirmedSlotIds });
+      }
     }
-  }, [slots, pendingUpdates.size]);
+  }, [slots, pendingUpdates]);
+  
+  // Timeout de seguridad: si un pending lleva más de 5s sin confirmar, limpiar y forzar refresh
+  useEffect(() => {
+    if (pendingUpdates.size === 0) return;
+    
+    const timeoutId = setTimeout(() => {
+      const now = Date.now();
+      const staleIds: string[] = [];
+      
+      pendingUpdates.forEach((value, slotId) => {
+        if (now - value.startedAt > 5000) {
+          staleIds.push(slotId);
+        }
+      });
+      
+      if (staleIds.length > 0) {
+        logger.warn('Slots pendientes sin confirmar (timeout):', { staleIds });
+        setPendingUpdates(prev => {
+          const next = new Map(prev);
+          staleIds.forEach(id => next.delete(id));
+          return next;
+        });
+        // Forzar refresh para sincronizar con servidor
+        refreshSlots();
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [pendingUpdates, refreshSlots]);
 
   // Group slots by date usando localSlots para actualizaciones instantáneas
   const slotGroups = useMemo(() => {
@@ -127,8 +176,12 @@ const ProviderSlotBlockingGrid = ({
     // Guardar estado previo para rollback en caso de error
     const previousLocalSlots = [...localSlots];
     
-    // ✅ Marcar slot como "pending" ANTES de la actualización optimista
-    setPendingUpdates(prev => new Map(prev).set(slotId, true));
+    // ✅ Marcar slot como "pending" con estado deseado y timestamp
+    const desiredIsAvailable = !isCurrentlyAvailable;
+    setPendingUpdates(prev => new Map(prev).set(slotId, { 
+      desiredIsAvailable, 
+      startedAt: Date.now() 
+    }));
     
     // ✅ ACTUALIZACIÓN OPTIMISTA - Cambiar color inmediatamente
     setLocalSlots(prevSlots => 
@@ -208,17 +261,11 @@ const ProviderSlotBlockingGrid = ({
         variant: action === 'bloquear' ? 'default' : 'default'
       });
       
-      // ✅ Esperar antes de quitar el flag pending para que el DB se sincronice
-      // Esto evita que refreshSlots sobrescriba la UI optimista
-      setTimeout(() => {
-        setPendingUpdates(prev => {
-          const next = new Map(prev);
-          next.delete(slotId);
-          return next;
-        });
-        // Ahora sí hacer refresh silencioso para sincronizar con servidor
-        refreshSlots();
-      }, 800);
+      // ✅ NO llamar refreshSlots() inmediatamente - el useEffect con reconciliación
+      // basada en confirmación lo manejará cuando lleguen los datos del servidor.
+      // El pendingUpdate se limpiará automáticamente cuando el servidor confirme el estado.
+      // Si hay realtime subscription, la confirmación llegará rápido.
+      // Si no, el timeout de 5s forzará un refresh.
 
     } catch (error) {
       // ❌ Si falla, revertir al estado anterior y quitar pending
