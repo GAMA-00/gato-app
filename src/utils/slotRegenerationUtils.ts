@@ -9,6 +9,17 @@ interface TimeSlot {
 }
 
 /**
+ * Normaliza formato de tiempo a HH:mm:ss para comparaciones consistentes
+ */
+const normalizeTimeFormat = (time: string): string => {
+  if (!time) return '';
+  const parts = time.split(':');
+  if (parts.length === 2) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:00`;
+  if (parts.length === 3) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:${parts[2].padStart(2, '0')}`;
+  return time;
+};
+
+/**
  * Asegura que todos los slots configurados existan en la base de datos
  */
 export const ensureAllSlotsExist = async (
@@ -21,8 +32,8 @@ export const ensureAllSlotsExist = async (
   serviceDuration: number
 ): Promise<void> => {
   console.log('🔧 Verificando slots faltantes...');
-const slotsToCreate: any[] = [];
-const slotsToDeleteByDate: Record<string, Set<string>> = {};
+  const slotsToCreate: any[] = [];
+  const slotsToDeleteByDate: Record<string, Set<string>> = {};
   // Iterar por cada día en el rango EXACTO
   const currentDate = new Date(startDate);
   const endDateTime = new Date(endDate);
@@ -49,16 +60,17 @@ const slotsToDeleteByDate: Record<string, Set<string>> = {};
         serviceDuration
       );
 
-      // Track allowed times for cleanup logic
+      // Track allowed times for cleanup logic (normalized for consistent comparison)
       const allowedTimes = new Set<string>();
       
       for (const generatedSlot of daySlots) {
-        allowedTimes.add(generatedSlot.start_time);
+        const normalizedGenTime = normalizeTimeFormat(generatedSlot.start_time);
+        allowedTimes.add(normalizedGenTime);
         
-        // Check if this slot already exists
+        // Check if this slot already exists (compare normalized times)
         const existingSlot = existingSlots.find(slot => 
           slot.slot_date === dateString && 
-          slot.start_time === generatedSlot.start_time
+          normalizeTimeFormat(slot.start_time) === normalizedGenTime
         );
         
         if (!existingSlot) {
@@ -73,7 +85,8 @@ const slotsToDeleteByDate: Record<string, Set<string>> = {};
         // Solo eliminar slots generados automáticamente que no están en el horario configurado
         const isGenerated = s.slot_type === 'generated' || !s.slot_type;
         const isNotReserved = s.is_reserved !== true;
-        const isOutsideConfig = !allowedTimes.has(s.start_time);
+        // Use normalized time comparison
+        const isOutsideConfig = !allowedTimes.has(normalizeTimeFormat(s.start_time));
         const isAvailable = s.is_available === true;
         
         return isGenerated && isNotReserved && isOutsideConfig && isAvailable;
