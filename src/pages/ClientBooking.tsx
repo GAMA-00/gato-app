@@ -158,17 +158,62 @@ const ClientBooking = () => {
     enabled: isRescheduleMode && !!listingIdForReschedule,
   });
 
-  // Use effective variables based on mode - robust fallbacks
+  // CRITICAL FIX: Fallback query to load provider_id when not available from navigation state
+  // This ensures slots load correctly even with page refresh or direct URL access
+  const { data: listingFallbackData, isLoading: isLoadingListingFallback } = useQuery({
+    queryKey: ['listing-fallback', serviceId],
+    queryFn: async () => {
+      if (!serviceId) return null;
+      
+      const { data, error } = await supabase
+        .from('listings')
+        .select(`
+          id,
+          provider_id,
+          title,
+          slot_size,
+          standard_duration,
+          duration,
+          is_post_payment,
+          custom_variable_groups,
+          service_variants,
+          base_price,
+          currency,
+          users!listings_provider_id_fkey (
+            id,
+            name
+          )
+        `)
+        .eq('id', serviceId)
+        .maybeSingle();
+      
+      if (error) {
+        bookingLogger.error('Error loading listing fallback:', { error });
+        return null;
+      }
+      
+      if (!data) return null;
+      
+      return {
+        ...data,
+        provider: data.users
+      };
+    },
+    enabled: !isRescheduleMode && !!serviceId && !providerId, // Only when normal mode AND no providerId from state
+  });
+
+  // Use effective variables based on mode - with fallback for normal mode
   const effectiveServiceDetails = isRescheduleMode 
     ? rescheduleServiceData 
-    : serviceDetails;
+    : (serviceDetails || listingFallbackData);
 
   // Unified listing ID for booking
   const listingIdForBooking = serviceId || rescheduleData?.listingId || effectiveServiceDetails?.id || '';
 
+  // FIXED: Include fallback for normal mode
   const effectiveProviderId = isRescheduleMode 
     ? (rescheduleData?.providerId || rescheduleServiceData?.provider_id || providerId || '')
-    : providerId;
+    : (providerId || listingFallbackData?.provider_id || '');
 
   // Reinforce variants with fallback duration if variants are not available
   const effectiveSelectedVariants = isRescheduleMode && Array.isArray(rescheduleServiceData?.service_variants)
@@ -183,7 +228,14 @@ const ClientBooking = () => {
         quantity: 1,
         personQuantity: 1
       }]
-    : (selectedVariants || []);
+    : (selectedVariants || 
+       (Array.isArray(listingFallbackData?.service_variants) 
+         ? (listingFallbackData.service_variants as any[]).slice(0, 1).map((v: any) => ({
+             ...v,
+             quantity: 1,
+             personQuantity: 1
+           })) 
+         : []));
 
   // Debug logging for reschedule mode
   useEffect(() => {
@@ -367,8 +419,9 @@ const ClientBooking = () => {
     }
   };
 
-  // Show loading state while fetching reschedule service data
-  if (isRescheduleMode && isLoadingRescheduleService) {
+  // Show loading state while fetching service data (reschedule mode OR fallback mode)
+  if ((isRescheduleMode && isLoadingRescheduleService) || 
+      (!isRescheduleMode && !providerId && isLoadingListingFallback)) {
     return (
       <PageLayout>
         <div className="flex items-center justify-center py-12">
