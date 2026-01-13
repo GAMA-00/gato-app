@@ -39,6 +39,8 @@ const ProviderSlotBlockingGrid = ({
 }: ProviderSlotBlockingGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [blockingSlots, setBlockingSlots] = useState<Set<string>>(new Set());
+  // Estado para rastrear actualizaciones optimistas pendientes (proteger de sobrescritura por server data)
+  const [pendingUpdates, setPendingUpdates] = useState<Map<string, boolean>>(new Map());
   const { toast } = useToast();
 
   // Usar semanas calendario reales (lunes a domingo)
@@ -61,10 +63,26 @@ const ProviderSlotBlockingGrid = ({
   // Estado local para actualizaciones optimistas
   const [localSlots, setLocalSlots] = useState<WeeklySlot[]>([]);
 
-  // Sincronizar estado local cuando slots del hook cambien
+  // Sincronizar estado local cuando slots del hook cambien, PERO respetar actualizaciones pendientes
   useEffect(() => {
-    setLocalSlots(slots);
-  }, [slots]);
+    if (pendingUpdates.size === 0) {
+      // No hay actualizaciones pendientes, sincronizar normalmente
+      setLocalSlots(slots);
+    } else {
+      // Hay actualizaciones pendientes, fusionar inteligentemente
+      setLocalSlots(prevLocal => {
+        const newSlots = slots.map(slot => {
+          // Si este slot tiene una actualización pendiente, mantener el valor local
+          if (pendingUpdates.has(slot.id)) {
+            const localSlot = prevLocal.find(s => s.id === slot.id);
+            return localSlot || slot;
+          }
+          return slot;
+        });
+        return newSlots;
+      });
+    }
+  }, [slots, pendingUpdates.size]);
 
   // Group slots by date usando localSlots para actualizaciones instantáneas
   const slotGroups = useMemo(() => {
@@ -108,6 +126,9 @@ const ProviderSlotBlockingGrid = ({
     
     // Guardar estado previo para rollback en caso de error
     const previousLocalSlots = [...localSlots];
+    
+    // ✅ Marcar slot como "pending" ANTES de la actualización optimista
+    setPendingUpdates(prev => new Map(prev).set(slotId, true));
     
     // ✅ ACTUALIZACIÓN OPTIMISTA - Cambiar color inmediatamente
     setLocalSlots(prevSlots => 
@@ -181,18 +202,32 @@ const ProviderSlotBlockingGrid = ({
         }
       }
 
-      // Refresh silencioso en segundo plano para sincronizar con servidor
-      refreshSlots();
-      
       toast({
         title: `Horario ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'}`,
         description: `${formatDateES(date, 'EEEE d MMMM', { locale: es })} a las ${time} ha sido ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'} exitosamente.`,
         variant: action === 'bloquear' ? 'default' : 'default'
       });
+      
+      // ✅ Esperar antes de quitar el flag pending para que el DB se sincronice
+      // Esto evita que refreshSlots sobrescriba la UI optimista
+      setTimeout(() => {
+        setPendingUpdates(prev => {
+          const next = new Map(prev);
+          next.delete(slotId);
+          return next;
+        });
+        // Ahora sí hacer refresh silencioso para sincronizar con servidor
+        refreshSlots();
+      }, 800);
 
     } catch (error) {
-      // ❌ Si falla, revertir al estado anterior
+      // ❌ Si falla, revertir al estado anterior y quitar pending
       setLocalSlots(previousLocalSlots);
+      setPendingUpdates(prev => {
+        const next = new Map(prev);
+        next.delete(slotId);
+        return next;
+      });
       
       logger.error(`Error al ${action} slot:`, { error, slotId, action });
       toast({
