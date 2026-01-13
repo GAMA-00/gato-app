@@ -286,17 +286,29 @@ const ProviderSlotBlockingGrid = ({
         }
       }
 
+      // ✅ Actualizar directamente el slot confirmado en localSlots sin refetch completo
+      // Esto evita que ensureAllSlotsExist() se ejecute innecesariamente
+      setLocalSlots(prev => prev.map(s => 
+        s.id === slotId 
+          ? { ...s, isAvailable: desiredIsAvailable, slotType: desiredIsAvailable ? 'generated' : 'manually_blocked' }
+          : s
+      ));
+
+      // Limpiar de pendingUpdates ya que confirmamos exitosamente
+      setPendingUpdates(prev => {
+        const updated = new Map(prev);
+        updated.delete(slotId);
+        return updated;
+      });
+
       toast({
         title: `Horario ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'}`,
         description: `${formatDateES(date, 'EEEE d MMMM', { locale: es })} a las ${time} ha sido ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'} exitosamente.`,
         variant: action === 'bloquear' ? 'default' : 'default'
       });
       
-      // ✅ Forzar refresh para sincronizar con el estado real de DB
-      // Esto garantiza que la UI refleje exactamente lo que hay en la base de datos
-      setTimeout(() => {
-        refreshSlots();
-      }, 500);
+      // ❌ NO llamar refreshSlots() después de éxito - evita regeneración innecesaria
+      // El estado local ya está actualizado y confirmado
 
     } catch (error) {
       // ❌ Si falla, revertir al estado anterior y quitar pending
