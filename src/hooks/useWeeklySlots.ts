@@ -86,7 +86,13 @@ export const useWeeklySlots = ({
   // Calculate statistics
   const stats = useMemo(() => calculateSlotStats(slots, slotGroups, availableSlotGroups), [slots, slotGroups, availableSlotGroups]);
 
-  // Effect to trigger fetch when essential params change
+  // Create stable params signature to detect real changes
+  const paramsSignature = useMemo(() => 
+    `${providerId}|${listingId}|${serviceDuration}|${recurrence}|${startDate?.getTime()}|${weekIndex}|${clientResidenciaId}`,
+    [providerId, listingId, serviceDuration, recurrence, startDate, weekIndex, clientResidenciaId]
+  );
+
+  // Effect to trigger fetch when essential params change - use signature instead of function
   useEffect(() => {
     if (providerId && listingId && serviceDuration > 0) {
       console.log('🔄 Disparando fetch por cambio de parámetros:', {
@@ -100,7 +106,7 @@ export const useWeeklySlots = ({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate?.getTime(), weekIndex, clientResidenciaId, fetchWeeklySlots]);
+  }, [paramsSignature]); // Only depend on signature, not on fetchWeeklySlots
 
   return {
     slotGroups,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { addDays, format, startOfDay, endOfDay, subWeeks } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
@@ -7,6 +7,7 @@ import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { filterTemporalSlots, calculateWeekDateRange, filterSlotsByRecurrence } from '@/utils/temporalSlotFiltering';
 // Removed virtual instance generation - relying on database state only
 import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
+
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
   isLoading: boolean;
@@ -35,8 +36,36 @@ export const useWeeklySlotsFetcher = ({
   const regenerationAttemptedRef = useRef<Set<string>>(new Set()); // Track regeneration attempts to prevent loops
   const lastRequestTimeRef = useRef<number>(0); // Debounce rapid requests
 
-  // Stable function to fetch slots - only recreated when essential params change
+  // Use ref to store current params - allows stable callback without dependencies
+  const paramsRef = useRef({
+    providerId,
+    listingId,
+    serviceDuration,
+    recurrence,
+    startDate,
+    daysAhead,
+    weekIndex,
+    clientResidenciaId
+  });
+
+  // Update params ref when they change
+  useEffect(() => {
+    paramsRef.current = {
+      providerId,
+      listingId,
+      serviceDuration,
+      recurrence,
+      startDate,
+      daysAhead,
+      weekIndex,
+      clientResidenciaId
+    };
+  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex, clientResidenciaId]);
+
+  // Stable function to fetch slots - NEVER recreated (empty dependency array)
   const fetchWeeklySlots = useCallback(async () => {
+    const { providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex, clientResidenciaId } = paramsRef.current;
+    
     if (!providerId || !listingId || !serviceDuration) {
       return;
     }
@@ -793,9 +822,9 @@ export const useWeeklySlotsFetcher = ({
     } finally {
       setIsLoading(false);
     }
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex, clientResidenciaId]);
+  }, []); // Empty dependency array - uses paramsRef for current values
 
-  // Create a stable refresh function
+  // Create a stable refresh function - also with empty dependencies
   const refreshSlots = useCallback(() => {
     console.log('🔄 Refresh solicitado - limpiando caché y forzando actualización');
     lastParamsRef.current = ''; // Clear cache to force refresh
@@ -808,7 +837,7 @@ export const useWeeklySlotsFetcher = ({
     
     // Trigger immediate fetch
     fetchWeeklySlots();
-  }, [fetchWeeklySlots]);
+  }, []); // Empty dependency array - fetchWeeklySlots is stable
 
   return {
     slots,
