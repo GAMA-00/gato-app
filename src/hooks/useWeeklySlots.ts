@@ -44,11 +44,11 @@ export const useWeeklySlots = ({
     clientResidenciaId
   });
 
-  // Handle real-time subscriptions
+  // Handle real-time subscriptions - use refreshSlots to bypass cache
   useWeeklySlotsSubs({
     providerId,
     listingId,
-    onSlotsChanged: fetchWeeklySlots
+    onSlotsChanged: refreshSlots  // CRITICAL FIX: Use refreshSlots to clear cache and force re-fetch
   });
 
   // Database-driven validation for recurring slots
