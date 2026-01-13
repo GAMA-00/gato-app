@@ -16,21 +16,25 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import ServiceCustomVariablesEditor from './ServiceCustomVariablesEditor';
 
 import { ServiceVariant } from '@/lib/types';
+import { getCurrencySymbol, type CurrencyCode } from '@/utils/currencyUtils';
 
 interface ServiceVariantEditorProps {
   serviceVariants: ServiceVariant[];
   onVariantsChange: (variants: ServiceVariant[]) => void;
   isPostPayment?: boolean | "ambas";
+  currency?: CurrencyCode;
 }
 
 const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
   serviceVariants,
   onVariantsChange,
-  isPostPayment = false
+  isPostPayment = false,
+  currency = 'USD'
 }) => {
   const { control } = useFormContext();
   const [expandedVariants, setExpandedVariants] = React.useState<Set<string>>(new Set());
   const showPriceFields = isPostPayment === false || isPostPayment === "ambas";
+  const currencySymbol = getCurrencySymbol(currency);
 
   const handleAddServiceVariant = () => {
     const newVariant: ServiceVariant = {
@@ -151,8 +155,8 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                              <Input 
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
+                              <Input
                                 type="number" 
                                 min="1" 
                                 placeholder="Precio base" 
@@ -180,8 +184,8 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                           <FormLabel className="text-xs">Precio</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                              <Input 
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
+                              <Input
                                 type="number" 
                                 min="1" 
                                 placeholder="Precio" 
@@ -283,8 +287,8 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
                             <FormLabel className="text-sm">Precio por persona adicional</FormLabel>
                             <FormControl>
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                                <Input 
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
+                                <Input
                                   type="number" 
                                   min="0" 
                                   placeholder="0" 

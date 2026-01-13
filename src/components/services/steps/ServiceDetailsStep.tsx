@@ -12,17 +12,20 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ServiceVariantEditor from './ServiceVariantEditor';
 import PostPaymentToggle from './PostPaymentToggle';
 import { v4 as uuidv4 } from 'uuid';
-import { Clock, Info } from 'lucide-react';
+import { Clock, Info, DollarSign } from 'lucide-react';
+import { CURRENCY_LABELS, getCurrencySymbol, type CurrencyCode } from '@/utils/currencyUtils';
 
 const ServiceDetailsStep: React.FC = () => {
   const { control, setValue, watch } = useFormContext();
   const selectedResidencias = watch('residenciaIds') || [];
   const isPostPayment = watch('isPostPayment') || false;
+  const currency = watch('currency') as CurrencyCode || 'USD';
   const serviceVariants = watch('serviceVariants') || [
     { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
@@ -61,6 +64,58 @@ const ServiceDetailsStep: React.FC = () => {
       </div>
       
       <PostPaymentToggle />
+
+      {/* Currency Selection */}
+      <Card className="border-stone-200 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Moneda de Precios
+          </CardTitle>
+          <CardDescription className="text-sm text-stone-600">
+            Selecciona la moneda en la que defines los precios de tus servicios.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormField
+            control={control}
+            name="currency"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base font-medium">Moneda</FormLabel>
+                <Select 
+                  value={field.value || 'USD'} 
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full sm:w-64">
+                      <SelectValue placeholder="Seleccionar moneda" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="USD">
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono text-lg">$</span>
+                        {CURRENCY_LABELS.USD}
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="CRC">
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono text-lg">₡</span>
+                        {CURRENCY_LABELS.CRC}
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Todos los precios del catálogo se mostrarán en esta moneda.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
       
       {/* Slot Size Configuration */}
       <Card className="border-stone-200 shadow-sm">
@@ -120,6 +175,7 @@ const ServiceDetailsStep: React.FC = () => {
         serviceVariants={serviceVariants}
         onVariantsChange={(variants) => setValue('serviceVariants', variants)}
         isPostPayment={isPostPayment}
+        currency={currency}
       />
 
       <Card className="border-stone-200 shadow-sm">

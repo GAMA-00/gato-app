@@ -28,7 +28,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           standard_duration,
           provider_id,
           gallery_images,
-          service_variants
+          service_variants,
+          currency
         `)
         .eq('service_type_id', serviceId)
         .eq('is_active', true);
@@ -166,7 +167,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
             galleryImages: galleryImages,
             hasCertifications: false,
             ratingCount: Math.floor(Math.random() * 100) + 10, // Simulated
-            joinDate: joinDate
+            joinDate: joinDate,
+            currency: (listing.currency as 'USD' | 'CRC') || 'USD'
           };
 
           logger.debug("Processed provider", {

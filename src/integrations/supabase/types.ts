@@ -493,6 +493,7 @@ export type Database = {
           availability: Json | null
           base_price: number
           created_at: string
+          currency: string
           custom_variable_groups: Json | null
           description: string
           duration: number
@@ -514,6 +515,7 @@ export type Database = {
           availability?: Json | null
           base_price: number
           created_at?: string
+          currency?: string
           custom_variable_groups?: Json | null
           description: string
           duration: number
@@ -535,6 +537,7 @@ export type Database = {
           availability?: Json | null
           base_price?: number
           created_at?: string
+          currency?: string
           custom_variable_groups?: Json | null
           description?: string
           duration?: number

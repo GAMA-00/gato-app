@@ -29,6 +29,7 @@ const serviceSchema = z.object({
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   price: z.coerce.number().min(0, 'El precio debe ser mayor a 0'),
   duration: z.coerce.number().min(2, 'La duración debe ser de al menos 2 minutos'),
+  currency: z.enum(['USD', 'CRC']).default('USD'),
   isPostPayment: z.union([z.boolean(), z.literal("ambas")]).default(false),
   slotSize: z.coerce.number().refine((val) => val === 30 || val === 60, {
     message: 'El tamaño de slot debe ser 30 o 60 minutos'
@@ -92,6 +93,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       description: '',
       price: 0,
       duration: 60,
+      currency: 'USD',
       isPostPayment: false,
       slotSize: 60,
       serviceVariants: [
@@ -142,6 +144,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         description: initialData.description || '',
         price: Number(initialData.price) || 0,
         duration: Number(initialData.duration) || 60,
+        currency: initialData.currency || 'USD',
         isPostPayment: initialData.isPostPayment || false,
         slotSize: (Number(initialData.slotSize) === 30 ? 30 : 60) as 30 | 60,
         serviceVariants: initialData.serviceVariants?.length > 0 

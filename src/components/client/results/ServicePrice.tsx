@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '@/utils/currencyUtils';
 
 interface ServicePriceProps {
   price: number;
@@ -7,6 +7,7 @@ interface ServicePriceProps {
   layout?: 'mobile' | 'desktop';
   alignment?: 'left' | 'center';
   className?: string;
+  currency?: CurrencyCode;
 }
 
 const ServicePrice = ({ 
@@ -14,10 +15,13 @@ const ServicePrice = ({
   additionalPersonPrice, 
   layout = 'desktop',
   alignment = 'left',
-  className = ''
+  className = '',
+  currency = 'USD'
 }: ServicePriceProps) => {
   const formatPriceWithoutDecimals = (price: number) => {
-    return price % 1 === 0 ? `$${price}` : formatCurrency(price);
+    const symbol = getCurrencySymbol(currency);
+    const locale = currency === 'CRC' ? 'es-CR' : 'en-US';
+    return price % 1 === 0 ? `${symbol}${price.toLocaleString(locale)}` : formatCurrency(price, currency);
   };
 
   const hasPersonPricing = additionalPersonPrice && Number(additionalPersonPrice) > 0;

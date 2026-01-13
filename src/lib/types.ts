@@ -61,6 +61,8 @@ export interface WeeklyAvailability {
   };
 }
 
+export type CurrencyCode = 'USD' | 'CRC';
+
 export interface Service {
   id: string;
   name: string;
@@ -73,6 +75,8 @@ export interface Service {
   residenciaIds: string[];
   providerId: string;
   providerName: string;
+  // Moneda del servicio (USD o CRC)
+  currency?: CurrencyCode;
   // Campos para el perfil del proveedor
   aboutMe?: string;
   profileImage?: File;
