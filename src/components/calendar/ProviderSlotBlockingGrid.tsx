@@ -153,6 +153,15 @@ const ProviderSlotBlockingGrid = ({
     return groupSlotsByDate(weekSlots);
   }, [localSlots, slots, startDate, endDate, currentWeek]);
 
+  // Helper para normalizar tiempo a formato HH:mm:ss
+  const normalizeTime = (time: string): string => {
+    const parts = time.split(':');
+    const hours = parts[0]?.padStart(2, '0') || '00';
+    const minutes = parts[1]?.padStart(2, '0') || '00';
+    const seconds = parts[2]?.padStart(2, '0') || '00';
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
   const handleSlotToggle = useCallback(async (slotId: string, date: Date, time: string) => {
     const slot = slotGroups
       .flatMap(group => group.slots)
@@ -195,63 +204,85 @@ const ProviderSlotBlockingGrid = ({
     setBlockingSlots(prev => new Set(prev).add(slotId));
 
     try {
-      // Buscar el slot en la base de datos para actualizarlo
+      // Normalizar tiempo para consistencia en DB
+      const normalizedTime = normalizeTime(time);
       const slotDateStr = format(date, 'yyyy-MM-dd');
       
-      // Primero verificar si el slot existe en la DB
+      // Primero verificar si el slot existe en la DB (buscar ambos formatos por compatibilidad)
       const { data: existingSlot, error: fetchError } = await supabase
         .from('provider_time_slots')
         .select('*')
         .eq('provider_id', providerId)
         .eq('listing_id', listingId)
         .eq('slot_date', slotDateStr)
-        .eq('start_time', time)
+        .or(`start_time.eq.${normalizedTime},start_time.eq.${time}`)
         .maybeSingle();
 
       if (fetchError) {
         throw fetchError;
       }
 
+      let savedSlotId: string | null = null;
+
       if (existingSlot) {
         // Actualizar slot existente
-        const { error: updateError } = await supabase
+        const { data: updatedData, error: updateError } = await supabase
           .from('provider_time_slots')
           .update({ 
             is_available: !isCurrentlyAvailable,
-            // Si lo estamos bloqueando, marcarlo como reservado manualmente
             is_reserved: isCurrentlyAvailable,
             slot_type: isCurrentlyAvailable ? 'manually_blocked' : 'generated'
           })
-          .eq('id', existingSlot.id);
+          .eq('id', existingSlot.id)
+          .select('id, is_available, is_reserved, slot_type')
+          .single();
 
         if (updateError) throw updateError;
+        savedSlotId = existingSlot.id;
+        
+        // ✅ Verificar confirmación post-write
+        if (updatedData && updatedData.is_available !== desiredIsAvailable) {
+          throw new Error(`El servidor no reflejó el cambio esperado. Esperado is_available=${desiredIsAvailable}, recibido=${updatedData.is_available}`);
+        }
+        logger.debug('Slot actualizado y confirmado:', { savedSlotId, updatedData });
       } else {
         // Crear nuevo slot bloqueado si no existe
         if (isCurrentlyAvailable) {
-          const endTime = new Date(date);
+          const endTimeDate = new Date(date);
           const [hours, minutes] = time.split(':').map(Number);
-          endTime.setHours(hours, minutes);
-          endTime.setMinutes(endTime.getMinutes() + serviceDuration);
+          endTimeDate.setHours(hours, minutes);
+          endTimeDate.setMinutes(endTimeDate.getMinutes() + serviceDuration);
 
           const slotStart = new Date(date);
           slotStart.setHours(hours, minutes);
+          
+          const normalizedEndTime = normalizeTime(format(endTimeDate, 'HH:mm'));
 
-          const { error: insertError } = await supabase
+          const { data: insertedData, error: insertError } = await supabase
             .from('provider_time_slots')
             .insert({
               provider_id: providerId,
               listing_id: listingId,
               slot_date: slotDateStr,
-              start_time: time,
-              end_time: format(endTime, 'HH:mm'),
+              start_time: normalizedTime,
+              end_time: normalizedEndTime,
               slot_datetime_start: slotStart.toISOString(),
-              slot_datetime_end: endTime.toISOString(),
+              slot_datetime_end: endTimeDate.toISOString(),
               is_available: false,
               is_reserved: true,
               slot_type: 'manually_blocked'
-            });
+            })
+            .select('id, is_available, is_reserved, slot_type')
+            .single();
 
           if (insertError) throw insertError;
+          
+          // ✅ Verificar confirmación post-write
+          if (insertedData && insertedData.is_available !== false) {
+            throw new Error(`El servidor no guardó el bloqueo correctamente. is_available=${insertedData.is_available}`);
+          }
+          savedSlotId = insertedData?.id || null;
+          logger.debug('Slot insertado y confirmado:', { savedSlotId, insertedData });
         }
       }
 
@@ -261,11 +292,11 @@ const ProviderSlotBlockingGrid = ({
         variant: action === 'bloquear' ? 'default' : 'default'
       });
       
-      // ✅ NO llamar refreshSlots() inmediatamente - el useEffect con reconciliación
-      // basada en confirmación lo manejará cuando lleguen los datos del servidor.
-      // El pendingUpdate se limpiará automáticamente cuando el servidor confirme el estado.
-      // Si hay realtime subscription, la confirmación llegará rápido.
-      // Si no, el timeout de 5s forzará un refresh.
+      // ✅ Forzar refresh para sincronizar con el estado real de DB
+      // Esto garantiza que la UI refleje exactamente lo que hay en la base de datos
+      setTimeout(() => {
+        refreshSlots();
+      }, 500);
 
     } catch (error) {
       // ❌ Si falla, revertir al estado anterior y quitar pending
