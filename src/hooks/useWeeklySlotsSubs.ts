@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseWeeklySlotSubsProps {
@@ -13,7 +13,16 @@ export const useWeeklySlotsSubs = ({
   onSlotsChanged
 }: UseWeeklySlotSubsProps) => {
   
+  // Use ref for callback to prevent re-subscriptions when callback identity changes
+  const onSlotsChangedRef = useRef(onSlotsChanged);
+  
+  // Update ref when callback changes (but don't trigger re-subscription)
+  useEffect(() => {
+    onSlotsChangedRef.current = onSlotsChanged;
+  }, [onSlotsChanged]);
+  
   // Subscribe to real-time changes for consistent slot state
+  // Only re-subscribe when providerId or listingId change (NOT when callback changes)
   useEffect(() => {
     if (!providerId || !listingId) return;
 
@@ -34,7 +43,7 @@ export const useWeeklySlotsSubs = ({
           const newRecord = payload.new as any;
           const oldRecord = payload.old as any;
           if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
-            setTimeout(() => onSlotsChanged(), 300);
+            setTimeout(() => onSlotsChangedRef.current(), 300);
           }
         }
       )
@@ -54,7 +63,7 @@ export const useWeeklySlotsSubs = ({
           // Check if the appointment affects our listing
           if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
             // Immediate refresh for appointment changes affecting slot availability
-            setTimeout(() => onSlotsChanged(), 100);
+            setTimeout(() => onSlotsChangedRef.current(), 100);
           }
         }
       )
@@ -71,7 +80,7 @@ export const useWeeklySlotsSubs = ({
           const newRecord = payload.new as any;
           const oldRecord = payload.old as any;
           if (newRecord?.listing_id === listingId || oldRecord?.listing_id === listingId) {
-            setTimeout(() => onSlotsChanged(), 200);
+            setTimeout(() => onSlotsChangedRef.current(), 200);
           }
         }
       )
@@ -85,7 +94,7 @@ export const useWeeklySlotsSubs = ({
         },
         (payload) => {
           console.log('📡 Cambio en provider_availability:', payload);
-          setTimeout(() => onSlotsChanged(), 800); // Longer delay for availability changes
+          setTimeout(() => onSlotsChangedRef.current(), 800); // Longer delay for availability changes
         }
       )
       .subscribe();
@@ -94,5 +103,5 @@ export const useWeeklySlotsSubs = ({
       console.log('🧹 Limpiando suscripción unificada en tiempo real');
       supabase.removeChannel(channel);
     };
-  }, [providerId, listingId, onSlotsChanged]);
+  }, [providerId, listingId]); // Removed onSlotsChanged from deps - using ref instead
 };
