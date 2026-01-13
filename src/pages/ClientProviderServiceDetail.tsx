@@ -193,6 +193,7 @@ const ClientProviderServiceDetail = () => {
           transformedProvider={transformedProvider}
           providerId={providerId!}
           providerLevel={providerLevel.level}
+          currency={serviceDetails.currency}
         />
       </PageContainer>
       

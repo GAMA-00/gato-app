@@ -10,6 +10,7 @@ import ProviderReviews from '@/components/providers/ProviderReviews';
 import LevelBadge from '@/components/achievements/LevelBadge';
 import { ProviderProfile } from '@/lib/types';
 import { AchievementLevel } from '@/lib/achievementTypes';
+import { CurrencyCode } from '@/utils/currencyUtils';
 
 interface ServiceDetailTabsProps {
   serviceDescription: string;
@@ -20,6 +21,7 @@ interface ServiceDetailTabsProps {
   transformedProvider: ProviderProfile;
   providerId: string;
   providerLevel: AchievementLevel;
+  currency?: CurrencyCode;
 }
 
 const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
@@ -31,6 +33,7 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
   transformedProvider,
   providerId,
   providerLevel,
+  currency = 'USD',
 }) => {
   const [activeTab, setActiveTab] = useState('catalog');
 
@@ -91,6 +94,7 @@ const ServiceDetailTabs: React.FC<ServiceDetailTabsProps> = ({
             <ServiceVariantsSelector
               variants={serviceVariants}
               onSelectVariant={onSelectVariant}
+              currency={currency}
             />
           </div>
 
