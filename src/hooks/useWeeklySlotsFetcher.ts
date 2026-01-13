@@ -32,6 +32,8 @@ export const useWeeklySlotsFetcher = ({
   // Stable cache for request deduplication
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastParamsRef = useRef<string>('');
+  const regenerationAttemptedRef = useRef<Set<string>>(new Set()); // Track regeneration attempts to prevent loops
+  const lastRequestTimeRef = useRef<number>(0); // Debounce rapid requests
 
   // Stable function to fetch slots - only recreated when essential params change
   const fetchWeeklySlots = useCallback(async () => {
@@ -45,14 +47,16 @@ export const useWeeklySlotsFetcher = ({
     const endDate = startOfDay(weekEndDate);
     const paramsSignature = createSlotSignature(providerId, listingId, serviceDuration, recurrence, baseDate, endDate) + `|res:${clientResidenciaId || 'none'}`;
     
-    // Prevent duplicate requests with same signature
-    if (lastParamsRef.current === paramsSignature) {
-      console.log('⏭️ Evitando petición duplicada:', paramsSignature);
+    // Debounce rapid requests (200ms) but allow different signatures
+    const now = Date.now();
+    if (lastParamsRef.current === paramsSignature && (now - lastRequestTimeRef.current) < 200) {
+      console.log('⏭️ Debounce: evitando petición muy rápida:', paramsSignature);
       return;
     }
     
     console.log('🚀 Nueva petición con firma:', paramsSignature);
     lastParamsRef.current = paramsSignature;
+    lastRequestTimeRef.current = now;
 
     // Cancel previous request
     if (abortControllerRef.current) {
@@ -290,6 +294,50 @@ export const useWeeklySlotsFetcher = ({
           }));
           
           console.log('✅ Slots actualizados después de regeneración:', validRangeSlots.length);
+          
+          // SELF-HEALING: If still 0 slots after client-side regeneration, try server-side RPC
+          if (validRangeSlots.length === 0) {
+            const regenerationKey = `${listingId}-${weekIndex}`;
+            if (!regenerationAttemptedRef.current.has(regenerationKey)) {
+              regenerationAttemptedRef.current.add(regenerationKey);
+              console.log('⚡ Self-healing: No slots encontrados, intentando RPC regenerate_slots_for_listing...');
+              
+              try {
+                const { data: rpcResult, error: rpcError } = await supabase.rpc(
+                  'regenerate_slots_for_listing',
+                  { p_listing_id: listingId }
+                );
+                
+                if (rpcError) {
+                  console.warn('⚠️ RPC regenerate_slots_for_listing falló:', rpcError);
+                } else {
+                  console.log('✅ RPC regenerate_slots_for_listing completado, slots creados:', rpcResult);
+                  
+                  // Re-fetch one more time after RPC
+                  const [finalDtRes] = await Promise.all([
+                    supabase
+                      .from('provider_time_slots')
+                      .select('*')
+                      .eq('provider_id', providerId)
+                      .eq('listing_id', listingId)
+                      .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
+                      .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
+                      .order('slot_date', { ascending: true })
+                      .order('start_time', { ascending: true })
+                  ]);
+                  
+                  if (finalDtRes.data && finalDtRes.data.length > 0) {
+                    validRangeSlots.splice(0, validRangeSlots.length, ...finalDtRes.data);
+                    console.log('✅ Slots recuperados después de RPC:', validRangeSlots.length);
+                  }
+                }
+              } catch (rpcErr) {
+                console.warn('⚠️ Error en RPC self-healing:', rpcErr);
+              }
+            } else {
+              console.log('⏭️ Self-healing ya intentado para esta semana, evitando loop');
+            }
+          }
         }
       } catch (e) {
         console.log('⚠️ Error en regeneración de slots, continuando con datos existentes:', e);
@@ -749,8 +797,9 @@ export const useWeeklySlotsFetcher = ({
 
   // Create a stable refresh function
   const refreshSlots = useCallback(() => {
-    console.log('WeeklySlots: Forzando actualización manual de slots');
+    console.log('🔄 Refresh solicitado - limpiando caché y forzando actualización');
     lastParamsRef.current = ''; // Clear cache to force refresh
+    lastRequestTimeRef.current = 0; // Reset debounce
     
     // Cancel any existing request
     if (abortControllerRef.current) {

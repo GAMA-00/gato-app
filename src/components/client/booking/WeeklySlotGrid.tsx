@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import calendarIcon from '@/assets/calendar-icon.png';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,8 @@ import {
   ChevronLeft, 
   ChevronRight, 
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { 
   isCurrentWeek, 
@@ -23,6 +24,7 @@ import {
 } from '@/utils/temporalSlotFiltering';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WeeklySlotGridProps {
   providerId: string;
@@ -49,6 +51,8 @@ const WeeklySlotGrid = ({
 }: WeeklySlotGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);
+  const [isLookingAhead, setIsLookingAhead] = useState(false);
+  const [nextAvailableWeek, setNextAvailableWeek] = useState<number | null>(null);
   const { profile } = useUserProfile();
 
   // Sync local state with prop when it changes
@@ -100,6 +104,64 @@ const WeeklySlotGrid = ({
     availableSlotGroups.some(g => g.slots.some(s => s.isAvailable && s.isRecommended)),
     [availableSlotGroups]
   );
+
+  // LOOKAHEAD: Search for next available week when current has no slots
+  const lookAheadForAvailability = useCallback(async () => {
+    if (isLoading || availableSlotGroups.length > 0 || isLookingAhead) return;
+    
+    setIsLookingAhead(true);
+    logger.info('🔍 Iniciando búsqueda de semanas con disponibilidad...');
+    
+    const maxWeeksToCheck = 8;
+    
+    try {
+      for (let weekOffset = currentWeek + 1; weekOffset <= currentWeek + maxWeeksToCheck; weekOffset++) {
+        const { startDate: checkStart, endDate: checkEnd } = calculateWeekDateRange(weekOffset);
+        
+        // Quick check: are there available slots in this week?
+        const { data: slotsCheck, error } = await supabase
+          .from('provider_time_slots')
+          .select('id')
+          .eq('provider_id', providerId)
+          .eq('listing_id', listingId)
+          .eq('is_available', true)
+          .eq('is_reserved', false)
+          .gte('slot_date', format(checkStart, 'yyyy-MM-dd'))
+          .lte('slot_date', format(checkEnd, 'yyyy-MM-dd'))
+          .limit(1);
+        
+        if (error) {
+          logger.warn('Error en lookahead:', error);
+          continue;
+        }
+        
+        if (slotsCheck && slotsCheck.length > 0) {
+          logger.info(`✅ Encontrada disponibilidad en semana ${weekOffset}`);
+          setNextAvailableWeek(weekOffset);
+          break;
+        }
+      }
+    } catch (e) {
+      logger.error('Error en lookahead:', e);
+    } finally {
+      setIsLookingAhead(false);
+    }
+  }, [isLoading, availableSlotGroups.length, isLookingAhead, currentWeek, providerId, listingId]);
+
+  // Trigger lookahead when no slots available
+  useEffect(() => {
+    if (!isLoading && availableSlotGroups.length === 0 && !isLookingAhead && nextAvailableWeek === null) {
+      const timer = setTimeout(() => {
+        lookAheadForAvailability();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, availableSlotGroups.length, isLookingAhead, nextAvailableWeek, lookAheadForAvailability]);
+
+  // Reset lookahead state when week changes
+  useEffect(() => {
+    setNextAvailableWeek(null);
+  }, [currentWeek]);
 
   const handleSlotClick = (slotId: string, date: Date, time: string) => {
     const slot = availableSlotGroups
@@ -226,40 +288,102 @@ const WeeklySlotGrid = ({
 
   if (availableSlotGroups.length === 0) {
     const contextMessage = getWeekContextMessage(currentWeek, false, 0);
-    const navigationHint = getNavigationHint(currentWeek, false);
+    
+    // Handler to jump to available week
+    const goToAvailableWeek = () => {
+      if (nextAvailableWeek !== null) {
+        setCurrentWeek(nextAvailableWeek);
+        setSelectedSlotIds([]);
+        onSlotSelect([], new Date(), '', 0);
+        setNextAvailableWeek(null);
+      }
+    };
     
     return (
       <Card className="shadow-md border-blue-200 bg-blue-50/30">
         <CardContent className="pt-6">
           <div className="text-center py-8 px-4">
-            <AlertCircle className="h-10 w-10 mx-auto mb-4 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {contextMessage}
-            </h3>
-            <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
-              {navigationHint}
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToPreviousWeek}
-                disabled={currentWeek === 0}
-                className="w-full sm:w-auto min-h-[40px] border-blue-300 hover:bg-blue-50 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Semana anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToNextWeek}
-                className="w-full sm:w-auto min-h-[40px] border-blue-300 hover:bg-blue-50 transition-colors"
-              >
-                Próxima semana
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
+            {isLookingAhead ? (
+              <>
+                <RefreshCw className="h-10 w-10 mx-auto mb-4 text-blue-600 animate-spin" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Buscando disponibilidad...
+                </h3>
+                <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
+                  Verificando las próximas semanas para encontrar horarios disponibles.
+                </p>
+              </>
+            ) : nextAvailableWeek !== null ? (
+              <>
+                <Calendar className="h-10 w-10 mx-auto mb-4 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Esta semana no tiene horarios disponibles
+                </h3>
+                <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
+                  Encontramos disponibilidad en la semana {nextAvailableWeek + 1}.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={goToAvailableWeek}
+                    className="w-full sm:w-auto min-h-[40px] transition-colors"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Ir a semana con disponibilidad
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextWeek}
+                    className="w-full sm:w-auto min-h-[40px] border-blue-300 hover:bg-blue-50 transition-colors"
+                  >
+                    Siguiente semana
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-10 w-10 mx-auto mb-4 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {contextMessage}
+                </h3>
+                <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
+                  No encontramos disponibilidad en las próximas 8 semanas. Intenta navegar manualmente o contacta al proveedor.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousWeek}
+                    disabled={currentWeek === 0}
+                    className="w-full sm:w-auto min-h-[40px] border-blue-300 hover:bg-blue-50 transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Semana anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextWeek}
+                    className="w-full sm:w-auto min-h-[40px] border-blue-300 hover:bg-blue-50 transition-colors"
+                  >
+                    Próxima semana
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => lookAheadForAvailability()}
+                    className="w-full sm:w-auto min-h-[40px]"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Buscar de nuevo
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
