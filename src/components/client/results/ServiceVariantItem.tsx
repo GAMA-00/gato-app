@@ -3,6 +3,7 @@ import { Clock } from 'lucide-react';
 import { ServiceVariant } from '@/components/client/service/types';
 import QuantityControls from './QuantityControls';
 import ServicePrice from './ServicePrice';
+import { CurrencyCode, formatCurrency } from '@/utils/currencyUtils';
 
 interface ServiceVariantItemProps {
   variant: ServiceVariant;
@@ -10,6 +11,7 @@ interface ServiceVariantItemProps {
   personQuantity: number;
   onQuantityChange: (change: number) => void;
   onPersonQuantityChange: (change: number) => void;
+  currency?: CurrencyCode;
 }
 
 const ServiceVariantItem = ({
@@ -17,7 +19,8 @@ const ServiceVariantItem = ({
   quantity,
   personQuantity,
   onQuantityChange,
-  onPersonQuantityChange
+  onPersonQuantityChange,
+  currency = 'USD'
 }: ServiceVariantItemProps) => {
   const hasPersonPricing = variant.additionalPersonPrice && Number(variant.additionalPersonPrice) > 0;
 
@@ -39,7 +42,7 @@ const ServiceVariantItem = ({
               <span>{formatDuration()}</span>
             </div>
           </div>
-          <span className="text-lg font-bold ml-4">${Number(variant.price)}</span>
+          <span className="text-lg font-bold ml-4">{formatCurrency(variant.price, currency)}</span>
         </div>
         
         <div className="flex items-center justify-end gap-3 mt-3">
@@ -67,6 +70,7 @@ const ServiceVariantItem = ({
             additionalPersonPrice={variant.additionalPersonPrice ? Number(variant.additionalPersonPrice) : undefined}
             layout="desktop"
             alignment="left"
+            currency={currency}
           />
         </div>
         

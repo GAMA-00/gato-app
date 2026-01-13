@@ -5,6 +5,7 @@ import { ServiceVariant } from '@/components/client/service/types';
 import ServiceVariantItem from './ServiceVariantItem';
 import { ChevronDown } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { CurrencyCode } from '@/utils/currencyUtils';
 
 export interface ServiceVariantWithQuantity extends ServiceVariant {
   quantity: number;
@@ -14,9 +15,10 @@ export interface ServiceVariantWithQuantity extends ServiceVariant {
 interface ServiceVariantsSelectorProps {
   variants: ServiceVariant[];
   onSelectVariant: (variants: ServiceVariantWithQuantity[]) => void;
+  currency?: CurrencyCode;
 }
 
-const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsSelectorProps) => {
+const ServiceVariantsSelector = ({ variants, onSelectVariant, currency = 'USD' }: ServiceVariantsSelectorProps) => {
   const [variantQuantities, setVariantQuantities] = React.useState<{ [key: string]: number }>({});
   const [personQuantities, setPersonQuantities] = React.useState<{ [key: string]: number }>({});
   const isMobile = useIsMobile();
@@ -129,6 +131,7 @@ const ServiceVariantsSelector = ({ variants, onSelectVariant }: ServiceVariantsS
               personQuantity={personQuantity}
               onQuantityChange={(change) => handleQuantityChange(variant.id, change)}
               onPersonQuantityChange={(change) => handlePersonQuantityChange(variant.id, change)}
+              currency={currency}
             />
           );
         })}
