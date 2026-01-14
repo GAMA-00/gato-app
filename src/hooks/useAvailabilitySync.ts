@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { SlotSyncUtils } from '@/utils/slotSyncUtils';
 
 interface AvailabilitySlot {
   startTime: string;
@@ -143,35 +142,8 @@ export const useAvailabilitySync = () => {
         // Continue with slot regeneration
       }
 
-      try {
-        const { data: allListings } = await supabase
-          .from('listings')
-          .select('id, standard_duration, title')
-          .eq('provider_id', user.id)
-          .eq('is_active', true);
-
-        if (allListings && allListings.length > 0) {
-          // ⛔ CRITICAL: Always use SAFE RPC that only inserts missing slots (no deletes)
-          // The non-safe version and regenerateAllProviderSlots were causing
-          // all slots for a day to disappear when blocking a single slot.
-          console.log('🔧 [SAFE MODE] Sincronizando slots con RPC safe (sin deletes)...');
-          
-          for (const listingItem of allListings) {
-            try {
-              await supabase.rpc('regenerate_slots_for_listing_safe', { 
-                p_listing_id: listingItem.id 
-              });
-              console.log(`✅ Listing ${listingItem.id}: slots sincronizados (safe mode)`);
-            } catch (err) {
-              console.warn(`⚠️ Error en RPC safe para listing ${listingItem.id}:`, err);
-            }
-          }
-          
-          await SlotSyncUtils.logSlotStatus(user.id);
-        }
-      } catch (slotError) {
-        console.warn('⚠️ Error en sincronización de slots:', slotError);
-      }
+      // Los slots son estáticos - no se regeneran al cambiar disponibilidad
+      // El proveedor bloquea/desbloquea slots individualmente desde Config Disponibilidad
 
       await queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
       await queryClient.invalidateQueries({ queryKey: ['listings'] });

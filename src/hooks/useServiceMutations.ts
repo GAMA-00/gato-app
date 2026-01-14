@@ -136,14 +136,8 @@ export const useServiceMutations = () => {
         }
       }
 
-      // ⛔ CRITICAL: Use SAFE RPC that only inserts missing slots (no deletes)
-      const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing_safe', {
-        p_listing_id: listing.id
-      });
-
-      if (rpcError) {
-        console.warn('⚠️ RPC safe falló (no crítico):', rpcError);
-      }
+      // Los slots se generan automáticamente via trigger al crear el listing
+      // Ya no llamamos RPC de regeneración
 
       return listing;
     },
@@ -274,16 +268,8 @@ export const useServiceMutations = () => {
         }
       }
 
-      if (serviceData.duration) {
-        // ⛔ CRITICAL: Use SAFE RPC that only inserts missing slots (no deletes)
-        const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing_safe', {
-          p_listing_id: serviceData.id
-        });
-
-        if (rpcError) {
-          console.warn('⚠️ RPC safe falló (no crítico):', rpcError);
-        }
-      }
+      // Los slots son estáticos - no se regeneran al actualizar el listing
+      // El proveedor puede bloquear/desbloquear slots individualmente
 
       return listing;
     },
