@@ -7,7 +7,7 @@ import { groupSlotsByDate } from '@/utils/weeklySlotUtils';
 import { WeeklySlot } from '@/lib/weeklySlotTypes';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatDateES } from '@/lib/utils';
+import { formatDateES, formatTo12Hour } from '@/lib/utils';
 import { getCalendarWeekRange, getCalendarWeekLabel } from '@/utils/calendarWeekUtils';
 import { 
   Calendar, 
@@ -578,7 +578,7 @@ const ProviderSlotBlockingGrid = ({
                           )}
                           title={slot.conflictReason || (slot.isAvailable ? 'Disponible - Click para bloquear' : 'Bloqueado - Click para habilitar')}
                         >
-                          {slot.time}
+                          {formatTo12Hour(slot.time)}
                           {isRecurring && <Repeat2 className="h-2 w-2 inline ml-0.5" />}
                         </button>
                       );
@@ -700,7 +700,7 @@ const ProviderSlotBlockingGrid = ({
                           title={slot.conflictReason || (slot.isAvailable ? 'Disponible - Click para bloquear' : 'Bloqueado - Click para habilitar')}
                         >
                           <span className="flex items-center justify-center gap-1">
-                            {slot.time}
+                            {formatTo12Hour(slot.time)}
                             {isRecurring && <Repeat2 className="h-2.5 w-2.5" />}
                           </span>
                         </button>
