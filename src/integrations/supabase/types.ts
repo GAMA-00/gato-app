@@ -2456,6 +2456,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      maintain_future_slots: { Args: never; Returns: number }
       mark_past_appointments_completed: { Args: never; Returns: number }
       migrate_all_provider_availability_and_generate_slots: {
         Args: never
