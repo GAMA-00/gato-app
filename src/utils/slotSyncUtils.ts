@@ -7,10 +7,16 @@ import { supabase } from '@/integrations/supabase/client';
 export const SlotSyncUtils = {
   
   /**
-   * Regenera completamente todos los slots para un proveedor
-   * Útil cuando cambia la duración del servicio o la disponibilidad
+   * ⛔ DISABLED: DELETE operation removed to prevent slot disappearance bug.
+   * Previously this function would DELETE all non-reserved slots before regenerating,
+   * which caused all slots for a day to disappear when blocking a single slot.
+   * 
+   * Now this function uses the safe RPC that only inserts missing slots.
    */
   async regenerateAllProviderSlots(providerId: string, reason = 'Manual trigger') {
+    console.log('🔧 [SAFE MODE] regenerateAllProviderSlots llamado:', reason);
+    console.log('⛔ DELETE masivo deshabilitado - solo se insertarán slots faltantes');
+    
     try {
       const { data: listings, error: listingsError } = await supabase
         .from('listings')
@@ -30,35 +36,36 @@ export const SlotSyncUtils = {
 
       for (const listing of listings) {
         try {
-          const { error: deleteError } = await supabase
-            .from('provider_time_slots')
-            .delete()
-            .eq('provider_id', providerId)
-            .eq('listing_id', listing.id)
-            .gte('slot_date', new Date().toISOString().split('T')[0])
-            .eq('is_reserved', false);
+          // ⛔ REMOVED: The DELETE operation that was causing slot disappearance
+          // const { error: deleteError } = await supabase
+          //   .from('provider_time_slots')
+          //   .delete()
+          //   .eq('provider_id', providerId)
+          //   .eq('listing_id', listing.id)
+          //   .gte('slot_date', new Date().toISOString().split('T')[0])
+          //   .eq('is_reserved', false);
 
-          if (deleteError) {
-            continue;
-          }
-
+          // Use safe RPC that only inserts missing slots (no deletes)
           const { data: slotsCreated, error: rpcError } = await supabase
-            .rpc('regenerate_slots_for_listing', {
+            .rpc('regenerate_slots_for_listing_safe', {
               p_listing_id: listing.id
             });
 
           if (rpcError) {
+            console.warn('⚠️ RPC safe falló para listing:', listing.id, rpcError);
             continue;
           }
 
           const createdCount = slotsCreated || 0;
           totalSlotsCreated += createdCount;
+          console.log(`✅ Listing ${listing.id}: ${createdCount} slots insertados (sin deletes)`);
 
         } catch (listingError) {
-          // Continue with next listing
+          console.warn('⚠️ Error en listing:', listingError);
         }
       }
 
+      console.log(`✅ [SAFE MODE] Total slots procesados: ${totalSlotsCreated}`);
       return totalSlotsCreated;
 
     } catch (error) {
@@ -103,29 +110,17 @@ export const SlotSyncUtils = {
   },
 
   /**
-   * Limpia slots huérfanos o inconsistentes
+   * ⛔ DISABLED: DELETE operation removed to prevent slot disappearance bug.
+   * This function previously would delete slots based on a subquery which
+   * could inadvertently delete valid slots during concurrent operations.
+   * 
+   * Orphan cleanup should be done via explicit admin action with proper confirmation.
    */
   async cleanupOrphanedSlots(providerId: string) {
-    try {
-      const { error } = await supabase
-        .from('provider_time_slots')
-        .delete()
-        .eq('provider_id', providerId)
-        .not('listing_id', 'in', `(
-          SELECT id FROM listings 
-          WHERE provider_id = '${providerId}' 
-          AND is_active = true
-        )`);
-
-      if (error) {
-        return false;
-      }
-
-      return true;
-
-    } catch (error) {
-      return false;
-    }
+    console.log('⛔ [DISABLED] cleanupOrphanedSlots - DELETE automático deshabilitado');
+    console.log('ℹ️ La limpieza de slots huérfanos debe hacerse mediante acción administrativa explícita');
+    // Return true to not break callers, but do nothing
+    return true;
   },
 
   /**
