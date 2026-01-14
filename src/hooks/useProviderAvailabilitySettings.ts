@@ -219,10 +219,31 @@ export const useProviderAvailability = () => {
 
       console.log('Disponibilidad guardada exitosamente en provider_availability');
       
-      // Sync to listing (this will trigger slot regeneration via trigger)
+      // Sync to listing and then sync slots
       try {
         await syncAvailabilityToListing(availability);
         console.log('Disponibilidad sincronizada con listings');
+        
+        // Sync slots for all active listings of this provider
+        const { data: listings } = await supabase
+          .from('listings')
+          .select('id')
+          .eq('provider_id', user.id)
+          .eq('is_active', true);
+
+        if (listings && listings.length > 0) {
+          console.log(`Sincronizando slots para ${listings.length} listings...`);
+          for (const listing of listings) {
+            const { error: syncError } = await supabase.rpc('sync_slots_with_availability', {
+              p_listing_id: listing.id
+            });
+            if (syncError) {
+              console.error(`Error sincronizando slots para listing ${listing.id}:`, syncError);
+            } else {
+              console.log(`Slots sincronizados para listing ${listing.id}`);
+            }
+          }
+        }
         
         // Notify all components of the change
         unifiedNotify();

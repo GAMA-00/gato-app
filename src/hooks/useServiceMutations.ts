@@ -268,8 +268,18 @@ export const useServiceMutations = () => {
         }
       }
 
-      // Los slots son estáticos - no se regeneran al actualizar el listing
-      // El proveedor puede bloquear/desbloquear slots individualmente
+      // Sincronizar slots si cambió la disponibilidad
+      if (serviceData.availability) {
+        console.log('Sincronizando slots después de actualizar availability...');
+        const { error: syncError } = await supabase.rpc('sync_slots_with_availability', {
+          p_listing_id: serviceData.id
+        });
+        if (syncError) {
+          console.error('Error sincronizando slots:', syncError);
+        } else {
+          console.log('Slots sincronizados exitosamente');
+        }
+      }
 
       return listing;
     },

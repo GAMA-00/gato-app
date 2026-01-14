@@ -2526,6 +2526,10 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: number
       }
+      sync_slots_with_availability: {
+        Args: { p_listing_id: string }
+        Returns: number
+      }
       toggle_slot_availability: {
         Args: { p_is_available: boolean; p_slot_id: string }
         Returns: boolean
