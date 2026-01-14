@@ -668,8 +668,12 @@ export const useWeeklySlotsFetcher = ({
         const apptEnds = apptEndMinutesByDate[dateKey] || new Set<number>();
         const step = slotStepByDate[dateKey] || 60;
         
-        // Slot recomendado: Adyacente a citas confirmadas (antes o después)
-        const isAdjacentToAppointment = apptStarts.has(slotMin + step) || apptEnds.has(slotMin);
+        // Slot recomendado: DIRECTAMENTE adyacente al inicio de citas
+        // - Un step ANTES del inicio = slot anterior (este slot termina justo antes de la cita)
+        // - Un step DESPUÉS del inicio = slot posterior (este slot comienza justo después del slot ocupado)
+        const isAdjacentToAppointment = 
+          apptStarts.has(slotMin + step) ||  // Este slot termina justo antes de una cita
+          apptStarts.has(slotMin - step);    // Este slot comienza justo después del inicio de una cita
         const isRecommended = isAdjacentToAppointment;
         
         // Logging para debug
