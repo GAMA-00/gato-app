@@ -2271,6 +2271,7 @@ export type Database = {
       clean_duplicate_slots: { Args: never; Returns: number }
       cleanup_and_regenerate_slots: { Args: never; Returns: number }
       cleanup_old_pending_appointments: { Args: never; Returns: number }
+      cleanup_past_slots: { Args: { p_provider_id?: string }; Returns: number }
       consolidate_multiple_listings:
         | { Args: never; Returns: number }
         | { Args: { p_provider_id: string }; Returns: undefined }
@@ -2524,6 +2525,10 @@ export type Database = {
       sync_provider_availability_from_listing: {
         Args: { p_listing_id: string }
         Returns: number
+      }
+      toggle_slot_availability: {
+        Args: { p_is_available: boolean; p_slot_id: string }
+        Returns: boolean
       }
       toggle_user_active: { Args: { _user_id: string }; Returns: undefined }
       unblock_recurring_slots:
