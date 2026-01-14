@@ -280,6 +280,42 @@ export const useProviderAvailability = ({
     return () => { supabase.removeChannel(channel); };
   }, [providerId, refreshAvailability]);
 
+  // NEW: Suscripción en tiempo real a cambios en provider_time_slots (para consistencia cliente)
+  useEffect(() => {
+    if (!providerId || !selectedDate) return;
+    
+    const targetDate = format(selectedDate, 'yyyy-MM-dd');
+    const channelName = `provider-time-slots-client-${providerId}-${targetDate}`;
+    
+    console.log('🔔 Suscribiendo a provider_time_slots para cliente:', { providerId, targetDate });
+    
+    const channel = supabase
+      .channel(channelName)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'provider_time_slots', 
+        filter: `provider_id=eq.${providerId}` 
+      }, (payload) => {
+        // Solo refrescar si el cambio es para la fecha seleccionada
+        const changedSlot = payload.new as any;
+        if (changedSlot?.slot_date === targetDate || !changedSlot?.slot_date) {
+          console.log('🔄 Cambio en provider_time_slots detectado (cliente), refrescando...', { 
+            event: payload.eventType,
+            slot_date: changedSlot?.slot_date 
+          });
+          // Small debounce to avoid rapid refreshes
+          setTimeout(() => refreshAvailability(), 150);
+        }
+      })
+      .subscribe();
+    
+    return () => { 
+      console.log('🔕 Desuscribiendo de provider_time_slots cliente');
+      supabase.removeChannel(channel); 
+    };
+  }, [providerId, selectedDate, refreshAvailability]);
+
   return {
     availableTimeSlots,
     isLoading,

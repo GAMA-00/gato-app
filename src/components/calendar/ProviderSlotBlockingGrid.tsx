@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,19 @@ interface ProviderSlotBlockingGridProps {
   serviceDuration: number;
 }
 
+// Override type for deterministic overlay system
+interface SlotOverride {
+  desiredIsAvailable: boolean;
+  startedAt: number;
+  dbConfirmed: boolean; // True when DB write succeeded
+}
+
+// Generate stable slot key (not dependent on DB id which may change)
+const generateSlotKey = (date: string, time: string, providerId: string, listingId: string): string => {
+  const normalizedTime = time.includes(':') ? time.split(':').slice(0, 2).join(':') : time;
+  return `${date}|${normalizedTime}|${providerId}|${listingId}`;
+};
+
 const ProviderSlotBlockingGrid = ({
   providerId,
   listingId,
@@ -39,9 +52,10 @@ const ProviderSlotBlockingGrid = ({
 }: ProviderSlotBlockingGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [blockingSlots, setBlockingSlots] = useState<Set<string>>(new Set());
-  // Estado para rastrear actualizaciones optimistas pendientes con confirmación
-  // Guarda el estado deseado y timestamp para detectar confirmación del servidor
-  const [pendingUpdates, setPendingUpdates] = useState<Map<string, { desiredIsAvailable: boolean; startedAt: number }>>(new Map());
+  
+  // NEW: Deterministic overlay system - overrides NEVER get overwritten by stale server data
+  const [overrides, setOverrides] = useState<Map<string, SlotOverride>>(new Map());
+  
   const { toast } = useToast();
 
   // Usar semanas calendario reales (lunes a domingo)
@@ -61,98 +75,6 @@ const ProviderSlotBlockingGrid = ({
     daysAhead: daysInWeek
   });
 
-  // Estado local para actualizaciones optimistas
-  const [localSlots, setLocalSlots] = useState<WeeklySlot[]>([]);
-
-  // Sincronizar estado local cuando slots del hook cambien, PERO respetar actualizaciones pendientes
-  // y detectar confirmación del servidor para liberar el pendingUpdate
-  useEffect(() => {
-    if (pendingUpdates.size === 0) {
-      // No hay actualizaciones pendientes, sincronizar normalmente
-      setLocalSlots(slots);
-    } else {
-      // Hay actualizaciones pendientes, fusionar inteligentemente y verificar confirmación
-      const confirmedSlotIds: string[] = [];
-      
-      const newSlots = slots.map(slot => {
-        const pending = pendingUpdates.get(slot.id);
-        if (pending) {
-          // Verificar si el servidor confirmó el cambio
-          if (slot.isAvailable === pending.desiredIsAvailable) {
-            // ✅ Servidor confirmó el estado deseado - marcar para limpiar
-            confirmedSlotIds.push(slot.id);
-            return slot; // Usar el dato del servidor (confirmado)
-          } else {
-            // ⏳ Servidor aún no refleja el cambio - mantener estado optimista
-            return { ...slot, isAvailable: pending.desiredIsAvailable };
-          }
-        }
-        return slot;
-      });
-      
-      setLocalSlots(newSlots);
-      
-      // Limpiar slots confirmados del pendingUpdates
-      if (confirmedSlotIds.length > 0) {
-        setPendingUpdates(prev => {
-          const next = new Map(prev);
-          confirmedSlotIds.forEach(id => next.delete(id));
-          return next;
-        });
-        logger.debug('Slots confirmados por servidor:', { confirmedSlotIds });
-      }
-    }
-  }, [slots, pendingUpdates]);
-  
-  // Timeout de seguridad: si un pending lleva más de 5s sin confirmar, limpiar y forzar refresh
-  useEffect(() => {
-    if (pendingUpdates.size === 0) return;
-    
-    const timeoutId = setTimeout(() => {
-      const now = Date.now();
-      const staleIds: string[] = [];
-      
-      pendingUpdates.forEach((value, slotId) => {
-        if (now - value.startedAt > 5000) {
-          staleIds.push(slotId);
-        }
-      });
-      
-      if (staleIds.length > 0) {
-        logger.warn('Slots pendientes sin confirmar (timeout):', { staleIds });
-        setPendingUpdates(prev => {
-          const next = new Map(prev);
-          staleIds.forEach(id => next.delete(id));
-          return next;
-        });
-        // Forzar refresh para sincronizar con servidor
-        refreshSlots();
-      }
-    }, 5000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [pendingUpdates, refreshSlots]);
-
-  // Group slots by date usando localSlots para actualizaciones instantáneas
-  const slotGroups = useMemo(() => {
-    const slotsToUse = localSlots.length > 0 ? localSlots : slots;
-    // Filtrar slots que estén exactamente dentro del rango de esta semana
-    const weekSlots = slotsToUse.filter(slot => {
-      const slotDate = slot.date;
-      return slotDate >= startDate && slotDate <= endDate;
-    });
-    
-    logger.debug('Semana slots filtering', { 
-      week: currentWeek, 
-      start: format(startDate, 'yyyy-MM-dd'), 
-      end: format(endDate, 'yyyy-MM-dd'),
-      totalSlots: slotsToUse.length,
-      weekSlots: weekSlots.length
-    });
-    
-    return groupSlotsByDate(weekSlots);
-  }, [localSlots, slots, startDate, endDate, currentWeek]);
-
   // Helper para normalizar tiempo a formato HH:mm:ss
   const normalizeTime = (time: string): string => {
     const parts = time.split(':');
@@ -161,6 +83,126 @@ const ProviderSlotBlockingGrid = ({
     const seconds = parts[2]?.padStart(2, '0') || '00';
     return `${hours}:${minutes}:${seconds}`;
   };
+
+  // DERIVED STATE: Merge server slots with local overrides
+  // Overrides take precedence until server confirms the change
+  const displaySlots = useMemo(() => {
+    if (overrides.size === 0) {
+      return slots;
+    }
+
+    return slots.map(slot => {
+      const slotDateStr = format(slot.date, 'yyyy-MM-dd');
+      const slotKey = generateSlotKey(slotDateStr, slot.time, providerId, listingId);
+      const override = overrides.get(slotKey);
+      
+      if (override) {
+        // Apply override - this ensures UI stays consistent
+        return {
+          ...slot,
+          isAvailable: override.desiredIsAvailable,
+          slotType: override.desiredIsAvailable ? 'generated' : 'manually_blocked'
+        };
+      }
+      return slot;
+    });
+  }, [slots, overrides, providerId, listingId]);
+
+  // RECONCILIATION: When server snapshot changes, check if overrides can be cleared
+  useEffect(() => {
+    if (overrides.size === 0) return;
+
+    const confirmedKeys: string[] = [];
+    
+    slots.forEach(slot => {
+      const slotDateStr = format(slot.date, 'yyyy-MM-dd');
+      const slotKey = generateSlotKey(slotDateStr, slot.time, providerId, listingId);
+      const override = overrides.get(slotKey);
+      
+      if (override && override.dbConfirmed) {
+        // Check if server now reflects our desired state
+        if (slot.isAvailable === override.desiredIsAvailable) {
+          confirmedKeys.push(slotKey);
+          logger.debug('✅ Override confirmado por servidor:', { slotKey, isAvailable: slot.isAvailable });
+        }
+      }
+    });
+
+    if (confirmedKeys.length > 0) {
+      setOverrides(prev => {
+        const next = new Map(prev);
+        confirmedKeys.forEach(key => next.delete(key));
+        logger.debug('🧹 Overrides limpiados:', { count: confirmedKeys.length, remaining: next.size });
+        return next;
+      });
+    }
+  }, [slots, overrides, providerId, listingId]);
+
+  // TIMEOUT: Clear stale overrides after 10s and force refresh
+  useEffect(() => {
+    if (overrides.size === 0) return;
+    
+    const timeoutId = setTimeout(() => {
+      const now = Date.now();
+      const staleKeys: string[] = [];
+      
+      overrides.forEach((value, key) => {
+        // 10 second timeout for unconfirmed overrides
+        if (now - value.startedAt > 10000) {
+          staleKeys.push(key);
+        }
+      });
+      
+      if (staleKeys.length > 0) {
+        logger.warn('⏰ Overrides sin confirmar (timeout 10s):', { staleKeys });
+        
+        // Check if any were DB confirmed but server just hasn't refreshed
+        const unconfirmedStale = staleKeys.filter(key => {
+          const override = overrides.get(key);
+          return override && !override.dbConfirmed;
+        });
+        
+        if (unconfirmedStale.length > 0) {
+          toast({
+            title: 'Advertencia',
+            description: 'Algunos cambios no se confirmaron. Recargando...',
+            variant: 'destructive'
+          });
+        }
+        
+        setOverrides(prev => {
+          const next = new Map(prev);
+          staleKeys.forEach(key => next.delete(key));
+          return next;
+        });
+        
+        // Force refresh to sync with server
+        refreshSlots();
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [overrides, refreshSlots, toast]);
+
+  // Group slots by date using displaySlots (with overrides applied)
+  const slotGroups = useMemo(() => {
+    // Filtrar slots que estén exactamente dentro del rango de esta semana
+    const weekSlots = displaySlots.filter(slot => {
+      const slotDate = slot.date;
+      return slotDate >= startDate && slotDate <= endDate;
+    });
+    
+    logger.debug('Semana slots filtering', { 
+      week: currentWeek, 
+      start: format(startDate, 'yyyy-MM-dd'), 
+      end: format(endDate, 'yyyy-MM-dd'),
+      totalSlots: displaySlots.length,
+      weekSlots: weekSlots.length,
+      activeOverrides: overrides.size
+    });
+    
+    return groupSlotsByDate(weekSlots);
+  }, [displaySlots, startDate, endDate, currentWeek, overrides.size]);
 
   const handleSlotToggle = useCallback(async (slotId: string, date: Date, time: string) => {
     const slot = slotGroups
@@ -180,33 +222,31 @@ const ProviderSlotBlockingGrid = ({
     }
 
     const isCurrentlyAvailable = slot.isAvailable;
+    const desiredIsAvailable = !isCurrentlyAvailable;
     const action = isCurrentlyAvailable ? 'bloquear' : 'desbloquear';
     
-    // Guardar estado previo para rollback en caso de error
-    const previousLocalSlots = [...localSlots];
+    // Generate stable key for this slot
+    const slotDateStr = format(date, 'yyyy-MM-dd');
+    const slotKey = generateSlotKey(slotDateStr, time, providerId, listingId);
     
-    // ✅ Marcar slot como "pending" con estado deseado y timestamp
-    const desiredIsAvailable = !isCurrentlyAvailable;
-    setPendingUpdates(prev => new Map(prev).set(slotId, { 
-      desiredIsAvailable, 
-      startedAt: Date.now() 
-    }));
+    logger.debug('🔄 handleSlotToggle iniciado:', { slotKey, currentState: isCurrentlyAvailable, desiredState: desiredIsAvailable });
     
-    // ✅ ACTUALIZACIÓN OPTIMISTA - Cambiar color inmediatamente
-    setLocalSlots(prevSlots => 
-      prevSlots.map(s => 
-        s.id === slotId 
-          ? { ...s, isAvailable: !isCurrentlyAvailable } 
-          : s
-      )
-    );
+    // ✅ SET OVERRIDE IMMEDIATELY (optimistic UI)
+    setOverrides(prev => {
+      const next = new Map(prev);
+      next.set(slotKey, {
+        desiredIsAvailable,
+        startedAt: Date.now(),
+        dbConfirmed: false
+      });
+      return next;
+    });
     
     setBlockingSlots(prev => new Set(prev).add(slotId));
 
     try {
       // Normalizar tiempo para consistencia en DB
       const normalizedTime = normalizeTime(time);
-      const slotDateStr = format(date, 'yyyy-MM-dd');
       
       // Primero verificar si el slot existe en la DB (buscar ambos formatos por compatibilidad)
       const { data: existingSlot, error: fetchError } = await supabase
@@ -222,31 +262,32 @@ const ProviderSlotBlockingGrid = ({
         throw fetchError;
       }
 
-      let savedSlotId: string | null = null;
+      let dbSuccess = false;
 
       if (existingSlot) {
         // Actualizar slot existente
         const { data: updatedData, error: updateError } = await supabase
           .from('provider_time_slots')
           .update({ 
-            is_available: !isCurrentlyAvailable,
-            is_reserved: isCurrentlyAvailable,
-            slot_type: isCurrentlyAvailable ? 'manually_blocked' : 'generated'
+            is_available: desiredIsAvailable,
+            is_reserved: !desiredIsAvailable,
+            slot_type: desiredIsAvailable ? 'generated' : 'manually_blocked'
           })
           .eq('id', existingSlot.id)
           .select('id, is_available, is_reserved, slot_type')
           .single();
 
         if (updateError) throw updateError;
-        savedSlotId = existingSlot.id;
         
-        // ✅ Verificar confirmación post-write
-        if (updatedData && updatedData.is_available !== desiredIsAvailable) {
-          throw new Error(`El servidor no reflejó el cambio esperado. Esperado is_available=${desiredIsAvailable}, recibido=${updatedData.is_available}`);
+        // Verify DB returned expected state
+        if (updatedData && updatedData.is_available === desiredIsAvailable) {
+          dbSuccess = true;
+          logger.debug('✅ DB UPDATE confirmado:', { id: existingSlot.id, is_available: updatedData.is_available });
+        } else {
+          throw new Error(`DB no reflejó el cambio esperado. Esperado=${desiredIsAvailable}, Recibido=${updatedData?.is_available}`);
         }
-        logger.debug('Slot actualizado y confirmado:', { savedSlotId, updatedData });
       } else {
-        // Crear nuevo slot bloqueado si no existe
+        // Crear nuevo slot bloqueado si no existe (solo para bloquear)
         if (isCurrentlyAvailable) {
           const endTimeDate = new Date(date);
           const [hours, minutes] = time.split(':').map(Number);
@@ -277,49 +318,49 @@ const ProviderSlotBlockingGrid = ({
 
           if (insertError) throw insertError;
           
-          // ✅ Verificar confirmación post-write
-          if (insertedData && insertedData.is_available !== false) {
-            throw new Error(`El servidor no guardó el bloqueo correctamente. is_available=${insertedData.is_available}`);
+          if (insertedData && insertedData.is_available === false) {
+            dbSuccess = true;
+            logger.debug('✅ DB INSERT confirmado:', { id: insertedData.id, is_available: insertedData.is_available });
+          } else {
+            throw new Error(`DB no guardó el bloqueo correctamente. is_available=${insertedData?.is_available}`);
           }
-          savedSlotId = insertedData?.id || null;
-          logger.debug('Slot insertado y confirmado:', { savedSlotId, insertedData });
+        } else {
+          // Trying to unblock a slot that doesn't exist in DB - this shouldn't happen normally
+          logger.warn('⚠️ Intentando desbloquear slot que no existe en DB:', { slotKey });
+          dbSuccess = true; // Consider it a success since the desired state (available) is the default
         }
       }
 
-      // ✅ Actualizar directamente el slot confirmado en localSlots sin refetch completo
-      // Esto evita que ensureAllSlotsExist() se ejecute innecesariamente
-      setLocalSlots(prev => prev.map(s => 
-        s.id === slotId 
-          ? { ...s, isAvailable: desiredIsAvailable, slotType: desiredIsAvailable ? 'generated' : 'manually_blocked' }
-          : s
-      ));
-
-      // Limpiar de pendingUpdates ya que confirmamos exitosamente
-      setPendingUpdates(prev => {
-        const updated = new Map(prev);
-        updated.delete(slotId);
-        return updated;
-      });
+      // ✅ MARK OVERRIDE AS DB CONFIRMED (but don't remove it yet!)
+      // The reconciliation effect will remove it when server snapshot matches
+      if (dbSuccess) {
+        setOverrides(prev => {
+          const next = new Map(prev);
+          const existing = next.get(slotKey);
+          if (existing) {
+            next.set(slotKey, { ...existing, dbConfirmed: true });
+          }
+          return next;
+        });
+        
+        logger.debug('📝 Override marcado como confirmado en DB:', { slotKey });
+      }
 
       toast({
         title: `Horario ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'}`,
         description: `${formatDateES(date, 'EEEE d MMMM', { locale: es })} a las ${time} ha sido ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'} exitosamente.`,
-        variant: action === 'bloquear' ? 'default' : 'default'
+        variant: 'default'
       });
-      
-      // ❌ NO llamar refreshSlots() después de éxito - evita regeneración innecesaria
-      // El estado local ya está actualizado y confirmado
 
     } catch (error) {
-      // ❌ Si falla, revertir al estado anterior y quitar pending
-      setLocalSlots(previousLocalSlots);
-      setPendingUpdates(prev => {
+      // ❌ ROLLBACK: Remove override on error
+      setOverrides(prev => {
         const next = new Map(prev);
-        next.delete(slotId);
+        next.delete(slotKey);
         return next;
       });
       
-      logger.error(`Error al ${action} slot:`, { error, slotId, action });
+      logger.error(`❌ Error al ${action} slot:`, { error, slotKey, action });
       toast({
         title: 'Error',
         description: `No se pudo ${action} el horario. Intenta nuevamente.`,
@@ -332,7 +373,7 @@ const ProviderSlotBlockingGrid = ({
         return newSet;
       });
     }
-  }, [slotGroups, localSlots, providerId, listingId, serviceDuration, refreshSlots, toast]);
+  }, [slotGroups, providerId, listingId, serviceDuration, toast]);
 
   const goToPreviousWeek = () => {
     if (currentWeek > 0) {
@@ -404,6 +445,7 @@ const ProviderSlotBlockingGrid = ({
     );
   }
 
+  // Calculate stats from displaySlots (with overrides applied)
   const totalSlots = slotGroups.reduce((acc, group) => acc + group.slots.length, 0);
   const availableSlots = slotGroups.reduce((acc, group) => 
     acc + group.slots.filter(slot => slot.isAvailable).length, 0);
@@ -471,299 +513,222 @@ const ProviderSlotBlockingGrid = ({
               <div className="text-xs text-gray-600 mb-1">Recurrentes</div>
               <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <Repeat2 className="w-3 h-3 text-amber-600" />
+                  <Repeat2 className="h-3 w-3" />
                   <span className="text-sm font-semibold">{recurringSlots}</span>
                 </div>
               </Badge>
             </div>
           )}
         </div>
+        
+        {/* Pending indicator */}
+        {overrides.size > 0 && (
+          <div className="flex justify-center mb-3">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1">
+              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+              {overrides.size} cambio(s) sincronizando...
+            </Badge>
+          </div>
+        )}
 
-        {/* Mobile Slots Grid */}
-        <div className="space-y-3 px-1 pb-4">
-          {slotGroups.map(group => (
-            <div key={format(group.date, 'yyyy-MM-dd')} className="bg-white rounded-lg border shadow-sm p-3">
-              {/* Day Header */}
-              <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
-                <div className="flex flex-col">
-                  <div className="text-sm font-medium text-gray-900">
-                    {formatDateES(group.date, 'EEEE', { locale: es })}
+        {/* Slot Grid - Mobile */}
+        <div className="space-y-4">
+          {slotGroups.map((group, groupIndex) => {
+            const dateStr = format(group.date, 'yyyy-MM-dd');
+            return (
+              <Card key={`mobile-${dateStr}-${groupIndex}`} className="shadow-sm">
+                <CardHeader className="py-3 px-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm font-medium capitalize">
+                        {formatDateES(group.date, 'EEEE', { locale: es })}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {formatDateES(group.date, 'd MMMM', { locale: es })}
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {group.slots.filter(s => s.isAvailable).length}/{group.slots.length}
+                    </Badge>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {group.dayNumber} {group.dayMonth}
+                </CardHeader>
+                <CardContent className="py-2 px-3">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {group.slots.map((slot, slotIndex) => {
+                      const slotKey = generateSlotKey(dateStr, slot.time, providerId, listingId);
+                      const hasOverride = overrides.has(slotKey);
+                      const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
+                      const isBlocking = blockingSlots.has(slot.id);
+                      
+                      return (
+                        <button
+                          key={`mobile-slot-${slot.id}-${slotIndex}`}
+                          onClick={() => handleSlotToggle(slot.id, group.date, slot.time)}
+                          disabled={isBlocking || isRecurring}
+                          className={cn(
+                            "p-1.5 rounded text-xs font-medium transition-all duration-200",
+                            "focus:outline-none focus:ring-2 focus:ring-offset-1",
+                            slot.isAvailable
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 focus:ring-emerald-500"
+                              : isRecurring
+                              ? "bg-amber-100 text-amber-800 cursor-not-allowed"
+                              : "bg-red-100 text-red-800 hover:bg-red-200 focus:ring-red-500",
+                            isBlocking && "opacity-50 cursor-wait",
+                            hasOverride && "ring-2 ring-blue-400 ring-offset-1"
+                          )}
+                          title={slot.conflictReason || (slot.isAvailable ? 'Disponible - Click para bloquear' : 'Bloqueado - Click para habilitar')}
+                        >
+                          {slot.time}
+                          {isRecurring && <Repeat2 className="h-2 w-2 inline ml-0.5" />}
+                        </button>
+                      );
+                    })}
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-600 font-medium">
-                    {group.slots.filter(s => s.isAvailable).length} de {group.slots.length}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    disponibles
-                  </div>
-                </div>
-              </div>
-
-              {/* Day Slots */}
-              <div className="relative">
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 snap-x snap-mandatory">
-                  {group.slots.map(slot => {
-                    const isBlocking = blockingSlots.has(slot.id);
-                    const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
-                    return (
-                      <button
-                        key={slot.id}
-                        onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
-                        disabled={isBlocking || isRecurring}
-                        className={cn(
-                          'flex-shrink-0 flex flex-col items-center justify-center gap-1',
-                          'w-16 h-12 rounded-lg text-xs font-medium transition-all duration-200',
-                          'border-2 shadow-sm touch-manipulation snap-center relative',
-                          'disabled:opacity-50 disabled:cursor-not-allowed',
-                          slot.isAvailable 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md active:scale-95' 
-                            : isRecurring
-                              ? 'bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-800 border-amber-300 shadow-amber-100/50 cursor-not-allowed'
-                              : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md active:scale-95',
-                          isBlocking && !isRecurring ? 'animate-pulse' : ''
-                        )}
-                        title={isRecurring ? 'Horario bloqueado por plan recurrente' : undefined}
-                      >
-                        <span className="text-xs font-bold leading-none">{slot.displayTime}</span>
-                        <span className="text-xs opacity-75 leading-none">{slot.period}</span>
-                        <div className={cn(
-                          'w-2 h-2 rounded-full',
-                          slot.isAvailable 
-                            ? 'bg-emerald-500' 
-                            : isRecurring 
-                              ? 'bg-amber-500' 
-                              : 'bg-red-500'
-                        )} />
-                        {isRecurring && (
-                          <div className="absolute -top-1 -right-1">
-                            <div className="bg-amber-400 rounded-full p-0.5 shadow-sm">
-                              <Repeat2 className="w-2 h-2 text-amber-800" />
-                            </div>
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                
-                {/* Scroll indicator shadows */}
-                <div className="absolute left-0 top-0 bottom-2 w-4 bg-gradient-to-r from-white to-transparent pointer-events-none" />
-                <div className="absolute right-0 top-0 bottom-2 w-4 bg-gradient-to-l from-white to-transparent pointer-events-none" />
-              </div>
-            </div>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
       {/* Desktop Layout */}
       <div className="hidden md:block">
-        {/* Week display above navigation */}
-        <div className="text-center mb-3">
-          <div className="font-semibold text-gray-900 text-xl">{currentWeek === 0 ? 'Semana actual' : `Semana ${currentWeek + 1}`}</div>
-          <div className="text-gray-600 text-sm">
-            {formatDateES(startDate, 'd MMM', { locale: es })} – {formatDateES(endDate, 'd MMM', { locale: es })}
-          </div>
-        </div>
-        
-        {/* Week navigation */}
-        <div className="flex items-center justify-center gap-6 mb-4">
-          <Button
-            variant="outline"
-            onClick={goToPreviousWeek}
-            disabled={currentWeek === 0}
-            className="px-4 py-2 text-sm"
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Anterior
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={goToNextWeek}
-            className="px-4 py-2 text-sm"
-          >
-            Siguiente
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
-        
-        {/* Stats badges - Smaller and compact */}
-        <div className="flex items-center justify-center gap-6 mb-4">
-          <div className="text-center">
-            <div className="text-xs text-gray-600 mb-1">Disponibles</div>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-lg font-semibold">{availableSlots}</span>
-              </div>
-            </Badge>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-gray-600 mb-1">Bloqueados</div>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-lg font-semibold">{blockedSlots}</span>
-              </div>
-            </Badge>
-          </div>
-          {recurringSlots > 0 && (
+        {/* Header with navigation and stats */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousWeek}
+              disabled={currentWeek === 0}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Anterior
+            </Button>
+            
             <div className="text-center">
-              <div className="text-xs text-gray-600 mb-1">Recurrentes</div>
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <Repeat2 className="w-4 h-4 text-amber-600" />
-                  <span className="text-lg font-semibold">{recurringSlots}</span>
-                </div>
+              <div className="font-semibold text-gray-900">
+                {currentWeek === 0 ? 'Semana actual' : `Semana ${currentWeek + 1}`}
+              </div>
+              <div className="text-sm text-gray-600">
+                {formatDateES(startDate, 'd MMM', { locale: es })} – {formatDateES(endDate, 'd MMM', { locale: es })}
+              </div>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextWeek}
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {overrides.size > 0 && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                {overrides.size} sincronizando
               </Badge>
-            </div>
-          )}
-        </div>
-
-        {/* Stats and Refresh */}
-        <div className="flex justify-between items-center py-2 px-1 mb-3">
-          <div className="flex items-center gap-4 text-xs text-gray-600">
-            <span>{slotGroups.length} días con horarios</span>
-            <span>•</span>
-            <span>Total: {totalSlots} horarios</span>
+            )}
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+              {availableSlots} disponibles
+            </Badge>
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" />
+              {blockedSlots} bloqueados
+            </Badge>
+            {recurringSlots > 0 && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                <Repeat2 className="h-3 w-3 mr-2" />
+                {recurringSlots} recurrentes
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshSlots}
+              className="text-gray-500"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={refreshSlots}
-            disabled={isLoading}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-xs"
-          >
-            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
-            Actualizar
-          </Button>
         </div>
 
-        {/* Desktop Slots Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
-          {slotGroups.map(group => (
-            <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-2">
-              {/* Day Header */}
-              <div className="text-center">
-                <div className="text-xs font-medium text-gray-900">
-                  {formatDateES(group.date, 'EEEE', { locale: es })}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {group.dayNumber} {group.dayMonth}
-                </div>
-                <div className="text-xs text-gray-600 font-medium mt-1">
-                  {group.slots.filter(s => s.isAvailable).length} de {group.slots.length} disponibles
-                </div>
-              </div>
-
-              {/* Day Slots */}
-              <div className="space-y-1 max-h-56 overflow-y-auto">
-                {group.slots.map(slot => {
-                  const isBlocking = blockingSlots.has(slot.id);
-                  const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
-                  return (
-                    <button
-                      key={slot.id}
-                      onClick={() => handleSlotToggle(slot.id, slot.date, slot.time)}
-                      disabled={isBlocking || isRecurring}
-                      className={cn(
-                        'w-full flex flex-col items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-200 border-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed relative',
-                        slot.isAvailable 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:shadow-md' 
-                          : isRecurring
-                            ? 'bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-800 border-amber-300 shadow-amber-100/50 cursor-not-allowed'
-                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:shadow-md',
-                        isBlocking && !isRecurring ? 'animate-pulse' : ''
-                      )}
-                      title={isRecurring ? 'Horario bloqueado por plan recurrente' : undefined}
-                    >
-                      <span className="font-semibold text-xs">{slot.displayTime}</span>
-                      <span className="text-xs opacity-75">{slot.period}</span>
-                      {isRecurring && (
-                        <div className="absolute -top-0.5 -right-0.5">
-                          <div className="bg-amber-400 rounded-full p-0.5 shadow-sm">
-                            <Repeat2 className="w-2 h-2 text-amber-800" />
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        {/* Desktop Grid */}
+        <div className="grid grid-cols-7 gap-3">
+          {slotGroups.map((group, groupIndex) => {
+            const dateStr = format(group.date, 'yyyy-MM-dd');
+            return (
+              <Card key={`desktop-${dateStr}-${groupIndex}`} className="shadow-sm">
+                <CardHeader className="py-2 px-3">
+                  <div className="text-center">
+                    <CardTitle className="text-xs font-medium capitalize">
+                      {formatDateES(group.date, 'EEE', { locale: es })}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {formatDateES(group.date, 'd MMM', { locale: es })}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="py-2 px-2">
+                  <div className="space-y-1">
+                    {group.slots.map((slot, slotIndex) => {
+                      const slotKey = generateSlotKey(dateStr, slot.time, providerId, listingId);
+                      const hasOverride = overrides.has(slotKey);
+                      const isRecurring = slot.conflictReason === 'Bloqueado por cita recurrente';
+                      const isBlocking = blockingSlots.has(slot.id);
+                      
+                      return (
+                        <button
+                          key={`desktop-slot-${slot.id}-${slotIndex}`}
+                          onClick={() => handleSlotToggle(slot.id, group.date, slot.time)}
+                          disabled={isBlocking || isRecurring}
+                          className={cn(
+                            "w-full p-1.5 rounded text-xs font-medium transition-all duration-200",
+                            "focus:outline-none focus:ring-2 focus:ring-offset-1",
+                            slot.isAvailable
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 focus:ring-emerald-500"
+                              : isRecurring
+                              ? "bg-amber-100 text-amber-800 cursor-not-allowed"
+                              : "bg-red-100 text-red-800 hover:bg-red-200 focus:ring-red-500",
+                            isBlocking && "opacity-50 cursor-wait",
+                            hasOverride && "ring-2 ring-blue-400 ring-offset-1"
+                          )}
+                          title={slot.conflictReason || (slot.isAvailable ? 'Disponible - Click para bloquear' : 'Bloqueado - Click para habilitar')}
+                        >
+                          <span className="flex items-center justify-center gap-1">
+                            {slot.time}
+                            {isRecurring && <Repeat2 className="h-2.5 w-2.5" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
-      {/* Instructions - Mobile */}
-      <div className="md:hidden mt-3 mx-1">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-blue-800">
-              <p className="font-medium mb-2">¿Cómo gestionar tus horarios?</p>
-               <div className="space-y-1 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded bg-emerald-500" />
-                  <span>Verde: Disponible para clientes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded bg-red-500" />
-                  <span>Rojo: Bloqueado (no visible)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded bg-amber-500 relative">
-                    <Repeat2 className="w-1.5 h-1.5 text-amber-800 absolute inset-0 m-auto" />
-                  </div>
-                  <span>Amarillo: Plan recurrente (protegido)</span>
-                </div>
-              </div>
-              <p className="mt-2 text-xs opacity-90">
-                Toca cualquier horario para bloquearlo o desbloquearlo
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Instructions - Desktop */}
-      <div className="hidden md:block">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mt-3">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-blue-800">
-              <p className="font-medium mb-2">¿Cómo gestionar tus horarios?</p>
-               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded bg-emerald-500" />
-                  <span>Disponible para clientes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded bg-red-500" />
-                  <span>Bloqueado (no visible)</span>
-                </div>
-                <div className="flex items-center gap-2 col-span-2">
-                  <div className="w-2 h-2 rounded bg-amber-500 relative flex items-center justify-center">
-                    <Repeat2 className="w-1.5 h-1.5 text-amber-800" />
-                  </div>
-                  <span>Plan recurrente (protegido)</span>
-                </div>
-              </div>
-              <p className="mt-2 text-xs opacity-90">
-                Haz clic en cualquier horario para bloquearlo o desbloquearlo instantáneamente
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        {lastUpdated && (
-          <div className="text-center text-xs text-gray-500 mt-2">
-            Actualizado: {format(lastUpdated, 'HH:mm')}
-          </div>
+      {/* Instructions */}
+      <div className="text-center text-xs text-gray-500 mt-4 space-y-1">
+        <p>
+          <span className="inline-block w-3 h-3 rounded bg-emerald-200 mr-1 align-middle" />
+          Verde = Disponible (click para bloquear)
+        </p>
+        <p>
+          <span className="inline-block w-3 h-3 rounded bg-red-200 mr-1 align-middle" />
+          Rojo = Bloqueado (click para habilitar)
+        </p>
+        {recurringSlots > 0 && (
+          <p>
+            <span className="inline-block w-3 h-3 rounded bg-amber-200 mr-1 align-middle" />
+            Ámbar = Reservado por cita recurrente (no editable)
+          </p>
         )}
       </div>
     </div>
