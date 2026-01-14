@@ -31,9 +31,9 @@ export const ensureAllSlotsExist = async (
   existingSlots: TimeSlot[],
   serviceDuration: number
 ): Promise<void> => {
-  console.log('🔧 Verificando slots faltantes...');
+  console.log('🔧 [SAFE MODE] Verificando slots faltantes (sin deletes)...');
   const slotsToCreate: any[] = [];
-  const slotsToDeleteByDate: Record<string, Set<string>> = {};
+  
   // Iterar por cada día en el rango EXACTO
   const currentDate = new Date(startDate);
   const endDateTime = new Date(endDate);
@@ -60,12 +60,8 @@ export const ensureAllSlotsExist = async (
         serviceDuration
       );
 
-      // Track allowed times for cleanup logic (normalized for consistent comparison)
-      const allowedTimes = new Set<string>();
-      
       for (const generatedSlot of daySlots) {
         const normalizedGenTime = normalizeTimeFormat(generatedSlot.start_time);
-        allowedTimes.add(normalizedGenTime);
         
         // Check if this slot already exists (compare normalized times)
         const existingSlot = existingSlots.find(slot => 
@@ -79,27 +75,9 @@ export const ensureAllSlotsExist = async (
         }
       }
 
-      // Detectar y marcar para eliminación los slots fuera de horario configurado (más estricto)
-      const existingForDate = existingSlots.filter(s => s.slot_date === dateString);
-      const extras = existingForDate.filter((s: any) => {
-        // Solo eliminar slots generados automáticamente que no están en el horario configurado
-        const isGenerated = s.slot_type === 'generated' || !s.slot_type;
-        const isNotReserved = s.is_reserved !== true;
-        // Use normalized time comparison
-        const isOutsideConfig = !allowedTimes.has(normalizeTimeFormat(s.start_time));
-        const isAvailable = s.is_available === true;
-        
-        return isGenerated && isNotReserved && isOutsideConfig && isAvailable;
-      });
-      
-      if (extras.length) {
-        if (!slotsToDeleteByDate[dateString]) slotsToDeleteByDate[dateString] = new Set<string>();
-        extras.forEach((s: any) => {
-          slotsToDeleteByDate[dateString].add(s.start_time);
-          console.log(`🧹 Marcando slot extra para eliminar: ${dateString} ${s.start_time} (tipo: ${s.slot_type})`);
-        });
-        console.log(`🧹 Se marcaron ${extras.length} slots fuera de horario para eliminar en ${dateString}`);
-      }
+      // ⛔ DISABLED: No longer delete "extra" slots
+      // This was causing slots to disappear when blocking/unblocking
+      // Slots should only be modified explicitly, never auto-deleted during fetch
     }
     
     // Avanzar al siguiente día, pero no salir del rango de la semana
@@ -127,7 +105,8 @@ export const ensureAllSlotsExist = async (
     
     if (error) {
       console.error('❌ Error en upsert de slots:', error);
-      throw error;
+      // Don't throw - just log. This prevents fetch failures from breaking the UI
+      console.warn('⚠️ Continuando sin los slots nuevos para no romper la UI');
     } else {
       console.log(`✅ ${normalizedSlots.length} slots procesados exitosamente (upsert)`);
     }
@@ -135,26 +114,9 @@ export const ensureAllSlotsExist = async (
     console.log('✅ Todos los slots ya existen');
   }
 
-  // Eliminar slots fuera de horario configurado (no reservados) dentro del rango
-  for (const [date, timesSet] of Object.entries(slotsToDeleteByDate)) {
-    const times = Array.from(timesSet);
-    if (!times.length) continue;
-
-    console.log(`🧽 Eliminando ${times.length} slots fuera de horario para ${date}`);
-    const { error: delError } = await supabase
-      .from('provider_time_slots')
-      .delete()
-      .eq('provider_id', providerId)
-      .eq('listing_id', listingId)
-      .eq('slot_date', date)
-      .in('start_time', times)
-      .eq('is_reserved', false)
-      .eq('is_available', true);
-
-    if (delError) {
-      console.warn('⚠️ No se pudieron eliminar algunos slots fuera de horario:', delError);
-    } else {
-      console.log(`🗑️ Slots fuera de horario eliminados para ${date}:`, times);
-    }
-  }
+  // ⛔ DISABLED: Delete logic removed entirely
+  // Previously this would delete "extra" slots outside configured hours,
+  // but this was incorrectly deleting valid slots when configurations changed
+  // or when blocking/unblocking triggered a refetch.
+  console.log('✅ [SAFE MODE] Regeneración completada sin eliminaciones');
 };

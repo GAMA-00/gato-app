@@ -244,61 +244,30 @@ export const useProviderSlotManagement = ({
         primeros3Slots: timeSlots?.slice(0, 3)
       });
 
-      // Verificar si faltan slots y regenerarlos SOLO si es realmente necesario
-      let finalTimeSlots = timeSlots;
+      // ⛔ CRITICAL FIX: Fetch = read-only, never write during fetch
+      // The ensureAllSlotsExist call was causing slots to disappear due to
+      // its delete logic. Now we ONLY read existing slots.
+      // Slot regeneration should only happen via explicit admin action or server-side RPC.
       
-      // Determinar si hay gaps reales en la cobertura de slots
-      const hasSlotsForRange = timeSlots && timeSlots.length > 0;
-      const enabledDays = new Set((availability || []).filter(a => a.is_active).map(a => a.day_of_week));
+      let finalTimeSlots = timeSlots || [];
       
-      let hasGapsInCoverage = false;
-      if (hasSlotsForRange && enabledDays.size > 0) {
-        const coveredDates = new Set(timeSlots.map(s => s.slot_date));
-        // Solo verificar las fechas dentro del rango que deberían tener slots
-        let currentCheck = new Date(baseDate);
-        while (currentCheck <= endDate) {
-          const dayOfWeek = currentCheck.getDay();
-          const dateStr = format(currentCheck, 'yyyy-MM-dd');
-          if (enabledDays.has(dayOfWeek) && !coveredDates.has(dateStr)) {
-            hasGapsInCoverage = true;
-            console.log(`📅 Día con gap detectado: ${dateStr} (día ${dayOfWeek})`);
-            break;
-          }
-          currentCheck = addDays(currentCheck, 1);
-        }
-      }
+      console.log('✅ [READ-ONLY MODE] Usando slots existentes de la base de datos');
+      console.log('📊 Slots disponibles:', {
+        totalSlots: finalTimeSlots.length,
+        disponibles: finalTimeSlots.filter(s => s.is_available)?.length || 0,
+        bloqueados: finalTimeSlots.filter(s => !s.is_available)?.length || 0,
+        fechasDistintas: [...new Set(finalTimeSlots.map(s => s.slot_date))]
+      });
       
-      // Solo regenerar si NO hay slots O hay gaps reales en la cobertura
-      if (!hasSlotsForRange || hasGapsInCoverage) {
-        try {
-          console.log('🔧 Ejecutando regeneración de slots (faltan slots para el rango)...');
-          await ensureAllSlotsExist(providerId, listingId, baseDate, endDate, availability || [], timeSlots || [], serviceDuration);
-
-          // Volver a consultar después de la regeneración
-          const { data: refreshedSlots, error: finalSlotsError } = await supabase
-            .from('provider_time_slots')
-            .select('*')
-            .eq('provider_id', providerId)
-            .eq('listing_id', listingId)
-            .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
-            .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
-            .order('slot_datetime_start');
-
-          if (finalSlotsError) throw finalSlotsError;
-          finalTimeSlots = refreshedSlots;
-          
-          console.log('📊 Slots después de regeneración:', {
-            totalSlots: finalTimeSlots?.length || 0,
-            disponibles: finalTimeSlots?.filter(s => s.is_available)?.length || 0,
-            bloqueados: finalTimeSlots?.filter(s => !s.is_available)?.length || 0
-          });
-        } catch (regenerationError) {
-          console.error('⚠️ Error en regeneración de slots, usando slots existentes:', regenerationError);
-          // Usar slots existentes si la regeneración falla para mantener la UI funcional
-          finalTimeSlots = timeSlots;
-        }
-      } else {
-        console.log('✅ Slots existentes cubren el rango, saltando regeneración innecesaria');
+      // If there are genuinely NO slots and we have availability configured,
+      // trigger regeneration via RPC (server-side, safer) - but ONLY for empty case
+      const hasSlotsForRange = finalTimeSlots.length > 0;
+      const hasAvailability = (availability || []).some(a => a.is_active);
+      
+      if (!hasSlotsForRange && hasAvailability) {
+        console.log('⚠️ No hay slots pero sí hay disponibilidad configurada. Considere regenerar slots manualmente.');
+        // NOTE: We no longer auto-regenerate here to prevent data corruption
+        // The provider should use an explicit "regenerate slots" action if needed
       }
 
       // Use final time slots directly without adding virtual duplicates
