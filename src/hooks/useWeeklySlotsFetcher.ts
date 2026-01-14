@@ -614,6 +614,33 @@ export const useWeeklySlotsFetcher = ({
         } catch {}
       }
 
+      // ⭐ NUEVO: Extraer slots bloqueados por recurrencia para marcar adyacentes como recomendados
+      const recurringBlockedByDate: Record<string, Set<number>> = {};
+      for (const slot of validRangeSlots) {
+        // Considerar slots bloqueados por recurrencia (recurring_blocked = true)
+        if (slot.recurring_blocked && !slot.is_available) {
+          const dateKey = slot.slot_date;
+          if (!dateKey) continue;
+          
+          const timeStr = slot.start_time || '00:00:00';
+          const [hh, mm] = timeStr.split(':').map(Number);
+          const slotMin = hh * 60 + (mm || 0);
+          
+          if (!recurringBlockedByDate[dateKey]) {
+            recurringBlockedByDate[dateKey] = new Set<number>();
+          }
+          recurringBlockedByDate[dateKey].add(slotMin);
+        }
+      }
+
+      console.log('🔁 Slots bloqueados por recurrencia:', {
+        totalDias: Object.keys(recurringBlockedByDate).length,
+        detalles: Object.entries(recurringBlockedByDate).map(([date, mins]) => ({
+          fecha: date,
+          slots: Array.from(mins).map(m => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`)
+        }))
+      });
+
       // Detectar el paso real entre slots por día (ej. 60 min), independiente de serviceDuration
       const slotStepByDate: Record<string, number> = {};
       const minutesByDate: Record<string, number[]> = {};
@@ -668,21 +695,29 @@ export const useWeeklySlotsFetcher = ({
         const apptEnds = apptEndMinutesByDate[dateKey] || new Set<number>();
         const step = slotStepByDate[dateKey] || 60;
         
-        // Slot recomendado: DIRECTAMENTE adyacente al inicio de citas
+        // ⭐ Slot recomendado: DIRECTAMENTE adyacente al inicio de citas O slots recurrentes bloqueados
         // - Un step ANTES del inicio = slot anterior (este slot termina justo antes de la cita)
         // - Un step DESPUÉS del inicio = slot posterior (este slot comienza justo después del slot ocupado)
+        const blockedStarts = recurringBlockedByDate[dateKey] || new Set<number>();
+        
         const isAdjacentToAppointment = 
           apptStarts.has(slotMin + step) ||  // Este slot termina justo antes de una cita
           apptStarts.has(slotMin - step);    // Este slot comienza justo después del inicio de una cita
-        const isRecommended = isAdjacentToAppointment;
+        
+        const isAdjacentToRecurringBlocked = 
+          blockedStarts.has(slotMin + step) ||  // Este slot termina justo antes de un slot recurrente bloqueado
+          blockedStarts.has(slotMin - step);    // Este slot comienza justo después de un slot recurrente bloqueado
+          
+        const isRecommended = isAdjacentToAppointment || isAdjacentToRecurringBlocked;
         
         // Logging para debug
         if (isRecommended) {
           console.log('⭐ Slot marcado como recomendado:', {
             date: dateKey,
             time: s.time,
-            reason: 'adyacente_a_cita_confirmada',
-            dayHasAppointments: daysWithAppointments.has(dateKey)
+            reason: isAdjacentToAppointment ? 'adyacente_a_cita_confirmada' : 'adyacente_a_slot_recurrente',
+            dayHasAppointments: daysWithAppointments.has(dateKey),
+            dayHasRecurringBlocked: blockedStarts.size > 0
           });
         }
         
