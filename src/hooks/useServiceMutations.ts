@@ -136,12 +136,13 @@ export const useServiceMutations = () => {
         }
       }
 
-      const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing', {
+      // ⛔ CRITICAL: Use SAFE RPC that only inserts missing slots (no deletes)
+      const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing_safe', {
         p_listing_id: listing.id
       });
 
       if (rpcError) {
-        // Don't throw - listing creation succeeded
+        console.warn('⚠️ RPC safe falló (no crítico):', rpcError);
       }
 
       return listing;
@@ -274,12 +275,13 @@ export const useServiceMutations = () => {
       }
 
       if (serviceData.duration) {
-        const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing', {
+        // ⛔ CRITICAL: Use SAFE RPC that only inserts missing slots (no deletes)
+        const { error: rpcError } = await supabase.rpc('regenerate_slots_for_listing_safe', {
           p_listing_id: serviceData.id
         });
 
         if (rpcError) {
-          // Don't throw - listing update succeeded
+          console.warn('⚠️ RPC safe falló (no crítico):', rpcError);
         }
       }
 

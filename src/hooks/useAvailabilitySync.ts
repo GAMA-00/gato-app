@@ -151,27 +151,26 @@ export const useAvailabilitySync = () => {
           .eq('is_active', true);
 
         if (allListings && allListings.length > 0) {
-          if (forceSlotRegeneration) {
-            await SlotSyncUtils.regenerateAllProviderSlots(
-              user.id, 
-              'Cambio en duración o disponibilidad detectado'
-            );
-          } else {
-            for (const listingItem of allListings) {
-              try {
-                await supabase.rpc('regenerate_slots_for_listing', { 
-                  p_listing_id: listingItem.id 
-                });
-              } catch (err) {
-                // Continue with next listing
-              }
+          // ⛔ CRITICAL: Always use SAFE RPC that only inserts missing slots (no deletes)
+          // The non-safe version and regenerateAllProviderSlots were causing
+          // all slots for a day to disappear when blocking a single slot.
+          console.log('🔧 [SAFE MODE] Sincronizando slots con RPC safe (sin deletes)...');
+          
+          for (const listingItem of allListings) {
+            try {
+              await supabase.rpc('regenerate_slots_for_listing_safe', { 
+                p_listing_id: listingItem.id 
+              });
+              console.log(`✅ Listing ${listingItem.id}: slots sincronizados (safe mode)`);
+            } catch (err) {
+              console.warn(`⚠️ Error en RPC safe para listing ${listingItem.id}:`, err);
             }
           }
           
           await SlotSyncUtils.logSlotStatus(user.id);
         }
       } catch (slotError) {
-        // Slot regeneration error - continue
+        console.warn('⚠️ Error en sincronización de slots:', slotError);
       }
 
       await queryClient.invalidateQueries({ queryKey: ['provider-availability'] });

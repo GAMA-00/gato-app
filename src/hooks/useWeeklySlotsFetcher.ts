@@ -5,8 +5,8 @@ import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { filterTemporalSlots, calculateWeekDateRange, filterSlotsByRecurrence } from '@/utils/temporalSlotFiltering';
-// Removed virtual instance generation - relying on database state only
-import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
+// ⛔ REMOVED: ensureAllSlotsExist import - this was causing slot disappearance bug
+// import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 
 interface UseWeeklySlotsFetcherReturn {
   slots: WeeklySlot[];
@@ -247,130 +247,13 @@ export const useWeeklySlotsFetcher = ({
         return isInRange;
       });
 
-      // PASO 1: Asegurar que todos los slots necesarios existan en la base de datos
-      console.log('🔧 Asegurando consistencia de slots en base de datos...');
-      
-      try {
-        // Obtener disponibilidad del proveedor para generar slots faltantes
-        const providerAvailRes = await supabase
-          .from('provider_availability')
-          .select('*')
-          .eq('provider_id', providerId)
-          .eq('is_active', true);
-
-        if (providerAvailRes.data && providerAvailRes.data.length > 0) {
-          console.log('✅ Disponibilidad del proveedor encontrada, regenerando slots...');
-          
-          // Usar la función centralizada para asegurar consistencia
-          await ensureAllSlotsExist(
-            providerId,
-            listingId,
-            baseDate,
-            endDate,
-            providerAvailRes.data,
-            validRangeSlots,
-            serviceDuration
-          );
-          
-          console.log('🔄 Slots regenerados, obteniendo datos actualizados...');
-          
-          // Re-fetch slots después de la regeneración para obtener datos consistentes
-          const [updatedDtRes, updatedLegacyRes] = await Promise.all([
-            supabase
-              .from('provider_time_slots')
-              .select('*')
-              .eq('provider_id', providerId)
-              .eq('listing_id', listingId)
-              .gte('slot_datetime_start', baseDate.toISOString())
-              .lte('slot_datetime_start', endOfDay(endDate).toISOString())
-              .order('slot_datetime_start'),
-            supabase
-              .from('provider_time_slots')
-              .select('*')
-              .eq('provider_id', providerId)
-              .eq('listing_id', listingId)
-              .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
-              .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
-              .order('slot_date', { ascending: true })
-              .order('start_time', { ascending: true })
-          ]);
-          
-          // Actualizar con datos frescos después de la regeneración
-          const updatedTimeSlotsDt = updatedDtRes.data || [];
-          const updatedTimeSlotsLegacy = updatedLegacyRes.data || [];
-          
-          // Re-fusionar con datos actualizados
-          const updatedById = new Map<string, any>();
-          for (const s of [...updatedTimeSlotsLegacy, ...updatedTimeSlotsDt]) {
-            const key = String(s.id);
-            if (!updatedById.has(key)) {
-              updatedById.set(key, s);
-            } else {
-              const existing = updatedById.get(key);
-              const existingHasDt = !!existing.slot_datetime_start && !!existing.slot_datetime_end;
-              const candidateHasDt = !!s.slot_datetime_start && !!s.slot_datetime_end;
-              if (!existingHasDt && candidateHasDt) updatedById.set(key, s);
-            }
-          }
-          
-          // Usar slots actualizados después de regeneración
-          const updatedMerged = Array.from(updatedById.values());
-          validRangeSlots.splice(0, validRangeSlots.length, ...updatedMerged.filter(slot => {
-            const slotDateStr = slot.slot_date;
-            if (!slotDateStr) return true;
-            const slotDate = new Date(slotDateStr + 'T00:00:00');
-            return slotDate >= baseDate && slotDate <= endDate;
-          }));
-          
-          console.log('✅ Slots actualizados después de regeneración:', validRangeSlots.length);
-          
-          // SELF-HEALING: If still 0 slots after client-side regeneration, try server-side RPC
-          if (validRangeSlots.length === 0) {
-            const regenerationKey = `${listingId}-${weekIndex}`;
-            if (!regenerationAttemptedRef.current.has(regenerationKey)) {
-              regenerationAttemptedRef.current.add(regenerationKey);
-              console.log('⚡ Self-healing: No slots encontrados, intentando RPC regenerate_slots_for_listing...');
-              
-              try {
-                const { data: rpcResult, error: rpcError } = await supabase.rpc(
-                  'regenerate_slots_for_listing',
-                  { p_listing_id: listingId }
-                );
-                
-                if (rpcError) {
-                  console.warn('⚠️ RPC regenerate_slots_for_listing falló:', rpcError);
-                } else {
-                  console.log('✅ RPC regenerate_slots_for_listing completado, slots creados:', rpcResult);
-                  
-                  // Re-fetch one more time after RPC
-                  const [finalDtRes] = await Promise.all([
-                    supabase
-                      .from('provider_time_slots')
-                      .select('*')
-                      .eq('provider_id', providerId)
-                      .eq('listing_id', listingId)
-                      .gte('slot_date', format(baseDate, 'yyyy-MM-dd'))
-                      .lte('slot_date', format(endDate, 'yyyy-MM-dd'))
-                      .order('slot_date', { ascending: true })
-                      .order('start_time', { ascending: true })
-                  ]);
-                  
-                  if (finalDtRes.data && finalDtRes.data.length > 0) {
-                    validRangeSlots.splice(0, validRangeSlots.length, ...finalDtRes.data);
-                    console.log('✅ Slots recuperados después de RPC:', validRangeSlots.length);
-                  }
-                }
-              } catch (rpcErr) {
-                console.warn('⚠️ Error en RPC self-healing:', rpcErr);
-              }
-            } else {
-              console.log('⏭️ Self-healing ya intentado para esta semana, evitando loop');
-            }
-          }
-        }
-      } catch (e) {
-        console.log('⚠️ Error en regeneración de slots, continuando con datos existentes:', e);
-      }
+      // ⛔ CRITICAL FIX: FETCH = READ-ONLY
+      // All regeneration/write operations have been DISABLED here.
+      // The ensureAllSlotsExist and regenerate_slots_for_listing calls were causing
+      // slots to disappear when blocking a single slot due to their delete logic.
+      // Slot regeneration should ONLY happen via explicit admin action, not during fetch.
+      console.log('📖 [READ-ONLY] Fetch puro sin regeneración automática');
+      console.log('📊 Slots obtenidos de DB:', validRangeSlots.length);
 
       // PASO 2: Procesar SOLO slots de base de datos (sin fallbacks virtuales)
       console.log('📊 Procesando slots de base de datos (sin fallbacks):', {
