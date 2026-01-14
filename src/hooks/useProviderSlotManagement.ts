@@ -466,8 +466,19 @@ export const useProviderSlotManagement = ({
       setLastUpdated(new Date());
       
     } catch (err) {
+      // Check if this is an abort error (expected during navigation/refresh)
+      const isAbortError = err instanceof DOMException && err.name === 'AbortError';
+      
+      if (isAbortError) {
+        console.log('⏭️ Petición abortada (esperado durante refresh) - manteniendo estado anterior');
+        // Do NOT clear slots - keep previous state
+        return;
+      }
+      
       console.error('Error fetching admin slots:', err);
-      setSlots([]);
+      // CRITICAL FIX: Do NOT call setSlots([]) on error
+      // This was causing all slots to disappear when a single slot was toggled
+      // Keep the previous state to avoid UI collapse
     } finally {
       setIsLoading(false);
     }
