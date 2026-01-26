@@ -34,7 +34,7 @@ interface WeeklySlotGridProps {
   onSlotSelect: (slots: string[], startDate: Date, startTime: string, totalDuration: number) => void;
   recurrence?: string;
   requiredSlots?: number;
-  slotSize?: number; // Tamaño del slot configurado para el servicio
+  slotSize?: number; // DEPRECATED: All slots are now fixed at 60 minutes - kept for backwards compatibility
   totalServiceDuration?: number; // Duración total de todos los servicios seleccionados
 }
 
@@ -46,9 +46,11 @@ const WeeklySlotGrid = ({
   onSlotSelect,
   recurrence = 'once',
   requiredSlots = 1,
-  slotSize = 60, // Default to 60 minutes if not provided
+  slotSize: _slotSize, // IGNORED: All slots are now standardized to 60 minutes
   totalServiceDuration
 }: WeeklySlotGridProps) => {
+  // STANDARDIZED: All slots are now fixed at 60 minutes
+  const slotSize = 60;
   const [currentWeek, setCurrentWeek] = useState(0);
   const [isLookingAhead, setIsLookingAhead] = useState(false);
   const [nextAvailableWeek, setNextAvailableWeek] = useState<number | null>(null);

@@ -11,14 +11,13 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ServiceVariantEditor from './ServiceVariantEditor';
 import PostPaymentToggle from './PostPaymentToggle';
 import { v4 as uuidv4 } from 'uuid';
-import { Clock, Info, DollarSign } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import { CURRENCY_LABELS, getCurrencySymbol, type CurrencyCode } from '@/utils/currencyUtils';
 
 const ServiceDetailsStep: React.FC = () => {
@@ -117,59 +116,8 @@ const ServiceDetailsStep: React.FC = () => {
         </CardContent>
       </Card>
       
-      {/* Slot Size Configuration */}
-      <Card className="border-stone-200 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            Configuración de Horarios
-          </CardTitle>
-          <CardDescription className="text-sm text-stone-600">
-            Define el tamaño de los bloques de horario que se mostrarán a los clientes para reservar tu servicio.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormField
-            control={control}
-            name="slotSize"
-            render={({ field }) => (
-              <FormItem className="space-y-4">
-                <FormLabel className="text-base font-medium">Tamaño de Bloque de Horario</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    value={field.value?.toString()}
-                    onValueChange={(value) => field.onChange(Number(value))}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                  >
-                    <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <RadioGroupItem value="30" id="slot-30" />
-                      <FormLabel htmlFor="slot-30" className="font-medium cursor-pointer">
-                        30 minutos
-                      </FormLabel>
-                    </div>
-                    <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <RadioGroupItem value="60" id="slot-60" />
-                      <FormLabel htmlFor="slot-60" className="font-medium cursor-pointer">
-                        60 minutos
-                      </FormLabel>
-                    </div>
-                  </RadioGroup>
-                </FormControl>
-                <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-blue-800">
-                    <p className="font-medium mb-1">¿Cómo funciona?</p>
-                    <p>
-                      El tamaño del bloque de horario define cómo se mostrará tu disponibilidad a los clientes. No indica la duración de tus servicios, sino la frecuencia con la que se dividen tus horarios en la agenda.
-                    </p>
-                  </div>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </CardContent>
-      </Card>
+      {/* Slot Size Configuration - REMOVED: All slots are now standardized to 60 minutes */}
+      {/* The system now uses fixed 1-hour slots for all bookings */}
       
       <ServiceVariantEditor
         serviceVariants={serviceVariants}

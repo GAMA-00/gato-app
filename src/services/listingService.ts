@@ -33,7 +33,7 @@ export const UpdateListingSchema = z.object({
   custom_variable_groups: z.any().optional(), // Json type from Supabase
   availability: z.any().optional(), // Json type from Supabase
   slot_preferences: z.any().optional(), // Json type from Supabase
-  slot_size: z.number().positive().optional(),
+  // slot_size removed - all slots are now standardized to 60 minutes
   service_type_id: z.string().uuid().optional()
 });
 

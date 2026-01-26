@@ -11,7 +11,7 @@ interface CreateListingData {
   base_price: number;
   duration: number;
   standard_duration: number;
-  slot_size: number;
+  // slot_size removed - all slots are now standardized to 60 minutes
   service_type_id: string;
   provider_id: string;
   is_post_payment: boolean;
@@ -82,7 +82,7 @@ export const useServiceMutations = () => {
         base_price: calculatedBasePrice,
         duration: calculatedDuration,
         standard_duration: calculatedDuration,
-        slot_size: Number(serviceData.slotSize ?? calculatedDuration),
+        // slot_size removed - all slots standardized to 60 minutes (handled by DB default)
         service_type_id: serviceData.subcategoryId,
         provider_id: providerId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
@@ -207,7 +207,7 @@ export const useServiceMutations = () => {
         base_price: calculatedBasePrice,
         duration: calculatedDuration,
         standard_duration: calculatedDuration,
-        slot_size: serviceData.slotSize ? Number(serviceData.slotSize) : calculatedDuration,
+        // slot_size removed - all slots standardized to 60 minutes
         service_type_id: serviceData.subcategoryId,
         is_post_payment: serviceData.isPostPayment === true || serviceData.isPostPayment === "ambas",
         currency: serviceData.currency || 'USD',

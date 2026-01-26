@@ -23,12 +23,12 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       const { data: { session } } = await supabase.auth.getSession();
       logger.debug("Auth session status", { authenticated: !!session });
       
-      // Get listing details including gallery_images and slot_size
+      // Get listing details including gallery_images
+      // NOTE: slot_size removed - all slots are now standardized to 60 minutes
       const { data: listing, error } = await supabase
         .from('listings')
         .select(`
           *,
-          slot_size,
           service_type:service_type_id(
             name,
             category:category_id(

@@ -16,6 +16,7 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       }
 
       // Fetch active listings for this service type with provider information
+      // NOTE: slot_size removed - all slots are now standardized to 60 minutes
       const { data: listings, error: listingsError } = await supabase
         .from('listings')
         .select(`
@@ -24,7 +25,6 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
           description,
           base_price,
           duration,
-          slot_size,
           standard_duration,
           provider_id,
           gallery_images,
