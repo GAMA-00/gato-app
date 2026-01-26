@@ -105,8 +105,8 @@ const ClientServices = () => {
                     onClick={() => handleCategoryClick(category.name)}
                     data-category={categoryName}
                   >
-                    <Card className="flex flex-col items-center justify-center p-4 h-28 rounded-xl hover:shadow-md transition-all cursor-pointer bg-[#F2F2F2] group">
-                      <div className="flex items-center justify-center mb-2">
+                    <Card className="flex flex-col items-center justify-center p-3 h-28 rounded-xl hover:shadow-md transition-all cursor-pointer bg-[#F2F2F2] group">
+                      <div className="flex items-center justify-center mb-1">
                         <CategoryIcon 
                           categoryName={categoryName}
                           isMobile={true}
