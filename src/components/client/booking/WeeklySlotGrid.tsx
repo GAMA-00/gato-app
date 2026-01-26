@@ -50,15 +50,12 @@ const WeeklySlotGrid = ({
   totalServiceDuration
 }: WeeklySlotGridProps) => {
   const [currentWeek, setCurrentWeek] = useState(0);
-  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);
   const [isLookingAhead, setIsLookingAhead] = useState(false);
   const [nextAvailableWeek, setNextAvailableWeek] = useState<number | null>(null);
   const { profile } = useUserProfile();
 
-  // Sync local state with prop when it changes
-  React.useEffect(() => {
-    setSelectedSlotIds(selectedSlots);
-  }, [selectedSlots]);
+  // NOTE: selectedSlots is now used directly from props (controlled component)
+  // This eliminates the race condition that caused slots to deselect on mobile
 
   // Calculate required slots based on new slot system
   const actualTotalDuration = totalServiceDuration || (serviceDuration * requiredSlots);
@@ -228,7 +225,7 @@ const WeeklySlotGrid = ({
       return;
     }
     
-    setSelectedSlotIds(consecutiveSlotIds);
+    // NOTE: No local state update - parent controls selection state
     
     const totalDurationReserved = slotSize * consecutiveSlotIds.length;
     const endSlot = sameDateSlots[startIndex + slotsNeeded - 1];
@@ -250,16 +247,14 @@ const WeeklySlotGrid = ({
   const goToPreviousWeek = () => {
     if (currentWeek > 0) {
       setCurrentWeek(prev => prev - 1);
-      setSelectedSlotIds([]);
-      // Notify parent that slot selection was cleared
+      // Parent controls selection state - notify to clear
       onSlotSelect([], new Date(), '', 0);
     }
   };
 
   const goToNextWeek = () => {
     setCurrentWeek(prev => prev + 1);
-    setSelectedSlotIds([]);
-    // Notify parent that slot selection was cleared
+    // Parent controls selection state - notify to clear
     onSlotSelect([], new Date(), '', 0);
   };
 
@@ -293,7 +288,6 @@ const WeeklySlotGrid = ({
     const goToAvailableWeek = () => {
       if (nextAvailableWeek !== null) {
         setCurrentWeek(nextAvailableWeek);
-        setSelectedSlotIds([]);
         onSlotSelect([], new Date(), '', 0);
         setNextAvailableWeek(null);
       }
@@ -404,7 +398,7 @@ const WeeklySlotGrid = ({
                 <span className="block text-xs text-muted-foreground">
                   💡 Se reservarán automáticamente {slotsNeeded} slots consecutivos ({actualTotalDuration} min)
                 </span>
-                {selectedSlotIds.length > 0 && (
+                {selectedSlots.length > 0 && (
                   <span className="block text-xs text-green-600 mt-1">
                     ✅ Horario confirmado: {slotsNeeded} slots reservados
                   </span>
@@ -509,7 +503,7 @@ const WeeklySlotGrid = ({
                         time={slot.displayTime}
                         period={slot.period}
                         isEnabled={slot.isAvailable}
-                        isSelected={selectedSlotIds.includes(slot.id)}
+                        isSelected={selectedSlots.includes(slot.id)}
                         isAvailable={slot.isAvailable}
                         recommended={slot.isRecommended}
                         onClick={() => handleSlotClick(slot.id, slot.date, slot.time)}
