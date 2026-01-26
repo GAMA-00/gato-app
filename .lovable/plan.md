@@ -1,307 +1,257 @@
 
-## Plan: Rediseño de Vista Móvil - ClientServices y ClientCategoryDetails
 
-### Objetivo
-Rediseñar la vista móvil de la pantalla de categorías (`ClientServices.tsx`) y la vista de detalle de categoría (`ClientCategoryDetails.tsx`) para que coincidan con los diseños de referencia proporcionados, manteniendo los iconos actuales y una apariencia limpia, minimalista y ordenada.
+## Plan: Ajustes a la Vista Móvil de Servicios
 
-### Cambios Visuales Principales
+### Resumen de Cambios
 
-#### 1. Nueva Estructura de ClientServices (Vista Móvil)
+Se realizarán 3 ajustes específicos a la vista móvil recientemente implementada:
 
-```text
-┌──────────────────────────────────────────────┐
-│ [Logo]                              [Menu ☰] │  ← Header existente
-├──────────────────────────────────────────────┤
-│                                              │
-│  Ubicación                                   │  ← NUEVO: Sección de ubicación
-│  📍 Condominio El Álamo ▼                    │
-│                                              │
-├──────────────────────────────────────────────┤
-│                                              │
-│  Categorías                                  │  ← Título de sección
-│                                              │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐        │
-│  │  🏠     │ │  🐱     │ │  📚     │        │
-│  │ Hogar   │ │Mascotas │ │ Clases  │        │
-│  └─────────┘ └─────────┘ └─────────┘        │
-│                                              │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐        │
-│  │  💇     │ │  🏋️     │ │  🌍     │        │
-│  │Cuidado  │ │Deportes │ │ Otros   │        │
-│  │Personal │ │         │ │         │        │
-│  └─────────┘ └─────────┘ └─────────┘        │
-│                                              │
-├──────────────────────────────────────────────┤
-│                                              │
-│  Servicios recomendados                      │  ← NUEVO: Scroll horizontal
-│                                              │
-│  ← [Chef] [Manicurista] [Tutorías] [Flores] →│
-│                                              │
-├──────────────────────────────────────────────┤
-│  [Servicios] [Reservas] [Facturas] [Perfil]  │  ← Bottom nav existente
-└──────────────────────────────────────────────┘
+1. **Reducir tamaño de sección "Ubicación"**: Prevenir que el texto de "Cuidado Personal" se superponga
+2. **Corregir redirección de servicios recomendados**: Asegurar que el click navegue a la página del anuncio
+3. **Agregar fallback de imagen para Tutorías**: Usar el ícono de tutorías cuando no hay `gallery_images`
+
+---
+
+### Archivos a Modificar
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/components/client/LocationHeader.tsx` | Reducir espaciado y tamaño visual |
+| `src/components/client/RecommendedServiceCard.tsx` | Agregar fallback de imagen basado en `service_type.name` |
+
+---
+
+### Cambio 1: Reducir Tamaño de Sección "Ubicación"
+
+**Archivo**: `src/components/client/LocationHeader.tsx`
+
+**Problema**: El espaciado actual (`space-y-1`) y el texto "Ubicación" ocupan demasiado espacio vertical, causando que el texto "Cuidado Personal" se corte o superponga con otros elementos.
+
+**Solución**: Reducir el espaciado vertical y compactar el diseño:
+
+```typescript
+// ANTES (línea 21-32):
+return (
+  <div className="space-y-1">
+    <span className="text-xs text-muted-foreground uppercase tracking-wide">
+      Ubicación
+    </span>
+    <div className="flex items-center gap-2">
+      ...
+    </div>
+  </div>
+);
+
+// DESPUÉS:
+return (
+  <div className="space-y-0.5">
+    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+      Ubicación
+    </span>
+    <div className="flex items-center gap-1.5">
+      <MapPin className="h-3.5 w-3.5 text-primary" />
+      <span className="text-sm font-medium text-foreground">
+        {condominiumName}
+      </span>
+      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+    </div>
+  </div>
+);
 ```
 
-#### 2. Nueva Estructura de ClientCategoryDetails (Vista Móvil)
+**Cambios específicos**:
+- `space-y-1` → `space-y-0.5` (reducir espacio entre label y contenido)
+- `text-xs` → `text-[10px]` (label más pequeño)
+- `gap-2` → `gap-1.5` (menos espacio entre elementos)
+- Íconos de `h-4 w-4` → `h-3.5 w-3.5` (ligeramente más pequeños)
+
+---
+
+### Cambio 2: Verificar Redirección de Servicios Recomendados
+
+**Archivo**: `src/components/client/RecommendedServiceCard.tsx`
+
+**Estado actual**: El componente ya tiene implementado correctamente el `handleClick` con navegación:
+```typescript
+const handleClick = () => {
+  navigate(`/client/services/${listing.id}`);
+};
+```
+
+Y el `onClick` está correctamente aplicado:
+```tsx
+<div 
+  className={cn("flex-shrink-0 w-[150px] cursor-pointer group", className)}
+  onClick={handleClick}
+>
+```
+
+**Problema potencial**: Podría haber un problema de propagación de eventos o estilos. Se verificará que el contenedor tenga los estilos correctos para recibir clicks.
+
+**Verificación**: Asegurar que el elemento clickeable no tenga `pointer-events-none` y que no haya elementos superpuestos que intercepten el click.
+
+---
+
+### Cambio 3: Agregar Fallback de Imagen para Tutorías
+
+**Archivo**: `src/components/client/RecommendedServiceCard.tsx`
+
+**Problema**: El listing de "Clases tutorías" no tiene `gallery_images`, por lo que muestra `/placeholder.svg` que aparece en blanco.
+
+**Solución**: Agregar lógica de fallback que use los íconos de `serviceImages.ts` basándose en el `service_type.name`:
+
+```typescript
+// ANTES (línea 15-16):
+const imageUrl = listing.gallery_images?.[0] || '/placeholder.svg';
+
+// DESPUÉS:
+import { 
+  homeServiceImages, 
+  classesServiceImages, 
+  personalCareServiceImages,
+  sportsServiceImages,
+  petsServiceImages,
+  otherServiceImages 
+} from '@/constants/serviceImages';
+
+// Helper para obtener imagen de fallback según service_type.name
+const getServiceTypeImage = (serviceTypeName: string): string | null => {
+  const name = serviceTypeName.toLowerCase();
+  
+  // Buscar en todos los mapas de imágenes de servicio
+  const allServiceImages = {
+    ...homeServiceImages,
+    ...classesServiceImages,
+    ...personalCareServiceImages,
+    ...sportsServiceImages,
+    ...petsServiceImages,
+    ...otherServiceImages,
+  };
+  
+  // Buscar coincidencia exacta primero
+  if (allServiceImages[name]) {
+    return allServiceImages[name];
+  }
+  
+  // Buscar coincidencia parcial
+  for (const [key, value] of Object.entries(allServiceImages)) {
+    if (name.includes(key) || key.includes(name)) {
+      return value;
+    }
+  }
+  
+  return null;
+};
+
+// En el componente:
+const fallbackImage = listing.service_type?.name 
+  ? getServiceTypeImage(listing.service_type.name) 
+  : null;
+  
+const imageUrl = listing.gallery_images?.[0] || fallbackImage || '/placeholder.svg';
+```
+
+**Resultado esperado**:
+- "Clases tutorías" → usará `/lovable-uploads/3176c881-803d-48d8-a644-0571866d8f46.png` (ícono de tutorías)
+- Chef → usará la imagen de gallery si existe, o el ícono de chef
+- Manicurista → usará la imagen de gallery si existe, o el ícono de manicurista
+- Flores → usará la imagen de gallery si existe, o el ícono de floristería
+
+---
+
+### Flujo de Fallback de Imágenes
 
 ```text
-┌──────────────────────────────────────────────┐
-│ [←]                                    [⊕]   │  ← Header con back button
-├──────────────────────────────────────────────┤
-│ ┌────────────────────────────────────────┐   │
-│ │         HERO SECTION                   │   │  ← NUEVO: Hero con gradient
-│ │                                        │   │
-│ │  Hogar                      🏠         │   │  ← Nombre + Icono de categoría
-│ │                                        │   │
-│ │  [Hogar] [Mascotas] [Clases] [...]    │   │  ← Pills/chips de categorías
-│ │                                        │   │
-│ └────────────────────────────────────────┘   │
-├──────────────────────────────────────────────┤
-│                                              │
-│  ┌──────────────┐  ┌──────────────┐         │  ← Grid de listings
-│  │   [Imagen]   │  │   [Imagen]   │         │
-│  │ Nombre Prov. │  │ Nombre Prov. │         │
-│  │ Servicio ⭐  │  │ Servicio ⭐  │         │
-│  └──────────────┘  └──────────────┘         │
-│                                              │
-│  ┌──────────────┐  ┌──────────────┐         │
-│  │   [Imagen]   │  │   [Imagen]   │         │
-│  │ ...          │  │ ...          │         │
-│  └──────────────┘  └──────────────┘         │
-│                                              │
-├──────────────────────────────────────────────┤
-│  [Servicios] [Reservas] [Facturas] [Perfil]  │
-└──────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                  Lógica de Selección de Imagen                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. ¿Tiene gallery_images[0]?                                   │
+│     └─ SÍ → Usar gallery_images[0]                              │
+│     └─ NO → Continuar...                                        │
+│                                                                 │
+│  2. ¿Existe service_type.name?                                  │
+│     └─ SÍ → Buscar en serviceImages por nombre                  │
+│             ├─ Encontrado → Usar imagen del service type        │
+│             └─ No encontrado → Continuar...                     │
+│     └─ NO → Continuar...                                        │
+│                                                                 │
+│  3. Usar /placeholder.svg (último recurso)                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Archivos a Crear/Modificar
+### Archivos Modificados (Resumen)
 
-| Archivo | Tipo | Descripción |
-|---------|------|-------------|
-| `src/components/client/LocationHeader.tsx` | CREAR | Componente para mostrar "Ubicación" + Condominio del usuario |
-| `src/components/client/RecommendedServicesCarousel.tsx` | CREAR | Carrusel horizontal de servicios recomendados |
-| `src/components/client/RecommendedServiceCard.tsx` | CREAR | Tarjeta compacta para cada servicio recomendado |
-| `src/components/client/CategoryHeroHeader.tsx` | CREAR | Hero header con gradient y pill navigation para categorías |
-| `src/components/client/CategoryPillNav.tsx` | CREAR | Pills horizontales para navegar entre categorías |
-| `src/components/client/CategoryListingCard.tsx` | CREAR | Tarjeta de listing estilo mockup (imagen + nombre + rating) |
-| `src/hooks/useRecommendedListings.ts` | CREAR | Hook para obtener listings de Chef, Manicurista, Tutorías, Flores |
-| `src/constants/categoryColors.ts` | CREAR | Colores de gradient por categoría para el hero |
-| `src/pages/ClientServices.tsx` | MODIFICAR | Reorganizar layout con nuevo orden de secciones |
-| `src/pages/ClientCategoryDetails.tsx` | MODIFICAR | Agregar hero header y cambiar grid de cards |
+| Archivo | Líneas Modificadas | Cambio |
+|---------|-------------------|--------|
+| `LocationHeader.tsx` | 21-32 | Reducir espaciado y tamaño de elementos |
+| `RecommendedServiceCard.tsx` | 1-5, 15-16 | Agregar imports y lógica de fallback |
 
 ---
 
 ### Sección Técnica
 
-#### 1. LocationHeader.tsx
+#### LocationHeader.tsx - Código Final
+
 ```typescript
-// Muestra la ubicación del usuario
-// Usa useUserProfile() para obtener condominium_text
-// Renderiza: "Ubicación" + icono ubicación + nombre del condominio + dropdown chevron
+return (
+  <div className="space-y-0.5">
+    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+      Ubicación
+    </span>
+    <div className="flex items-center gap-1.5">
+      <MapPin className="h-3.5 w-3.5 text-primary" />
+      <span className="text-sm font-medium text-foreground">
+        {condominiumName}
+      </span>
+      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+    </div>
+  </div>
+);
 ```
 
-#### 2. RecommendedServicesCarousel.tsx
-```typescript
-// Props: listings: RecommendedListing[]
-// Renderiza un contenedor con overflow-x-auto y scroll horizontal
-// Muestra RecommendedServiceCard para cada listing
-// Servicios fijos: Chef, Manicurista, Tutorías, Flores
-```
+#### RecommendedServiceCard.tsx - Nuevo Helper
 
-#### 3. useRecommendedListings.ts
 ```typescript
-// Query a Supabase para obtener listings activos donde:
-// service_type.name ILIKE '%chef%' OR '%manicur%' OR '%tutor%' OR '%flor%'
-// Retorna: { listings, isLoading }
-```
-
-#### 4. CategoryHeroHeader.tsx
-```typescript
-// Props: categoryId, categoryLabel
-// Renderiza:
-// - Fondo con gradient según categoryColors[categoryId]
-// - Título de categoría (texto grande, blanco)
-// - Icono de categoría (CategoryIcon actual, posición derecha)
-// - CategoryPillNav con todas las categorías
-```
-
-#### 5. CategoryPillNav.tsx
-```typescript
-// Props: currentCategory, categories[]
-// Renderiza pills horizontales con scroll
-// La categoría actual está resaltada (fondo naranja, texto blanco)
-// Las demás tienen fondo gris claro
-// onClick navega a /client/category/{categoryName}
-```
-
-#### 6. CategoryListingCard.tsx
-```typescript
-// Props: listing (con imagen, provider name, rating)
-// Diseño según mockup:
-// - Imagen cuadrada con bordes redondeados
-// - Nombre del proveedor debajo
-// - Nombre del servicio + rating (estrella amarilla)
-// - Corazón de favorito (opcional, esquina superior derecha)
-```
-
-#### 7. Colores de Gradient por Categoría
-```typescript
-// categoryColors.ts
-export const categoryGradients: Record<string, string> = {
-  'home': 'from-[#F5EDE8] to-[#E8DED6]',       // Beige suave (casita)
-  'pets': 'from-[#FFCCC5] to-[#FFB4AA]',       // Coral/salmon (gatito)
-  'classes': 'from-[#FFE4C4] to-[#FFD4A8]',    // Naranja claro (libros)
-  'personal-care': 'from-[#D4E5F7] to-[#C4D9EF]', // Azul claro (secadora)
-  'sports': 'from-[#E5E5E5] to-[#D5D5D5]',     // Gris (pesas)
-  'other': 'from-[#E8F4EC] to-[#D8E8DF]',      // Verde claro (mundo)
+// Helper function to get fallback image from service type name
+const getServiceTypeFallbackImage = (serviceTypeName: string | undefined): string | null => {
+  if (!serviceTypeName) return null;
+  
+  const name = serviceTypeName.toLowerCase();
+  
+  const allServiceImages: Record<string, string> = {
+    ...homeServiceImages,
+    ...classesServiceImages,
+    ...personalCareServiceImages,
+    ...sportsServiceImages,
+    ...petsServiceImages,
+    ...otherServiceImages,
+  };
+  
+  // Exact match
+  if (allServiceImages[name]) return allServiceImages[name];
+  
+  // Partial match
+  for (const [key, value] of Object.entries(allServiceImages)) {
+    if (name.includes(key) || key.includes(name)) {
+      return value;
+    }
+  }
+  
+  return null;
 };
 ```
 
 ---
 
-### Cambios en ClientServices.tsx
+### Resultado Visual Esperado
 
-```typescript
-// ESTRUCTURA ACTUAL:
-// - ClientPageLayout con title
-// - Grid de 6 categorías
+Después de los cambios:
 
-// ESTRUCTURA NUEVA (solo mobile):
-return (
-  <ClientPageLayout>
-    {isMobile ? (
-      <div className="space-y-6">
-        {/* 1. Ubicación */}
-        <LocationHeader />
-        
-        {/* 2. Categorías */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Categorías</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {/* Mismo grid actual pero 3 columnas en mobile */}
-          </div>
-        </section>
-        
-        {/* 3. Servicios recomendados */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Servicios recomendados</h2>
-          <RecommendedServicesCarousel listings={recommendedListings} />
-        </section>
-      </div>
-    ) : (
-      // Desktop: mantener layout actual
-    )}
-  </ClientPageLayout>
-);
-```
+1. **Sección Ubicación**: Más compacta, sin superposición con "Cuidado Personal"
+2. **Cards de Servicios Recomendados**: Clickeables y navegarán correctamente a `/client/services/{id}`
+3. **"Clases tutorías"**: Mostrará el ícono de tutorías (libro con graduación) en lugar de imagen en blanco
 
----
-
-### Cambios en ClientCategoryDetails.tsx
-
-```typescript
-// ESTRUCTURA ACTUAL:
-// - ClientPageLayout
-// - h1 centrado con categoryLabel
-// - Grid de ServiceTypeCard
-
-// ESTRUCTURA NUEVA:
-return (
-  <>
-    <Navbar />
-    <div className="min-h-screen bg-[#FAFAFA]">
-      {/* Hero Header con gradient */}
-      <CategoryHeroHeader
-        categoryId={categoryId}
-        categoryLabel={categoryLabel}
-        allCategories={allCategories}
-      />
-      
-      {/* Listings Grid */}
-      <div className="p-4 pt-2 pb-20">
-        <div className="grid grid-cols-2 gap-4">
-          {listings.map(listing => (
-            <CategoryListingCard
-              key={listing.id}
-              listing={listing}
-              onClick={() => navigate(`/client/services/${listing.id}`)}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  </>
-);
-```
-
----
-
-### Diseño de RecommendedServiceCard
-
-```text
-┌────────────────────┐
-│                    │
-│   [Imagen grande   │  ← aspect-[4/3] o similar
-│    del servicio]   │
-│                    │
-├────────────────────┤
-│ Nombre Proveedor   │  ← text-xs, muted
-│ Servicio Name      │  ← text-sm, font-semibold
-│ ⭐ 5.0             │  ← rating con estrella amarilla
-└────────────────────┘
-```
-Tamaño: ~150px de ancho para mostrar 2 inicialmente y que se vea que hay más al hacer scroll.
-
----
-
-### Diseño de CategoryListingCard (dentro de categoría)
-
-Similar al mockup:
-```text
-┌────────────────────┐
-│                  ♡ │  ← Corazón opcional
-│   [Imagen del     │
-│    servicio]      │
-│                    │
-├────────────────────┤
-│ Nombre Proveedor   │
-│ Servicio  ⭐ 5.0   │
-└────────────────────┘
-```
-
----
-
-### Responsividad
-
-| Breakpoint | ClientServices | ClientCategoryDetails |
-|------------|----------------|----------------------|
-| Mobile (<768px) | Layout nuevo con ubicación + categorías 3 cols + carrusel | Hero header + grid 2 cols |
-| Tablet (768-1024px) | Layout existente | Layout existente |
-| Desktop (>1024px) | Layout existente | Layout existente |
-
----
-
-### Consideraciones
-
-1. **Iconos**: Se mantienen los iconos actuales de `CategoryIcon.tsx` (imágenes PNG customizadas)
-2. **Colores**: Los gradients del hero header son suaves y combinan con los iconos
-3. **Navegación**: Las pills en el hero header permiten cambiar de categoría sin volver atrás
-4. **Performance**: El carrusel usa lazy loading para las imágenes
-5. **Accesibilidad**: Todos los elementos clickeables tienen roles y labels apropiados
-
----
-
-### Orden de Implementación
-
-1. Crear `categoryColors.ts` con gradients
-2. Crear `LocationHeader.tsx`
-3. Crear `useRecommendedListings.ts`
-4. Crear `RecommendedServiceCard.tsx`
-5. Crear `RecommendedServicesCarousel.tsx`
-6. Modificar `ClientServices.tsx` para nuevo layout mobile
-7. Crear `CategoryPillNav.tsx`
-8. Crear `CategoryHeroHeader.tsx`
-9. Crear `CategoryListingCard.tsx`
-10. Modificar `ClientCategoryDetails.tsx` para nuevo layout
