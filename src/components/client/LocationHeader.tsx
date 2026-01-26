@@ -18,16 +18,16 @@ const LocationHeader = () => {
   }
 
   return (
-    <div className="space-y-1">
-      <span className="text-xs text-muted-foreground uppercase tracking-wide">
+    <div className="space-y-0.5">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
         Ubicación
       </span>
-      <div className="flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-primary" />
+      <div className="flex items-center gap-1.5">
+        <MapPin className="h-3.5 w-3.5 text-primary" />
         <span className="text-sm font-medium text-foreground">
           {condominiumName}
         </span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
     </div>
   );
