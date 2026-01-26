@@ -37,6 +37,8 @@ export const useWeeklySlotsFetcher = ({
   const lastRequestTimeRef = useRef<number>(0); // Debounce rapid requests
 
   // Use ref to store current params - allows stable callback without dependencies
+  // CRITICAL: Update synchronously on every render to prevent race conditions
+  // with profile loading (clientResidenciaId was being read as stale/undefined)
   const paramsRef = useRef({
     providerId,
     listingId,
@@ -47,20 +49,18 @@ export const useWeeklySlotsFetcher = ({
     weekIndex,
     clientResidenciaId
   });
-
-  // Update params ref when they change
-  useEffect(() => {
-    paramsRef.current = {
-      providerId,
-      listingId,
-      serviceDuration,
-      recurrence,
-      startDate,
-      daysAhead,
-      weekIndex,
-      clientResidenciaId
-    };
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex, clientResidenciaId]);
+  
+  // Update synchronously - not in useEffect to avoid race conditions
+  paramsRef.current = {
+    providerId,
+    listingId,
+    serviceDuration,
+    recurrence,
+    startDate,
+    daysAhead,
+    weekIndex,
+    clientResidenciaId
+  };
 
   // Stable function to fetch slots - NEVER recreated (empty dependency array)
   const fetchWeeklySlots = useCallback(async () => {
