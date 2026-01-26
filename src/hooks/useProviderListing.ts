@@ -14,9 +14,10 @@ export const useProviderListing = () => {
 
       setIsLoading(true);
       try {
+        // NOTE: slot_size removed - all slots are now standardized to 60 minutes
         const { data, error } = await supabase
           .from('listings')
-          .select('id, slot_size, standard_duration, duration')
+          .select('id, standard_duration, duration')
           .eq('provider_id', user.id)
           .eq('is_active', true)
           .order('created_at', { ascending: true })
@@ -29,10 +30,10 @@ export const useProviderListing = () => {
         }
 
         setFirstListingId(data?.id || null);
-        // Priorizar slot_size, luego standard_duration, duration como fallback, 60 como último recurso
-        const duration = data?.slot_size || data?.standard_duration || data?.duration || 60;
+        // STANDARDIZED: All slots are now 60 minutes - slot_size variable removed
+        const duration = 60; // Fixed 1-hour slots
         setServiceDuration(duration);
-        console.log('📋 Duración de servicio detectada:', { slot_size: data?.slot_size, standard_duration: data?.standard_duration, duration: data?.duration, final: duration });
+        console.log('📋 Duración de slot estandarizada:', { serviceDuration: duration });
       } catch (error) {
         console.error('Error in fetchFirstListing:', error);
       } finally {

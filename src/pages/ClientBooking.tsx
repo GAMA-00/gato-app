@@ -124,7 +124,6 @@ const ClientBooking = () => {
           id,
           provider_id,
           title,
-          slot_size,
           standard_duration,
           duration,
           is_post_payment,
@@ -171,7 +170,6 @@ const ClientBooking = () => {
           id,
           provider_id,
           title,
-          slot_size,
           standard_duration,
           duration,
           is_post_payment,
@@ -224,7 +222,7 @@ const ClientBooking = () => {
       }))
     : isRescheduleMode && rescheduleServiceData
     ? [{
-        duration: rescheduleServiceData.slot_size || rescheduleServiceData.standard_duration || rescheduleServiceData.duration || 60,
+        duration: rescheduleServiceData.standard_duration || rescheduleServiceData.duration || 60,
         quantity: 1,
         personQuantity: 1
       }]
@@ -278,7 +276,8 @@ const ClientBooking = () => {
   // Enhanced validation - More permissive for better UX
   const isBookingValid = selectedDate && selectedTime && effectiveSelectedVariants?.length > 0 && !isLoadingUserData;
   const selectedVariant = effectiveSelectedVariants?.[0];
-  const slotSize = effectiveServiceDetails?.slot_size || 60; // Default to 60 if not specified
+  // STANDARDIZED: All slots are now 60 minutes - slot_size variable removed
+  const SLOT_SIZE = 60;
 
   const handleBackNavigation = () => {
     // Scroll to top before navigation
@@ -340,10 +339,10 @@ const ClientBooking = () => {
       
       // Calculate duration robustly:
       // 1. Use totalDuration if already calculated by slot grid
-      // 2. Otherwise use listing configuration (slot_size, standard_duration, duration)
+      // 2. Otherwise use listing configuration (standard_duration, duration)
       // 3. Fallback to 60 minutes as safe default
+      // NOTE: slot_size variable removed - all slots are now standardized to 60 minutes
       const fallbackDurationFromListing =
-        effectiveServiceDetails?.slot_size ||
         effectiveServiceDetails?.standard_duration ||
         effectiveServiceDetails?.duration ||
         60;
@@ -652,7 +651,7 @@ const ClientBooking = () => {
           setCustomVariableSelections(selections);
           setCustomVariablesTotalPrice(totalPrice);
         }}
-        slotSize={slotSize}
+        slotSize={SLOT_SIZE}
         onNextStep={handleNextStep}
         onPrevStep={handlePrevStep}
         isRescheduleMode={isRescheduleMode}

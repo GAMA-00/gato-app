@@ -31,9 +31,7 @@ const serviceSchema = z.object({
   duration: z.coerce.number().min(2, 'La duración debe ser de al menos 2 minutos'),
   currency: z.enum(['USD', 'CRC']).default('USD'),
   isPostPayment: z.union([z.boolean(), z.literal("ambas")]).default(false),
-  slotSize: z.coerce.number().refine((val) => val === 30 || val === 60, {
-    message: 'El tamaño de slot debe ser 30 o 60 minutos'
-  }).default(60),
+  // slotSize removed - all slots are now standardized to 60 minutes
   serviceVariants: z.array(z.object({
     id: z.string().optional(),
     name: z.string().min(1, 'El nombre del servicio es requerido'),
@@ -95,7 +93,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       duration: 60,
       currency: 'USD',
       isPostPayment: false,
-      slotSize: 60,
+      // slotSize removed - standardized to 60 minutes
       serviceVariants: [
         { id: uuidv4(), name: '', price: '', duration: 60, customVariables: [] }
       ],
@@ -146,7 +144,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         duration: Number(initialData.duration) || 60,
         currency: initialData.currency || 'USD',
         isPostPayment: initialData.isPostPayment || false,
-        slotSize: (Number(initialData.slotSize) === 30 ? 30 : 60) as 30 | 60,
+        // slotSize removed - all slots standardized to 60 minutes
         serviceVariants: initialData.serviceVariants?.length > 0 
           ? initialData.serviceVariants.map(variant => ({
               id: variant.id || uuidv4(),

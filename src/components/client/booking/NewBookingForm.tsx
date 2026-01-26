@@ -26,7 +26,7 @@ interface NewBookingFormProps {
   customVariableGroups?: CustomVariableGroup[];
   customVariableSelections?: any;
   onCustomVariableSelectionsChange?: (selections: any, totalPrice: number) => void;
-  slotSize?: number;
+  slotSize?: number; // DEPRECATED: All slots are now fixed at 60 minutes
   onNextStep: () => void;
   onPrevStep: () => void;
   isRescheduleMode?: boolean;
@@ -53,7 +53,7 @@ const NewBookingForm = ({
   customVariableGroups,
   customVariableSelections,
   onCustomVariableSelectionsChange,
-  slotSize = 60,
+  slotSize: _slotSize, // IGNORED: All slots are now standardized to 60 minutes
   onNextStep,
   onPrevStep,
   isRescheduleMode = false,
@@ -61,6 +61,8 @@ const NewBookingForm = ({
   serviceDetails,
   isLoadingReschedule = false
 }: NewBookingFormProps) => {
+  // STANDARDIZED: All slots are now fixed at 60 minutes
+  const SLOT_SIZE = 60;
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
   // Calculate total service duration from all selected variants
@@ -68,13 +70,13 @@ const NewBookingForm = ({
     total + (variant.duration * variant.quantity), 0
   );
 
-  // Calculate required slots based on slot size and total duration
-  const requiredSlots = Math.ceil(totalServiceDuration / slotSize);
+  // Calculate required slots based on standardized 60-minute slots
+  const requiredSlots = Math.ceil(totalServiceDuration / SLOT_SIZE);
 
   logger.debug('NewBookingForm calculations', {
     selectedVariants: selectedVariants.length,
     totalServiceDuration,
-    slotSize,
+    slotSize: SLOT_SIZE,
     requiredSlots
   });
 
@@ -146,7 +148,7 @@ const NewBookingForm = ({
             onSlotSelect={handleSlotSelect}
             recurrence={selectedFrequency}
             requiredSlots={requiredSlots}
-            slotSize={slotSize}
+            slotSize={SLOT_SIZE}
             totalServiceDuration={totalServiceDuration}
           />
 
