@@ -3,6 +3,42 @@ import { useNavigate } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { RecommendedListing } from '@/hooks/useRecommendedListings';
 import { cn } from '@/lib/utils';
+import { 
+  homeServiceImages, 
+  classesServiceImages, 
+  personalCareServiceImages,
+  sportsServiceImages,
+  petsServiceImages,
+  otherServiceImages 
+} from '@/constants/serviceImages';
+
+// Helper function to get fallback image from service type name
+const getServiceTypeFallbackImage = (serviceTypeName: string | undefined): string | null => {
+  if (!serviceTypeName) return null;
+  
+  const name = serviceTypeName.toLowerCase();
+  
+  const allServiceImages: Record<string, string> = {
+    ...homeServiceImages,
+    ...classesServiceImages,
+    ...personalCareServiceImages,
+    ...sportsServiceImages,
+    ...petsServiceImages,
+    ...otherServiceImages,
+  };
+  
+  // Exact match first
+  if (allServiceImages[name]) return allServiceImages[name];
+  
+  // Partial match - check if service name contains any key or vice versa
+  for (const [key, value] of Object.entries(allServiceImages)) {
+    if (name.includes(key) || key.includes(name)) {
+      return value;
+    }
+  }
+  
+  return null;
+};
 
 interface RecommendedServiceCardProps {
   listing: RecommendedListing;
@@ -12,8 +48,9 @@ interface RecommendedServiceCardProps {
 const RecommendedServiceCard = ({ listing, className }: RecommendedServiceCardProps) => {
   const navigate = useNavigate();
   
-  // Get first gallery image or use placeholder
-  const imageUrl = listing.gallery_images?.[0] || '/placeholder.svg';
+  // Get first gallery image, fallback to service type icon, or use placeholder
+  const fallbackImage = getServiceTypeFallbackImage(listing.service_type?.name);
+  const imageUrl = listing.gallery_images?.[0] || fallbackImage || '/placeholder.svg';
   const providerName = listing.provider?.name || 'Proveedor';
   const rating = listing.provider?.average_rating || 5.0;
 
