@@ -1,188 +1,144 @@
 
-## Plan: Corregir la Lógica de Slots Recomendados
+Objetivo
+- Corregir definitivamente por qué no aparece la etiqueta “Recomendado” en los slots adyacentes a horarios ya agendados.
+- Garantizar que, si existe una cita (incluyendo recurrentes “virtuales”) en un día, el slot inmediatamente anterior al inicio y el slot inmediatamente posterior al final queden marcados como recomendados (si están disponibles).
 
-### Problema Identificado
+Diagnóstico (por qué sigue fallando)
+1) La UI sí está lista para mostrar “Recomendado”
+- WeeklySlotGrid pasa recommended={slot.isRecommended} a SlotCard.
+- SlotCard renderiza “Recomendado” cuando recommended && isAvailable.
+- Conclusión: el problema está en que isRecommended casi nunca se setea a true en los datos del hook.
 
-Los slots adyacentes a citas ya agendadas no muestran la etiqueta "Recomendado" debido a una **condición de carrera** (race condition) entre la carga del perfil del usuario y el fetch de slots.
+2) El cálculo actual de recomendaciones depende de “citas en DB” o “proyecciones legacy”
+- Para citas no recurrentes: ok (si existen filas dentro del rango).
+- Para citas recurrentes: en este proyecto se generan muchas instancias como “virtual-*” (no existen como filas en appointments dentro del rango semanal).
+- El hook intenta “proyectar” recurrencias con projectedLegacyOccurrences, pero hoy está limitado a maxWeeksToProject = 8.
+  - Si la cita base es vieja (p. ej. de noviembre) y estamos en enero (más de 8 semanas), el hook no genera proyecciones para la semana actual.
+  - Resultado: no hay “conflictos” ni “adyacencias” detectadas en esa semana → isRecommended nunca se activa.
 
-### Diagnóstico Técnico
+3) La lógica de adyacencia actual se basa solo en el “inicio” de la cita
+- Actualmente: apptStarts.has(slotMin + step) || apptStarts.has(slotMin - step)
+- Esto no cubre el slot posterior cuando la cita dura más de 1 bloque (ej. citas de 60 min con slots de 30 min).
+- Ya se calcula apptEndMinutesByDate pero no se usa: es una pista clara de que falta completar la adyacencia respecto al fin.
 
-**Flujo actual con el bug:**
+Estrategia de solución (qué cambiaremos)
+A) Generación robusta de instancias recurrentes dentro del rango semanal (sin límite de 8 semanas)
+- En vez de “proyectar 8 semanas desde el inicio”, vamos a generar ocurrencias entre baseDate y endDate (la semana mostrada), sin importar si la cita base empezó hace meses.
+- Reutilizaremos la lógica existente del proyecto (ya usada en otras pantallas) en:
+  - src/utils/simplifiedRecurrenceUtils.ts (calculateRecurringDates + applyRecurringExceptions)
+- Esto asegura que las instancias “virtuales” de recurrencia existan para el cálculo de:
+  - Conflictos (para bloquear slots ocupados aunque no haya filas materializadas)
+  - Recomendaciones (para marcar slots adyacentes)
 
-1. Usuario abre la página de booking
-2. `WeeklySlotGrid` se renderiza con `profile?.residencia_id = undefined` (perfil aún cargando)
-3. Se llama `useWeeklySlots({ clientResidenciaId: undefined })`
-4. `useWeeklySlotsFetcher` hace la consulta sin filtrar por residencia
-5. `sameResidenciaAppointments` está vacío → `adjacentPool` está vacío → **no hay recomendaciones**
-6. Cuando el perfil carga, `clientResidenciaId` cambia
-7. Se dispara un refetch, pero debido al patrón de refs, el valor leído puede ser obsoleto
+B) Respetar excepciones de recurrencia (cancelaciones / re-agendados)
+- Agregaremos un fetch a la tabla recurring_exceptions para los IDs de las citas recurrentes base relevantes.
+- Al generar instancias:
+  - Si la excepción es cancelled: no se incluye la instancia (ni para bloqueo ni para recomendación)
+  - Si es rescheduled: se usa new_start_time/new_end_time (y se incluye solo si cae en el rango)
 
-**Causa raíz:**
-El hook `useWeeklySlotsFetcher` usa un patrón donde `fetchWeeklySlots` lee de `paramsRef.current`, pero este ref se actualiza via `useEffect`, lo cual es asíncrono. Hay una condición de carrera donde el fetch puede ejecutarse antes de que el ref se actualice.
+C) Recomendación adyacente correcta: antes del inicio y después del final
+- Mantendremos la idea de “solo adyacente” (no múltiples recomendaciones).
+- Cambiaremos la lógica para que considere:
+  - Slot anterior: el slot cuyo fin coincide con el inicio de la cita
+  - Slot posterior: el slot cuyo inicio coincide con el fin de la cita
+- Implementación práctica con minutos:
+  - “Anterior” (antes del inicio): apptStarts.has(slotMin + step)
+  - “Posterior” (después del final): apptEnds.has(slotMin)
+- Esto elimina el uso de apptStarts.has(slotMin - step), que conceptualmente no representa “adyacente” al inicio (y no cubre bien citas de más de un bloque).
 
-### Solución Propuesta
+D) Adyacencia respecto a recurring_blocked (si aplica) también por fin
+- Hoy solo se registra recurringBlockedByDate como “starts”.
+- Si existen slots recurring_blocked con duraciones no estándar, la adyacencia posterior puede fallar.
+- Agregaremos blockedEndMinutesByDate (usando end_time del provider_time_slots) y aplicaremos:
+  - “Anterior” al bloque: blockedStarts.has(slotMin + step)
+  - “Posterior” al bloque: blockedEnds.has(slotMin)
 
-Modificar la lógica para asegurar que el `clientResidenciaId` se use correctamente en todas las llamadas:
+Cambios concretos por archivo
 
-**Opción implementada: Actualizar `paramsRef` sincrónicamente**
+1) src/hooks/useWeeklySlotsFetcher.ts (principal)
+1.1. Reemplazar la proyección limitada (maxWeeksToProject = 8)
+- Eliminar/retirar la sección projectedLegacyOccurrences basada en weekOffset 0..7.
+- En su lugar:
+  - Tomar legacyRecurring (ya se obtiene del query actual).
+  - Traer recurring_exceptions para esos appointment_id.
+  - Generar instancias dentro del rango semanal usando calculateRecurringDates/applyRecurringExceptions.
 
-En lugar de actualizar `paramsRef` en un `useEffect`, actualizarlo directamente en el cuerpo del hook (antes del render):
+1.2. Nuevo query de excepciones (recurring_exceptions)
+- Dentro del Promise.all o inmediatamente después de tener legacyRecurring IDs:
+  - Si legacyRecurringIds.length > 0:
+    - supabase.from('recurring_exceptions').select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time').in('appointment_id', legacyRecurringIds)
+  - Si no, retornar data: [].
 
-```typescript
-// src/hooks/useWeeklySlotsFetcher.ts
+1.3. Construir “virtualRecurringOccurrencesInRange”
+- Para cada appointment recurrente base:
+  - dates = calculateRecurringDates(appt, baseDate, endOfDay(endDate))
+  - instances = applyRecurringExceptions(appt, dates, exceptionsForThisAppt)
+  - Mapear cada instancia a un objeto uniforme:
+    - start_time ISO
+    - end_time ISO
+    - status (tratar scheduled/rescheduled como “confirmed” para el sistema de conflictos)
+    - residencia_id (desde la cita base)
+  - Filtrar:
+    - excluir cancelled
+    - incluir rescheduled usando new_start_time/new_end_time cuando existan
+    - asegurar que la hora final elegida caiga en el rango baseDate..endOfDay(endDate)
 
-// ANTES (líneas 40-63):
-const paramsRef = useRef({...});
-useEffect(() => {
-  paramsRef.current = {...};
-}, [deps]);
+1.4. Combinar conflictos (para bloqueo real)
+- combinedConflicts actualmente = allAppointments + projectedLegacyOccurrences
+- Cambiar a:
+  - allAppointments (del rango semanal, como hoy)
+  - + virtualRecurringOccurrencesInRange (convertidos a {start_time,end_time,status:'confirmed'})
+- Añadir deduplicación simple por (start_time,end_time) para evitar doble conteo si existieran instancias materializadas.
 
-// DESPUÉS:
-// Actualizar el ref sincrónicamente en cada render
-paramsRef.current = {
-  providerId,
-  listingId,
-  serviceDuration,
-  recurrence,
-  startDate,
-  daysAhead,
-  weekIndex,
-  clientResidenciaId
-};
-```
+1.5. Pool para recomendaciones (adyacencia)
+- adjacentPoolForRecommendations actualmente incluye:
+  - sameResidenciaAppointments
+  - historicalAppointments
+  - proyecciones legacy filtradas por residencia
+- Cambiar la parte de “proyecciones” por:
+  - virtualRecurringOccurrencesInRange filtradas por residencia_id === clientResidenciaId (manteniendo la intención: “el proveedor ya está en tu condominio”).
+- Nota: si clientResidenciaId es undefined, el sistema de recomendaciones por condominio no puede operar; mantendremos el comportamiento actual de no recomendar en ese caso (evita recomendar basado en otras residencias y evita que el copy del callout sea engañoso).
 
----
+1.6. Calcular apptStartMinutesByDate y apptEndMinutesByDate (ya existe)
+- Mantenerlo, pero asegurarnos de alimentar también con las instancias recurrentes generadas.
 
-### Archivos a Modificar
+1.7. Calcular blockedStartMinutesByDate y blockedEndMinutesByDate
+- Extender la extracción de recurring_blocked:
+  - startMin desde start_time
+  - endMin desde end_time (si no existe, fallback a startMin + step)
+- Guardar en dos sets por día.
 
-| Archivo | Cambio |
-|---------|--------|
-| `src/hooks/useWeeklySlotsFetcher.ts` | Eliminar useEffect y actualizar paramsRef sincrónicamente |
+1.8. Corregir la condición isRecommended
+- Reemplazar el bloque:
+  - isAdjacentToAppointment = apptStarts.has(slotMin + step) || apptStarts.has(slotMin - step)
+- Por:
+  - isAdjacentToAppointment =
+      apptStarts.has(slotMin + step)  // slot termina justo cuando inicia la cita
+      || apptEnds.has(slotMin)        // slot inicia justo cuando termina la cita
+- Y para recurring_blocked:
+  - isAdjacentToRecurringBlocked =
+      blockedStarts.has(slotMin + step)
+      || blockedEnds.has(slotMin)
+- isRecommended = isAdjacentToAppointment || isAdjacentToRecurringBlocked
 
----
+2) Validación / pruebas (smoke test específico)
+- Caso 1: Cita recurrente base antigua (meses atrás) con ocurrencia en la semana actual
+  - Abrir booking del servicio en esa semana
+  - Verificar:
+    - los slots que chocan con la ocurrencia se muestran como no disponibles (si aplica al flujo actual)
+    - el slot inmediatamente anterior al inicio aparece con “Recomendado”
+    - el slot inmediatamente posterior al final aparece con “Recomendado” (si está disponible)
+- Caso 2: Cita recurrente con excepciones “cancelled” en esa semana
+  - Verificar que NO bloquee ni recomiende adyacencias para esa instancia cancelada.
+- Caso 3: Cita de 60 min con slots de 30 min
+  - Verificar que el recomendado posterior se calcule por fin (apptEnds), no por inicio.
 
-### Cambio Detallado
+Riesgos / consideraciones
+- Performance: Generar recurrencias con calculateRecurringDates puede iterar muchas veces si la cita base es muy antigua.
+  - Mitigación: el rango semanal es pequeño, y el número de citas recurrentes por provider/listing suele ser limitado. Si fuera necesario, agregaremos un “guard” (máximo de iteraciones) o un cálculo de salto (optimización) en una iteración posterior.
+- Coherencia de zona horaria: simplifiedRecurrenceUtils ya trabaja con DATE_CONFIG.DEFAULT_TIMEZONE y date-fns-tz, consistente con el resto del sistema.
 
-**Archivo:** `src/hooks/useWeeklySlotsFetcher.ts`
-
-**Líneas a modificar:** 40-63
-
-```typescript
-// ANTES:
-  // Use ref to store current params - allows stable callback without dependencies
-  const paramsRef = useRef({
-    providerId,
-    listingId,
-    serviceDuration,
-    recurrence,
-    startDate,
-    daysAhead,
-    weekIndex,
-    clientResidenciaId
-  });
-
-  // Update params ref when they change
-  useEffect(() => {
-    paramsRef.current = {
-      providerId,
-      listingId,
-      serviceDuration,
-      recurrence,
-      startDate,
-      daysAhead,
-      weekIndex,
-      clientResidenciaId
-    };
-  }, [providerId, listingId, serviceDuration, recurrence, startDate, daysAhead, weekIndex, clientResidenciaId]);
-
-// DESPUÉS:
-  // Use ref to store current params - allows stable callback without dependencies
-  // CRITICAL: Update synchronously on every render to prevent race conditions
-  const paramsRef = useRef({
-    providerId,
-    listingId,
-    serviceDuration,
-    recurrence,
-    startDate,
-    daysAhead,
-    weekIndex,
-    clientResidenciaId
-  });
-  
-  // Update synchronously - not in useEffect to avoid race conditions
-  paramsRef.current = {
-    providerId,
-    listingId,
-    serviceDuration,
-    recurrence,
-    startDate,
-    daysAhead,
-    weekIndex,
-    clientResidenciaId
-  };
-```
-
----
-
-### Resultado Esperado
-
-Después del cambio:
-
-1. Usuario abre la página de booking
-2. Primera renderización con `clientResidenciaId = undefined`
-3. Cuando el perfil carga, componente re-renderiza
-4. `paramsRef.current` se actualiza **sincrónicamente** con el nuevo `clientResidenciaId`
-5. El `useEffect` en `useWeeklySlots` dispara `fetchWeeklySlots()` después de 100ms
-6. `fetchWeeklySlots` lee el valor **actualizado** de `paramsRef.current`
-7. La consulta incluye `clientResidenciaId`, obteniendo las citas del mismo residencial
-8. `adjacentPool` contiene las citas → se calculan las recomendaciones correctamente
-9. Slots adyacentes muestran la etiqueta "Recomendado"
-
----
-
-### Verificación Visual Esperada
-
-Para la cita del 30 de enero a las 10:00-11:00 (hora local):
-- El slot de las **09:00** debería mostrar la etiqueta "Recomendado" (es adyacente anterior)
-- El slot de las **12:00** debería mostrar la etiqueta "Recomendado" (es adyacente posterior a la cita de 11:00-12:00)
-
----
-
-### Sección Técnica: Flujo Corregido
-
-```text
-Renderización inicial
-    │
-    ▼
-profile?.residencia_id = undefined
-    │
-    ▼
-paramsRef.current.clientResidenciaId = undefined (sincrónico)
-    │
-    ▼
-fetchWeeklySlots() → Sin recomendaciones (esperado)
-    │
-    │
-    │ ... perfil carga ...
-    │
-    ▼
-Re-render con profile.residencia_id = '9b170ff3-...'
-    │
-    ▼
-paramsRef.current.clientResidenciaId = '9b170ff3-...' (SINCRÓNICO ✓)
-    │
-    ▼
-paramsSignature cambia → useEffect dispara fetchWeeklySlots()
-    │
-    ▼
-fetchWeeklySlots() lee paramsRef.current con valor ACTUALIZADO
-    │
-    ▼
-Consulta incluye residencia_id → sameResidenciaAppointments tiene datos
-    │
-    ▼
-adjacentPool tiene citas → isRecommended se calcula correctamente
-    │
-    ▼
-Slots adyacentes muestran "Recomendado" ✓
-```
+Resultado esperado
+- En cualquier semana donde existan reservas (incluyendo recurrencias virtuales) relacionadas con el condominio del cliente:
+  - El slot inmediatamente anterior al inicio y el inmediatamente posterior al final se marcan como isRecommended=true y se visualiza “Recomendado” en la UI.
+  - Esto ocurre de forma estable (sin depender de que la recurrencia esté materializada en la tabla appointments dentro del rango).
