@@ -113,7 +113,7 @@ const ClientServices = () => {
                           isVisible={isVisible}
                         />
                       </div>
-                      <h3 className="text-center text-[#1A1A1A] text-sm font-medium overflow-wrap-anywhere hyphens-auto px-1 leading-tight">
+                      <h3 className="text-center text-[#1A1A1A] text-xs font-medium overflow-wrap-anywhere hyphens-auto px-1 leading-tight">
                         {categoryLabels[category.name] || category.label}
                       </h3>
                     </Card>
