@@ -551,7 +551,8 @@ const ClientBooking = () => {
           selectedTime,
           clientLocation,
           bookingData,
-          totalPrice
+          totalPrice,
+          currency: effectiveServiceDetails?.currency || 'USD'
         }
       });
 

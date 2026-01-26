@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SimplifiedCheckoutForm } from '@/components/payments/SimplifiedCheckoutForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, type CurrencyCode } from '@/utils/currencyUtils';
 import { toast } from '@/hooks/use-toast';
 import { ProgressIndicator } from '@/components/checkout/ProgressIndicator';
 import { ScrollIndicator } from '@/components/checkout/ScrollIndicator';
@@ -19,6 +19,7 @@ interface CheckoutData {
   clientLocation: string;
   bookingData: any;
   totalPrice: number;
+  currency?: CurrencyCode;
 }
 
 export const Checkout = () => {
@@ -62,7 +63,8 @@ export const Checkout = () => {
     selectedVariants,
     clientLocation,
     bookingData,
-    totalPrice
+    totalPrice,
+    currency = 'USD'
   } = checkoutData;
 
   // Calculate price breakdown with correct IVA (13%)
@@ -144,7 +146,7 @@ export const Checkout = () => {
                       )}
                     </div>
                     <span className="font-semibold">
-                      {formatCurrency(Number(variant.price) * variant.quantity)}
+                      {formatCurrency(Number(variant.price) * variant.quantity, currency)}
                     </span>
                   </div>
                 ))}
@@ -156,17 +158,17 @@ export const Checkout = () => {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Subtotal:</span>
-                  <span className="font-medium">{formatCurrency(priceBreakdown.subtotal)}</span>
+                  <span className="font-medium">{formatCurrency(priceBreakdown.subtotal, currency)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">IVA (13%):</span>
-                  <span className="font-medium">{formatCurrency(priceBreakdown.iva)}</span>
+                  <span className="font-medium">{formatCurrency(priceBreakdown.iva, currency)}</span>
                 </div>
                 <Separator className="my-3" />
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-bold">TOTAL:</span>
                   <span className="text-3xl font-bold text-success">
-                    {formatCurrency(priceBreakdown.total)}
+                    {formatCurrency(priceBreakdown.total, currency)}
                   </span>
                 </div>
               </div>
@@ -203,6 +205,7 @@ export const Checkout = () => {
           {/* Payment Form */}
           <SimplifiedCheckoutForm
             amount={priceBreakdown.total}
+            currency={currency}
             paymentType={paymentType}
             appointmentData={bookingData}
             onSuccess={handlePaymentSuccess}
