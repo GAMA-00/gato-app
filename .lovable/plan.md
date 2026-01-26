@@ -1,122 +1,244 @@
 
-Objetivo: corregir definitivamente que en “Dani Nail Artist” (y cualquier otro anuncio) se puedan reservar servicios >30 minutos, estandarizando TODO el sistema de slots a bloques fijos de 1 hora (60 min) y eliminando la variable `slot_size` (frontend + base de datos). A partir de esto, solo se reservarán múltiples slots cuando el servicio dure más de 1 hora.
+## Plan: Agregar Opción "Pago Directo al Proveedor" en Checkout
 
-## 1) Diagnóstico (causa raíz confirmada)
-- El listing “Dani Nail Artist” tiene `listings.slot_size = 30`.
-- En el flujo de reserva, ese `slot_size` se usa como “tamaño de bloque” (`slotSize`) para calcular cuántos slots consecutivos se necesitan.
-- En la base de datos, los `provider_time_slots` para ese listing están mezclados: hay slots de 1 hora y algunos de 30 min (y en otros listings incluso más mezcla).
-- Resultado: al reservar un servicio de 60 min con `slotSize=30`, el sistema intenta reservar 2 slots consecutivos de 30 min, pero muchos días solo tienen slots cada 60 min (09:00, 10:00, …). La validación de contigüidad detecta “hueco” y bloquea la reserva.
+### Objetivo
+Agregar una segunda opción de pago en la pantalla de checkout llamada "Pago directo al proveedor" que permita crear reservas sin requerir datos de tarjeta, omitiendo el procesamiento de pago con Onvopay.
 
-## 2) Decisión de diseño (lo que quedará “estándar”)
-- “Unidad de agenda”: 1 slot = 60 minutos, siempre.
-- “Duración reservada”:
-  - Si servicio dura <= 60 min → se reserva 1 slot (60 min).
-  - Si servicio dura > 60 min → se reserva `ceil(duración/60)` slots (se redondea hacia arriba a la siguiente hora).
-- Consecuencia explícita: un servicio de 30 minutos ocupará 1 hora en la agenda (porque el sistema opera en bloques de 1 hora). Esto es coherente con tu requisito de estandarización.
+### Flujo Actual vs Flujo Propuesto
 
-## 3) Cambios en Base de Datos (SQL migration)
-Se hará con la herramienta de migraciones (requiere aprobación al ejecutarla).
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            FLUJO ACTUAL                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  1. Resumen de pago → 2. Seleccionar tarjeta → 3. Confirmar y Pagar        │
+│                            ↓                                                 │
+│                    Crear cita + Autorizar pago con Onvopay                  │
+│                            ↓                                                 │
+│                    Confirmación de reserva                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-### 3.1 Eliminar `slot_size` del esquema
-- Quitar constraint `slot_size_check`
-- Quitar índice `idx_listings_slot_size`
-- Dropear columna `public.listings.slot_size`
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            FLUJO PROPUESTO                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  1. Resumen de pago → 2. Seleccionar método de pago:                        │
+│                            │                                                 │
+│                    ┌───────┴───────┐                                        │
+│                    │               │                                         │
+│              [Tarjeta]     [Pago Directo]                                   │
+│                    │               │                                         │
+│                    ↓               ↓                                         │
+│            Flujo actual    Solo crear cita                                  │
+│            (Onvopay)       (sin pago online)                                │
+│                    │               │                                         │
+│                    └───────┬───────┘                                        │
+│                            ↓                                                 │
+│                    Confirmación de reserva                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-(Importante: antes de dropear la columna, actualizaremos el frontend para que deje de leer/escribir `slot_size`, o se rompe el build.)
+---
 
-### 3.2 Forzar generación de slots a 60 minutos (server-side)
-Actualizar la función:
-- `public.generate_provider_time_slots_for_listing(...)`
-Actualmente calcula duración desde `listings.standard_duration` (lo cual genera slots de 30 min en varios anuncios). Se modificará para que use SIEMPRE 60 minutos como duración del slot, independientemente de la duración del servicio.
+### Cambios a Implementar
 
-Esto asegura:
-- slots uniformes (1h) en la tabla `provider_time_slots`
-- trigger `auto_generate_slots_for_new_listing()` seguirá funcionando, pero generando 1h.
+#### 1. Crear Componente Selector de Método de Pago
+**Nuevo archivo: `src/components/payments/PaymentMethodTypeSelector.tsx`**
 
-### 3.3 Limpieza de datos existentes (para que no queden slots de 30 min “colgados”)
-Porque hoy hay mezcla de 30/60 en `provider_time_slots`, y eso rompe reservas.
+Componente que muestra las dos opciones:
+- **Pago con tarjeta** (icono CreditCard): Flujo actual con tarjeta
+- **Pago directo al proveedor** (icono Banknote/Wallet): Sin procesamiento de tarjeta
 
-Estrategia “segura” (no tocar histórico ni reservas existentes):
-- Borrar únicamente slots FUTUROS que NO estén reservados, NO estén bloqueados manualmente, y NO estén bloqueados por recurrencia, y cuya duración no sea 1 hora.
-  - `slot_date >= current_date`
-  - `is_reserved = false`
-  - `(slot_type IS NULL OR slot_type != 'manually_blocked')`
-  - `recurring_blocked = false`
-  - `(slot_datetime_end - slot_datetime_start) != interval '1 hour'`
-- Luego llamar a `maintain_future_slots()` para re-crear slots faltantes (ya en 1h) usando `generate_provider_time_slots_for_listing` (actualizada).
+UI propuesta:
+- Dos tarjetas clickables con radio button visual
+- La opción de tarjeta mostrará el selector de tarjetas guardadas o formulario de nueva tarjeta
+- La opción de pago directo mostrará un mensaje informativo
 
-Esto dejará a “Dani Nail Artist” con pura grilla 1h y hará que la reserva funcione de inmediato.
+---
 
-## 4) Cambios Frontend (TypeScript/React)
-Objetivo: que el UI y la lógica ya no dependan de `slotSize` configurable, sino de una constante `SLOT_SIZE_MINUTES = 60`.
+#### 2. Modificar SimplifiedCheckoutForm.tsx
 
-### 4.1 Booking flow (Cliente)
-Archivos principales:
-- `src/pages/ClientBooking.tsx`
-  - Eliminar lecturas de `effectiveServiceDetails?.slot_size`
-  - Definir `const SLOT_SIZE = 60`
-  - Pasar `slotSize={SLOT_SIZE}` (o directamente eliminar esa prop en cadena, ver abajo)
-  - Ajustar queries `.select(...)` que hoy incluyen `slot_size` (reschedule y fallback listing) para removerlo cuando la columna desaparezca.
+**Agregar nuevo estado:**
+```typescript
+const [paymentMethodType, setPaymentMethodType] = useState<'card' | 'direct'>('card');
+```
 
-- `src/components/client/booking/NewBookingForm.tsx`
-  - Eliminar `slotSize?: number` como prop (o mantenerla, pero ignorarla y forzar 60; preferible eliminar para “remover variable”).
-  - Calcular `requiredSlots = Math.ceil(totalServiceDuration / 60)`
-  - Pasar a `WeeklySlotGrid` un `slotSize` fijo 60 (o eliminar prop y que sea interno en WeeklySlotGrid).
+**Modificar validateForm():**
+- Si `paymentMethodType === 'direct'`, solo validar teléfono (requerido para contacto)
+- Omitir validación de datos de tarjeta
 
-- `src/components/client/booking/WeeklySlotGrid.tsx`
-  - Dejar el componente “controlado” (ya está) y además:
-    - Eliminar `slotSize?: number` del contrato público si decidimos removerlo de raíz.
-    - Usar `slotSize = 60` fijo para:
-      - cálculo `slotsNeeded`
-      - validación de contigüidad (esperar +60 min entre slots)
-      - llamada a `useWeeklySlots({ serviceDuration: 60 })` para que el fetcher calcule end times consistentemente.
+**Modificar handleSubmit():**
+- PASO 1: Crear appointment (sin cambios) → `create_appointment_with_slot`
+- PASO 2: Si `paymentMethodType === 'direct'`:
+  - Omitir tokenización de tarjeta
+  - Omitir llamada a `onvopay-authorize` o `onvopay-create-subscription`
+  - Redirigir directamente a `/booking-confirmation/{appointmentId}?type={once|recurring}&payment=direct`
+- Si `paymentMethodType === 'card'`: Flujo actual sin cambios
 
-### 4.2 Creación/edición de anuncios (Proveedor)
-Para eliminar el “selector 30/60” y que todo quede fijo a 60:
-- `src/components/services/ServiceForm.tsx`
-  - Quitar `slotSize` del schema Zod y de `defaultValues`
-  - Quitar la carga de `initialData.slotSize` (usar 60 fijo o eliminar el campo)
-- `src/components/services/steps/ServiceDetailsStep.tsx`
-  - Eliminar completamente la tarjeta/RadioGroup “Configuración de Horarios (30/60)”.
-  - Mantener el resto intacto.
+**Modificar render:**
+- Agregar `PaymentMethodTypeSelector` al inicio
+- Mostrar `SavedCardsSelector` o `NewCardForm` solo si `paymentMethodType === 'card'`
 
-### 4.3 Mutations / Services / Queries (evitar leer/escribir slot_size)
-- `src/hooks/useServiceMutations.ts`
-  - Quitar `slot_size` del payload en create/update (porque el campo ya no existirá).
-- `src/services/listingService.ts`
-  - Remover `slot_size` de `UpdateListingSchema` (Zod) para que nadie intente actualizarlo.
-- `src/components/client/service/useServiceDetail.ts`
-  - Quitar `slot_size` del select.
-- `src/components/client/results/useProvidersQuery.ts`
-  - Quitar `slot_size` del select.
+---
 
-### 4.4 Provider calendar / slot blocking (consistencia)
-- `src/hooks/useProviderListing.ts`
-  - Hoy prioriza `slot_size` y eso puede volver a introducir 30.
-  - Cambiarlo para que `serviceDuration` sea siempre 60 (o al menos no usar `slot_size`).
-- `src/hooks/useProviderSlotManagement.ts` y `ProviderSlotBlockingGrid`
-  - No necesitan cambios grandes si el `serviceDuration` que reciben pasa a ser 60 fijo.
+#### 3. Modificar StickyPaymentFooter.tsx
 
-## 5) Pruebas / Validación (smoke tests)
-Siguiendo checklist interno:
-1) Cliente:
-   - Entrar a “Dani Nail Artist”
-   - Probar reservar:
-     - servicio 30 min → debe permitir seleccionar 1 slot (1h) y aparecer “Siguiente”
-     - servicio 60 min → 1 slot
-     - servicio 90/120 min → 2 slots consecutivos (y error claro si no hay contiguidad)
-2) Proveedor:
-   - Ver calendario/gestión de slots: confirmar que la grilla muestra solo slots de 1h (en semanas futuras)
-   - Bloquear/desbloquear slot: sigue funcionando.
-3) Admin:
-   - Abrir panel y leer listados sin mutaciones.
+**Agregar prop para tipo de método:**
+```typescript
+interface StickyPaymentFooterProps {
+  amount: number;
+  isProcessing: boolean;
+  hasSubmitted: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  isDirectPayment?: boolean; // Nueva prop
+}
+```
 
-## 6) Consideraciones y riesgos controlados
-- No se modifican archivos “DO_NOT_CHANGE_BEHAVIOR” (useRecurringBooking / robustBookingSystem / etc.).
-- Limpieza de `provider_time_slots` es no-destructiva para reservas existentes (no borramos slots reservados ni manualmente bloqueados).
-- La eliminación de `slot_size` requiere actualizar todas las queries/mutations antes (si no, rompe compilación y/o runtime).
+**Cambiar texto del botón según método:**
+- Si `isDirectPayment`: "Confirmar Reserva"
+- Si no: "Confirmar y Pagar {amount}"
 
-## 7) Entregables (qué se verá al final)
-- “Dani Nail Artist” permite reservar servicios >30 min.
-- Todos los anuncios operan en grilla de 1 hora, sin opción 30/60.
-- DB sin columna `listings.slot_size` y sin slots futuros de 30 min.
+**Cambiar mensaje de seguridad:**
+- Si `isDirectPayment`: "Pagarás directamente al proveedor"
+- Si no: "Pago seguro encriptado"
+
+---
+
+#### 4. Actualizar BookingConfirmation.tsx (opcional)
+
+Agregar parámetro `payment` para mostrar mensaje específico:
+- Si `payment=direct`: "El pago se realizará directamente con el proveedor"
+
+---
+
+### Archivos a Modificar
+
+| Archivo | Tipo de Cambio |
+|---------|----------------|
+| `src/components/payments/PaymentMethodTypeSelector.tsx` | **CREAR** |
+| `src/components/payments/SimplifiedCheckoutForm.tsx` | Modificar |
+| `src/components/checkout/StickyPaymentFooter.tsx` | Modificar |
+| `src/pages/BookingConfirmation.tsx` | Modificar (menor) |
+
+---
+
+### Diseño UI del Selector
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  Selecciona Método de Pago                                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ ◉  💳  Pago con tarjeta                   [Seleccionado] │   │
+│  │       Pago seguro procesado por Onvopay                 │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ ○  💵  Pago directo al proveedor                        │   │
+│  │       Pagarás en efectivo o transferencia al proveedor  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Sección Técnica
+
+#### SimplifiedCheckoutForm.tsx - Cambios Clave
+
+```typescript
+// Nuevo estado
+const [paymentMethodType, setPaymentMethodType] = useState<'card' | 'direct'>('card');
+
+// validateForm() modificado
+const validateForm = () => {
+  const errors: Record<string, string> = {};
+  
+  // Teléfono siempre requerido (para contacto)
+  if (!billingData.phone) { /* ... */ }
+  
+  // Validar tarjeta SOLO si es pago con tarjeta
+  if (paymentMethodType === 'card') {
+    if (showNewCardForm) {
+      // validar datos de nueva tarjeta...
+    } else if (!selectedCardId) {
+      errors.card = 'Selecciona un método de pago';
+    }
+  }
+  // Si es 'direct', no se valida tarjeta
+  
+  return Object.keys(errors).length === 0;
+};
+
+// handleSubmit() - después de crear appointment
+if (paymentMethodType === 'direct') {
+  // Omitir todo el flujo de Onvopay
+  console.log('✅ Reserva creada con pago directo');
+  
+  // Redirigir a confirmación
+  window.location.href = `/booking-confirmation/${newAppointmentId}?type=${isRecurring ? 'recurring' : 'once'}&payment=direct`;
+  return;
+}
+// ... resto del flujo de tarjeta sin cambios
+```
+
+#### Render actualizado
+
+```tsx
+return (
+  <div className="space-y-4">
+    {/* Selector de tipo de método de pago */}
+    <PaymentMethodTypeSelector
+      selected={paymentMethodType}
+      onSelect={setPaymentMethodType}
+    />
+    
+    {/* Mostrar selector de tarjetas solo si es pago con tarjeta */}
+    {paymentMethodType === 'card' && (
+      showNewCardForm ? (
+        <NewCardForm ... />
+      ) : (
+        <SavedCardsSelector ... />
+      )
+    )}
+    
+    {/* Mensaje para pago directo */}
+    {paymentMethodType === 'direct' && (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center py-4">
+            <Banknote className="h-12 w-12 mx-auto text-green-600 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Coordinarás el pago directamente con el proveedor
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )}
+    
+    {/* Footer con botón */}
+    <StickyPaymentFooter
+      amount={amount}
+      isProcessing={isProcessing}
+      hasSubmitted={hasSubmitted}
+      onSubmit={handleSubmit}
+      isDirectPayment={paymentMethodType === 'direct'}
+    />
+  </div>
+);
+```
+
+---
+
+### Beneficios
+
+1. **Flexibilidad para usuarios**: Pueden reservar sin tener tarjeta disponible
+2. **Menor fricción**: Proceso más rápido para quienes prefieren pago en efectivo
+3. **Compatibilidad**: No afecta el flujo existente de pago con tarjeta
+4. **Sin cambios en backend**: Solo se omite la llamada a Onvopay; la cita se crea normalmente
+
+### Consideraciones
+
+- Las citas con "pago directo" quedarán en estado `pending` sin registro de pago en `onvopay_payments`
+- El proveedor verá la cita normalmente y podrá aceptarla/rechazarla
+- El cobro real se realizará fuera del sistema (efectivo, transferencia, etc.)
