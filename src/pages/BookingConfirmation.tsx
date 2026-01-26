@@ -1,18 +1,21 @@
 import React, { useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Banknote } from 'lucide-react';
 
 export function BookingConfirmation() {
   const { appointmentId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const type = searchParams.get('type'); // 'recurring' or 'once'
+  const payment = searchParams.get('payment'); // 'direct' or null
 
   useEffect(() => {
     // Scroll to top on mount
     window.scrollTo(0, 0);
   }, []);
+
+  const isDirectPayment = payment === 'direct';
 
   const message = type === 'recurring' 
     ? '¡Cita recurrente creada con éxito!'
@@ -34,6 +37,16 @@ export function BookingConfirmation() {
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">
             {message}
           </h1>
+
+          {/* Direct payment notice */}
+          {isDirectPayment && (
+            <div className="flex items-center gap-2 bg-muted/50 text-muted-foreground px-4 py-3 rounded-lg">
+              <Banknote className="h-5 w-5 text-success flex-shrink-0" />
+              <p className="text-sm">
+                El pago se realizará directamente con el proveedor
+              </p>
+            </div>
+          )}
 
           {/* Action button */}
           <Button

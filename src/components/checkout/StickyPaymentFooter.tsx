@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2, Lock, Banknote } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 interface StickyPaymentFooterProps {
@@ -8,13 +8,15 @@ interface StickyPaymentFooterProps {
   isProcessing: boolean;
   hasSubmitted: boolean;
   onSubmit: (e: React.FormEvent) => void;
+  isDirectPayment?: boolean;
 }
 
 export const StickyPaymentFooter: React.FC<StickyPaymentFooterProps> = ({
   amount,
   isProcessing,
   hasSubmitted,
-  onSubmit
+  onSubmit,
+  isDirectPayment = false
 }) => {
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border py-4 px-6 -mx-6 mt-8 shadow-lg">
@@ -40,6 +42,8 @@ export const StickyPaymentFooter: React.FC<StickyPaymentFooterProps> = ({
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Procesando...
             </>
+          ) : isDirectPayment ? (
+            'Confirmar Reserva'
           ) : (
             <>
               Confirmar y Pagar {formatCurrency(amount)}
@@ -49,8 +53,17 @@ export const StickyPaymentFooter: React.FC<StickyPaymentFooterProps> = ({
         
         {/* Mensaje de seguridad */}
         <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
-          <Lock className="h-3 w-3" />
-          Pago seguro encriptado
+          {isDirectPayment ? (
+            <>
+              <Banknote className="h-3 w-3" />
+              Pagarás directamente al proveedor
+            </>
+          ) : (
+            <>
+              <Lock className="h-3 w-3" />
+              Pago seguro encriptado
+            </>
+          )}
         </p>
       </div>
     </div>
