@@ -2373,14 +2373,19 @@ export type Database = {
             }
             Returns: number
           }
-      generate_provider_time_slots_for_listing: {
-        Args: {
-          p_listing_id: string
-          p_provider_id: string
-          p_weeks_ahead?: number
-        }
-        Returns: number
-      }
+      generate_provider_time_slots_for_listing:
+        | {
+            Args: { p_listing_id: string; p_provider_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_listing_id: string
+              p_provider_id: string
+              p_weeks_ahead?: number
+            }
+            Returns: number
+          }
       generate_recurring_appointment_instances: {
         Args: { p_rule_id: string; p_weeks_ahead?: number }
         Returns: number
