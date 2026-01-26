@@ -1,207 +1,122 @@
 
-## Plan: Corregir Deselección de Slots en Móvil (Específico para "Dani Nail Artist")
+Objetivo: corregir definitivamente que en “Dani Nail Artist” (y cualquier otro anuncio) se puedan reservar servicios >30 minutos, estandarizando TODO el sistema de slots a bloques fijos de 1 hora (60 min) y eliminando la variable `slot_size` (frontend + base de datos). A partir de esto, solo se reservarán múltiples slots cuando el servicio dure más de 1 hora.
 
-### Problema Identificado
+## 1) Diagnóstico (causa raíz confirmada)
+- El listing “Dani Nail Artist” tiene `listings.slot_size = 30`.
+- En el flujo de reserva, ese `slot_size` se usa como “tamaño de bloque” (`slotSize`) para calcular cuántos slots consecutivos se necesitan.
+- En la base de datos, los `provider_time_slots` para ese listing están mezclados: hay slots de 1 hora y algunos de 30 min (y en otros listings incluso más mezcla).
+- Resultado: al reservar un servicio de 60 min con `slotSize=30`, el sistema intenta reservar 2 slots consecutivos de 30 min, pero muchos días solo tienen slots cada 60 min (09:00, 10:00, …). La validación de contigüidad detecta “hueco” y bloquea la reserva.
 
-El anuncio "Dani Nail Artist" tiene una configuración única que amplifica un bug existente:
+## 2) Decisión de diseño (lo que quedará “estándar”)
+- “Unidad de agenda”: 1 slot = 60 minutos, siempre.
+- “Duración reservada”:
+  - Si servicio dura <= 60 min → se reserva 1 slot (60 min).
+  - Si servicio dura > 60 min → se reserva `ceil(duración/60)` slots (se redondea hacia arriba a la siguiente hora).
+- Consecuencia explícita: un servicio de 30 minutos ocupará 1 hora en la agenda (porque el sistema opera en bloques de 1 hora). Esto es coherente con tu requisito de estandarización.
 
-| Configuración | Dani Nail Artist | Otros Anuncios |
-|--------------|------------------|----------------|
-| `slot_size` | **30 minutos** | 60 minutos |
-| Variantes | 12 (duraciones 30-120 min) | 1-6 |
-| Slots necesarios | 2-4 por servicio | 1 típicamente |
+## 3) Cambios en Base de Datos (SQL migration)
+Se hará con la herramienta de migraciones (requiere aprobación al ejecutarla).
 
-### Causa Raíz
+### 3.1 Eliminar `slot_size` del esquema
+- Quitar constraint `slot_size_check`
+- Quitar índice `idx_listings_slot_size`
+- Dropear columna `public.listings.slot_size`
 
-Existe una **race condition** en `WeeklySlotGrid.tsx` donde el componente mantiene **estado local duplicado** que se sincroniza con el padre:
+(Importante: antes de dropear la columna, actualizaremos el frontend para que deje de leer/escribir `slot_size`, o se rompe el build.)
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         FLUJO PROBLEMÁTICO                                  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  1. Usuario toca slot en móvil                                              │
-│           │                                                                 │
-│           ▼                                                                 │
-│  2. handleSlotClick valida contigüidad (toma más tiempo con 30-min slots)   │
-│           │                                                                 │
-│           ▼                                                                 │
-│  3. setSelectedSlotIds(consecutiveSlotIds) - actualiza estado LOCAL         │
-│           │                                                                 │
-│           ▼                                                                 │
-│  4. onSlotSelect() notifica al padre                                        │
-│           │                                                                 │
-│           ▼                                                                 │
-│  5. Padre actualiza SU estado y re-renderiza                                │
-│           │                                                                 │
-│           ▼                                                                 │
-│  6. useEffect en WeeklySlotGrid: setSelectedSlotIds(selectedSlots)          │
-│     ⚠️ El prop puede estar DESFASADO → sobrescribe selección correcta       │
-│           │                                                                 │
-│           ▼                                                                 │
-│  7. El slot aparece deseleccionado                                          │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### 3.2 Forzar generación de slots a 60 minutos (server-side)
+Actualizar la función:
+- `public.generate_provider_time_slots_for_listing(...)`
+Actualmente calcula duración desde `listings.standard_duration` (lo cual genera slots de 30 min en varios anuncios). Se modificará para que use SIEMPRE 60 minutos como duración del slot, independientemente de la duración del servicio.
 
-### Por Qué Afecta Más a "Dani Nail Artist"
+Esto asegura:
+- slots uniformes (1h) en la tabla `provider_time_slots`
+- trigger `auto_generate_slots_for_new_listing()` seguirá funcionando, pero generando 1h.
 
-1. **Más procesamiento**: Con `slot_size: 30`, se necesitan 2-4 slots consecutivos (vs 1 con 60-min slots)
-2. **Más validaciones**: El loop de contigüidad (líneas 192-223) ejecuta más iteraciones
-3. **Más re-renders**: Cada slot adicional puede causar re-renders intermedios
-4. **Mayor probabilidad de race condition**: El tiempo extra da más oportunidad al `useEffect` de dispararse con valores obsoletos
+### 3.3 Limpieza de datos existentes (para que no queden slots de 30 min “colgados”)
+Porque hoy hay mezcla de 30/60 en `provider_time_slots`, y eso rompe reservas.
 
----
+Estrategia “segura” (no tocar histórico ni reservas existentes):
+- Borrar únicamente slots FUTUROS que NO estén reservados, NO estén bloqueados manualmente, y NO estén bloqueados por recurrencia, y cuya duración no sea 1 hora.
+  - `slot_date >= current_date`
+  - `is_reserved = false`
+  - `(slot_type IS NULL OR slot_type != 'manually_blocked')`
+  - `recurring_blocked = false`
+  - `(slot_datetime_end - slot_datetime_start) != interval '1 hour'`
+- Luego llamar a `maintain_future_slots()` para re-crear slots faltantes (ya en 1h) usando `generate_provider_time_slots_for_listing` (actualizada).
 
-### Solución: Componente Totalmente Controlado
+Esto dejará a “Dani Nail Artist” con pura grilla 1h y hará que la reserva funcione de inmediato.
 
-Convertir `WeeklySlotGrid` en un **componente controlado** donde el padre es la única fuente de verdad.
+## 4) Cambios Frontend (TypeScript/React)
+Objetivo: que el UI y la lógica ya no dependan de `slotSize` configurable, sino de una constante `SLOT_SIZE_MINUTES = 60`.
 
-#### Archivo a Modificar
+### 4.1 Booking flow (Cliente)
+Archivos principales:
+- `src/pages/ClientBooking.tsx`
+  - Eliminar lecturas de `effectiveServiceDetails?.slot_size`
+  - Definir `const SLOT_SIZE = 60`
+  - Pasar `slotSize={SLOT_SIZE}` (o directamente eliminar esa prop en cadena, ver abajo)
+  - Ajustar queries `.select(...)` que hoy incluyen `slot_size` (reschedule y fallback listing) para removerlo cuando la columna desaparezca.
 
-**`src/components/client/booking/WeeklySlotGrid.tsx`**
+- `src/components/client/booking/NewBookingForm.tsx`
+  - Eliminar `slotSize?: number` como prop (o mantenerla, pero ignorarla y forzar 60; preferible eliminar para “remover variable”).
+  - Calcular `requiredSlots = Math.ceil(totalServiceDuration / 60)`
+  - Pasar a `WeeklySlotGrid` un `slotSize` fijo 60 (o eliminar prop y que sea interno en WeeklySlotGrid).
 
-#### Cambios Específicos
+- `src/components/client/booking/WeeklySlotGrid.tsx`
+  - Dejar el componente “controlado” (ya está) y además:
+    - Eliminar `slotSize?: number` del contrato público si decidimos removerlo de raíz.
+    - Usar `slotSize = 60` fijo para:
+      - cálculo `slotsNeeded`
+      - validación de contigüidad (esperar +60 min entre slots)
+      - llamada a `useWeeklySlots({ serviceDuration: 60 })` para que el fetcher calcule end times consistentemente.
 
-| Línea | Acción | Descripción |
-|-------|--------|-------------|
-| 53 | **ELIMINAR** | `const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);` |
-| 59-61 | **ELIMINAR** | El `useEffect` de sincronización |
-| 231 | **ELIMINAR** | `setSelectedSlotIds(consecutiveSlotIds);` |
-| 253-254 | **MODIFICAR** | Eliminar `setSelectedSlotIds([]);` en `goToPreviousWeek` |
-| 261-262 | **MODIFICAR** | Eliminar `setSelectedSlotIds([]);` en `goToNextWeek` |
-| 512 | **MODIFICAR** | Cambiar `selectedSlotIds.includes(slot.id)` → `selectedSlots.includes(slot.id)` |
+### 4.2 Creación/edición de anuncios (Proveedor)
+Para eliminar el “selector 30/60” y que todo quede fijo a 60:
+- `src/components/services/ServiceForm.tsx`
+  - Quitar `slotSize` del schema Zod y de `defaultValues`
+  - Quitar la carga de `initialData.slotSize` (usar 60 fijo o eliminar el campo)
+- `src/components/services/steps/ServiceDetailsStep.tsx`
+  - Eliminar completamente la tarjeta/RadioGroup “Configuración de Horarios (30/60)”.
+  - Mantener el resto intacto.
 
-#### Código Antes vs Después
+### 4.3 Mutations / Services / Queries (evitar leer/escribir slot_size)
+- `src/hooks/useServiceMutations.ts`
+  - Quitar `slot_size` del payload en create/update (porque el campo ya no existirá).
+- `src/services/listingService.ts`
+  - Remover `slot_size` de `UpdateListingSchema` (Zod) para que nadie intente actualizarlo.
+- `src/components/client/service/useServiceDetail.ts`
+  - Quitar `slot_size` del select.
+- `src/components/client/results/useProvidersQuery.ts`
+  - Quitar `slot_size` del select.
 
-**ANTES (estado duplicado):**
-```typescript
-// Línea 53
-const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);
+### 4.4 Provider calendar / slot blocking (consistencia)
+- `src/hooks/useProviderListing.ts`
+  - Hoy prioriza `slot_size` y eso puede volver a introducir 30.
+  - Cambiarlo para que `serviceDuration` sea siempre 60 (o al menos no usar `slot_size`).
+- `src/hooks/useProviderSlotManagement.ts` y `ProviderSlotBlockingGrid`
+  - No necesitan cambios grandes si el `serviceDuration` que reciben pasa a ser 60 fijo.
 
-// Líneas 59-61 - PROBLEMA: causa race condition
-React.useEffect(() => {
-  setSelectedSlotIds(selectedSlots);
-}, [selectedSlots]);
+## 5) Pruebas / Validación (smoke tests)
+Siguiendo checklist interno:
+1) Cliente:
+   - Entrar a “Dani Nail Artist”
+   - Probar reservar:
+     - servicio 30 min → debe permitir seleccionar 1 slot (1h) y aparecer “Siguiente”
+     - servicio 60 min → 1 slot
+     - servicio 90/120 min → 2 slots consecutivos (y error claro si no hay contiguidad)
+2) Proveedor:
+   - Ver calendario/gestión de slots: confirmar que la grilla muestra solo slots de 1h (en semanas futuras)
+   - Bloquear/desbloquear slot: sigue funcionando.
+3) Admin:
+   - Abrir panel y leer listados sin mutaciones.
 
-// Línea 231 - Dentro de handleSlotClick
-setSelectedSlotIds(consecutiveSlotIds);
-onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved);
+## 6) Consideraciones y riesgos controlados
+- No se modifican archivos “DO_NOT_CHANGE_BEHAVIOR” (useRecurringBooking / robustBookingSystem / etc.).
+- Limpieza de `provider_time_slots` es no-destructiva para reservas existentes (no borramos slots reservados ni manualmente bloqueados).
+- La eliminación de `slot_size` requiere actualizar todas las queries/mutations antes (si no, rompe compilación y/o runtime).
 
-// Línea 512 - Usa estado local (puede estar desfasado)
-isSelected={selectedSlotIds.includes(slot.id)}
-```
-
-**DESPUÉS (componente controlado):**
-```typescript
-// Sin estado local para selectedSlotIds
-// Usar directamente selectedSlots del prop
-
-// En handleSlotClick - solo notificar al padre
-onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved);
-
-// En goToPreviousWeek y goToNextWeek
-onSlotSelect([], new Date(), '', 0);  // El padre maneja la limpieza
-
-// En SlotCard - usar prop directamente
-isSelected={selectedSlots.includes(slot.id)}
-```
-
----
-
-### Flujo Corregido
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         FLUJO CORREGIDO                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  1. Usuario toca slot                                                       │
-│           │                                                                 │
-│           ▼                                                                 │
-│  2. handleSlotClick valida contigüidad                                      │
-│           │                                                                 │
-│           ▼                                                                 │
-│  3. onSlotSelect() notifica al padre (SIN actualizar estado local)          │
-│           │                                                                 │
-│           ▼                                                                 │
-│  4. Padre actualiza selectedSlotIds                                         │
-│           │                                                                 │
-│           ▼                                                                 │
-│  5. Padre re-renderiza WeeklySlotGrid con nuevo selectedSlots prop          │
-│           │                                                                 │
-│           ▼                                                                 │
-│  6. isSelected={selectedSlots.includes(slot.id)} muestra selección          │
-│           │                                                                 │
-│           ▼                                                                 │
-│  7. ✅ Slot permanece seleccionado correctamente                            │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Beneficios
-
-1. **Elimina la race condition**: Un solo lugar (el padre) controla el estado
-2. **Consistencia en todos los dispositivos**: No depende de timing de renderizado
-3. **Funciona igual con slots de 30 o 60 minutos**: La solución es agnóstica al tamaño
-4. **Código más simple y mantenible**: Patrón React estándar de "componente controlado"
-
----
-
-### Sección Técnica: Resumen de Cambios
-
-```typescript
-// WeeklySlotGrid.tsx - Cambios detallados
-
-// 1. ELIMINAR línea 53:
-// const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>(selectedSlots);
-
-// 2. ELIMINAR líneas 59-61:
-// React.useEffect(() => {
-//   setSelectedSlotIds(selectedSlots);
-// }, [selectedSlots]);
-
-// 3. MODIFICAR handleSlotClick (eliminar línea 231):
-const handleSlotClick = (slotId: string, date: Date, time: string) => {
-  // ... validación existente ...
-  
-  // ELIMINAR: setSelectedSlotIds(consecutiveSlotIds);
-  
-  // MANTENER: Solo notificar al padre
-  onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved);
-  // ... logs y toast existentes ...
-};
-
-// 4. MODIFICAR goToPreviousWeek (líneas 250-257):
-const goToPreviousWeek = () => {
-  if (currentWeek > 0) {
-    setCurrentWeek(prev => prev - 1);
-    // ELIMINAR: setSelectedSlotIds([]);
-    onSlotSelect([], new Date(), '', 0); // Padre limpia la selección
-  }
-};
-
-// 5. MODIFICAR goToNextWeek (líneas 259-264):
-const goToNextWeek = () => {
-  setCurrentWeek(prev => prev + 1);
-  // ELIMINAR: setSelectedSlotIds([]);
-  onSlotSelect([], new Date(), '', 0); // Padre limpia la selección
-};
-
-// 6. MODIFICAR SlotCard (línea 512):
-<SlotCard
-  // ...otros props...
-  isSelected={selectedSlots.includes(slot.id)}  // Usar prop, no estado local
-  // ...
-/>
-```
-
-### Validación Post-Implementación
-
-1. **Probar en móvil con "Dani Nail Artist"**: Seleccionar servicios de 30, 60 y 120 minutos
-2. **Verificar que los slots permanecen seleccionados** después del toque
-3. **Confirmar que el botón "Siguiente" aparece** inmediatamente
-4. **Probar cambio de semana**: Verificar que la selección se limpia correctamente
-5. **Comparar comportamiento** con otros anuncios (60-min slots) para confirmar consistencia
+## 7) Entregables (qué se verá al final)
+- “Dani Nail Artist” permite reservar servicios >30 min.
+- Todos los anuncios operan en grilla de 1 hora, sin opción 30/60.
+- DB sin columna `listings.slot_size` y sin slots futuros de 30 min.
