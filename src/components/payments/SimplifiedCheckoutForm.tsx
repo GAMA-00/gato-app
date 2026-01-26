@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, Banknote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { SavedCardsSelector } from './SavedCardsSelector';
 import { NewCardForm } from './NewCardForm';
+import { PaymentMethodTypeSelector, PaymentMethodType } from './PaymentMethodTypeSelector';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { updateUserProfile } from '@/utils/profileManagement';
 import { StickyPaymentFooter } from '@/components/checkout/StickyPaymentFooter';
@@ -53,6 +54,9 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
     () => paymentMethods.filter(pm => !!pm.onvopay_payment_method_id),
     [paymentMethods]
   );
+  
+  // NEW: Payment method type selector (card or direct)
+  const [paymentMethodType, setPaymentMethodType] = useState<PaymentMethodType>('card');
   
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [showNewCardForm, setShowNewCardForm] = useState(false);
@@ -107,7 +111,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
-    // Validar teléfono (requerido por ONVO Pay)
+    // Validar teléfono (siempre requerido para contacto)
     if (!billingData.phone) {
       toast({
         variant: "destructive",
@@ -129,31 +133,34 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
     // Dirección es opcional - se usa la ubicación del servicio como fallback
     // No se requiere validación
 
-    // Si está usando nueva tarjeta, validar datos de tarjeta
-    if (showNewCardForm) {
-      if (!newCardData.cardNumber || newCardData.cardNumber.replace(/\D/g, '').length < 16) {
-        errors.cardNumber = 'Número de tarjeta inválido';
-      }
-      if (!newCardData.expiryDate || !/^\d{2}\/\d{2,4}$/.test(newCardData.expiryDate)) {
-        errors.expiryDate = 'Formato requerido: MM/AA o MM/AAAA';
-      }
-      if (!newCardData.cvv || newCardData.cvv.length < 3) {
-        errors.cvv = 'CVV inválido';
-      }
-      if (!newCardData.cardholderName.trim()) {
-        errors.cardholderName = 'Nombre del titular requerido';
-      }
-    } else if (!selectedCardId) {
-      errors.card = 'Selecciona un método de pago';
-    } else {
-      // Verify selected card is valid (has onvopay_payment_method_id)
-      const selectedCard = validPaymentMethods.find(pm => pm.id === selectedCardId);
-      if (!selectedCard) {
-        console.log('⚠️ Selected saved card missing payment_method_id; soft-switch to new card form');
-        setShowNewCardForm(true);
-        errors.card = 'Ingresa una tarjeta para continuar';
+    // Validar tarjeta SOLO si es pago con tarjeta
+    if (paymentMethodType === 'card') {
+      if (showNewCardForm) {
+        if (!newCardData.cardNumber || newCardData.cardNumber.replace(/\D/g, '').length < 16) {
+          errors.cardNumber = 'Número de tarjeta inválido';
+        }
+        if (!newCardData.expiryDate || !/^\d{2}\/\d{2,4}$/.test(newCardData.expiryDate)) {
+          errors.expiryDate = 'Formato requerido: MM/AA o MM/AAAA';
+        }
+        if (!newCardData.cvv || newCardData.cvv.length < 3) {
+          errors.cvv = 'CVV inválido';
+        }
+        if (!newCardData.cardholderName.trim()) {
+          errors.cardholderName = 'Nombre del titular requerido';
+        }
+      } else if (!selectedCardId) {
+        errors.card = 'Selecciona un método de pago';
+      } else {
+        // Verify selected card is valid (has onvopay_payment_method_id)
+        const selectedCard = validPaymentMethods.find(pm => pm.id === selectedCardId);
+        if (!selectedCard) {
+          console.log('⚠️ Selected saved card missing payment_method_id; soft-switch to new card form');
+          setShowNewCardForm(true);
+          errors.card = 'Ingresa una tarjeta para continuar';
+        }
       }
     }
+    // Si es 'direct', no se valida tarjeta
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -166,7 +173,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
     setHasSubmitted(true);
     setIsProcessing(true);
-    console.log('Iniciando proceso de reserva y pago...');
+    console.log('Iniciando proceso de reserva...', { paymentMethodType });
 
     let createdAppointmentId: string | null = null;
 
@@ -217,9 +224,39 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
       console.log('🔍 Tipo de servicio:', { 
         recurrenceType: appointmentData.recurrenceType, 
-        isRecurring 
+        isRecurring,
+        paymentMethodType
       });
 
+      // ========== PAGO DIRECTO: Omitir todo el flujo de Onvopay ==========
+      if (paymentMethodType === 'direct') {
+        console.log('💵 Pago directo al proveedor seleccionado - omitiendo flujo de pago online');
+        
+        // Actualizar perfil si es necesario
+        const profileUpdates: any = {};
+        if (billingData.phone && billingData.phone !== profile?.phone) {
+          profileUpdates.phone = formatPhoneCR(billingData.phone);
+        }
+        if (billingData.address && billingData.address.trim() && billingData.address !== profile?.address) {
+          profileUpdates.address = billingData.address.trim();
+        }
+        if (Object.keys(profileUpdates).length > 0) {
+          try {
+            await updateUserProfile(user?.id, profileUpdates);
+            console.log('✅ Perfil actualizado:', profileUpdates);
+          } catch (profileError) {
+            console.warn('⚠️ No se pudo actualizar el perfil (no crítico):', profileError);
+          }
+        }
+
+        console.log('✅ Reserva creada con pago directo al proveedor');
+        
+        // Redirigir a confirmación con parámetro payment=direct
+        window.location.href = `/booking-confirmation/${newAppointmentId}?type=${isRecurring ? 'recurring' : 'once'}&payment=direct`;
+        return;
+      }
+
+      // ========== PAGO CON TARJETA: Flujo normal de Onvopay ==========
       // PASO 2: Tokenizar tarjeta nueva si es necesario
       let paymentMethodId: string | null = null;
       let cardInfoForSaving: any = null;
@@ -595,19 +632,46 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Selección de tarjeta */}
-      {showNewCardForm ? (
-        <NewCardForm
-          onBack={() => setShowNewCardForm(false)}
-          onCardDataChange={setNewCardData}
-          initialData={newCardData}
-        />
-      ) : (
-        <SavedCardsSelector
-          selectedCardId={selectedCardId}
-          onCardSelect={setSelectedCardId}
-          onAddNewCard={handleAddNewCard}
-        />
+      {/* Selector de tipo de método de pago */}
+      <PaymentMethodTypeSelector
+        selected={paymentMethodType}
+        onSelect={setPaymentMethodType}
+        disabled={isProcessing}
+      />
+
+      {/* Mostrar selector de tarjetas solo si es pago con tarjeta */}
+      {paymentMethodType === 'card' && (
+        showNewCardForm ? (
+          <NewCardForm
+            onBack={() => setShowNewCardForm(false)}
+            onCardDataChange={setNewCardData}
+            initialData={newCardData}
+          />
+        ) : (
+          <SavedCardsSelector
+            selectedCardId={selectedCardId}
+            onCardSelect={setSelectedCardId}
+            onAddNewCard={handleAddNewCard}
+          />
+        )
+      )}
+
+      {/* Mensaje informativo para pago directo */}
+      {paymentMethodType === 'direct' && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10 mb-4">
+                <Banknote className="h-8 w-8 text-success" />
+              </div>
+              <h3 className="font-medium text-lg mb-2">Pago Directo al Proveedor</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                Coordinarás el pago directamente con el proveedor al momento del servicio 
+                (efectivo, transferencia, SINPE, etc.)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Indicador de datos cargados desde perfil */}
@@ -626,6 +690,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
         isProcessing={isProcessing}
         hasSubmitted={hasSubmitted}
         onSubmit={handleSubmit}
+        isDirectPayment={paymentMethodType === 'direct'}
       />
     </div>
   );
