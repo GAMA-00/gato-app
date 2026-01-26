@@ -1,14 +1,25 @@
 
 
-## Plan: Ajustes a la Vista Móvil de Servicios
+## Plan: Mostrar Carrusel de Servicios Recomendados en Desktop y Corregir Navegación
 
 ### Resumen de Cambios
 
-Se realizarán 3 ajustes específicos a la vista móvil recientemente implementada:
+1. **Agregar "Servicios recomendados" en vista Desktop**: Actualmente solo se muestra en móvil
+2. **Corregir ruta de navegación**: La navegación actual usa una ruta inexistente
 
-1. **Reducir tamaño de sección "Ubicación"**: Prevenir que el texto de "Cuidado Personal" se superponga
-2. **Corregir redirección de servicios recomendados**: Asegurar que el click navegue a la página del anuncio
-3. **Agregar fallback de imagen para Tutorías**: Usar el ícono de tutorías cuando no hay `gallery_images`
+---
+
+### Problema Identificado: Navegación Incorrecta
+
+La ruta actual en `RecommendedServiceCard` y `CategoryListingCard` es:
+```
+/client/services/${listing.id}  ← NO EXISTE
+```
+
+La ruta correcta definida en las rutas es:
+```
+/client/service/${providerId}/${serviceId}  ← RUTA CORRECTA
+```
 
 ---
 
@@ -16,242 +27,176 @@ Se realizarán 3 ajustes específicos a la vista móvil recientemente implementa
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/components/client/LocationHeader.tsx` | Reducir espaciado y tamaño visual |
-| `src/components/client/RecommendedServiceCard.tsx` | Agregar fallback de imagen basado en `service_type.name` |
+| `src/pages/ClientServices.tsx` | Agregar sección "Servicios recomendados" en layout desktop |
+| `src/components/client/RecommendedServiceCard.tsx` | Corregir ruta de navegación |
+| `src/components/client/CategoryListingCard.tsx` | Corregir ruta de navegación |
+| `src/hooks/useRecommendedListings.ts` | Incluir `provider_id` directamente en el objeto retornado |
 
 ---
 
-### Cambio 1: Reducir Tamaño de Sección "Ubicación"
+### Cambio 1: Agregar Carrusel en Vista Desktop
 
-**Archivo**: `src/components/client/LocationHeader.tsx`
+**Archivo**: `src/pages/ClientServices.tsx`
 
-**Problema**: El espaciado actual (`space-y-1`) y el texto "Ubicación" ocupan demasiado espacio vertical, causando que el texto "Cuidado Personal" se corte o superponga con otros elementos.
-
-**Solución**: Reducir el espaciado vertical y compactar el diseño:
+Agregar la sección de "Servicios recomendados" después del grid de categorías en el layout desktop:
 
 ```typescript
-// ANTES (línea 21-32):
+// Desktop layout (líneas 142-177)
 return (
-  <div className="space-y-1">
-    <span className="text-xs text-muted-foreground uppercase tracking-wide">
-      Ubicación
-    </span>
-    <div className="flex items-center gap-2">
-      ...
+  <ClientPageLayout title="Explora nuestras categorías de servicio">
+    {/* Grid de categorías existente */}
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-2 md:px-6">
+      {/* ... categorías ... */}
     </div>
-  </div>
-);
-
-// DESPUÉS:
-return (
-  <div className="space-y-0.5">
-    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-      Ubicación
-    </span>
-    <div className="flex items-center gap-1.5">
-      <MapPin className="h-3.5 w-3.5 text-primary" />
-      <span className="text-sm font-medium text-foreground">
-        {condominiumName}
-      </span>
-      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-    </div>
-  </div>
+    
+    {/* NUEVO: Sección de Servicios Recomendados para Desktop */}
+    <section className="mt-8 px-2 md:px-6">
+      <h2 className="text-xl font-semibold text-foreground mb-4">
+        Servicios recomendados
+      </h2>
+      <RecommendedServicesCarousel 
+        listings={recommendedListings} 
+        isLoading={recommendedLoading}
+      />
+    </section>
+  </ClientPageLayout>
 );
 ```
 
-**Cambios específicos**:
-- `space-y-1` → `space-y-0.5` (reducir espacio entre label y contenido)
-- `text-xs` → `text-[10px]` (label más pequeño)
-- `gap-2` → `gap-1.5` (menos espacio entre elementos)
-- Íconos de `h-4 w-4` → `h-3.5 w-3.5` (ligeramente más pequeños)
-
 ---
 
-### Cambio 2: Verificar Redirección de Servicios Recomendados
+### Cambio 2: Corregir Navegación en RecommendedServiceCard
 
 **Archivo**: `src/components/client/RecommendedServiceCard.tsx`
 
-**Estado actual**: El componente ya tiene implementado correctamente el `handleClick` con navegación:
 ```typescript
+// ANTES (línea 57-59):
 const handleClick = () => {
   navigate(`/client/services/${listing.id}`);
 };
-```
-
-Y el `onClick` está correctamente aplicado:
-```tsx
-<div 
-  className={cn("flex-shrink-0 w-[150px] cursor-pointer group", className)}
-  onClick={handleClick}
->
-```
-
-**Problema potencial**: Podría haber un problema de propagación de eventos o estilos. Se verificará que el contenedor tenga los estilos correctos para recibir clicks.
-
-**Verificación**: Asegurar que el elemento clickeable no tenga `pointer-events-none` y que no haya elementos superpuestos que intercepten el click.
-
----
-
-### Cambio 3: Agregar Fallback de Imagen para Tutorías
-
-**Archivo**: `src/components/client/RecommendedServiceCard.tsx`
-
-**Problema**: El listing de "Clases tutorías" no tiene `gallery_images`, por lo que muestra `/placeholder.svg` que aparece en blanco.
-
-**Solución**: Agregar lógica de fallback que use los íconos de `serviceImages.ts` basándose en el `service_type.name`:
-
-```typescript
-// ANTES (línea 15-16):
-const imageUrl = listing.gallery_images?.[0] || '/placeholder.svg';
 
 // DESPUÉS:
-import { 
-  homeServiceImages, 
-  classesServiceImages, 
-  personalCareServiceImages,
-  sportsServiceImages,
-  petsServiceImages,
-  otherServiceImages 
-} from '@/constants/serviceImages';
-
-// Helper para obtener imagen de fallback según service_type.name
-const getServiceTypeImage = (serviceTypeName: string): string | null => {
-  const name = serviceTypeName.toLowerCase();
-  
-  // Buscar en todos los mapas de imágenes de servicio
-  const allServiceImages = {
-    ...homeServiceImages,
-    ...classesServiceImages,
-    ...personalCareServiceImages,
-    ...sportsServiceImages,
-    ...petsServiceImages,
-    ...otherServiceImages,
-  };
-  
-  // Buscar coincidencia exacta primero
-  if (allServiceImages[name]) {
-    return allServiceImages[name];
+const handleClick = () => {
+  const providerId = listing.provider?.id;
+  if (providerId) {
+    navigate(`/client/service/${providerId}/${listing.id}`);
   }
-  
-  // Buscar coincidencia parcial
-  for (const [key, value] of Object.entries(allServiceImages)) {
-    if (name.includes(key) || key.includes(name)) {
-      return value;
-    }
-  }
-  
-  return null;
 };
-
-// En el componente:
-const fallbackImage = listing.service_type?.name 
-  ? getServiceTypeImage(listing.service_type.name) 
-  : null;
-  
-const imageUrl = listing.gallery_images?.[0] || fallbackImage || '/placeholder.svg';
 ```
-
-**Resultado esperado**:
-- "Clases tutorías" → usará `/lovable-uploads/3176c881-803d-48d8-a644-0571866d8f46.png` (ícono de tutorías)
-- Chef → usará la imagen de gallery si existe, o el ícono de chef
-- Manicurista → usará la imagen de gallery si existe, o el ícono de manicurista
-- Flores → usará la imagen de gallery si existe, o el ícono de floristería
 
 ---
 
-### Flujo de Fallback de Imágenes
+### Cambio 3: Corregir Navegación en CategoryListingCard
+
+**Archivo**: `src/components/client/CategoryListingCard.tsx`
+
+Primero, actualizar la interface para incluir `provider.id`:
+
+```typescript
+// ANTES:
+interface CategoryListingCardProps {
+  listing: {
+    id: string;
+    title: string;
+    gallery_images: string[] | null;
+    provider: {
+      name: string | null;
+      avatar_url: string | null;
+      average_rating: number | null;
+    } | null;
+  };
+}
+
+// DESPUÉS:
+interface CategoryListingCardProps {
+  listing: {
+    id: string;
+    title: string;
+    gallery_images: string[] | null;
+    provider: {
+      id: string;  // ← AGREGAR
+      name: string | null;
+      avatar_url: string | null;
+      average_rating: number | null;
+    } | null;
+  };
+}
+
+// Y corregir la navegación:
+const handleClick = () => {
+  const providerId = listing.provider?.id;
+  if (providerId) {
+    navigate(`/client/service/${providerId}/${listing.id}`);
+  }
+};
+```
+
+---
+
+### Flujo de Navegación Corregido
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                  Lógica de Selección de Imagen                  │
+│                    Flujo de Navegación                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. ¿Tiene gallery_images[0]?                                   │
-│     └─ SÍ → Usar gallery_images[0]                              │
-│     └─ NO → Continuar...                                        │
-│                                                                 │
-│  2. ¿Existe service_type.name?                                  │
-│     └─ SÍ → Buscar en serviceImages por nombre                  │
-│             ├─ Encontrado → Usar imagen del service type        │
-│             └─ No encontrado → Continuar...                     │
-│     └─ NO → Continuar...                                        │
-│                                                                 │
-│  3. Usar /placeholder.svg (último recurso)                      │
+│  Usuario hace click en tarjeta de "Chef privado"                │
+│           │                                                     │
+│           ▼                                                     │
+│  handleClick() se ejecuta                                       │
+│           │                                                     │
+│           ▼                                                     │
+│  navigate(`/client/service/${providerId}/${listingId}`)         │
+│  Ejemplo: /client/service/abc123/def456                         │
+│           │                                                     │
+│           ▼                                                     │
+│  React Router match: /client/service/:providerId/:serviceId     │
+│           │                                                     │
+│           ▼                                                     │
+│  Renderiza: ClientProviderServiceDetail                         │
+│           │                                                     │
+│           ▼                                                     │
+│  Pantalla: "Jousin koo - Chef privado" con detalles del servicio│
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Archivos Modificados (Resumen)
-
-| Archivo | Líneas Modificadas | Cambio |
-|---------|-------------------|--------|
-| `LocationHeader.tsx` | 21-32 | Reducir espaciado y tamaño de elementos |
-| `RecommendedServiceCard.tsx` | 1-5, 15-16 | Agregar imports y lógica de fallback |
-
----
-
-### Sección Técnica
-
-#### LocationHeader.tsx - Código Final
-
-```typescript
-return (
-  <div className="space-y-0.5">
-    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-      Ubicación
-    </span>
-    <div className="flex items-center gap-1.5">
-      <MapPin className="h-3.5 w-3.5 text-primary" />
-      <span className="text-sm font-medium text-foreground">
-        {condominiumName}
-      </span>
-      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-    </div>
-  </div>
-);
-```
-
-#### RecommendedServiceCard.tsx - Nuevo Helper
-
-```typescript
-// Helper function to get fallback image from service type name
-const getServiceTypeFallbackImage = (serviceTypeName: string | undefined): string | null => {
-  if (!serviceTypeName) return null;
-  
-  const name = serviceTypeName.toLowerCase();
-  
-  const allServiceImages: Record<string, string> = {
-    ...homeServiceImages,
-    ...classesServiceImages,
-    ...personalCareServiceImages,
-    ...sportsServiceImages,
-    ...petsServiceImages,
-    ...otherServiceImages,
-  };
-  
-  // Exact match
-  if (allServiceImages[name]) return allServiceImages[name];
-  
-  // Partial match
-  for (const [key, value] of Object.entries(allServiceImages)) {
-    if (name.includes(key) || key.includes(name)) {
-      return value;
-    }
-  }
-  
-  return null;
-};
-```
-
----
-
 ### Resultado Visual Esperado
 
-Después de los cambios:
+**Vista Desktop después de los cambios:**
 
-1. **Sección Ubicación**: Más compacta, sin superposición con "Cuidado Personal"
-2. **Cards de Servicios Recomendados**: Clickeables y navegarán correctamente a `/client/services/{id}`
-3. **"Clases tutorías"**: Mostrará el ícono de tutorías (libro con graduación) en lugar de imagen en blanco
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│  [Sidebar]  │  Explora nuestras categorías de servicio          │
+│             │                                                    │
+│  Servicios  │  ┌─────────┐ ┌─────────┐ ┌─────────┐              │
+│  Reservas   │  │  Hogar  │ │Mascotas │ │ Clases  │              │
+│  Facturas   │  └─────────┘ └─────────┘ └─────────┘              │
+│  Perfil     │  ┌─────────┐ ┌─────────┐ ┌─────────┐              │
+│             │  │ Cuidado │ │Deportes │ │  Otros  │              │
+│             │  │ Personal│ │         │ │         │              │
+│             │  └─────────┘ └─────────┘ └─────────┘              │
+│             │                                                    │
+│             │  Servicios recomendados  ← NUEVO EN DESKTOP        │
+│             │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐      │
+│             │  │  Chef  │ │ Manicur│ │Tutorías│ │ Flores │ →    │
+│             │  └────────┘ └────────┘ └────────┘ └────────┘      │
+│             │                                                    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Al hacer click en "Chef privado":**
+- Navega a `/client/service/{providerId}/{listingId}`
+- Muestra la pantalla de detalles del servicio (como en la imagen proporcionada)
+
+---
+
+### Orden de Implementación
+
+1. Modificar `useRecommendedListings.ts` - Asegurar que `provider.id` esté disponible
+2. Modificar `CategoryListingCard.tsx` - Agregar `id` a interface de provider y corregir navegación
+3. Modificar `RecommendedServiceCard.tsx` - Corregir navegación usando `provider.id`
+4. Modificar `ClientServices.tsx` - Agregar sección de recomendados en layout desktop
 
