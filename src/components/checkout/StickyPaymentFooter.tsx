@@ -1,10 +1,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Lock, Banknote } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, type CurrencyCode } from '@/utils/currencyUtils';
 
 interface StickyPaymentFooterProps {
   amount: number;
+  currency?: CurrencyCode;
   isProcessing: boolean;
   hasSubmitted: boolean;
   onSubmit: (e: React.FormEvent) => void;
@@ -13,6 +14,7 @@ interface StickyPaymentFooterProps {
 
 export const StickyPaymentFooter: React.FC<StickyPaymentFooterProps> = ({
   amount,
+  currency = 'USD',
   isProcessing,
   hasSubmitted,
   onSubmit,
@@ -25,7 +27,7 @@ export const StickyPaymentFooter: React.FC<StickyPaymentFooterProps> = ({
         <div className="flex items-center justify-between">
           <span className="text-lg font-semibold">Total:</span>
           <span className="text-2xl font-bold text-success">
-            {formatCurrency(amount)}
+            {formatCurrency(amount, currency)}
           </span>
         </div>
         
@@ -46,7 +48,7 @@ export const StickyPaymentFooter: React.FC<StickyPaymentFooterProps> = ({
             'Confirmar Reserva'
           ) : (
             <>
-              Confirmar y Pagar {formatCurrency(amount)}
+              Confirmar y Pagar {formatCurrency(amount, currency)}
             </>
           )}
         </Button>

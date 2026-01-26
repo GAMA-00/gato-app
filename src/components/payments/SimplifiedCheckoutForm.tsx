@@ -9,10 +9,12 @@ import { NewCardForm } from './NewCardForm';
 import { PaymentMethodTypeSelector, PaymentMethodType } from './PaymentMethodTypeSelector';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { updateUserProfile } from '@/utils/profileManagement';
+import { type CurrencyCode } from '@/utils/currencyUtils';
 import { StickyPaymentFooter } from '@/components/checkout/StickyPaymentFooter';
 
 interface SimplifiedCheckoutFormProps {
   amount: number;
+  currency?: CurrencyCode;
   paymentType: 'cash' | 'subscription';
   appointmentData: any;
   onSuccess: (result: any) => void;
@@ -41,6 +43,7 @@ const formatPhoneCR = (phone: string): string => {
 
 export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
   amount,
+  currency = 'USD',
   paymentType,
   appointmentData,
   onSuccess,
@@ -687,6 +690,7 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       {/* Sticky Payment Footer */}
       <StickyPaymentFooter
         amount={amount}
+        currency={currency}
         isProcessing={isProcessing}
         hasSubmitted={hasSubmitted}
         onSubmit={handleSubmit}
