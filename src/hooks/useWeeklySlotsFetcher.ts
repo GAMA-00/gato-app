@@ -5,6 +5,13 @@ import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
 import { createSlotSignature, shouldBlockSlot } from '@/utils/weeklySlotUtils';
 import { filterTemporalSlots, calculateWeekDateRange, filterSlotsByRecurrence } from '@/utils/temporalSlotFiltering';
+import { 
+  calculateRecurringDates, 
+  applyRecurringExceptions,
+  RecurringAppointment,
+  RecurringException,
+  CalculatedRecurringInstance
+} from '@/utils/simplifiedRecurrenceUtils';
 // ⛔ REMOVED: ensureAllSlotsExist import - this was causing slot disappearance bug
 // import { ensureAllSlotsExist } from '@/utils/slotRegenerationUtils';
 
@@ -298,88 +305,137 @@ export const useWeeklySlotsFetcher = ({
         }
       });
 
-      // Project legacy recurring appointments into future occurrences (up to 8 weeks)
-      const projectedLegacyOccurrences: Array<{ id: string; start: Date; end: Date }> = [];
-      const maxWeeksToProject = 8;
+      // ============ ROBUST RECURRING INSTANCE GENERATION ============
+      // Instead of projecting 8 weeks from the original, generate occurrences 
+      // dynamically within the current week range using simplifiedRecurrenceUtils
+      
+      // Step 1: Get recurring exceptions for all legacy recurring appointments
+      const legacyRecurringIds = legacyRecurring.map(a => a.id);
+      let recurringExceptions: RecurringException[] = [];
+      
+      if (legacyRecurringIds.length > 0) {
+        const { data: exceptionsData, error: exceptionsError } = await supabase
+          .from('recurring_exceptions')
+          .select('id, appointment_id, exception_date, action_type, new_start_time, new_end_time, notes')
+          .in('appointment_id', legacyRecurringIds);
+        
+        if (exceptionsError) {
+          console.error('Error fetching recurring exceptions:', exceptionsError);
+        } else {
+          recurringExceptions = (exceptionsData || []) as RecurringException[];
+        }
+      }
+      
+      console.log('📋 Excepciones de recurrencia cargadas:', {
+        total: recurringExceptions.length,
+        cancelled: recurringExceptions.filter(e => e.action_type === 'cancelled').length,
+        rescheduled: recurringExceptions.filter(e => e.action_type === 'rescheduled').length
+      });
+      
+      // Step 2: Generate virtual recurring occurrences within the week range
+      interface VirtualRecurringOccurrence {
+        id: string;
+        start_time: string;
+        end_time: string;
+        status: string;
+        residencia_id: string | null;
+        original_appointment_id: string;
+      }
+      
+      const virtualRecurringOccurrencesInRange: VirtualRecurringOccurrence[] = [];
       
       for (const appt of legacyRecurring) {
-        const originalStart = new Date(appt.start_time);
-        const originalEnd = new Date(appt.end_time);
-        const dayOfWeek = originalStart.getDay(); // 0=Sunday, 1=Monday, etc.
-        const duration = originalEnd.getTime() - originalStart.getTime();
+        // Convert to RecurringAppointment format for the utils
+        const recurringAppt: RecurringAppointment = {
+          id: appt.id,
+          provider_id: appt.provider_id,
+          client_id: appt.client_id,
+          start_time: appt.start_time,
+          end_time: appt.end_time,
+          recurrence: appt.recurrence,
+          status: appt.status,
+          listing_id: appt.listing_id
+        };
         
-        // Calculate projections based on recurrence type
-        for (let weekOffset = 0; weekOffset < maxWeeksToProject; weekOffset++) {
-          let projectedDate: Date | null = null;
-          
-          switch (appt.recurrence) {
-            case 'weekly':
-              // Every week, same day and time
-              projectedDate = new Date(originalStart);
-              projectedDate.setDate(originalStart.getDate() + (weekOffset * 7));
-              break;
-              
-            case 'biweekly':
-              // Every 2 weeks
-              if (weekOffset % 2 === 0) {
-                projectedDate = new Date(originalStart);
-                projectedDate.setDate(originalStart.getDate() + (weekOffset * 7));
-              }
-              break;
-              
-            case 'monthly':
-              // Monthly pattern: try to keep same week-of-month and day-of-week
-              // Simplified: add ~4 weeks per iteration (will skip some weeks)
-              if (weekOffset % 4 === 0 && weekOffset > 0) {
-                const monthsToAdd = Math.floor(weekOffset / 4);
-                projectedDate = new Date(originalStart);
-                projectedDate.setMonth(originalStart.getMonth() + monthsToAdd);
-                
-                // Adjust to same day of week if needed
-                while (projectedDate.getDay() !== dayOfWeek) {
-                  projectedDate.setDate(projectedDate.getDate() + 1);
-                  if (projectedDate.getDate() > 28) break; // Safety check
-                }
-              }
-              break;
+        // Calculate all recurring dates within the week range
+        const recurringDates = calculateRecurringDates(recurringAppt, baseDate, endOfDay(endDate));
+        
+        // Get exceptions for this specific appointment
+        const apptExceptions = recurringExceptions.filter(ex => ex.appointment_id === appt.id);
+        
+        // Apply exceptions to get final instances
+        const instances = applyRecurringExceptions(recurringAppt, recurringDates, apptExceptions);
+        
+        // Convert to our format, filtering out cancelled instances
+        for (const instance of instances) {
+          if (instance.status === 'cancelled') {
+            continue; // Skip cancelled instances
           }
           
-          if (projectedDate && projectedDate >= baseDate && projectedDate <= endDate) {
-            const projectedEnd = new Date(projectedDate.getTime() + duration);
-            projectedLegacyOccurrences.push({
-              id: `${appt.id}-projected-${weekOffset}`,
-              start: projectedDate,
-              end: projectedEnd
+          // Use rescheduled times if available
+          const startTime = instance.status === 'rescheduled' && instance.new_start_time 
+            ? instance.new_start_time 
+            : instance.start_time;
+          const endTime = instance.status === 'rescheduled' && instance.new_end_time 
+            ? instance.new_end_time 
+            : instance.end_time;
+          
+          // Verify the instance falls within our range
+          if (startTime >= baseDate && startTime <= endOfDay(endDate)) {
+            virtualRecurringOccurrencesInRange.push({
+              id: `virtual-${appt.id}-${format(startTime, 'yyyy-MM-dd-HHmm')}`,
+              start_time: startTime.toISOString(),
+              end_time: endTime.toISOString(),
+              status: 'confirmed',
+              residencia_id: appt.residencia_id || null,
+              original_appointment_id: appt.id
             });
           }
         }
       }
       
-      console.log('📅 Proyecciones Legacy Generadas:', {
-        total: projectedLegacyOccurrences.length,
-        ejemplos: projectedLegacyOccurrences.slice(0, 3).map(p => ({
-          start: format(p.start, 'yyyy-MM-dd HH:mm'),
-          end: format(p.end, 'yyyy-MM-dd HH:mm')
+      console.log('📅 Instancias Virtuales de Recurrencia Generadas (sin límite de 8 semanas):', {
+        total: virtualRecurringOccurrencesInRange.length,
+        ejemplos: virtualRecurringOccurrencesInRange.slice(0, 5).map(v => ({
+          start: format(new Date(v.start_time), 'yyyy-MM-dd HH:mm'),
+          end: format(new Date(v.end_time), 'yyyy-MM-dd HH:mm'),
+          residencia_id: v.residencia_id
         }))
       });
 
-      // Combine regular appointments with projected legacy occurrences for conflict detection
-      const combinedConflicts = [
-        ...allAppointments.map(a => ({
-          start_time: a.start_time,
-          end_time: a.end_time,
-          status: a.status
-        })),
-        ...projectedLegacyOccurrences.map(p => ({
-          start_time: p.start.toISOString(),
-          end_time: p.end.toISOString(),
-          status: 'confirmed' as const
-        }))
-      ];
+      // Step 3: Combine regular appointments with virtual recurring occurrences for conflict detection
+      // Deduplicate by start_time+end_time to avoid double counting if an instance is materialized
+      const conflictSet = new Map<string, { start_time: string; end_time: string; status: string }>();
       
-      console.log('📊 Conflictos Combinados (appointments + proyecciones legacy):', {
+      // Add regular appointments
+      for (const a of allAppointments) {
+        const key = `${a.start_time}|${a.end_time}`;
+        if (!conflictSet.has(key)) {
+          conflictSet.set(key, {
+            start_time: a.start_time,
+            end_time: a.end_time,
+            status: a.status
+          });
+        }
+      }
+      
+      // Add virtual recurring occurrences (will skip if already exists)
+      for (const v of virtualRecurringOccurrencesInRange) {
+        const key = `${v.start_time}|${v.end_time}`;
+        if (!conflictSet.has(key)) {
+          conflictSet.set(key, {
+            start_time: v.start_time,
+            end_time: v.end_time,
+            status: v.status
+          });
+        }
+      }
+      
+      const combinedConflicts = Array.from(conflictSet.values());
+      
+      console.log('📊 Conflictos Combinados (appointments + instancias virtuales):', {
         appointmentsOriginales: allAppointments.length,
-        proyeccionesLegacy: projectedLegacyOccurrences.length,
+        instanciasVirtuales: virtualRecurringOccurrencesInRange.length,
         totalConflictos: combinedConflicts.length
       });
 
@@ -523,11 +579,16 @@ export const useWeeklySlotsFetcher = ({
       // Solo usar slots que puedan acomodar el servicio completo
       const finalWeeklySlots: WeeklySlot[] = accommodatableSlots;
 
-      // Calcular recomendación basada en adyacencia respecto a las reservas confirmadas + proyecciones legacy
+      // Calcular recomendación basada en adyacencia respecto a las reservas confirmadas + instancias virtuales de recurrencia
       const apptStartMinutesByDate: Record<string, Set<number>> = {};
       const apptEndMinutesByDate: Record<string, Set<number>> = {};
 
-      // Para recomendaciones: usar citas del MISMO residencial + históricos + proyecciones legacy del mismo residencial
+      // Para recomendaciones: usar citas del MISMO residencial + históricos + instancias virtuales del mismo residencial
+      // Filtrar instancias virtuales por residencia_id del cliente
+      const virtualRecurringForSameResidencia = clientResidenciaId 
+        ? virtualRecurringOccurrencesInRange.filter(v => v.residencia_id === clientResidenciaId)
+        : [];
+      
       const adjacentPoolForRecommendations = [
         // Incluir citas confirmadas, pending y completed del MISMO residencial
         ...sameResidenciaAppointments.map(a => ({
@@ -543,40 +604,25 @@ export const useWeeklySlotsFetcher = ({
           status: a.status,
           residencia_id: a.residencia_id
         })),
-        // Incluir proyecciones legacy que sean del mismo residencial
-        ...projectedLegacyOccurrences
-          .filter(p => {
-            // Buscar la cita original para verificar su residencia_id
-            const originalAppt = legacyRecurring.find(lr => {
-              const origStart = new Date(lr.start_time);
-              const projDay = p.start.getDay();
-              const origDay = origStart.getDay();
-              // Identificar si esta proyección viene de esta cita original comparando día de la semana y hora
-              return projDay === origDay && 
-                     p.start.getHours() === origStart.getHours() && 
-                     p.start.getMinutes() === origStart.getMinutes();
-            });
-            return originalAppt && originalAppt.residencia_id === clientResidenciaId;
-          })
-          .map(p => ({
-            start_time: p.start.toISOString(),
-            end_time: p.end.toISOString(),
-            status: 'confirmed' as const
-          }))
+        // Incluir instancias virtuales de recurrencia del MISMO residencial (sin límite de 8 semanas)
+        ...virtualRecurringForSameResidencia.map(v => ({
+          start_time: v.start_time,
+          end_time: v.end_time,
+          status: v.status,
+          residencia_id: v.residencia_id
+        }))
       ];
 
-      console.log('📍 Pool de adyacencia para recomendaciones:', {
+      console.log('📍 Pool de adyacencia para recomendaciones (MEJORADO):', {
         citasMismaResidencia: sameResidenciaAppointments.length,
         citasHistoricas: historicalAppointments.length,
-        citasConfirmed: [...sameResidenciaAppointments, ...historicalAppointments].filter(a => a.status === 'confirmed').length,
-        citasPending: [...sameResidenciaAppointments, ...historicalAppointments].filter(a => a.status === 'pending').length,
-        citasCompleted: [...sameResidenciaAppointments, ...historicalAppointments].filter(a => a.status === 'completed').length,
-        proyeccionesLegacyTotal: projectedLegacyOccurrences.length,
-        proyeccionesFiltradas: adjacentPoolForRecommendations.length - sameResidenciaAppointments.length - historicalAppointments.length,
+        instanciasVirtualesMismaResidencia: virtualRecurringForSameResidencia.length,
+        totalInstanciasVirtuales: virtualRecurringOccurrencesInRange.length,
         totalParaRecomendaciones: adjacentPoolForRecommendations.length,
         clientResidenciaId,
-        detalles: adjacentPoolForRecommendations.slice(0, 5).map(a => ({
+        detalles: adjacentPoolForRecommendations.slice(0, 10).map(a => ({
           start: format(new Date(a.start_time), 'yyyy-MM-dd HH:mm'),
+          end: format(new Date(a.end_time), 'yyyy-MM-dd HH:mm'),
           status: a.status
         }))
       });
@@ -615,27 +661,43 @@ export const useWeeklySlotsFetcher = ({
       }
 
       // ⭐ NUEVO: Extraer slots bloqueados por recurrencia para marcar adyacentes como recomendados
-      const recurringBlockedByDate: Record<string, Set<number>> = {};
+      // Ahora rastreamos tanto inicio como fin para adyacencia correcta
+      const recurringBlockedStartByDate: Record<string, Set<number>> = {};
+      const recurringBlockedEndByDate: Record<string, Set<number>> = {};
+      
       for (const slot of validRangeSlots) {
         // Considerar slots bloqueados por recurrencia (recurring_blocked = true)
         if (slot.recurring_blocked && !slot.is_available) {
           const dateKey = slot.slot_date;
           if (!dateKey) continue;
           
-          const timeStr = slot.start_time || '00:00:00';
-          const [hh, mm] = timeStr.split(':').map(Number);
-          const slotMin = hh * 60 + (mm || 0);
+          const startTimeStr = slot.start_time || '00:00:00';
+          const [startHh, startMm] = startTimeStr.split(':').map(Number);
+          const startMin = startHh * 60 + (startMm || 0);
           
-          if (!recurringBlockedByDate[dateKey]) {
-            recurringBlockedByDate[dateKey] = new Set<number>();
+          const endTimeStr = slot.end_time || startTimeStr;
+          const [endHh, endMm] = endTimeStr.split(':').map(Number);
+          const endMin = endHh * 60 + (endMm || 0);
+          
+          if (!recurringBlockedStartByDate[dateKey]) {
+            recurringBlockedStartByDate[dateKey] = new Set<number>();
           }
-          recurringBlockedByDate[dateKey].add(slotMin);
+          if (!recurringBlockedEndByDate[dateKey]) {
+            recurringBlockedEndByDate[dateKey] = new Set<number>();
+          }
+          
+          recurringBlockedStartByDate[dateKey].add(startMin);
+          recurringBlockedEndByDate[dateKey].add(endMin > startMin ? endMin : startMin + 60); // Fallback to 60 min
         }
       }
 
-      console.log('🔁 Slots bloqueados por recurrencia:', {
-        totalDias: Object.keys(recurringBlockedByDate).length,
-        detalles: Object.entries(recurringBlockedByDate).map(([date, mins]) => ({
+      console.log('🔁 Slots bloqueados por recurrencia (inicio y fin):', {
+        totalDias: Object.keys(recurringBlockedStartByDate).length,
+        detallesInicio: Object.entries(recurringBlockedStartByDate).map(([date, mins]) => ({
+          fecha: date,
+          slots: Array.from(mins).map(m => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`)
+        })),
+        detallesFin: Object.entries(recurringBlockedEndByDate).map(([date, mins]) => ({
           fecha: date,
           slots: Array.from(mins).map(m => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`)
         }))
@@ -695,18 +757,26 @@ export const useWeeklySlotsFetcher = ({
         const apptEnds = apptEndMinutesByDate[dateKey] || new Set<number>();
         const step = slotStepByDate[dateKey] || 60;
         
-        // ⭐ Slot recomendado: DIRECTAMENTE adyacente al inicio de citas O slots recurrentes bloqueados
-        // - Un step ANTES del inicio = slot anterior (este slot termina justo antes de la cita)
-        // - Un step DESPUÉS del inicio = slot posterior (este slot comienza justo después del slot ocupado)
-        const blockedStarts = recurringBlockedByDate[dateKey] || new Set<number>();
+        // ⭐ Slot recomendado: DIRECTAMENTE adyacente al inicio O fin de citas/slots recurrentes bloqueados
+        // LÓGICA CORREGIDA:
+        // - Adyacente ANTES del inicio: apptStarts.has(slotMin + step) → este slot termina justo cuando inicia la cita
+        // - Adyacente DESPUÉS del fin: apptEnds.has(slotMin) → este slot inicia justo cuando termina la cita
+        // 
+        // IMPORTANTE: NO usar apptStarts.has(slotMin - step) porque no representa correctamente 
+        // la adyacencia para citas de más de 1 bloque de duración
         
-        const isAdjacentToAppointment = 
-          apptStarts.has(slotMin + step) ||  // Este slot termina justo antes de una cita
-          apptStarts.has(slotMin - step);    // Este slot comienza justo después del inicio de una cita
+        const blockedStarts = recurringBlockedStartByDate[dateKey] || new Set<number>();
+        const blockedEnds = recurringBlockedEndByDate[dateKey] || new Set<number>();
         
-        const isAdjacentToRecurringBlocked = 
-          blockedStarts.has(slotMin + step) ||  // Este slot termina justo antes de un slot recurrente bloqueado
-          blockedStarts.has(slotMin - step);    // Este slot comienza justo después de un slot recurrente bloqueado
+        // Adyacencia a citas: antes del inicio O después del final
+        const isAdjacentBeforeAppointment = apptStarts.has(slotMin + step);  // Este slot termina justo antes de una cita
+        const isAdjacentAfterAppointment = apptEnds.has(slotMin);            // Este slot inicia justo cuando termina una cita
+        const isAdjacentToAppointment = isAdjacentBeforeAppointment || isAdjacentAfterAppointment;
+        
+        // Adyacencia a slots recurrentes bloqueados: antes del inicio O después del final
+        const isAdjacentBeforeBlocked = blockedStarts.has(slotMin + step);   // Este slot termina justo antes de un slot bloqueado
+        const isAdjacentAfterBlocked = blockedEnds.has(slotMin);             // Este slot inicia justo cuando termina un slot bloqueado
+        const isAdjacentToRecurringBlocked = isAdjacentBeforeBlocked || isAdjacentAfterBlocked;
           
         const isRecommended = isAdjacentToAppointment || isAdjacentToRecurringBlocked;
         
@@ -715,9 +785,14 @@ export const useWeeklySlotsFetcher = ({
           console.log('⭐ Slot marcado como recomendado:', {
             date: dateKey,
             time: s.time,
-            reason: isAdjacentToAppointment ? 'adyacente_a_cita_confirmada' : 'adyacente_a_slot_recurrente',
-            dayHasAppointments: daysWithAppointments.has(dateKey),
-            dayHasRecurringBlocked: blockedStarts.size > 0
+            slotMin,
+            step,
+            reason: isAdjacentToAppointment ? 
+              (isAdjacentBeforeAppointment ? 'antes_de_cita' : 'despues_de_cita') : 
+              (isAdjacentBeforeBlocked ? 'antes_de_bloqueo_recurrente' : 'despues_de_bloqueo_recurrente'),
+            apptStartsInDay: Array.from(apptStarts),
+            apptEndsInDay: Array.from(apptEnds),
+            dayHasAppointments: daysWithAppointments.has(dateKey)
           });
         }
         
