@@ -136,7 +136,7 @@ const ClientServices = () => {
     );
   }
 
-  // Desktop layout (unchanged)
+  // Desktop layout
   const textSizeClass = 'text-lg';
   
   return (
@@ -173,6 +173,17 @@ const ClientServices = () => {
           );
         })}
       </div>
+      
+      {/* Servicios Recomendados para Desktop */}
+      <section className="mt-8 px-2 md:px-6">
+        <h2 className="text-xl font-semibold text-foreground mb-4">
+          Servicios recomendados
+        </h2>
+        <RecommendedServicesCarousel 
+          listings={recommendedListings} 
+          isLoading={recommendedLoading}
+        />
+      </section>
     </ClientPageLayout>
   );
 };
