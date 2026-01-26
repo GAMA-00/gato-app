@@ -9,6 +9,7 @@ interface CategoryListingCardProps {
     title: string;
     gallery_images: string[] | null;
     provider: {
+      id: string;
       name: string | null;
       avatar_url: string | null;
       average_rating: number | null;
@@ -25,7 +26,10 @@ const CategoryListingCard = ({ listing, className }: CategoryListingCardProps) =
   const rating = listing.provider?.average_rating || 5.0;
 
   const handleClick = () => {
-    navigate(`/client/services/${listing.id}`);
+    const providerId = listing.provider?.id;
+    if (providerId) {
+      navigate(`/client/service/${providerId}/${listing.id}`);
+    }
   };
 
   return (

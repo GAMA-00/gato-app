@@ -55,7 +55,10 @@ const RecommendedServiceCard = ({ listing, className }: RecommendedServiceCardPr
   const rating = listing.provider?.average_rating || 5.0;
 
   const handleClick = () => {
-    navigate(`/client/services/${listing.id}`);
+    const providerId = listing.provider?.id;
+    if (providerId) {
+      navigate(`/client/service/${providerId}/${listing.id}`);
+    }
   };
 
   return (
