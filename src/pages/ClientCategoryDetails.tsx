@@ -5,12 +5,37 @@ import { supabase } from '@/integrations/supabase/client';
 import ServiceTypeCard from '@/components/client/ServiceTypeCard';
 import CategoryDetailsLoading from '@/components/client/CategoryDetailsLoading';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
+import Navbar from '@/components/layout/Navbar';
 import { useServiceTypeAvailability } from '@/hooks/useServiceTypeAvailability';
 import { serviceTypeOrderByCategory, categoriesWithoutReorder } from '@/constants/serviceTypeOrderConstants';
+import { useIsMobile } from '@/hooks/use-mobile';
+import CategoryHeroHeader from '@/components/client/CategoryHeroHeader';
+import { categoryOrder, categoryLabels } from '@/constants/categoryConstants';
 
 const ClientCategoryDetails = () => {
   const { categoryId } = useParams();
   const { availableServiceTypeIds, isLoading: availabilityLoading } = useServiceTypeAvailability();
+  const isMobile = useIsMobile();
+
+  // Fetch all categories for the pill navigation
+  const { data: allCategories = [] } = useQuery({
+    queryKey: ['all-service-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('*');
+        
+      if (error) throw error;
+      
+      // Sort by categoryOrder
+      return (data || []).sort((a, b) => {
+        const indexA = categoryOrder.indexOf(a.name);
+        const indexB = categoryOrder.indexOf(b.name);
+        return indexA - indexB;
+      });
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: categoryData, isLoading: categoryLoading } = useQuery({
     queryKey: ['category', categoryId],
@@ -91,8 +116,49 @@ const ClientCategoryDetails = () => {
     return <CategoryDetailsLoading />;
   }
 
-  const categoryLabel = categoryData?.label || categoryId;
+  const categoryLabel = categoryLabels[categoryId || ''] || categoryData?.label || categoryId;
 
+  // Mobile layout with hero header
+  if (isMobile) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-[#FAFAFA] pb-20">
+          {/* Hero Header with gradient */}
+          <CategoryHeroHeader
+            categoryId={categoryId || ''}
+            categoryLabel={categoryLabel}
+            allCategories={allCategories}
+          />
+          
+          {/* Service Types Grid */}
+          <div className="p-4 pt-4">
+            {sortedServiceTypes.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  No hay tipos de servicio disponibles para esta categoría.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {sortedServiceTypes.map((serviceType) => (
+                  <ServiceTypeCard
+                    key={serviceType.id}
+                    serviceType={serviceType}
+                    categoryId={categoryId || ''}
+                    categoryLabel={categoryLabel}
+                    hasProviders={availableServiceTypeIds.has(serviceType.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Desktop layout (unchanged)
   return (
     <ClientPageLayout>
       <div className="space-y-6">

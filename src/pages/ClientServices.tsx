@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -12,6 +11,9 @@ import CategoryIcon from '@/components/client/CategoryIcon';
 import { useCategoryVisibility } from '@/hooks/useCategoryVisibility';
 import { categoryOrder, categoryLabels } from '@/constants/categoryConstants';
 import { smartPreloader } from '@/utils/smartPreloader';
+import LocationHeader from '@/components/client/LocationHeader';
+import RecommendedServicesCarousel from '@/components/client/RecommendedServicesCarousel';
+import { useRecommendedListings } from '@/hooks/useRecommendedListings';
 
 const ClientServices = () => {
   const navigate = useNavigate();
@@ -19,6 +21,9 @@ const ClientServices = () => {
   
   // Use visibility tracking for intersection observer
   const { visibleItems } = useCategoryVisibility();
+  
+  // Fetch recommended listings for mobile carousel
+  const { data: recommendedListings = [], isLoading: recommendedLoading } = useRecommendedListings();
 
   const { data: fetchedCategories = [], isLoading } = useQuery({
     queryKey: ['service-categories'],
@@ -49,29 +54,94 @@ const ClientServices = () => {
 
   if (isLoading) {
     return (
-      <ClientPageLayout title="Explorando categorías...">
-        <div className={cn(
-          "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8",
-          isMobile ? "px-6 w-full" : "px-2 md:px-6"
-        )}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className={cn(
-              isMobile ? "h-36 rounded-xl" : "h-32 md:h-40 rounded-xl"
-            )} />
-          ))}
+      <ClientPageLayout>
+        <div className="space-y-6">
+          {isMobile && (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-6 w-40" />
+            </div>
+          )}
+          <div>
+            {isMobile && <Skeleton className="h-6 w-24 mb-4" />}
+            <div className={cn(
+              "grid gap-4",
+              isMobile ? "grid-cols-3 gap-3" : "grid-cols-2 md:grid-cols-3 gap-4 md:gap-8"
+            )}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className={cn(
+                  "rounded-xl",
+                  isMobile ? "h-28" : "h-32 md:h-40"
+                )} />
+              ))}
+            </div>
+          </div>
         </div>
       </ClientPageLayout>
     );
   }
 
-  const textSizeClass = isMobile ? 'text-base font-semibold' : 'text-lg';
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <ClientPageLayout>
+        <div className="space-y-6">
+          {/* 1. Location Header */}
+          <LocationHeader />
+          
+          {/* 2. Categories Section */}
+          <section>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Categorías</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {categoryOrder.map((categoryName) => {
+                const category = categories.find(c => c.name === categoryName);
+                if (!category) return null;
+                
+                const isVisible = visibleItems.has(categoryName);
+                
+                return (
+                  <div 
+                    key={category.id} 
+                    onClick={() => handleCategoryClick(category.name)}
+                    data-category={categoryName}
+                  >
+                    <Card className="flex flex-col items-center justify-center p-4 h-28 rounded-xl hover:shadow-md transition-all cursor-pointer bg-[#F2F2F2] group">
+                      <div className="flex items-center justify-center mb-2">
+                        <CategoryIcon 
+                          categoryName={categoryName}
+                          isMobile={true}
+                          isVisible={isVisible}
+                        />
+                      </div>
+                      <h3 className="text-center text-[#1A1A1A] text-sm font-medium overflow-wrap-anywhere hyphens-auto px-1 leading-tight">
+                        {categoryLabels[category.name] || category.label}
+                      </h3>
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+          
+          {/* 3. Recommended Services Section */}
+          <section>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Servicios recomendados</h2>
+            <RecommendedServicesCarousel 
+              listings={recommendedListings} 
+              isLoading={recommendedLoading}
+            />
+          </section>
+        </div>
+      </ClientPageLayout>
+    );
+  }
+
+  // Desktop layout (unchanged)
+  const textSizeClass = 'text-lg';
   
   return (
     <ClientPageLayout title="Explora nuestras categorías de servicio">
-      <div className={cn(
-        "grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8",
-        isMobile ? "w-full" : "px-2 md:px-6"
-      )}>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-2 md:px-6">
         {categoryOrder.map((categoryName) => {
           const category = categories.find(c => c.name === categoryName);
           if (!category) return null;
@@ -84,24 +154,17 @@ const ClientServices = () => {
               onClick={() => handleCategoryClick(category.name)}
               data-category={categoryName}
             >
-              <Card className={cn(
-                "flex flex-col items-center justify-center hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group",
-                isMobile ? "p-6 h-36 rounded-xl" : "p-8 h-48"
-              )}>
-                <div className={cn(
-                  "flex items-center justify-center",
-                  isMobile ? "mb-3" : "mb-4"
-                )}>
+              <Card className="flex flex-col items-center justify-center p-8 h-48 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group">
+                <div className="flex items-center justify-center mb-4">
                   <CategoryIcon 
                     categoryName={categoryName}
-                    isMobile={isMobile}
+                    isMobile={false}
                     isVisible={isVisible}
                   />
                 </div>
                 <h3 className={cn(
-                  "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto",
-                  textSizeClass,
-                  isMobile ? "px-2" : "px-2"
+                  "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto px-2",
+                  textSizeClass
                 )}>
                   {categoryLabels[category.name] || category.label}
                 </h3>
