@@ -1,107 +1,160 @@
 
 
-## Rediseño del Calendario del Proveedor
+## Rediseño de "Config. Disponibilidad" con Dos Tabs
 
-Se eliminará el bloque "Solicitudes de Reserva" y se implementará un nuevo diseño de calendario con tema oscuro basado en la imagen de referencia, manteniendo el botón "Config. Disponibilidad".
-
----
-
-### Cambios a realizar
-
-#### 1. Archivo: `src/pages/Calendar.tsx`
-
-**Eliminar:**
-- Importación de `JobRequestsGrouped`
-- El bloque JSX que renderiza `<JobRequestsGrouped />`
-
-**Modificar:**
-- Pasar la fecha seleccionada y las citas al nuevo componente de calendario
+Se rediseñará el componente `AvailabilityManager` para que coincida exactamente con las imágenes de referencia proporcionadas, manteniendo coherencia visual con otras secciones y garantizando un funcionamiento confiable.
 
 ---
 
-#### 2. Archivo: `src/components/calendar/CalendarView.tsx` (Rediseño completo)
+### Análisis de las imágenes de referencia
 
-**Nuevo diseño basado en la imagen de referencia:**
+**Tab "Configurar" (imagen izquierda):**
+- Título "Administrar Disponibilidad" centrado
+- Tabs pill-shaped con "Configurar" activo (naranja) y "Administrar" inactivo (gris)
+- Cards por día con:
+  - Nombre del día (ej. "Lunes") 
+  - Switch "Disponible" alineado a la derecha
+  - Campos "Hora de inicio" y "Hora de finalización" en formato 12h AM/PM
+  - Botón "+ Agregar Horario Adicional" en la parte inferior de cada card
+- Botón "Guardar" grande color primario al final
+
+**Tab "Administrar" (imagen derecha):**
+- Mismo header con tabs
+- "Semana actual" con rango de fechas y navegación (flechas < >)
+- Leyenda de colores: Disponibles (verde), Bloqueados (naranja/rojo), Recurrentes (amarillo)
+- Cards por día mostrando grilla de slots:
+  - Nombre del día y fecha
+  - Grid 4 columnas con horarios en formato 12h AM
+  - Colores: verde = disponible, rojo/naranja = bloqueado, amarillo = recurrente
+- Botón "Guardar" al final
+
+---
+
+### Cambios a implementar
+
+#### 1. `src/components/calendar/AvailabilityManager.tsx` - Rediseño completo
+
+**Estructura nueva:**
 
 ```text
 +------------------------------------------+
-|  Calendario                           +  |
-|  Octubre                                 |
+|    Administrar Disponibilidad            |
 |------------------------------------------|
-|  D    L    M    M    J    V    S         |
-|                   1    2    3    4       |
-|  5    6•   7•   8••  9    10•  11        |
-|  12   13•  14•  15•• 16•  17   18•       |
-|  19   20•  21   22   23•  24   [25]      |
-|  26   27   28   29   30•  31             |
+|  [Configurar]  |  Administrar            |  <- Tabs pill-shaped
 +------------------------------------------+
 |                                          |
-|  Lunes                                   |
+|  [Contenido del tab activo]              |
 |                                          |
-|  8:00am  ┌──────────────────┐ Recurrente |
-|          │ Lava car         │            |
-|  9:00am  │ Carlos           │            |
-|          └──────────────────┘            |
-|  10:00am                                 |
-|  11:00am                                 |
-|  ...                                     |
++------------------------------------------+
+|          [   Guardar   ]                 |  <- Botón fijo al final
 +------------------------------------------+
 ```
 
-**Estructura del componente:**
-1. **Header con título**: "Calendario" + nombre del mes actual + botón "+"
-2. **Grilla del mes (tema oscuro)**: 
-   - Fondo oscuro (`bg-gray-900`)
-   - Días de la semana (D, L, M, M, J, V, S)
-   - Números de días seleccionables
-   - Indicadores de puntos debajo de días con citas (verdes/naranjas)
-   - Día actual resaltado con círculo naranja
-3. **Panel inferior (tema claro)**:
-   - Título del día seleccionado ("Lunes")
-   - Lista de citas del día con horarios
-   - Cada cita muestra: servicio, cliente, etiqueta "Recurrente" si aplica
+**Cambios específicos:**
+
+1. **Header unificado**: 
+   - Título "Administrar Disponibilidad" centrado grande
+   - Tabs como segmented control con estilo pill naranja/gris
+
+2. **Tab "Configurar"**:
+   - Cards de día con diseño más limpio
+   - Switch "Disponible" en la esquina derecha del header
+   - Inputs de hora con formato 12h (ej. "07:00 AM")
+   - Botón "+ Agregar Horario Adicional" dentro de cada card expandida
+
+3. **Tab "Administrar"**:
+   - Header con "Semana actual" y navegación
+   - Leyenda de colores horizontal
+   - Cards por día con grid de slots 4 columnas
+   - Colores: verde (disponible), naranja/rojo (bloqueado), amarillo (recurrente)
+
+4. **Botón "Guardar"**: 
+   - Siempre visible, fijo en la parte inferior
+   - Estilo primario (naranja) full-width
 
 ---
 
-#### 3. Componentes auxiliares a crear/modificar
+#### 2. Cambios en estilos y UX
 
-**Nuevo: `src/components/calendar/MonthlyCalendarGrid.tsx`**
-- Renderiza la grilla mensual con tema oscuro
-- Props: `currentDate`, `selectedDate`, `appointments`, `onSelectDate`, `onNavigate`
-- Cada día es un botón clickeable
-- Muestra puntos indicadores debajo de días con citas:
-  - Verde: citas confirmadas
-  - Naranja: citas pendientes
+**Colores de slots:**
+- Verde (`bg-emerald-100`) → Disponible
+- Rojo/Naranja (`bg-red-100` o `bg-orange-100`) → Bloqueado manualmente
+- Amarillo (`bg-amber-100`) → Bloqueado por cita recurrente
 
-**Nuevo: `src/components/calendar/DayAppointmentsList.tsx`**
-- Muestra las citas del día seleccionado
-- Diseño de línea de tiempo vertical con horarios
-- Cada cita como tarjeta con borde izquierdo de color
-- Etiqueta "Recurrente" si la cita es recurrente
+**Formato de hora:**
+- Cambiar de formato 24h a 12h con AM/PM
+- Usar helper `formatTo12Hour` existente
 
----
-
-### Flujo de interacción
-
-1. Usuario ve el calendario mensual con tema oscuro
-2. Los días con citas tienen puntos de colores
-3. Al hacer clic en un día, se selecciona (círculo naranja)
-4. El panel inferior muestra las citas de ese día
-5. El botón "Config. Disponibilidad" permanece en la esquina superior derecha
+**Layout:**
+- Contenedor scrolleable para el contenido
+- Botón guardar sticky al fondo
 
 ---
 
-### Detalles técnicos
+#### 3. Verificación de coherencia con otras secciones
 
-**Estilos del calendario mensual:**
-- Contenedor: `bg-gray-900 rounded-t-3xl`
-- Días del encabezado: `text-gray-400 text-sm`
-- Números de días: `text-white` (mes actual), `text-gray-500` (mes anterior/siguiente)
-- Día seleccionado: `bg-orange-500 rounded-full`
-- Indicadores: círculos pequeños (`w-1.5 h-1.5 rounded-full`)
+**Con sección "Clientes":**
+- Mismos estilos de Card, Badge, y Button
+- Consistencia en espaciado y tipografía
 
-**Estilos del panel de citas:**
-- Contenedor: `bg-white rounded-t-3xl -mt-6 pt-6`
-- Horarios: `text-gray-400 text-xs`
-- Tarjetas de cita: borde izquierdo verde para confirmadas, naranja para pendientes
+**Con citas activas y recurrentes:**
+- Los slots recurrentes deben reflejar exactamente las citas recurrentes activas
+- Sincronización bidireccional con `recurring_rules` y `recurring_appointment_instances`
+- Validación cruzada con `appointments` table
+
+---
+
+### Archivos a modificar
+
+| Archivo | Acción |
+|---------|--------|
+| `src/components/calendar/AvailabilityManager.tsx` | Rediseño completo según mockups |
+| `src/components/calendar/ProviderSlotBlockingGrid.tsx` | Ajustar colores y leyenda |
+
+---
+
+### Flujo de datos garantizado
+
+```text
+1. Usuario configura disponibilidad (Tab "Configurar")
+   ↓
+2. Guardar → provider_availability table
+   ↓
+3. Sync automático → listings.availability
+   ↓
+4. RPC sync_slots_with_availability → provider_time_slots
+   ↓
+5. Tab "Administrar" muestra slots generados
+   ↓
+6. Slots recurrentes vienen de recurring_appointment_instances
+```
+
+---
+
+### Validaciones de confiabilidad
+
+1. **Antes de guardar**: Validar que horarios no se superpongan
+2. **Después de guardar**: Confirmar que slots se regeneraron correctamente
+3. **Tab Administrar**: Mostrar indicador de sincronización si hay cambios pendientes
+4. **Real-time**: Suscripción a cambios en `provider_time_slots` para actualizaciones automáticas
+
+---
+
+### Detalles técnicos para el desarrollador
+
+**Formato de hora 12h:**
+Se usará la función `formatTo12Hour` de `src/lib/utils.ts` para mostrar "07:00 AM" en lugar de "07:00".
+
+**Inputs de hora:**
+Los inputs HTML `type="time"` permanecen en formato 24h internamente, pero se mostrará el valor formateado al usuario usando labels.
+
+**Sincronización de slots:**
+- El hook `useProviderSlotManagement` ya obtiene slots correctamente
+- El hook `useProviderAvailability` ya sincroniza con `sync_slots_with_availability` RPC
+- Solo se necesita ajustar la UI para coincidir con el diseño
+
+**Colores consistentes:**
+- Disponible: `bg-emerald-100 text-emerald-800`
+- Bloqueado: `bg-red-100 text-red-800` o `bg-orange-100 text-orange-800`
+- Recurrente: `bg-amber-100 text-amber-800`
 
