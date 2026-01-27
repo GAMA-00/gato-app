@@ -98,9 +98,6 @@ export const PaymentMethodTypeSelector: React.FC<PaymentMethodTypeSelectorProps>
                   >
                     {option.title}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {option.description}
-                  </p>
                 </div>
               </button>
             );
