@@ -15,11 +15,11 @@ const LandingPage = () => {
       <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center space-y-6">
-          <div className="w-24 h-24 md:w-32 md:h-32">
+          <div className="w-32 h-24 md:w-40 md:h-32">
             <img 
-              src="/lovable-uploads/b420fb6c-9eb8-4971-971f-1f343e64d9ed.png"
-              width="96"
-              height="96"
+              src="/gato-logo.png"
+              width="160"
+              height="128"
               alt="Gato Logo"
               decoding="async"
               className="w-full h-full object-contain"
