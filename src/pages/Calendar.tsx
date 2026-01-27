@@ -1,8 +1,6 @@
-
 import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import CalendarView from '@/components/calendar/CalendarView';
-import JobRequestsGrouped from '@/components/calendar/JobRequestsGrouped';
 import { AvailabilityManager } from '@/components/calendar/AvailabilityManager';
 import { useCalendarAppointments } from '@/hooks/useCalendarAppointments';
 import { calendarLogger } from '@/utils/logger';
@@ -90,15 +88,7 @@ const Calendar = () => {
         </Dialog>
       ) : undefined}
     >
-      <div className="space-y-6">
-
-        {/* Show job requests for providers */}
-        {user?.role === 'provider' && (
-          <div className="w-full">
-            <JobRequestsGrouped />
-          </div>
-        )}
-        
+      <div className="space-y-0">
         {/* Optimized Calendar view with recurring instances */}
         <div className="w-full">
           <CalendarView 
