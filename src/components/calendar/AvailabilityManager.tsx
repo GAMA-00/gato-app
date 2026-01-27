@@ -1,29 +1,18 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Clock, Save, Loader2, Settings, Calendar, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Save, Loader2, Settings, Calendar } from 'lucide-react';
 import { useProviderAvailability } from '@/hooks/useProviderAvailabilitySettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProviderListing } from '@/hooks/useProviderListing';
 import { useAvailabilitySync } from '@/hooks/useAvailabilitySync';
-import ProviderSlotBlockingGrid from './ProviderSlotBlockingGrid';
-
-const DAYS = [
-  { key: 'monday', label: 'Lunes' },
-  { key: 'tuesday', label: 'Martes' },
-  { key: 'wednesday', label: 'Miércoles' },
-  { key: 'thursday', label: 'Jueves' },
-  { key: 'friday', label: 'Viernes' },
-  { key: 'saturday', label: 'Sábado' },
-  { key: 'sunday', label: 'Domingo' }
-];
+import { AvailabilityConfigureTab } from './AvailabilityConfigureTab';
+import { AvailabilityManageTab } from './AvailabilityManageTab';
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const AvailabilityManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('availability');
+  const [activeTab, setActiveTab] = useState('configurar');
   const { user } = useAuth();
   const { firstListingId, serviceDuration, isLoading: isLoadingListing } = useProviderListing();
   const {
@@ -38,238 +27,76 @@ export const AvailabilityManager: React.FC = () => {
     copyDayToOtherDays
   } = useProviderAvailability();
   
-  // Initialize availability sync system
   useAvailabilitySync();
 
   if (isLoading) {
     return (
-      <Card className="max-w-md mx-auto">
-        <CardContent className="flex items-center justify-center p-8">
-          <div className="text-center space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <div>
-              <p className="font-medium">Cargando disponibilidad...</p>
-              <p className="text-sm text-muted-foreground">
-                Recuperando tu configuración guardada
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+        <p className="font-medium text-foreground">Cargando disponibilidad...</p>
+        <p className="text-sm text-muted-foreground">Recuperando tu configuración guardada</p>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full overflow-x-hidden">
-      {/* Fixed Header - Desktop */}
-      <div className="hidden md:block flex-shrink-0 mb-4">
-        <div className="flex items-center justify-between">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="availability" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Configurar Disponibilidad
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Administrar Horarios
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button 
-            onClick={saveAvailability}
-            disabled={isSaving}
-            size="sm"
-            className="flex items-center gap-2 h-9 text-sm px-4 ml-4"
-          >
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {isSaving ? 'Guardando...' : 'Guardar'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Fixed Header - Mobile */}
-      <div className="md:hidden flex-shrink-0 sticky top-0 z-20 bg-background border-b">
-        {/* Row 1: Title + Save */}
-        <div className="flex items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-2">
-            {activeTab === 'availability' ? (
-              <Settings className="h-4 w-4 text-primary" />
-            ) : (
-              <Calendar className="h-4 w-4 text-primary" />
-            )}
-            <span className="text-sm font-semibold">
-              {activeTab === 'availability' ? 'Configurar disponibilidad' : 'Administrar horarios'}
-            </span>
-          </div>
-
-          <Button 
-            onClick={saveAvailability}
-            disabled={isSaving}
-            size="sm"
-            className="flex items-center gap-2 h-10 text-sm px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {isSaving ? 'Guardando...' : 'Guardar'}
-          </Button>
-        </div>
-
-        {/* Row 2: Segmented Control */}
-        <div className="px-3 pb-2">
-          <div className="grid grid-cols-2 bg-muted rounded-full p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('availability')}
-              aria-pressed={activeTab === 'availability'}
-              className={`h-11 rounded-full flex items-center justify-center gap-2 transition ${
-                activeTab === 'availability' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
-              }`}
+    <div className="flex flex-col h-full max-h-[80vh]">
+      {/* Header */}
+      <div className="flex-shrink-0 pb-4">
+        <h2 className="text-lg font-semibold text-center text-foreground mb-4">
+          Administrar Disponibilidad
+        </h2>
+        
+        {/* Pill-shaped Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-muted p-1 rounded-full h-12">
+            <TabsTrigger 
+              value="configurar" 
+              className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-10 flex items-center justify-center gap-2"
             >
               <Settings className="h-4 w-4" />
-              <span className="text-sm">Configurar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('preview')}
-              aria-pressed={activeTab === 'preview'}
-              className={`h-11 rounded-full flex items-center justify-center gap-2 transition ${
-                activeTab === 'preview' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
-              }`}
+              Configurar
+            </TabsTrigger>
+            <TabsTrigger 
+              value="administrar" 
+              className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-10 flex items-center justify-center gap-2"
             >
               <Calendar className="h-4 w-4" />
-              <span className="text-sm">Administrar</span>
-            </button>
-          </div>
-        </div>
+              Administrar
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-
-      {/* Content Container - Scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {/* Availability Configuration Tab */}
-        <div className={`${activeTab === 'availability' ? 'block' : 'hidden'}`}>
-          <div className="space-y-3 md:space-y-4 pb-4">
-            {DAYS.map(({ key, label }) => (
-              <Card key={key} className="shadow-sm">
-                <CardHeader className="pb-2 md:pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <CardTitle className="text-base md:text-lg">{label}</CardTitle>
-                      {availability[key]?.enabled && availability[key].timeSlots.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const otherDays = DAYS.filter(d => d.key !== key).map(d => d.key);
-                            copyDayToOtherDays(key, otherDays);
-                          }}
-                          className="h-8 px-2 text-xs"
-                          title="Copiar a otros días"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id={`${key}-enabled`}
-                        checked={availability[key]?.enabled || false}
-                        onCheckedChange={(checked) => updateDayAvailability(key, checked)}
-                      />
-                      <Label htmlFor={`${key}-enabled`} className="text-sm">Disponible</Label>
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                {availability[key]?.enabled && (
-                  <CardContent className="pt-0 px-3 md:px-6">
-                    <div className="space-y-2 md:space-y-3">
-                      {availability[key].timeSlots.map((slot, index) => (
-                        <div key={index} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-muted rounded-lg">
-                          <Clock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
-                            <div>
-                              <Label htmlFor={`${key}-start-${index}`} className="text-xs">
-                                Hora de inicio
-                              </Label>
-                              <Input
-                                id={`${key}-start-${index}`}
-                                type="time"
-                                value={slot.startTime}
-                                onChange={(e) => updateTimeSlot(key, index, 'startTime', e.target.value)}
-                                className="mt-1 h-8 md:h-10"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`${key}-end-${index}`} className="text-xs">
-                                Hora de fin
-                              </Label>
-                              <Input
-                                id={`${key}-end-${index}`}
-                                type="time"
-                                value={slot.endTime}
-                                onChange={(e) => updateTimeSlot(key, index, 'endTime', e.target.value)}
-                                className="mt-1 h-8 md:h-10"
-                              />
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeTimeSlot(key, index)}
-                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8 md:h-10 md:w-10 flex-shrink-0"
-                          >
-                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      {availability[key].timeSlots.length > 0 && (
-                        <div className="flex mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addTimeSlot(key)}
-                            className="flex-1 h-8 md:h-10 text-xs md:text-sm"
-                          >
-                            <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                            Agregar Horario Adicional
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            ))}
-          </div>
+      {/* Scrollable Content */}
+      <ScrollArea className="flex-1 -mx-1 px-1">
+        <div className={activeTab === 'configurar' ? 'block' : 'hidden'}>
+          <AvailabilityConfigureTab
+            availability={availability}
+            updateDayAvailability={updateDayAvailability}
+            addTimeSlot={addTimeSlot}
+            removeTimeSlot={removeTimeSlot}
+            updateTimeSlot={updateTimeSlot}
+            copyDayToOtherDays={copyDayToOtherDays}
+          />
         </div>
 
-        {/* Slot Management Tab */}
-        <div className={`${activeTab === 'preview' ? 'block' : 'hidden'}`}>
+        <div className={activeTab === 'administrar' ? 'block' : 'hidden'}>
           {firstListingId && user?.id ? (
-            <ProviderSlotBlockingGrid
+            <AvailabilityManageTab
               providerId={user.id}
               listingId={firstListingId}
               serviceDuration={serviceDuration}
             />
           ) : (
-            <Card className="shadow-md border-yellow-200 bg-yellow-50">
+            <Card className="shadow-sm border-amber-200 bg-amber-50">
               <CardContent className="pt-6">
                 <div className="text-center py-8">
-                  <Calendar className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
-                  <p className="text-yellow-800 font-medium">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 text-amber-600" />
+                  <p className="text-amber-800 font-medium">
                     {isLoadingListing ? 'Cargando configuración...' : 'No hay servicios configurados'}
                   </p>
-                  <p className="text-yellow-700 text-sm mt-2">
+                  <p className="text-amber-700 text-sm mt-2">
                     Primero debes crear un servicio para poder administrar tus horarios
                   </p>
                 </div>
@@ -277,6 +104,27 @@ export const AvailabilityManager: React.FC = () => {
             </Card>
           )}
         </div>
+      </ScrollArea>
+
+      {/* Fixed Save Button */}
+      <div className="flex-shrink-0 pt-4 border-t mt-4">
+        <Button 
+          onClick={saveAvailability}
+          disabled={isSaving}
+          className="w-full h-12 text-base font-medium"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              Guardando...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5 mr-2" />
+              Guardar
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
