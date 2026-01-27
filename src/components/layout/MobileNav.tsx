@@ -31,9 +31,9 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
         )}
         <div className="flex items-center gap-2">
           <img 
-            src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png" 
+            src="/gato-logo.png" 
             alt="Gato" 
-            className="h-8 w-auto object-contain"
+            className="h-6 w-auto object-contain"
           />
           {!isClientSection && (
             <span className="text-sm text-muted-foreground font-medium">Proveedor</span>
