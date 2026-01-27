@@ -3,22 +3,28 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
 import AppointmentList from './AppointmentList';
+import ProviderStatsCards from './ProviderStatsCards';
 import RequestCard from '@/components/calendar/RequestCard';
 import { useRequestActions } from '@/hooks/useRequestActions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DashboardStats as DashboardStatsType } from '@/lib/types';
 
 interface ProviderDashboardTabsProps {
   activeAppointmentsToday: any[];
   tomorrowsAppointments: any[];
   pendingRequests: any[];
   isLoadingRequests?: boolean;
+  stats?: DashboardStatsType;
+  isLoadingStats?: boolean;
 }
 
 const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
   activeAppointmentsToday,
   tomorrowsAppointments,
   pendingRequests,
-  isLoadingRequests = false
+  isLoadingRequests = false,
+  stats,
+  isLoadingStats
 }) => {
   const { handleAccept, handleDecline, isLoading: isProcessing } = useRequestActions();
 
@@ -72,6 +78,9 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
         style={{ maxHeight: 'calc(100vh - 380px)' }}
       >
         <div className="space-y-4">
+          {/* Stats cards at the top of the Citas tab */}
+          <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
+
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Citas de Hoy"

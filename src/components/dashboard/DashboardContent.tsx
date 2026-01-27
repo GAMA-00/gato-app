@@ -37,15 +37,14 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           {/* Header with logo and greeting */}
           <ProviderDashboardHeader userName={user?.name || 'Proveedor'} />
 
-          {/* Stats cards */}
-          <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
-
           {/* Tabs with Citas and Solicitudes */}
           <ProviderDashboardTabs
             activeAppointmentsToday={activeAppointmentsToday}
             tomorrowsAppointments={tomorrowsAppointments}
             pendingRequests={groupedRequests}
             isLoadingRequests={isLoadingRequests}
+            stats={stats}
+            isLoadingStats={isLoadingStats}
           />
         </div>
       );
