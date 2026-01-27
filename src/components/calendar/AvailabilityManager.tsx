@@ -41,8 +41,27 @@ export const AvailabilityManager: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full max-h-[80vh]">
-      {/* Tabs */}
-      <div className="flex-shrink-0 pb-4">
+      {/* Tabs and Save Button */}
+      <div className="flex-shrink-0 pb-4 space-y-4">
+        {/* Save Button at top */}
+        <Button 
+          onClick={saveAvailability}
+          disabled={isSaving}
+          className="w-full h-11 text-base font-medium"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              Guardando...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5 mr-2" />
+              Guardar
+            </>
+          )}
+        </Button>
+
         {/* Pill-shaped Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-muted p-1 rounded-full h-12">
@@ -101,27 +120,6 @@ export const AvailabilityManager: React.FC = () => {
           )}
         </div>
       </ScrollArea>
-
-      {/* Fixed Save Button */}
-      <div className="flex-shrink-0 pt-4 border-t mt-4">
-        <Button 
-          onClick={saveAvailability}
-          disabled={isSaving}
-          className="w-full h-12 text-base font-medium"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="h-5 w-5 mr-2" />
-              Guardar
-            </>
-          )}
-        </Button>
-      </div>
     </div>
   );
 };
