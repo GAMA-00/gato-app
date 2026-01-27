@@ -162,7 +162,7 @@ const ProviderLogin = () => {
               
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-black hover:bg-gray-800"
+                className="w-full h-12 bg-coral hover:bg-coral-light"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

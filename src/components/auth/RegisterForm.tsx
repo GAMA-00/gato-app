@@ -338,7 +338,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 <Button 
                   type="button" 
                   onClick={handleNextStep}
-                  className="w-full bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
+                  className="w-full bg-coral text-white hover:bg-coral-light h-12 text-base font-medium"
                   disabled={isSubmitting || loading}
                 >
                   Siguiente
@@ -388,7 +388,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                   
                   <Button 
                     type="submit" 
-                    className="flex-1 bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
+                    className="flex-1 bg-coral text-white hover:bg-coral-light h-12 text-base font-medium"
                     disabled={isSubmitting || loading}
                   >
                     {isSubmitting || loading ? (
@@ -609,7 +609,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
             <Button 
               type="submit" 
-              className="w-full bg-navy text-white hover:bg-navy-hover h-12 text-base font-medium"
+              className="w-full bg-coral text-white hover:bg-coral-light h-12 text-base font-medium"
               disabled={isSubmitting || loading}
             >
               {isSubmitting || loading ? (
@@ -627,7 +627,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
             <div className="text-center">
               <p className="text-base">¿Ya tienes una cuenta? {' '}
-                <Link to="/login" className="text-navy hover:underline font-medium">
+                <Link to="/login" className="text-coral hover:underline font-medium">
                   Inicia sesión
                 </Link>
               </p>

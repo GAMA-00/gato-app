@@ -70,21 +70,26 @@ export default {
           DEFAULT: 'hsl(var(--success))',
           foreground: 'hsl(var(--success-foreground))'
         },
+        coral: {
+          DEFAULT: 'hsl(10, 68%, 60%)',   // #de7153
+          light: 'hsl(16, 55%, 64%)',     // #D58870
+          dark: 'hsl(13, 47%, 32%)',      // #773E2D
+        },
         navy: {
-          DEFAULT: '#1C1C1E',
-          hover: '#000000',
+          DEFAULT: 'hsl(10, 68%, 60%)',   // Updated to coral
+          hover: 'hsl(16, 55%, 64%)',     // Updated to coral-light
         },
         'neutral-gray': {
           DEFAULT: '#8A8A8E',
           hover: '#6E6E73',
         },
         app: {
-          background: '#FFFFFF',    // Fondo blanco
-          card: '#F2F2F2',          // Tarjetas más oscuras (gris claro)
-          cardAlt: '#F0F0F0',       // Alternativo un poco más oscuro
-          text: '#1C1C1E',          // Texto principal (casi negro)
-          textAlt: '#000000',       // Texto alternativo (negro puro)
-          border: '#E0E0E0',        // Borde suave para tarjetas
+          background: '#F9F9F9',    // Fondo blanco suave
+          card: '#F5F5F5',          // Tarjetas 
+          cardAlt: '#F0F0F0',       // Alternativo
+          text: '#1C1A19',          // Texto principal
+          textAlt: '#333333',       // Texto alternativo
+          border: '#E5E5E5',        // Borde suave para tarjetas
           shadow: 'rgba(0, 0, 0, 0.05)' // Sombra sutil
         }
       },

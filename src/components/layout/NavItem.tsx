@@ -31,8 +31,8 @@ const NavItem = ({
       className={cn(
         "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors relative",
         isActive
-          ? "bg-[#FEEBCB] text-[#1A1A1A]"
-          : "text-[#4D4D4D] hover:text-[#1A1A1A] hover:bg-[#FEEBCB]/50"
+          ? "bg-coral/10 text-coral"
+          : "text-[#4D4D4D] hover:text-coral hover:bg-coral/5"
       )}
       onClick={onClick}
     >
