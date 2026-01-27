@@ -89,14 +89,23 @@ export const AvailabilityConfigureTab: React.FC<AvailabilityConfigureTabProps> =
             <CardContent className="pt-0 px-4 pb-4">
               <div className="space-y-3">
                 {availability[key].timeSlots.map((slot, index) => (
-                  <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                    <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 grid grid-cols-2 gap-3">
-                      <div>
+                  <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 grid grid-cols-2 gap-3">
                         <Label htmlFor={`${key}-start-${index}`} className="text-xs text-muted-foreground">
                           Hora de inicio
                         </Label>
-                        <div className="relative mt-1">
+                        <Label htmlFor={`${key}-end-${index}`} className="text-xs text-muted-foreground">
+                          Hora de finalización
+                        </Label>
+                      </div>
+                      <div className="w-10 flex-shrink-0" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 flex-shrink-0" />
+                      <div className="flex-1 grid grid-cols-2 gap-3">
+                        <div className="relative">
                           <Input
                             id={`${key}-start-${index}`}
                             type="time"
@@ -108,12 +117,7 @@ export const AvailabilityConfigureTab: React.FC<AvailabilityConfigureTabProps> =
                             {formatTo12Hour(slot.startTime)}
                           </span>
                         </div>
-                      </div>
-                      <div>
-                        <Label htmlFor={`${key}-end-${index}`} className="text-xs text-muted-foreground">
-                          Hora de finalización
-                        </Label>
-                        <div className="relative mt-1">
+                        <div className="relative">
                           <Input
                             id={`${key}-end-${index}`}
                             type="time"
@@ -126,15 +130,15 @@ export const AvailabilityConfigureTab: React.FC<AvailabilityConfigureTabProps> =
                           </span>
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeTimeSlot(key, index)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-10 w-10 flex-shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeTimeSlot(key, index)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-10 w-10 flex-shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 ))}
                 
