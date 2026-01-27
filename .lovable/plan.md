@@ -1,167 +1,131 @@
 
+# Plan: Actualizar Tema Visual de la App "Gato"
 
-## Rediseño de Barras de Progreso en Sección "Logros"
-
-Se rediseñará la sección de Logros para proveedores, reemplazando las barras de progreso lineales actuales con un indicador circular tipo gauge para el nivel actual, y cards simplificadas para los niveles restantes.
-
----
-
-### Análisis de la imagen de referencia
-
-**Card del Nivel Actual (destacado):**
-- Icono del nivel + nombre "Nuevo"
-- Badge "Nivel Actual" naranja a la derecha
-- Descripción del nivel debajo
-- **Indicador semicircular (gauge)** con:
-  - Arco de progreso naranja sobre fondo gris
-  - Porcentaje centrado grande (41%)
-  - Texto "12/29 Trabajos" debajo del porcentaje
-
-**Cards de otros niveles (simplificadas):**
-- Lista vertical de cards compactas
-- Cada card tiene: icono + nombre a la izquierda, rango de trabajos a la derecha
-- Estilo minimalista con borde sutil
+## Resumen
+Actualizar el tema de toda la aplicacion usando la nueva paleta de colores "Coral Gato" mostrada en las imagenes de referencia, manteniendo un aspecto limpio, minimalista y funcional. Los cambios son puramente visuales, sin afectar la logica o funcionalidad.
 
 ---
 
-### Cambios a implementar
+## Nueva Paleta de Colores
 
-#### 1. Nuevo componente: `src/components/achievements/SemiCircularProgress.tsx`
+| Nombre | Hex | Uso |
+|--------|-----|-----|
+| Coral Gato (Principal) | `#de7153` | Botones principales, acentos, iconos activos |
+| Coral Claro | `#D58870` | Variante hover, estados alternativos |
+| Marron | `#773E2D` | Texto en fondos claros, contrastes |
+| Gris Claro | `#E5E5E5` | Fondos de tarjetas, separadores |
+| Gris Oscuro | `#333333` | Texto principal |
+| Negro Suave | `#1C1A19` | Texto de alta importancia, titulos |
+| Blanco Suave | `#F9F9F9` | Fondo de la app |
 
-Componente SVG para el indicador semicircular:
-- Arco de fondo gris claro (180 grados)
-- Arco de progreso naranja proporcional al porcentaje
-- Espacio central para mostrar texto
+---
 
-```text
-        ____...____
-      /             \
-     /               \
-    |                 |
-     \               /
-      \             /
-        ‾‾‾‾‾‾‾‾‾‾‾
-          41%
-      12/29 Trabajos
+## Cambios por Archivo
+
+### 1. Variables CSS Globales
+**Archivo:** `src/index.css`
+
+Actualizar las variables CSS para reflejar la nueva paleta:
+- `--primary`: Cambiar de coral `#FF6B5A` a `#de7153` (HSL: 10 68% 60%)
+- `--foreground`: Mantener texto oscuro `#1C1A19`
+- `--background`: Cambiar a `#F9F9F9` (blanco suave)
+- `--card`: Cambiar a `#F5F5F5` (ligeramente mas oscuro que fondo)
+
+### 2. Configuracion de Tailwind
+**Archivo:** `tailwind.config.ts`
+
+Actualizar los colores personalizados:
+- `app.background`: `#F9F9F9`
+- `app.text`: `#1C1A19`
+- Agregar colores coral: `coral: { DEFAULT: '#de7153', light: '#D58870', dark: '#773E2D' }`
+- Agregar gradiente coral: `gradient-coral`
+
+### 3. Pagina de Inicio (Landing)
+**Archivo:** `src/pages/LandingPage.tsx`
+
+- Cambiar boton "Ingresar como Cliente" de `bg-black` a `bg-[#de7153]` (coral)
+- Mantener boton "Ingresar como Proveedor" con borde y fondo blanco
+- Actualizar iconos a usar color coral para consistencia
+- Logo ya existe, confirmar que muestra el logo de Gato correcto
+
+### 4. Paginas de Login
+**Archivos:**
+- `src/pages/ClientLogin.tsx`
+- `src/pages/ProviderLogin.tsx`
+
+- Cambiar boton de submit de `bg-black` a `bg-[#de7153]`
+- Actualizar color de hover a `#D58870`
+- Mantener consistencia con el tema coral
+
+### 5. Formulario de Registro
+**Archivo:** `src/components/auth/RegisterForm.tsx`
+
+- Cambiar botones de `bg-navy` a `bg-[#de7153]`
+- Actualizar hover de `bg-navy-hover` a coral mas oscuro
+- Actualizar enlaces de `text-navy` a `text-[#de7153]`
+
+### 6. Componente de Boton Base
+**Archivo:** `src/components/ui/button.tsx`
+
+Actualizar la variante `default`:
+- De `bg-app-text` a `bg-[#de7153]`
+- Hover: `hover:bg-[#D58870]`
+
+### 7. Navegacion
+**Archivos:**
+- `src/components/layout/MobileBottomNav.tsx`
+- `src/components/layout/MobileNav.tsx`
+- `src/components/layout/DesktopNav.tsx`
+
+- Iconos activos: Cambiar de `text-primary` a usar el nuevo color coral
+- Mantener iconos inactivos en gris `#4D4D4D`
+
+### 8. Otros Componentes con Colores
+**Archivos a revisar:**
+- `src/components/services/steps/SlotCard.tsx`: Cambiar slots seleccionados de negro a coral
+- `src/components/calendar/AvailabilityManager.tsx`: Tabs activos usar coral
+- `src/components/client/results/ServiceVariantsSelector.tsx`: Indicador de scroll usar coral
+
+---
+
+## Resumen de Archivos a Modificar
+
+1. `src/index.css` - Variables CSS globales
+2. `tailwind.config.ts` - Configuracion de colores Tailwind
+3. `src/pages/LandingPage.tsx` - Pagina de inicio
+4. `src/pages/ClientLogin.tsx` - Login de clientes
+5. `src/pages/ProviderLogin.tsx` - Login de proveedores
+6. `src/components/auth/RegisterForm.tsx` - Formulario de registro
+7. `src/components/ui/button.tsx` - Componente de boton base
+8. `src/components/layout/MobileBottomNav.tsx` - Navegacion inferior
+9. `src/components/services/steps/SlotCard.tsx` - Tarjetas de slots
+
+---
+
+## Detalles Tecnicos
+
+### Conversion de Colores a HSL
+
+| Hex | HSL |
+|-----|-----|
+| `#de7153` | 10 68% 60% |
+| `#D58870` | 16 55% 64% |
+| `#773E2D` | 13 47% 32% |
+| `#F9F9F9` | 0 0% 98% |
+| `#1C1A19` | 20 6% 10% |
+
+### Gradiente Coral
+```css
+linear-gradient(135deg, #de7153 0%, #D58870 100%)
 ```
 
-**Props:**
-- `value`: número de 0-100 (porcentaje de progreso)
-- `color`: color del arco de progreso
-- `size`: tamaño del componente (por defecto 180px)
-
 ---
 
-#### 2. Modificar: `src/components/achievements/LevelCard.tsx`
+## Notas Importantes
 
-**Nueva lógica de renderizado:**
-
-Si `isCurrentLevel === true`:
-- Card grande destacada con borde
-- Header: icono + nombre + badge "Nivel Actual"
-- Descripción del nivel
-- SemiCircularProgress con:
-  - Valor = progreso dentro del nivel
-  - Texto central = porcentaje
-  - Texto inferior = "X/Y Trabajos"
-
-Si `isCurrentLevel === false`:
-- Card compacta en una sola fila
-- Icono + nombre a la izquierda
-- Rango de trabajos a la derecha
-- Sin barra de progreso
-
----
-
-#### 3. Modificar: `src/pages/Achievements.tsx`
-
-**Cambios en layout:**
-
-1. Eliminar la Card de resumen superior (ya que el nivel actual tendrá prominencia)
-2. Renderizar primero el nivel actual como card grande
-3. Renderizar los demás niveles como lista de cards compactas
-4. Mantener el componente RatingHistory al final
-
-**Nueva estructura:**
-
-```text
-+------------------------------------------+
-|  Logros                                  |
-+------------------------------------------+
-|                                          |
-|  ┌────────────────────────────────────┐  |
-|  │  🏅 Nuevo           [Nivel Actual] │  |
-|  │  Proveedor recién registrado...    │  |
-|  │                                    │  |
-|  │         ____...____                │  |
-|  │       /     🟠     \               │  |
-|  │      /               \             │  |
-|  │                                    │  |
-|  │           41%                      │  |
-|  │       12/29 Trabajos               │  |
-|  └────────────────────────────────────┘  |
-|                                          |
-|  ┌────────────────────────────────────┐  |
-|  │  🥉 Bronce          30 - 99 trabajos │  |
-|  └────────────────────────────────────┘  |
-|  ┌────────────────────────────────────┐  |
-|  │  ⭐ Plata          100 - 499 trabajos│  |
-|  └────────────────────────────────────┘  |
-|  ┌────────────────────────────────────┐  |
-|  │  🏆 Oro            500 - 999 trabajos│  |
-|  └────────────────────────────────────┘  |
-|  ┌────────────────────────────────────┐  |
-|  │  👑 Platino      1000 - 2499 trabajos│  |
-|  └────────────────────────────────────┘  |
-|  ┌────────────────────────────────────┐  |
-|  │  💎 Diamante        2500+ trabajos   │  |
-|  └────────────────────────────────────┘  |
-|                                          |
-+------------------------------------------+
-```
-
----
-
-### Archivos a crear/modificar
-
-| Archivo | Acción |
-|---------|--------|
-| `src/components/achievements/SemiCircularProgress.tsx` | **Crear** - Componente SVG de gauge semicircular |
-| `src/components/achievements/LevelCard.tsx` | **Modificar** - Rediseñar para card actual vs. compacta |
-| `src/pages/Achievements.tsx` | **Modificar** - Ajustar layout para nuevo diseño |
-
----
-
-### Detalles técnicos
-
-**SemiCircularProgress SVG:**
-- Radio externo: 80-90px
-- Grosor del arco: 12-15px
-- Ángulo inicio: 180° (izquierda)
-- Ángulo fin: 0° (derecha)
-- Fórmula: `strokeDasharray` y `strokeDashoffset` para el progreso
-
-**Colores:**
-- Arco de fondo: `#E5E7EB` (gris claro)
-- Arco de progreso: Color primario o color del nivel (`#F97316` naranja)
-- Texto porcentaje: Negro/gris oscuro, font-bold
-- Texto trabajos: Gris medio, texto pequeño
-
-**Responsive:**
-- Gauge más pequeño en móvil (140px vs 180px)
-- Cards compactas mantienen diseño horizontal
-
----
-
-### Iconos por nivel
-
-Se mantienen los iconos existentes del `iconMap`:
-- Nuevo: Award (🏅)
-- Bronce: Award (🥉)
-- Plata: Star (⭐)
-- Oro: Trophy (🏆)
-- Platino: Crown (👑)
-- Diamante: Gem (💎)
-
-Los colores serán el tono naranja/terracota de la imagen de referencia para el nivel actual.
+- No se modifica ninguna logica de negocio
+- Se mantiene la estructura de componentes existente
+- Los colores se actualizan de forma centralizada via CSS variables cuando es posible
+- Los colores hardcodeados en clases individuales se actualizan directamente
+- El logo existente en `/lovable-uploads/` se mantiene
 
