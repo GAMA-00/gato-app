@@ -635,7 +635,32 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               )}
             />
 
-            <Button 
+            <FormField
+              control={form.control}
+              name="referredBy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">
+                    Nombre de la persona que te refirió a Gato
+                    <span className="text-muted-foreground text-sm font-normal ml-1">(opcional)</span>
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Nombre"
+                        className="pl-10 h-12 text-base"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
               type="submit" 
               className="w-full bg-coral text-white hover:bg-coral-light h-12 text-base font-medium"
               disabled={isSubmitting || loading}
