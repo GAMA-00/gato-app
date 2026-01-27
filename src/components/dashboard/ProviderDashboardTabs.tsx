@@ -74,16 +74,10 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
 
       <TabsContent 
         value="citas" 
-        className="mt-4 focus-visible:outline-none"
+        className="mt-4 overflow-y-auto focus-visible:outline-none"
+        style={{ maxHeight: 'calc(100vh - 380px)' }}
       >
-        {/* Stats cards fixed at top, outside scroll */}
-        <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
-        
-        {/* Scrollable appointments area */}
-        <div 
-          className="mt-4 space-y-4 overflow-y-auto"
-          style={{ maxHeight: 'calc(100vh - 480px)' }}
-        >
+        <div className="space-y-4">
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Citas de Hoy"
@@ -97,6 +91,8 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
             icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
             emptyMessage="No hay citas programadas para mañana"
           />
+
+          <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
         </div>
       </TabsContent>
 
