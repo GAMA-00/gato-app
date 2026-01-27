@@ -41,12 +41,8 @@ export const AvailabilityManager: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full max-h-[80vh]">
-      {/* Header */}
+      {/* Tabs */}
       <div className="flex-shrink-0 pb-4">
-        <h2 className="text-lg font-semibold text-center text-foreground mb-4">
-          Administrar Disponibilidad
-        </h2>
-        
         {/* Pill-shaped Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-muted p-1 rounded-full h-12">
