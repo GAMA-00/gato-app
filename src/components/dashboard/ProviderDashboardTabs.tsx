@@ -42,7 +42,8 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
   };
 
   // Use more height on mobile (accounting for navbar ~64px + header ~80px + tabs ~60px + bottom nav ~80px)
-  const scrollHeight = isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 380px)';
+  // Desktop: navbar sidebar offset + header ~80px + tabs ~60px + padding
+  const scrollHeight = isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 220px)';
 
   return (
     <Tabs defaultValue="citas" className="w-full flex-1 flex flex-col">
