@@ -1,13 +1,9 @@
-
 import React from 'react';
-import { Trophy } from 'lucide-react';
+import { Trophy, User, Shield, Star, Award, Crown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { AchievementLevelInfo } from '@/lib/achievementTypes';
-
-// Map of icons for different achievement levels
-import { User, Shield, Star, Award, Crown } from 'lucide-react';
+import SemiCircularProgress from './SemiCircularProgress';
 
 // Custom Gem icon component since it's not in lucide-react
 const GemIcon = ({ className }: { className?: string }) => (
@@ -27,73 +23,108 @@ const GemIcon = ({ className }: { className?: string }) => (
 );
 
 const iconMap: Record<string, React.ReactNode> = {
-  'user': <User className="h-4 w-4" />,
-  'shield': <Shield className="h-4 w-4" />,
-  'star': <Star className="h-4 w-4" />,
-  'award': <Award className="h-4 w-4" />,
-  'trophy': <Trophy className="h-4 w-4" />,
-  'crown': <Crown className="h-4 w-4" />,
-  'gem': <GemIcon className="h-4 w-4" />,
+  'user': <User className="h-5 w-5" />,
+  'shield': <Shield className="h-5 w-5" />,
+  'star': <Star className="h-5 w-5" />,
+  'award': <Award className="h-5 w-5" />,
+  'trophy': <Trophy className="h-5 w-5" />,
+  'crown': <Crown className="h-5 w-5" />,
+  'gem': <GemIcon className="h-5 w-5" />,
 };
 
-const LevelCard: React.FC<{ 
-  level: AchievementLevelInfo, 
-  isCurrentLevel: boolean,
-  isAchieved: boolean,
-  progress: number,
-  completedJobs?: number
-}> = ({ level, isCurrentLevel, isAchieved, progress, completedJobs = 0 }) => {
+interface LevelCardProps {
+  level: AchievementLevelInfo;
+  isCurrentLevel: boolean;
+  isAchieved: boolean;
+  progress: number;
+  completedJobs?: number;
+}
+
+// Current Level Card - Large with gauge
+const CurrentLevelCard: React.FC<LevelCardProps> = ({ 
+  level, 
+  progress, 
+  completedJobs = 0 
+}) => {
+  const maxJobsForDisplay = level.maxJobs === Infinity ? level.minJobs + 100 : level.maxJobs;
+  
   return (
-    <Card className={`transition-all duration-300 h-full ${
-      isCurrentLevel ? 'border-primary shadow-md glassmorphism border-2' : 
-      isAchieved ? 'glassmorphism' : 'opacity-60'}`}
-    >
+    <Card className="glassmorphism border-2 border-primary shadow-md">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold leading-tight pr-3 break-words">
-            {level.name}
-          </CardTitle>
-          <div 
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" 
-            style={{ backgroundColor: `${level.color}20` }}
-          >
-            {iconMap[level.icon] || <Trophy className="h-4 w-4" style={{ color: level.color }} />}
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center" 
+              style={{ backgroundColor: `${level.color}20`, color: level.color }}
+            >
+              {iconMap[level.icon] || <Trophy className="h-5 w-5" />}
+            </div>
+            <CardTitle className="text-lg font-semibold">
+              {level.name}
+            </CardTitle>
           </div>
+          <Badge style={{ backgroundColor: level.color }} className="text-white">
+            Nivel Actual
+          </Badge>
         </div>
-        <CardDescription className="line-clamp-4 min-h-[6rem]">{level.description}</CardDescription>
+        <CardDescription className="mt-2">
+          {level.description}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="mt-3 space-y-2">
-          {/* Current progress display */}
-          <div className="flex items-center justify-between text-xs font-medium">
-            <span className="text-muted-foreground">
-              {isCurrentLevel 
-                ? `${completedJobs} / ${level.maxJobs === Infinity ? `${level.minJobs}+` : level.maxJobs} trabajos`
-                : isAchieved 
-                  ? "Completado"
-                  : `${level.minJobs} - ${level.maxJobs === Infinity ? `${level.minJobs}+` : level.maxJobs} trabajos`
-              }
-            </span>
-            <span className="text-primary">
-              {isAchieved && !isCurrentLevel ? '100%' : isCurrentLevel ? `${Math.round(progress)}%` : '0%'}
-            </span>
-          </div>
-          
-          <Progress 
-            value={isAchieved && !isCurrentLevel ? 100 : isCurrentLevel ? progress : 0} 
-            className="h-3 bg-muted/30" 
-          />
-        </div>
-        
-        {isCurrentLevel && (
-          <Badge className="mt-3" style={{ backgroundColor: level.color }}>Nivel Actual</Badge>
-        )}
-        {isAchieved && !isCurrentLevel && (
-          <Badge variant="outline" className="mt-3 border-green-500 text-green-500">Completado</Badge>
-        )}
+      <CardContent className="flex justify-center pt-4 pb-6">
+        <SemiCircularProgress
+          value={progress}
+          color={level.color}
+          size={160}
+          completedJobs={completedJobs}
+          maxJobs={maxJobsForDisplay}
+        />
       </CardContent>
     </Card>
   );
+};
+
+// Compact Level Card - Simple row
+const CompactLevelCard: React.FC<LevelCardProps> = ({ level, isAchieved }) => {
+  const jobRange = level.maxJobs === Infinity 
+    ? `${level.minJobs}+ trabajos` 
+    : `${level.minJobs} - ${level.maxJobs} trabajos`;
+
+  return (
+    <Card className={`transition-all duration-200 ${isAchieved ? 'glassmorphism' : 'opacity-60 bg-muted/30'}`}>
+      <CardContent className="flex items-center justify-between py-4 px-4">
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" 
+            style={{ 
+              backgroundColor: isAchieved ? `${level.color}20` : '#E5E7EB',
+              color: isAchieved ? level.color : '#9CA3AF'
+            }}
+          >
+            {iconMap[level.icon] || <Trophy className="h-4 w-4" />}
+          </div>
+          <span className={`font-medium ${isAchieved ? 'text-foreground' : 'text-muted-foreground'}`}>
+            {level.name}
+          </span>
+          {isAchieved && (
+            <Badge variant="outline" className="border-green-500 text-green-600 text-xs ml-2">
+              ✓
+            </Badge>
+          )}
+        </div>
+        <span className="text-sm text-muted-foreground">
+          {jobRange}
+        </span>
+      </CardContent>
+    </Card>
+  );
+};
+
+const LevelCard: React.FC<LevelCardProps> = (props) => {
+  if (props.isCurrentLevel) {
+    return <CurrentLevelCard {...props} />;
+  }
+  return <CompactLevelCard {...props} />;
 };
 
 export default LevelCard;

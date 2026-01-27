@@ -92,99 +92,51 @@ const Achievements = () => {
   
   const currentLevel = currentLevelIndex >= 0 ? ACHIEVEMENT_LEVELS[currentLevelIndex] : ACHIEVEMENT_LEVELS[0];
 
-  return (
-      <>
-        <Navbar />
-        <div className="min-h-screen bg-[#FAFAFA]">
-          <div className="md:ml-52 p-4 md:p-6 pt-20 md:pt-6">
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-app-text mb-4 md:mb-6">
-                Logros
-              </h1>
-                
-                <div className="space-y-6 md:space-y-8">
-                  {/* Summary Card - Mobile optimized */}
-                  <Card className="glassmorphism p-4 md:p-5">
-                    {isMobile ? (
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <h2 className="text-xl font-bold text-primary mb-1">
-                            {achievements.totalCompletedJobs}
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            Trabajos Completados
-                          </p>
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-bold text-green-600 mb-1">
-                            {achievements.recurringClientsCount}
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            Clientes Recurrentes
-                          </p>
-                        </div>
-                        <div>
-                          <h2 className="text-lg font-bold text-blue-600 mb-1">
-                            {currentLevel.name}
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            Nivel Actual
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                          <div className="text-center">
-                            <h2 className="text-2xl md:text-3xl font-bold text-primary mb-1">
-                              {achievements.totalCompletedJobs}
-                            </h2>
-                            <p className="text-sm text-muted-foreground">
-                              Trabajos Completados
-                            </p>
-                          </div>
-                          <div className="h-8 w-px bg-border" />
-                          <div className="text-center">
-                            <h2 className="text-2xl md:text-3xl font-bold text-green-600 mb-1">
-                              {achievements.recurringClientsCount}
-                            </h2>
-                            <p className="text-sm text-muted-foreground">
-                              Clientes Recurrentes
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground mb-1">
-                            Nivel Actual
-                          </p>
-                          <p className="font-semibold text-primary text-base">
-                            {currentLevel.name}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </Card>
+  // Separate current level from others
+  const currentLevelData = ACHIEVEMENT_LEVELS.find(level => level.level === currentLevel.level);
+  const otherLevels = ACHIEVEMENT_LEVELS.filter(level => level.level !== currentLevel.level);
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {ACHIEVEMENT_LEVELS.map((level) => {
-                  const isCurrentLevel = level.level === currentLevel.level;
+  // Calculate progress for current level
+  const calculateProgress = (level: typeof currentLevel) => {
+    const levelRange = level.maxJobs === Infinity ? level.minJobs + 100 : level.maxJobs - level.minJobs;
+    const jobsInLevel = Math.min(achievements.totalCompletedJobs, level.maxJobs === Infinity ? achievements.totalCompletedJobs : level.maxJobs) - level.minJobs;
+    return Math.max(0, (jobsInLevel / levelRange) * 100);
+  };
+
+  return (
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-[#FAFAFA]">
+        <div className="md:ml-52 p-4 md:p-6 pt-20 md:pt-6">
+          <div className="max-w-2xl mx-auto">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-app-text mb-4 md:mb-6">
+              Logros
+            </h1>
+              
+            <div className="space-y-4">
+              {/* Current Level Card - Prominent with gauge */}
+              {currentLevelData && (
+                <LevelCard
+                  level={currentLevelData}
+                  isCurrentLevel={true}
+                  isAchieved={true}
+                  progress={calculateProgress(currentLevelData)}
+                  completedJobs={achievements.totalCompletedJobs}
+                />
+              )}
+
+              {/* Other Levels - Compact list */}
+              <div className="space-y-2">
+                {otherLevels.map((level) => {
                   const isAchieved = achievements.totalCompletedJobs >= level.minJobs;
-                  
-                  // Calculate progress within current level range
-                  let progress = 0;
-                  if (isCurrentLevel) {
-                    const levelRange = level.maxJobs === Infinity ? level.minJobs + 100 : level.maxJobs - level.minJobs;
-                    const jobsInLevel = Math.min(achievements.totalCompletedJobs, level.maxJobs) - level.minJobs;
-                    progress = (jobsInLevel / levelRange) * 100;
-                  }
                   
                   return (
                     <LevelCard
                       key={level.level}
                       level={level}
-                      isCurrentLevel={isCurrentLevel}
+                      isCurrentLevel={false}
                       isAchieved={isAchieved}
-                      progress={progress}
+                      progress={0}
                       completedJobs={achievements.totalCompletedJobs}
                     />
                   );
