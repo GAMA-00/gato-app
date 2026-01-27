@@ -54,31 +54,31 @@ export const AvailabilityConfigureTab: React.FC<AvailabilityConfigureTabProps> =
       {DAYS.map(({ key, label }) => (
         <Card key={key} className="shadow-sm border-border">
           <CardHeader className="pb-2 px-4 pt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-base font-medium text-foreground">{label}</CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <CardTitle className="text-base font-medium text-foreground whitespace-nowrap">{label}</CardTitle>
                 {availability[key]?.enabled && availability[key].timeSlots.length > 0 && (
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => {
                       const otherDays = DAYS.filter(d => d.key !== key).map(d => d.key);
                       copyDayToOtherDays(key, otherDays);
                     }}
-                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground flex-shrink-0"
                     title="Copiar a otros días"
                   >
-                    <Copy className="h-3 w-3" />
+                    <Copy className="h-4 w-4" />
                   </Button>
                 )}
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Switch
                   id={`${key}-enabled`}
                   checked={availability[key]?.enabled || false}
                   onCheckedChange={(checked) => updateDayAvailability(key, checked)}
                 />
-                <Label htmlFor={`${key}-enabled`} className="text-sm text-muted-foreground">
+                <Label htmlFor={`${key}-enabled`} className="text-sm text-muted-foreground whitespace-nowrap">
                   Disponible
                 </Label>
               </div>
