@@ -173,6 +173,7 @@ export interface Appointment {
 export interface DashboardStats {
   todayAppointments: number;
   weekAppointments: number;
+  monthAppointments: number;
   monthRevenue: number;
   activeClients: number;
   

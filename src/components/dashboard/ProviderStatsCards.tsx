@@ -42,9 +42,9 @@ const ProviderStatsCards: React.FC<ProviderStatsCardsProps> = ({ stats, isLoadin
     <div className="grid grid-cols-3 gap-3">
       <StatCard
         icon={<Calendar className="h-5 w-5" />}
-        label="Esta semana"
-        value={stats?.weekAppointments ?? 0}
-        sublabel="Próx. citas"
+        label="Este mes"
+        value={stats?.monthAppointments ?? 0}
+        sublabel="Citas"
       />
       <StatCard
         icon={<Users className="h-5 w-5" />}
