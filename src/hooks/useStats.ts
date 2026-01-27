@@ -40,6 +40,7 @@ export function useStats() {
         const defaultStats = {
           todayAppointments: 0,
           weekAppointments: 0,
+          monthAppointments: 0,
           monthRevenue: 0,
           activeClients: 0,
           previousWeekAppointments: 0,
@@ -79,6 +80,7 @@ export function useStats() {
           // Calculate all stats in a single pass for maximum efficiency
           let todayCount = 0;
           let weekCount = 0;
+          let monthCount = 0;
           let monthRevenue = 0;
           let previousWeekCount = 0;
           let previousMonthRevenue = 0;
@@ -103,6 +105,11 @@ export function useStats() {
               // Count this week's appointments
               if (appDate >= weekStart) {
                 weekCount++;
+              }
+              
+              // Count this month's appointments
+              if (appDate >= monthStart) {
+                monthCount++;
               }
               
               // Count previous week's appointments
@@ -148,6 +155,7 @@ export function useStats() {
           return {
             todayAppointments: todayCount,
             weekAppointments: weekCount,
+            monthAppointments: monthCount,
             monthRevenue,
             activeClients: uniqueClients.size,
             previousWeekAppointments: previousWeekCount,
@@ -186,6 +194,7 @@ export function useStats() {
           // Calculate stats efficiently
           let todayCount = 0;
           let weekCount = 0;
+          let monthCount = 0;
           let monthRevenue = 0;
           let previousWeekCount = 0;
           let previousMonthRevenue = 0;
@@ -208,6 +217,10 @@ export function useStats() {
               
               if (appDate >= weekStart) {
                 weekCount++;
+              }
+              
+              if (appDate >= monthStart) {
+                monthCount++;
               }
               
               if (appDate >= previousWeekStart && appDate < weekStart) {
@@ -248,6 +261,7 @@ export function useStats() {
           return {
             todayAppointments: todayCount,
             weekAppointments: weekCount,
+            monthAppointments: monthCount,
             monthRevenue,
             activeClients: uniqueProviders.size,
             previousWeekAppointments: previousWeekCount,
@@ -266,6 +280,7 @@ export function useStats() {
         return {
           todayAppointments: 0,
           weekAppointments: 0,
+          monthAppointments: 0,
           monthRevenue: 0,
           activeClients: 0
         };
