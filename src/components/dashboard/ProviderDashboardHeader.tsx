@@ -9,7 +9,7 @@ const ProviderDashboardHeader: React.FC<ProviderDashboardHeaderProps> = ({ userN
     <div>
       {/* Greeting */}
       <h1 className="text-2xl font-bold text-foreground">
-        Bienvenida, {userName}
+        Bienvenido, {userName}
       </h1>
     </div>
   );
