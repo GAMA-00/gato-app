@@ -8,6 +8,7 @@ import RequestCard from '@/components/calendar/RequestCard';
 import { useRequestActions } from '@/hooks/useRequestActions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DashboardStats as DashboardStatsType } from '@/lib/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProviderDashboardTabsProps {
   activeAppointmentsToday: any[];
@@ -27,6 +28,7 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
   isLoadingStats
 }) => {
   const { handleAccept, handleDecline, isLoading: isProcessing } = useRequestActions();
+  const isMobile = useIsMobile();
 
   const citasCount = activeAppointmentsToday.length + tomorrowsAppointments.length;
   const solicitudesCount = pendingRequests.length;
@@ -39,9 +41,12 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
     handleDecline(request);
   };
 
+  // Use more height on mobile (accounting for navbar ~64px + header ~80px + tabs ~60px + bottom nav ~80px)
+  const scrollHeight = isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 380px)';
+
   return (
-    <Tabs defaultValue="citas" className="w-full">
-      <TabsList className="w-full bg-muted/60 p-1 rounded-full h-auto">
+    <Tabs defaultValue="citas" className="w-full flex-1 flex flex-col">
+      <TabsList className="w-full bg-muted/60 p-1 rounded-full h-auto flex-shrink-0">
         <TabsTrigger 
           value="citas" 
           className="flex-1 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5 px-4 gap-2"
@@ -74,10 +79,10 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
 
       <TabsContent 
         value="citas" 
-        className="mt-4 overflow-y-auto focus-visible:outline-none"
-        style={{ maxHeight: 'calc(100vh - 380px)' }}
+        className="mt-4 overflow-y-auto focus-visible:outline-none flex-1"
+        style={{ maxHeight: scrollHeight }}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 pb-4">
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Citas de Hoy"
@@ -98,10 +103,10 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
 
       <TabsContent 
         value="solicitudes" 
-        className="mt-4 overflow-y-auto focus-visible:outline-none"
-        style={{ maxHeight: 'calc(100vh - 380px)' }}
+        className="mt-4 overflow-y-auto focus-visible:outline-none flex-1"
+        style={{ maxHeight: scrollHeight }}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 pb-4">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="text-lg font-semibold text-foreground">Solicitudes de Reserva</h3>
             {solicitudesCount > 0 && (
