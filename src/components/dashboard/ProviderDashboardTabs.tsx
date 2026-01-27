@@ -74,13 +74,16 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
 
       <TabsContent 
         value="citas" 
-        className="mt-4 overflow-y-auto focus-visible:outline-none"
-        style={{ maxHeight: 'calc(100vh - 380px)' }}
+        className="mt-4 focus-visible:outline-none"
       >
-        <div className="space-y-4">
-          {/* Stats cards at the top of the Citas tab */}
-          <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
-
+        {/* Stats cards fixed at top, outside scroll */}
+        <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
+        
+        {/* Scrollable appointments area */}
+        <div 
+          className="mt-4 space-y-4 overflow-y-auto"
+          style={{ maxHeight: 'calc(100vh - 480px)' }}
+        >
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Citas de Hoy"
