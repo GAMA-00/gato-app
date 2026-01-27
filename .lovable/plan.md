@@ -1,29 +1,25 @@
 
 
-# Plan: Actualizar Logo del Landing Page
+# Plan: Corregir Capitalización del Nombre de Residencia
 
 ## Objetivo
-Reemplazar el logo actual del landing page con la imagen correcta que incluye:
-- El texto "gato" en tipografía negra con la "g" estilizada (cola de gato)
-- El subtítulo "Servicio a domicilio" debajo
+Actualizar el nombre "Colinas de montealegre" a "Colinas de Montealegre" en la base de datos.
 
-## Cambios a Realizar
+## Datos Identificados
+- **Tabla**: `residencias`
+- **ID del registro**: `9b170ff3-9bf5-4c0e-a5e8-fcaee6fd7b4e`
+- **Valor actual**: `Colinas de montealegre`
+- **Valor corregido**: `Colinas de Montealegre`
 
-### 1. Copiar la imagen correcta al proyecto
-- **Archivo fuente**: `user-uploads://WhatsApp_Image_2026-01-27_at_16.45.18_1.jpeg`
-- **Destino**: `public/gato-logo.png`
-- Esta acción reemplazará el logo incorrecto con el logo correcto que incluye "Servicio a domicilio"
+## Acción a Ejecutar
+Ejecutar la siguiente sentencia SQL para actualizar el nombre:
 
-### 2. Ajustar LandingPage.tsx (si es necesario)
-- Verificar que las dimensiones del contenedor sean apropiadas para mostrar el logo completo con el subtítulo
-- El logo actual ya referencia `/gato-logo.png`, por lo que solo necesitamos reemplazar el archivo
+```sql
+UPDATE residencias 
+SET name = 'Colinas de Montealegre' 
+WHERE id = '9b170ff3-9bf5-4c0e-a5e8-fcaee6fd7b4e';
+```
 
 ## Resultado Esperado
-El landing page mostrará el logo correcto con:
-- "gato" en texto negro con la g estilizada
-- "Servicio a domicilio" como subtítulo
-
----
-
-**Nota técnica**: Como el archivo de destino ya existe (`public/gato-logo.png`), simplemente lo reemplazaremos con la imagen correcta.
+El nombre del residencial se mostrará correctamente como "Colinas de Montealegre" (con M mayúscula) en el header de ubicación y en cualquier otra parte de la aplicación que utilice este dato.
 
