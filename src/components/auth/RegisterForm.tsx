@@ -391,7 +391,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                         <div className="relative">
                           <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
-                            placeholder="Nombre de quien te recomendó"
+                            placeholder="Nombre"
                             className="pl-10 h-12 text-base"
                             {...field}
                             disabled={isSubmitting}
