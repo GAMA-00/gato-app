@@ -17,7 +17,7 @@ const LandingPage = () => {
         <div className="flex flex-col items-center space-y-6">
           <div className="w-40 md:w-48">
             <img 
-              src="/gato-logo.png"
+              src="/gato-logo.png?v=2"
               alt="Gato - Servicio a domicilio"
               className="w-full h-auto object-contain"
             />
