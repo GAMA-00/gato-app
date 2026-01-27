@@ -662,16 +662,17 @@ export const SimplifiedCheckoutForm: React.FC<SimplifiedCheckoutFormProps> = ({
       {/* Mensaje informativo para pago directo */}
       {paymentMethodType === 'direct' && (
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10 mb-4">
-                <Banknote className="h-8 w-8 text-success" />
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+                <Banknote className="h-5 w-5 text-success" />
               </div>
-              <h3 className="font-medium text-lg mb-2">Pago Directo al Proveedor</h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Coordinarás el pago directamente con el proveedor al momento del servicio 
-                (efectivo, transferencia, SINPE, etc.)
-              </p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm">Pago Directo al Proveedor</h3>
+                <p className="text-xs text-muted-foreground">
+                  Coordinarás el pago al momento del servicio (efectivo, SINPE, etc.)
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
