@@ -5,26 +5,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;     /* #FFFFFF - fondo blanco */
-    --foreground: 240 5% 12%;    /* #1C1C1E - texto principal */
+    --background: 0 0% 98%;      /* #F9F9F9 - fondo blanco suave */
+    --foreground: 20 6% 10%;     /* #1C1A19 - texto principal */
     
-    --card: 0 0% 95%;            /* #F2F2F2 - fondo de tarjetas más oscuro */
-    --card-foreground: 240 5% 12%;
+    --card: 0 0% 96%;            /* #F5F5F5 - fondo de tarjetas */
+    --card-foreground: 20 6% 10%;
     
     --popover: 0 0% 98%;
-    --popover-foreground: 240 5% 12%;
+    --popover-foreground: 20 6% 10%;
     
-    --primary: 10 90% 66%;       /* Coral/naranja #FF6B5A */
+    --primary: 10 68% 60%;       /* Coral Gato #de7153 */
     --primary-foreground: 0 0% 100%;
     
     --secondary: 0 0% 94%;       /* #F0F0F0 - fondo alternativo */
-    --secondary-foreground: 240 5% 12%;
+    --secondary-foreground: 20 6% 10%;
     
     --muted: 0 0% 96%;
-    --muted-foreground: 240 5% 40%;
+    --muted-foreground: 0 0% 40%;
     
     --accent: 0 0% 96%;
-    --accent-foreground: 240 5% 12%;
+    --accent-foreground: 20 6% 10%;
     
     --destructive: 0 84% 60%;    /* Rojo para acciones destructivas */
     --destructive-foreground: 0 0% 98%;
@@ -34,11 +34,16 @@
     
     --border: 0 0% 88%;          /* #E0E0E0 - bordes suaves */
     --input: 0 0% 88%;
-    --ring: 240 5% 12%;
+    --ring: 10 68% 60%;          /* Coral para focus ring */
 
     /* Warning (orange) semantic token for highlights like recommended slots */
     --warning: 28 92% 54%;
     --warning-foreground: 0 0% 100%;
+    
+    /* Coral color variants */
+    --coral: 10 68% 60%;         /* #de7153 */
+    --coral-light: 16 55% 64%;   /* #D58870 */
+    --coral-dark: 13 47% 32%;    /* #773E2D */
 
     --radius: 0.75rem;           /* Bordes redondeados */
   }

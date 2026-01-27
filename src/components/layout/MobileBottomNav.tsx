@@ -92,8 +92,8 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
               <item.icon 
                 className={cn(
                   "h-5 w-5",
-                  isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
-                )} 
+                  isNavItemActive(item.to) ? "text-coral" : "text-[#4D4D4D]"
+                )}
               />
               {item.counter !== undefined && item.counter > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-blue-500 text-white rounded-full w-4 h-4 text-[10px] font-bold">
@@ -104,7 +104,7 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
             <span 
               className={cn(
                 "text-[10px] font-medium",
-                isNavItemActive(item.to) ? "text-primary" : "text-[#4D4D4D]"
+                isNavItemActive(item.to) ? "text-coral" : "text-[#4D4D4D]"
               )}
             >
               {item.label}
