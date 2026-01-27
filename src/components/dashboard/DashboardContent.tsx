@@ -2,12 +2,13 @@ import React from 'react';
 import { Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AppointmentList from '@/components/dashboard/AppointmentList';
-import DashboardStats from '@/components/dashboard/DashboardStats';
 import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import LoadingScreen from '@/components/common/LoadingScreen';
-
+import { useGroupedPendingRequests } from '@/hooks/useGroupedPendingRequests';
+import ProviderDashboardHeader from './ProviderDashboardHeader';
+import ProviderStatsCards from './ProviderStatsCards';
+import ProviderDashboardTabs from './ProviderDashboardTabs';
 
 interface DashboardContentProps {
   user: any;
@@ -27,55 +28,25 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   statsError
 }) => {
   const isMobile = useIsMobile();
+  const { data: groupedRequests = [], isLoading: isLoadingRequests } = useGroupedPendingRequests();
 
   const renderContent = () => {
     if (user?.role === 'provider') {
       return (
         <div className="space-y-6">
-          {/* Custom greeting for providers with reduced mobile spacing */}
-          <div className={isMobile ? "mb-3" : "mb-6"}>
-            <h1 className={`font-bold tracking-tight text-app-text ${
-              isMobile ? "text-xl mb-3" : "text-2xl md:text-3xl mb-6"
-            }`}>
-              Bienvenido {user?.name || 'Proveedor'}
-            </h1>
-          </div>
+          {/* Header with logo and greeting */}
+          <ProviderDashboardHeader userName={user?.name || 'Proveedor'} />
 
-          {/* Priority: Today's appointments first - includes recurring instances */}
-          <AppointmentList
-            appointments={activeAppointmentsToday}
-            title="Citas de Hoy"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para hoy"
+          {/* Stats cards */}
+          <ProviderStatsCards stats={stats} isLoading={isLoadingStats} />
+
+          {/* Tabs with Citas and Solicitudes */}
+          <ProviderDashboardTabs
+            activeAppointmentsToday={activeAppointmentsToday}
+            tomorrowsAppointments={tomorrowsAppointments}
+            pendingRequests={groupedRequests}
+            isLoadingRequests={isLoadingRequests}
           />
-
-          {/* Tomorrow's appointments - includes recurring instances */}
-          <AppointmentList
-            appointments={tomorrowsAppointments}
-            title="Citas de Mañana"
-            icon={<Calendar className="mr-2 h-5 w-5 text-primary" />}
-            emptyMessage="No hay citas programadas para mañana"
-          />
-
-          {/* Stats loaded separately, don't block main content */}
-          {isLoadingStats ? (
-            <div className="h-32 bg-muted rounded-lg animate-pulse flex items-center justify-center">
-              <LoadingScreen 
-                message="Cargando estadísticas..."
-                fullScreen={false}
-                size="sm"
-                className="h-auto"
-              />
-            </div>
-          ) : stats && !statsError ? (
-            <DashboardStats stats={stats} />
-          ) : statsError ? (
-            <Alert>
-              <AlertDescription>
-                No se pudieron cargar las estadísticas en este momento.
-              </AlertDescription>
-            </Alert>
-          ) : null}
         </div>
       );
     }
