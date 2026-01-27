@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const LocationHeader = () => {
   const { profile, isLoading } = useUserProfile();
 
-  const condominiumName = profile?.condominium_text || 'Sin ubicación';
+  const locationName = profile?.residencia_name || 'Sin ubicación';
 
   if (isLoading) {
     return (
@@ -25,7 +25,7 @@ const LocationHeader = () => {
       <div className="flex items-center gap-1.5">
         <MapPin className="h-3.5 w-3.5 text-primary" />
         <span className="text-sm font-medium text-foreground">
-          {condominiumName}
+          {locationName}
         </span>
         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
