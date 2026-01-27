@@ -1,160 +1,167 @@
 
 
-## Rediseño de "Config. Disponibilidad" con Dos Tabs
+## Rediseño de Barras de Progreso en Sección "Logros"
 
-Se rediseñará el componente `AvailabilityManager` para que coincida exactamente con las imágenes de referencia proporcionadas, manteniendo coherencia visual con otras secciones y garantizando un funcionamiento confiable.
+Se rediseñará la sección de Logros para proveedores, reemplazando las barras de progreso lineales actuales con un indicador circular tipo gauge para el nivel actual, y cards simplificadas para los niveles restantes.
 
 ---
 
-### Análisis de las imágenes de referencia
+### Análisis de la imagen de referencia
 
-**Tab "Configurar" (imagen izquierda):**
-- Título "Administrar Disponibilidad" centrado
-- Tabs pill-shaped con "Configurar" activo (naranja) y "Administrar" inactivo (gris)
-- Cards por día con:
-  - Nombre del día (ej. "Lunes") 
-  - Switch "Disponible" alineado a la derecha
-  - Campos "Hora de inicio" y "Hora de finalización" en formato 12h AM/PM
-  - Botón "+ Agregar Horario Adicional" en la parte inferior de cada card
-- Botón "Guardar" grande color primario al final
+**Card del Nivel Actual (destacado):**
+- Icono del nivel + nombre "Nuevo"
+- Badge "Nivel Actual" naranja a la derecha
+- Descripción del nivel debajo
+- **Indicador semicircular (gauge)** con:
+  - Arco de progreso naranja sobre fondo gris
+  - Porcentaje centrado grande (41%)
+  - Texto "12/29 Trabajos" debajo del porcentaje
 
-**Tab "Administrar" (imagen derecha):**
-- Mismo header con tabs
-- "Semana actual" con rango de fechas y navegación (flechas < >)
-- Leyenda de colores: Disponibles (verde), Bloqueados (naranja/rojo), Recurrentes (amarillo)
-- Cards por día mostrando grilla de slots:
-  - Nombre del día y fecha
-  - Grid 4 columnas con horarios en formato 12h AM
-  - Colores: verde = disponible, rojo/naranja = bloqueado, amarillo = recurrente
-- Botón "Guardar" al final
+**Cards de otros niveles (simplificadas):**
+- Lista vertical de cards compactas
+- Cada card tiene: icono + nombre a la izquierda, rango de trabajos a la derecha
+- Estilo minimalista con borde sutil
 
 ---
 
 ### Cambios a implementar
 
-#### 1. `src/components/calendar/AvailabilityManager.tsx` - Rediseño completo
+#### 1. Nuevo componente: `src/components/achievements/SemiCircularProgress.tsx`
 
-**Estructura nueva:**
+Componente SVG para el indicador semicircular:
+- Arco de fondo gris claro (180 grados)
+- Arco de progreso naranja proporcional al porcentaje
+- Espacio central para mostrar texto
+
+```text
+        ____...____
+      /             \
+     /               \
+    |                 |
+     \               /
+      \             /
+        ‾‾‾‾‾‾‾‾‾‾‾
+          41%
+      12/29 Trabajos
+```
+
+**Props:**
+- `value`: número de 0-100 (porcentaje de progreso)
+- `color`: color del arco de progreso
+- `size`: tamaño del componente (por defecto 180px)
+
+---
+
+#### 2. Modificar: `src/components/achievements/LevelCard.tsx`
+
+**Nueva lógica de renderizado:**
+
+Si `isCurrentLevel === true`:
+- Card grande destacada con borde
+- Header: icono + nombre + badge "Nivel Actual"
+- Descripción del nivel
+- SemiCircularProgress con:
+  - Valor = progreso dentro del nivel
+  - Texto central = porcentaje
+  - Texto inferior = "X/Y Trabajos"
+
+Si `isCurrentLevel === false`:
+- Card compacta en una sola fila
+- Icono + nombre a la izquierda
+- Rango de trabajos a la derecha
+- Sin barra de progreso
+
+---
+
+#### 3. Modificar: `src/pages/Achievements.tsx`
+
+**Cambios en layout:**
+
+1. Eliminar la Card de resumen superior (ya que el nivel actual tendrá prominencia)
+2. Renderizar primero el nivel actual como card grande
+3. Renderizar los demás niveles como lista de cards compactas
+4. Mantener el componente RatingHistory al final
+
+**Nueva estructura:**
 
 ```text
 +------------------------------------------+
-|    Administrar Disponibilidad            |
-|------------------------------------------|
-|  [Configurar]  |  Administrar            |  <- Tabs pill-shaped
+|  Logros                                  |
 +------------------------------------------+
 |                                          |
-|  [Contenido del tab activo]              |
+|  ┌────────────────────────────────────┐  |
+|  │  🏅 Nuevo           [Nivel Actual] │  |
+|  │  Proveedor recién registrado...    │  |
+|  │                                    │  |
+|  │         ____...____                │  |
+|  │       /     🟠     \               │  |
+|  │      /               \             │  |
+|  │                                    │  |
+|  │           41%                      │  |
+|  │       12/29 Trabajos               │  |
+|  └────────────────────────────────────┘  |
 |                                          |
-+------------------------------------------+
-|          [   Guardar   ]                 |  <- Botón fijo al final
+|  ┌────────────────────────────────────┐  |
+|  │  🥉 Bronce          30 - 99 trabajos │  |
+|  └────────────────────────────────────┘  |
+|  ┌────────────────────────────────────┐  |
+|  │  ⭐ Plata          100 - 499 trabajos│  |
+|  └────────────────────────────────────┘  |
+|  ┌────────────────────────────────────┐  |
+|  │  🏆 Oro            500 - 999 trabajos│  |
+|  └────────────────────────────────────┘  |
+|  ┌────────────────────────────────────┐  |
+|  │  👑 Platino      1000 - 2499 trabajos│  |
+|  └────────────────────────────────────┘  |
+|  ┌────────────────────────────────────┐  |
+|  │  💎 Diamante        2500+ trabajos   │  |
+|  └────────────────────────────────────┘  |
+|                                          |
 +------------------------------------------+
 ```
 
-**Cambios específicos:**
-
-1. **Header unificado**: 
-   - Título "Administrar Disponibilidad" centrado grande
-   - Tabs como segmented control con estilo pill naranja/gris
-
-2. **Tab "Configurar"**:
-   - Cards de día con diseño más limpio
-   - Switch "Disponible" en la esquina derecha del header
-   - Inputs de hora con formato 12h (ej. "07:00 AM")
-   - Botón "+ Agregar Horario Adicional" dentro de cada card expandida
-
-3. **Tab "Administrar"**:
-   - Header con "Semana actual" y navegación
-   - Leyenda de colores horizontal
-   - Cards por día con grid de slots 4 columnas
-   - Colores: verde (disponible), naranja/rojo (bloqueado), amarillo (recurrente)
-
-4. **Botón "Guardar"**: 
-   - Siempre visible, fijo en la parte inferior
-   - Estilo primario (naranja) full-width
-
 ---
 
-#### 2. Cambios en estilos y UX
-
-**Colores de slots:**
-- Verde (`bg-emerald-100`) → Disponible
-- Rojo/Naranja (`bg-red-100` o `bg-orange-100`) → Bloqueado manualmente
-- Amarillo (`bg-amber-100`) → Bloqueado por cita recurrente
-
-**Formato de hora:**
-- Cambiar de formato 24h a 12h con AM/PM
-- Usar helper `formatTo12Hour` existente
-
-**Layout:**
-- Contenedor scrolleable para el contenido
-- Botón guardar sticky al fondo
-
----
-
-#### 3. Verificación de coherencia con otras secciones
-
-**Con sección "Clientes":**
-- Mismos estilos de Card, Badge, y Button
-- Consistencia en espaciado y tipografía
-
-**Con citas activas y recurrentes:**
-- Los slots recurrentes deben reflejar exactamente las citas recurrentes activas
-- Sincronización bidireccional con `recurring_rules` y `recurring_appointment_instances`
-- Validación cruzada con `appointments` table
-
----
-
-### Archivos a modificar
+### Archivos a crear/modificar
 
 | Archivo | Acción |
 |---------|--------|
-| `src/components/calendar/AvailabilityManager.tsx` | Rediseño completo según mockups |
-| `src/components/calendar/ProviderSlotBlockingGrid.tsx` | Ajustar colores y leyenda |
+| `src/components/achievements/SemiCircularProgress.tsx` | **Crear** - Componente SVG de gauge semicircular |
+| `src/components/achievements/LevelCard.tsx` | **Modificar** - Rediseñar para card actual vs. compacta |
+| `src/pages/Achievements.tsx` | **Modificar** - Ajustar layout para nuevo diseño |
 
 ---
 
-### Flujo de datos garantizado
+### Detalles técnicos
 
-```text
-1. Usuario configura disponibilidad (Tab "Configurar")
-   ↓
-2. Guardar → provider_availability table
-   ↓
-3. Sync automático → listings.availability
-   ↓
-4. RPC sync_slots_with_availability → provider_time_slots
-   ↓
-5. Tab "Administrar" muestra slots generados
-   ↓
-6. Slots recurrentes vienen de recurring_appointment_instances
-```
+**SemiCircularProgress SVG:**
+- Radio externo: 80-90px
+- Grosor del arco: 12-15px
+- Ángulo inicio: 180° (izquierda)
+- Ángulo fin: 0° (derecha)
+- Fórmula: `strokeDasharray` y `strokeDashoffset` para el progreso
 
----
+**Colores:**
+- Arco de fondo: `#E5E7EB` (gris claro)
+- Arco de progreso: Color primario o color del nivel (`#F97316` naranja)
+- Texto porcentaje: Negro/gris oscuro, font-bold
+- Texto trabajos: Gris medio, texto pequeño
 
-### Validaciones de confiabilidad
-
-1. **Antes de guardar**: Validar que horarios no se superpongan
-2. **Después de guardar**: Confirmar que slots se regeneraron correctamente
-3. **Tab Administrar**: Mostrar indicador de sincronización si hay cambios pendientes
-4. **Real-time**: Suscripción a cambios en `provider_time_slots` para actualizaciones automáticas
+**Responsive:**
+- Gauge más pequeño en móvil (140px vs 180px)
+- Cards compactas mantienen diseño horizontal
 
 ---
 
-### Detalles técnicos para el desarrollador
+### Iconos por nivel
 
-**Formato de hora 12h:**
-Se usará la función `formatTo12Hour` de `src/lib/utils.ts` para mostrar "07:00 AM" en lugar de "07:00".
+Se mantienen los iconos existentes del `iconMap`:
+- Nuevo: Award (🏅)
+- Bronce: Award (🥉)
+- Plata: Star (⭐)
+- Oro: Trophy (🏆)
+- Platino: Crown (👑)
+- Diamante: Gem (💎)
 
-**Inputs de hora:**
-Los inputs HTML `type="time"` permanecen en formato 24h internamente, pero se mostrará el valor formateado al usuario usando labels.
-
-**Sincronización de slots:**
-- El hook `useProviderSlotManagement` ya obtiene slots correctamente
-- El hook `useProviderAvailability` ya sincroniza con `sync_slots_with_availability` RPC
-- Solo se necesita ajustar la UI para coincidir con el diseño
-
-**Colores consistentes:**
-- Disponible: `bg-emerald-100 text-emerald-800`
-- Bloqueado: `bg-red-100 text-red-800` o `bg-orange-100 text-orange-800`
-- Recurrente: `bg-amber-100 text-amber-800`
+Los colores serán el tono naranja/terracota de la imagen de referencia para el nivel actual.
 
