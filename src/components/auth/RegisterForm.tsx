@@ -31,7 +31,8 @@ export const registerSchema = z.object({
   condominiumId: z.string().optional(),
   houseNumber: z.string().optional(),
   profileImage: z.any().optional(),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  referredBy: z.string().optional()
 });
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -70,7 +71,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
     houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
     profileImage: z.any().optional(),
-    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    referredBy: z.string().optional()
   });
   
   const form = useForm<RegisterFormValues>({
@@ -84,7 +86,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       condominiumId: '',
       houseNumber: '',
       profileImage: null,
-      password: ''
+      password: '',
+      referredBy: ''
     }
   });
 
@@ -371,6 +374,31 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     />
                   </FormControl>
                   <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="referredBy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">
+                        Nombre de la persona que te recomendó Gato
+                        <span className="text-muted-foreground text-sm font-normal ml-1">(opcional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Nombre de quien te recomendó"
+                            className="pl-10 h-12 text-base"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
