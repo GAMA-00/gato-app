@@ -33,7 +33,7 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
           <img 
             src="/gato-logo.png" 
             alt="Gato" 
-            className="h-8 w-auto object-contain"
+            className="h-7 w-auto object-contain"
           />
           {!isClientSection && (
             <span className="text-sm text-muted-foreground font-medium">Proveedor</span>
