@@ -85,13 +85,13 @@ const ClientServices = () => {
   if (isMobile) {
     return (
       <ClientPageLayout>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* 1. Location Header */}
           <LocationHeader />
           
           {/* 2. Categories Section */}
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Categorías</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-3">Categorías</h2>
             <div className="grid grid-cols-3 gap-3">
               {categoryOrder.map((categoryName) => {
                 const category = categories.find(c => c.name === categoryName);
