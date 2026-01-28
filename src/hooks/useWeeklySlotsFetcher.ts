@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { addDays, format, startOfDay, endOfDay, subWeeks } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { supabase } from '@/integrations/supabase/client';
 import { formatTimeTo12Hour } from '@/utils/timeSlotUtils';
 import { WeeklySlot, UseWeeklySlotsProps } from '@/lib/weeklySlotTypes';
@@ -645,14 +646,27 @@ export const useWeeklySlotsFetcher = ({
         dias: Array.from(daysWithAppointments)
       });
       
+      // Zona horaria de Costa Rica para consistencia con slots de DB
+      const COSTA_RICA_TZ = 'America/Costa_Rica';
+      
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);
           const end = apt.end_time ? new Date(apt.end_time) : new Date(start.getTime() + serviceDuration * 60_000);
-          const startKey = format(start, 'yyyy-MM-dd');
-          const endKey = format(end, 'yyyy-MM-dd');
-          const startMin = start.getHours() * 60 + start.getMinutes();
-          const endMin = end.getHours() * 60 + end.getMinutes();
+          
+          // Usar formatInTimeZone para consistencia con los slots que usan hora local de Costa Rica
+          const startKey = formatInTimeZone(start, COSTA_RICA_TZ, 'yyyy-MM-dd');
+          const endKey = formatInTimeZone(end, COSTA_RICA_TZ, 'yyyy-MM-dd');
+          
+          // Extraer hora/minutos usando timezone de Costa Rica
+          const startTimeStr = formatInTimeZone(start, COSTA_RICA_TZ, 'HH:mm');
+          const [startHH, startMM] = startTimeStr.split(':').map(Number);
+          const startMin = startHH * 60 + startMM;
+          
+          const endTimeStr = formatInTimeZone(end, COSTA_RICA_TZ, 'HH:mm');
+          const [endHH, endMM] = endTimeStr.split(':').map(Number);
+          const endMin = endHH * 60 + endMM;
+          
           if (!apptStartMinutesByDate[startKey]) apptStartMinutesByDate[startKey] = new Set<number>();
           if (!apptEndMinutesByDate[endKey]) apptEndMinutesByDate[endKey] = new Set<number>();
           apptStartMinutesByDate[startKey].add(startMin);
@@ -718,8 +732,11 @@ export const useWeeklySlotsFetcher = ({
       for (const apt of adjacentPool) {
         try {
           const start = new Date(apt.start_time);
-          const dateKey = format(start, 'yyyy-MM-dd');
-          const minutes = start.getHours() * 60 + start.getMinutes();
+          // Usar timezone de Costa Rica consistentemente
+          const dateKey = formatInTimeZone(start, COSTA_RICA_TZ, 'yyyy-MM-dd');
+          const timeStr = formatInTimeZone(start, COSTA_RICA_TZ, 'HH:mm');
+          const [hh, mm] = timeStr.split(':').map(Number);
+          const minutes = hh * 60 + mm;
           if (!minutesByDate[dateKey]) minutesByDate[dateKey] = [];
           minutesByDate[dateKey].push(minutes);
         } catch {}
@@ -768,14 +785,21 @@ export const useWeeklySlotsFetcher = ({
         const blockedStarts = recurringBlockedStartByDate[dateKey] || new Set<number>();
         const blockedEnds = recurringBlockedEndByDate[dateKey] || new Set<number>();
         
+        // CORRECCIÓN: Usar duración fija de 60 minutos según estandarización del proyecto
+        // En lugar de usar 'step' que depende de los slots disponibles (puede ser incorrecto si hay pocos)
+        const SLOT_DURATION = 60; // Slots son de 60 minutos según memoria del proyecto
+        const slotEndMin = slotMin + SLOT_DURATION;
+        
         // Adyacencia a citas: antes del inicio O después del final
-        const isAdjacentBeforeAppointment = apptStarts.has(slotMin + step);  // Este slot termina justo antes de una cita
-        const isAdjacentAfterAppointment = apptEnds.has(slotMin);            // Este slot inicia justo cuando termina una cita
+        // - slotEndMin === aptStart → este slot termina justo cuando inicia la cita
+        // - slotMin === aptEnd → este slot inicia justo cuando termina la cita
+        const isAdjacentBeforeAppointment = apptStarts.has(slotEndMin);  // Este slot termina justo antes de una cita
+        const isAdjacentAfterAppointment = apptEnds.has(slotMin);        // Este slot inicia justo cuando termina una cita
         const isAdjacentToAppointment = isAdjacentBeforeAppointment || isAdjacentAfterAppointment;
         
         // Adyacencia a slots recurrentes bloqueados: antes del inicio O después del final
-        const isAdjacentBeforeBlocked = blockedStarts.has(slotMin + step);   // Este slot termina justo antes de un slot bloqueado
-        const isAdjacentAfterBlocked = blockedEnds.has(slotMin);             // Este slot inicia justo cuando termina un slot bloqueado
+        const isAdjacentBeforeBlocked = blockedStarts.has(slotEndMin);   // Este slot termina justo antes de un slot bloqueado
+        const isAdjacentAfterBlocked = blockedEnds.has(slotMin);         // Este slot inicia justo cuando termina un slot bloqueado
         const isAdjacentToRecurringBlocked = isAdjacentBeforeBlocked || isAdjacentAfterBlocked;
           
         const isRecommended = isAdjacentToAppointment || isAdjacentToRecurringBlocked;
@@ -786,7 +810,7 @@ export const useWeeklySlotsFetcher = ({
             date: dateKey,
             time: s.time,
             slotMin,
-            step,
+            slotEndMin,
             reason: isAdjacentToAppointment ? 
               (isAdjacentBeforeAppointment ? 'antes_de_cita' : 'despues_de_cita') : 
               (isAdjacentBeforeBlocked ? 'antes_de_bloqueo_recurrente' : 'despues_de_bloqueo_recurrente'),
