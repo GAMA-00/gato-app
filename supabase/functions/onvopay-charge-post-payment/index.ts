@@ -172,8 +172,9 @@ serve(async (req) => {
 
     console.log('✅ [FLOW] Step 1 complete - Payment Intent created:', paymentIntent.id);
 
-    // ✅ PASO 2: Confirmar con el payment_method_id guardado
+    // ✅ PASO 2: Confirmar con el payment_method_id guardado Y customerId para vincular
     console.log('💳 [FLOW] Step 2: Confirming with saved payment method:', savedMethod.onvopay_payment_method_id);
+    console.log('👤 Customer ID para vinculación:', customerId || 'none');
 
     const confirmResponse = await fetch(
       `${config.fullUrl}/payment-intents/${paymentIntent.id}/confirm`,
@@ -184,7 +185,8 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          paymentMethodId: savedMethod.onvopay_payment_method_id
+          paymentMethodId: savedMethod.onvopay_payment_method_id,
+          ...(customerId && { customerId }) // Link transaction to customer
         })
       }
     );
