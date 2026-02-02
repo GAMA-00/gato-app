@@ -62,6 +62,7 @@ export interface OnvoPaymentIntentData {
   amount: number;
   currency: string;
   description: string;
+  customer?: string;  // OnvoPay customer ID - linked at creation, NOT at confirm
   metadata: {
     appointment_id: string;
     client_id: string;

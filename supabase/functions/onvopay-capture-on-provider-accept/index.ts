@@ -197,15 +197,8 @@ serve(async (req) => {
 
         console.log('✅ Payment method found:', paymentMethodId);
         
-        // Get customerId from customer mapping to link transaction to customer in OnvoPay dashboard
-        const { data: customerMapping } = await supabaseAdmin
-          .from('onvopay_customers')
-          .select('onvopay_customer_id')
-          .eq('client_id', payment.client_id)
-          .maybeSingle();
-
-        const customerId = customerMapping?.onvopay_customer_id;
-        console.log('👤 Customer ID para vinculación:', customerId || 'none');
+        // ✅ FIX: Customer is linked at Payment Intent creation, NOT at confirm
+        // OnvoPay rejects customerId in the confirm endpoint
         
         const confirmUrl = `${Deno.env.get('ONVOPAY_API_BASE') || 'https://api.onvopay.com'}/v1/payment-intents/${payment.onvopay_payment_id}/confirm`;
         const ONVOPAY_SECRET_KEY = Deno.env.get('ONVOPAY_SECRET_KEY');
@@ -217,7 +210,6 @@ serve(async (req) => {
         console.log('📡 Confirmando payment intent con OnvoPay:', {
           paymentIntentId: payment.onvopay_payment_id,
           paymentMethodId: paymentMethodId,
-          customerId: customerId || 'none',
           url: confirmUrl
         });
 
@@ -228,8 +220,8 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            paymentMethodId: paymentMethodId,
-            ...(customerId && { customerId }) // Link transaction to customer
+            paymentMethodId: paymentMethodId
+            // Note: customerId is linked at Payment Intent creation, NOT here
           })
         });
 
