@@ -63,7 +63,7 @@ export async function ensureOnvoCustomer(
       try {
         const updateUrl = `${config.baseUrl}${config.path}/${existingCustomer.onvopay_customer_id}`;
         const updateResponse = await fetch(updateUrl, {
-          method: 'PATCH',
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${secretKey}`,
             'Content-Type': 'application/json',
