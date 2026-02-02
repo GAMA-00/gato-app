@@ -53,23 +53,10 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
         hasServiceVariants: !!listing.service_variants
       });
       
-      // Debug: First check if provider exists in users table without role filter
-      logger.debug("Checking provider existence", { providerId });
-      const { data: allProviderData, error: allProviderError } = await supabase
-        .from('users')
-        .select('id, name, role')
-        .eq('id', providerId);
-        
-      if (allProviderError) {
-        logger.error("Error checking provider existence", allProviderError);
-      } else {
-        logger.debug("Provider check result", { found: allProviderData?.length });
-      }
-      
-      // Get provider data from users table with role filter
-      logger.debug("Fetching provider with role filter");
-      const { data: providerQueryData, error: providerError } = await supabase
-        .from('users')
+      // Get provider data from public view (bypasses RLS restrictions)
+      logger.debug("Fetching provider from public profiles view", { providerId });
+      const { data: providerData, error: providerError } = await supabase
+        .from('provider_public_profiles')
         .select(`
           id, 
           name, 
@@ -77,13 +64,10 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
           experience_years,
           average_rating,
           certification_files,
-          email,
-          phone,
           avatar_url,
-          role
+          created_at
         `)
         .eq('id', providerId)
-        .eq('role', 'provider')
         .maybeSingle();
         
       if (providerError) {
@@ -91,42 +75,13 @@ export const useServiceDetail = (providerId?: string, serviceId?: string, userId
       }
       
       logger.debug("Provider data fetched", { 
-        found: !!providerQueryData,
-        hasCertifications: !!providerQueryData?.certification_files
+        found: !!providerData,
+        hasCertifications: !!providerData?.certification_files
       });
       
-      // If no provider found with role=provider, try without role filter
-      let providerData = providerQueryData;
+      // If no provider found, return null to show error
       if (!providerData) {
-        logger.debug("Trying fallback provider fetch without role filter");
-        const { data: fallbackProviderData, error: fallbackError } = await supabase
-          .from('users')
-          .select(`
-            id, 
-            name, 
-            about_me,
-            experience_years,
-            average_rating,
-            certification_files,
-            email,
-            phone,
-            avatar_url,
-            role
-          `)
-          .eq('id', providerId)
-          .maybeSingle();
-          
-        if (fallbackError) {
-          logger.error("Error fetching fallback provider", fallbackError);
-        }
-        
-        logger.debug("Fallback provider data fetched", { found: !!fallbackProviderData });
-        providerData = fallbackProviderData;
-      }
-      
-      // If still no provider found, return null to show error
-      if (!providerData) {
-        logger.error("Provider not found after all attempts", { providerId });
+        logger.error("Provider not found", { providerId });
         return null;
       }
       
