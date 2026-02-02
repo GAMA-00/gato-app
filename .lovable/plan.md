@@ -1,158 +1,158 @@
 
+# Plan: Corregir Lógica de "Recomendado" para Todos los Anuncios
 
-# Plan: Corregir Vinculación de Cliente y Transiciones de Estado en OnvoPay
+## Diagnóstico del Problema
 
-## Problema Identificado
+Después de analizar el código y la base de datos, identifiqué la causa raíz:
 
-Los logs muestran claramente el error:
-```
-"message": [ "property customerId should not exist" ]
-"path": "/v1/payment-intents/.../confirm"
-```
+### Problema Principal
+Las consultas en `useWeeklySlotsFetcher.ts` filtran por `listing_id` específico, lo que significa que:
 
-**OnvoPay rechaza el `customerId` en el endpoint `/confirm`**. Esta es la causa por la que:
-1. Las transacciones fallan al confirmar
-2. El estado permanece en "Iniciado" en lugar de cambiar a "Exitoso"
+1. **Las citas de OTROS anuncios del mismo proveedor NO se consideran** para el cálculo de recomendaciones
+2. Si un proveedor tiene "Anuncio A" y "Anuncio B", una cita del "Anuncio A" en un condominio **no marca** como recomendado los slots del "Anuncio B" en el mismo condominio
 
-## Análisis del Flujo Actual
+### Consultas Afectadas (todas filtran por `listing_id`)
 
+| Consulta | Líneas | Propósito |
+|----------|--------|-----------|
+| `apptAllRes` | 145-152 | Citas generales para conflictos |
+| `apptDirectRes` | 153-163 | Citas del mismo residencial |
+| `apptRecurringBaseRes` | 164-172 | Citas recurrentes base |
+| `legacyRecurringFirstRes` | 179-188 | Recurrentes legacy |
+| `historicalRes` | 189-200 | Historial de 4 semanas |
+| `legacyRecurringRes` | 203-213 | Segunda consulta recurrente |
+
+### Datos de Ejemplo
 ```text
-1. onvopay-authorize
-   └─ Crea Payment Intent (sin customer vinculado al PI)
-   └─ Guarda customerId solo en metadata
-   
-2. onvopay-confirm / onvopay-capture-on-provider-accept
-   └─ Intenta enviar customerId al /confirm  ← ❌ ERROR AQUÍ
-   └─ OnvoPay rechaza: "property customerId should not exist"
-   └─ Estado permanece en "pending_authorization"
+Proveedor: bf15e5fe-0fe2-4917-a1ea-976333594d6f
+Listing: Pet Grooming (c64ce17e-200d-46f0-8265-ea9bbda95f08)
+Cita Recurrente: Lunes 9:00 AM Costa Rica (weekly)
+Residencia: 9b170ff3-9bf5-4c0e-a5e8-fcaee6fd7b4e
+
+✅ Slots 8:00 AM y 10:00 AM del Lunes DEBERÍAN mostrar "Recomendado"
+❌ Actualmente: La lógica funciona pero solo para el mismo listing
 ```
 
 ## Solución Propuesta
 
-Según la documentación de OnvoPay, el cliente debe vincularse al crear el Payment Intent, no al confirmarlo. Los Payment Intents de OnvoPay aceptan un campo `customer` durante la creación.
+Modificar las 3 consultas clave para recomendaciones, **eliminando el filtro de `listing_id`** cuando se buscan citas para el cálculo de adyacencia (pool de recomendaciones).
 
-### Cambios Necesarios
+### Cambios en `useWeeklySlotsFetcher.ts`
 
-| Archivo | Cambio |
-|---------|--------|
-| `supabase/functions/onvopay-authorize/payment.ts` | Agregar campo `customer` al crear Payment Intent |
-| `supabase/functions/onvopay-authorize/types.ts` | Agregar campo `customer?: string` a la interfaz |
-| `supabase/functions/onvopay-authorize/index.ts` | Pasar `customerId` como `customer` en el payload |
-| `supabase/functions/onvopay-confirm/index.ts` | **REMOVER** `customerId` del payload de confirm |
-| `supabase/functions/onvopay-capture-on-provider-accept/index.ts` | **REMOVER** `customerId` del payload de confirm |
-| `supabase/functions/onvopay-charge-post-payment/index.ts` | **REMOVER** `customerId` del payload de confirm |
-| `src/components/dashboard/AppointmentList.tsx` | Usar hook centralizado para capturar pagos |
+#### 1. Nueva consulta para recomendaciones cross-listing (líneas ~153-163)
 
-### Cambios Detallados
-
-#### 1. `onvopay-authorize/types.ts` - Agregar campo `customer`
-
+**ANTES:**
 ```typescript
-export interface OnvoPaymentIntentData {
-  amount: number;
-  currency: string;
-  description: string;
-  customer?: string;  // ← NUEVO: ID del cliente en OnvoPay
-  metadata: {
-    appointment_id: string;
-    client_id: string;
-    provider_id: string;
-    is_post_payment: string;
-    customer_name?: string;
-    onvopay_customer_id?: string;
-  };
-}
+clientResidenciaId ?
+  supabase
+    .from('appointments')
+    .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id')
+    .eq('provider_id', providerId)
+    .eq('listing_id', listingId)  // ❌ Filtro limitante
+    .in('status', ['confirmed', 'pending', 'completed'])
+    .eq('residencia_id', clientResidenciaId)
+    .gte('start_time', baseDate.toISOString())
+    .lte('start_time', endOfDay(endDate).toISOString())
 ```
 
-#### 2. `onvopay-authorize/index.ts` - Incluir customer en Payment Intent
-
+**DESPUÉS:**
 ```typescript
-const paymentIntentData = {
-  amount: amountCents,
-  currency: currency,
-  description: description,
-  ...(customerId && { customer: customerId }), // ← NUEVO: Vincular cliente
-  metadata: {
-    appointment_id: body.appointmentId,
-    // ... resto de metadata
-  }
-};
+clientResidenciaId ?
+  supabase
+    .from('appointments')
+    .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id, listing_id')
+    .eq('provider_id', providerId)
+    // ✅ SIN filtro de listing_id - busca TODAS las citas del proveedor en esta residencia
+    .in('status', ['confirmed', 'pending', 'completed'])
+    .eq('residencia_id', clientResidenciaId)
+    .gte('start_time', baseDate.toISOString())
+    .lte('start_time', endOfDay(endDate).toISOString())
 ```
 
-#### 3. `onvopay-confirm/index.ts` - REMOVER customerId
+#### 2. Consulta histórica cross-listing (líneas ~189-200)
 
+**ANTES:**
 ```typescript
-// ANTES (línea 283-286)
-const confirmData: Record<string, any> = { 
-  paymentMethodId,
-  ...(customerId && { customerId }) // ← REMOVER ESTO
-};
-
-// DESPUÉS
-const confirmData: Record<string, any> = { 
-  paymentMethodId  // Solo paymentMethodId, sin customerId
-};
+clientResidenciaId ?
+  supabase
+    .from('appointments')
+    .select('start_time, end_time, status, residencia_id')
+    .eq('provider_id', providerId)
+    .eq('listing_id', listingId)  // ❌ Filtro limitante
 ```
 
-#### 4. `onvopay-capture-on-provider-accept/index.ts` - REMOVER customerId
-
+**DESPUÉS:**
 ```typescript
-// ANTES (líneas 230-233)
-body: JSON.stringify({
-  paymentMethodId: paymentMethodId,
-  ...(customerId && { customerId }) // ← REMOVER ESTO
-})
-
-// DESPUÉS
-body: JSON.stringify({
-  paymentMethodId: paymentMethodId
-})
+clientResidenciaId ?
+  supabase
+    .from('appointments')
+    .select('start_time, end_time, status, residencia_id, listing_id')
+    .eq('provider_id', providerId)
+    // ✅ SIN filtro de listing_id
 ```
 
-También remover las líneas 200-208 que obtienen el customerId antes de confirmar (ya no se necesita).
+#### 3. Consulta de citas recurrentes base cross-listing (líneas ~164-172)
 
-#### 5. `onvopay-charge-post-payment/index.ts` - REMOVER customerId
-
-Similar al anterior, remover el `customerId` del payload de confirm.
-
-#### 6. `AppointmentList.tsx` - Usar hook centralizado
-
-Reemplazar la lógica local por el hook `useRequestActions` que sí invoca la captura de pagos:
-
+**ANTES:**
 ```typescript
-import { useRequestActions } from '@/hooks/useRequestActions';
-
-// En el componente:
-const { handleAccept, handleDecline, isLoading } = useRequestActions();
-
-// Usar handleAccept en lugar de handleAcceptAppointment local
+supabase
+  .from('appointments')
+  .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status, external_booking')
+  .eq('provider_id', providerId)
+  .eq('listing_id', listingId)  // ❌ Filtro limitante
+  .in('status', ['confirmed', 'pending', 'completed'])
+  .not('recurrence', 'in', '("none","once")')
 ```
 
-## Flujo Corregido
+**DESPUÉS:**
+```typescript
+supabase
+  .from('appointments')
+  .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status, external_booking')
+  .eq('provider_id', providerId)
+  // ✅ SIN filtro de listing_id para recomendaciones cross-listing
+  .in('status', ['confirmed', 'pending', 'completed'])
+  .not('recurrence', 'in', '("none","once")')
+```
+
+### Impacto en el Flujo
 
 ```text
-1. onvopay-authorize
-   └─ Crea Payment Intent CON customer vinculado  ← ✅ FIX
-   
-2. onvopay-confirm / capture-on-provider-accept
-   └─ Confirma solo con paymentMethodId  ← ✅ FIX
-   └─ Estado cambia a "authorized" → "captured"
-   └─ Dashboard OnvoPay muestra cliente correctamente
+ANTES:
+┌─────────────────────────────────────────────────────────┐
+│ Cliente ve anuncio "Pet Grooming"                        │
+│ Proveedor tiene cita recurrente en mismo residencial     │
+│ Consulta SOLO busca citas de "Pet Grooming"              │
+│ ❌ Si la cita es de otro anuncio, NO se marca recomendado│
+└─────────────────────────────────────────────────────────┘
+
+DESPUÉS:
+┌─────────────────────────────────────────────────────────┐
+│ Cliente ve anuncio "Pet Grooming"                        │
+│ Proveedor tiene cita recurrente en mismo residencial     │
+│ Consulta busca TODAS las citas del proveedor             │
+│ ✅ Slots adyacentes se marcan como "Recomendado"         │
+│ ✅ Funciona para one-time Y recurrentes                  │
+│ ✅ Funciona para semana actual Y futuras                 │
+└─────────────────────────────────────────────────────────┘
 ```
+
+## Archivos a Modificar
+
+| Archivo | Cambios |
+|---------|---------|
+| `src/hooks/useWeeklySlotsFetcher.ts` | Remover `.eq('listing_id', listingId)` de 3 consultas específicas para recomendaciones |
+
+## Consultas que NO se modifican
+
+Las siguientes consultas DEBEN mantener el filtro de `listing_id` porque son para **conflictos de disponibilidad** (no recomendaciones):
+
+- `apptAllRes` (líneas 145-152): Conflictos de citas del mismo listing
+- Slots de base de datos: Deben ser del listing específico
 
 ## Resultado Esperado
 
-1. Las transacciones se procesarán correctamente
-2. El estado cambiará de "Iniciado" a "Exitoso" cuando el proveedor acepte
-3. El nombre del cliente aparecerá en el dashboard de OnvoPay
-4. El flujo será consistente desde cualquier vista del dashboard
-
-## Archivos a Modificar (Resumen)
-
-1. `supabase/functions/onvopay-authorize/types.ts` - Agregar campo `customer`
-2. `supabase/functions/onvopay-authorize/index.ts` - Incluir `customer` en creación de PI
-3. `supabase/functions/onvopay-confirm/index.ts` - Remover `customerId` de confirm
-4. `supabase/functions/onvopay-capture-on-provider-accept/index.ts` - Remover `customerId` de confirm
-5. `supabase/functions/onvopay-charge-post-payment/index.ts` - Remover `customerId` de confirm
-6. `src/components/dashboard/AppointmentList.tsx` - Usar hook centralizado
-
+1. Los slots adyacentes a CUALQUIER cita del proveedor en el mismo residencial mostrarán "Recomendado"
+2. Funciona tanto para citas one-time como recurrentes
+3. Funciona para la semana actual y todas las semanas futuras
+4. Aplica a TODOS los anuncios del proveedor
