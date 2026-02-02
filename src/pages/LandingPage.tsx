@@ -15,17 +15,17 @@ const LandingPage = () => {
       <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center space-y-6">
-          <div className="w-40 md:w-48">
+          <div className="w-56 md:w-64">
             <img 
-              src="/gato-logo.png?v=2"
+              src="/gato-logo.png?v=3"
               alt="Gato - Servicio a domicilio"
               className="w-full h-auto object-contain"
             />
           </div>
           
           {/* Welcome Text */}
-          <h1 className="text-2xl md:text-3xl font-medium text-app-text text-center">
-            Bienvenido a Gato
+          <h1 className="text-xl md:text-2xl font-medium text-app-text text-center">
+            Bienvenido
           </h1>
         </div>
 
