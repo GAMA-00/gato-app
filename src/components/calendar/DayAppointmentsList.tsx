@@ -3,6 +3,7 @@ import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Repeat, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isRecurring as checkIsRecurring, getRecurrenceInfo } from '@/lib/recurrence';
 
 interface DayAppointmentsListProps {
   selectedDate: Date;
@@ -24,8 +25,13 @@ const DayAppointmentsList: React.FC<DayAppointmentsListProps> = ({
   // Generate time slots from 6am to 8pm
   const timeSlots = Array.from({ length: 15 }, (_, i) => i + 6);
 
-  // Check if an appointment is recurring
-  const isRecurring = (apt: any) => apt.is_recurring_instance || apt.recurrence;
+  // Get recurrence label - only show for actual recurring appointments
+  const getRecurrenceLabel = (apt: any): string | null => {
+    const recurrence = apt.recurrence;
+    if (!checkIsRecurring(recurrence)) return null;
+    const info = getRecurrenceInfo(recurrence);
+    return info.label;
+  };
 
   // Get status color
   const getStatusColor = (status: string) => {
@@ -83,12 +89,15 @@ const DayAppointmentsList: React.FC<DayAppointmentsListProps> = ({
                           <span className="font-medium text-sm text-foreground">
                             {apt.listings?.title || apt.service_title || 'Servicio'}
                           </span>
-                          {isRecurring(apt) && (
-                            <span className="inline-flex items-center gap-1 text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
-                              <Repeat className="h-3 w-3" />
-                              Recurrente
-                            </span>
-                          )}
+                          {(() => {
+                            const label = getRecurrenceLabel(apt);
+                            return label ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                                <Repeat className="h-3 w-3" />
+                                {label}
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
                           {apt.client_name || 'Cliente'}
