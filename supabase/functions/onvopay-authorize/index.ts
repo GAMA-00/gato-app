@@ -286,8 +286,7 @@ serve(async (req) => {
       amount: amountCents,
       currency: currency,  // ✅ Dynamic currency from listing
       description: description,
-      // ✅ FIX: Link customer at creation, NOT at confirm (OnvoPay rejects customerId in confirm)
-      ...(customerId && { customer: customerId }),
+      // NOTE: OnvoPay does NOT accept customer field in payment-intents - only in metadata
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
