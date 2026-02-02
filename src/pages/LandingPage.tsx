@@ -11,11 +11,11 @@ const LandingPage = () => {
   logger.debug('Rendering landing page');
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-8">
+    <div className="min-h-screen bg-background flex items-start md:items-center justify-center px-4 pt-20 md:pt-0">
+      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-6 md:space-y-8">
         {/* Logo */}
-        <div className="flex flex-col items-center space-y-6">
-          <div className="w-56 md:w-64">
+        <div className="flex flex-col items-center space-y-4 md:space-y-6">
+          <div className="w-44 md:w-64">
             <img 
               src="/gato-logo.png?v=3"
               alt="Gato - Servicio a domicilio"
