@@ -1,13 +1,10 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import AppointmentCard from './AppointmentCard';
 import AppointmentListHeader from './AppointmentListHeader';
 import { logger } from '@/utils/logger';
+import { useRequestActions } from '@/hooks/useRequestActions';
 
 interface AppointmentListProps {
   appointments: any[];
@@ -24,8 +21,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   emptyMessage = "No hay citas programadas",
   isPending = false
 }) => {
-  const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { handleAccept, handleDecline, isLoading } = useRequestActions();
   
   logger.debug('AppointmentList rendering', { title, count: appointments?.length || 0 });
   
@@ -47,41 +44,36 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   });
 
   logger.debug('After filtering', { title, remainingCount: filteredAppointments.length });
-  
+
+  // Wrapper to convert single appointment to the request format expected by useRequestActions
   const handleAcceptAppointment = async (appointmentId: string) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'confirmed'
-        })
-        .eq('id', appointmentId);
-        
-      if (error) throw error;
-      
-      toast.success("Cita confirmada con éxito");
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-    } catch (error: any) {
-      toast.error("Error al confirmar cita: " + error.message);
-    }
+    const appointment = filteredAppointments.find(a => a.id === appointmentId);
+    if (!appointment) return;
+    
+    // Convert to request format with appointment_ids array
+    const request = {
+      id: appointmentId,
+      appointment_ids: [appointmentId],
+      appointment_count: 1,
+      ...appointment
+    };
+    
+    await handleAccept(request);
   };
   
   const handleRejectAppointment = async (appointmentId: string) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'rejected'
-        })
-        .eq('id', appointmentId);
-        
-      if (error) throw error;
-      
-      toast.success("Cita rechazada");
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-    } catch (error: any) {
-      toast.error("Error al rechazar cita: " + error.message);
-    }
+    const appointment = filteredAppointments.find(a => a.id === appointmentId);
+    if (!appointment) return;
+    
+    // Convert to request format with appointment_ids array
+    const request = {
+      id: appointmentId,
+      appointment_ids: [appointmentId],
+      appointment_count: 1,
+      ...appointment
+    };
+    
+    await handleDecline(request);
   };
 
   const externalCount = filteredAppointments.filter(app => app.is_external || app.external_booking).length;
