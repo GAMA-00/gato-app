@@ -1,144 +1,156 @@
 
-# Auditoría Completa del Sistema de Pagos OnvoPay
+# Plan: Corrección de 3 Problemas en OnvoPay Webhook
 
-## Estado de Implementación
+## Resumen de Correcciones
 
-| Fase | Descripción | Estado |
-|------|-------------|--------|
-| Fase 1 | Corrección de Moneda Dinámica (USD/CRC) | ✅ COMPLETADO |
-| Fase 2 | Corrección de Fecha de Cobro Recurrente | ✅ COMPLETADO |
-| Fase 3 | Configurar Cron Job | ⏳ PENDIENTE (requiere ejecución manual) |
-| Fase 4 | Parametrizar IVA por Moneda | ✅ COMPLETADO |
+| # | Problema | Archivo | Corrección |
+|---|----------|---------|------------|
+| 1 | Falta `currency` en insert de BD | `onvopay-charge-post-payment/index.ts` | Agregar `currency: currency` en línea 244-261 |
+| 2 | IVA hardcodeado al 13% | `onvopay-webhook/index.ts` | Obtener currency de suscripción y calcular IVA dinámico en `handleSubscriptionCharged` |
+| 3 | Currency hardcodeado 'USD' | `onvopay-webhook/index.ts` | Obtener currency del listing via template en `handleLoopChargeSucceeded` |
 
 ---
 
-## ✅ Cambios Implementados
+## Corrección 1: Agregar `currency` en onvopay-charge-post-payment
 
-### 1. Moneda Dinámica (Fase 1)
+**Archivo**: `supabase/functions/onvopay-charge-post-payment/index.ts`  
+**Líneas**: 242-261
 
-**Archivos modificados:**
-- `onvopay-authorize/index.ts` - Obtiene `currency` del listing y lo usa en Payment Intent
-- `onvopay-create-subscription/index.ts` - Usa currency dinámico en subscripciones
-- `onvopay-charge-post-payment/index.ts` - Usa currency del listing para cobros post-servicio
+El código ya obtiene `currency` correctamente en línea 133, pero no lo incluye en el insert a la BD.
 
-**Lógica implementada:**
+**Cambio requerido**:
 ```typescript
-// 1. Query incluye currency del listing
-const { data: appointment } = await supabase
-  .from('appointments')
-  .select('..., listings(currency)')
-  .single();
-
-// 2. Validación de moneda soportada
-const currency = appointment.listings?.currency || 'USD';
-if (!['USD', 'CRC'].includes(currency)) {
-  throw new Error('Moneda no soportada');
-}
-
-// 3. Uso dinámico en Payment Intent
-const paymentIntentData = {
+// Línea 254 - Agregar currency al insert
+.insert({
+  appointment_id: invoice.appointment_id,
+  client_id: invoice.appointments.client_id,
+  provider_id: invoice.appointments.provider_id,
+  onvopay_payment_id: onvoResult.id,
   amount: amountCents,
-  currency: currency,  // ✅ Dinámico
-  // ...
-};
+  subtotal: amountCents,
+  iva_amount: 0,
+  currency: currency,  // ✅ AGREGAR ESTA LÍNEA
+  payment_type: 'cash',
+  payment_method: 'card',
+  status: finalStatus,
+  // ...resto igual
+})
 ```
 
-### 2. Fecha de Cobro Recurrente (Fase 2)
+---
 
-**Archivo modificado:** `onvopay-create-subscription/index.ts`
+## Corrección 2: IVA dinámico en handleSubscriptionCharged
 
-**Cambio:**
+**Archivo**: `supabase/functions/onvopay-webhook/index.ts`  
+**Función**: `handleSubscriptionCharged` (líneas 255-391)
+
+**Problema actual** (línea 338):
 ```typescript
-// ❌ ANTES: Basado en fecha del servicio
-const nextChargeDate = new Date(appointment.start_time);
-
-// ✅ DESPUÉS: Basado en fecha de confirmación
-const now = new Date();
-const nextChargeDate = calculateNextChargeDate(now, recurrenceType);
+const subtotalAmount = Math.round(amount / 1.13); // ❌ Hardcodeado 13%
 ```
 
-**Nueva función `calculateNextChargeDate`:**
-- Calcula la próxima fecha de cobro según el tipo de recurrencia
-- Soporta: daily, weekly, biweekly, triweekly, monthly
+**Solución**: Agregar helper de IVA y obtener currency del template
 
-### 3. IVA Parametrizado (Fase 4)
-
-**Archivo modificado:** `onvopay-authorize/utils.ts`
-
-**Cambio:**
 ```typescript
+// 1. Agregar helper de IVA al inicio del archivo (después de corsHeaders)
 const IVA_RATES: Record<string, number> = {
-  'CRC': 0.13,  // 13% IVA Costa Rica
-  'USD': 0,     // Sin IVA para USD
+  'CRC': 0.13,
+  'USD': 0
 };
 
-export function calculateAmounts(totalAmount: number, currency: string = 'USD') {
-  const ivaRate = IVA_RATES[currency] || 0;
-  // ...
+function calculateIvaFromAmount(amount: number, currency: string): { subtotal: number; iva: number } {
+  const rate = IVA_RATES[currency] || 0;
+  const subtotal = Math.round(amount / (1 + rate));
+  return { subtotal, iva: amount - subtotal };
 }
+
+// 2. En handleSubscriptionCharged, obtener currency del template y usarlo
+const template = subscription.original_appointment_template;
+const currency = template?.currency || 'USD'; // Obtener currency del template
+
+// Reemplazar líneas 338-339 con:
+const { subtotal: subtotalAmount, iva: ivaAmount } = calculateIvaFromAmount(amount, currency);
+
+// 3. Agregar currency al insert (línea 343-359)
+.insert({
+  // ...campos existentes
+  currency: currency,  // ✅ AGREGAR
+  // ...
+})
 ```
 
 ---
 
-## ⏳ Fase 3: Configurar Cron Job (PENDIENTE)
+## Corrección 3: Currency dinámico en handleLoopChargeSucceeded
 
-**Acción requerida:** Ejecutar el siguiente SQL en [Supabase SQL Editor](https://supabase.com/dashboard/project/jckynopecuexfamepmoh/sql/new)
+**Archivo**: `supabase/functions/onvopay-webhook/index.ts`  
+**Función**: `handleLoopChargeSucceeded` (líneas 418-568)
 
-```sql
--- 1. Habilitar extensiones necesarias
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-CREATE EXTENSION IF NOT EXISTS pg_net;
-
--- 2. Crear cron job para cobros recurrentes diarios a las 6 AM Costa Rica (12 PM UTC)
-SELECT cron.schedule(
-  'process-recurring-charges-daily',
-  '0 12 * * *',
-  $$
-  SELECT net.http_post(
-    url:='https://jckynopecuexfamepmoh.supabase.co/functions/v1/process-recurring-charges',
-    headers:=jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impja3lub3BlY3VleGZhbWVwbW9oIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTQzNDU4MCwiZXhwIjoyMDYxMDEwNTgwfQ.YOUR_SERVICE_ROLE_KEY'
-    ),
-    body:='{}'::jsonb
-  );
-  $$
-);
-
--- 3. Verificar que el job fue creado
-SELECT * FROM cron.job;
+**Problema actual** (línea 451):
+```typescript
+currency: 'USD', // ❌ Hardcodeado
 ```
 
-**Nota:** Reemplaza `YOUR_SERVICE_ROLE_KEY` con tu Service Role Key real de Supabase.
+**Solución**: Obtener currency del template de la suscripción
+
+```typescript
+// En handleLoopChargeSucceeded, después de obtener subscription (línea 434):
+const template = subscription.original_appointment_template;
+const currency = template?.currency || 'USD';
+
+// Usar helper de IVA para calcular montos
+const amountInCurrency = amount / 100; // Convert from cents
+const { subtotal: subtotalAmount, iva: ivaAmount } = calculateIvaFromAmount(amountInCurrency, currency);
+
+// Actualizar el insert (línea 442-468):
+.insert({
+  // ...campos existentes
+  amount: amountInCurrency,
+  subtotal: subtotalAmount,      // ✅ Calculado dinámicamente
+  iva_amount: ivaAmount,         // ✅ Calculado dinámicamente
+  currency: currency,            // ✅ Dinámico del template
+  // ...
+})
+```
 
 ---
 
-## Resumen de Riesgos Mitigados
+## Cambios Técnicos Detallados
 
-| Riesgo | Severidad | Estado |
-|--------|-----------|--------|
-| Cobro en moneda incorrecta | 🔴 Crítico | ✅ RESUELTO |
-| Fecha de cobro incorrecta | 🟠 Alto | ✅ RESUELTO |
-| IVA incorrecto para USD | 🟡 Medio | ✅ RESUELTO |
-| Cobros recurrentes no se ejecutan | 🔴 Crítico | ⏳ Requiere SQL manual |
+### Archivo 1: `onvopay-charge-post-payment/index.ts`
+
+**Línea 254**: Agregar `currency: currency,` al objeto de insert
+
+### Archivo 2: `onvopay-webhook/index.ts`
+
+1. **Líneas 8-20**: Agregar constante `IVA_RATES` y función helper `calculateIvaFromAmount`
+
+2. **Función `handleSubscriptionCharged`** (líneas 334-359):
+   - Obtener currency del template
+   - Usar helper para calcular subtotal/IVA
+   - Agregar currency al insert
+
+3. **Función `handleLoopChargeSucceeded`** (líneas 436-468):
+   - Obtener currency del template
+   - Usar helper para calcular subtotal/IVA  
+   - Actualizar currency dinámico
 
 ---
 
-## Verificación Final
+## Verificación Post-Implementación
 
-### ✅ Cumple con documentación OnvoPay
-- Flujo de 3 pasos: Create → Confirm → Capture
-- Uso de payment_method_id para saved cards
-- Webhooks para eventos payment.captured/failed
+Después de aplicar los cambios:
 
-### ✅ Cumple con regla crítica de negocio
-- No se cobra sin confirmación del proveedor
-- Rechazo no genera transacciones
+1. Deploy automático de Edge Functions
+2. Verificar logs de funciones en Supabase Dashboard
+3. Probar con una suscripción existente (si hay datos de prueba)
 
-### ✅ Soporte correcto de moneda (USD/CRC)
-- Currency obtenido dinámicamente del listing
-- Validación de monedas soportadas
-- IVA calculado según moneda (13% CRC, 0% USD)
+---
 
-### ⏳ Pendiente
-- Ejecutar SQL para configurar cron job
+## Riesgos Mitigados
+
+| Riesgo | Mitigación |
+|--------|------------|
+| Template sin currency | Fallback a 'USD' |
+| IVA incorrecto | Helper centralizado con rates por moneda |
+| Datos históricos | Los nuevos cálculos solo afectan registros futuros |
