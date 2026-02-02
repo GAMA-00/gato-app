@@ -46,7 +46,7 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
   const isCompleted = booking.status === 'completed';
   const isSkipped = booking.status === 'cancelled' && booking.notes?.includes('[SKIPPED BY CLIENT]');
 
-  // Optimistic mutation for single appointment cancellation
+  // Optimistic mutation for single appointment cancellation - INSTANT UI update
   const cancelSingleMutation = useMutation({
     mutationFn: async (appointmentId: string) => {
       const { error } = await supabase
@@ -60,37 +60,34 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
       if (error) throw error;
     },
     onMutate: async (appointmentId) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['client-bookings'] });
+      // Cancel outgoing refetches IMMEDIATELY
+      queryClient.cancelQueries({ queryKey: ['client-bookings'] });
 
       // Snapshot the previous value
       const previousBookings = queryClient.getQueryData(['client-bookings']);
 
-      // Optimistically update to the new value
+      // INSTANT optimistic update - remove from visible list immediately
       queryClient.setQueryData(['client-bookings'], (old: any) => {
         if (!old) return old;
-        return old.map((b: ClientBooking) => 
-          b.id === appointmentId 
-            ? { ...b, status: 'cancelled', cancellation_time: new Date().toISOString() }
-            : b
-        );
+        // Filter out the cancelled appointment for immediate visual removal
+        return old.filter((b: ClientBooking) => b.id !== appointmentId);
       });
 
-      // Show success immediately
+      // Show success IMMEDIATELY
       toast.success('Cita cancelada');
 
       return { previousBookings };
     },
     onError: (error, appointmentId, context) => {
-      // Rollback on error
+      // Rollback on error - restore previous state
       if (context?.previousBookings) {
         queryClient.setQueryData(['client-bookings'], context.previousBookings);
       }
       logger.error('Error canceling appointment:', { error, appointmentId });
-      toast.error('Error al cancelar la cita');
+      toast.error('Error al cancelar la cita. Se ha restaurado.');
     },
     onSettled: () => {
-      // Always refetch after error or success
+      // Background refetch to sync with server (no visual delay)
       queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
     }
   });
@@ -512,8 +509,12 @@ export const BookingCard = ({ booking, onRated }: BookingCardProps) => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                // Close dialog IMMEDIATELY for instant feedback
                 setShowSkipDialog(false);
-                handleSkipAppointment();
+                // Execute in next tick to allow dialog close animation
+                requestAnimationFrame(() => {
+                  handleSkipAppointment();
+                });
               }}
               className={isRecurring ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}
             >
