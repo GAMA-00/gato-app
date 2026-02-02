@@ -1,63 +1,66 @@
 
-# Plan: Optimizar Layout del Logo en Vista Móvil
+# Plan: Corregir la Asociación de Cliente en Transacciones OnvoPay
 
-## Problema Actual
-En la vista móvil del landing page, el logo está centrado verticalmente en la pantalla completa (`flex items-center justify-center`), lo que desperdicia espacio visual y el logo parece muy grande para dispositivos pequeños.
+## Problema Identificado
 
-## Cambios Propuestos
+En el dashboard de OnvoPay, la columna "CLIENTE" muestra "--" en lugar del nombre del cliente. Esto ocurre porque:
 
-### Archivo: `src/pages/LandingPage.tsx`
+1. **El campo `customer` no se está enviando al crear el Payment Intent** - Solo se está enviando el `customer_name` y `onvopay_customer_id` dentro de `metadata`, pero OnvoPay requiere el campo `customer` a nivel raíz del objeto para asociar la transacción con el cliente.
 
-**1. Reducir tamaño del logo en móvil**
-```typescript
-// ANTES (línea 18)
-<div className="w-56 md:w-64">
+2. **El nombre del cliente en OnvoPay está desactualizado** - El cliente `572b3e62-43ae-45fd-8c50-89e085dfcac6` tiene `name: "Andrei"` en la tabla `users`, pero en `onvopay_customers` aparece como `name: "Cliente"`.
 
-// DESPUÉS - Logo más pequeño en móvil
-<div className="w-44 md:w-64">
-```
+## Solución
 
-**2. Posicionar el contenido más arriba en móvil**
+### 1. Agregar campo `customer` al Payment Intent
 
-Cambiar el layout del contenedor principal para que el contenido esté más arriba en móvil pero centrado en desktop:
+Modificar la creación del payment intent para incluir el campo `customer` a nivel superior:
 
-```typescript
-// ANTES (línea 14)
-<div className="min-h-screen bg-background flex items-center justify-center px-4">
+**Archivo: `supabase/functions/onvopay-authorize/types.ts`**
+- Agregar campo opcional `customer?: string` a la interfaz `OnvoPaymentIntentData`
 
-// DESPUÉS - Arriba en móvil, centrado en desktop
-<div className="min-h-screen bg-background flex items-start md:items-center justify-center px-4 pt-20 md:pt-0">
-```
-
-**3. Reducir espaciado vertical entre elementos en móvil**
+**Archivo: `supabase/functions/onvopay-authorize/index.ts`**
+- Modificar `paymentIntentData` para incluir `customer: customerId` cuando esté disponible
 
 ```typescript
-// ANTES (línea 15)
-<div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-8">
+// ANTES (líneas 285-297)
+const paymentIntentData = {
+  amount: amountCents,
+  currency: currency,
+  description: description,
+  metadata: {
+    // ... sin customer a nivel raíz
+  }
+};
 
-// DESPUÉS - Menos espacio en móvil
-<div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-6 md:space-y-8">
+// DESPUÉS
+const paymentIntentData = {
+  amount: amountCents,
+  currency: currency,
+  description: description,
+  ...(customerId && { customer: customerId }),  // ← Nuevo: asociar cliente
+  metadata: {
+    // ...
+  }
+};
 ```
 
-```typescript
-// ANTES (línea 17)
-<div className="flex flex-col items-center space-y-6">
+### 2. Sincronizar nombre del cliente existente
 
-// DESPUÉS - Menos espacio entre logo y texto
-<div className="flex flex-col items-center space-y-4 md:space-y-6">
-```
+El cliente ya existe en OnvoPay con nombre "Cliente" pero debería ser "Andrei". Ya existe lógica de sincronización en `customer.ts` (líneas 59-94) que actualiza el nombre cuando detecta un cambio, pero debemos asegurar que se ejecute correctamente.
 
-## Resumen de Cambios
+## Archivos a Modificar
 
-| Línea | Cambio |
-|-------|--------|
-| 14 | Agregar `items-start pt-20` para móvil, `md:items-center md:pt-0` para desktop |
-| 15 | Cambiar `space-y-8` a `space-y-6 md:space-y-8` |
-| 17 | Cambiar `space-y-6` a `space-y-4 md:space-y-6` |
-| 18 | Cambiar ancho de `w-56` a `w-44` en móvil |
+| Archivo | Cambio |
+|---------|--------|
+| `supabase/functions/onvopay-authorize/types.ts` | Agregar `customer?: string` a `OnvoPaymentIntentData` |
+| `supabase/functions/onvopay-authorize/index.ts` | Incluir `customer: customerId` en `paymentIntentData` |
 
 ## Resultado Esperado
-- En móvil: Logo más pequeño y posicionado hacia arriba con padding-top de 80px
-- En desktop: Layout centrado igual que antes con tamaño de logo w-64
-- Mejor aprovechamiento del espacio vertical en dispositivos móviles
-- Jerarquía visual mejorada
+
+- Las nuevas transacciones en OnvoPay mostrarán el nombre del cliente correctamente
+- Los clientes existentes se actualizarán la próxima vez que se procese un pago (la sincronización ya existe)
+- El dashboard de OnvoPay mostrará el nombre en la columna "CLIENTE" en lugar de "--"
+
+## Nota Técnica
+
+La API de OnvoPay sigue un patrón similar a Stripe, donde el campo `customer` debe ser el ID del customer object a nivel raíz del payment intent para que la transacción quede asociada al cliente en el dashboard.
