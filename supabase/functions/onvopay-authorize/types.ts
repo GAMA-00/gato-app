@@ -57,19 +57,20 @@ export interface AuthorizePaymentRequest {
 
 /**
  * OnvoPay payment intent request payload
+ * NOTE: OnvoPay does NOT accept 'customer' field in payment-intents endpoint
+ * Customer association is stored in metadata only for our internal tracking
  */
 export interface OnvoPaymentIntentData {
   amount: number;
   currency: string;
   description: string;
-  customer?: string;  // OnvoPay customer ID - linked at creation, NOT at confirm
   metadata: {
     appointment_id: string;
     client_id: string;
     provider_id: string;
     is_post_payment: string;
     customer_name?: string;
-    onvopay_customer_id?: string;
+    onvopay_customer_id?: string;  // Stored for internal tracking only
   };
 }
 
