@@ -150,23 +150,24 @@ export const useWeeklySlotsFetcher = ({
           .in('status', ['confirmed', 'pending', 'completed'])
           .gte('start_time', baseDate.toISOString())
           .lte('start_time', endOfDay(endDate).toISOString()),
+        // ✅ Cross-listing: busca TODAS las citas del proveedor en esta residencia para recomendaciones
         clientResidenciaId ?
           supabase
             .from('appointments')
-            .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id')
+            .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id, listing_id')
             .eq('provider_id', providerId)
-            .eq('listing_id', listingId)
+            // SIN filtro de listing_id - permite recomendaciones cross-listing
             .in('status', ['confirmed', 'pending', 'completed'])
             .eq('residencia_id', clientResidenciaId)
             .gte('start_time', baseDate.toISOString())
             .lte('start_time', endOfDay(endDate).toISOString())
           : Promise.resolve({ data: [], error: null }),
-        // recurring base for all residencias
+        // ✅ Cross-listing: citas recurrentes de TODOS los anuncios del proveedor para recomendaciones
           supabase
             .from('appointments')
             .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status, external_booking')
             .eq('provider_id', providerId)
-            .eq('listing_id', listingId)
+            // SIN filtro de listing_id - permite recomendaciones cross-listing para recurrentes
             .in('status', ['confirmed', 'pending', 'completed'])
             .not('recurrence', 'in', '("none","once")')
             .lte('start_time', endOfDay(endDate).toISOString()),
@@ -186,13 +187,13 @@ export const useWeeklySlotsFetcher = ({
           .not('recurrence', 'is', null)
           .neq('recurrence', 'none')
           .neq('recurrence', 'once'),
-        // Historical appointments for adjacency recommendations (up to 4 weeks back)
+        // ✅ Cross-listing: historial de TODOS los anuncios para recomendaciones (4 semanas atrás)
         clientResidenciaId ?
           supabase
             .from('appointments')
-            .select('start_time, end_time, status, residencia_id')
+            .select('start_time, end_time, status, residencia_id, listing_id')
             .eq('provider_id', providerId)
-            .eq('listing_id', listingId)
+            // SIN filtro de listing_id - permite recomendaciones cross-listing históricas
             .in('status', ['confirmed', 'pending', 'completed'])
             .eq('residencia_id', clientResidenciaId)
             .gte('start_time', subWeeks(baseDate, 4).toISOString())
