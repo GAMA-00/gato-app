@@ -61,10 +61,10 @@ export const useRecommendedListings = () => {
       if (listingsError) throw listingsError;
       if (!listings?.length) return [];
 
-      // Get provider info
+      // Get provider info from public view (bypasses RLS restrictions on users table)
       const providerIds = [...new Set(listings.map(l => l.provider_id))];
       const { data: providers } = await supabase
-        .from('users')
+        .from('provider_public_profiles')
         .select('id, name, avatar_url, average_rating')
         .in('id', providerIds);
 
