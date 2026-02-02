@@ -249,6 +249,7 @@ serve(async (req) => {
         amount: amountCents,
         subtotal: amountCents,
         iva_amount: 0,
+        currency: currency,  // ✅ Dynamic currency from listing
         payment_type: 'cash',
         payment_method: 'card',
         status: finalStatus,
