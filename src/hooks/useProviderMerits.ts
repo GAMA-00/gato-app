@@ -43,12 +43,12 @@ export function useProviderMerits(providerId?: string) {
         // Get recurring clients count using the existing RPC function
         supabase.rpc('get_recurring_clients_count', { provider_id: providerId }),
 
-        // Get provider's average rating from users table (already calculated correctly)
+        // Get provider's average rating from public view (bypasses RLS)
         supabase
-          .from('users')
+          .from('provider_public_profiles')
           .select('average_rating')
           .eq('id', providerId)
-          .single(),
+          .maybeSingle(),
 
         // Get rating count from completed appointments only by joining tables
         supabase
