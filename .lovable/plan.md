@@ -1,101 +1,291 @@
 
-# Plan: Corregir Inconsistencia en la Etiqueta "Recomendado"
+# Auditoría Completa del Sistema de Pagos OnvoPay
 
-## Problema Identificado
+## Resumen Ejecutivo
 
-La etiqueta "Recomendado" no aparece consistentemente en todos los slots adyacentes a citas agendadas. Tras investigar el código fuente, identifiqué **tres causas principales**:
+Tras revisar exhaustivamente todas las Edge Functions, el código frontend, y la base de datos, he identificado **4 problemas críticos** y **3 mejoras recomendadas** para garantizar el correcto funcionamiento del sistema de pagos.
 
-### 1. Desajuste de Timezone en el Cálculo de Adyacencia
-En `useWeeklySlotsFetcher.ts`, las citas se procesan con timestamps UTC mientras los slots usan hora local directa:
+---
 
-```typescript
-// Línea 650-655 - Problema: getHours() devuelve hora local del navegador
-const start = new Date(apt.start_time);  // UTC timestamp
-const startMin = start.getHours() * 60 + start.getMinutes();  // Hora local del navegador
+## ✅ Validación de Cumplimiento con Reglas de Negocio
+
+### Regla 0: No cobrar antes de confirmación del proveedor
+| Aspecto | Estado | Evidencia |
+|---------|--------|-----------|
+| One-time: No cobra al crear solicitud | ✅ Cumple | `onvopay-authorize` crea Payment Intent con status `pending_authorization` |
+| One-time: Cobra solo al aceptar proveedor | ✅ Cumple | `onvopay-capture-on-provider-accept` ejecuta `/confirm` y `/capture` |
+| Recurrente: No crea plan sin confirmación | ✅ Cumple | `onvopay-create-subscription` solo guarda localmente, no cobra |
+| Recurrente: Cobra al aceptar proveedor | ✅ Cumple | `onvopay-initiate-recurring` se invoca desde `capture-on-provider-accept` |
+| Rechazo: No crea transacción | ✅ Cumple | `handleDecline` en `useRequestActions.ts` solo actualiza status a `rejected` |
+
+### Flujo de Captura Verificado
+```text
+Cliente solicita reserva
+       │
+       ▼
+┌─────────────────────────────────────┐
+│ onvopay-authorize                   │
+│ • Crea Payment Intent               │
+│ • Status: pending_authorization     │
+│ • NO confirma, NO captura           │
+└─────────────────────────────────────┘
+       │
+       ▼
+Proveedor ACEPTA (handleAccept)
+       │
+       ▼
+┌─────────────────────────────────────┐
+│ onvopay-capture-on-provider-accept  │
+│ • Llama /confirm con paymentMethodId│
+│ • Llama /capture                    │
+│ • Actualiza status: captured        │
+└─────────────────────────────────────┘
+       │
+       ▼
+✅ Dinero transferido
 ```
 
-El `dateKey` de las citas se calcula con `format(start, 'yyyy-MM-dd')` que usa la zona horaria del navegador, mientras que los slots usan directamente `slot.slot_date` de la base de datos (hora local de Costa Rica).
+---
 
-### 2. Cálculo del Step Incompleto
-El paso (`step`) entre slots se calcula buscando la diferencia mínima entre slots consecutivos. Sin embargo, cuando hay pocos slots disponibles en un día, el cálculo puede dar resultados incorrectos:
+## ❌ Problemas Críticos Identificados
 
-- Si solo hay 1 slot disponible, el step es 60 (fallback)
-- Pero la duración real del slot podría ser diferente
+### 1. CRÍTICO: Moneda Hardcodeada (USD únicamente)
 
-### 3. Filtrado que Excluye Slots del Pool de Cálculo
-Los slots pasan por múltiples filtros (`accommodatableSlots`, `filteredByNotice`) que reducen la lista de slots disponibles **antes** de calcular las recomendaciones. Esto puede hacer que slots adyacentes a citas no se marquen como recomendados porque fueron excluidos del pool de cálculo.
+**Problema**: Todas las Edge Functions envían `currency: 'USD'` a OnvoPay, ignorando la moneda configurada en el listing.
 
-## Solución Propuesta
+**Archivos afectados**:
+| Archivo | Línea | Código problemático |
+|---------|-------|---------------------|
+| `onvopay-authorize/index.ts` | 270 | `currency: 'USD'` |
+| `onvopay-create-subscription/index.ts` | 98 | `currency: 'USD'` |
+| `onvopay-charge-post-payment/index.ts` | 135 | `currency: 'USD'` |
+| `onvopay-webhook/index.ts` | 441 | `currency: 'USD'` |
 
-### Archivo a Modificar
+**Consecuencia**: Si un proveedor configura un servicio en CRC (₡15,000), el sistema envía $15,000 a OnvoPay.
 
-| Archivo | Cambio |
-|---------|--------|
-| `src/hooks/useWeeklySlotsFetcher.ts` | Corregir lógica de adyacencia |
+**Solución requerida**:
+1. Obtener `currency` del listing asociado a la cita
+2. Pasar `currency` dinámicamente a OnvoPay
+3. Validar que la moneda sea soportada (`USD` o `CRC`)
 
-### Cambios Específicos
+### 2. CRÍTICO: Fecha de Cobro Recurrente Basada en Fecha de Servicio (No Confirmación)
 
-1. **Usar la duración real del slot en lugar del step calculado**
-   - Cambiar `slotMin + step` por `slotMin + slotDuration` donde `slotDuration` se obtiene del slot actual
-   - Esto garantiza que el cálculo de "este slot termina justo antes de la cita" sea correcto
+**Problema**: El sistema calcula `next_charge_date` basándose en `appointment.start_time` (fecha del servicio), no en la fecha de confirmación.
 
-2. **Normalizar la zona horaria al procesar citas**
-   - Extraer hora/minutos de la cita usando la zona horaria de Costa Rica consistentemente
-   - Usar `formatInTimeZone` de `date-fns-tz` para garantizar consistencia
-
-3. **Calcular adyacencia basándose en la hora real de fin del slot**
-   - En lugar de usar `slotMin + step`, calcular la hora de fin real del slot
-   - Comparar: `slotEndMin === apptStartMin` (slot termina cuando cita inicia)
-   - Comparar: `slotStartMin === apptEndMin` (slot inicia cuando cita termina)
-
-## Detalles Técnicos
-
-### Cambio en cálculo de minutos de citas (líneas ~648-661)
+**Archivo afectado**: `onvopay-create-subscription/index.ts` líneas 128-130
 
 ```typescript
-// ANTES: Usa getHours() que depende del navegador
-const start = new Date(apt.start_time);
-const startMin = start.getHours() * 60 + start.getMinutes();
-
-// DESPUÉS: Usar zona horaria consistente
-import { formatInTimeZone } from 'date-fns-tz';
-const start = new Date(apt.start_time);
-const startTimeStr = formatInTimeZone(start, 'America/Costa_Rica', 'HH:mm');
-const [startHH, startMM] = startTimeStr.split(':').map(Number);
-const startMin = startHH * 60 + startMM;
+// ❌ ACTUAL: Usa fecha del servicio
+const nextChargeDate = new Date(appointment.start_time);
 ```
 
-### Cambio en cálculo de adyacencia (líneas ~772-774)
+**Ejemplo del problema**:
+- Reserva confirmada: Lunes 6 de enero
+- Servicio se presta: Miércoles 8 de enero (cada 15 días)
+- **Actual**: Cobra los miércoles cada 15 días
+- **Esperado**: Cobra los lunes cada 15 días (fecha de confirmación)
+
+**Solución requerida**:
+```typescript
+// ✅ CORRECTO: Usar fecha actual (momento de confirmación)
+const nextChargeDate = new Date(); // Fecha de confirmación
+```
+
+### 3. CRÍTICO: No hay Cron Job Configurado para Cobros Recurrentes
+
+**Problema**: La tabla `cron.job` está vacía. El proceso `process-recurring-charges` nunca se ejecuta automáticamente.
+
+**Consecuencia**: Los cobros recurrentes futuros (después del inicial) nunca se procesan.
+
+**Evidencia en BD**: 
+- Suscripciones con `next_charge_date` del 2025-11-13 siguen en status `active` sin procesarse
+- Todas las suscripciones tienen `loop_status: 'manual_scheduling'`
+
+**Solución requerida**:
+```sql
+SELECT cron.schedule(
+  'process-recurring-charges-daily',
+  '0 6 * * *',  -- 6:00 AM todos los días (hora Costa Rica)
+  $$
+  SELECT net.http_post(
+    url:='https://jckynopecuexfamepmoh.supabase.co/functions/v1/process-recurring-charges',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer SERVICE_ROLE_KEY"}'::jsonb,
+    body:='{}'::jsonb
+  ) AS request_id;
+  $$
+);
+```
+
+### 4. ALTO: IVA Hardcodeado al 13% (Solo Costa Rica)
+
+**Problema**: El cálculo de IVA está fijo al 13% de Costa Rica.
+
+**Archivo**: `onvopay-authorize/utils.ts` línea 61
+```typescript
+const subtotalCents = Math.round(amountCents / 1.13);
+```
+
+**Impacto**: Si el sistema se expande a otros países o cambia la legislación fiscal, el IVA será incorrecto.
+
+---
+
+## ⚠️ Mejoras Recomendadas
+
+### 1. Idempotencia: Protección contra Cobros Duplicados
+
+**Estado actual**: Parcialmente implementado
+- ✅ `onvopay-initiate-recurring` usa `idempotency_key`
+- ✅ `onvopay-process-membership-charge` verifica pagos recientes (24h)
+- ⚠️ `onvopay-authorize` acepta `idempotency_key` pero no lo genera automáticamente
+
+**Recomendación**: Generar `idempotency_key` automáticamente en todos los flujos:
+```typescript
+const idempotencyKey = `${appointmentId}_${paymentType}_${Date.now()}`;
+```
+
+### 2. Validación de Reintentos: Max 3 Intentos
+
+**Estado actual**: ✅ Implementado correctamente
+- `onvopay_subscriptions.max_retry_attempts` default 3
+- `failed_attempts` se incrementa en cada fallo
+- Suscripción se cancela automáticamente después de 3 fallos
+
+### 3. Tipos de Recurrencia Soportados
+
+**Estado actual**: ✅ Completo
+| Frecuencia | interval_type | interval_count | Verificado |
+|------------|---------------|----------------|------------|
+| Semanal | weekly | 1 | ✅ |
+| Quincenal | biweekly | 1 | ✅ |
+| Cada 3 semanas | triweekly | 1 | ✅ |
+| Mensual | monthly | 1 | ✅ |
+
+---
+
+## Cambios Requeridos (Plan de Implementación)
+
+### Fase 1: Corrección de Moneda (CRÍTICO)
+
+**Archivo**: `supabase/functions/onvopay-authorize/index.ts`
+
+1. Obtener currency del listing:
+```typescript
+// Agregar currency a la query del appointment (línea ~154)
+.select(`
+  client_id, 
+  provider_id, 
+  listing_id,
+  recurrence,
+  listings (
+    title,
+    currency,  // ← AGREGAR
+    service_type_id,
+    service_types (name)
+  )
+`)
+```
+
+2. Usar currency dinámico en Payment Intent:
+```typescript
+// Línea ~268-280
+const paymentIntentData = {
+  amount: amountCents,
+  currency: appointment.listings?.currency || 'USD',  // ← CAMBIAR
+  // ...
+};
+```
+
+3. Actualizar `onvopay-create-subscription`, `onvopay-charge-post-payment`, y `onvopay-process-membership-charge` con la misma lógica.
+
+### Fase 2: Corrección de Fecha de Cobro Recurrente (CRÍTICO)
+
+**Archivo**: `supabase/functions/onvopay-create-subscription/index.ts`
 
 ```typescript
-// ANTES: Usa step que puede no coincidir con duración del slot
-const isAdjacentBeforeAppointment = apptStarts.has(slotMin + step);
+// Línea ~128-130 - CAMBIAR
+// ❌ ANTES:
+const nextChargeDate = new Date(appointment.start_time);
 
-// DESPUÉS: Usar hora de fin real del slot
-// Extraer hora de fin del slot de su propiedad time o calcular basado en duración estándar (60 min)
-const slotEndMin = slotMin + 60;  // Los slots son de 60 minutos según memoria del proyecto
-const isAdjacentBeforeAppointment = apptStarts.has(slotEndMin);
+// ✅ DESPUÉS:
+// El primer cobro ocurre inmediatamente al confirmar
+// El siguiente cobro es en X días/semanas desde HOY (fecha de confirmación)
+const now = new Date();
+const nextChargeDate = calculateNextDate(now, recurrenceType);
 ```
 
-### Cambio para incluir dateKey consistente (líneas ~652-653)
+### Fase 3: Configurar Cron Job (CRÍTICO)
+
+**Acción**: Ejecutar SQL en Supabase Dashboard
+
+```sql
+-- Habilitar extensiones si no están activas
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+-- Crear cron job para cobros recurrentes diarios a las 6 AM Costa Rica
+SELECT cron.schedule(
+  'process-recurring-charges-daily',
+  '0 12 * * *',  -- 6 AM Costa Rica = 12 PM UTC
+  $$
+  SELECT net.http_post(
+    url:='https://jckynopecuexfamepmoh.supabase.co/functions/v1/process-recurring-charges',
+    headers:=jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    ),
+    body:='{}'::jsonb
+  );
+  $$
+);
+```
+
+### Fase 4: Parametrizar IVA (RECOMENDADO)
+
+**Archivo**: `supabase/functions/onvopay-authorize/utils.ts`
 
 ```typescript
-// ANTES: format() usa TZ del navegador
-const startKey = format(start, 'yyyy-MM-dd');
+// Agregar configuración de IVA por país/moneda
+const IVA_RATES: Record<string, number> = {
+  'USD': 0,      // Sin IVA para USD (o ajustar según negocio)
+  'CRC': 0.13,   // 13% IVA Costa Rica
+};
 
-// DESPUÉS: Usar TZ de Costa Rica
-const startKey = formatInTimeZone(start, 'America/Costa_Rica', 'yyyy-MM-dd');
+export function calculateAmounts(totalAmount: number, currency: string = 'USD') {
+  const ivaRate = IVA_RATES[currency] || 0;
+  const amountCents = Math.round(totalAmount * 100);
+  const subtotalCents = Math.round(amountCents / (1 + ivaRate));
+  const ivaCents = amountCents - subtotalCents;
+  return { amountCents, subtotalCents, ivaCents };
+}
 ```
 
-## Impacto
+---
 
-- **Slots adyacentes antes de citas**: Mostrarán correctamente "Recomendado"
-- **Slots adyacentes después de citas**: Mostrarán correctamente "Recomendado"  
-- **Consistencia entre anuncios**: Todos los servicios mostrarán recomendaciones de forma uniforme
-- **Sin regresiones**: La lógica de bloqueo y disponibilidad no se modifica
+## Resumen de Riesgos y Edge Cases
 
-## Pruebas Recomendadas
+| Riesgo | Severidad | Estado | Acción |
+|--------|-----------|--------|--------|
+| Cobro en moneda incorrecta | 🔴 Crítico | Activo | Implementar Fase 1 |
+| Cobros recurrentes no se ejecutan | 🔴 Crítico | Activo | Implementar Fase 3 |
+| Fecha de cobro incorrecta | 🟠 Alto | Activo | Implementar Fase 2 |
+| IVA incorrecto para USD | 🟡 Medio | Potencial | Implementar Fase 4 |
+| Cobros duplicados | 🟢 Bajo | Mitigado | Idempotency keys implementadas |
+| Fallos de red | 🟢 Bajo | Mitigado | Retry logic con backoff |
 
-1. Verificar que el slot de 9:00 AM del 30 de enero en "Dani Nail Artist" muestre "Recomendado"
-2. Confirmar que los slots de "Pet Grooming" sigan mostrando "Recomendado" correctamente
-3. Probar con diferentes servicios para validar consistencia
+---
+
+## Verificación Final
+
+### ✅ Cumple con documentación OnvoPay
+- Flujo de 3 pasos: Create → Confirm → Capture
+- Uso de payment_method_id para saved cards
+- Webhooks para eventos payment.captured/failed
+
+### ✅ Cumple con regla crítica de negocio
+- No se cobra sin confirmación del proveedor
+- Rechazo no genera transacciones
+
+### ⚠️ Requiere corrección urgente
+- Soporte correcto de moneda (USD/CRC)
+- Cron job para cobros recurrentes
+- Lógica de fechas basada en confirmación
