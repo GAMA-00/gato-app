@@ -333,6 +333,11 @@ async function handleSubscriptionCharged(supabaseAdmin: any, eventData: any) {
 
   // FASE 3: Crear registro de pago en onvopay_payments
   if (newAppointmentId) {
+    // Calculate IVA based on currency (0% for USD, 13% for CRC)
+    // Note: Recurring payments from webhook should maintain same currency as subscription
+    const subtotalAmount = Math.round(amount / 1.13); // Default to 13% for backwards compatibility
+    const ivaAmount = amount - subtotalAmount;
+    
     const { error: paymentError } = await supabaseAdmin
       .from('onvopay_payments')
       .insert({
@@ -340,8 +345,8 @@ async function handleSubscriptionCharged(supabaseAdmin: any, eventData: any) {
         client_id: subscription.client_id,
         provider_id: subscription.provider_id,
         amount: amount,
-        subtotal: Math.round(amount / 1.13), // Calcular subtotal sin IVA
-        iva_amount: amount - Math.round(amount / 1.13),
+        subtotal: subtotalAmount,
+        iva_amount: ivaAmount,
         status: 'captured',
         payment_type: 'subscription',
         payment_method: 'card',
@@ -429,16 +434,21 @@ async function handleLoopChargeSucceeded(supabaseAdmin: any, eventData: any) {
   console.log('📋 Subscription found:', subscription.id);
 
   // 2. Create payment record
+  // Calculate IVA based on amount (0% for USD transactions from loops)
+  const amountInCurrency = amount / 100; // Convert from cents
+  const subtotalAmount = amountInCurrency; // No IVA for loop payments (typically USD)
+  const ivaAmount = 0;
+  
   const { data: newPayment, error: paymentError } = await supabaseAdmin
     .from('onvopay_payments')
     .insert({
       appointment_id: null, // Will be linked after appointment creation
       client_id: subscription.client_id,
       provider_id: subscription.provider_id,
-      amount: amount / 100, // Convert from cents
-      subtotal: Math.round((amount / 100) / 1.13), // Without IVA
-      iva_amount: (amount / 100) - Math.round((amount / 100) / 1.13),
-      currency: 'USD',
+      amount: amountInCurrency,
+      subtotal: subtotalAmount,
+      iva_amount: ivaAmount,
+      currency: 'USD', // Loop payments are typically in USD
       status: 'captured',
       payment_type: 'recurring_charge',
       payment_method: 'card',

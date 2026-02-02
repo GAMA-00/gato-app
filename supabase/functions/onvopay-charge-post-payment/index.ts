@@ -39,7 +39,7 @@ serve(async (req) => {
 
     console.log('💵 Processing T2 post-payment charge:', { invoiceId });
 
-    // Get invoice with appointment and client details
+    // Get invoice with appointment and client details including currency
     const { data: invoice, error: invoiceError } = await supabase
       .from('post_payment_invoices')
       .select(`
@@ -49,7 +49,7 @@ serve(async (req) => {
           client_id,
           provider_id,
           listing_id,
-          listings!inner(title)
+          listings!inner(title, currency)
         )
       `)
       .eq('id', invoiceId)
@@ -129,10 +129,14 @@ serve(async (req) => {
 
     const customerId = customerMapping?.onvopay_customer_id;
 
+    // Get currency from listing
+    const currency = invoice.appointments.listings?.currency || 'USD';
+    console.log('💱 Currency for post-payment:', currency);
+
     // ✅ PASO 1: Crear Payment Intent SIN payment_method (OnvoPay requiere 3 pasos para saved methods)
     const paymentIntentPayload = {
       amount: amountCents,
-      currency: 'USD',
+      currency: currency,  // ✅ Dynamic currency from listing
       description: `Gastos adicionales - ${invoice.appointments.listings.title}`,
       metadata: {
         invoice_id: invoiceId,
