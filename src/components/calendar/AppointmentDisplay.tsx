@@ -77,7 +77,7 @@ export const AppointmentDisplay: React.FC<AppointmentDisplayProps> = ({
   }
   
   // Determine appointment type flags using centralized utilities
-  const appointmentIsRecurring = appointment.is_recurring_instance || isRecurring(appointment.recurrence);
+  const appointmentIsRecurring = isRecurring(appointment.recurrence);
   const isExternal = appointment.external_booking || appointment.is_external;
   
   // Get person name based on user role

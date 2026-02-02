@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildAppointmentLocation } from "@/utils/appointmentLocationHelper";
+import { isRecurring, getRecurrenceInfo } from '@/lib/recurrence';
 
 interface GroupedRequest {
   id: string;
@@ -120,12 +121,9 @@ export function useGroupedPendingRequests() {
             is_external: isExternal,
             service_name: appointment.listings?.title || 'Servicio',
             service_title: appointment.listings?.title || 'Servicio',
-            recurrence_label: 
-              appointment.recurrence === 'weekly' ? 'Semanal' :
-              appointment.recurrence === 'biweekly' ? 'Quincenal' :
-              appointment.recurrence === 'triweekly' ? 'Trisemanal' :
-              appointment.recurrence === 'monthly' ? 'Mensual' :
-              appointment.recurrence && appointment.recurrence !== 'none' ? 'Recurrente' : null
+            recurrence_label: isRecurring(appointment.recurrence) 
+              ? getRecurrenceInfo(appointment.recurrence).label 
+              : null
           };
         })
       );
