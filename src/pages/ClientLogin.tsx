@@ -87,7 +87,7 @@ const ClientLogin = () => {
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4">
             <img 
-              src="/lovable-uploads/7940cf6c-ca54-4600-baf8-e31bdbbc4ffa.png" 
+              src="/gato-icon.png?v=1" 
               width="64"
               height="64"
               alt="Gato Logo" 
