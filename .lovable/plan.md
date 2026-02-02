@@ -1,168 +1,61 @@
 
-# Plan: Corrección de Etiquetas de Recurrencia Incorrectas
+# Plan: Actualizar Logo del Landing Page
 
-## Problema Identificado
+## Objetivo
+Reemplazar el logo actual del landing page con el nuevo logo proporcionado que incluye el texto "Servicios a domicilio" integrado.
 
-En el calendario del proveedor, las citas de servicio único muestran incorrectamente la etiqueta "Recurrente" (genérico) en lugar de no mostrar etiqueta o mostrar el tipo específico de recurrencia.
+## Cambios a Realizar
 
-### Causa Raíz
+### 1. Copiar el Nuevo Asset
+Copiar el archivo subido `gato_Loggos-10.png` a la carpeta `public/` como el nuevo logo:
+- **Origen**: `user-uploads://gato_Loggos-10.png`
+- **Destino**: `public/gato-logo.png` (reemplazando el existente)
 
-Hay **3 problemas principales** en la lógica de detección de recurrencia:
-
-### Problema 1: `DayAppointmentsList.tsx` (línea 28)
-```typescript
-// INCORRECTO - Cualquier valor truthy en recurrence activa la etiqueta
-const isRecurring = (apt: any) => apt.is_recurring_instance || apt.recurrence;
-```
-Esta lógica es incorrecta porque:
-- `apt.recurrence` puede ser `'none'` o `'once'` (valores truthy pero NO recurrentes)
-- Muestra etiqueta genérica "Recurrente" en lugar del tipo específico
-
-### Problema 2: `AppointmentDisplay.tsx` (línea 80)
-```typescript
-// Misma lógica incorrecta
-const appointmentIsRecurring = appointment.is_recurring_instance || isRecurring(appointment.recurrence);
-```
-Aunque usa la utilidad `isRecurring()`, también incluye `is_recurring_instance` sin verificar el campo `recurrence`.
-
-### Problema 3: `useGroupedPendingRequests.ts` (líneas 123-128)
-```typescript
-// Fallback genérico "Recurrente" - NUNCA debe mostrarse
-recurrence_label: 
-  appointment.recurrence === 'weekly' ? 'Semanal' :
-  appointment.recurrence === 'biweekly' ? 'Quincenal' :
-  appointment.recurrence === 'triweekly' ? 'Trisemanal' :
-  appointment.recurrence === 'monthly' ? 'Mensual' :
-  appointment.recurrence && appointment.recurrence !== 'none' ? 'Recurrente' : null
-```
-Existe un fallback que muestra "Recurrente" si el tipo no coincide con los esperados.
-
----
-
-## Solución
-
-### Cambio 1: `DayAppointmentsList.tsx`
-
-**Archivo**: `src/components/calendar/DayAppointmentsList.tsx`
-
-Reemplazar la lógica de detección y mostrar el tipo específico:
+### 2. Actualizar `LandingPage.tsx`
+Modificar la referencia del logo para forzar cache-busting (incrementar versión de `?v=2` a `?v=3`):
 
 ```typescript
-// ANTES (línea 28)
-const isRecurring = (apt: any) => apt.is_recurring_instance || apt.recurrence;
+// ANTES (línea 20)
+src="/gato-logo.png?v=2"
 
 // DESPUÉS
-import { isRecurring as checkIsRecurring, getRecurrenceInfo } from '@/lib/recurrence';
-
-// Función para obtener etiqueta de recurrencia específica
-const getRecurrenceLabel = (apt: any): string | null => {
-  const recurrence = apt.recurrence;
-  if (!checkIsRecurring(recurrence)) return null;
-  
-  const info = getRecurrenceInfo(recurrence);
-  return info.label; // 'Semanal', 'Quincenal', 'Trisemanal', 'Mensual'
-};
+src="/gato-logo.png?v=3"
 ```
 
-Y actualizar el JSX para mostrar la etiqueta específica:
-```tsx
-// ANTES (línea 86-91)
-{isRecurring(apt) && (
-  <span className="...">
-    <Repeat className="h-3 w-3" />
-    Recurrente
-  </span>
-)}
-
-// DESPUÉS
-{(() => {
-  const label = getRecurrenceLabel(apt);
-  return label ? (
-    <span className="...">
-      <Repeat className="h-3 w-3" />
-      {label}
-    </span>
-  ) : null;
-})()}
-```
-
-### Cambio 2: `AppointmentDisplay.tsx`
-
-**Archivo**: `src/components/calendar/AppointmentDisplay.tsx`
-
-Corregir la lógica de detección (línea 80):
+### 3. Eliminar Texto Redundante (Opcional - Recomendado)
+Como el nuevo logo ya incluye "Servicios a domicilio", el texto de bienvenida podría ajustarse para evitar redundancia:
 
 ```typescript
-// ANTES
-const appointmentIsRecurring = appointment.is_recurring_instance || isRecurring(appointment.recurrence);
+// ANTES (línea 27-29)
+<h1 className="text-2xl md:text-3xl font-medium text-app-text text-center">
+  Bienvenido a Gato
+</h1>
 
-// DESPUÉS - Solo usar la utilidad centralizada que ya verifica correctamente
-const appointmentIsRecurring = isRecurring(appointment.recurrence);
+// DESPUÉS - Simplificar ya que el logo tiene el tagline
+<h1 className="text-xl md:text-2xl font-medium text-app-text text-center">
+  Bienvenido
+</h1>
 ```
 
-Esto asegura que `is_recurring_instance` no active falsamente la etiqueta cuando `recurrence` es `'none'` o `'once'`.
+Alternativamente, mantener "Bienvenido a Gato" si se desea reforzar el nombre.
 
-### Cambio 3: `useGroupedPendingRequests.ts`
-
-**Archivo**: `src/hooks/useGroupedPendingRequests.ts`
-
-Eliminar el fallback genérico "Recurrente" (líneas 123-128):
+### 4. Ajustar Tamaño del Contenedor del Logo
+El nuevo logo tiene proporciones diferentes (más ancho por el tagline), por lo que podría necesitar ajuste:
 
 ```typescript
-// ANTES
-recurrence_label: 
-  appointment.recurrence === 'weekly' ? 'Semanal' :
-  appointment.recurrence === 'biweekly' ? 'Quincenal' :
-  appointment.recurrence === 'triweekly' ? 'Trisemanal' :
-  appointment.recurrence === 'monthly' ? 'Mensual' :
-  appointment.recurrence && appointment.recurrence !== 'none' ? 'Recurrente' : null
+// ANTES (línea 18)
+<div className="w-40 md:w-48">
 
-// DESPUÉS - Usar utilidad centralizada sin fallback genérico
-import { isRecurring, getRecurrenceInfo } from '@/lib/recurrence';
-
-recurrence_label: isRecurring(appointment.recurrence) 
-  ? getRecurrenceInfo(appointment.recurrence).label 
-  : null
+// DESPUÉS - Más ancho para acomodar el tagline
+<div className="w-56 md:w-64">
 ```
 
----
+## Resumen de Archivos
 
-## Resumen de Cambios
+| Acción | Archivo |
+|--------|---------|
+| Copiar (reemplazar) | `public/gato-logo.png` |
+| Editar | `src/pages/LandingPage.tsx` |
 
-| Archivo | Líneas | Cambio |
-|---------|--------|--------|
-| `DayAppointmentsList.tsx` | 1-4, 27-28, 86-91 | Agregar import, usar `getRecurrenceInfo()`, mostrar etiqueta específica |
-| `AppointmentDisplay.tsx` | 80 | Eliminar `is_recurring_instance` de la condición |
-| `useGroupedPendingRequests.ts` | 6, 123-128 | Agregar import, usar utilidades centralizadas |
-
----
-
-## Comportamiento Esperado Después del Fix
-
-| Tipo de Cita | Valor `recurrence` | Etiqueta Mostrada |
-|--------------|-------------------|-------------------|
-| Una vez | `'none'` o `'once'` | (sin etiqueta) |
-| Semanal | `'weekly'` | "Semanal" |
-| Quincenal | `'biweekly'` | "Quincenal" |
-| Cada 3 semanas | `'triweekly'` | "Trisemanal" |
-| Mensual | `'monthly'` | "Mensual" |
-
----
-
-## Verificación
-
-1. Crear una cita de servicio único (`recurrence: 'none'`)
-2. Verificar que NO muestre etiqueta de recurrencia en el calendario
-3. Crear una cita recurrente semanal
-4. Verificar que muestre "Semanal" (no "Recurrente")
-5. Revisar panel de solicitudes pendientes
-6. Verificar consistencia en todas las vistas del proveedor
-
----
-
-## Impacto
-
-- Etiquetas precisas y consistentes en toda la aplicación
-- Mejor experiencia de usuario para proveedores
-- Eliminación de la etiqueta genérica "Recurrente" que no aporta información útil
-- Uso consistente de las utilidades centralizadas de recurrencia (`@/lib/recurrence`)
+## Resultado Esperado
+El landing page mostrará el nuevo logo con el tagline "Servicios a domicilio" integrado, correctamente dimensionado y con cache-busting para evitar problemas de caché en navegadores.
