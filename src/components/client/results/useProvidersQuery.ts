@@ -50,9 +50,9 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       const providerIds = [...new Set(listings.map(listing => listing.provider_id))];
       logger.debug("Provider IDs to fetch", { providerIds });
 
-      // Fetch provider information separately with optimized query
+      // Fetch provider information from public view (accessible without RLS restrictions)
       const { data: providers, error: providersError } = await supabase
-        .from('users')
+        .from('provider_public_profiles')
         .select(`
           id,
           name,
