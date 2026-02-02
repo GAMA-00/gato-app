@@ -1,158 +1,70 @@
 
-# Plan: Corregir Lógica de "Recomendado" para Todos los Anuncios
 
-## Diagnóstico del Problema
+# Plan: Ajustar Layout del Catálogo de Servicios
 
-Después de analizar el código y la base de datos, identifiqué la causa raíz:
+## Problema Identificado
 
-### Problema Principal
-Las consultas en `useWeeklySlotsFetcher.ts` filtran por `listing_id` específico, lo que significa que:
+En la sección de edición de variantes de servicio, el campo "Precio" es demasiado pequeño (`col-span-4`) mientras que el campo "Duración (min)" tiene espacio de sobra (`col-span-6`). Esto causa que el contenido del precio se vea cortado o apretado.
 
-1. **Las citas de OTROS anuncios del mismo proveedor NO se consideran** para el cálculo de recomendaciones
-2. Si un proveedor tiene "Anuncio A" y "Anuncio B", una cita del "Anuncio A" en un condominio **no marca** como recomendado los slots del "Anuncio B" en el mismo condominio
+## Distribución Actual (12 columnas)
 
-### Consultas Afectadas (todas filtran por `listing_id`)
+| Campo | Columnas | Porcentaje |
+|-------|----------|------------|
+| Precio | 4 | 33% |
+| Duración | 6 | 50% |
+| Botones | 2 | 17% |
 
-| Consulta | Líneas | Propósito |
-|----------|--------|-----------|
-| `apptAllRes` | 145-152 | Citas generales para conflictos |
-| `apptDirectRes` | 153-163 | Citas del mismo residencial |
-| `apptRecurringBaseRes` | 164-172 | Citas recurrentes base |
-| `legacyRecurringFirstRes` | 179-188 | Recurrentes legacy |
-| `historicalRes` | 189-200 | Historial de 4 semanas |
-| `legacyRecurringRes` | 203-213 | Segunda consulta recurrente |
+## Nueva Distribución Propuesta
 
-### Datos de Ejemplo
-```text
-Proveedor: bf15e5fe-0fe2-4917-a1ea-976333594d6f
-Listing: Pet Grooming (c64ce17e-200d-46f0-8265-ea9bbda95f08)
-Cita Recurrente: Lunes 9:00 AM Costa Rica (weekly)
-Residencia: 9b170ff3-9bf5-4c0e-a5e8-fcaee6fd7b4e
+| Campo | Columnas | Porcentaje |
+|-------|----------|------------|
+| Precio | 5 | 42% |
+| Duración | 5 | 42% |
+| Botones | 2 | 17% |
 
-✅ Slots 8:00 AM y 10:00 AM del Lunes DEBERÍAN mostrar "Recomendado"
-❌ Actualmente: La lógica funciona pero solo para el mismo listing
-```
+## Cambios a Realizar
 
-## Solución Propuesta
+### Archivo: `src/components/services/steps/ServiceVariantEditor.tsx`
 
-Modificar las 3 consultas clave para recomendaciones, **eliminando el filtro de `listing_id`** cuando se buscan citas para el cálculo de adyacencia (pool de recomendaciones).
-
-### Cambios en `useWeeklySlotsFetcher.ts`
-
-#### 1. Nueva consulta para recomendaciones cross-listing (líneas ~153-163)
-
-**ANTES:**
+**Cambio 1 - Campo Precio (línea 178):**
 ```typescript
-clientResidenciaId ?
-  supabase
-    .from('appointments')
-    .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id')
-    .eq('provider_id', providerId)
-    .eq('listing_id', listingId)  // ❌ Filtro limitante
-    .in('status', ['confirmed', 'pending', 'completed'])
-    .eq('residencia_id', clientResidenciaId)
-    .gte('start_time', baseDate.toISOString())
-    .lte('start_time', endOfDay(endDate).toISOString())
+// ANTES
+<div className="col-span-4">
+
+// DESPUÉS
+<div className="col-span-5">
 ```
 
-**DESPUÉS:**
+**Cambio 2 - Campo Duración (línea 205):**
 ```typescript
-clientResidenciaId ?
-  supabase
-    .from('appointments')
-    .select('id, start_time, end_time, status, external_booking, recurrence, residencia_id, listing_id')
-    .eq('provider_id', providerId)
-    // ✅ SIN filtro de listing_id - busca TODAS las citas del proveedor en esta residencia
-    .in('status', ['confirmed', 'pending', 'completed'])
-    .eq('residencia_id', clientResidenciaId)
-    .gte('start_time', baseDate.toISOString())
-    .lte('start_time', endOfDay(endDate).toISOString())
+// ANTES
+<div className={isPostPayment === true ? "col-span-5" : (showPriceFields ? "col-span-6" : "col-span-8")}>
+
+// DESPUÉS  
+<div className={isPostPayment === true ? "col-span-5" : (showPriceFields ? "col-span-5" : "col-span-8")}>
 ```
 
-#### 2. Consulta histórica cross-listing (líneas ~189-200)
-
-**ANTES:**
-```typescript
-clientResidenciaId ?
-  supabase
-    .from('appointments')
-    .select('start_time, end_time, status, residencia_id')
-    .eq('provider_id', providerId)
-    .eq('listing_id', listingId)  // ❌ Filtro limitante
-```
-
-**DESPUÉS:**
-```typescript
-clientResidenciaId ?
-  supabase
-    .from('appointments')
-    .select('start_time, end_time, status, residencia_id, listing_id')
-    .eq('provider_id', providerId)
-    // ✅ SIN filtro de listing_id
-```
-
-#### 3. Consulta de citas recurrentes base cross-listing (líneas ~164-172)
-
-**ANTES:**
-```typescript
-supabase
-  .from('appointments')
-  .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status, external_booking')
-  .eq('provider_id', providerId)
-  .eq('listing_id', listingId)  // ❌ Filtro limitante
-  .in('status', ['confirmed', 'pending', 'completed'])
-  .not('recurrence', 'in', '("none","once")')
-```
-
-**DESPUÉS:**
-```typescript
-supabase
-  .from('appointments')
-  .select('id, provider_id, listing_id, client_id, residencia_id, start_time, end_time, recurrence, status, external_booking')
-  .eq('provider_id', providerId)
-  // ✅ SIN filtro de listing_id para recomendaciones cross-listing
-  .in('status', ['confirmed', 'pending', 'completed'])
-  .not('recurrence', 'in', '("none","once")')
-```
-
-### Impacto en el Flujo
+## Resultado Visual Esperado
 
 ```text
-ANTES:
-┌─────────────────────────────────────────────────────────┐
-│ Cliente ve anuncio "Pet Grooming"                        │
-│ Proveedor tiene cita recurrente en mismo residencial     │
-│ Consulta SOLO busca citas de "Pet Grooming"              │
-│ ❌ Si la cita es de otro anuncio, NO se marca recomendado│
-└─────────────────────────────────────────────────────────┘
-
-DESPUÉS:
-┌─────────────────────────────────────────────────────────┐
-│ Cliente ve anuncio "Pet Grooming"                        │
-│ Proveedor tiene cita recurrente en mismo residencial     │
-│ Consulta busca TODAS las citas del proveedor             │
-│ ✅ Slots adyacentes se marcan como "Recomendado"         │
-│ ✅ Funciona para one-time Y recurrentes                  │
-│ ✅ Funciona para semana actual Y futuras                 │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│ Nombre del servicio                                     │
+│ ┌──────────────────────────────────────────────────┐   │
+│ │ Basico                                           │   │
+│ └──────────────────────────────────────────────────┘   │
+│                                                        │
+│ Precio           Duración (min)                        │
+│ ┌──────────────┐ ┌──────────────┐ ┌───┬───┐           │
+│ │ $ 3          │ │ 30           │ │ ↕ │ 🗑 │           │
+│ └──────────────┘ └──────────────┘ └───┴───┘           │
+│                                                        │
+│ Agregar precio por persona                      >      │
+└────────────────────────────────────────────────────────┘
 ```
 
-## Archivos a Modificar
+## Archivo a Modificar
 
 | Archivo | Cambios |
 |---------|---------|
-| `src/hooks/useWeeklySlotsFetcher.ts` | Remover `.eq('listing_id', listingId)` de 3 consultas específicas para recomendaciones |
+| `src/components/services/steps/ServiceVariantEditor.tsx` | Ajustar `col-span` del precio de 4→5 y duración de 6→5 |
 
-## Consultas que NO se modifican
-
-Las siguientes consultas DEBEN mantener el filtro de `listing_id` porque son para **conflictos de disponibilidad** (no recomendaciones):
-
-- `apptAllRes` (líneas 145-152): Conflictos de citas del mismo listing
-- Slots de base de datos: Deben ser del listing específico
-
-## Resultado Esperado
-
-1. Los slots adyacentes a CUALQUIER cita del proveedor en el mismo residencial mostrarán "Recomendado"
-2. Funciona tanto para citas one-time como recurrentes
-3. Funciona para la semana actual y todas las semanas futuras
-4. Aplica a TODOS los anuncios del proveedor
