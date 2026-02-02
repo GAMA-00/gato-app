@@ -122,133 +122,130 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
         {serviceVariants.map((variant, index) => (
           <Card key={variant.id || index} className="border">
             <CardContent className="p-4">
-              <div className="grid grid-cols-12 gap-3">
-                <div className="col-span-12">
-                  <FormField
-                    control={control}
-                    name={`serviceVariants.${index}.name`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">Nombre del servicio</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Ej. Corte básico" 
-                            value={variant.name}
-                            onChange={(e) => handleServiceVariantChange(index, 'name', e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
+              {/* Header with action buttons */}
+              <div className="flex justify-end gap-1 mb-3">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => handleMoveVariant(index, 'up')}
+                  disabled={index === 0}
+                  className="h-8 w-8"
+                >
+                  <MoveVertical className="h-4 w-4" />
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive/90"
+                  onClick={() => handleRemoveServiceVariant(index)}
+                  disabled={serviceVariants.length <= 1}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Service name field */}
+              <div className="mb-4">
+                <FormField
+                  control={control}
+                  name={`serviceVariants.${index}.name`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Nombre del servicio</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Ej. Corte básico" 
+                          value={variant.name}
+                          onChange={(e) => handleServiceVariantChange(index, 'name', e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {/* Price and Duration row */}
+              <div className="grid grid-cols-2 gap-4">
                 {isPostPayment === true && (
-                  <div className="col-span-5">
-                    <FormField
-                      control={control}
-                      name={`serviceVariants.${index}.price`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium">
-                            Tarifa Base
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
-                              <Input
-                                type="number" 
-                                min="1" 
-                                placeholder="Precio base" 
-                                value={variant.price}
-                                onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
-                                className="pl-7"
-                                required
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-                
-                {showPriceFields && (
-                  <div className="col-span-5">
-                    <FormField
-                      control={control}
-                      name={`serviceVariants.${index}.price`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs">Precio</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
-                              <Input
-                                type="number" 
-                                min="1" 
-                                placeholder="Precio" 
-                                value={variant.price}
-                                onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
-                                className="pl-7"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-                
-                <div className={isPostPayment === true ? "col-span-5" : (showPriceFields ? "col-span-5" : "col-span-8")}>
                   <FormField
                     control={control}
-                    name={`serviceVariants.${index}.duration`}
+                    name={`serviceVariants.${index}.price`}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-medium">
-                          Duración {isPostPayment === true ? "(estimada)" : ""} (min)
+                          Tarifa Base
                         </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            min="2" 
-                            step="1" 
-                            placeholder="Minutos" 
-                            value={variant.duration}
-                            onChange={(e) => handleServiceVariantChange(index, 'duration', e.target.value)}
-                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
+                            <Input
+                              type="number" 
+                              min="1" 
+                              placeholder="Precio base" 
+                              value={variant.price}
+                              onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
+                              className="pl-7"
+                              required
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
+                )}
                 
-                <div className="col-span-2 flex items-end justify-end space-x-1">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => handleMoveVariant(index, 'up')}
-                    disabled={index === 0}
-                    className="h-8 w-8"
-                  >
-                    <MoveVertical className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive/90"
-                    onClick={() => handleRemoveServiceVariant(index)}
-                    disabled={serviceVariants.length <= 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {showPriceFields && (
+                  <FormField
+                    control={control}
+                    name={`serviceVariants.${index}.price`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">Precio</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
+                            <Input
+                              type="number" 
+                              min="1" 
+                              placeholder="Precio" 
+                              value={variant.price}
+                              onChange={(e) => handleServiceVariantChange(index, 'price', e.target.value)}
+                              className="pl-7"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                <FormField
+                  control={control}
+                  name={`serviceVariants.${index}.duration`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Duración {isPostPayment === true ? "(estimada)" : ""} (min)
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="2" 
+                          step="1" 
+                          placeholder="Minutos" 
+                          value={variant.duration}
+                          onChange={(e) => handleServiceVariantChange(index, 'duration', e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {isPostPayment === "ambas" && (
