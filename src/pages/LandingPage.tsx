@@ -11,8 +11,8 @@ const LandingPage = () => {
   logger.debug('Rendering landing page');
 
   return (
-    <div className="min-h-screen bg-background flex items-start md:items-center justify-center px-4 pt-20 md:pt-0">
-      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center space-y-6 md:space-y-8">
+    <div className="min-h-screen bg-background flex flex-col items-center px-4 pt-16 md:pt-0 md:justify-center">
+      <div className="w-full max-w-md mx-auto flex flex-col items-center">
         {/* Logo */}
         <div className="flex flex-col items-center space-y-4 md:space-y-6">
           <div className="w-44 md:w-64">
@@ -30,7 +30,7 @@ const LandingPage = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="w-full space-y-4">
+        <div className="w-full space-y-4 mt-16 md:mt-8">
           {/* Client Button - Black */}
           <Button 
             onClick={() => {
