@@ -1,78 +1,119 @@
 
-# Plan: Corregir integración de clientes con OnvoPay
+# Plan: Asociar Cliente a Transacciones en OnvoPay
 
-## Problema identificado
+## Diagnóstico Completo
 
-Después de analizar el código y los logs, encontré dos problemas:
+El dashboard de OnvoPay muestra "No hay detalles" en el campo Cliente porque las transacciones no están vinculadas al objeto Customer. Después de analizar el código y la documentación:
 
-1. **El campo `customer` en `types.ts`**: Aunque ya revertimos el código en `index.ts`, la interfaz `OnvoPaymentIntentData` aún tiene el campo `customer`. Esto no causa el error actual, pero debe limpiarse por consistencia.
+### Hallazgos Clave
 
-2. **Método HTTP incorrecto para actualizar clientes**: En `customer.ts` línea 66, se usa `PATCH` para actualizar el nombre del cliente, pero según la documentación oficial de OnvoPay, el método correcto es `POST`:
-   - **Actual**: `method: 'PATCH'`
-   - **Documentación**: `post /v1/customers/{id}`
-   
-   Este es el motivo del log: `⚠️ Failed to update customer name in OnvoPay (404)`
+1. **Los clientes SÍ se crean correctamente** en OnvoPay - La función `ensureOnvoCustomer` funciona y sincroniza nombres.
 
-## Solución
+2. **El problema está en la confirmación del pago** - OnvoPay requiere que el `customerId` se envíe en el momento de confirmar el Payment Intent para vincular la transacción al cliente.
 
-### 1. Limpiar la interfaz OnvoPaymentIntentData
+3. **Actualmente NO se envía** - En todas las funciones de confirmación (`onvopay-confirm`, `onvopay-capture-on-provider-accept`, `onvopay-charge-post-payment`), solo se envía `paymentMethodId`.
 
-**Archivo: `supabase/functions/onvopay-authorize/types.ts`**
-
-Eliminar el campo `customer` ya que OnvoPay no lo acepta en payment intents:
+### Evidencia en Código
 
 ```typescript
-export interface OnvoPaymentIntentData {
-  amount: number;
-  currency: string;
-  description: string;
-  // Removido: customer?: string;  <- OnvoPay no acepta este campo
-  metadata: {
-    appointment_id: string;
-    client_id: string;
-    provider_id: string;
-    is_post_payment: string;
-    customer_name?: string;
-    onvopay_customer_id?: string;
-  };
-}
+// onvopay-confirm/index.ts (línea 271)
+const confirmData: Record<string, any> = { paymentMethodId };
+// ❌ Falta: customerId para vincular al cliente
 ```
 
-### 2. Corregir método HTTP para actualizar clientes
-
-**Archivo: `supabase/functions/onvopay-authorize/customer.ts`**
-
-Cambiar el método de `PATCH` a `POST` según la documentación de OnvoPay:
+```typescript  
+// onvopay-capture-on-provider-accept/index.ts (línea 218)
+body: JSON.stringify({
+  paymentMethodId: paymentMethodId
+})
+// ❌ Falta: customerId
+```
 
 ```typescript
-// Línea 66: Cambiar de PATCH a POST
-const updateResponse = await fetch(updateUrl, {
-  method: 'POST',  // Antes: 'PATCH'
-  headers: {
-    'Authorization': `Bearer ${secretKey}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({ name: currentName })
-});
+// onvopay-charge-post-payment/index.ts (línea 186)
+body: JSON.stringify({
+  paymentMethodId: savedMethod.onvopay_payment_method_id
+})
+// ❌ Falta: customerId
 ```
 
-## Archivos a modificar
+## Solución Propuesta
+
+Agregar `customerId` al payload de confirmación en todas las funciones que confirman pagos con OnvoPay.
+
+### Archivos a Modificar
 
 | Archivo | Cambio |
 |---------|--------|
-| `supabase/functions/onvopay-authorize/types.ts` | Eliminar campo `customer` de la interfaz |
-| `supabase/functions/onvopay-authorize/customer.ts` | Cambiar `PATCH` a `POST` en línea 66 |
+| `supabase/functions/onvopay-confirm/index.ts` | Obtener `onvopay_customer_id` y enviarlo en confirmación |
+| `supabase/functions/onvopay-capture-on-provider-accept/index.ts` | Agregar `customerId` al confirmar |
+| `supabase/functions/onvopay-charge-post-payment/index.ts` | Agregar `customerId` al confirmar |
 
-## Resultado esperado
+### Cambios Detallados
 
-- Los pagos se procesarán correctamente sin el campo `customer` en el root del payment intent
-- La actualización del nombre del cliente funcionará correctamente usando `POST`
-- Los clientes existentes se sincronizarán con sus nombres actuales en OnvoPay
+#### 1. `onvopay-confirm/index.ts`
 
-## Nota importante
+Antes de la línea 271, obtener el customer mapping:
 
-Según la documentación de OnvoPay que compartiste:
-- Los clientes se crean/actualizan mediante el endpoint `/v1/customers` 
-- Los payment intents **no aceptan** el campo `customer` a nivel raíz
-- El nombre del cliente se muestra en el dashboard de OnvoPay **a través del objeto Customer**, no del payment intent
-- Por lo tanto, es crucial que la sincronización de clientes funcione correctamente
+```typescript
+// Obtener customerId del mapeo de clientes
+const { data: customerMapping } = await supabase
+  .from('onvopay_customers')
+  .select('onvopay_customer_id')
+  .eq('client_id', payment.client_id)
+  .maybeSingle();
+
+const customerId = customerMapping?.onvopay_customer_id;
+console.log('👤 OnvoPay Customer ID para vinculación:', customerId || 'none');
+
+// Confirmar con paymentMethodId Y customerId
+const confirmData: Record<string, any> = { 
+  paymentMethodId,
+  ...(customerId && { customerId }) // ← Nuevo: vincular cliente
+};
+```
+
+#### 2. `onvopay-capture-on-provider-accept/index.ts`
+
+Antes de la línea 199, obtener customer mapping y agregarlo al confirm:
+
+```typescript
+// Obtener customerId del mapeo
+const { data: customerMapping } = await supabaseAdmin
+  .from('onvopay_customers')
+  .select('onvopay_customer_id')
+  .eq('client_id', payment.client_id)
+  .maybeSingle();
+
+const customerId = customerMapping?.onvopay_customer_id;
+console.log('👤 Customer ID para vinculación:', customerId || 'none');
+
+// Confirmar incluyendo customerId
+body: JSON.stringify({
+  paymentMethodId: paymentMethodId,
+  ...(customerId && { customerId })
+})
+```
+
+#### 3. `onvopay-charge-post-payment/index.ts`
+
+En la línea 186, agregar customerId que ya está disponible (línea 130):
+
+```typescript
+body: JSON.stringify({
+  paymentMethodId: savedMethod.onvopay_payment_method_id,
+  ...(customerId && { customerId }) // ← customerId ya existe en scope
+})
+```
+
+## Resultado Esperado
+
+1. Todas las transacciones futuras quedarán vinculadas al Customer en OnvoPay
+2. El dashboard de OnvoPay mostrará el nombre del cliente en cada transacción
+3. El nombre mostrado será el sincronizado desde la base de datos (ej: "Andrei", "Vicente")
+
+## Notas Técnicas
+
+- El campo `customerId` en camelCase es el formato esperado por la API de OnvoPay
+- La asociación ocurre en el momento de `/confirm`, no en la creación del Payment Intent
+- Las transacciones ya existentes no se actualizarán automáticamente (solo afecta transacciones futuras)
