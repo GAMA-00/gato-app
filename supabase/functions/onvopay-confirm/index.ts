@@ -267,27 +267,17 @@ serve(async (req) => {
       console.log('✅ Created new payment method:', paymentMethodId);
     }
 
-    // 2) Confirm Payment Intent with paymentMethodId AND customerId (to link transaction to customer)
+    // 2) Confirm Payment Intent with paymentMethodId ONLY
+    // ✅ FIX: OnvoPay rejects customerId in confirm endpoint - customer is linked at Payment Intent creation
     const confirmUrl = `${onvoConfig.fullUrl}/payment-intents/${body.payment_intent_id}/confirm`;
     
-    // Get customerId from customer mapping to link transaction to customer in OnvoPay dashboard
-    const { data: customerMapping } = await supabase
-      .from('onvopay_customers')
-      .select('onvopay_customer_id')
-      .eq('client_id', payment.client_id)
-      .maybeSingle();
-
-    const customerId = customerMapping?.onvopay_customer_id;
-    console.log('👤 OnvoPay Customer ID para vinculación:', customerId || 'none');
-
     const confirmData: Record<string, any> = { 
-      paymentMethodId,
-      ...(customerId && { customerId }) // Link transaction to customer
+      paymentMethodId
+      // Note: customerId is linked at Payment Intent creation, NOT here
     };
 
     console.log('📦 Confirm payload summary:', {
       hasPaymentMethodId: !!paymentMethodId,
-      hasCustomerId: !!customerId,
       confirmUrl,
     });
 

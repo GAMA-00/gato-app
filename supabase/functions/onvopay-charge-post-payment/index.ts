@@ -134,11 +134,13 @@ serve(async (req) => {
     const currency = invoice.appointments.listings?.currency || 'USD';
     console.log('💱 Currency for post-payment:', currency);
 
-    // ✅ PASO 1: Crear Payment Intent SIN payment_method (OnvoPay requiere 3 pasos para saved methods)
+    // ✅ PASO 1: Crear Payment Intent CON customer (OnvoPay requiere 3 pasos para saved methods)
+    // ✅ FIX: Link customer at creation, NOT at confirm (OnvoPay rejects customerId in confirm)
     const paymentIntentPayload = {
       amount: amountCents,
       currency: currency,  // ✅ Dynamic currency from listing
       description: `Gastos adicionales - ${invoice.appointments.listings.title}`,
+      ...(customerId && { customer: customerId }),  // Link customer at creation
       metadata: {
         invoice_id: invoiceId,
         appointment_id: invoice.appointment_id,
@@ -173,9 +175,9 @@ serve(async (req) => {
 
     console.log('✅ [FLOW] Step 1 complete - Payment Intent created:', paymentIntent.id);
 
-    // ✅ PASO 2: Confirmar con el payment_method_id guardado Y customerId para vincular
+    // ✅ PASO 2: Confirmar con el payment_method_id guardado (customer ya vinculado en paso 1)
+    // ✅ FIX: OnvoPay rejects customerId in confirm endpoint
     console.log('💳 [FLOW] Step 2: Confirming with saved payment method:', savedMethod.onvopay_payment_method_id);
-    console.log('👤 Customer ID para vinculación:', customerId || 'none');
 
     const confirmResponse = await fetch(
       `${config.fullUrl}/payment-intents/${paymentIntent.id}/confirm`,
@@ -186,8 +188,8 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          paymentMethodId: savedMethod.onvopay_payment_method_id,
-          ...(customerId && { customerId }) // Link transaction to customer
+          paymentMethodId: savedMethod.onvopay_payment_method_id
+          // Note: customerId is linked at Payment Intent creation, NOT here
         })
       }
     );
