@@ -86,7 +86,7 @@ serve(async (req) => {
         const response = await fetch(
           `${baseUrl}/v1/customers/${customer.onvopay_customer_id}`,
           {
-            method: 'PATCH',
+            method: 'POST',
             headers: {
               'Authorization': `Bearer ${secretKey}`,
               'Content-Type': 'application/json',
