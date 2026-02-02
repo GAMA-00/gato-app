@@ -19,6 +19,39 @@ const RECURRENCE_MAP: Record<string, { interval: string; interval_count: number 
   'monthly': { interval: 'month', interval_count: 1 }
 };
 
+/**
+ * Calculate next charge date based on confirmation date and recurrence type
+ * @param confirmationDate - Date when the subscription was confirmed
+ * @param recurrenceType - Type of recurrence (weekly, biweekly, triweekly, monthly)
+ * @returns Next charge date
+ */
+function calculateNextChargeDate(confirmationDate: Date, recurrenceType: string): Date {
+  const nextDate = new Date(confirmationDate);
+  
+  switch (recurrenceType) {
+    case 'daily':
+      nextDate.setDate(nextDate.getDate() + 1);
+      break;
+    case 'weekly':
+      nextDate.setDate(nextDate.getDate() + 7);
+      break;
+    case 'biweekly':
+      nextDate.setDate(nextDate.getDate() + 14);
+      break;
+    case 'triweekly':
+      nextDate.setDate(nextDate.getDate() + 21);
+      break;
+    case 'monthly':
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      break;
+    default:
+      // Default to weekly if unknown
+      nextDate.setDate(nextDate.getDate() + 7);
+  }
+  
+  return nextDate;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -72,16 +105,20 @@ serve(async (req) => {
       willSaveInDB: recurrenceType
     });
 
-    // Obtener datos del appointment
+    // Obtener datos del appointment con currency del listing
     const { data: appointment, error: aptError } = await supabaseAdmin
       .from('appointments')
-      .select('*, recurring_rules(id)')
+      .select('*, recurring_rules(id), listings(currency)')
       .eq('id', appointmentId)
       .single();
 
     if (aptError || !appointment) {
       throw new Error('Appointment no encontrado');
     }
+
+    // Get currency from listing
+    const currency = appointment.listings?.currency || 'USD';
+    console.log('💱 Currency for subscription:', currency);
 
     // ✅ VALIDACIÓN CRÍTICA: Solo crear suscripciones para citas recurrentes
     if (!appointment.recurrence || appointment.recurrence === 'none' || appointment.recurrence === '') {
@@ -95,7 +132,7 @@ serve(async (req) => {
     // Crear suscripción en ONVO Pay
     const subscriptionPayload = {
       amount: normalizedAmount,
-      currency: 'USD',
+      currency: currency,  // ✅ Dynamic currency from listing
       interval: recurrenceConfig.interval,
       interval_count: recurrenceConfig.interval_count,
       payment_method_id: paymentMethodId,
@@ -125,14 +162,16 @@ serve(async (req) => {
     const localSubscriptionId = `local_sub_${appointmentId}_${Date.now()}`;
     console.log('🆔 ID local generado:', localSubscriptionId);
 
-    // ✅ CORRECTO: Usar la fecha del appointment como primer cobro
-    // El primer cobro se procesará cuando SE COMPLETE esta primera cita
-    const nextChargeDate = new Date(appointment.start_time);
+    // ✅ CORREGIDO: Usar fecha de CONFIRMACIÓN (ahora), no fecha del servicio
+    // Los cobros deben basarse en cuándo se confirmó la reserva, no cuándo se presta el servicio
+    const now = new Date();
+    const nextChargeDate = calculateNextChargeDate(now, recurrenceType);
     
     console.log('📅 Primer cobro programado para:', {
       date: nextChargeDate.toISOString().split('T')[0],
-      appointmentStartTime: appointment.start_time,
-      message: 'Se cobrará cuando el primer servicio se complete'
+      confirmationDate: now.toISOString(),
+      recurrenceType: recurrenceType,
+      message: 'Basado en fecha de confirmación, no en fecha del servicio'
     });
 
     // Guardar en tabla onvopay_subscriptions (LOCAL)

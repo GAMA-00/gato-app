@@ -48,17 +48,33 @@ export function normalizeData(data: any): NormalizedData {
 }
 
 /**
- * Calculate payment amounts including IVA (13%)
- * @param {number} totalAmount - Total amount in colones
+ * IVA rates by currency
+ * - CRC: 13% (Costa Rica)
+ * - USD: 0% (No IVA for USD transactions)
+ */
+const IVA_RATES: Record<string, number> = {
+  'CRC': 0.13,
+  'USD': 0,
+};
+
+/**
+ * Calculate payment amounts including IVA based on currency
+ * @param {number} totalAmount - Total amount in the currency
+ * @param {string} currency - Currency code (USD or CRC)
  * @returns Object with amounts in cents (subtotal, IVA, total)
  */
-export function calculateAmounts(totalAmount: number): {
+export function calculateAmounts(totalAmount: number, currency: string = 'USD'): {
   amountCents: number;
   subtotalCents: number;
   ivaCents: number;
 } {
+  const ivaRate = IVA_RATES[currency] || 0;
   const amountCents = Math.round(totalAmount * 100);
-  const subtotalCents = Math.round(amountCents / 1.13);
+  
+  // If there's IVA, calculate subtotal without IVA
+  const subtotalCents = ivaRate > 0 
+    ? Math.round(amountCents / (1 + ivaRate))
+    : amountCents;
   const ivaCents = amountCents - subtotalCents;
 
   return { amountCents, subtotalCents, ivaCents };

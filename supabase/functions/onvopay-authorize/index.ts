@@ -158,6 +158,7 @@ serve(async (req) => {
           recurrence,
           listings (
             title,
+            currency,
             service_type_id,
             service_types (
               name
@@ -207,8 +208,24 @@ serve(async (req) => {
 
     const isPostPayment = listing?.is_post_payment ?? false;
 
+    // Get currency from listing (USD or CRC)
+    const currency = appointment.listings?.currency || 'USD';
+    const validCurrencies = ['USD', 'CRC'];
+    if (!validCurrencies.includes(currency)) {
+      console.error('❌ Unsupported currency:', currency);
+      return new Response(JSON.stringify({
+        error: 'UNSUPPORTED_CURRENCY',
+        message: `Moneda no soportada: ${currency}. Use USD o CRC.`,
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    console.log('💱 Currency detected from listing:', currency);
+
     // Calculate payment amounts
-    const { amountCents, subtotalCents, ivaCents } = calculateAmounts(body.amount);
+    const { amountCents, subtotalCents, ivaCents } = calculateAmounts(body.amount, currency);
 
     // Ensure OnvoPay customer exists
     currentPhase = 'ensure-onvopay-customer';
@@ -267,7 +284,7 @@ serve(async (req) => {
 
     const paymentIntentData = {
       amount: amountCents,
-      currency: 'USD',
+      currency: currency,  // ✅ Dynamic currency from listing
       description: description,
       metadata: {
         appointment_id: body.appointmentId,
@@ -352,7 +369,7 @@ serve(async (req) => {
         amount: amountCents,
         subtotal: subtotalCents,
         iva_amount: ivaCents,
-        currency: 'USD',
+        currency: currency,  // ✅ Dynamic currency
         status: dbStatus,
         payment_type: body.payment_type || 'appointment',
         payment_method: 'card',
@@ -398,7 +415,7 @@ serve(async (req) => {
       onvopay_payment_id: payment.onvopay_payment_id,
       onvopay_transaction_id: payment.onvopay_transaction_id,
       amount: body.amount,
-      currency: 'USD',
+      currency: currency,  // ✅ Dynamic currency
       is_post_payment: isPostPayment,
       requires_confirmation: true,
       // Include payment_method_id in response for client-side use (not stored in DB)
