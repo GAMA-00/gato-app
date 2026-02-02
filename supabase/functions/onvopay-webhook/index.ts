@@ -7,6 +7,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// IVA rates by currency for dynamic tax calculation
+const IVA_RATES: Record<string, number> = {
+  'CRC': 0.13,  // 13% IVA Costa Rica
+  'USD': 0      // 0% for USD transactions
+};
+
+function calculateIvaFromAmount(amount: number, currency: string): { subtotal: number; iva: number } {
+  const rate = IVA_RATES[currency] || 0;
+  const subtotal = Math.round(amount / (1 + rate));
+  return { subtotal, iva: amount - subtotal };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -333,10 +345,12 @@ async function handleSubscriptionCharged(supabaseAdmin: any, eventData: any) {
 
   // FASE 3: Crear registro de pago en onvopay_payments
   if (newAppointmentId) {
-    // Calculate IVA based on currency (0% for USD, 13% for CRC)
-    // Note: Recurring payments from webhook should maintain same currency as subscription
-    const subtotalAmount = Math.round(amount / 1.13); // Default to 13% for backwards compatibility
-    const ivaAmount = amount - subtotalAmount;
+    // Get currency from subscription template for dynamic IVA calculation
+    const template = subscription.original_appointment_template;
+    const currency = template?.currency || 'USD';
+    
+    // Calculate IVA dynamically based on currency
+    const { subtotal: subtotalAmount, iva: ivaAmount } = calculateIvaFromAmount(amount, currency);
     
     const { error: paymentError } = await supabaseAdmin
       .from('onvopay_payments')
@@ -347,6 +361,7 @@ async function handleSubscriptionCharged(supabaseAdmin: any, eventData: any) {
         amount: amount,
         subtotal: subtotalAmount,
         iva_amount: ivaAmount,
+        currency: currency,  // ✅ Dynamic currency from template
         status: 'captured',
         payment_type: 'subscription',
         payment_method: 'card',
@@ -433,11 +448,13 @@ async function handleLoopChargeSucceeded(supabaseAdmin: any, eventData: any) {
 
   console.log('📋 Subscription found:', subscription.id);
 
-  // 2. Create payment record
-  // Calculate IVA based on amount (0% for USD transactions from loops)
+  // 2. Get currency from subscription template for dynamic IVA calculation
+  const template = subscription.original_appointment_template;
+  const currency = template?.currency || 'USD';
+  
+  // Calculate IVA dynamically based on currency
   const amountInCurrency = amount / 100; // Convert from cents
-  const subtotalAmount = amountInCurrency; // No IVA for loop payments (typically USD)
-  const ivaAmount = 0;
+  const { subtotal: subtotalAmount, iva: ivaAmount } = calculateIvaFromAmount(amountInCurrency, currency);
   
   const { data: newPayment, error: paymentError } = await supabaseAdmin
     .from('onvopay_payments')
@@ -448,7 +465,7 @@ async function handleLoopChargeSucceeded(supabaseAdmin: any, eventData: any) {
       amount: amountInCurrency,
       subtotal: subtotalAmount,
       iva_amount: ivaAmount,
-      currency: 'USD', // Loop payments are typically in USD
+      currency: currency,  // ✅ Dynamic currency from template
       status: 'captured',
       payment_type: 'recurring_charge',
       payment_method: 'card',
