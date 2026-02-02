@@ -1,145 +1,168 @@
 
-# Plan: Corrección Crítica - Error en Pantalla de Detalle del Servicio
+# Plan: Corrección de Etiquetas de Recurrencia Incorrectas
 
-## Diagnóstico del Problema
+## Problema Identificado
 
-### Síntoma
-Al hacer clic en "Ver detalles" desde la lista de proveedores, la pantalla de detalle muestra: **"No se pudo cargar la información del servicio"**
+En el calendario del proveedor, las citas de servicio único muestran incorrectamente la etiqueta "Recurrente" (genérico) en lugar de no mostrar etiqueta o mostrar el tipo específico de recurrencia.
 
 ### Causa Raíz
-El hook `useServiceDetail.ts` y otros hooks relacionados consultan directamente la tabla `users`, la cual tiene políticas RLS restrictivas que impiden a los clientes ver perfiles de proveedores:
 
-```sql
--- Política actual de SELECT en users (muy restrictiva)
-qual: (has_role(auth.uid(), 'admin') OR (auth.uid() = id))
+Hay **3 problemas principales** en la lógica de detección de recurrencia:
+
+### Problema 1: `DayAppointmentsList.tsx` (línea 28)
+```typescript
+// INCORRECTO - Cualquier valor truthy en recurrence activa la etiqueta
+const isRecurring = (apt: any) => apt.is_recurring_instance || apt.recurrence;
 ```
+Esta lógica es incorrecta porque:
+- `apt.recurrence` puede ser `'none'` o `'once'` (valores truthy pero NO recurrentes)
+- Muestra etiqueta genérica "Recurrente" en lugar del tipo específico
 
-Esto significa que un cliente autenticado **solo puede ver su propio perfil**, bloqueando cualquier consulta a datos de proveedores.
+### Problema 2: `AppointmentDisplay.tsx` (línea 80)
+```typescript
+// Misma lógica incorrecta
+const appointmentIsRecurring = appointment.is_recurring_instance || isRecurring(appointment.recurrence);
+```
+Aunque usa la utilidad `isRecurring()`, también incluye `is_recurring_instance` sin verificar el campo `recurrence`.
 
-### Archivos Afectados
-
-| Archivo | Líneas | Problema |
-|---------|--------|----------|
-| `src/components/client/service/useServiceDetail.ts` | 71-87, 102-117 | Consulta `users` para obtener datos del proveedor |
-| `src/hooks/useProviderMerits.ts` | 47-51 | Consulta `users.average_rating` |
-| `src/hooks/useProviderServiceMerits.ts` | 54-58 | Consulta `users.average_rating` |
+### Problema 3: `useGroupedPendingRequests.ts` (líneas 123-128)
+```typescript
+// Fallback genérico "Recurrente" - NUNCA debe mostrarse
+recurrence_label: 
+  appointment.recurrence === 'weekly' ? 'Semanal' :
+  appointment.recurrence === 'biweekly' ? 'Quincenal' :
+  appointment.recurrence === 'triweekly' ? 'Trisemanal' :
+  appointment.recurrence === 'monthly' ? 'Mensual' :
+  appointment.recurrence && appointment.recurrence !== 'none' ? 'Recurrente' : null
+```
+Existe un fallback que muestra "Recurrente" si el tipo no coincide con los esperados.
 
 ---
 
 ## Solución
 
-### Cambio Principal: Usar `provider_public_profiles` en todos los hooks client-facing
+### Cambio 1: `DayAppointmentsList.tsx`
 
-La vista `provider_public_profiles` ya existe y contiene todos los campos públicos necesarios:
-- `id`, `name`, `avatar_url`, `about_me`, `experience_years`, `certification_files`, `average_rating`, `created_at`
+**Archivo**: `src/components/calendar/DayAppointmentsList.tsx`
 
-Esta vista fue configurada con `security_invoker = false` (Security Definer), lo que permite acceso sin restricciones RLS.
-
----
-
-## Cambios Técnicos Detallados
-
-### Cambio 1: `useServiceDetail.ts` (Crítico)
-
-**Reemplazar** las consultas a `users` (líneas 71-87 y 102-117) por una consulta a `provider_public_profiles`:
+Reemplazar la lógica de detección y mostrar el tipo específico:
 
 ```typescript
-// ANTES (líneas 71-87) - BLOQUEADO POR RLS
-const { data: providerQueryData, error: providerError } = await supabase
-  .from('users')
-  .select(`id, name, about_me, experience_years, average_rating, 
-           certification_files, email, phone, avatar_url, role`)
-  .eq('id', providerId)
-  .eq('role', 'provider')
-  .maybeSingle();
+// ANTES (línea 28)
+const isRecurring = (apt: any) => apt.is_recurring_instance || apt.recurrence;
 
-// DESPUÉS - USA VISTA PÚBLICA
-const { data: providerQueryData, error: providerError } = await supabase
-  .from('provider_public_profiles')
-  .select(`id, name, about_me, experience_years, average_rating, 
-           certification_files, avatar_url, created_at`)
-  .eq('id', providerId)
-  .maybeSingle();
+// DESPUÉS
+import { isRecurring as checkIsRecurring, getRecurrenceInfo } from '@/lib/recurrence';
+
+// Función para obtener etiqueta de recurrencia específica
+const getRecurrenceLabel = (apt: any): string | null => {
+  const recurrence = apt.recurrence;
+  if (!checkIsRecurring(recurrence)) return null;
+  
+  const info = getRecurrenceInfo(recurrence);
+  return info.label; // 'Semanal', 'Quincenal', 'Trisemanal', 'Mensual'
+};
 ```
 
-**Eliminar** el bloque de fallback (líneas 98-125) ya que no es necesario con la vista pública.
+Y actualizar el JSX para mostrar la etiqueta específica:
+```tsx
+// ANTES (línea 86-91)
+{isRecurring(apt) && (
+  <span className="...">
+    <Repeat className="h-3 w-3" />
+    Recurrente
+  </span>
+)}
 
-**Nota sobre campos faltantes:**
-- `email` y `phone` del proveedor no están en la vista pública (por seguridad/privacidad)
-- `role` ya no es necesario porque la vista solo contiene proveedores
-- Si el UI necesita contacto, se manejará por otro mecanismo (mensajería in-app)
-
-### Cambio 2: `useProviderMerits.ts`
-
-**Reemplazar** la consulta a `users` (líneas 47-51):
-
-```typescript
-// ANTES - BLOQUEADO POR RLS
-supabase
-  .from('users')
-  .select('average_rating')
-  .eq('id', providerId)
-  .single(),
-
-// DESPUÉS - USA VISTA PÚBLICA
-supabase
-  .from('provider_public_profiles')
-  .select('average_rating')
-  .eq('id', providerId)
-  .maybeSingle(),
+// DESPUÉS
+{(() => {
+  const label = getRecurrenceLabel(apt);
+  return label ? (
+    <span className="...">
+      <Repeat className="h-3 w-3" />
+      {label}
+    </span>
+  ) : null;
+})()}
 ```
 
-### Cambio 3: `useProviderServiceMerits.ts`
+### Cambio 2: `AppointmentDisplay.tsx`
 
-**Reemplazar** la consulta a `users` (líneas 54-58):
+**Archivo**: `src/components/calendar/AppointmentDisplay.tsx`
+
+Corregir la lógica de detección (línea 80):
 
 ```typescript
-// ANTES - BLOQUEADO POR RLS  
-supabase
-  .from('users')
-  .select('average_rating')
-  .eq('id', providerId)
-  .single(),
+// ANTES
+const appointmentIsRecurring = appointment.is_recurring_instance || isRecurring(appointment.recurrence);
 
-// DESPUÉS - USA VISTA PÚBLICA
-supabase
-  .from('provider_public_profiles')
-  .select('average_rating')
-  .eq('id', providerId)
-  .maybeSingle(),
+// DESPUÉS - Solo usar la utilidad centralizada que ya verifica correctamente
+const appointmentIsRecurring = isRecurring(appointment.recurrence);
+```
+
+Esto asegura que `is_recurring_instance` no active falsamente la etiqueta cuando `recurrence` es `'none'` o `'once'`.
+
+### Cambio 3: `useGroupedPendingRequests.ts`
+
+**Archivo**: `src/hooks/useGroupedPendingRequests.ts`
+
+Eliminar el fallback genérico "Recurrente" (líneas 123-128):
+
+```typescript
+// ANTES
+recurrence_label: 
+  appointment.recurrence === 'weekly' ? 'Semanal' :
+  appointment.recurrence === 'biweekly' ? 'Quincenal' :
+  appointment.recurrence === 'triweekly' ? 'Trisemanal' :
+  appointment.recurrence === 'monthly' ? 'Mensual' :
+  appointment.recurrence && appointment.recurrence !== 'none' ? 'Recurrente' : null
+
+// DESPUÉS - Usar utilidad centralizada sin fallback genérico
+import { isRecurring, getRecurrenceInfo } from '@/lib/recurrence';
+
+recurrence_label: isRecurring(appointment.recurrence) 
+  ? getRecurrenceInfo(appointment.recurrence).label 
+  : null
 ```
 
 ---
 
 ## Resumen de Cambios
 
-| Archivo | Acción |
-|---------|--------|
-| `useServiceDetail.ts` | Reemplazar 2 bloques de consulta a `users` por `provider_public_profiles` |
-| `useProviderMerits.ts` | Cambiar consulta de `users` a `provider_public_profiles` |
-| `useProviderServiceMerits.ts` | Cambiar consulta de `users` a `provider_public_profiles` |
+| Archivo | Líneas | Cambio |
+|---------|--------|--------|
+| `DayAppointmentsList.tsx` | 1-4, 27-28, 86-91 | Agregar import, usar `getRecurrenceInfo()`, mostrar etiqueta específica |
+| `AppointmentDisplay.tsx` | 80 | Eliminar `is_recurring_instance` de la condición |
+| `useGroupedPendingRequests.ts` | 6, 123-128 | Agregar import, usar utilidades centralizadas |
+
+---
+
+## Comportamiento Esperado Después del Fix
+
+| Tipo de Cita | Valor `recurrence` | Etiqueta Mostrada |
+|--------------|-------------------|-------------------|
+| Una vez | `'none'` o `'once'` | (sin etiqueta) |
+| Semanal | `'weekly'` | "Semanal" |
+| Quincenal | `'biweekly'` | "Quincenal" |
+| Cada 3 semanas | `'triweekly'` | "Trisemanal" |
+| Mensual | `'monthly'` | "Mensual" |
+
+---
+
+## Verificación
+
+1. Crear una cita de servicio único (`recurrence: 'none'`)
+2. Verificar que NO muestre etiqueta de recurrencia en el calendario
+3. Crear una cita recurrente semanal
+4. Verificar que muestre "Semanal" (no "Recurrente")
+5. Revisar panel de solicitudes pendientes
+6. Verificar consistencia en todas las vistas del proveedor
 
 ---
 
 ## Impacto
 
-### Positivo
-- La pantalla de detalle del servicio cargará correctamente
-- Los clientes podrán ver información de proveedores sin errores
-- Se mantiene la seguridad de datos sensibles (email, teléfono no expuestos)
-- Consistencia con el patrón ya usado en `useProvidersQuery.ts` y `useRecommendedListings.ts`
-
-### Sin Cambios
-- La lógica de procesamiento de datos permanece igual
-- No se requieren cambios en la base de datos
-- El flujo de booking no se ve afectado
-
----
-
-## Verificación Post-Implementación
-
-1. Navegar a `/client/results?serviceId=75492440-e8df-4559-b442-1bae3fcbb631&categoryName=Mascotas`
-2. Hacer clic en "Ver detalles" de cualquier proveedor
-3. Verificar que la pantalla de detalle carga correctamente
-4. Confirmar que se muestra: nombre, avatar, rating, descripción, variantes
-5. Probar el flujo completo hasta la reserva
+- Etiquetas precisas y consistentes en toda la aplicación
+- Mejor experiencia de usuario para proveedores
+- Eliminación de la etiqueta genérica "Recurrente" que no aporta información útil
+- Uso consistente de las utilidades centralizadas de recurrencia (`@/lib/recurrence`)
