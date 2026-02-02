@@ -1,117 +1,158 @@
 
-# Plan: Corregir Headers CORS en Edge Functions de OnvoPay
 
-## Diagnóstico del Problema
+# Plan: Corregir Vinculación de Cliente y Transiciones de Estado en OnvoPay
 
-El error de consola muestra claramente:
+## Problema Identificado
+
+Los logs muestran claramente el error:
 ```
-Access to fetch at 'https://jckynopecuexfamepmoh.supabase.co/functions/v1/onvopay-authorize' 
-from origin 'https://d441b09c-5b37-4117-9726-bc80bbe1b056.lovableproject.com' 
-has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present
+"message": [ "property customerId should not exist" ]
+"path": "/v1/payment-intents/.../confirm"
 ```
 
-### Causa Raíz
+**OnvoPay rechaza el `customerId` en el endpoint `/confirm`**. Esta es la causa por la que:
+1. Las transacciones fallan al confirmar
+2. El estado permanece en "Iniciado" en lugar de cambiar a "Exitoso"
 
-Los headers CORS en las Edge Functions están **incompletos**. Actualmente tienen:
+## Análisis del Flujo Actual
+
+```text
+1. onvopay-authorize
+   └─ Crea Payment Intent (sin customer vinculado al PI)
+   └─ Guarda customerId solo en metadata
+   
+2. onvopay-confirm / onvopay-capture-on-provider-accept
+   └─ Intenta enviar customerId al /confirm  ← ❌ ERROR AQUÍ
+   └─ OnvoPay rechaza: "property customerId should not exist"
+   └─ Estado permanece en "pending_authorization"
+```
+
+## Solución Propuesta
+
+Según la documentación de OnvoPay, el cliente debe vincularse al crear el Payment Intent, no al confirmarlo. Los Payment Intents de OnvoPay aceptan un campo `customer` durante la creación.
+
+### Cambios Necesarios
+
+| Archivo | Cambio |
+|---------|--------|
+| `supabase/functions/onvopay-authorize/payment.ts` | Agregar campo `customer` al crear Payment Intent |
+| `supabase/functions/onvopay-authorize/types.ts` | Agregar campo `customer?: string` a la interfaz |
+| `supabase/functions/onvopay-authorize/index.ts` | Pasar `customerId` como `customer` en el payload |
+| `supabase/functions/onvopay-confirm/index.ts` | **REMOVER** `customerId` del payload de confirm |
+| `supabase/functions/onvopay-capture-on-provider-accept/index.ts` | **REMOVER** `customerId` del payload de confirm |
+| `supabase/functions/onvopay-charge-post-payment/index.ts` | **REMOVER** `customerId` del payload de confirm |
+| `src/components/dashboard/AppointmentList.tsx` | Usar hook centralizado para capturar pagos |
+
+### Cambios Detallados
+
+#### 1. `onvopay-authorize/types.ts` - Agregar campo `customer`
 
 ```typescript
-'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+export interface OnvoPaymentIntentData {
+  amount: number;
+  currency: string;
+  description: string;
+  customer?: string;  // ← NUEVO: ID del cliente en OnvoPay
+  metadata: {
+    appointment_id: string;
+    client_id: string;
+    provider_id: string;
+    is_post_payment: string;
+    customer_name?: string;
+    onvopay_customer_id?: string;
+  };
+}
 ```
 
-Pero el cliente Supabase envía headers adicionales que no están permitidos:
-- `x-supabase-client-platform`
-- `x-supabase-client-platform-version`
-- `x-supabase-client-runtime`
-- `x-supabase-client-runtime-version`
-
-Cuando el navegador hace la solicitud preflight (OPTIONS) y estos headers no están en `Access-Control-Allow-Headers`, el navegador bloquea la solicitud principal.
-
-## Solución
-
-Actualizar los headers CORS en todas las Edge Functions de OnvoPay para incluir los headers requeridos.
-
-### Headers CORS Correctos
+#### 2. `onvopay-authorize/index.ts` - Incluir customer en Payment Intent
 
 ```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+const paymentIntentData = {
+  amount: amountCents,
+  currency: currency,
+  description: description,
+  ...(customerId && { customer: customerId }), // ← NUEVO: Vincular cliente
+  metadata: {
+    appointment_id: body.appointmentId,
+    // ... resto de metadata
+  }
 };
 ```
 
-## Archivos a Modificar
-
-| Archivo | Ubicación del cambio |
-|---------|---------------------|
-| `supabase/functions/onvopay-authorize/config.ts` | Líneas 11-15 |
-| `supabase/functions/onvopay-confirm/index.ts` | Líneas 4-7 |
-| `supabase/functions/onvopay-capture-on-provider-accept/index.ts` | Líneas 4-7 |
-| `supabase/functions/onvopay-charge-post-payment/index.ts` | Líneas 4-7 |
-| `supabase/functions/onvopay-initiate-recurring/index.ts` | Headers CORS |
-| `supabase/functions/onvopay-create-payment-method/index.ts` | Headers CORS |
-
-## Cambios Específicos
-
-### 1. `onvopay-authorize/config.ts`
+#### 3. `onvopay-confirm/index.ts` - REMOVER customerId
 
 ```typescript
-// ANTES (líneas 11-15)
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+// ANTES (línea 283-286)
+const confirmData: Record<string, any> = { 
+  paymentMethodId,
+  ...(customerId && { customerId }) // ← REMOVER ESTO
 };
 
 // DESPUÉS
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+const confirmData: Record<string, any> = { 
+  paymentMethodId  // Solo paymentMethodId, sin customerId
 };
 ```
 
-### 2. `onvopay-confirm/index.ts`
+#### 4. `onvopay-capture-on-provider-accept/index.ts` - REMOVER customerId
 
 ```typescript
-// ANTES (líneas 4-7)
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// ANTES (líneas 230-233)
+body: JSON.stringify({
+  paymentMethodId: paymentMethodId,
+  ...(customerId && { customerId }) // ← REMOVER ESTO
+})
 
 // DESPUÉS
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+body: JSON.stringify({
+  paymentMethodId: paymentMethodId
+})
 ```
 
-### 3. Patrón similar para las demás funciones
+También remover las líneas 200-208 que obtienen el customerId antes de confirmar (ya no se necesita).
 
-Aplicar el mismo cambio a:
-- `onvopay-capture-on-provider-accept/index.ts`
-- `onvopay-charge-post-payment/index.ts`
-- `onvopay-initiate-recurring/index.ts`
-- `onvopay-create-payment-method/index.ts`
-- Cualquier otra función que sea llamada desde el frontend
+#### 5. `onvopay-charge-post-payment/index.ts` - REMOVER customerId
+
+Similar al anterior, remover el `customerId` del payload de confirm.
+
+#### 6. `AppointmentList.tsx` - Usar hook centralizado
+
+Reemplazar la lógica local por el hook `useRequestActions` que sí invoca la captura de pagos:
+
+```typescript
+import { useRequestActions } from '@/hooks/useRequestActions';
+
+// En el componente:
+const { handleAccept, handleDecline, isLoading } = useRequestActions();
+
+// Usar handleAccept en lugar de handleAcceptAppointment local
+```
+
+## Flujo Corregido
+
+```text
+1. onvopay-authorize
+   └─ Crea Payment Intent CON customer vinculado  ← ✅ FIX
+   
+2. onvopay-confirm / capture-on-provider-accept
+   └─ Confirma solo con paymentMethodId  ← ✅ FIX
+   └─ Estado cambia a "authorized" → "captured"
+   └─ Dashboard OnvoPay muestra cliente correctamente
+```
 
 ## Resultado Esperado
 
-1. Las solicitudes desde el frontend pasarán la validación CORS
-2. Los pagos se procesarán correctamente
-3. Los clientes se crearán/actualizarán en OnvoPay
-4. Las transacciones estarán vinculadas a los clientes (usando el `customerId` que ya implementamos)
+1. Las transacciones se procesarán correctamente
+2. El estado cambiará de "Iniciado" a "Exitoso" cuando el proveedor acepte
+3. El nombre del cliente aparecerá en el dashboard de OnvoPay
+4. El flujo será consistente desde cualquier vista del dashboard
 
-## Nota sobre Vinculación de Clientes
+## Archivos a Modificar (Resumen)
 
-La corrección anterior de incluir `customerId` en la confirmación del pago sigue siendo válida y funcionará una vez que el error CORS se resuelva. El flujo completo será:
+1. `supabase/functions/onvopay-authorize/types.ts` - Agregar campo `customer`
+2. `supabase/functions/onvopay-authorize/index.ts` - Incluir `customer` en creación de PI
+3. `supabase/functions/onvopay-confirm/index.ts` - Remover `customerId` de confirm
+4. `supabase/functions/onvopay-capture-on-provider-accept/index.ts` - Remover `customerId` de confirm
+5. `supabase/functions/onvopay-charge-post-payment/index.ts` - Remover `customerId` de confirm
+6. `src/components/dashboard/AppointmentList.tsx` - Usar hook centralizado
 
-```text
-1. Cliente inicia pago → onvopay-authorize
-2. Se crea/obtiene customerId → ensureOnvoCustomer
-3. Se crea Payment Intent → createPaymentIntent
-4. Cliente confirma → onvopay-confirm (con customerId)
-5. Transacción queda vinculada al cliente en OnvoPay
-```
