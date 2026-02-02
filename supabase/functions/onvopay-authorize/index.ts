@@ -286,6 +286,7 @@ serve(async (req) => {
       amount: amountCents,
       currency: currency,  // ✅ Dynamic currency from listing
       description: description,
+      ...(customerId && { customer: customerId }),  // ✅ Customer ID at root for OnvoPay dashboard
       metadata: {
         appointment_id: body.appointmentId,
         client_id: appointment.client_id,
