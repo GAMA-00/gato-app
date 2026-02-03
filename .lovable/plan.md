@@ -1,70 +1,80 @@
 
 
-# Plan: Ajustar Layout del Catálogo de Servicios
+# Plan: Actualizar Logo de la Barra Superior
 
-## Problema Identificado
+## Resumen
 
-En la sección de edición de variantes de servicio, el campo "Precio" es demasiado pequeño (`col-span-4`) mientras que el campo "Duración (min)" tiene espacio de sobra (`col-span-6`). Esto causa que el contenido del precio se vea cortado o apretado.
+Reemplazar el logo actual de Gato en la barra de navegación superior (mobile y desktop) con el nuevo logo proporcionado por el usuario (`gato_Loggos-10-2.png`).
 
-## Distribución Actual (12 columnas)
+## Análisis de la Situación Actual
 
-| Campo | Columnas | Porcentaje |
-|-------|----------|------------|
-| Precio | 4 | 33% |
-| Duración | 6 | 50% |
-| Botones | 2 | 17% |
+El logo se utiliza en **4 ubicaciones** principales:
 
-## Nueva Distribución Propuesta
+| Archivo | Ruta del Logo Actual | Contexto |
+|---------|---------------------|----------|
+| `MobileNav.tsx` | `/gato-logo.png?v=2` | Barra superior móvil |
+| `DesktopNav.tsx` | `/lovable-uploads/d68195ea-...` | Sidebar desktop |
+| `LandingPage.tsx` | `/gato-logo.png?v=3` | Página de inicio |
+| `public/gato-logo.png` | N/A | Archivo fuente |
 
-| Campo | Columnas | Porcentaje |
-|-------|----------|------------|
-| Precio | 5 | 42% |
-| Duración | 5 | 42% |
-| Botones | 2 | 17% |
+## Pasos de Implementación
 
-## Cambios a Realizar
+### Paso 1: Copiar el Nuevo Logo
 
-### Archivo: `src/components/services/steps/ServiceVariantEditor.tsx`
+Copiar el archivo subido al directorio público con cache-busting:
 
-**Cambio 1 - Campo Precio (línea 178):**
+```
+user-uploads://gato_Loggos-10-2.png → public/gato-logo.png
+```
+
+### Paso 2: Actualizar MobileNav.tsx
+
+Actualizar la referencia del logo con nuevo parámetro de versión para cache-busting:
+
 ```typescript
-// ANTES
-<div className="col-span-4">
+// Línea 34 - ANTES
+src="/gato-logo.png?v=2"
 
 // DESPUÉS
-<div className="col-span-5">
+src="/gato-logo.png?v=4"
 ```
 
-**Cambio 2 - Campo Duración (línea 205):**
+### Paso 3: Actualizar DesktopNav.tsx
+
+Actualizar para usar la misma ruta consistente:
+
+```typescript
+// Línea 34 - ANTES
+src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png"
+
+// DESPUÉS
+src="/gato-logo.png?v=4"
+```
+
+### Paso 4: Actualizar LandingPage.tsx
+
+Actualizar versión para cache-busting:
+
 ```typescript
 // ANTES
-<div className={isPostPayment === true ? "col-span-5" : (showPriceFields ? "col-span-6" : "col-span-8")}>
+src="/gato-logo.png?v=3"
 
-// DESPUÉS  
-<div className={isPostPayment === true ? "col-span-5" : (showPriceFields ? "col-span-5" : "col-span-8")}>
+// DESPUÉS
+src="/gato-logo.png?v=4"
 ```
 
-## Resultado Visual Esperado
+## Archivos a Modificar
 
-```text
-┌────────────────────────────────────────────────────────┐
-│ Nombre del servicio                                     │
-│ ┌──────────────────────────────────────────────────┐   │
-│ │ Basico                                           │   │
-│ └──────────────────────────────────────────────────┘   │
-│                                                        │
-│ Precio           Duración (min)                        │
-│ ┌──────────────┐ ┌──────────────┐ ┌───┬───┐           │
-│ │ $ 3          │ │ 30           │ │ ↕ │ 🗑 │           │
-│ └──────────────┘ └──────────────┘ └───┴───┘           │
-│                                                        │
-│ Agregar precio por persona                      >      │
-└────────────────────────────────────────────────────────┘
-```
+| Archivo | Acción |
+|---------|--------|
+| `public/gato-logo.png` | Reemplazar con nuevo logo |
+| `src/components/layout/MobileNav.tsx` | Actualizar versión a `?v=4` |
+| `src/components/layout/DesktopNav.tsx` | Cambiar ruta a `/gato-logo.png?v=4` |
+| `src/pages/LandingPage.tsx` | Actualizar versión a `?v=4` |
 
-## Archivo a Modificar
+## Notas Técnicas
 
-| Archivo | Cambios |
-|---------|---------|
-| `src/components/services/steps/ServiceVariantEditor.tsx` | Ajustar `col-span` del precio de 4→5 y duración de 6→5 |
+- Se utiliza cache-busting (`?v=4`) para asegurar que los navegadores carguen el nuevo logo inmediatamente
+- El logo incluye el tagline "Servicios a domicilio" en la imagen, lo cual es ideal para la landing page pero podría requerir ajuste de tamaño en la barra móvil donde el espacio es limitado
+- Se consolidan todas las referencias a una sola ruta (`/gato-logo.png`) para mantener consistencia
 
