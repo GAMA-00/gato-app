@@ -31,7 +31,7 @@ const DesktopNav = ({ isClientSection, onSwitchView }: DesktopNavProps) => {
               </Button>
             )}
             <img 
-              src="/lovable-uploads/d68195ea-57ea-4225-995d-8857c18be160.png" 
+              src="/gato-logo.png?v=4" 
               alt="Gato" 
               className="h-12 w-auto object-contain" 
             />
