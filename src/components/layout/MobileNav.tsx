@@ -31,7 +31,7 @@ const MobileNav = ({ isClientSection, onSwitchView }: MobileNavProps) => {
         )}
         <div className="flex items-center gap-2">
           <img 
-            src="/gato-logo.png?v=2" 
+            src="/gato-logo.png?v=4" 
             alt="Gato" 
             className="h-7 w-auto object-contain"
           />
