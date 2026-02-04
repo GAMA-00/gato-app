@@ -25,16 +25,17 @@ import {
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { SLOT_SYSTEM, calculateRequiredSlots } from '@/lib/slotSystemConstants';
 
 interface WeeklySlotGridProps {
   providerId: string;
   listingId: string;
   serviceDuration: number;
   selectedSlots?: string[];
-  onSlotSelect: (slots: string[], startDate: Date, startTime: string, totalDuration: number) => void;
+  onSlotSelect: (slots: string[], startDate: Date, startTime: string, totalDuration: number, isInitialSlotRecommended?: boolean) => void;
   recurrence?: string;
   requiredSlots?: number;
-  slotSize?: number; // DEPRECATED: All slots are now fixed at 60 minutes - kept for backwards compatibility
+  slotSize?: number; // DEPRECATED: All slots are now fixed at 30 minutes - kept for backwards compatibility
   totalServiceDuration?: number; // Duración total de todos los servicios seleccionados
 }
 
@@ -46,11 +47,11 @@ const WeeklySlotGrid = ({
   onSlotSelect,
   recurrence = 'once',
   requiredSlots = 1,
-  slotSize: _slotSize, // IGNORED: All slots are now standardized to 60 minutes
+  slotSize: _slotSize, // IGNORED: All slots are now standardized to 30 minutes
   totalServiceDuration
 }: WeeklySlotGridProps) => {
-  // STANDARDIZED: All slots are now fixed at 60 minutes
-  const slotSize = 60;
+  // STANDARDIZED: All slots are now fixed at 30 minutes (global system update 2026-02)
+  const slotSize = SLOT_SYSTEM.SLOT_SIZE_MINUTES;
   const [currentWeek, setCurrentWeek] = useState(0);
   const [isLookingAhead, setIsLookingAhead] = useState(false);
   const [nextAvailableWeek, setNextAvailableWeek] = useState<number | null>(null);
@@ -59,18 +60,16 @@ const WeeklySlotGrid = ({
   // NOTE: selectedSlots is now used directly from props (controlled component)
   // This eliminates the race condition that caused slots to deselect on mobile
 
-  // Calculate required slots based on new slot system
+  // Calculate required slots based on 30-minute slot system
   const actualTotalDuration = totalServiceDuration || (serviceDuration * requiredSlots);
-  const calculatedRequiredSlots = Math.ceil(actualTotalDuration / slotSize);
-  const slotsNeeded = Math.max(calculatedRequiredSlots, 1);
+  const slotsNeeded = calculateRequiredSlots(actualTotalDuration);
 
-  logger.debug('Slot calculation', {
+  logger.debug('Slot calculation (30min system)', {
     totalServiceDuration,
     serviceDuration,
     requiredSlots,
     slotSize,
     actualTotalDuration,
-    calculatedRequiredSlots,
     slotsNeeded
   });
 
@@ -235,15 +234,21 @@ const WeeklySlotGrid = ({
     const endHour = Math.floor(endTime / 60);
     const endMin = endTime % 60;
     
-    onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved);
+    // Pass isRecommended flag for 10% discount calculation
+    const isInitialSlotRecommended = slot.isRecommended ?? false;
+    
+    onSlotSelect(consecutiveSlotIds, slot.date, slot.time, totalDurationReserved, isInitialSlotRecommended);
     
     logger.info('Reservados slots contiguos', { 
       count: consecutiveSlotIds.length,
       startTime: slot.time,
       endTime: `${endHour}:${String(endMin).padStart(2,'0')}`,
-      duration: totalDurationReserved
+      duration: totalDurationReserved,
+      isRecommended: isInitialSlotRecommended
     });
-    toast.success(`Horario reservado: ${slot.time} - ${endHour}:${String(endMin).padStart(2,'0')} (${slotsNeeded} slots consecutivos)`);
+    
+    const discountMessage = isInitialSlotRecommended ? ' (¡10% de descuento!)' : '';
+    toast.success(`Horario reservado: ${slot.time} - ${endHour}:${String(endMin).padStart(2,'0')} (${slotsNeeded} slots)${discountMessage}`);
   };
 
   const goToPreviousWeek = () => {

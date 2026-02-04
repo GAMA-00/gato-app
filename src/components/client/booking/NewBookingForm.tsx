@@ -17,7 +17,7 @@ interface NewBookingFormProps {
   totalDuration: number;
   onDateChange: (date: Date | undefined) => void;
   onTimeChange: (time: string) => void;
-  onDurationChange: (duration: number, slotIds?: string[]) => void;
+  onDurationChange: (duration: number, slotIds?: string[], isRecommended?: boolean) => void;
   providerId: string;
   listingId: string;
   selectedVariants: ServiceVariantWithQuantity[];
@@ -26,7 +26,7 @@ interface NewBookingFormProps {
   customVariableGroups?: CustomVariableGroup[];
   customVariableSelections?: any;
   onCustomVariableSelectionsChange?: (selections: any, totalPrice: number) => void;
-  slotSize?: number; // DEPRECATED: All slots are now fixed at 60 minutes
+  slotSize?: number; // DEPRECATED: All slots are now fixed at 30 minutes
   onNextStep: () => void;
   onPrevStep: () => void;
   isRescheduleMode?: boolean;
@@ -53,7 +53,7 @@ const NewBookingForm = ({
   customVariableGroups,
   customVariableSelections,
   onCustomVariableSelectionsChange,
-  slotSize: _slotSize, // IGNORED: All slots are now standardized to 60 minutes
+  slotSize: _slotSize, // IGNORED: All slots are now standardized to 30 minutes
   onNextStep,
   onPrevStep,
   isRescheduleMode = false,
@@ -61,8 +61,8 @@ const NewBookingForm = ({
   serviceDetails,
   isLoadingReschedule = false
 }: NewBookingFormProps) => {
-  // STANDARDIZED: All slots are now fixed at 60 minutes
-  const SLOT_SIZE = 60;
+  // STANDARDIZED: All slots are now fixed at 30 minutes (global system update 2026-02)
+  const SLOT_SIZE = 30;
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
   // Calculate total service duration from all selected variants
@@ -70,10 +70,10 @@ const NewBookingForm = ({
     total + (variant.duration * variant.quantity), 0
   );
 
-  // Calculate required slots based on standardized 60-minute slots
+  // Calculate required slots based on standardized 30-minute slots
   const requiredSlots = Math.ceil(totalServiceDuration / SLOT_SIZE);
 
-  logger.debug('NewBookingForm calculations', {
+  logger.debug('NewBookingForm calculations (30min system)', {
     selectedVariants: selectedVariants.length,
     totalServiceDuration,
     slotSize: SLOT_SIZE,
@@ -85,11 +85,11 @@ const NewBookingForm = ({
     logger.error('NewBookingForm: isRescheduleMode=true pero onReschedule no fue provisto');
   }
 
-  const handleSlotSelect = (slotIds: string[], date: Date, time: string, duration: number) => {
+  const handleSlotSelect = (slotIds: string[], date: Date, time: string, duration: number, isRecommended?: boolean) => {
     setSelectedSlotIds(slotIds);
     onDateChange(date);
     onTimeChange(time);
-    onDurationChange(duration, slotIds);
+    onDurationChange(duration, slotIds, isRecommended);
   };
 
   const handleButtonClick = () => {
