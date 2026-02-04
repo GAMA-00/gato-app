@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
 
 interface SlotCardProps {
   time: string;
@@ -36,7 +37,8 @@ const SlotCard = ({
   const getButtonStyles = () => {
     if (variant === 'client') {
       if (isSelected) {
-        return 'bg-coral text-white border-coral hover:bg-coral hover:text-white shadow-lg ring-2 ring-coral/20';
+        // High contrast selection with primary color and prominent visual indicators
+        return 'bg-primary text-primary-foreground border-2 border-primary hover:bg-primary hover:text-primary-foreground shadow-lg ring-2 ring-primary/30 scale-105';
       }
       if (!isAvailable) {
         return 'bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-50';
@@ -60,10 +62,16 @@ const SlotCard = ({
         'relative overflow-hidden flex flex-col items-center justify-center gap-0.5 transition-all duration-200',
         sizeClasses[size],
         getButtonStyles(),
-        isSelected && variant === 'client' ? 'transform scale-105' : 'hover:scale-105 active:scale-95',
+        isSelected && variant === 'client' ? 'transform' : 'hover:scale-105 active:scale-95',
         className
       )}
     >
+      {/* Check icon for selected state */}
+      {isSelected && variant === 'client' && (
+        <span className="absolute -top-1.5 -right-1.5 bg-white rounded-full p-0.5 shadow-md border border-primary/20 z-10">
+          <Check className="h-3 w-3 text-primary" strokeWidth={3} />
+        </span>
+      )}
       {variant === 'client' && recommended && isAvailable && (
         <>
           <span

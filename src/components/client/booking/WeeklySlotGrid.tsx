@@ -55,6 +55,7 @@ const WeeklySlotGrid = ({
   const [currentWeek, setCurrentWeek] = useState(0);
   const [isLookingAhead, setIsLookingAhead] = useState(false);
   const [nextAvailableWeek, setNextAvailableWeek] = useState<number | null>(null);
+  const [hasSearchedAllWeeks, setHasSearchedAllWeeks] = useState(false);
   const { profile } = useUserProfile();
 
   // NOTE: selectedSlots is now used directly from props (controlled component)
@@ -105,12 +106,14 @@ const WeeklySlotGrid = ({
 
   // LOOKAHEAD: Search for next available week when current has no slots
   const lookAheadForAvailability = useCallback(async () => {
-    if (isLoading || availableSlotGroups.length > 0 || isLookingAhead) return;
+    // Prevent re-execution if already searched all weeks or currently loading
+    if (isLoading || availableSlotGroups.length > 0 || isLookingAhead || hasSearchedAllWeeks) return;
     
     setIsLookingAhead(true);
     logger.info('🔍 Iniciando búsqueda de semanas con disponibilidad...');
     
     const maxWeeksToCheck = 8;
+    let foundAvailability = false;
     
     try {
       for (let weekOffset = currentWeek + 1; weekOffset <= currentWeek + maxWeeksToCheck; weekOffset++) {
@@ -136,30 +139,46 @@ const WeeklySlotGrid = ({
         if (slotsCheck && slotsCheck.length > 0) {
           logger.info(`✅ Encontrada disponibilidad en semana ${weekOffset}`);
           setNextAvailableWeek(weekOffset);
+          foundAvailability = true;
           break;
         }
       }
+      
+      // Mark as searched to prevent infinite loop
+      if (!foundAvailability) {
+        logger.info('⚠️ No se encontró disponibilidad en las próximas 8 semanas');
+        setHasSearchedAllWeeks(true);
+      }
     } catch (e) {
       logger.error('Error en lookahead:', e);
+      setHasSearchedAllWeeks(true); // Prevent retry on error
     } finally {
       setIsLookingAhead(false);
     }
-  }, [isLoading, availableSlotGroups.length, isLookingAhead, currentWeek, providerId, listingId]);
+  }, [isLoading, availableSlotGroups.length, isLookingAhead, hasSearchedAllWeeks, currentWeek, providerId, listingId]);
 
-  // Trigger lookahead when no slots available
+  // Trigger lookahead when no slots available (only once per session)
   useEffect(() => {
-    if (!isLoading && availableSlotGroups.length === 0 && !isLookingAhead && nextAvailableWeek === null) {
+    if (!isLoading && availableSlotGroups.length === 0 && !isLookingAhead && nextAvailableWeek === null && !hasSearchedAllWeeks) {
       const timer = setTimeout(() => {
         lookAheadForAvailability();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, availableSlotGroups.length, isLookingAhead, nextAvailableWeek, lookAheadForAvailability]);
+  }, [isLoading, availableSlotGroups.length, isLookingAhead, nextAvailableWeek, hasSearchedAllWeeks, lookAheadForAvailability]);
 
-  // Reset lookahead state when week changes
+  // Reset lookahead state when week changes manually
   useEffect(() => {
     setNextAvailableWeek(null);
+    // Don't reset hasSearchedAllWeeks on week change - only reset on listing change
   }, [currentWeek]);
+  
+  // Reset all lookahead state when listing changes
+  useEffect(() => {
+    setHasSearchedAllWeeks(false);
+    setNextAvailableWeek(null);
+    setCurrentWeek(0);
+  }, [listingId, providerId]);
 
   const handleSlotClick = (slotId: string, date: Date, time: string) => {
     const slot = availableSlotGroups
