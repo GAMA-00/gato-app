@@ -22,8 +22,12 @@ const DayAppointmentsList: React.FC<DayAppointmentsListProps> = ({
     })
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-  // Generate time slots from 6am to 8pm
-  const timeSlots = Array.from({ length: 15 }, (_, i) => i + 6);
+  // Generate time slots dynamically based on appointments
+  // Default range: 6am to 8pm, but expand if appointments exist outside this range
+  const appointmentHours = dayAppointments.map(apt => new Date(apt.start_time).getHours());
+  const minHour = appointmentHours.length > 0 ? Math.min(6, ...appointmentHours) : 6;
+  const maxHour = appointmentHours.length > 0 ? Math.max(20, ...appointmentHours) + 1 : 21;
+  const timeSlots = Array.from({ length: maxHour - minHour }, (_, i) => i + minHour);
 
   // Get recurrence label - only show for actual recurring appointments
   const getRecurrenceLabel = (apt: any): string | null => {
