@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { ProgressIndicator } from '@/components/checkout/ProgressIndicator';
 import { ScrollIndicator } from '@/components/checkout/ScrollIndicator';
 import { logger } from '@/utils/logger';
+import { SLOT_SYSTEM, calculateRecommendedDiscount } from '@/lib/slotSystemConstants';
 
 interface CheckoutData {
   serviceTitle: string;
@@ -20,6 +21,8 @@ interface CheckoutData {
   bookingData: any;
   totalPrice: number;
   currency?: CurrencyCode;
+  isRecommendedSlot?: boolean; // Flag for 10% discount
+  slotIds?: string[]; // For lock management
 }
 
 export const Checkout = () => {
@@ -64,16 +67,23 @@ export const Checkout = () => {
     clientLocation,
     bookingData,
     totalPrice,
-    currency = 'USD'
+    currency = 'USD',
+    isRecommendedSlot = false
   } = checkoutData;
 
-  // Calculate price breakdown with correct IVA (13%)
-  const calculatePriceBreakdown = (subtotalPrice: number) => {
-    const subtotal = subtotalPrice;
-    const iva = subtotal * 0.13;
-    const total = subtotal + iva;
+  // Calculate price breakdown with discount and IVA (13%)
+  const calculatePriceBreakdown = (subtotalPrice: number, hasDiscount: boolean) => {
+    // Apply 10% discount if slot is recommended
+    const discountInfo = calculateRecommendedDiscount(subtotalPrice, hasDiscount);
+    const subtotalAfterDiscount = discountInfo.finalTotal;
+    const iva = subtotalAfterDiscount * 0.13;
+    const total = subtotalAfterDiscount + iva;
+    
     return {
-      subtotal: Math.round(subtotal * 100) / 100,
+      originalSubtotal: Math.round(subtotalPrice * 100) / 100,
+      discountAmount: discountInfo.discountAmount,
+      discountPercent: discountInfo.discountPercent,
+      subtotalAfterDiscount: Math.round(subtotalAfterDiscount * 100) / 100,
       iva: Math.round(iva * 100) / 100,
       total: Math.round(total * 100) / 100
     };
@@ -83,7 +93,7 @@ export const Checkout = () => {
     sum + (Number(variant.price) * variant.quantity), 0
   );
 
-  const priceBreakdown = calculatePriceBreakdown(serviceSubtotal);
+  const priceBreakdown = calculatePriceBreakdown(serviceSubtotal, isRecommendedSlot);
 
   const handlePaymentSuccess = (result: any) => {
     // Use the real UUID from the database (prioritize 'id' over 'payment_id')
@@ -158,8 +168,20 @@ export const Checkout = () => {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Subtotal:</span>
-                  <span className="font-medium">{formatCurrency(priceBreakdown.subtotal, currency)}</span>
+                  <span className="font-medium">{formatCurrency(priceBreakdown.originalSubtotal, currency)}</span>
                 </div>
+                
+                {/* Discount for recommended slot */}
+                {priceBreakdown.discountAmount > 0 && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span className="flex items-center gap-1">
+                      <span>🎉</span>
+                      <span>Descuento slot recomendado ({priceBreakdown.discountPercent}%):</span>
+                    </span>
+                    <span className="font-medium">-{formatCurrency(priceBreakdown.discountAmount, currency)}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">IVA (13%):</span>
                   <span className="font-medium">{formatCurrency(priceBreakdown.iva, currency)}</span>

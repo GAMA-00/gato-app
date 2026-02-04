@@ -30,10 +30,10 @@ export const useProviderListing = () => {
         }
 
         setFirstListingId(data?.id || null);
-        // STANDARDIZED: All slots are now 60 minutes - slot_size variable removed
-        const duration = 60; // Fixed 1-hour slots
+        // STANDARDIZED: All slots are now 30 minutes - global standardization 2026-02
+        const duration = 30; // Fixed 30-minute slots
         setServiceDuration(duration);
-        console.log('📋 Duración de slot estandarizada:', { serviceDuration: duration });
+        console.log('📋 Duración de slot estandarizada (30 min):', { serviceDuration: duration });
       } catch (error) {
         console.error('Error in fetchFirstListing:', error);
       } finally {

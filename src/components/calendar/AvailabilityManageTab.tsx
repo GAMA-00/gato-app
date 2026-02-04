@@ -143,10 +143,14 @@ export const AvailabilityManageTab: React.FC<AvailabilityManageTabProps> = ({
     const slot = slotGroups.flatMap(group => group.slots).find(s => s.id === slotId);
     if (!slot) return;
 
-    if (slot.conflictReason === 'Bloqueado por cita recurrente') {
+    // PROTECCIÓN: No permitir desactivar slots de planes recurrentes (frontend + backend validation)
+    const isRecurringBlocked = slot.conflictReason === 'Bloqueado por cita recurrente' || 
+                               (slot as any).recurringBlocked === true;
+    
+    if (isRecurringBlocked) {
       toast({
         title: 'Horario protegido',
-        description: 'Este horario está bloqueado por un plan recurrente.',
+        description: 'Este horario está bloqueado por un plan recurrente activo y no puede ser modificado.',
         variant: 'destructive'
       });
       return;

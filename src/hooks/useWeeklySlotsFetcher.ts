@@ -786,9 +786,9 @@ export const useWeeklySlotsFetcher = ({
         const blockedStarts = recurringBlockedStartByDate[dateKey] || new Set<number>();
         const blockedEnds = recurringBlockedEndByDate[dateKey] || new Set<number>();
         
-        // CORRECCIÓN: Usar duración fija de 60 minutos según estandarización del proyecto
+        // STANDARDIZED: Usar duración fija de 30 minutos según nueva estandarización global
         // En lugar de usar 'step' que depende de los slots disponibles (puede ser incorrecto si hay pocos)
-        const SLOT_DURATION = 60; // Slots son de 60 minutos según memoria del proyecto
+        const SLOT_DURATION = 30; // Slots son de 30 minutos - sistema estandarizado 2026-02
         const slotEndMin = slotMin + SLOT_DURATION;
         
         // Adyacencia a citas: antes del inicio O después del final

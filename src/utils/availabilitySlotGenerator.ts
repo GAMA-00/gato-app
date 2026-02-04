@@ -22,18 +22,21 @@ export interface GeneratedSlot {
 
 /**
  * Generates slots ensuring the service fits completely within availability windows
- * Key fix: Only generates slots where start + duration <= availability end time
+ * STANDARDIZED: Always uses 30-minute slots (global system update 2026-02)
  */
 export const generateAvailabilitySlots = (
   providerId: string,
   listingId: string,
   date: Date,
   availability: ProviderAvailability[],
-  serviceDuration: number
+  serviceDuration: number // Now used only to validate fit, not for slot size
 ): GeneratedSlot[] => {
   const dayOfWeek = date.getDay();
   const dateString = format(date, 'yyyy-MM-dd');
   const slots: GeneratedSlot[] = [];
+  
+  // STANDARDIZED: Fixed 30-minute slot duration
+  const SLOT_DURATION = 30;
 
   // Find availability for this specific day
   const dayAvailability = availability.filter(av => 
@@ -46,11 +49,11 @@ export const generateAvailabilitySlots = (
     
     let currentSlotTime = startTime;
     
-    // CRITICAL FIX: Only generate slots if the service can complete within availability window
+    // Generate 30-minute slots within availability window
     while (currentSlotTime < endTime) {
-      const slotEndTime = addMinutes(currentSlotTime, serviceDuration);
+      const slotEndTime = addMinutes(currentSlotTime, SLOT_DURATION);
       
-      // Check if service fits completely within availability window
+      // Check if slot fits completely within availability window
       if (slotEndTime <= endTime) {
         const timeString = format(currentSlotTime, 'HH:mm:ss');
         const endTimeString = format(slotEndTime, 'HH:mm:ss');
@@ -59,7 +62,7 @@ export const generateAvailabilitySlots = (
         const [year, month, day] = dateString.split('-').map(Number);
         const [hours, minutes, seconds] = timeString.split(':').map(Number);
         const slotStartDateTime = new Date(year, month - 1, day, hours, minutes || 0, seconds || 0);
-        const slotEndDateTime = addMinutes(slotStartDateTime, serviceDuration);
+        const slotEndDateTime = addMinutes(slotStartDateTime, SLOT_DURATION);
         
         slots.push({
           provider_id: providerId,
@@ -74,13 +77,11 @@ export const generateAvailabilitySlots = (
           slot_type: 'generated'
         });
         
-        console.log(`✅ Generated slot: ${dateString} ${timeString} - ${endTimeString} (fits in ${avail.start_time} - ${avail.end_time})`);
-      } else {
-        console.log(`⏭️ Skipping slot at ${format(currentSlotTime, 'HH:mm:ss')} - service duration ${serviceDuration}min would exceed availability end ${avail.end_time}`);
+        console.log(`✅ Generated 30min slot: ${dateString} ${timeString} - ${endTimeString}`);
       }
       
-      // Always advance by service duration to maintain proper spacing
-      currentSlotTime = addMinutes(currentSlotTime, serviceDuration);
+      // Always advance by fixed 30-minute duration
+      currentSlotTime = addMinutes(currentSlotTime, SLOT_DURATION);
     }
   }
   
@@ -89,14 +90,14 @@ export const generateAvailabilitySlots = (
 
 /**
  * Generates slots from listing availability JSON format for client fallback
- * Ensures same "full fit" validation as provider availability
+ * STANDARDIZED: Always uses 30-minute slots (global system update 2026-02)
  */
 export const generateListingSlots = (
   providerId: string,
   listingId: string,
   date: Date,
   listingAvailability: any,
-  serviceDuration: number
+  serviceDuration: number // Now used only to validate fit, not for slot size
 ): GeneratedSlot[] => {
   if (!listingAvailability) return [];
   
@@ -109,6 +110,9 @@ export const generateListingSlots = (
   const dateString = format(date, 'yyyy-MM-dd');
   const slots: GeneratedSlot[] = [];
   
+  // STANDARDIZED: Fixed 30-minute slot duration
+  const SLOT_DURATION = 30;
+  
   for (const timeWindow of dayCfg.timeSlots) {
     const [startHour, startMin] = timeWindow.startTime.split(':').map(Number);
     const [endHour, endMin] = timeWindow.endTime.split(':').map(Number);
@@ -116,11 +120,11 @@ export const generateListingSlots = (
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
     
-    // CRITICAL FIX: Only generate slots where start + duration <= end
-    for (let currentMin = startMinutes; currentMin + serviceDuration <= endMinutes; currentMin += serviceDuration) {
+    // Generate 30-minute slots where slot fits completely
+    for (let currentMin = startMinutes; currentMin + SLOT_DURATION <= endMinutes; currentMin += SLOT_DURATION) {
       const slotHour = Math.floor(currentMin / 60);
       const slotMin = currentMin % 60;
-      const slotEndMin = currentMin + serviceDuration;
+      const slotEndMin = currentMin + SLOT_DURATION;
       const slotEndHour = Math.floor(slotEndMin / 60);
       const slotEndMinute = slotEndMin % 60;
       
@@ -130,7 +134,7 @@ export const generateListingSlots = (
       // Create complete datetime for the slot
       const [year, month, day] = dateString.split('-').map(Number);
       const slotStartDateTime = new Date(year, month - 1, day, slotHour, slotMin, 0);
-      const slotEndDateTime = addMinutes(slotStartDateTime, serviceDuration);
+      const slotEndDateTime = addMinutes(slotStartDateTime, SLOT_DURATION);
       
       slots.push({
         provider_id: providerId,
@@ -145,7 +149,7 @@ export const generateListingSlots = (
         slot_type: 'generated'
       });
       
-      console.log(`📋 Generated listing slot: ${dateString} ${timeString} - ${endTimeString} (${serviceDuration}min service)`);
+      console.log(`📋 Generated 30min listing slot: ${dateString} ${timeString} - ${endTimeString}`);
     }
   }
   

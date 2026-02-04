@@ -2235,6 +2235,10 @@ export type Database = {
         Args: { appointment_start: string; cancellation_time: string }
         Returns: number
       }
+      calculate_required_slots: {
+        Args: { p_duration_minutes: number }
+        Returns: number
+      }
       can_update_user_role: {
         Args: { new_role: string; target_user_id: string }
         Returns: boolean
@@ -2384,7 +2388,7 @@ export type Database = {
               p_provider_id: string
               p_weeks_ahead?: number
             }
-            Returns: number
+            Returns: undefined
           }
       generate_recurring_appointment_instances: {
         Args: { p_rule_id: string; p_weeks_ahead?: number }
@@ -2422,6 +2426,20 @@ export type Database = {
         Args: { appointment_ids: string[] }
         Returns: {
           appointment_id: string
+        }[]
+      }
+      get_recommended_slots: {
+        Args: {
+          p_client_residencia_id?: string
+          p_end_date: string
+          p_provider_id: string
+          p_start_date: string
+        }
+        Returns: {
+          is_recommended: boolean
+          slot_date: string
+          slot_id: string
+          start_time: string
         }[]
       }
       get_recurring_clients_count: {
@@ -2492,6 +2510,7 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: number
       }
+      release_expired_slot_locks: { Args: never; Returns: number }
       retry_failed_recurring_charges: {
         Args: never
         Returns: {

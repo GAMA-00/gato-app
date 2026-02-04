@@ -79,7 +79,10 @@ export const useSlotGeneration = (
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
     
-    for (let currentMinutes = startMinutes; currentMinutes + duration <= endMinutes; currentMinutes += duration) {
+    // STANDARDIZED: Always use 30-minute intervals for slot generation (global system 2026-02)
+    const SLOT_INTERVAL = 30;
+    
+    for (let currentMinutes = startMinutes; currentMinutes + SLOT_INTERVAL <= endMinutes; currentMinutes += SLOT_INTERVAL) {
       const hour = Math.floor(currentMinutes / 60);
       const minute = currentMinutes % 60;
       slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);

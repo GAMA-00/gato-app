@@ -63,6 +63,7 @@ const ClientBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [totalDuration, setTotalDuration] = useState<number>(0);
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
+  const [isRecommendedSlot, setIsRecommendedSlot] = useState(false); // For 10% discount
   const [notes, setNotes] = useState('');
   const [customVariableSelections, setCustomVariableSelections] = useState<any>({});
   const [customVariablesTotalPrice, setCustomVariablesTotalPrice] = useState<number>(0);
@@ -276,8 +277,8 @@ const ClientBooking = () => {
   // Enhanced validation - More permissive for better UX
   const isBookingValid = selectedDate && selectedTime && effectiveSelectedVariants?.length > 0 && !isLoadingUserData;
   const selectedVariant = effectiveSelectedVariants?.[0];
-  // STANDARDIZED: All slots are now 60 minutes - slot_size variable removed
-  const SLOT_SIZE = 60;
+  // STANDARDIZED: All slots are now 30 minutes - global system update 2026-02
+  const SLOT_SIZE = 30;
 
   const handleBackNavigation = () => {
     // Scroll to top before navigation
@@ -541,7 +542,7 @@ const ClientBooking = () => {
       // Scroll to top before navigating to checkout
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       
-      // Navigate to checkout with all data
+      // Navigate to checkout with all data including discount info
       navigate('/checkout', {
         state: {
           serviceTitle: effectiveServiceDetails.title,
@@ -552,7 +553,9 @@ const ClientBooking = () => {
           clientLocation,
           bookingData,
           totalPrice,
-          currency: effectiveServiceDetails?.currency || 'USD'
+          currency: effectiveServiceDetails?.currency || 'USD',
+          isRecommendedSlot, // Pass flag for 10% discount
+          slotIds: selectedSlotIds
         }
       });
 
@@ -637,9 +640,10 @@ const ClientBooking = () => {
           totalDuration={totalDuration}
           onDateChange={setSelectedDate}
           onTimeChange={setSelectedTime}
-          onDurationChange={(duration, slotIds) => {
+          onDurationChange={(duration, slotIds, isRecommended) => {
             setTotalDuration(duration);
             setSelectedSlotIds(slotIds || []);
+            setIsRecommendedSlot(isRecommended ?? false);
           }}
           providerId={effectiveProviderId}
           listingId={listingIdForBooking}
