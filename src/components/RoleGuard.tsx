@@ -65,7 +65,11 @@ const RoleGuard = ({ children, allowedRole, redirectTo }: RoleGuardProps) => {
     }
     
     // Default redirects based on user's actual role
-    const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
+    const userHomePath = user.role === 'admin' 
+      ? '/admin/dashboard' 
+      : user.role === 'client' 
+        ? '/client/categories' 
+        : '/dashboard';
     logger.debug('RoleGuard: Redirecting to user home:', userHomePath);
     return <Navigate to={userHomePath} replace />;
   }

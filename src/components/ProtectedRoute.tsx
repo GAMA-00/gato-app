@@ -43,7 +43,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     logger.debug('ProtectedRoute: User role not allowed', { userRole: user.role, allowedRoles });
     
     // Redirigir según el rol del usuario
-    const redirectTo = user.role === 'client' ? '/client/categories' : '/dashboard';
+    const redirectTo = user.role === 'admin'
+      ? '/admin/dashboard'
+      : user.role === 'client' 
+        ? '/client/categories' 
+        : '/dashboard';
     
     logger.debug('ProtectedRoute: Redirecting to:', redirectTo);
     return <Navigate to={redirectTo} replace />;

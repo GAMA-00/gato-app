@@ -37,7 +37,7 @@ const ClientLogin = () => {
 
   // Redirect authenticated users
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
+    if (isAuthenticated && !isLoading && profile) {
       const role = profile?.role || user?.role;
       if (role) {
         authLogger.info('User authenticated, redirecting to role', { role });
