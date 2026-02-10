@@ -1,181 +1,142 @@
 
-## Problema
 
-Los slots se están generando empezando a la 1:00 AM cuando el proveedor configuró disponibilidad de 7:00 AM a 5:00 PM. Esto ocurre por un problema de interpretación de zona horaria.
+## Bug: Pantalla en blanco al iniciar sesion como admin desde login de cliente
 
-## Causa Raíz
+### Causa raiz
 
-La función SQL `generate_provider_time_slots_for_listing` combina la fecha con la hora de disponibilidad sin especificar zona horaria:
+Hay dos problemas trabajando juntos:
 
-```sql
--- Línea 74 de la migración actual
-v_slot_start := v_current_date + v_window_start;
-```
+1. **Condicion de carrera en el rol**: Al iniciar sesion, `createUserFromSession` lee el rol desde `user_metadata` del token JWT. Si el metadata no tiene el rol 'admin', lo interpreta como 'client'. Luego, al cargar el perfil desde la base de datos, se actualiza a 'admin', pero para ese momento ya se disparo una redireccion incorrecta.
 
-Esto crea un `timestamp with time zone` interpretando `07:00` como **UTC**. Cuando el cliente ve estos slots, su navegador (en America/Mexico_City, UTC-6) convierte `07:00 UTC` a `01:00 AM` hora local.
+2. **`RoleGuard` y `ProtectedRoute` no manejan el rol 'admin'**: Cuando un usuario con rol 'admin' llega a una ruta protegida por `RoleGuard`, el componente detecta que el rol no coincide y redirige. Pero la logica de redireccion solo contempla 'client' y 'provider':
 
-### Flujo actual (incorrecto):
 ```text
-Proveedor configura: 07:00 - 17:00 (pensando en hora local)
-         ↓
-SQL interpreta: 07:00 UTC - 17:00 UTC
-         ↓
-Slot guardado: slot_datetime_start = 2026-02-05 07:00:00+00
-         ↓
-Frontend convierte a local: new Date('2026-02-05T07:00:00+00')
-         ↓
-Usuario ve: 01:00 AM (UTC-6)
+// RoleGuard linea 68 (actual)
+const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
+// Admin cae en '/dashboard' (ruta de provider) → pantalla en blanco
 ```
 
-### Flujo corregido:
+El mismo problema existe en `ProtectedRoute` linea 46.
+
+### Flujo actual (incorrecto)
+
 ```text
-Proveedor configura: 07:00 - 17:00 (hora local America/Mexico_City)
-         ↓
-SQL interpreta: 07:00 AT TIME ZONE 'America/Mexico_City' → 13:00 UTC
-         ↓
-Slot guardado: slot_datetime_start = 2026-02-05 13:00:00+00
-         ↓
-Frontend convierte a local: new Date('2026-02-05T13:00:00+00')
-         ↓
-Usuario ve: 07:00 AM (correcto)
+Admin inicia sesion desde /client/login
+  → user_metadata.role puede ser undefined → rol inicial: 'client'
+  → useEffect redirige a /client/categories
+  → RoleGuard detecta rol 'admin' (tras carga de perfil)
+  → Redirige a /dashboard (pensado para providers)
+  → Ruta de provider rechaza admin → pantalla en blanco
 ```
 
-## Solución
+### Flujo corregido
 
-### Modificación SQL
-
-Actualizar la función `generate_provider_time_slots_for_listing` para interpretar los tiempos de disponibilidad en la zona horaria correcta (America/Mexico_City):
-
-```sql
--- Antes (línea 74)
-v_slot_start := v_current_date + v_window_start;
-
--- Después
-v_slot_start := (v_current_date + v_window_start) AT TIME ZONE 'America/Mexico_City';
-v_window_end_tz := (v_current_date + v_window_end) AT TIME ZONE 'America/Mexico_City';
+```text
+Admin inicia sesion desde /client/login
+  → ClientLogin espera a que profile este disponible antes de redirigir
+  → Rol definitivo: 'admin' (desde perfil BD)
+  → Redirige a /admin/dashboard
+  → ProtectedAdminRoute valida y muestra contenido
 ```
 
-También se debe:
-1. Actualizar las columnas `start_time` y `end_time` para almacenar la hora LOCAL correcta (no UTC)
-2. Regenerar todos los slots futuros con la lógica corregida
+### Cambios a implementar
 
-### Detalle técnico de la migración
+**Archivo 1: `src/components/RoleGuard.tsx`** (linea 68)
 
-```sql
--- 1. Recrear función con timezone fix
-DROP FUNCTION IF EXISTS public.generate_provider_time_slots_for_listing(uuid, uuid, integer);
+Agregar manejo del rol 'admin' en la logica de redireccion por rol incorrecto:
 
-CREATE FUNCTION public.generate_provider_time_slots_for_listing(
-  p_provider_id uuid,
-  p_listing_id uuid,
-  p_days_ahead integer DEFAULT 60
-)
-RETURNS integer AS $$
-DECLARE
-  v_timezone text := 'America/Mexico_City';  -- Zona horaria del sistema
-  v_slot_size integer := 30;
-  v_provider_avail RECORD;
-  v_current_date date;
-  v_end_date date;
-  v_day_of_week integer;
-  v_slot_start timestamp with time zone;
-  v_slot_end timestamp with time zone;
-  v_window_end_tz timestamp with time zone;
-  v_slots_created integer := 0;
-  v_window_start time;
-  v_window_end time;
-  v_local_start_time time;
-  v_local_end_time time;
-BEGIN
-  v_current_date := CURRENT_DATE;
-  v_end_date := v_current_date + p_days_ahead;
+```typescript
+// Antes:
+const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
 
-  WHILE v_current_date <= v_end_date LOOP
-    v_day_of_week := EXTRACT(DOW FROM v_current_date)::integer;
-
-    FOR v_provider_avail IN
-      SELECT start_time, end_time
-      FROM provider_availability
-      WHERE provider_id = p_provider_id
-        AND day_of_week = v_day_of_week
-        AND is_active = true
-    LOOP
-      v_window_start := v_provider_avail.start_time;
-      v_window_end := v_provider_avail.end_time;
-
-      -- CRITICAL FIX: Interpretar hora como hora LOCAL, no UTC
-      v_slot_start := (v_current_date + v_window_start) AT TIME ZONE v_timezone;
-      v_window_end_tz := (v_current_date + v_window_end) AT TIME ZONE v_timezone;
-      
-      WHILE (v_slot_start + (v_slot_size || ' minutes')::interval) <= v_window_end_tz LOOP
-        v_slot_end := v_slot_start + (v_slot_size || ' minutes')::interval;
-
-        IF v_slot_start > NOW() THEN
-          -- Extraer hora local para start_time/end_time
-          v_local_start_time := (v_slot_start AT TIME ZONE v_timezone)::time;
-          v_local_end_time := (v_slot_end AT TIME ZONE v_timezone)::time;
-          
-          INSERT INTO provider_time_slots (
-            provider_id, listing_id, slot_date, start_time, end_time,
-            slot_datetime_start, slot_datetime_end, is_available, is_reserved, slot_type
-          )
-          VALUES (
-            p_provider_id, p_listing_id, v_current_date,
-            v_local_start_time,  -- Hora local
-            v_local_end_time,    -- Hora local
-            v_slot_start, v_slot_end, true, false, 'generated'
-          )
-          ON CONFLICT (provider_id, listing_id, slot_datetime_start) DO NOTHING;
-          v_slots_created := v_slots_created + 1;
-        END IF;
-
-        v_slot_start := v_slot_end;
-      END LOOP;
-    END LOOP;
-
-    v_current_date := v_current_date + 1;
-  END LOOP;
-
-  RETURN v_slots_created;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
--- 2. Limpiar y regenerar slots
-DELETE FROM provider_time_slots
-WHERE slot_date >= CURRENT_DATE
-  AND is_reserved = false
-  AND slot_type = 'generated';
-
--- 3. Regenerar para todos los listings activos
-DO $regen$
-DECLARE
-  v_listing RECORD;
-BEGIN
-  FOR v_listing IN 
-    SELECT l.id as listing_id, l.provider_id 
-    FROM listings l WHERE l.is_active = true
-  LOOP
-    PERFORM public.generate_provider_time_slots_for_listing(
-      v_listing.provider_id, v_listing.listing_id, 60
-    );
-  END LOOP;
-END;
-$regen$;
+// Despues:
+const userHomePath = user.role === 'admin' 
+  ? '/admin/dashboard' 
+  : user.role === 'client' 
+    ? '/client/categories' 
+    : '/dashboard';
 ```
 
-## Archivos a modificar
+**Archivo 2: `src/components/ProtectedRoute.tsx`** (linea 46)
+
+Mismo cambio: agregar manejo del rol 'admin':
+
+```typescript
+// Antes:
+const redirectTo = user.role === 'client' ? '/client/categories' : '/dashboard';
+
+// Despues:
+const redirectTo = user.role === 'admin'
+  ? '/admin/dashboard'
+  : user.role === 'client' 
+    ? '/client/categories' 
+    : '/dashboard';
+```
+
+**Archivo 3: `src/pages/ClientLogin.tsx`** (linea 39-53)
+
+Ajustar el useEffect para esperar a que el perfil este cargado antes de decidir la redireccion, evitando que un rol temporal cause la navegacion incorrecta:
+
+```typescript
+useEffect(() => {
+  if (isAuthenticated && !isLoading && profile) {
+    const role = profile.role || user?.role;
+    if (role) {
+      if (role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (role === 'client') {
+        navigate('/client/categories', { replace: true });
+      } else if (role === 'provider') {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }
+}, [isAuthenticated, isLoading, profile, user, navigate]);
+```
+
+**Archivo 4: `src/pages/Login.tsx`** (linea 49-59)
+
+Mismo ajuste: esperar `profile` antes de redirigir:
+
+```typescript
+useEffect(() => {
+  if (isAuthenticated && !isLoading && profile) {
+    const role = profile.role || user?.role;
+    // ...mismo manejo de redirecciones
+  }
+}, [isAuthenticated, isLoading, profile, user, navigate]);
+```
+
+**Archivo 5: `src/components/AuthRoute.tsx`** (linea 25-29)
+
+Agregar redireccion para admin:
+
+```typescript
+if (isAuthenticated && user) {
+  const role = user.role;
+  const redirectTo = role === 'admin' 
+    ? '/admin/dashboard' 
+    : role === 'provider' 
+      ? '/dashboard' 
+      : '/client/categories';
+  return <Navigate to={redirectTo} replace />;
+}
+```
+
+### Resumen de archivos modificados
 
 | Archivo | Cambio |
 |---------|--------|
-| Nueva migración SQL | Corregir `generate_provider_time_slots_for_listing` con `AT TIME ZONE` |
+| `src/components/RoleGuard.tsx` | Agregar redireccion a `/admin/dashboard` para rol admin |
+| `src/components/ProtectedRoute.tsx` | Agregar redireccion a `/admin/dashboard` para rol admin |
+| `src/pages/ClientLogin.tsx` | Esperar `profile` antes de redirigir |
+| `src/pages/Login.tsx` | Esperar `profile` antes de redirigir |
+| `src/components/AuthRoute.tsx` | Agregar redireccion para rol admin |
 
-## Nota sobre la zona horaria
+### Criterios de aceptacion
 
-La solución usa `'America/Mexico_City'` como zona horaria fija. En el futuro, se podría hacer dinámico almacenando la zona horaria del proveedor en su perfil o en el listing.
+1. Admin inicia sesion desde `/client/login` y llega a `/admin/dashboard` sin pantalla en blanco
+2. Admin inicia sesion desde `/login` y llega a `/admin/dashboard` sin pantalla en blanco
+3. Client y provider siguen funcionando igual que antes
+4. No hay estados intermedios visibles ni parpadeos de pantalla
 
-## Criterios de aceptación
-
-1. Los slots aparecen empezando a las 7:00 AM (no 1:00 AM)
-2. El rango de slots corresponde exactamente con la disponibilidad configurada (7:00 AM - 5:00 PM)
-3. Se generan 20 slots de 30 minutos por día de disponibilidad
-4. Los slots existentes con reservas no se ven afectados
