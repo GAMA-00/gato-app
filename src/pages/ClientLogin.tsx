@@ -27,6 +27,7 @@ const ClientLogin = () => {
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
