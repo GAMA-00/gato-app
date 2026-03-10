@@ -10,7 +10,7 @@ interface AuthRouteProps {
 }
 
 const AuthRoute = ({ children }: AuthRouteProps) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, profile, isLoading } = useAuth();
 
   logger.debug('AuthRoute: State check -', { isLoading, isAuthenticated, userRole: user?.role });
 
