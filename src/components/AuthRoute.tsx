@@ -10,7 +10,7 @@ interface AuthRouteProps {
 }
 
 const AuthRoute = ({ children }: AuthRouteProps) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, profile, isLoading } = useAuth();
 
   logger.debug('AuthRoute: State check -', { isLoading, isAuthenticated, userRole: user?.role });
 
@@ -21,6 +21,11 @@ const AuthRoute = ({ children }: AuthRouteProps) => {
 
   // Si está autenticado, redirigir según el rol
   if (isAuthenticated && user) {
+    // Check incomplete profile for clients (e.g. Google OAuth users)
+    if (profile && user.role === 'client' && (!profile.residencia_id || !profile.phone || !profile.house_number)) {
+      logger.debug('AuthRoute: Incomplete profile, redirecting to complete-profile');
+      return <Navigate to="/complete-profile" replace />;
+    }
     const role = user.role;
     const redirectTo = role === 'admin' 
       ? '/admin/dashboard' 
