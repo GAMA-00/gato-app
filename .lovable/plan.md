@@ -1,142 +1,101 @@
 
 
-## Bug: Pantalla en blanco al iniciar sesion como admin desde login de cliente
+## Social Login con Google - Plan de implementacion
 
-### Causa raiz
+### Analisis del estado actual
 
-Hay dos problemas trabajando juntos:
+- La tabla `users` NO tiene columnas `auth_provider` ni `profile_completed`
+- El trigger `handle_new_user` crea el registro en `users` al registrarse, usando `user_metadata` de Supabase Auth
+- Para Google OAuth, el trigger creara un registro con `residencia_id`, `house_number`, `phone` en NULL (perfil incompleto)
+- No existe ruta ni pagina `/complete-profile`
 
-1. **Condicion de carrera en el rol**: Al iniciar sesion, `createUserFromSession` lee el rol desde `user_metadata` del token JWT. Si el metadata no tiene el rol 'admin', lo interpreta como 'client'. Luego, al cargar el perfil desde la base de datos, se actualiza a 'admin', pero para ese momento ya se disparo una redireccion incorrecta.
+### Estrategia para detectar perfil incompleto
 
-2. **`RoleGuard` y `ProtectedRoute` no manejan el rol 'admin'**: Cuando un usuario con rol 'admin' llega a una ruta protegida por `RoleGuard`, el componente detecta que el rol no coincide y redirige. Pero la logica de redireccion solo contempla 'client' y 'provider':
-
-```text
-// RoleGuard linea 68 (actual)
-const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
-// Admin cae en '/dashboard' (ruta de provider) → pantalla en blanco
-```
-
-El mismo problema existe en `ProtectedRoute` linea 46.
-
-### Flujo actual (incorrecto)
-
-```text
-Admin inicia sesion desde /client/login
-  → user_metadata.role puede ser undefined → rol inicial: 'client'
-  → useEffect redirige a /client/categories
-  → RoleGuard detecta rol 'admin' (tras carga de perfil)
-  → Redirige a /dashboard (pensado para providers)
-  → Ruta de provider rechaza admin → pantalla en blanco
-```
-
-### Flujo corregido
-
-```text
-Admin inicia sesion desde /client/login
-  → ClientLogin espera a que profile este disponible antes de redirigir
-  → Rol definitivo: 'admin' (desde perfil BD)
-  → Redirige a /admin/dashboard
-  → ProtectedAdminRoute valida y muestra contenido
-```
+En lugar de agregar una columna `profile_completed`, se detectara un perfil incompleto verificando si los campos obligatorios (`residencia_id`, `condominium_id`, `house_number`, `phone`) son NULL. Esto es mas robusto y no requiere migración adicional.
 
 ### Cambios a implementar
 
-**Archivo 1: `src/components/RoleGuard.tsx`** (linea 68)
+**1. Migracion de BD: agregar columna `auth_provider`**
 
-Agregar manejo del rol 'admin' en la logica de redireccion por rol incorrecto:
-
-```typescript
-// Antes:
-const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
-
-// Despues:
-const userHomePath = user.role === 'admin' 
-  ? '/admin/dashboard' 
-  : user.role === 'client' 
-    ? '/client/categories' 
-    : '/dashboard';
+```sql
+ALTER TABLE public.users ADD COLUMN auth_provider text DEFAULT 'email';
 ```
 
-**Archivo 2: `src/components/ProtectedRoute.tsx`** (linea 46)
+Tambien actualizar el trigger `handle_new_user` para que setee `auth_provider` desde `NEW.raw_user_meta_data->>'auth_provider'` o desde `NEW.app_metadata->>'provider'`.
 
-Mismo cambio: agregar manejo del rol 'admin':
+**2. Nueva pagina: `src/pages/CompleteProfile.tsx`**
 
+Pantalla con los campos del paso 2 del registro actual:
+- Residencia/condominio (dropdown) - reusa `ClientResidenceField`
+- Numero de casa
+- Telefono celular (+506)
+- Nombre del referido (opcional)
+
+Al enviar, actualiza la tabla `users` con los datos y redirige a `/client/categories`.
+
+Pre-llena nombre y email desde la sesion de Google (`user.user_metadata.full_name`, `user.email`).
+
+**3. Modificar `src/pages/ClientLogin.tsx`**
+
+Agregar boton "Continuar con Google" despues de "Crear cuenta de Cliente":
+- Llama `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/client/login' } })`
+- El icono oficial de Google SVG ya existe en `RegisterForm.tsx`, se reutilizara
+
+**4. Nueva ruta en `src/routes/PublicRoutes.tsx`**
+
+Agregar:
 ```typescript
-// Antes:
-const redirectTo = user.role === 'client' ? '/client/categories' : '/dashboard';
-
-// Despues:
-const redirectTo = user.role === 'admin'
-  ? '/admin/dashboard'
-  : user.role === 'client' 
-    ? '/client/categories' 
-    : '/dashboard';
+<Route key="complete-profile" path="/complete-profile" element={<CompleteProfile />} />
 ```
 
-**Archivo 3: `src/pages/ClientLogin.tsx`** (linea 39-53)
+**5. Modificar logica de redireccion post-login**
 
-Ajustar el useEffect para esperar a que el perfil este cargado antes de decidir la redireccion, evitando que un rol temporal cause la navegacion incorrecta:
-
-```typescript
-useEffect(() => {
-  if (isAuthenticated && !isLoading && profile) {
-    const role = profile.role || user?.role;
-    if (role) {
-      if (role === 'admin') {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (role === 'client') {
-        navigate('/client/categories', { replace: true });
-      } else if (role === 'provider') {
-        navigate('/dashboard', { replace: true });
-      }
-    }
-  }
-}, [isAuthenticated, isLoading, profile, user, navigate]);
-```
-
-**Archivo 4: `src/pages/Login.tsx`** (linea 49-59)
-
-Mismo ajuste: esperar `profile` antes de redirigir:
+En `src/pages/ClientLogin.tsx` y `src/components/AuthRoute.tsx`, agregar verificacion de perfil completo:
 
 ```typescript
-useEffect(() => {
-  if (isAuthenticated && !isLoading && profile) {
-    const role = profile.role || user?.role;
-    // ...mismo manejo de redirecciones
-  }
-}, [isAuthenticated, isLoading, profile, user, navigate]);
-```
-
-**Archivo 5: `src/components/AuthRoute.tsx`** (linea 25-29)
-
-Agregar redireccion para admin:
-
-```typescript
-if (isAuthenticated && user) {
-  const role = user.role;
-  const redirectTo = role === 'admin' 
-    ? '/admin/dashboard' 
-    : role === 'provider' 
-      ? '/dashboard' 
-      : '/client/categories';
-  return <Navigate to={redirectTo} replace />;
+// Despues de autenticar, si el perfil existe pero le faltan campos obligatorios:
+if (profile && (!profile.residencia_id || !profile.phone || !profile.house_number)) {
+  navigate('/complete-profile', { replace: true });
+  return;
 }
 ```
 
-### Resumen de archivos modificados
+Esto aplica tanto para login con Google como para cualquier usuario con perfil incompleto.
 
-| Archivo | Cambio |
+**6. Modificar `src/contexts/auth/utils.ts`**
+
+`createUserFromSession`: cuando el usuario viene de Google OAuth, obtener el nombre desde `user_metadata.full_name` (Google lo provee asi).
+
+**7. Modificar `handle_new_user` trigger (migracion SQL)**
+
+Actualizar para que setee `auth_provider` basado en el proveedor de autenticacion del usuario.
+
+### Archivos a crear/modificar
+
+| Archivo | Accion |
 |---------|--------|
-| `src/components/RoleGuard.tsx` | Agregar redireccion a `/admin/dashboard` para rol admin |
-| `src/components/ProtectedRoute.tsx` | Agregar redireccion a `/admin/dashboard` para rol admin |
-| `src/pages/ClientLogin.tsx` | Esperar `profile` antes de redirigir |
-| `src/pages/Login.tsx` | Esperar `profile` antes de redirigir |
-| `src/components/AuthRoute.tsx` | Agregar redireccion para rol admin |
+| `src/pages/CompleteProfile.tsx` | Crear - pantalla completar perfil |
+| `src/pages/ClientLogin.tsx` | Modificar - agregar boton Google + redireccion perfil incompleto |
+| `src/components/AuthRoute.tsx` | Modificar - redireccion a complete-profile si perfil incompleto |
+| `src/routes/PublicRoutes.tsx` | Modificar - agregar ruta /complete-profile |
+| `src/contexts/auth/utils.ts` | Modificar - soportar full_name de Google |
+| Migracion SQL | Crear - columna auth_provider + actualizar trigger |
 
-### Criterios de aceptacion
+### Flujo final
 
-1. Admin inicia sesion desde `/client/login` y llega a `/admin/dashboard` sin pantalla en blanco
-2. Admin inicia sesion desde `/login` y llega a `/admin/dashboard` sin pantalla en blanco
-3. Client y provider siguen funcionando igual que antes
-4. No hay estados intermedios visibles ni parpadeos de pantalla
+```text
+Google OAuth desde /client/login
+  → Supabase autentica con Google
+  → Trigger crea registro en users (name, email, role=client, auth_provider=google)
+  → Redirect back a /client/login
+  → useEffect detecta perfil incompleto (sin residencia/phone/house)
+  → Redirige a /complete-profile
+  → Usuario completa datos
+  → UPDATE users SET residencia_id, condominium_id, house_number, phone
+  → Redirige a /client/categories
+
+Login futuro con Google
+  → Perfil ya completo
+  → Redirige directo a /client/categories
+```
 
