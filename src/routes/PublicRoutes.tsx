@@ -12,6 +12,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Profile from '@/pages/Profile';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import CompleteProfile from '@/pages/CompleteProfile';
 
 const PublicRoutes = () => {
   return [
