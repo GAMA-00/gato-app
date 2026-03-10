@@ -40,6 +40,12 @@ const ClientLogin = () => {
     if (isAuthenticated && !isLoading && profile) {
       const role = profile?.role || user?.role;
       if (role) {
+        // Check if profile is incomplete (Google OAuth user who hasn't completed profile)
+        if (role === 'client' && (!profile.residencia_id || !profile.phone || !profile.house_number)) {
+          authLogger.info('Incomplete profile detected, redirecting to complete-profile');
+          navigate('/complete-profile', { replace: true });
+          return;
+        }
         authLogger.info('User authenticated, redirecting to role', { role });
         if (role === 'admin') {
           navigate('/admin/dashboard', { replace: true });
