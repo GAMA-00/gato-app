@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { categoryGradients, categoryTextColors } from '@/constants/categoryColors';
-import CategoryIcon from './CategoryIcon';
+import { categoryImages } from '@/constants/categoryConstants';
 import CategoryPillNav from './CategoryPillNav';
 
 interface CategoryHeroHeaderProps {
@@ -13,10 +13,11 @@ interface CategoryHeroHeaderProps {
 const CategoryHeroHeader = ({ categoryId, categoryLabel, allCategories }: CategoryHeroHeaderProps) => {
   const gradient = categoryGradients[categoryId] || categoryGradients['other'];
   const textColor = categoryTextColors[categoryId] || categoryTextColors['other'];
+  const imageUrl = categoryImages[categoryId];
 
   return (
     <div className={cn(
-      "relative bg-gradient-to-br pt-20 pb-4 px-4",
+      "relative bg-gradient-to-br pt-20 pb-4 px-4 overflow-hidden",
       gradient
     )}>
       {/* Category title and icon */}
@@ -24,13 +25,14 @@ const CategoryHeroHeader = ({ categoryId, categoryLabel, allCategories }: Catego
         <h1 className={cn("text-2xl font-bold", textColor)}>
           {categoryLabel}
         </h1>
-        <div className="w-16 h-16">
-          <CategoryIcon 
-            categoryName={categoryId} 
-            isMobile={true} 
-            isVisible={true} 
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt=""
+            className="w-16 h-16 object-contain"
+            loading="eager"
           />
-        </div>
+        )}
       </div>
 
       {/* Category pills navigation */}

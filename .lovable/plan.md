@@ -1,69 +1,142 @@
 
 
-## Actualizar iconos y redisenar tarjetas de categorias
+## Bug: Pantalla en blanco al iniciar sesion como admin desde login de cliente
 
-### Que se hara
+### Causa raiz
 
-Reemplazar los iconos actuales de las 6 categorias con los nuevos PNGs proporcionados y redisenar las tarjetas para que coincidan con el mockup de referencia: texto en esquina superior izquierda, icono grande en esquina inferior derecha parcialmente recortado, fondos de color por categoria, sombras suaves.
+Hay dos problemas trabajando juntos:
 
-### Archivos de iconos a copiar
+1. **Condicion de carrera en el rol**: Al iniciar sesion, `createUserFromSession` lee el rol desde `user_metadata` del token JWT. Si el metadata no tiene el rol 'admin', lo interpreta como 'client'. Luego, al cargar el perfil desde la base de datos, se actualiza a 'admin', pero para ese momento ya se disparo una redireccion incorrecta.
 
-| Categoria | Archivo subido | Destino |
-|-----------|---------------|---------|
-| Hogar | iconos-06.png | src/assets/category-home.png |
-| Mascotas | iconos-07.png | src/assets/category-pets.png |
-| Clases | iconos-08.png | src/assets/category-classes.png |
-| Cuidado Personal | iconos-09.png | src/assets/category-personal-care.png |
-| Deportes | iconos-10.png | src/assets/category-sports.png |
-| Otros | iconos-11.png | src/assets/category-other.png |
-
-### Cambios por archivo
-
-**1. `src/constants/categoryConstants.ts`**
-
-Reemplazar `categoryImageUrls` para usar imports desde `src/assets/` en lugar de rutas `/lovable-uploads/`. Exportar un mapa de imports.
-
-**2. `src/constants/categoryColors.ts`**
-
-Agregar colores de fondo solidos para las tarjetas de la pagina principal (no gradientes, sino colores planos que coincidan con la referencia):
-- Hogar: `#F5EDE8` (beige)
-- Mascotas: `#FFCCC5` (coral)
-- Clases: `#FFE4C4` (naranja claro)
-- Cuidado Personal: `#D4E5F7` (azul claro)
-- Deportes: `#E5E5E5` (gris)
-- Otros: `#E8F4EC` (verde claro)
-
-**3. `src/components/client/CategoryIcon.tsx`**
-
-Simplificar para usar los imports directos de assets. Eliminar logica de fallback a Lucide icons ya que ahora todos los iconos son imagenes.
-
-**4. `src/pages/ClientServices.tsx`**
-
-Redisenar la estructura de las tarjetas de categoria (mobile y desktop):
-- Card con `overflow-hidden` y `relative`
-- Fondo de color por categoria (no gris uniforme)
-- Texto (`categoryLabel`) posicionado arriba-izquierda, font bold, color oscuro
-- Icono posicionado abajo-derecha, tamano grande, parcialmente recortado (translate para que sobresalga)
-- Sombra suave, bordes redondeados
-
-**5. `src/components/client/CategoryHeroHeader.tsx`**
-
-Actualizar para usar los nuevos iconos (ya usa `CategoryIcon`, solo verificar que se vea bien con las nuevas imagenes).
-
-### Layout de tarjeta (mobile)
+2. **`RoleGuard` y `ProtectedRoute` no manejan el rol 'admin'**: Cuando un usuario con rol 'admin' llega a una ruta protegida por `RoleGuard`, el componente detecta que el rol no coincide y redirige. Pero la logica de redireccion solo contempla 'client' y 'provider':
 
 ```text
-+------------------+
-| Hogar            |  <- texto top-left, bold
-|                  |
-|            🏠    |  <- icono bottom-right, ~60% del tamano de la card
-|          (crop)  |     parcialmente fuera del borde
-+------------------+
+// RoleGuard linea 68 (actual)
+const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
+// Admin cae en '/dashboard' (ruta de provider) → pantalla en blanco
 ```
 
-### Lugares donde se muestran categorias
+El mismo problema existe en `ProtectedRoute` linea 46.
 
-1. `ClientServices.tsx` - grid principal (mobile 3 cols, desktop 2-3 cols)
-2. `CategoryHeroHeader.tsx` - header de detalle de categoria
-3. `CategoryPillNav` - pills de navegacion (solo texto, no afectado)
+### Flujo actual (incorrecto)
+
+```text
+Admin inicia sesion desde /client/login
+  → user_metadata.role puede ser undefined → rol inicial: 'client'
+  → useEffect redirige a /client/categories
+  → RoleGuard detecta rol 'admin' (tras carga de perfil)
+  → Redirige a /dashboard (pensado para providers)
+  → Ruta de provider rechaza admin → pantalla en blanco
+```
+
+### Flujo corregido
+
+```text
+Admin inicia sesion desde /client/login
+  → ClientLogin espera a que profile este disponible antes de redirigir
+  → Rol definitivo: 'admin' (desde perfil BD)
+  → Redirige a /admin/dashboard
+  → ProtectedAdminRoute valida y muestra contenido
+```
+
+### Cambios a implementar
+
+**Archivo 1: `src/components/RoleGuard.tsx`** (linea 68)
+
+Agregar manejo del rol 'admin' en la logica de redireccion por rol incorrecto:
+
+```typescript
+// Antes:
+const userHomePath = user.role === 'client' ? '/client/categories' : '/dashboard';
+
+// Despues:
+const userHomePath = user.role === 'admin' 
+  ? '/admin/dashboard' 
+  : user.role === 'client' 
+    ? '/client/categories' 
+    : '/dashboard';
+```
+
+**Archivo 2: `src/components/ProtectedRoute.tsx`** (linea 46)
+
+Mismo cambio: agregar manejo del rol 'admin':
+
+```typescript
+// Antes:
+const redirectTo = user.role === 'client' ? '/client/categories' : '/dashboard';
+
+// Despues:
+const redirectTo = user.role === 'admin'
+  ? '/admin/dashboard'
+  : user.role === 'client' 
+    ? '/client/categories' 
+    : '/dashboard';
+```
+
+**Archivo 3: `src/pages/ClientLogin.tsx`** (linea 39-53)
+
+Ajustar el useEffect para esperar a que el perfil este cargado antes de decidir la redireccion, evitando que un rol temporal cause la navegacion incorrecta:
+
+```typescript
+useEffect(() => {
+  if (isAuthenticated && !isLoading && profile) {
+    const role = profile.role || user?.role;
+    if (role) {
+      if (role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (role === 'client') {
+        navigate('/client/categories', { replace: true });
+      } else if (role === 'provider') {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }
+}, [isAuthenticated, isLoading, profile, user, navigate]);
+```
+
+**Archivo 4: `src/pages/Login.tsx`** (linea 49-59)
+
+Mismo ajuste: esperar `profile` antes de redirigir:
+
+```typescript
+useEffect(() => {
+  if (isAuthenticated && !isLoading && profile) {
+    const role = profile.role || user?.role;
+    // ...mismo manejo de redirecciones
+  }
+}, [isAuthenticated, isLoading, profile, user, navigate]);
+```
+
+**Archivo 5: `src/components/AuthRoute.tsx`** (linea 25-29)
+
+Agregar redireccion para admin:
+
+```typescript
+if (isAuthenticated && user) {
+  const role = user.role;
+  const redirectTo = role === 'admin' 
+    ? '/admin/dashboard' 
+    : role === 'provider' 
+      ? '/dashboard' 
+      : '/client/categories';
+  return <Navigate to={redirectTo} replace />;
+}
+```
+
+### Resumen de archivos modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/components/RoleGuard.tsx` | Agregar redireccion a `/admin/dashboard` para rol admin |
+| `src/components/ProtectedRoute.tsx` | Agregar redireccion a `/admin/dashboard` para rol admin |
+| `src/pages/ClientLogin.tsx` | Esperar `profile` antes de redirigir |
+| `src/pages/Login.tsx` | Esperar `profile` antes de redirigir |
+| `src/components/AuthRoute.tsx` | Agregar redireccion para rol admin |
+
+### Criterios de aceptacion
+
+1. Admin inicia sesion desde `/client/login` y llega a `/admin/dashboard` sin pantalla en blanco
+2. Admin inicia sesion desde `/login` y llega a `/admin/dashboard` sin pantalla en blanco
+3. Client y provider siguen funcionando igual que antes
+4. No hay estados intermedios visibles ni parpadeos de pantalla
 
