@@ -1,38 +1,69 @@
 
 
-## Diagnostico: Pagos con tarjetas reales fallan con error 400
+## Actualizar iconos y redisenar tarjetas de categorias
 
-### Causa raiz confirmada
+### Que se hara
 
-Los logs de la Edge Function `onvopay-create-payment-method` muestran el error exacto:
+Reemplazar los iconos actuales de las 6 categorias con los nuevos PNGs proporcionados y redisenar las tarjetas para que coincidan con el mockup de referencia: texto en esquina superior izquierda, icono grande en esquina inferior derecha parcialmente recortado, fondos de color por categoria, sombras suaves.
 
+### Archivos de iconos a copiar
+
+| Categoria | Archivo subido | Destino |
+|-----------|---------------|---------|
+| Hogar | iconos-06.png | src/assets/category-home.png |
+| Mascotas | iconos-07.png | src/assets/category-pets.png |
+| Clases | iconos-08.png | src/assets/category-classes.png |
+| Cuidado Personal | iconos-09.png | src/assets/category-personal-care.png |
+| Deportes | iconos-10.png | src/assets/category-sports.png |
+| Otros | iconos-11.png | src/assets/category-other.png |
+
+### Cambios por archivo
+
+**1. `src/constants/categoryConstants.ts`**
+
+Reemplazar `categoryImageUrls` para usar imports desde `src/assets/` en lugar de rutas `/lovable-uploads/`. Exportar un mapa de imports.
+
+**2. `src/constants/categoryColors.ts`**
+
+Agregar colores de fondo solidos para las tarjetas de la pagina principal (no gradientes, sino colores planos que coincidan con la referencia):
+- Hogar: `#F5EDE8` (beige)
+- Mascotas: `#FFCCC5` (coral)
+- Clases: `#FFE4C4` (naranja claro)
+- Cuidado Personal: `#D4E5F7` (azul claro)
+- Deportes: `#E5E5E5` (gris)
+- Otros: `#E8F4EC` (verde claro)
+
+**3. `src/components/client/CategoryIcon.tsx`**
+
+Simplificar para usar los imports directos de assets. Eliminar logica de fallback a Lucide icons ya que ahora todos los iconos son imagenes.
+
+**4. `src/pages/ClientServices.tsx`**
+
+Redisenar la estructura de las tarjetas de categoria (mobile y desktop):
+- Card con `overflow-hidden` y `relative`
+- Fondo de color por categoria (no gris uniforme)
+- Texto (`categoryLabel`) posicionado arriba-izquierda, font bold, color oscuro
+- Icono posicionado abajo-derecha, tamano grande, parcialmente recortado (translate para que sobresalga)
+- Sombra suave, bordes redondeados
+
+**5. `src/components/client/CategoryHeroHeader.tsx`**
+
+Actualizar para usar los nuevos iconos (ya usa `CategoryIcon`, solo verificar que se vea bien con las nuevas imagenes).
+
+### Layout de tarjeta (mobile)
+
+```text
++------------------+
+| Hogar            |  <- texto top-left, bold
+|                  |
+|            🏠    |  <- icono bottom-right, ~60% del tamano de la card
+|          (crop)  |     parcialmente fuera del borde
++------------------+
 ```
-payment_methods.invalid_test_payment_method
-"The provided payment method is not part of the testing payment methods available for Test mode."
-```
 
-**El `ONVOPAY_SECRET_KEY` configurado en Supabase es una clave de modo TEST/sandbox.** Cuando se usa una tarjeta real, OnvoPay la rechaza porque el modo test solo acepta tarjetas de prueba.
+### Lugares donde se muestran categorias
 
-No hay un bug en el codigo. El flujo funciona correctamente: la tokenizacion, creacion de payment method y el charge estan bien implementados. El problema es exclusivamente de configuracion de credenciales.
-
-### Solucion
-
-1. **Obtener las credenciales de produccion (live) desde el dashboard de OnvoPay** — tipicamente tendran un prefijo diferente al de test (por ejemplo `sk_live_...` en vez de `sk_test_...`).
-
-2. **Actualizar el secret `ONVOPAY_SECRET_KEY`** en Supabase con la clave de produccion.
-
-3. **Verificar `ONVOPAY_API_BASE`** — actualmente el codigo usa `https://api.onvopay.com` como default, que es el endpoint de produccion. Si existe un secret `ONVOPAY_API_BASE` configurado apuntando a sandbox, tambien debe actualizarse.
-
-### Accion requerida del usuario
-
-Necesito que me confirmes:
-
-- Tienes acceso a las credenciales de produccion (live) de OnvoPay?
-- Quieres que actualice el secret `ONVOPAY_SECRET_KEY` con la clave de produccion? (tendras que proporcionarla)
-
-No se requieren cambios en el codigo. Una vez actualizadas las credenciales, los pagos con tarjetas reales funcionaran.
-
-### Nota sobre consistencia de entornos
-
-Revise todas las Edge Functions y la mayoria usan `ONVOPAY_SECRET_KEY` + `ONVOPAY_API_BASE` (default `https://api.onvopay.com`). Algunas funciones como `onvopay-capture` tienen logica dual (test/live), pero la funcion de tokenizacion usa una sola clave. Al cambiar a produccion, todos los flujos usaran el entorno correcto.
+1. `ClientServices.tsx` - grid principal (mobile 3 cols, desktop 2-3 cols)
+2. `CategoryHeroHeader.tsx` - header de detalle de categoria
+3. `CategoryPillNav` - pills de navegacion (solo texto, no afectado)
 
