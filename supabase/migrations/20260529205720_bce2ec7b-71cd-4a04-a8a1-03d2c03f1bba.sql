@@ -1,0 +1,1 @@
+SELECT public.generate_provider_time_slots_for_listing('bf15e5fe-0fe2-4917-a1ea-976333594d6f'::uuid, 'c64ce17e-200d-46f0-8265-ea9bbda95f08'::uuid, 60);
