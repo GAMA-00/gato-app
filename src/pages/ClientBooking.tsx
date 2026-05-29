@@ -421,7 +421,7 @@ const ClientBooking = () => {
 
   // Show loading state while fetching service data (reschedule mode OR fallback mode)
   if ((isRescheduleMode && isLoadingRescheduleService) || 
-      (!isRescheduleMode && !providerId && isLoadingListingFallback)) {
+      (!isRescheduleMode && !serviceDetails && isLoadingListingFallback)) {
     return (
       <PageLayout>
         <div className="flex items-center justify-center py-12">
