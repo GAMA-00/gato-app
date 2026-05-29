@@ -198,7 +198,7 @@ const ClientBooking = () => {
         provider: data.users
       };
     },
-    enabled: !isRescheduleMode && !!serviceId && !providerId, // Only when normal mode AND no providerId from state
+    enabled: !isRescheduleMode && !!serviceId && !serviceDetails, // Only when normal mode AND no serviceDetails from state
   });
 
   // Use effective variables based on mode - with fallback for normal mode
