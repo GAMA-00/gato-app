@@ -198,7 +198,7 @@ const ClientBooking = () => {
         provider: data.users
       };
     },
-    enabled: !isRescheduleMode && !!serviceId && !providerId, // Only when normal mode AND no providerId from state
+    enabled: !isRescheduleMode && !!serviceId && !serviceDetails, // Only when normal mode AND no serviceDetails from state
   });
 
   // Use effective variables based on mode - with fallback for normal mode
@@ -421,7 +421,7 @@ const ClientBooking = () => {
 
   // Show loading state while fetching service data (reschedule mode OR fallback mode)
   if ((isRescheduleMode && isLoadingRescheduleService) || 
-      (!isRescheduleMode && !providerId && isLoadingListingFallback)) {
+      (!isRescheduleMode && !serviceDetails && isLoadingListingFallback)) {
     return (
       <PageLayout>
         <div className="flex items-center justify-center py-12">
