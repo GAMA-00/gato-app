@@ -6,6 +6,7 @@ import { ListingService } from '@/services/listingService';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
+import LogoutButton from '@/components/layout/LogoutButton';
 import { Service, ServiceVariant, WeeklyAvailability, CustomVariableGroup } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -134,6 +135,10 @@ const Services = () => {
         )}
 
         {/* Gestión de equipo: queda para v2 (no va en v1). Sección removida. */}
+
+        <div className="mt-8 border-t pt-6">
+          <LogoutButton />
+        </div>
 
         <ServiceForm
           isOpen={isFormOpen}

@@ -7,6 +7,7 @@ import { useComprehensiveSync } from '@/hooks/useComprehensiveSync';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import LogoutButton from '@/components/layout/LogoutButton';
 import { Edit, Mail, Phone, MapPin, RefreshCw } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import EditProfileModal from '@/components/profile/EditProfileModal';
@@ -166,6 +167,9 @@ const Profile = () => {
               Sincronizar todas las secciones
             </Button>
           )}
+          <div className="border-t pt-4">
+            <LogoutButton />
+          </div>
         </div>
       </PageContainer>
 
