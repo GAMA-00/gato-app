@@ -121,20 +121,7 @@ export const useServiceMutations = () => {
         // Don't throw - listing creation succeeded
       }
 
-      if (serviceData.residenciaIds && serviceData.residenciaIds.length > 0) {
-        const residenciaData = serviceData.residenciaIds.map(residenciaId => ({
-          listing_id: listing.id,
-          residencia_id: residenciaId
-        }));
-
-        const { error: residenciaError } = await supabase
-          .from('listing_residencias')
-          .insert(residenciaData);
-
-        if (residenciaError) {
-          throw residenciaError;
-        }
-      }
+      // v1: sin residencias — asociación listing_residencias obsoleta (se usa cantón).
 
       // Los slots se generan automáticamente via trigger al crear el listing
       // Ya no llamamos RPC de regeneración
@@ -246,27 +233,7 @@ export const useServiceMutations = () => {
         throw profileError;
       }
 
-      if (serviceData.residenciaIds !== undefined) {
-        await supabase
-          .from('listing_residencias')
-          .delete()
-          .eq('listing_id', serviceData.id);
-
-        if (serviceData.residenciaIds.length > 0) {
-          const residenciaData = serviceData.residenciaIds.map(residenciaId => ({
-            listing_id: serviceData.id,
-            residencia_id: residenciaId
-          }));
-
-          const { error: residenciaError } = await supabase
-            .from('listing_residencias')
-            .insert(residenciaData);
-
-          if (residenciaError) {
-            throw residenciaError;
-          }
-        }
-      }
+      // v1: sin residencias — asociación listing_residencias obsoleta (se usa cantón).
 
       // Sincronizar slots si cambió la disponibilidad
       if (serviceData.availability) {

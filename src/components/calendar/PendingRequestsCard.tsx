@@ -45,7 +45,8 @@ const PendingRequestsCard: React.FC = () => {
         invalidateAppointments(queryClient, user?.id),
         invalidateCalendarAppointments(queryClient, user?.id),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['agenda-week'] })
       ]);
       
     } catch (error: any) {
@@ -72,7 +73,8 @@ const PendingRequestsCard: React.FC = () => {
         invalidateAppointments(queryClient, user?.id),
         invalidateCalendarAppointments(queryClient, user?.id),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['agenda-week'] })
       ]);
       
     } catch (error: any) {

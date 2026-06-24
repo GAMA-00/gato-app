@@ -66,17 +66,8 @@ const ServiceEdit = () => {
           console.error('Error loading provider profile:', providerError);
         }
 
-        // Obtener las residencias asociadas al listing
-        const { data: residenciasData, error: residenciasError } = await supabase
-          .from('listing_residencias')
-          .select('residencia_id')
-          .eq('listing_id', id);
-
-        if (residenciasError) {
-          console.error('Error loading residencias:', residenciasError);
-        }
-
-        const residenciaIds = residenciasData?.map(r => r.residencia_id) || [];
+        // v1: sin residencias (se usa cantón). Asociación obsoleta.
+        const residenciaIds: string[] = [];
 
         // Transformar datos para el formulario - usar standard_duration como fuente de verdad
         const transformedData: Service = {

@@ -216,28 +216,8 @@ export const useClientBookings = () => {
           logger.error('Error obteniendo calificaciones:', error);
         }
 
-        // Obtener facturas aprobadas para citas post-pago
-        let approvedInvoices: Set<string> = new Set();
-        const completedPostPaymentAppointments = filteredAppointments.filter(a => {
-          const listing = servicesMap.get(a.listing_id);
-          return a.status === 'completed' && listing?.is_post_payment;
-        });
-
-        if (completedPostPaymentAppointments.length > 0) {
-          try {
-            const { data: invoices } = await supabase
-              .from('post_payment_invoices')
-              .select('appointment_id')
-              .in('appointment_id', completedPostPaymentAppointments.map(a => a.id))
-              .eq('status', 'approved');
-
-            if (invoices) {
-              approvedInvoices = new Set(invoices.map(i => i.appointment_id));
-            }
-          } catch (error) {
-            logger.error('Error obteniendo facturas aprobadas:', error);
-          }
-        }
+        // v1: sin facturas post-pago (sin pagos). Set vacío.
+        const approvedInvoices: Set<string> = new Set();
 
         // *** PUNTO CRÍTICO: Obtener datos COMPLETOS del usuario ***
         locationLogger.info('=== OBTENIENDO DATOS COMPLETOS DE UBICACIÓN DEL USUARIO ===');

@@ -1,5 +1,30 @@
 # 🎨 Frontend Map - Gato App
 
+> 🐱 **Pivote v1.** El mapa de pantallas objetivo (34 vistas) está en
+> [CONCEPTO_V1.md](./CONCEPTO_V1.md) §7. Esta sección documenta el estado actual de
+> rutas + la navegación nueva.
+
+## 🧭 Navegación objetivo (concepto v1)
+
+```
+LANDING (gato.app)
+├── Soy Proveedor → Login OTP WhatsApp (O-1) → Onboarding (O-2…O-7) → App Proveedor
+└── Soy Cliente   → Login/Registro (CO-1/CO-2) → Directorio Gato (D-1)
+
+App Proveedor (4 tabs + 1 flotante)
+├── Inicio      (H-1)  solicitudes + citas de hoy + stats de la semana
+├── Agenda      (A-1…A-5)  semanal, por cantón, disponibilidad, Google Calendar
+├── Solicitudes (S-1, S-2)  aceptar/rechazar/contraoferta
+├── Servicio    (SE-1…SE-6)  catálogo, cantones, recordatorios, stats, suscripción
+└── Mapa        (M-1)  pins por cantón, rutas, preferencias por cantón
+
+Booking Link público  gato.app/{slug}  (BL-1…BL-6, sin login)
+Directorio Gato       (D-1, D-2)
+```
+
+> Tab "Servicio" = el antiguo "Yo". Tab "Solicitudes" es nuevo. El flujo de cliente
+> v1 es el **booking link**, no el checkout con pago.
+
 ## Stack Tecnológico
 
 | Tecnología | Versión | Propósito |

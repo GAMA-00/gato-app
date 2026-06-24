@@ -29,19 +29,9 @@ const ServiceDetailsStep: React.FC = () => {
     { id: uuidv4(), name: 'Servicio básico', price: '', duration: 60 }
   ];
 
-  // Fetch residencias from Supabase
-  const { data: residencias = [], isLoading: residenciasLoading } = useQuery({
-    queryKey: ['residencias'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('residencias')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    }
-  });
+  // v1: sin residencias (se usa cantón). Lista vacía, sin consultar.
+  const residencias: any[] = [];
+  const residenciasLoading = false;
 
   const handleSelectAllResidencias = (checked: boolean) => {
     if (checked) {

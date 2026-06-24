@@ -59,23 +59,10 @@ export function usePendingRequests() {
             if (appointment.client_id && !appointment.external_booking) {
               console.log(`👤 Obteniendo datos COMPLETOS del cliente para client_id: ${appointment.client_id}`);
               
+              // v1: users sin residencias/condominios (se usa cantón).
               const { data: clientData, error: clientError } = await supabase
                 .from('users')
-                .select(`
-                  id,
-                  name,
-                  phone,
-                  email,
-                  house_number,
-                  residencia_id,
-                  condominium_text,
-                  condominium_name,
-                  residencias (
-                    id,
-                    name,
-                    address
-                  )
-                `)
+                .select(`id, name, phone, email, house_number`)
                 .eq('id', appointment.client_id)
                 .single();
 

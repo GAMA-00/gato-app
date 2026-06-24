@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, Briefcase, CalendarClock, Award, User, Users, FileText } from 'lucide-react';
+import { Home, Calendar, Briefcase, CalendarClock, Award, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePendingAppointments } from '@/hooks/usePendingAppointments';
-import { usePendingInvoicesCount, useClientInvoicesCount } from '@/hooks/useInvoiceCounts';
 import { useClientAppointmentsCount } from '@/hooks/useClientAppointmentsCount';
 
 interface MobileBottomNavProps {
@@ -25,22 +24,19 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { count: pendingAppointmentsCount } = usePendingAppointments();
-  const { data: pendingInvoicesCount = 0 } = usePendingInvoicesCount();
-  const { data: clientInvoicesCount = 0 } = useClientInvoicesCount();
   const { count: clientAppointmentsCount } = useClientAppointmentsCount();
 
+  // Facturas removidas (sin pagos en v1)
   const providerNavItems: NavItemType[] = [
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/provider/invoices', icon: FileText, label: 'Facturas', counter: pendingInvoicesCount },
     { to: '/achievements', icon: Award, label: 'Logros' }
   ];
-  
+
   const clientNavItems: NavItemType[] = [
     { to: '/client/categories', icon: Briefcase, label: 'Servicios' },
     { to: '/client/bookings', icon: CalendarClock, label: 'Reservas', counter: clientAppointmentsCount },
-    { to: '/client/invoices', icon: FileText, label: 'Facturas', counter: clientInvoicesCount },
     { to: '/profile', icon: User, label: 'Perfil' }
   ];
 

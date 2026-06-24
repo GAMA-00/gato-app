@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar, Users, DollarSign } from 'lucide-react';
+import { Calendar, Users, DollarSign, UserPlus, Car } from 'lucide-react';
 import { DashboardStats as DashboardStatsType } from '@/lib/types';
+import { useTravelInsights } from '@/hooks/useTravelInsights';
 
 interface ProviderStatsCardsProps {
   stats?: DashboardStatsType;
@@ -28,6 +29,9 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sublabel }) => 
 };
 
 const ProviderStatsCards: React.FC<ProviderStatsCardsProps> = ({ stats, isLoading }) => {
+  // Métricas del nuevo concepto (clientes nuevos + tiempo en traslados)
+  const { data: insights } = useTravelInsights();
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-3 gap-3">
@@ -48,15 +52,27 @@ const ProviderStatsCards: React.FC<ProviderStatsCardsProps> = ({ stats, isLoadin
       />
       <StatCard
         icon={<Users className="h-5 w-5" />}
-        label="Clientes"
+        label="Recurrentes"
         value={stats?.activeClients ?? 0}
-        sublabel="Activos"
+        sublabel="Clientes"
       />
       <StatCard
         icon={<DollarSign className="h-5 w-5" />}
         label="Ingresos"
         value={`$${(stats?.monthRevenue ?? 0).toLocaleString()}`}
         sublabel="Este mes"
+      />
+      <StatCard
+        icon={<UserPlus className="h-5 w-5" />}
+        label="Nuevos"
+        value={insights?.newClientsThisMonth ?? 0}
+        sublabel="Este mes"
+      />
+      <StatCard
+        icon={<Car className="h-5 w-5" />}
+        label="Traslados"
+        value={`${insights?.travelTimeHoursThisWeek ?? 0}h`}
+        sublabel="Esta semana"
       />
     </div>
   );

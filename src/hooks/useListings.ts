@@ -110,25 +110,8 @@ export const useListings = () => {
     enabled: !!isAuthenticated && !!user?.id
   });
   
-  const { data: residenciaAssociations = [] } = useQuery({
-    queryKey: ['listing_residencias'],
-    queryFn: async () => {
-      if (!listings.length) return [];
-      
-      const { data, error } = await supabase
-        .from('listing_residencias')
-        .select('*')
-        .in('listing_id', listings.map(listing => listing.id));
-        
-      if (error) {
-        toast.error('Error loading residencia associations: ' + error.message);
-        throw error;
-      }
-      
-      return data;
-    },
-    enabled: listings.length > 0
-  });
+  // v1: sin residencias (se usa cantón). Asociación obsoleta → lista vacía.
+  const residenciaAssociations: any[] = [];
   
   const { data: providerData } = useQuery({
     queryKey: ['provider-profile', user?.id],

@@ -17,22 +17,9 @@ export const CondominiumSelect: React.FC<CondominiumSelectProps> = ({
   form, 
   isSubmitting = false
 }) => {
-  const { data: condominiums = [], isLoading } = useQuery({
-    queryKey: ['condominiums', residenciaId],
-    queryFn: async () => {
-      if (!residenciaId) return [];
-      
-      const { data, error } = await supabase
-        .from('condominiums')
-        .select('id, name')
-        .eq('residencia_id', residenciaId)
-        .order('name');
-        
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!residenciaId
-  });
+  // v1: sin tabla condominiums — se usa la lista estática de abajo.
+  const condominiums: any[] = [];
+  const isLoading = false;
 
   // List of predefined condominiums for "Colinas de Montealegre"
   const condominiumNames = [

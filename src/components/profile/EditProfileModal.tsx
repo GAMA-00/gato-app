@@ -239,22 +239,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
             if (index >= 0 && index < condominiumNames.length) {
               resolvedCondominiumName = condominiumNames[index];
             }
-          } else {
-            // Database condominium - fetch name
-            try {
-              const { data: condominiumData, error } = await supabase
-                .from('condominiums')
-                .select('name')
-                .eq('id', values.condominiumId)
-                .single();
-                
-              if (!error && condominiumData) {
-                resolvedCondominiumName = condominiumData.name;
-              }
-            } catch (error) {
-              console.error('Failed to resolve condominium name:', error);
-            }
           }
+          // v1: sin tabla condominiums — no se resuelve nombre desde BD.
         }
 
         updateData.residencia_id = values.residenciaId || null;

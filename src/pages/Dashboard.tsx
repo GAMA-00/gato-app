@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { useDashboardAppointments } from '@/hooks/useDashboardAppointments';
 import DashboardLoadingState from '@/components/dashboard/DashboardLoadingState';
 import DashboardErrorState from '@/components/dashboard/DashboardErrorState';
@@ -19,6 +21,15 @@ const Dashboard = () => {
     activeAppointmentsToday,
     tomorrowsAppointments
   } = useDashboardAppointments();
+
+  // Proveedor sin catálogo → mandarlo al onboarding (primera vez)
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    if (user?.role !== 'provider' || !user?.id) return;
+    (supabase as any)
+      .from('listings').select('id').eq('provider_id', user.id).maybeSingle()
+      .then(({ data }: any) => { if (!data) navigate('/onboarding', { replace: true }); });
+  }, [user?.id, user?.role, navigate]);
 
   logger.debug('Dashboard render', { 
     userId: user?.id, 

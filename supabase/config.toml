@@ -5,8 +5,9 @@ project_id = "jckynopecuexfamepmoh"
 # Port to use for the API URL.
 port = 54321
 # Enable API development mode to use the latest API features.
-[api.develop]
-enabled = true
+# (comentado: clave no soportada por el CLI local 2.106)
+# [api.develop]
+# enabled = true
 
 [db]
 port = 54322
@@ -21,10 +22,9 @@ port = 54324
 file_size_limit = "50MiB"
 
 [auth]
-# For accepting signups using Google OAuth
-enabled_providers = ["google"]
-# Redirect URL for OAuth signups
-redirect_url = "http://localhost:3000/payment-setup"
+# (comentado: claves no soportadas por el CLI local 2.106 — se gestionan en el dashboard)
+# enabled_providers = ["google"]
+# redirect_url = "http://localhost:3000/payment-setup"
 
 [functions.create-payment]
 verify_jwt = true
@@ -90,16 +90,26 @@ verify_jwt = true
 [functions.onvopay-create-loop]
 verify_jwt = false
 
-[functions.process-recurring-charges]
-verify_jwt = false
-# DEPRECATED: OnvoPay Loops now handles automatic recurring charges
-
-## DEPRECATED Recurring Functions (Old Flow - Keep for backwards compatibility)
-[functions.onvopay-process-membership-charge]
-verify_jwt = false
-
-[functions.onvopay-sweep-completed-recurring]
-verify_jwt = false
+# NOTA: definiciones duplicadas de process-recurring-charges,
+# onvopay-process-membership-charge y onvopay-sweep-completed-recurring removidas
+# (ya están definidas arriba; el parser TOML no permite tablas repetidas).
 
 [functions.send-appointment-email]
+verify_jwt = false
+
+## ============================================================
+## WHATSAPP CLOUD API (concepto v1)
+## ============================================================
+
+# Llamada internamente / desde el cliente autenticado para enviar mensajes
+[functions.whatsapp-send]
+verify_jwt = true
+
+# La llama Meta (servidor externo): sin JWT. Seguridad por hub.verify_token + firma.
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+# Cron cada ~15 min: envía recordatorios vencidos. Programar en Supabase
+# (Scheduled Functions / pg_cron). Sin JWT porque lo invoca el scheduler.
+[functions.send-reminders]
 verify_jwt = false
