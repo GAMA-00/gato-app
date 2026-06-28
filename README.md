@@ -36,6 +36,11 @@ Es una **PWA mobile-first** (React + Vite + Supabase). No es app nativa (v1 = PW
 
 Levanta una copia **100% local** con esquema limpio + datos demo, sin tocar producción.
 
+> 🟢 **¿No sos técnico (o seguís sin contexto)?** Usá la guía paso a paso
+> **[INSTALACION_LOCAL.md](INSTALACION_LOCAL.md)**. Una vez instalado todo, encender es un
+> solo comando: **`npm run start:local`** (verifica Docker, levanta la base, siembra demo,
+> configura `.env.local` y arranca la app).
+
 ### Requisitos
 - **Node 18+** y npm
 - **Docker Desktop** (para Supabase local) — dejalo abierto mientras trabajás

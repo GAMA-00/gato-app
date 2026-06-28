@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start:local": "bash start-local.sh",
     "test": "bash test.sh",
     "test:integration": "node tests/integration.mjs"
   },
