@@ -1,8 +1,11 @@
 # 📋 Índice de Documentación DOE
 
-> 🐱 **Pivote v1 en curso.** El concepto cambió a un SaaS para proveedores
-> independientes de Costa Rica (cantones + WhatsApp + booking link + datos).
-> **Empezá siempre por [CONCEPTO_V1.md](./CONCEPTO_V1.md)** — es la fuente de verdad.
+> 🐱 **Pivote v1.** SaaS para proveedores independientes de Costa Rica
+> (cantones + WhatsApp + booking link + datos).
+>
+> **Handoff dev:** [../README.md](../README.md) (setup) · [../CLAUDE.md](../CLAUDE.md)
+> (contexto/convenciones para IA) · [../TESTING.md](../TESTING.md) (tests).
+> **Fuente de verdad del producto:** [CONCEPTO_V1.md](./CONCEPTO_V1.md).
 
 ## 🗺️ Mapas del Proyecto
 

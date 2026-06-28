@@ -1157,6 +1157,98 @@ INSERT INTO public.cantones (id, provincia_id, nombre) VALUES
   (705, 7, 'Matina'),
   (706, 7, 'Guácimo')
 ON CONFLICT (id) DO NOTHING;
+-- Geografía de Costa Rica (concepto v1) — centroides de los 84 cantones
+-- Fuente: promedio de coordenadas de distritos (github.com/josecarloscampos/LatLongCR, datos 2019)
+-- agregadas a nivel de cantón. Monteverde (612) y Puerto Jiménez (613) se fijan a la
+-- cabecera del cantón (no existían en el dataset 2019).
+-- Uso: cálculo de distancias/proximidad (ver docs/skills/SKILL_PROXIMITY_SLOTS.md).
+-- Precisión: aproximación suficiente para estimar distancias (~30 km/h); no es
+-- geometría oficial del IGN. Apto para v1.
+
+UPDATE public.cantones SET centroid_lat = 9.929427, centroid_lng = -84.089218 WHERE id = 101;
+UPDATE public.cantones SET centroid_lat = 9.920695, centroid_lng = -84.146152 WHERE id = 102;
+UPDATE public.cantones SET centroid_lat = 9.872597, centroid_lng = -84.071133 WHERE id = 103;
+UPDATE public.cantones SET centroid_lat = 9.812069, centroid_lng = -84.350749 WHERE id = 104;
+UPDATE public.cantones SET centroid_lat = 9.633319, centroid_lng = -84.051317 WHERE id = 105;
+UPDATE public.cantones SET centroid_lat = 9.81153, centroid_lng = -84.10255 WHERE id = 106;
+UPDATE public.cantones SET centroid_lat = 9.880295, centroid_lng = -84.272521 WHERE id = 107;
+UPDATE public.cantones SET centroid_lat = 9.954163, centroid_lng = -84.027426 WHERE id = 108;
+UPDATE public.cantones SET centroid_lat = 9.928384, centroid_lng = -84.197054 WHERE id = 109;
+UPDATE public.cantones SET centroid_lat = 9.895595, centroid_lng = -84.107578 WHERE id = 110;
+UPDATE public.cantones SET centroid_lat = 9.985912, centroid_lng = -83.992703 WHERE id = 111;
+UPDATE public.cantones SET centroid_lat = 9.795432, centroid_lng = -84.203637 WHERE id = 112;
+UPDATE public.cantones SET centroid_lat = 9.95618, centroid_lng = -84.083726 WHERE id = 113;
+UPDATE public.cantones SET centroid_lat = 9.991866, centroid_lng = -84.027314 WHERE id = 114;
+UPDATE public.cantones SET centroid_lat = 9.940417, centroid_lng = -84.032103 WHERE id = 115;
+UPDATE public.cantones SET centroid_lat = 9.895863, centroid_lng = -84.457506 WHERE id = 116;
+UPDATE public.cantones SET centroid_lat = 9.607259, centroid_lng = -83.955122 WHERE id = 117;
+UPDATE public.cantones SET centroid_lat = 9.91457, centroid_lng = -84.02589 WHERE id = 118;
+UPDATE public.cantones SET centroid_lat = 9.321916, centroid_lng = -83.653306 WHERE id = 119;
+UPDATE public.cantones SET centroid_lat = 9.70133, centroid_lng = -84.066836 WHERE id = 120;
+UPDATE public.cantones SET centroid_lat = 10.037463, centroid_lng = -84.238587 WHERE id = 201;
+UPDATE public.cantones SET centroid_lat = 10.160238, centroid_lng = -84.50835 WHERE id = 202;
+UPDATE public.cantones SET centroid_lat = 10.077174, centroid_lng = -84.322191 WHERE id = 203;
+UPDATE public.cantones SET centroid_lat = 9.950466, centroid_lng = -84.551675 WHERE id = 204;
+UPDATE public.cantones SET centroid_lat = 9.980061, centroid_lng = -84.400976 WHERE id = 205;
+UPDATE public.cantones SET centroid_lat = 10.09172, centroid_lng = -84.37984 WHERE id = 206;
+UPDATE public.cantones SET centroid_lat = 10.055224, centroid_lng = -84.436683 WHERE id = 207;
+UPDATE public.cantones SET centroid_lat = 10.088056, centroid_lng = -84.243946 WHERE id = 208;
+UPDATE public.cantones SET centroid_lat = 9.909442, centroid_lng = -84.544696 WHERE id = 209;
+UPDATE public.cantones SET centroid_lat = 10.416393, centroid_lng = -84.490591 WHERE id = 210;
+UPDATE public.cantones SET centroid_lat = 10.211094, centroid_lng = -84.404914 WHERE id = 211;
+UPDATE public.cantones SET centroid_lat = 10.117705, centroid_lng = -84.308462 WHERE id = 212;
+UPDATE public.cantones SET centroid_lat = 10.883565, centroid_lng = -85.087775 WHERE id = 213;
+UPDATE public.cantones SET centroid_lat = 10.873192, centroid_lng = -84.723068 WHERE id = 214;
+UPDATE public.cantones SET centroid_lat = 10.682796, centroid_lng = -84.869324 WHERE id = 215;
+UPDATE public.cantones SET centroid_lat = 10.341539, centroid_lng = -84.216023 WHERE id = 216;
+UPDATE public.cantones SET centroid_lat = 9.868654, centroid_lng = -83.938041 WHERE id = 301;
+UPDATE public.cantones SET centroid_lat = 9.843262, centroid_lng = -83.843515 WHERE id = 302;
+UPDATE public.cantones SET centroid_lat = 9.902615, centroid_lng = -83.98906 WHERE id = 303;
+UPDATE public.cantones SET centroid_lat = 9.852098, centroid_lng = -83.723946 WHERE id = 304;
+UPDATE public.cantones SET centroid_lat = 9.880076, centroid_lng = -83.624412 WHERE id = 305;
+UPDATE public.cantones SET centroid_lat = 9.907765, centroid_lng = -83.800202 WHERE id = 306;
+UPDATE public.cantones SET centroid_lat = 9.881942, centroid_lng = -83.884287 WHERE id = 307;
+UPDATE public.cantones SET centroid_lat = 9.825362, centroid_lng = -83.978324 WHERE id = 308;
+UPDATE public.cantones SET centroid_lat = 10.032238, centroid_lng = -84.125569 WHERE id = 401;
+UPDATE public.cantones SET centroid_lat = 10.030568, centroid_lng = -84.125272 WHERE id = 402;
+UPDATE public.cantones SET centroid_lat = 9.985474, centroid_lng = -84.070386 WHERE id = 403;
+UPDATE public.cantones SET centroid_lat = 10.04021, centroid_lng = -84.158234 WHERE id = 404;
+UPDATE public.cantones SET centroid_lat = 10.021097, centroid_lng = -84.093179 WHERE id = 405;
+UPDATE public.cantones SET centroid_lat = 10.022013, centroid_lng = -84.058013 WHERE id = 406;
+UPDATE public.cantones SET centroid_lat = 9.982451, centroid_lng = -84.181167 WHERE id = 407;
+UPDATE public.cantones SET centroid_lat = 10.006685, centroid_lng = -84.157143 WHERE id = 408;
+UPDATE public.cantones SET centroid_lat = 9.993524, centroid_lng = -84.094685 WHERE id = 409;
+UPDATE public.cantones SET centroid_lat = 10.472699, centroid_lng = -84.013854 WHERE id = 410;
+UPDATE public.cantones SET centroid_lat = 10.669648, centroid_lng = -85.48963 WHERE id = 501;
+UPDATE public.cantones SET centroid_lat = 10.045083, centroid_lng = -85.444212 WHERE id = 502;
+UPDATE public.cantones SET centroid_lat = 10.369285, centroid_lng = -85.663932 WHERE id = 503;
+UPDATE public.cantones SET centroid_lat = 10.646663, centroid_lng = -85.192284 WHERE id = 504;
+UPDATE public.cantones SET centroid_lat = 10.326801, centroid_lng = -85.572789 WHERE id = 505;
+UPDATE public.cantones SET centroid_lat = 10.423609, centroid_lng = -85.110029 WHERE id = 506;
+UPDATE public.cantones SET centroid_lat = 10.279723, centroid_lng = -84.955065 WHERE id = 507;
+UPDATE public.cantones SET centroid_lat = 10.472767, centroid_lng = -84.969251 WHERE id = 508;
+UPDATE public.cantones SET centroid_lat = 9.962307, centroid_lng = -85.265502 WHERE id = 509;
+UPDATE public.cantones SET centroid_lat = 11.045218, centroid_lng = -85.626494 WHERE id = 510;
+UPDATE public.cantones SET centroid_lat = 10.005973, centroid_lng = -85.412818 WHERE id = 511;
+UPDATE public.cantones SET centroid_lat = 9.713675, centroid_lng = -85.039775 WHERE id = 601;
+UPDATE public.cantones SET centroid_lat = 9.996838, centroid_lng = -84.640941 WHERE id = 602;
+UPDATE public.cantones SET centroid_lat = 9.105447, centroid_lng = -83.275634 WHERE id = 603;
+UPDATE public.cantones SET centroid_lat = 10.052907, centroid_lng = -84.728944 WHERE id = 604;
+UPDATE public.cantones SET centroid_lat = 8.898871, centroid_lng = -83.521471 WHERE id = 605;
+UPDATE public.cantones SET centroid_lat = 9.41774, centroid_lng = -84.047467 WHERE id = 606;
+UPDATE public.cantones SET centroid_lat = 8.530736, centroid_lng = -83.168228 WHERE id = 607;
+UPDATE public.cantones SET centroid_lat = 8.830379, centroid_lng = -82.980204 WHERE id = 608;
+UPDATE public.cantones SET centroid_lat = 9.518638, centroid_lng = -84.330539 WHERE id = 609;
+UPDATE public.cantones SET centroid_lat = 8.505433, centroid_lng = -82.888609 WHERE id = 610;
+UPDATE public.cantones SET centroid_lat = 9.696635, centroid_lng = -84.625674 WHERE id = 611;
+UPDATE public.cantones SET centroid_lat = 10.3, centroid_lng = -84.808 WHERE id = 612;
+UPDATE public.cantones SET centroid_lat = 8.535, centroid_lng = -83.305 WHERE id = 613;
+UPDATE public.cantones SET centroid_lat = 9.899986, centroid_lng = -83.291392 WHERE id = 701;
+UPDATE public.cantones SET centroid_lat = 10.376862, centroid_lng = -83.688817 WHERE id = 702;
+UPDATE public.cantones SET centroid_lat = 10.095962, centroid_lng = -83.528992 WHERE id = 703;
+UPDATE public.cantones SET centroid_lat = 9.605563, centroid_lng = -82.904691 WHERE id = 704;
+UPDATE public.cantones SET centroid_lat = 10.062666, centroid_lng = -83.291649 WHERE id = 705;
+UPDATE public.cantones SET centroid_lat = 10.230981, centroid_lng = -83.629864 WHERE id = 706;
 -- Booking link público (concepto v1) — F3
 -- Agrega: users.slug (gato.app/{slug}), columnas geo en appointments para capturar la
 -- ubicación del cliente, y RPCs públicos para resolver proveedor por slug y crear la

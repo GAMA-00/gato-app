@@ -299,9 +299,9 @@ reminder_jobs (
 
 ## 9. Riesgos y notas técnicas
 
-- ⚠️ **Timezone:** `.lovable/plan.md` y la función `generate_provider_time_slots_for_listing`
-  usan `America/Mexico_City`. Para Costa Rica debe ser **`America/Costa_Rica`**
-  (ambas UTC-6 hoy, pero hay que corregirlo para evitar bugs futuros). Tarea pendiente.
+- ✅ **Timezone:** corregido a **`America/Costa_Rica`** en el esquema limpio
+  (`generate_provider_time_slots_for_listing` y la grilla nueva). Antes usaba
+  `America/Mexico_City`. Usar siempre `formatInTimeZone` para agrupar por día.
 - ⚠️ **WhatsApp templates:** los mensajes salientes fuera de la ventana de 24h
   requieren **plantillas aprobadas** por Meta. Hay que registrarlas antes de producción.
 - ⚠️ **Token de WhatsApp filtrado:** el token compartido en chat debe **regenerarse**
@@ -336,8 +336,18 @@ reminder_jobs (
 | **F4** | 🔨 Solicitudes + buffer + datos H-1 — _loop aceptar/rechazar ya existía y sirve para reservas externas; agregado: `provider_settings`, buffer de traslado en la reserva, métricas clientes-nuevos y tiempo-en-traslados. Pendiente: pintar slots buffer en el grid A-1 y reasons/proximidad en S-2_ | 1+4 |
 | **F5** | 🔨 Recomendación + descuento por proximidad — _lógica (RPC) y lado cliente (BL-4) listos: slots ⭐ contiguos al mismo cantón, primero, con descuento. Pendiente: UI del proveedor para prender el descuento (M-1) y vista por cantones (A-4)_ | 3 |
 | **F6** | 🔨 Recordatorios automáticos — _tabla `reminder_jobs`, trigger de encolado al confirmar/completar (24h/2h/rebook), edge `send-reminders` (cron) que envía por WhatsApp. Pendiente: programar el cron en Supabase, toggles SE-4 (ya hay hook), y notificaciones instantáneas solicitud/confirmación (requieren edge pública)_ | 2 |
-| **F7** | Dashboard de datos (H-1 stats, SE-5) | 4 |
-| **F8** | Login OTP WhatsApp proveedor (si se aprueba) | — |
+| **F7** | Dashboard de datos (H-1 stats, SE-5) — _pendiente_ | 4 |
+| **F8** | Login OTP WhatsApp proveedor — _pendiente (hoy email/contraseña)_ | — |
+| **Agenda UI** | ✅ Grilla semanal nueva `WeeklyAgendaGrid` (horas×días, libre/bloq/cita) + aceptar refresca la grilla (`useProviderAgendaWeek`, key `agenda-week`) | 1 |
+| **Onboarding** | ✅ Wizard del proveedor O-2…O-7 (`OnboardingProvider`): tipo, cantón base, catálogo, disponibilidad, zonas, link. Auth email/contraseña | 1 |
+| **Infra/calidad** | ✅ Simulador local (Supabase local + `seed_demo.sql`) · tests de integración (`npm test`, 18 checks) · PWA instalable · limpieza de código muerto (pagos/facturas/equipo/residencias) · logout reubicado | — |
+
+---
+
+### Estado para handoff
+Ver **[../README.md](../README.md)** (setup) y **[../CLAUDE.md](../CLAUDE.md)** (contexto/convenciones).
+El esquema limpio vive en `supabase/rebuild/APPLY_clean_v1.sql` (una migración activa en
+`supabase/migrations/`; el historial viejo en `supabase/migrations_legacy/`).
 
 ---
 
