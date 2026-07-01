@@ -66,7 +66,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     phone: z.string()
       .regex(/^\+506\d{8}$/, 'Debe ser un número costarricense válido (+506 + 8 dígitos)')
       .length(12, 'El número debe tener exactamente 8 dígitos'),
-    providerResidenciaIds: userRole === 'provider' ? z.array(z.string()).min(1, 'Selecciona al menos una residencia') : z.array(z.string()).optional(),
+    providerResidenciaIds: z.array(z.string()).optional(),
     residenciaId: userRole === 'client' ? z.string().min(1, 'Selecciona una residencia') : z.string().optional(),
     condominiumId: userRole === 'client' ? z.string().min(1, 'Selecciona un condominio') : z.string().optional(),
     houseNumber: userRole === 'client' ? z.string().min(1, 'Ingresa el número de casa') : z.string().optional(),
@@ -144,10 +144,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         return;
       }
       
-      if (userRole === 'provider' && (!values.providerResidenciaIds || values.providerResidenciaIds.length === 0)) {
-        setRegistrationError('Debes seleccionar al menos una residencia');
-        return;
-      }
 
       logger.info('Datos de registro:', values);
       
@@ -179,24 +175,33 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         }
       } else if (result.data?.user) {
         logger.info('RegisterForm: Registro exitoso! User ID:', result.data.user.id);
-        logger.info('RegisterForm: User metadata sent:', userData);
-        
-        // Upload avatar after user creation if provided - FIX usando unified system
+
+        // Upload avatar — necesitamos sesión activa; la sesión llega con signUp en local
+        // (auto-confirm) o después de confirmar email en producción.
         if (profileImageToUpload && result.data.user.id) {
-          logger.info('🔵 RegisterForm: Uploading avatar with unified system...');
-          try {
-            const avatarUrl = await unifiedAvatarUpload(profileImageToUpload, result.data.user.id);
-            logger.info('✅ RegisterForm: Avatar uploaded successfully:', avatarUrl);
-          } catch (avatarError) {
-            logger.warn('⚠️ RegisterForm: Avatar upload failed:', avatarError);
-            // No bloqueamos el registro si falla el avatar
+          // Esperar hasta que la sesión esté disponible (máx 5 intentos x 800 ms)
+          let session = result.data.session;
+          for (let i = 0; i < 5 && !session; i++) {
+            await new Promise(r => setTimeout(r, 800));
+            const { data: s } = await supabase.auth.getSession();
+            session = s?.session ?? null;
+          }
+
+          if (session) {
+            try {
+              await unifiedAvatarUpload(profileImageToUpload, result.data.user.id);
+              logger.info('✅ RegisterForm: Avatar uploaded successfully');
+            } catch (avatarError) {
+              logger.warn('⚠️ RegisterForm: Avatar upload failed:', avatarError);
+              // No bloqueamos el registro por el avatar
+            }
+          } else {
+            logger.warn('⚠️ RegisterForm: Sin sesión activa — avatar se puede subir desde Editar Perfil');
           }
         }
-        
+
         if (onRegisterSuccess) {
-          onRegisterSuccess({ 
-            user: result.data.user
-          });
+          onRegisterSuccess({ user: result.data.user });
         }
       }
     } catch (error: any) {
@@ -543,13 +548,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               )}
             />
 
-            <ProviderResidencesField 
-              residencias={residencias} 
-              isSubmitting={isSubmitting} 
-              loadingResidencias={loadingResidencias} 
-              form={form} 
-            />
-            
             {/* Profile Image Field for Providers */}
             <FormField
               control={form.control}

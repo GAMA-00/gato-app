@@ -83,7 +83,7 @@ const ProviderDashboardTabs: React.FC<ProviderDashboardTabsProps> = ({
         className="mt-4 overflow-y-auto focus-visible:outline-none flex-1"
         style={{ maxHeight: scrollHeight }}
       >
-        <div className="space-y-4 pb-4">
+        <div className="space-y-4 pb-24">
           <AppointmentList
             appointments={activeAppointmentsToday}
             title="Citas de Hoy"

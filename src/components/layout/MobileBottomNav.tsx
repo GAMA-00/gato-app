@@ -31,7 +31,8 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
     { to: '/dashboard', icon: Home, label: 'Inicio' },
     { to: '/calendar', icon: Calendar, label: 'Calendario', counter: pendingAppointmentsCount },
     { to: '/services', icon: Briefcase, label: 'Servicios' },
-    { to: '/achievements', icon: Award, label: 'Logros' }
+    { to: '/achievements', icon: Award, label: 'Logros' },
+    { to: '/profile', icon: User, label: 'Perfil' },
   ];
 
   const clientNavItems: NavItemType[] = [
@@ -71,7 +72,11 @@ const MobileBottomNav = ({ isClientSection }: MobileBottomNavProps) => {
     if (itemPath === '/dashboard') {
       return location.pathname === '/dashboard';
     }
-    
+
+    if (itemPath === '/profile') {
+      return location.pathname === '/profile';
+    }
+
     return location.pathname.startsWith(itemPath);
   };
 

@@ -4,31 +4,49 @@ Esta guía es para **alguien sin experiencia en programación**. Seguí los paso
 copiando y pegando los comandos tal cual. Al final vas a tener la app corriendo en tu
 compu y la vas a abrir en el navegador.
 
-> 💻 Escrita para **Mac**. Si usás Windows, pegale esta guía a tu Claude y pedile que
-> adapte los comandos a Windows.
+> 💻 Escrita para **Mac Apple Silicon (M1/M2/M3/M4)**. Si tenés Mac Intel o Windows,
+> pegale esta guía a tu Claude y pedile que adapte los comandos.
 
 ---
 
-## 🤖 Para tu Claude (leé esto primero, copiá este bloque a tu Claude)
+## 🤖 Para tu Claude (copiá este bloque completo y pegáselo a tu Claude antes de empezar)
 
-> Soy un usuario no técnico. Quiero correr este proyecto (Gato, React+Vite+Supabase) en
-> local en mi Mac. Guiame ejecutando los pasos de `INSTALACION_LOCAL.md` uno por uno,
-> verificando el resultado de cada uno antes de seguir, y resolviendo cualquier error.
-> El proyecto usa un **Supabase local** (Docker) y se enciende con `npm run start:local`.
-> Contexto técnico completo está en `README.md` y `CLAUDE.md`.
+> Soy un usuario no técnico. Quiero correr el proyecto **Gato** (React + Vite + Supabase local)
+> en mi Mac. El repo está en `~/Documents/gato-app` (rama `develop`).
+>
+> **Contexto técnico:**
+> - PWA mobile-first para proveedores de servicio a domicilio en Costa Rica.
+> - Stack: React + Vite + TypeScript + Supabase (Postgres + Auth + Realtime).
+> - Base de datos local con Docker + Supabase CLI (`~/.local/share/supabase/supabase`).
+> - Un solo comando para encender todo: `npm run start:local` (script `start-local.sh`).
+> - El script: verifica Docker, corre `supabase start`, siembra datos demo la primera vez,
+>   crea `.env.local` con la anon key automáticamente, y lanza `npm run dev`.
+> - Docker Desktop está en `/Applications/Docker.app` (instalado sin Homebrew vía DMG).
+>   El binario de Docker está en `/Applications/Docker.app/Contents/Resources/bin/docker`.
+>   El `start-local.sh` ya exporta ese PATH automáticamente.
+> - Supabase CLI versión 2.108.0 en `~/.local/share/supabase/supabase`.
+> - Node v24 ya instalado. Homebrew NO está instalado (y no se necesita).
+> - Cuentas demo: `demo@gato.app` / `cliente@gato.app` — contraseña: `gato1234`.
+> - Booking link de demo: http://localhost:8080/demo
+> - Studio (ver base de datos): http://127.0.0.1:54323
+>
+> Guiame paso a paso, verificá el resultado de cada comando antes de seguir,
+> y resolvé cualquier error. Si algo falla, leé `CLAUDE.md` para más contexto.
 
 ---
 
-## ✅ Qué vas a instalar (solo la primera vez)
+## ✅ Qué necesitás (ya instalado en esta Mac)
 
-1. **Terminal** (ya viene en tu Mac)
-2. **Homebrew** — instalador de programas
-3. **Node.js** — para correr la app
-4. **Docker Desktop** — para la base de datos local
-5. **Supabase CLI** — la herramienta de la base de datos
-6. **El proyecto Gato** (bajarlo de internet)
+| Herramienta | Estado | Ubicación |
+|---|---|---|
+| Terminal | ✅ viene con Mac | Cmd+Espacio → "Terminal" |
+| Node.js v24 | ✅ instalado | `/usr/local/bin/node` |
+| Docker Desktop | ✅ instalado | `/Applications/Docker.app` |
+| Supabase CLI v2.108.0 | ✅ instalado | `~/.local/share/supabase/supabase` |
+| Proyecto Gato (develop) | ✅ clonado | `~/Documents/gato-app` |
 
-Después, encender la app es **un solo comando**.
+> Si llegás a esta guía en una Mac **nueva** donde no está nada instalado, seguí los
+> pasos de instalación más abajo.
 
 ---
 
@@ -42,144 +60,70 @@ Después, encender la app es **un solo comando**.
 
 ---
 
-## Paso 2 — Instalar Homebrew
+## Paso 2 — Abrir Docker Desktop
 
-Pegá esto y dale Enter (te puede pedir tu contraseña de la Mac — escribila, no se ve
-mientras tecleás, es normal):
+Abrí Docker desde la Terminal:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+open /Applications/Docker.app
 ```
 
-Cuando termine, **cerrá y volvé a abrir la Terminal**.
+Esperá a que el ícono de la ballena 🐳 (arriba a la derecha en la barra del sistema)
+deje de moverse (~1 min la primera vez).
 
-✅ **Verificá** (pegá esto, debe mostrar un número de versión):
-```bash
-brew --version
-```
+> ⚠️ **Importante:** Docker debe estar **abierto** siempre que uses la app.
+> Si lo cerrás, la app deja de funcionar.
 
 ---
 
-## Paso 3 — Instalar Node.js
+## Paso 3 — Encender la app (¡el comando mágico!)
 
 ```bash
-brew install node
-```
-
-✅ **Verificá:**
-```bash
-node --version
-```
-Debe mostrar algo como `v20.x` o mayor.
-
----
-
-## Paso 4 — Instalar Docker Desktop
-
-```bash
-brew install --cask docker
-```
-
-Después:
-1. Abrí **Docker** (Cmd+barra → "Docker" → Enter). La primera vez aceptá los permisos.
-2. Esperá a que el ícono de la ballena 🐳 (arriba a la derecha) deje de moverse.
-
-> ⚠️ **Importante:** Docker debe estar **abierto** siempre que uses la app. Si lo cerrás,
-> la app deja de funcionar. Tip: dejalo abierto.
-
----
-
-## Paso 5 — Instalar Supabase CLI
-
-```bash
-mkdir -p "$HOME/.local/share/supabase"
-curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_darwin_arm64.tar.gz | tar -xzf - -C "$HOME/.local/share/supabase"
-```
-
-✅ **Verificá:**
-```bash
-~/.local/share/supabase/supabase --version
-```
-Debe mostrar un número (ej. `2.106.0`).
-
-> Si tu Mac es vieja (con chip Intel, no Apple Silicon), cambiá `arm64` por `amd64` en el
-> comando de arriba.
-
----
-
-## Paso 6 — Bajar el proyecto
-
-Elegí dónde guardarlo (ej. tu carpeta de Documentos) y clonalo:
-
-```bash
-cd ~/Documents
-git clone https://github.com/andreyVarela/gato-app.git
-cd gato-app
-git checkout develop
-```
-
-> `git checkout develop` es importante: el trabajo nuevo vive en la rama **develop**.
-
-✅ **Verificá** (debe listar archivos como `README.md`, `package.json`):
-```bash
-ls
-```
-
----
-
-## Paso 7 — Instalar las dependencias del proyecto (primera vez)
-
-```bash
-npm install --legacy-peer-deps
-```
-
-Tarda 1–2 minutos. Es normal que salgan algunos *warnings* (avisos amarillos); mientras
-no diga **error** en rojo, está bien.
-
----
-
-## Paso 8 — Encender la app (¡el comando mágico!)
-
-Con Docker abierto, pegá:
-
-```bash
+cd ~/Documents/gato-app
 npm run start:local
 ```
 
-Esto hace **todo solo**: verifica Docker, levanta la base de datos local, carga los datos
-de demo la primera vez, configura la conexión, y arranca la app.
+Esto hace **todo solo**:
+1. Verifica que Docker esté corriendo
+2. Levanta la base de datos local (Supabase)
+3. Carga los datos de demo (solo la primera vez, tarda ~3 min)
+4. Crea el archivo de conexión `.env.local` automáticamente
+5. Arranca la app en http://localhost:8080
 
-La primera vez tarda varios minutos (descarga la base de datos). Cuando veas:
+La **primera vez** tarda varios minutos mientras descarga imágenes de Docker.
+Cuando veas:
 
 ```
-➜  Local:   http://localhost:8080/
+  ➜  Local:   http://localhost:8080/
 ```
 
 ¡Ya está corriendo! **Dejá esa ventana de Terminal abierta** (si la cerrás, se apaga).
 
 ---
 
-## Paso 9 — Abrir la app en el navegador
+## Paso 4 — Abrir la app en el navegador
 
 Abrí Chrome o Safari y entrá a:
 
-- **App:** http://localhost:8080
-- **Link de reserva de demo:** http://localhost:8080/demo
-- **Ver la base de datos (opcional):** http://127.0.0.1:54323
+| URL | Qué es |
+|---|---|
+| http://localhost:8080 | La app principal |
+| http://localhost:8080/demo | Booking link público de la proveedora demo |
+| http://127.0.0.1:54323 | Supabase Studio (ver la base de datos) |
 
 ### Cuentas de prueba (contraseña: `gato1234`)
-- Proveedor: `demo@gato.app`
-- Cliente: `cliente@gato.app`
+- **Proveedor demo:** `demo@gato.app`
+- **Cliente demo:** `cliente@gato.app`
 
-> Para verlo como **celular**: en Chrome, clic derecho → "Inspeccionar" → apretá el ícono
-> de teléfono/tablet (o `Cmd`+`Shift`+`M`).
+> Para verlo como **celular**: en Chrome, clic derecho → "Inspeccionar" →
+> apretá el ícono de teléfono/tablet (o `Cmd`+`Shift`+`M`).
 
 ---
 
 ## 🔁 Para volver a usarla otro día
 
-1. Abrí **Docker** y esperá la ballena 🐳.
-2. Abrí la Terminal y pegá:
+1. Abrí Docker: `open /Applications/Docker.app` y esperá la ballena 🐳.
+2. En la Terminal:
    ```bash
    cd ~/Documents/gato-app
    npm run start:local
@@ -187,8 +131,13 @@ Abrí Chrome o Safari y entrá a:
 3. Abrí http://localhost:8080
 
 ## ⏹️ Para apagarla
-- En la ventana de la Terminal donde corre, apretá `Ctrl` + `C`.
-- (La base de datos sigue corriendo en Docker; no pasa nada por dejarla.)
+
+- En la ventana de Terminal donde corre la app, apretá `Ctrl` + `C`.
+- La base de datos (Supabase) sigue corriendo en Docker; no pasa nada por dejarla.
+- Para apagar también Supabase:
+  ```bash
+  ~/.local/share/supabase/supabase stop
+  ```
 
 ---
 
@@ -197,6 +146,7 @@ Abrí Chrome o Safari y entrá a:
 ```bash
 npm test
 ```
+
 Debe terminar con algo como `18 pasaron, 0 fallaron`.
 
 ---
@@ -205,19 +155,75 @@ Debe terminar con algo como `18 pasaron, 0 fallaron`.
 
 | Síntoma | Solución |
 |---|---|
-| Dice **"proveedor no encontrado"** o errores de conexión | Docker se apagó. Abrí Docker, esperá la ballena, y corré `npm run start:local` de nuevo. |
-| **"Cannot connect to the Docker daemon"** | Docker no está abierto. Abrilo y esperá ~1 min. |
-| **"command not found: npm"** | Faltó el Paso 3 (Node). Reinstalá: `brew install node`. |
-| **"command not found: supabase"** | Usá la ruta completa: `~/.local/share/supabase/supabase` (ya está en el script). |
+| **"proveedor no encontrado"** o errores de conexión | Docker se apagó. Abrí Docker (`open /Applications/Docker.app`), esperá la ballena, y corré `npm run start:local` de nuevo. |
+| **"Cannot connect to the Docker daemon"** | Docker no está abierto. Corré `open /Applications/Docker.app` y esperá ~1 min. |
+| **"command not found: npm"** o **"command not found: node"** | Node no está instalado. Seguí el Anexo A abajo. |
+| **"cannot insert multiple commands"** en Supabase | El Supabase CLI está desactualizado. Corré: `curl -sL https://github.com/supabase/cli/releases/download/v2.108.0/supabase_darwin_arm64.tar.gz \| tar -xzf - -C "$HOME/.local/share/supabase"` |
 | El navegador no abre la página | Esperá a ver `Local: http://localhost:8080/` en la Terminal; recién ahí abrí el navegador. |
-| Un puerto está ocupado (8080 o 54321) | Cerrá otras apps/Terminales corriendo lo mismo, o reiniciá la Mac. |
+| Un puerto está ocupado (8080 o 54321) | Cerrá otras Terminales corriendo lo mismo, o reiniciá la Mac. |
+| Supabase tarda mucho en arrancar | Normal la primera vez (descarga ~2GB de imágenes Docker). Esperá con paciencia. |
+| Error al cargar datos demo | Corré manualmente: `~/.local/share/supabase/supabase db reset` y después `npm run start:local` de nuevo. |
 
-Si algo no se resuelve: **copiá el texto del error y pegáselo a tu Claude** junto con esta
-guía — tiene el contexto para ayudarte.
+Si algo no se resuelve: **copiá el texto del error y pegáselo a tu Claude** junto con
+el contenido de `CLAUDE.md` — tiene el contexto completo para ayudarte.
+
+---
+
+## 📦 Anexo A — Instalación desde cero (Mac nueva)
+
+Solo necesitás esto si vas a instalar en una Mac que no tiene nada:
+
+### A1 — Instalar Node.js
+Bajá el instalador desde https://nodejs.org (botón "LTS") e instalalo normalmente.
+
+Verificá:
+```bash
+node --version   # debe mostrar v20 o mayor
+npm --version
+```
+
+### A2 — Instalar Docker Desktop
+
+```bash
+# Bajarlo e instalarlo (sin Homebrew)
+curl -L "https://desktop.docker.com/mac/main/arm64/Docker.dmg" -o /tmp/Docker.dmg
+hdiutil attach /tmp/Docker.dmg -nobrowse -quiet
+cp -R /Volumes/Docker/Docker.app /Applications/
+hdiutil detach /Volumes/Docker -quiet
+open /Applications/Docker.app
+```
+
+Esperá a que la ballena 🐳 deje de moverse (~2 min).
+
+> Si tu Mac tiene chip Intel (no Apple Silicon), cambiá `arm64` por `amd64` en la URL.
+
+### A3 — Instalar Supabase CLI
+
+```bash
+mkdir -p "$HOME/.local/share/supabase"
+curl -sL https://github.com/supabase/cli/releases/download/v2.108.0/supabase_darwin_arm64.tar.gz \
+  | tar -xzf - -C "$HOME/.local/share/supabase"
+```
+
+Verificá:
+```bash
+~/.local/share/supabase/supabase --version   # debe mostrar 2.108.0
+```
+
+### A4 — Clonar el proyecto
+
+```bash
+cd ~/Documents
+git clone -b develop https://github.com/andreyVarela/gato-app.git
+cd gato-app
+npm install --legacy-peer-deps
+```
+
+Después seguí desde el **Paso 2** de esta guía.
 
 ---
 
 ## 📚 Para saber más (opcional)
 - `README.md` — visión técnica del proyecto.
-- `CLAUDE.md` — contexto y reglas para programar.
+- `CLAUDE.md` — contexto y reglas para programar con IA.
 - `docs/CONCEPTO_V1.md` — qué hace el producto y por qué.

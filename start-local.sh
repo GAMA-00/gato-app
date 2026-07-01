@@ -5,10 +5,13 @@ set -e
 cd "$(dirname "$0")"
 SUPABASE="$HOME/.local/share/supabase/supabase"
 
+# Asegurar que el binario de Docker esté en PATH (instalación vía DMG)
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
+
 echo "🔍 1/4 Verificando Docker..."
 if ! docker info >/dev/null 2>&1; then
   echo "   Docker no está corriendo. Lo abro..."
-  open -a Docker 2>/dev/null || true
+  open /Applications/Docker.app 2>/dev/null || open -a Docker 2>/dev/null || true
   echo "   ⏳ Esperando a que Docker arranque (puede tardar ~1 min)..."
   until docker info >/dev/null 2>&1; do sleep 3; done
 fi

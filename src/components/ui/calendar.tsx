@@ -1,9 +1,13 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
+import { es } from "date-fns/locale";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+
+// Abreviaturas de días en convención costarricense: D L K M J V S
+const CR_DAY_LABELS = ["D", "L", "K", "M", "J", "V", "S"];
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -50,6 +54,15 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
+      }}
+      locale={es}
+      formatters={{
+        formatWeekdayName: (day) => CR_DAY_LABELS[day.getDay()],
+        formatCaption: (date, options) => {
+          const month = date.toLocaleString("es-CR", { month: "long" });
+          const year = date.getFullYear();
+          return `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
+        },
       }}
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,

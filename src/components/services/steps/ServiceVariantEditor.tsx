@@ -29,7 +29,7 @@ const ServiceVariantEditor: React.FC<ServiceVariantEditorProps> = ({
   serviceVariants,
   onVariantsChange,
   isPostPayment = false,
-  currency = 'USD'
+  currency = 'CRC'
 }) => {
   const { control } = useFormContext();
   const [expandedVariants, setExpandedVariants] = React.useState<Set<string>>(new Set());

@@ -141,15 +141,13 @@ export const getLocationInfo = (appointment: any) => {
   return fallbackLocation;
 };
 
-// Enhanced contact info function - ONLY return contact for external bookings
+// Returns phone for all appointments (both link and app bookings)
 export const getContactInfo = (appointment: any) => {
-  // For external bookings, prioritize stored contact info
-  if (appointment.is_external || appointment.external_booking) {
-    return appointment.client_phone || appointment.client_email || 'Sin contacto';
-  }
-  
-  // For internal bookings, we DON'T show contact info in dashboard
-  return null;
+  const phone = appointment.client_phone || appointment.client_data?.phone;
+  if (phone) return phone;
+  const email = appointment.client_email || appointment.client_data?.email;
+  if (email) return email;
+  return 'Sin contacto';
 };
 
 // Helper function to get initials for avatar

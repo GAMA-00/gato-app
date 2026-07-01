@@ -48,11 +48,19 @@ const Calendar = () => {
               <span className="text-xs">Disponibilidad</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Administrar disponibilidad</DialogTitle>
+          <DialogContent className="
+            w-full max-w-lg
+            sm:max-w-lg sm:max-h-[85vh] sm:rounded-2xl
+            max-sm:!fixed max-sm:!inset-0 max-sm:!top-0 max-sm:!left-0 max-sm:!translate-x-0 max-sm:!translate-y-0
+            max-sm:!w-screen max-sm:!h-screen max-sm:!max-w-none max-sm:!rounded-none
+            flex flex-col overflow-hidden p-0
+          ">
+            <DialogHeader className="flex-shrink-0 px-5 pt-5 pb-3 border-b">
+              <DialogTitle className="text-base font-semibold">Administrar disponibilidad</DialogTitle>
             </DialogHeader>
-            <AvailabilityManager />
+            <div className="flex-1 overflow-y-auto px-5 py-2">
+              <AvailabilityManager />
+            </div>
           </DialogContent>
         </Dialog>
       ) : undefined}

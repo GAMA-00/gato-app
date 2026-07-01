@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const LocationHeader = () => {
   const { profile, isLoading } = useUserProfile();
 
-  const locationName = profile?.residencia_name || 'Sin ubicación';
+  const locationName = 'Sin ubicación';
 
   if (isLoading) {
     return (

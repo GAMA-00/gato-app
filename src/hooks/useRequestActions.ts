@@ -10,7 +10,7 @@ export const useRequestActions = () => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAccept = async (request: any, onAcceptRequest?: (request: any) => void) => {
+  const handleAccept = async (request: any, onAcceptRequest?: (request: any) => void, teamMemberId?: string) => {
     if (isLoading) return;
     
     if (!user?.id) {
@@ -27,13 +27,16 @@ export const useRequestActions = () => {
       }
 
       // Update appointments status to confirmed with better error handling
-      const { data, error } = await supabase
+      const updatePayload: Record<string, any> = {
+        status: 'confirmed',
+        last_modified_at: new Date().toISOString(),
+        last_modified_by: user.id,
+      };
+      if (teamMemberId) updatePayload.team_member_id = teamMemberId;
+
+      const { data, error } = await (supabase as any)
         .from('appointments')
-        .update({ 
-          status: 'confirmed',
-          last_modified_at: new Date().toISOString(),
-          last_modified_by: user.id
-        })
+        .update(updatePayload)
         .in('id', request.appointment_ids)
         .select('id, status, recurrence, client_name, provider_name');
         

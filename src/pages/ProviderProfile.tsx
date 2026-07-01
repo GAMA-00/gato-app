@@ -102,6 +102,15 @@ const ProviderProfile = () => {
     );
   }
 
+  const providerGallery = useQuery({
+    queryKey: ['provider-gallery', providerId],
+    queryFn: async () => {
+      const { data } = await supabase.from('listings').select('gallery_images').eq('provider_id', providerId!).eq('is_active', true);
+      return (data ?? []).flatMap((l: any) => Array.isArray(l.gallery_images) ? l.gallery_images.filter(Boolean) : []) as string[];
+    },
+    enabled: !!providerId,
+  }).data ?? [];
+
   // Transform provider data to match ProviderProfile interface
   const transformedProvider = {
     id: provider.id,
@@ -110,7 +119,7 @@ const ProviderProfile = () => {
     rating: provider.average_rating || 0,
     ratingCount: 0,
     aboutMe: provider.about_me || '',
-    galleryImages: [],
+    galleryImages: providerGallery,
     experienceYears: provider.experience_years || 0,
     hasCertifications: !!provider.certification_files,
     certificationFiles: Array.isArray(provider.certification_files) 

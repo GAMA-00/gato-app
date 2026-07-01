@@ -29,9 +29,9 @@ const JobRequestsGrouped: React.FC<JobRequestsGroupedProps> = ({
   logger.debug("📋 JobRequestsGrouped: User:", { userId: user?.id, role: user?.role });
   logger.debug("📋 JobRequestsGrouped: Processing state:", { isProcessing });
 
-  const onAccept = (request: any) => {
+  const onAccept = (request: any, teamMemberId?: string) => {
     logger.debug("📋 JobRequestsGrouped: onAccept called with request:", { requestId: request.id });
-    handleAccept(request, onAcceptRequest);
+    handleAccept(request, onAcceptRequest, teamMemberId);
   };
   
   const onDecline = (request: any) => {

@@ -6,9 +6,7 @@ import type { UserProfile } from '@/contexts/auth/types';
 
 
 type UserProfileEx = UserProfile & {
-  condominium_text?: string;
   certification_files?: any[];
-  residencia_name?: string;
 };
 
 export const useUserProfile = () => {
@@ -24,25 +22,17 @@ export const useUserProfile = () => {
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('*, residencias:residencia_id(name)')
+          .select('*')
           .eq('id', user.id)
           .single();
 
         if (error) {
           console.log('useUserProfile: Error fetching profile (non-critical):', error.message);
-          // Return null instead of throwing to make it non-blocking
           return null;
         }
 
         console.log('useUserProfile: Profile fetched successfully');
-        
-        // Extract residencia name from joined data
-        const residenciaName = (data as any)?.residencias?.name || null;
-        
-        return {
-          ...data,
-          residencia_name: residenciaName
-        } as UserProfileEx;
+        return data as UserProfileEx;
       } catch (err) {
         console.log('useUserProfile: Exception fetching profile (non-critical):', err);
         return null;

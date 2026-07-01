@@ -29,7 +29,7 @@ const serviceSchema = z.object({
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   price: z.coerce.number().min(0, 'El precio debe ser mayor a 0'),
   duration: z.coerce.number().min(2, 'La duración debe ser de al menos 2 minutos'),
-  currency: z.enum(['USD', 'CRC']).default('USD'),
+  currency: z.enum(['USD', 'CRC']).default('CRC'),
   isPostPayment: z.union([z.boolean(), z.literal("ambas")]).default(false),
   // slotSize removed - all slots are now standardized to 60 minutes
   serviceVariants: z.array(z.object({
@@ -47,7 +47,7 @@ const serviceSchema = z.object({
     additionalPersonPrice: z.union([z.string(), z.coerce.number()]).optional(),
     maxPersons: z.union([z.string(), z.coerce.number()]).optional()
   })).min(1, 'Debe tener al menos una variante'),
-  residenciaIds: z.array(z.string()).min(1, 'Debe seleccionar al menos una residencia'),
+  residenciaIds: z.array(z.string()).optional().default([]),
   galleryImages: z.array(z.union([z.string(), z.instanceof(File)])).optional().default([]),
   customVariableGroups: z.array(z.any()).optional().default([]),
   useCustomVariables: z.boolean().optional().default(false),
@@ -91,7 +91,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       description: '',
       price: 0,
       duration: 60,
-      currency: 'USD',
+      currency: 'CRC',
       isPostPayment: false,
       // slotSize removed - standardized to 60 minutes
       serviceVariants: [
@@ -246,17 +246,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       return;
     }
     
-    // Validar residenciaIds específicamente
-    if (!data.residenciaIds || data.residenciaIds.length === 0) {
-      console.error('No residencias selected');
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Debe seleccionar al menos una residencia"
-      });
-      return;
-    }
-    
     // Invalidar caches relevantes antes de enviar
     queryClient.invalidateQueries({ queryKey: ['listings'] });
     queryClient.invalidateQueries({ queryKey: ['provider-availability'] });
@@ -308,10 +297,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
         incompleteFields.push('Nombre/precio de variantes');
       }
     }
-    if (!values.residenciaIds || values.residenciaIds.length === 0) {
-      incompleteFields.push('Residencias');
-    }
-    
     return incompleteFields;
   };
 

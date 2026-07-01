@@ -1,20 +1,17 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, Clock, Copy } from 'lucide-react';
-import { formatTo12Hour } from '@/lib/utils';
+import { Trash2, Plus, Loader2 } from 'lucide-react';
 
 const DAYS = [
-  { key: 'monday', label: 'Lunes' },
-  { key: 'tuesday', label: 'Martes' },
+  { key: 'monday',    label: 'Lunes' },
+  { key: 'tuesday',   label: 'Martes' },
   { key: 'wednesday', label: 'Miércoles' },
-  { key: 'thursday', label: 'Jueves' },
-  { key: 'friday', label: 'Viernes' },
-  { key: 'saturday', label: 'Sábado' },
-  { key: 'sunday', label: 'Domingo' }
+  { key: 'thursday',  label: 'Jueves' },
+  { key: 'friday',    label: 'Viernes' },
+  { key: 'saturday',  label: 'Sábado' },
+  { key: 'sunday',    label: 'Domingo' },
 ];
 
 interface TimeSlot {
@@ -35,6 +32,7 @@ interface WeeklyAvailability {
 interface AvailabilityConfigureTabProps {
   availability: WeeklyAvailability;
   updateDayAvailability: (day: string, enabled: boolean) => void;
+  checkingDay?: string | null;
   addTimeSlot: (day: string) => void;
   removeTimeSlot: (day: string, index: number) => void;
   updateTimeSlot: (day: string, index: number, field: 'startTime' | 'endTime', value: string) => void;
@@ -44,118 +42,81 @@ interface AvailabilityConfigureTabProps {
 export const AvailabilityConfigureTab: React.FC<AvailabilityConfigureTabProps> = ({
   availability,
   updateDayAvailability,
+  checkingDay,
   addTimeSlot,
   removeTimeSlot,
   updateTimeSlot,
-  copyDayToOtherDays
+  copyDayToOtherDays,
 }) => {
   return (
-    <div className="space-y-3 pb-4">
-      {DAYS.map(({ key, label }) => (
-        <Card key={key} className="shadow-sm border-border">
-          <CardHeader className="pb-2 px-4 pt-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <CardTitle className="text-base font-medium text-foreground whitespace-nowrap">{label}</CardTitle>
-                {availability[key]?.enabled && availability[key].timeSlots.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const otherDays = DAYS.filter(d => d.key !== key).map(d => d.key);
-                      copyDayToOtherDays(key, otherDays);
-                    }}
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground flex-shrink-0"
-                    title="Copiar a otros días"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+    <div className="divide-y divide-border pb-2">
+      {DAYS.map(({ key, label }) => {
+        const day = availability[key];
+        const enabled = day?.enabled ?? false;
+        const slots = day?.timeSlots ?? [];
+
+        return (
+          <div key={key} className="py-3">
+            {/* Row: toggle + day label + copy */}
+            <div className="flex items-center gap-3">
+              {checkingDay === key ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
+              ) : (
                 <Switch
-                  id={`${key}-enabled`}
-                  checked={availability[key]?.enabled || false}
+                  checked={enabled}
                   onCheckedChange={(checked) => updateDayAvailability(key, checked)}
+                  className="flex-shrink-0"
+                  disabled={checkingDay !== null && checkingDay !== undefined}
                 />
-                <Label htmlFor={`${key}-enabled`} className="text-sm text-muted-foreground whitespace-nowrap">
-                  Disponible
-                </Label>
-              </div>
+              )}
+              <span className={`flex-1 text-sm font-medium ${enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {label}
+              </span>
+              {!enabled && (
+                <span className="text-xs text-muted-foreground">No disponible</span>
+              )}
             </div>
-          </CardHeader>
-          
-          {availability[key]?.enabled && (
-            <CardContent className="pt-0 px-4 pb-4">
-              <div className="space-y-3">
-                {availability[key].timeSlots.map((slot, index) => (
-                  <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`${key}-start-${index}`} className="text-xs text-muted-foreground whitespace-nowrap">
-                          Hora de inicio
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id={`${key}-start-${index}`}
-                            type="time"
-                            value={slot.startTime}
-                            onChange={(e) => updateTimeSlot(key, index, 'startTime', e.target.value)}
-                            className="h-10"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none hidden sm:inline">
-                            {formatTo12Hour(slot.startTime)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`${key}-end-${index}`} className="text-xs text-muted-foreground whitespace-nowrap">
-                          Hora de fin
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id={`${key}-end-${index}`}
-                            type="time"
-                            value={slot.endTime}
-                            onChange={(e) => updateTimeSlot(key, index, 'endTime', e.target.value)}
-                            className="h-10"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none hidden sm:inline">
-                            {formatTo12Hour(slot.endTime)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTimeSlot(key, index)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2 text-xs"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" />
-                        Eliminar
-                      </Button>
-                    </div>
+
+            {/* Time slots */}
+            {enabled && (
+              <div className="mt-2.5 space-y-2 pl-10">
+                {slots.map((slot, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      value={slot.startTime}
+                      onChange={(e) => updateTimeSlot(key, index, 'startTime', e.target.value)}
+                      className="h-9 text-sm flex-1"
+                    />
+                    <span className="text-muted-foreground text-xs flex-shrink-0">—</span>
+                    <Input
+                      type="time"
+                      value={slot.endTime}
+                      onChange={(e) => updateTimeSlot(key, index, 'endTime', e.target.value)}
+                      className="h-9 text-sm flex-1"
+                    />
+                    <button
+                      onClick={() => removeTimeSlot(key, index)}
+                      className="flex-shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Eliminar horario"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 ))}
-                
-                {availability[key].timeSlots.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addTimeSlot(key)}
-                    className="w-full h-10 text-sm border-dashed"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Horario Adicional
-                  </Button>
-                )}
+
+                <button
+                  onClick={() => addTimeSlot(key)}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Agregar horario
+                </button>
               </div>
-            </CardContent>
-          )}
-        </Card>
-      ))}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

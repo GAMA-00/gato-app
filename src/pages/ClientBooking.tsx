@@ -79,32 +79,17 @@ const ClientBooking = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Query to get complete user data from database
+  // Query to get client phone from users table
   const { data: completeUserData, isLoading: isLoadingUserData } = useQuery({
     queryKey: ['complete-user-data', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('users')
-        .select(`
-          house_number,
-          condominium_text,
-          condominium_name,
-          residencia_id,
-          residencias (
-            id,
-            name
-          )
-        `)
+        .select('phone')
         .eq('id', user.id)
         .single();
-
-      if (error) {
-        console.error('Error fetching complete user data:', error);
-        return null;
-      }
-
+      if (error) return null;
       return data;
     },
     enabled: !!user?.id,
@@ -357,16 +342,8 @@ const ClientBooking = () => {
         duration
       });
 
-      // Get client address from complete user data
-      let clientAddress = '';
-      
-      if (completeUserData?.condominium_text && completeUserData?.house_number) {
-        clientAddress = `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`;
-      } else if (user.phone) {
-        clientAddress = `Dirección temporal - Tel: ${user.phone}`;
-      } else {
-        clientAddress = 'Dirección a confirmar por cliente';
-      }
+      const clientPhone = completeUserData?.phone || user.phone || '';
+      const clientAddress = clientPhone ? `Tel: ${clientPhone}` : 'Dirección a confirmar';
 
       // Create new appointment as "once" type
       const { data: newAppointment, error } = await supabase
@@ -382,7 +359,7 @@ const ClientBooking = () => {
           is_recurring_instance: false,
           client_name: user.name,
           client_email: user.email,
-          client_phone: user.phone,
+          client_phone: clientPhone,
           client_address: clientAddress,
           notes: rescheduleData?.originalDate
             ? `Reagendada desde: ${format(rescheduleData.originalDate, 'dd/MM/yyyy')}`
@@ -502,16 +479,8 @@ const ClientBooking = () => {
       const duration = totalDuration > 0 ? totalDuration : selectedVariant.duration;
       endDateTime.setMinutes(endDateTime.getMinutes() + duration);
 
-      // ROBUST USER DATA HANDLING
-      let clientAddress = '';
-
-      if (completeUserData?.condominium_text && completeUserData?.house_number) {
-        clientAddress = `${completeUserData.condominium_text}, Casa ${completeUserData.house_number}`;
-      } else if (user.phone) {
-        clientAddress = `Dirección temporal - Tel: ${user.phone}`;
-      } else {
-        clientAddress = 'Dirección a confirmar por cliente';
-      }
+      const userPhone = completeUserData?.phone || user.phone || '';
+      const clientAddress = userPhone ? `Tel: ${userPhone}` : 'Dirección a confirmar';
 
       // Calculate total price
       const totalPrice = effectiveSelectedVariants.reduce((sum, variant) => {
@@ -530,7 +499,7 @@ const ClientBooking = () => {
         recurrenceType: selectedFrequency,
         notes: notes || 'Reserva creada desde la aplicación',
         clientAddress,
-        clientPhone: user.phone || 'Por confirmar',
+        clientPhone: userPhone || 'Por confirmar',
         clientEmail: user.email || 'Por confirmar',
         customVariableSelections: Object.keys(customVariableSelections).length > 0 ? customVariableSelections : undefined,
         customVariablesTotalPrice: customVariablesTotalPrice,
