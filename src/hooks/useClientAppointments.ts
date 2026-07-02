@@ -29,9 +29,10 @@ export const useClientAppointments = () => {
     queryFn: async (): Promise<ClientAppointment[]> => {
       if (!user?.id) return [];
 
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      // Fetch pending/confirmed future appointments + recently rejected (24h)
+      // Fetch all non-cancelled appointments and filter in JS (PostgREST nested .or() is unreliable)
       const { data, error } = await db
         .from('appointments')
         .select(`
@@ -48,15 +49,21 @@ export const useClientAppointments = () => {
           users!appointments_provider_id_fkey ( id, name, avatar_url )
         `)
         .eq('client_id', user.id)
-        .or(
-          `and(status.in.(pending,confirmed),start_time.gte.${new Date().toISOString()}),` +
-          `and(status.eq.rejected,updated_at.gte.${twentyFourHoursAgo})`
-        )
+        .in('status', ['pending', 'confirmed', 'rejected'])
         .order('start_time', { ascending: true });
 
       if (error) throw error;
 
-      return (data || []).map((row: any) => ({
+      const filtered = (data || []).filter((row: any) => {
+        if (row.status === 'rejected') {
+          const updatedAt = row.updated_at ? new Date(row.updated_at) : null;
+          return updatedAt ? updatedAt > twentyFourHoursAgo : false;
+        }
+        // pending/confirmed: only future
+        return new Date(row.start_time) >= now;
+      });
+
+      return filtered.map((row: any) => ({
         id: row.id,
         status: row.status,
         start_time: row.start_time,
