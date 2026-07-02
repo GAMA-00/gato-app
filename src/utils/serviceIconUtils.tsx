@@ -29,8 +29,13 @@ export const getServiceTypeIcon = (serviceName: string, categoryId: string): Ser
     'other': otherServiceImages,
   };
 
-  const imageMap = categoryImageMaps[categoryId as keyof typeof categoryImageMaps];
-  if (imageMap) {
+  // Search category-specific map first, then fall back to all maps
+  const mapsToSearch = [
+    categoryImageMaps[categoryId as keyof typeof categoryImageMaps],
+    ...Object.values(categoryImageMaps).filter(m => m !== categoryImageMaps[categoryId as keyof typeof categoryImageMaps]),
+  ].filter(Boolean);
+
+  for (const imageMap of mapsToSearch) {
     for (const [key, imagePath] of Object.entries(imageMap)) {
       if (normalizedName.includes(key)) {
         return { type: 'image', src: imagePath };
