@@ -139,6 +139,7 @@ export const fetchUnifiedRecurringAppointments = async (
       recurrence_group_id,
       recurring_rule_id,
       external_booking,
+      updated_at,
       final_price,
       custom_variables_total_price,
       custom_variable_selections,

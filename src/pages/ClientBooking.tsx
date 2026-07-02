@@ -133,15 +133,13 @@ export default function ClientBooking() {
 
       if (rpcError) throw rpcError;
 
-      // Vincular appointment al cliente autenticado
+      // Vincular appointment al cliente autenticado via RPC (bypasa RLS sobre client_id NULL)
       const appointmentId = Array.isArray(rpcData) ? rpcData[0]?.appointment_id : rpcData?.appointment_id;
       if (appointmentId) {
-        await db.from("appointments").update({
-          client_id: user.id,
-          client_email: user.email ?? null,
-          external_booking: false,
-          created_from: "client_app",
-        }).eq("id", appointmentId);
+        const { error: claimError } = await db.rpc("claim_appointment_as_client", {
+          p_appointment_id: appointmentId,
+        });
+        if (claimError) throw claimError;
       }
       setStep("done");
     } catch (e: any) {
