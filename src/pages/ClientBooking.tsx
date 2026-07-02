@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatInTimeZone } from "date-fns-tz";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -46,6 +46,7 @@ export default function ClientBooking() {
   const locationState = useLocation().state || {};
   const { user } = useAuth();
 
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>("datetime");
   const [slot, setSlot] = useState<PublicSlot | null>(null);
   const [notas, setNotas] = useState("");
@@ -114,13 +115,17 @@ export default function ClientBooking() {
         ? applyProximityDiscount(listing.base_price, proximity.settings)
         : listing.base_price;
 
+      // Usar || para fallback de string vacío (no solo null/undefined)
+      const clientPhone = userData?.phone || user.phone || "Sin teléfono";
+      const clientName = user.name || user.email?.split("@")[0] || "Cliente";
+
       const { data: rpcData, error: rpcError } = await db.rpc("create_external_booking", {
         p_provider_id: providerId,
         p_listing_id: listingId,
         p_start_time: slot.slot_datetime_start,
         p_end_time: endTime,
-        p_client_name: user.name ?? user.email ?? "Cliente",
-        p_client_phone: userData?.phone ?? user.phone ?? "Sin teléfono",
+        p_client_name: clientName,
+        p_client_phone: clientPhone,
         p_notes: notas.trim() || null,
         p_client_address: addrParts.join(" · ") || null,
         p_canton_id: cantonId,
@@ -135,12 +140,18 @@ export default function ClientBooking() {
 
       // Vincular appointment al cliente autenticado via RPC (bypasa RLS sobre client_id NULL)
       const appointmentId = Array.isArray(rpcData) ? rpcData[0]?.appointment_id : rpcData?.appointment_id;
-      if (appointmentId) {
-        const { error: claimError } = await db.rpc("claim_appointment_as_client", {
-          p_appointment_id: appointmentId,
-        });
-        if (claimError) throw claimError;
-      }
+      if (!appointmentId) throw new Error("No se recibió ID de cita del servidor");
+
+      const { error: claimError } = await db.rpc("claim_appointment_as_client", {
+        p_appointment_id: appointmentId,
+      });
+      if (claimError) throw claimError;
+
+      // Invalidar cache de reservas para que se muestre el nuevo appointment
+      await queryClient.invalidateQueries({ queryKey: ["unified-recurring-appointments"] });
+      await queryClient.invalidateQueries({ queryKey: ["client-bookings"] });
+
+      toast.success("¡Solicitud enviada!");
       setStep("done");
     } catch (e: any) {
       setSubmitError(e?.message ?? "No se pudo enviar la solicitud");

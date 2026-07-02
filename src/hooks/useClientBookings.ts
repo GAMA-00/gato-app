@@ -127,6 +127,7 @@ export const useClientBookings = () => {
 
   return useQuery({
     queryKey: ['client-bookings', user?.id, unifiedAppointments.length],
+    enabled: !!user?.id && !isLoadingUnified,
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
@@ -405,7 +406,6 @@ const enrichedAppointments = filteredAppointments.map(apt => {
         throw error;
       }
     },
-    enabled: !!user?.id && !isLoadingUnified,
     retry: 3,
     retryDelay: 1000,
   });
