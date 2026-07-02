@@ -16,7 +16,7 @@ export interface ClientAppointment {
   provider_name: string;
   provider_avatar: string | null;
   recurrence: string;
-  updated_at: string | null;
+  last_modified_at: string | null;
 }
 
 export const useClientAppointments = () => {
@@ -32,7 +32,7 @@ export const useClientAppointments = () => {
       const now = new Date();
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      // Step 1: fetch appointments + listing title
+      // Step 1: appointments + listing title (no FK join on users to avoid ambiguity)
       const { data, error } = await db
         .from('appointments')
         .select(`
@@ -44,7 +44,7 @@ export const useClientAppointments = () => {
           listing_id,
           provider_id,
           recurrence,
-          updated_at,
+          last_modified_at,
           listings ( id, title )
         `)
         .eq('client_id', user.id)
@@ -55,13 +55,16 @@ export const useClientAppointments = () => {
 
       const filtered = (data || []).filter((row: any) => {
         if (row.status === 'rejected') {
-          const updatedAt = row.updated_at ? new Date(row.updated_at) : null;
-          return updatedAt ? updatedAt > twentyFourHoursAgo : false;
+          const modifiedAt = row.last_modified_at ? new Date(row.last_modified_at) : null;
+          return modifiedAt ? modifiedAt > twentyFourHoursAgo : false;
         }
+        // pending/confirmed: only future or ongoing
         return new Date(row.start_time) >= now;
       });
 
-      // Step 2: fetch provider names separately to avoid FK ambiguity (client_id + provider_id both → users)
+      if (filtered.length === 0) return [];
+
+      // Step 2: fetch provider names separately (both client_id and provider_id → users causes ambiguity)
       const providerIds = [...new Set(filtered.map((r: any) => r.provider_id).filter(Boolean))];
       const providerMap = new Map<string, { name: string; avatar_url: string | null }>();
       if (providerIds.length > 0) {
@@ -77,14 +80,14 @@ export const useClientAppointments = () => {
         status: row.status,
         start_time: row.start_time,
         end_time: row.end_time,
-        notes: row.notes,
+        notes: row.notes ?? null,
         listing_id: row.listing_id,
         provider_id: row.provider_id,
         listing_title: row.listings?.title ?? 'Servicio',
         provider_name: providerMap.get(row.provider_id)?.name ?? 'Proveedor',
         provider_avatar: providerMap.get(row.provider_id)?.avatar_url ?? null,
         recurrence: row.recurrence ?? 'none',
-        updated_at: row.updated_at ?? null,
+        last_modified_at: row.last_modified_at ?? null,
       }));
     },
   });

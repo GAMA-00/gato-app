@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
-import { useClientAppointments, ClientAppointment } from '@/hooks/useClientAppointments';
+import { useClientAppointments, type ClientAppointment } from '@/hooks/useClientAppointments';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
