@@ -1,231 +1,196 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { useRecurringServices } from '@/hooks/useRecurringServices';
-import { useClientBookings } from '@/hooks/useClientBookings';
-import { useAppointmentCompletion } from '@/hooks/useAppointmentCompletion';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BookingsList } from '@/components/client/booking/BookingsList';
-import PendingInvoicesSection from '@/components/client/PendingInvoicesSection';
+import { Card, CardContent } from '@/components/ui/card';
+import { Clock, RotateCcw, X, Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
-import { useAuth } from '@/contexts/AuthContext';
+import { useClientAppointments, ClientAppointment } from '@/hooks/useClientAppointments';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { logger, bookingLogger } from '@/utils/logger';
+import { toast } from 'sonner';
 
-const ClientBookings = () => {
+const db = supabase as any;
+
+const STATUS_CONFIG = {
+  pending: {
+    label: 'Pendiente de aprobación',
+    className: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+  },
+  confirmed: {
+    label: 'Confirmada',
+    className: 'bg-green-50 text-green-700 border border-green-200',
+  },
+  rejected: {
+    label: 'Rechazada',
+    className: 'bg-red-50 text-red-700 border border-red-200',
+  },
+  cancelled: {
+    label: 'Cancelada',
+    className: 'bg-gray-50 text-gray-600 border border-gray-200',
+  },
+  completed: {
+    label: 'Completada',
+    className: 'bg-blue-50 text-blue-700 border border-blue-200',
+  },
+};
+
+function AppointmentCard({ appt }: { appt: ClientAppointment }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  
-  // Re-enable appointment completion for proper flow
-  useAppointmentCompletion();
-  
-  const { summary: recurringServicesSummary } = useRecurringServices();
-  const { data: bookings, isLoading, error, refetch } = useClientBookings();
-  
-  
-  // El hook ya filtra para mostrar solo la próxima de cada plan recurrente
-  const now = new Date();
-  const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
-  
-  const activeBookings = (bookings || []).filter(booking => {
-    if (booking.status === 'cancelled' || booking.status === 'completed') return false;
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [cancelling, setCancelling] = React.useState(false);
 
-    // Rechazadas: mostrar 24h para que el cliente las vea
-    if (booking.status === 'rejected') return true;
+  const statusCfg = STATUS_CONFIG[appt.status] ?? STATUS_CONFIG.pending;
+  const isActionable = appt.status === 'pending' || appt.status === 'confirmed';
 
-    // Solo citas FUTURAS pendientes o confirmadas
-    const isFuture = booking.date > now;
-    return (booking.status === 'pending' || booking.status === 'confirmed') && isFuture;
-  }) || [];
-  
-
-  // Obtener todas las citas completadas pendientes de calificar
-  const allCompletedBookings = bookings?.filter(booking => 
-    booking.status === 'completed' && !booking.isRated
-  ) || [];
-
-  // Auto-calificar servicios completados hace más de 4 días con 5 estrellas
-  React.useEffect(() => {
-    const autoRateOldServices = async () => {
-      const fourDaysAgo = new Date();
-      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-      
-      // Filtrar servicios completados hace más de 4 días
-      const oldServices = allCompletedBookings.filter(booking => {
-        return booking.date <= fourDaysAgo;
-      });
-      
-      if (oldServices.length > 0) {
-        bookingLogger.info(`Auto-calificando ${oldServices.length} servicios completados hace más de 4 días con 5 estrellas`);
-        
-        try {
-          // Auto-calificar cada servicio antiguo con 5 estrellas
-          for (const booking of oldServices) {
-            const { error } = await supabase
-              .rpc('submit_provider_rating', {
-                p_provider_id: booking.providerId,
-                p_client_id: user?.id,
-                p_appointment_id: booking.id,
-                p_rating: 5,
-                p_comment: null
-              });
-              
-            if (error) {
-              // Solo loggear el error si no es un conflicto de duplicado
-              if (!error.message.includes('duplicate') && !error.message.includes('unique')) {
-                logger.error(`Error auto-calificando servicio ${booking.id}:`, error);
-              }
-            } else {
-              logger.rating(`Auto-calificado: ${booking.serviceName} con 5 estrellas (completado hace más de 4 días)`);
-            }
-          }
-          
-          // Refrescar la lista después de auto-calificar
-          if (oldServices.length > 0) {
-            handleRated();
-          }
-        } catch (error) {
-          logger.error('Error en auto-calificación:', error);
-        }
-      }
-    };
-
-    if (user?.id && allCompletedBookings.length > 0) {
-      autoRateOldServices();
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      const { error } = await db
+        .from('appointments')
+        .update({ status: 'cancelled', cancellation_time: new Date().toISOString() })
+        .eq('id', appt.id);
+      if (error) throw error;
+      toast.success('Cita cancelada');
+      queryClient.invalidateQueries({ queryKey: ['client-appointments-direct'] });
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Error al cancelar');
+    } finally {
+      setCancelling(false);
+      setShowCancelDialog(false);
     }
-  }, [allCompletedBookings.length, user?.id]);
-
-  // Mostrar servicios completados que están dentro del período de 4 días para calificar
-  const fourDaysAgo = new Date();
-  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-  
-  // Filtrar tarjetas descartadas desde localStorage
-  const dismissedRatings = JSON.parse(localStorage.getItem('dismissedRatings') || '[]');
-  
-  const completedBookings = allCompletedBookings.filter(booking => 
-    booking.date > fourDaysAgo && // Solo mostrar servicios completados en los últimos 4 días
-    !dismissedRatings.includes(booking.id) // Excluir tarjetas descartadas
-  );
-
-  // Separar citas post-pago pendientes de factura vs listas para calificar
-  const pendingInvoiceBookings = completedBookings.filter(booking => 
-    booking.isPostPayment && !booking.canRate
-  );
-  
-  const readyToRateBookings = completedBookings.filter(booking => booking.canRate);
-  
-  // Separar citas recurrentes y únicas para mejor organización
-  const activeRecurring = activeBookings.filter(booking => 
-    booking.recurrence && validRecurrences.has(booking.recurrence)
-  );
-  
-  const activeSingle = activeBookings.filter(booking => 
-    !booking.recurrence || !validRecurrences.has(booking.recurrence)
-  );
-  
-  const handleRated = () => {
-    queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-    queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
   };
 
-  const handleRetry = () => {
-    refetch();
-  };
-
-  // Crear subtítulo dinámico basado en las citas activas
-  const getSubtitle = () => {
-    const totalActive = activeBookings.length;
-    if (totalActive === 0) {
-      return 'No hay citas activas';
-    }
-    
-    const parts = [] as string[];
-    if (activeRecurring.length > 0) {
-      parts.push(`${activeRecurring.length} servicio${activeRecurring.length > 1 ? 's' : ''} recurrente${activeRecurring.length > 1 ? 's' : ''}`);
-    }
-    if (activeSingle.length > 0) {
-      parts.push(`${activeSingle.length} cita${activeSingle.length > 1 ? 's' : ''} única${activeSingle.length > 1 ? 's' : ''}`);
-    }
-    
-    return parts.join(' • ');
+  const handleReschedule = () => {
+    navigate(`/client/booking/${appt.listing_id}`, {
+      state: { rescheduleFromAppointmentId: appt.id },
+    });
   };
 
   return (
-    <ClientPageLayout 
-      title="Mis Reservas"
-      subtitle={
-        <span className={activeBookings.length > 0 ? "text-blue-600 font-medium" : ""}>
-          {getSubtitle()}
-        </span>
-      }
-    >
-      {error && (
-        <Alert className="mb-6">
-          <AlertDescription className="space-y-4">
-            <div>
-              <h4 className="font-medium text-red-800">Error al cargar las reservas</h4>
-              <p className="text-red-600 mt-1">
-                Ha ocurrido un error al cargar tus reservas. Por favor, intenta nuevamente.
-              </p>
-            </div>
-            <Button 
-              onClick={handleRetry}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Reintentar
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <div className="space-y-8 px-1 md:px-2 lg:px-4 xl:px-6">
-        {/* Facturas Pendientes de Post-Pago */}
-        {pendingInvoiceBookings.length > 0 && (
-          <section>
-            <PendingInvoicesSection />
-          </section>
+    <Card className="rounded-2xl border shadow-sm overflow-hidden">
+      <CardContent className="p-4 space-y-3">
+        {/* Header: título + badge estado */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-semibold text-base leading-tight truncate">{appt.listing_title}</p>
+            <p className="text-sm text-muted-foreground truncate">{appt.provider_name}</p>
+          </div>
+          <span className={cn('px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap shrink-0', statusCfg.className)}>
+            {statusCfg.label}
+          </span>
+        </div>
+
+        {/* Fecha y hora */}
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <Clock className="h-4 w-4 text-primary shrink-0" />
+          <span>
+            {format(new Date(appt.start_time), "EEEE d 'de' MMMM", { locale: es })}
+            {' · '}
+            {format(new Date(appt.start_time), 'h:mm a')}
+            {' – '}
+            {format(new Date(appt.end_time), 'h:mm a')}
+          </span>
+        </div>
+
+        {/* Mensaje rechazada */}
+        {appt.status === 'rejected' && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+            El proveedor rechazó esta solicitud. Podés explorar otros horarios disponibles.
+          </div>
         )}
 
-        {/* Citas Recurrentes Activas */}
-        {activeRecurring.length > 0 && (
-          <section>
-            <BookingsList
-              bookings={activeRecurring}
-              isLoading={isLoading}
-              onRated={handleRated}
-              emptyMessage="No hay servicios recurrentes activos"
-            />
-          </section>
+        {/* Botones acción */}
+        {isActionable && (
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-primary border-primary/40 hover:bg-primary/5 gap-1.5"
+              onClick={handleReschedule}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reagendar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-red-600 border-red-200 hover:bg-red-50 gap-1.5"
+              onClick={() => setShowCancelDialog(true)}
+              disabled={cancelling}
+            >
+              <X className="h-3.5 w-3.5" />
+              Cancelar
+            </Button>
+          </div>
         )}
-        
-        {/* Citas Únicas Activas */}
-        {activeSingle.length > 0 && (
-          <section>
-            <h2 className="text-lg font-medium mb-4">
-              {activeRecurring.length > 0 ? 'Citas Únicas' : 'Próximas Citas'}
-              <span className="text-sm text-muted-foreground ml-2">
-                ({activeSingle.length} próxima{activeSingle.length > 1 ? 's' : ''})
-              </span>
-            </h2>
-            <BookingsList
-              bookings={activeSingle}
-              isLoading={isLoading}
-              onRated={handleRated}
-              emptyMessage={activeRecurring.length > 0 ? "No hay citas únicas próximas" : "No hay citas próximas"}
-            />
-          </section>
+      </CardContent>
+
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar esta cita?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La cita de {appt.listing_title} del{' '}
+              {format(new Date(appt.start_time), "d 'de' MMMM", { locale: es })} será cancelada permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+              Sí, cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
+
+const ClientBookings = () => {
+  const navigate = useNavigate();
+  const { data: appointments = [], isLoading, error } = useClientAppointments();
+
+  return (
+    <ClientPageLayout
+      title="Mis Reservas"
+      subtitle={
+        appointments.length > 0
+          ? `${appointments.length} cita${appointments.length > 1 ? 's' : ''} activa${appointments.length > 1 ? 's' : ''}`
+          : 'No hay citas activas'
+      }
+    >
+      <div className="px-1 space-y-3">
+        {isLoading && (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
         )}
-        
-        {/* Mostrar mensaje si no hay citas activas */}
-        {activeBookings.length === 0 && !isLoading && (
+
+        {!isLoading && error && (
+          <div className="text-center py-8">
+            <p className="text-sm text-destructive mb-3">Error al cargar tus citas</p>
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              Reintentar
+            </Button>
+          </div>
+        )}
+
+        {!isLoading && !error && appointments.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg mb-4">No tienes citas activas</p>
             <Button onClick={() => navigate('/client/services')}>
@@ -233,24 +198,10 @@ const ClientBookings = () => {
             </Button>
           </div>
         )}
-        
-        {/* Todas las Citas Completadas para Calificar */}
-        {completedBookings.length > 0 && (
-          <section>
-            <h2 className="text-lg font-medium mb-4">
-              Calificar Servicios
-              <span className="text-sm text-muted-foreground ml-2">
-                ({completedBookings.length} servicio{completedBookings.length > 1 ? 's' : ''} para calificar)
-              </span>
-            </h2>
-            <BookingsList
-              bookings={completedBookings}
-              isLoading={isLoading}
-              onRated={handleRated}
-              emptyMessage="No hay servicios completados para calificar"
-            />
-          </section>
-        )}
+
+        {!isLoading && appointments.map((appt) => (
+          <AppointmentCard key={appt.id} appt={appt} />
+        ))}
       </div>
     </ClientPageLayout>
   );

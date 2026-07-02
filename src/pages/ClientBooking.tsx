@@ -148,8 +148,7 @@ export default function ClientBooking() {
       if (claimError) throw claimError;
 
       // Invalidar cache de reservas para que se muestre el nuevo appointment
-      await queryClient.invalidateQueries({ queryKey: ["unified-recurring-appointments"] });
-      await queryClient.invalidateQueries({ queryKey: ["client-bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["client-appointments-direct"] });
 
       toast.success("¡Solicitud enviada!");
       setStep("done");
