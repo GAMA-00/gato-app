@@ -27,32 +27,22 @@ const ClientBookings = () => {
   const { summary: recurringServicesSummary } = useRecurringServices();
   const { data: bookings, isLoading, error, refetch } = useClientBookings();
   
-  bookingLogger.info('=== CLIENT BOOKINGS PAGE ===');
-  bookingLogger.dataProcessing(`Total bookings received: ${bookings?.length || 0}`);
-  bookingLogger.debug('Recurring services summary:', recurringServicesSummary);
   
   // El hook ya filtra para mostrar solo la próxima de cada plan recurrente
   const now = new Date();
   const validRecurrences = new Set(['daily','weekly','biweekly','triweekly','monthly']);
   
   const activeBookings = (bookings || []).filter(booking => {
-    // Excluir citas canceladas, rechazadas o completadas
-    if (['cancelled', 'rejected', 'completed'].includes(booking.status)) {
-      return false;
-    }
-    
-    // Solo mostrar citas FUTURAS (pendientes o confirmadas)
+    if (booking.status === 'cancelled' || booking.status === 'completed') return false;
+
+    // Rechazadas: mostrar 24h para que el cliente las vea
+    if (booking.status === 'rejected') return true;
+
+    // Solo citas FUTURAS pendientes o confirmadas
     const isFuture = booking.date > now;
-    const isActiveStatus = booking.status === 'pending' || booking.status === 'confirmed';
-    
-    if (!isFuture) {
-      logger.debug(`Filtered out past appointment: ${booking.serviceName} - ${booking.date.toLocaleString()}`);
-    }
-    
-    return isActiveStatus && isFuture;
+    return (booking.status === 'pending' || booking.status === 'confirmed') && isFuture;
   }) || [];
   
-  bookingLogger.info(`Showing ${activeBookings.length} future appointments only`);
 
   // Obtener todas las citas completadas pendientes de calificar
   const allCompletedBookings = bookings?.filter(booking => 

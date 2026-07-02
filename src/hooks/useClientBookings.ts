@@ -311,8 +311,17 @@ const enrichedAppointments = filteredAppointments.map(apt => {
         bookingLogger.info(`Enriquecimiento completado: ${enrichedAppointments.filter(a => a.original_appointment_id).length} appointments con original_appointment_id`);
 
         // FILTER: Show only next occurrence of each recurring plan
+        // Include rejected appointments from last 24h so client can see them briefly
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const filteredForDisplay = getNextRecurringOccurrence(
-          enrichedAppointments.filter(a => !['cancelled', 'rejected'].includes(a.status))
+          enrichedAppointments.filter(a => {
+            if (a.status === 'cancelled') return false;
+            if (a.status === 'rejected') {
+              const updatedAt = a.updated_at ? new Date(a.updated_at) : null;
+              return updatedAt ? updatedAt > twentyFourHoursAgo : false;
+            }
+            return true;
+          })
         );
         
         bookingLogger.info(`📋 Appointments after filtering next occurrences: ${filteredForDisplay.length} (from ${filteredAppointments.length} total)`);

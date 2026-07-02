@@ -81,11 +81,11 @@ const RecommendedServiceCard = ({ listing, className }: RecommendedServiceCardPr
       
       {/* Info */}
       <div className="space-y-0.5">
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="text-sm font-semibold text-foreground truncate">
           {providerName}
         </p>
-        <p className="text-sm font-medium text-foreground truncate">
-          {listing.title}
+        <p className="text-xs text-muted-foreground truncate">
+          {listing.service_type?.name || listing.title}
         </p>
         <div className="flex items-center gap-1">
           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />

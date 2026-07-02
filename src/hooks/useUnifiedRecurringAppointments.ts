@@ -45,6 +45,7 @@ export interface UnifiedAppointment {
   service_title?: string;
   rescheduled_style?: string;
   reschedule_notes?: string;
+  updated_at?: string;
 }
 
 interface UseUnifiedRecurringAppointmentsOptions {
