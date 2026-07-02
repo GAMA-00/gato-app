@@ -180,7 +180,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             canton_base_id: cantonId,
             house_number: addr.casa || null,
             address: addr.residencial || null,
-            address_detail: addr.referencias ? { referencias: addr.referencias } : null,
           }).eq('id', result.data.user.id);
         }
 
