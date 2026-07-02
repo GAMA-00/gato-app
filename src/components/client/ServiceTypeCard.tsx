@@ -54,7 +54,7 @@ const ServiceTypeCard = ({ serviceType, categoryId, categoryLabel, hasProviders 
       )}
       
       <div className="flex flex-col items-center text-center space-y-3">
-        <div className="w-24 h-24 bg-luxury-navy rounded-full flex items-center justify-center">
+        <div className="w-24 h-24 bg-slate-700 rounded-full flex items-center justify-center">
           {serviceIcon.type === 'image' ? (
             <img 
               src={serviceIcon.src} 
