@@ -220,34 +220,12 @@ export const useClientBookings = () => {
         // v1: sin facturas post-pago (sin pagos). Set vacío.
         const approvedInvoices: Set<string> = new Set();
 
-        // *** PUNTO CRÍTICO: Obtener datos COMPLETOS del usuario ***
-        locationLogger.info('=== OBTENIENDO DATOS COMPLETOS DE UBICACIÓN DEL USUARIO ===');
-        const { data: userData, error: userError } = await supabase
+        // Obtener datos de ubicación del usuario (schema v1: canton_base_id, address, house_number)
+        const { data: userData } = await supabase
           .from('users')
-          .select(`
-            house_number,
-            condominium_text,
-            condominium_name,
-            residencia_id,
-            residencias (
-              id,
-              name
-            )
-          `)
+          .select('house_number, address, address_detail')
           .eq('id', user.id)
           .single();
-
-        if (userError) {
-          logger.error('Error obteniendo datos del usuario:', userError);
-        }
-
-        locationLogger.debug('=== DATOS COMPLETOS DEL USUARIO ===');
-        locationLogger.debug('Objeto completo userData:', JSON.stringify(userData, null, 2));
-        locationLogger.debug('Nombre residencia:', userData?.residencias?.name);
-        locationLogger.debug('Texto condominio (PRINCIPAL):', userData?.condominium_text);
-        locationLogger.debug('Nombre condominio (RESPALDO):', userData?.condominium_name);
-        locationLogger.debug('Número de casa:', userData?.house_number);
-        locationLogger.debug('=== FIN DATOS USUARIO ===');
 
         // ENRICH: Add original_appointment_id to materialized instances
         bookingLogger.info('=== ENRIQUECIENDO INSTANCIAS MATERIALIZADAS ===');

@@ -75,13 +75,8 @@ export const fetchClientsData = async (clientIds: string[]) => {
       phone,
       email,
       house_number,
-      condominium_text,
-      condominium_name,
-      residencia_id,
-      residencias(
-        id,
-        name
-      )
+      address,
+      address_detail
     `)
     .in('id', clientIds);
 

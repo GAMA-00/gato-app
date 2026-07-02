@@ -193,7 +193,7 @@ const ClientBookings = () => {
         {!isLoading && !error && appointments.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg mb-4">No tienes citas activas</p>
-            <Button onClick={() => navigate('/client/services')}>
+            <Button onClick={() => navigate('/client/categories')}>
               Explorar servicios
             </Button>
           </div>
