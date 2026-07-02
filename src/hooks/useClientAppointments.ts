@@ -32,7 +32,7 @@ export const useClientAppointments = () => {
       const now = new Date();
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      // Fetch all non-cancelled appointments and filter in JS (PostgREST nested .or() is unreliable)
+      // Step 1: fetch appointments + listing title
       const { data, error } = await db
         .from('appointments')
         .select(`
@@ -45,8 +45,7 @@ export const useClientAppointments = () => {
           provider_id,
           recurrence,
           updated_at,
-          listings ( id, title ),
-          users!appointments_provider_id_fkey ( id, name, avatar_url )
+          listings ( id, title )
         `)
         .eq('client_id', user.id)
         .in('status', ['pending', 'confirmed', 'rejected'])
@@ -59,9 +58,19 @@ export const useClientAppointments = () => {
           const updatedAt = row.updated_at ? new Date(row.updated_at) : null;
           return updatedAt ? updatedAt > twentyFourHoursAgo : false;
         }
-        // pending/confirmed: only future
         return new Date(row.start_time) >= now;
       });
+
+      // Step 2: fetch provider names separately to avoid FK ambiguity (client_id + provider_id both → users)
+      const providerIds = [...new Set(filtered.map((r: any) => r.provider_id).filter(Boolean))];
+      const providerMap = new Map<string, { name: string; avatar_url: string | null }>();
+      if (providerIds.length > 0) {
+        const { data: providers } = await db
+          .from('users')
+          .select('id, name, avatar_url')
+          .in('id', providerIds);
+        (providers || []).forEach((p: any) => providerMap.set(p.id, p));
+      }
 
       return filtered.map((row: any) => ({
         id: row.id,
@@ -72,8 +81,8 @@ export const useClientAppointments = () => {
         listing_id: row.listing_id,
         provider_id: row.provider_id,
         listing_title: row.listings?.title ?? 'Servicio',
-        provider_name: row.users?.name ?? 'Proveedor',
-        provider_avatar: row.users?.avatar_url ?? null,
+        provider_name: providerMap.get(row.provider_id)?.name ?? 'Proveedor',
+        provider_avatar: providerMap.get(row.provider_id)?.avatar_url ?? null,
         recurrence: row.recurrence ?? 'none',
         updated_at: row.updated_at ?? null,
       }));
