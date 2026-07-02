@@ -45,16 +45,16 @@ const ProviderStatsCards: React.FC<ProviderStatsCardsProps> = ({ stats, isLoadin
   return (
     <div className="grid grid-cols-3 gap-3">
       <StatCard
+        icon={<Star className="h-5 w-5" />}
+        label="Semana"
+        value={stats?.weekAppointments ?? 0}
+        sublabel="Citas"
+      />
+      <StatCard
         icon={<Calendar className="h-5 w-5" />}
         label="Este mes"
         value={stats?.monthAppointments ?? 0}
         sublabel="Citas"
-      />
-      <StatCard
-        icon={<Users className="h-5 w-5" />}
-        label="Recurrentes"
-        value={stats?.activeClients ?? 0}
-        sublabel="Clientes"
       />
       <StatCard
         icon={<DollarSign className="h-5 w-5" />}
@@ -69,16 +69,16 @@ const ProviderStatsCards: React.FC<ProviderStatsCardsProps> = ({ stats, isLoadin
         sublabel="Este mes"
       />
       <StatCard
+        icon={<Users className="h-5 w-5" />}
+        label="Recurrentes"
+        value={stats?.activeClients ?? 0}
+        sublabel="Clientes"
+      />
+      <StatCard
         icon={<Car className="h-5 w-5" />}
         label="Traslados"
         value={`${insights?.travelTimeHoursThisWeek ?? 0}h`}
         sublabel="Esta semana"
-      />
-      <StatCard
-        icon={<Star className="h-5 w-5" />}
-        label="Semana"
-        value={stats?.weekAppointments ?? 0}
-        sublabel="Citas"
       />
     </div>
   );

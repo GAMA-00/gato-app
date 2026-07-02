@@ -25,7 +25,7 @@ interface RequestCardProps {
 
 const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline, isLoading = false }) => {
   const isGroup = request.appointment_count > 1;
-  const { serviceName, details } = getServiceSummary(request);
+  const { serviceName, details, servicesPart } = getServiceSummary(request);
   const { user } = useAuth();
   const { data: teamMembers = [] } = useProviderTeamMembers(user?.id);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
@@ -102,12 +102,17 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onAccept, onDecline,
           )}
         </div>
 
-        {details && (
-          <div className="flex items-center gap-1.5 mt-2">
-            <DollarSign className="h-4 w-4 flex-shrink-0" style={{ color: '#059669' }} />
-            <span style={{ color: '#4B5563' }}>{details}</span>
+        <div className="flex items-start gap-1.5 mt-2">
+          <DollarSign className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: '#059669' }} />
+          <div className="flex flex-col leading-snug">
+            {servicesPart && (
+              <span className="font-semibold text-sm" style={{ color: '#111827' }}>{servicesPart}</span>
+            )}
+            {details && (
+              <span className="text-sm" style={{ color: '#4B5563' }}>{details}</span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Ubicación */}

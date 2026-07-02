@@ -59,9 +59,16 @@ const ClientCategoryDetails = () => {
         .from('service_types')
         .select('*')
         .eq('category_id', categoryData.id);
-        
+
       if (error) throw error;
-      return data || [];
+
+      // Deduplicate by name — keep the first occurrence of each unique name
+      const seen = new Set<string>();
+      return (data || []).filter((st: any) => {
+        if (seen.has(st.name)) return false;
+        seen.add(st.name);
+        return true;
+      });
     },
     enabled: !!categoryData?.id,
   });

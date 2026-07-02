@@ -10,6 +10,7 @@ export const homeServiceImages: Record<string, string> = {
   'chef': '/lovable-uploads/56fd025e-2847-4d55-af93-1b8c7391277d.png',
   'lavacar': '/lovable-uploads/9725d7d0-8825-4cdd-96ca-dd76cd913e71.png',
   'lava car': '/lovable-uploads/9725d7d0-8825-4cdd-96ca-dd76cd913e71.png',
+  'flores': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
   'floristeria': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
   'florist': '/lovable-uploads/d2f1be13-bd9d-4ee1-a1d3-46cc63343a5b.png',
   'hidrolavado': '/lovable-uploads/3d7ab3fa-e79d-4691-bde6-6838ac3c8055.png',

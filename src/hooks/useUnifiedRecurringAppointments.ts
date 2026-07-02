@@ -323,7 +323,7 @@ export const useUnifiedRecurringAppointments = ({
       return filteredUnified;
     },
     enabled: !!userId && !!userRole,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0,
     retry: 2,
   });
 };

@@ -37,6 +37,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   onReject
 }) => {
   const displayName = getDisplayName(appointment, user);
+  const teamMemberName = appointment.provider_team_members?.name ?? null;
   const serviceName = getServiceName(appointment);
   const contactInfo = getContactInfo(appointment);
   const locationInfo = getLocationInfo(appointment);
@@ -66,13 +67,22 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         {/* Main content */}
         <div className="min-w-0 flex-1">
           <h4 className="font-semibold text-sm truncate leading-tight">{displayName}</h4>
-          <p className="text-xs text-muted-foreground truncate">{serviceName}</p>
-          <p className="text-xs text-primary font-medium truncate">{serviceDetails}</p>
+          {teamMemberName && (
+            <p className="text-xs text-muted-foreground truncate">{teamMemberName}</p>
+          )}
+          {serviceDetails.includes('||') ? (
+            <>
+              <p className="text-base text-primary font-bold truncate leading-tight">{serviceDetails.split('||')[0]}</p>
+              <p className="text-sm text-primary/80 font-medium truncate">{serviceDetails.split('||')[1]}</p>
+            </>
+          ) : (
+            <p className="text-base text-primary font-bold truncate">{serviceDetails}</p>
+          )}
 
           {/* Bottom row: time (left) + action icons (right) */}
-          <div className="flex items-center justify-between gap-2 mt-1.5">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-              <Clock className="h-3 w-3 text-primary shrink-0" />
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
               <span className="whitespace-nowrap">
                 {format(new Date(appointment.start_time), 'h:mm a')}
                 {' – '}

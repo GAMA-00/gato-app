@@ -61,6 +61,20 @@ export function usePublicSlots(
   });
 }
 
+/** Filtra solo los slots que tienen N slots consecutivos de 30 min necesarios. */
+export function filterConsecutiveSlots(slots: PublicSlot[], totalDurationMin: number): PublicSlot[] {
+  const slotsNeeded = Math.max(1, Math.ceil(totalDurationMin / 30));
+  if (slotsNeeded <= 1) return slots;
+  const startEpochs = new Set(slots.map((s) => new Date(s.slot_datetime_start).getTime()));
+  return slots.filter((startSlot) => {
+    const startMs = new Date(startSlot.slot_datetime_start).getTime();
+    for (let i = 1; i < slotsNeeded; i++) {
+      if (!startEpochs.has(startMs + i * 30 * 60 * 1000)) return false;
+    }
+    return true;
+  });
+}
+
 /** Agrupa slots por día (YYYY-MM-DD) para el calendario. */
 export function groupSlotsByDay(slots: PublicSlot[]): Record<string, PublicSlot[]> {
   return slots.reduce((acc, slot) => {

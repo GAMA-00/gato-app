@@ -60,25 +60,16 @@ export const useRequestActions = () => {
         throw new Error("No se pudieron actualizar las citas. Verifica que existan.");
       }
 
-      // ✅ NUEVO: Capturar pagos prepago inmediatamente cuando proveedor acepta
-      console.log('💰 Capturando pagos prepago para citas aceptadas...');
       try {
-        const { data: captureResult, error: captureError } = await supabase.functions.invoke(
+        const { error: captureError } = await supabase.functions.invoke(
           'onvopay-capture-on-provider-accept',
-          {
-            body: { appointmentIds: request.appointment_ids }
-          }
+          { body: { appointmentIds: request.appointment_ids } }
         );
-
         if (captureError) {
-          console.error('⚠️ Error capturando pagos (no crítico - puede ser postpago):', captureError);
-          // NO bloquear el flujo, solo loguear
-        } else {
-          console.log('✅ Resultado de capturas prepago:', captureResult);
+          console.error('Error capturando pagos prepago:', captureError);
         }
       } catch (captureError) {
-        console.error('⚠️ Exception capturando pagos (no crítico):', captureError);
-        // Continuar flujo normal - algunos pagos pueden ser postpago
+        console.error('Exception capturando pagos prepago:', captureError);
       }
 
       const isGroup = request.appointment_count > 1;
@@ -88,12 +79,14 @@ export const useRequestActions = () => {
       
       toast.success(successMessage);
       
-      // Invalidate queries to refresh the UI
+      // Invalidar todas las queries relevantes para actualización inmediata
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-recurring-system'] }),
         queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['pending-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['agenda-week'] }),
       ]);
       
       // Call callback if provided
@@ -163,7 +156,6 @@ export const useRequestActions = () => {
       try {
         const slotsToBlock = extractRejectedSlotData(appointmentDetails);
         await blockRejectedSlots(slotsToBlock);
-        console.log(`🚫 Blocked slots for ${slotsToBlock.length} rejected appointments`);
       } catch (slotError) {
         console.error("Error blocking rejected slots:", slotError);
         // Don't fail the entire operation if slot blocking fails
@@ -177,14 +169,15 @@ export const useRequestActions = () => {
       
       toast.success(successMessage);
       
-      // Invalidate queries to refresh the UI including time slots
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] }),
         queryClient.invalidateQueries({ queryKey: ['calendar-recurring-system'] }),
         queryClient.invalidateQueries({ queryKey: ['grouped-pending-requests'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-requests'] }),
         queryClient.invalidateQueries({ queryKey: ['weekly-slots'] }),
-        queryClient.invalidateQueries({ queryKey: ['provider-time-slots'] })
+        queryClient.invalidateQueries({ queryKey: ['provider-time-slots'] }),
+        queryClient.invalidateQueries({ queryKey: ['agenda-week'] }),
       ]);
       
       if (onDeclineRequest) {

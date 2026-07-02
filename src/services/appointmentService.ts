@@ -142,6 +142,11 @@ export const fetchUnifiedRecurringAppointments = async (
       final_price,
       custom_variables_total_price,
       custom_variable_selections,
+      team_member_id,
+      provider_team_members (
+        id,
+        name
+      ),
       listings (
         id,
         title,

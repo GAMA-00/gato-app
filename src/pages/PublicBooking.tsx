@@ -15,12 +15,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CantonSelector } from "@/components/geo/CantonSelector";
+import LocationMap from "@/components/geo/LocationMap";
 import {
   usePublicProvider,
   usePublicListings,
   type PublicListing,
 } from "@/hooks/usePublicProvider";
-import { usePublicSlots, groupSlotsByDay, type PublicSlot } from "@/hooks/usePublicSlots";
+import { usePublicSlots, groupSlotsByDay, filterConsecutiveSlots, type PublicSlot } from "@/hooks/usePublicSlots";
 import {
   usePublicProximity,
   applyProximityDiscount,
@@ -46,6 +47,7 @@ export default function PublicBooking() {
   const [step, setStep] = useState<Step>("profile");
   const [cantonId, setCantonId] = useState<number | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationMode, setLocationMode] = useState<"gps" | "map" | null>(null);
   const [addr, setAddr] = useState({ residencial: "", casa: "", referencias: "" });
   const [cart, setCart] = useState<CartItem[]>([]);
   const [slot, setSlot] = useState<PublicSlot | null>(null);
@@ -166,10 +168,60 @@ export default function PublicBooking() {
 
         {step === "location" && (
           <StepShell title="¿Dónde necesitás el servicio?" onBack={() => setStep("profile")}>
-            <Button variant="outline" className="w-full h-12" onClick={useMyLocation}>
-              <MapPin className="mr-2 h-4 w-4" />
-              {coords ? "Ubicación capturada ✓" : "Usar mi ubicación actual"}
-            </Button>
+
+            {/* Selector de modo */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setLocationMode("gps");
+                  setCoords(null);
+                  useMyLocation();
+                }}
+                className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-sm font-medium transition-colors
+                  ${locationMode === "gps"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-background text-foreground hover:bg-muted/50"}`}
+              >
+                <MapPin className="h-6 w-6" />
+                <span className="leading-tight text-center">Usar mi ubicación actual</span>
+                {locationMode === "gps" && coords && (
+                  <span className="text-xs text-primary font-normal">Capturada ✓</span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setLocationMode("map");
+                  setCoords(null);
+                }}
+                className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-sm font-medium transition-colors
+                  ${locationMode === "map"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-background text-foreground hover:bg-muted/50"}`}
+              >
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-10l6-3m6 3l-5.447-2.724A1 1 0 0115 4.618v10.764a1 1 0 01-.553.894L9 20m6-16v13" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="leading-tight text-center">Seleccionar en el mapa</span>
+                {locationMode === "map" && coords && (
+                  <span className="text-xs text-primary font-normal">Ubicación seleccionada ✓</span>
+                )}
+              </button>
+            </div>
+
+            {/* Mapa — solo si eligió esa opción */}
+            {locationMode === "map" && (
+              <LocationMap
+                initialCoords={coords}
+                onLocationSelect={(c, label) => {
+                  setCoords(c);
+                  setAddr(prev => ({
+                    ...prev,
+                    referencias: prev.referencias || label.split(",").slice(0, 3).join(",").trim(),
+                  }));
+                }}
+              />
+            )}
+
             <CantonSelector value={cantonId} onChange={setCantonId} cantonLabel="Tu cantón" />
             {cantonId != null && cantonCovered === false && (
               <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
@@ -456,22 +508,6 @@ function ProfileStep({
 }
 
 /** Filtra los slots para que solo aparezcan inicios con `slotsNeeded` slots consecutivos libres. */
-function filterConsecutiveSlots(slots: PublicSlot[], totalDurationMin: number): PublicSlot[] {
-  const slotsNeeded = Math.max(1, Math.ceil(totalDurationMin / 30));
-  if (slotsNeeded <= 1) return slots;
-
-  // Usamos epoch ms para comparar — evita discrepancias de formato ISO entre DB y JS
-  // (DB guarda "2026-07-01T15:00:00Z", JS genera "2026-07-01T15:00:00.000Z")
-  const startEpochs = new Set(slots.map((s) => new Date(s.slot_datetime_start).getTime()));
-
-  return slots.filter((startSlot) => {
-    const startMs = new Date(startSlot.slot_datetime_start).getTime();
-    for (let i = 1; i < slotsNeeded; i++) {
-      if (!startEpochs.has(startMs + i * 30 * 60 * 1000)) return false;
-    }
-    return true;
-  });
-}
 
 function DateTimeStep({
   providerId,

@@ -1,666 +1,438 @@
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { formatInTimeZone } from "date-fns-tz";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { ArrowLeft, Calendar, Check, Loader2, Star, Clock } from "lucide-react";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import PageLayout from "@/components/layout/PageLayout";
+import { toast } from "sonner";
+import { usePublicSlots, groupSlotsByDay, type PublicSlot } from "@/hooks/usePublicSlots";
+import {
+  usePublicProximity,
+  applyProximityDiscount,
+  type ProximityData,
+} from "@/hooks/usePublicProximity";
+import { filterConsecutiveSlots } from "@/hooks/usePublicSlots";
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useRecurringBooking } from '@/hooks/useRecurringBooking';
-import { validateBookingSlot } from '@/utils/bookingValidation';
-import { buildCompleteLocation } from '@/utils/locationBuilder';
-import { RobustBookingSystem } from '@/utils/robustBookingSystem';
-import PageLayout from '@/components/layout/PageLayout';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import NewBookingForm from '@/components/client/booking/NewBookingForm';
-import BookingSummaryCard from '@/components/client/booking/BookingSummaryCard';
-import { bookingLogger, locationLogger } from '@/utils/logger';
-import { setBookingStep, registerBookingStepSetter, unregisterBookingStepSetter } from '@/hooks/useBackNavigation';
+const TZ = "America/Costa_Rica";
+const db = supabase as any;
 
-const ClientBooking = () => {
+type Step = "datetime" | "notas" | "done";
+
+type CartItem = { listing: any; qty: number };
+
+const colones = (n: number | null | undefined) =>
+  n == null ? "" : `₡${n.toLocaleString("es-CR")}`;
+
+const formatDuration = (min: number | null) => {
+  if (!min) return "";
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h} h ${m} min`;
+  if (h) return `${h} h`;
+  return `${m} min`;
+};
+
+export default function ClientBooking() {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const locationState = useLocation().state || {};
   const { user } = useAuth();
-  const { createRecurringBooking, isLoading } = useRecurringBooking();
-  const queryClient = useQueryClient();
 
-  // Get data from navigation state
-  const { providerId, serviceDetails, selectedVariants, rescheduleData } = location.state || {};
+  const [step, setStep] = useState<Step>("datetime");
+  const [slot, setSlot] = useState<PublicSlot | null>(null);
+  const [notas, setNotas] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Detect reschedule mode from URL params
-  const searchParams = new URLSearchParams(location.search);
-  const isRescheduleMode = searchParams.get('mode') === 'reschedule';
-
-  // Step navigation state
-  const [currentStep, setCurrentStep] = useState(isRescheduleMode ? 2 : 1);
-
-  // Register step setter for back navigation
-  useEffect(() => {
-    registerBookingStepSetter(setCurrentStep);
-    return () => {
-      unregisterBookingStepSetter();
-    };
-  }, []);
-
-  // Update global step state whenever currentStep changes
-  useEffect(() => {
-    setBookingStep(currentStep);
-  }, [currentStep]);
-
-  // Pre-load reschedule data if in reschedule mode
-  useEffect(() => {
-    if (isRescheduleMode && rescheduleData) {
-      setCurrentStep(2);
-      // Pre-set frequency to 'once' for rescheduled appointments
-      setSelectedFrequency('once');
-    }
-  }, [isRescheduleMode, rescheduleData]);
-
-  // Booking form state
-  const [selectedFrequency, setSelectedFrequency] = useState('once');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [totalDuration, setTotalDuration] = useState<number>(0);
-  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
-  const [isRecommendedSlot, setIsRecommendedSlot] = useState(false); // For 10% discount
-  const [notes, setNotes] = useState('');
-  const [customVariableSelections, setCustomVariableSelections] = useState<any>({});
-  const [customVariablesTotalPrice, setCustomVariablesTotalPrice] = useState<number>(0);
-  const [isRescheduling, setIsRescheduling] = useState(false);
-
-  const handleNextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 3));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handlePrevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Query to get client phone from users table
-  const { data: completeUserData, isLoading: isLoadingUserData } = useQuery({
-    queryKey: ['complete-user-data', user?.id],
+  // Load listing data
+  const { data: listing, isLoading: loadingListing } = useQuery({
+    queryKey: ["client-listing", serviceId],
+    enabled: !!serviceId,
     queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await (supabase as any)
-        .from('users')
-        .select('phone')
-        .eq('id', user.id)
-        .single();
-      if (error) return null;
+      const { data, error } = await db
+        .from("listings")
+        .select(`
+          id, provider_id, title, duration, base_price, currency,
+          slot_preferences,
+          users!listings_provider_id_fkey(id, name)
+        `)
+        .eq("id", serviceId)
+        .maybeSingle();
+      if (error) throw error;
       return data;
     },
+  });
+
+  // Load user saved location data
+  const { data: userData } = useQuery({
+    queryKey: ["client-user-location", user?.id],
     enabled: !!user?.id,
-  });
-
-  // Make reschedule mode self-sufficient using serviceId from URL
-  const listingIdForReschedule = serviceId || rescheduleData?.listingId || null;
-
-  // Query to load service data when in reschedule mode
-  const { data: rescheduleServiceData, isLoading: isLoadingRescheduleService } = useQuery({
-    queryKey: ['reschedule-service', listingIdForReschedule],
     queryFn: async () => {
-      if (!listingIdForReschedule) return null;
-      
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          id,
-          provider_id,
-          title,
-          standard_duration,
-          duration,
-          is_post_payment,
-          custom_variable_groups,
-          service_variants,
-          service_types (
-            name,
-            category_id
-          ),
-          users!listings_provider_id_fkey (
-            id,
-            name
-          )
-        `)
-        .eq('id', listingIdForReschedule)
-        .maybeSingle();
-      
-      if (error) {
-        bookingLogger.error('Error loading reschedule service:', { error });
-        return null;
-      }
-      
-      if (!data) return null;
-      
-      // Transform data to match expected structure
-      return {
-        ...data,
-        provider: data.users
-      };
-    },
-    enabled: isRescheduleMode && !!listingIdForReschedule,
-  });
-
-  // CRITICAL FIX: Fallback query to load provider_id when not available from navigation state
-  // This ensures slots load correctly even with page refresh or direct URL access
-  const { data: listingFallbackData, isLoading: isLoadingListingFallback } = useQuery({
-    queryKey: ['listing-fallback', serviceId],
-    queryFn: async () => {
-      if (!serviceId) return null;
-      
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          id,
-          provider_id,
-          title,
-          standard_duration,
-          duration,
-          is_post_payment,
-          custom_variable_groups,
-          service_variants,
-          base_price,
-          currency,
-          users!listings_provider_id_fkey (
-            id,
-            name
-          )
-        `)
-        .eq('id', serviceId)
-        .maybeSingle();
-      
-      if (error) {
-        bookingLogger.error('Error loading listing fallback:', { error });
-        return null;
-      }
-      
-      if (!data) return null;
-      
-      return {
-        ...data,
-        provider: data.users
-      };
-    },
-    enabled: !isRescheduleMode && !!serviceId && !providerId, // Only when normal mode AND no providerId from state
-  });
-
-  // Use effective variables based on mode - with fallback for normal mode
-  const effectiveServiceDetails = isRescheduleMode 
-    ? rescheduleServiceData 
-    : (serviceDetails || listingFallbackData);
-
-  // Unified listing ID for booking
-  const listingIdForBooking = serviceId || rescheduleData?.listingId || effectiveServiceDetails?.id || '';
-
-  // FIXED: Include fallback for normal mode
-  const effectiveProviderId = isRescheduleMode 
-    ? (rescheduleData?.providerId || rescheduleServiceData?.provider_id || providerId || '')
-    : (providerId || listingFallbackData?.provider_id || '');
-
-  // Reinforce variants with fallback duration if variants are not available
-  const effectiveSelectedVariants = isRescheduleMode && Array.isArray(rescheduleServiceData?.service_variants)
-    ? rescheduleServiceData.service_variants.slice(0, 1).map((v: any) => ({
-        ...v,
-        quantity: 1,
-        personQuantity: 1
-      }))
-    : isRescheduleMode && rescheduleServiceData
-    ? [{
-        duration: rescheduleServiceData.standard_duration || rescheduleServiceData.duration || 60,
-        quantity: 1,
-        personQuantity: 1
-      }]
-    : (selectedVariants || 
-       (Array.isArray(listingFallbackData?.service_variants) 
-         ? (listingFallbackData.service_variants as any[]).slice(0, 1).map((v: any) => ({
-             ...v,
-             quantity: 1,
-             personQuantity: 1
-           })) 
-         : []));
-
-  // Debug logging for reschedule mode
-  useEffect(() => {
-    if (isRescheduleMode) {
-      bookingLogger.debug('Reschedule mode data check', {
-        listingIdForReschedule,
-        hasRescheduleServiceData: !!rescheduleServiceData,
-        isLoadingRescheduleService,
-        effectiveServiceDetails: !!effectiveServiceDetails,
-        listingIdForBooking,
-        effectiveProviderId
-      });
-    }
-  }, [isRescheduleMode, rescheduleServiceData, isLoadingRescheduleService, effectiveServiceDetails, listingIdForBooking, effectiveProviderId, listingIdForReschedule]);
-
-  // Enhanced scroll to top when component mounts
-  useEffect(() => {
-    // Force immediate scroll to top
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    
-    // Also use requestAnimationFrame to ensure DOM is ready
-    requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    });
-    
-    // Additional backup with a small delay
-    const timeoutId = setTimeout(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Enhanced validation - More permissive for better UX
-  const isBookingValid = selectedDate && selectedTime && effectiveSelectedVariants?.length > 0 && !isLoadingUserData;
-  const selectedVariant = effectiveSelectedVariants?.[0];
-  // STANDARDIZED: All slots are now 30 minutes - global system update 2026-02
-  const SLOT_SIZE = 30;
-
-  const handleBackNavigation = () => {
-    // Scroll to top before navigation
-    window.scrollTo(0, 0);
-    
-    // If in reschedule mode, go back to bookings
-    if (isRescheduleMode) {
-      navigate('/client/bookings');
-    } else {
-      // Navigate back to categories page
-      navigate('/client/categories');
-    }
-  };
-
-  const handleReschedule = async () => {
-    // Guard against multiple rapid clicks
-    if (isRescheduling) {
-      bookingLogger.warn('handleReschedule called while already processing');
-      return;
-    }
-
-    // Detailed logging for debugging
-    bookingLogger.debug('handleReschedule called', {
-      hasUser: !!user,
-      selectedDate,
-      selectedTime,
-      listingIdForBooking,
-      effectiveProviderId,
-      effectiveSelectedVariants: effectiveSelectedVariants?.length,
-      totalDuration,
-      rescheduleData,
-      isLoadingRescheduleService
-    });
-
-    if (!user || !selectedDate || !selectedTime) {
-      toast.error('Información incompleta para reagendar');
-      return;
-    }
-
-    // Validate required data
-    if (!listingIdForBooking || !effectiveProviderId) {
-      bookingLogger.error('Missing required IDs for rescheduling', {
-        listingIdForBooking,
-        effectiveProviderId
-      });
-      toast.error('Error: información del servicio incompleta');
-      return;
-    }
-
-    setIsRescheduling(true);
-
-    try {
-      // Create start and end times
-      const [hours, minutes] = selectedTime.split(':').map(Number);
-      const startDateTime = new Date(selectedDate);
-      startDateTime.setHours(hours, minutes, 0, 0);
-      
-      const endDateTime = new Date(startDateTime);
-      
-      // Calculate duration robustly:
-      // 1. Use totalDuration if already calculated by slot grid
-      // 2. Otherwise use listing configuration (standard_duration, duration)
-      // 3. Fallback to 60 minutes as safe default
-      // NOTE: slot_size variable removed - all slots are now standardized to 60 minutes
-      const fallbackDurationFromListing =
-        effectiveServiceDetails?.standard_duration ||
-        effectiveServiceDetails?.duration ||
-        60;
-
-      const duration = totalDuration > 0 ? totalDuration : fallbackDurationFromListing;
-      endDateTime.setMinutes(endDateTime.getMinutes() + duration);
-
-      bookingLogger.debug('Creating rescheduled appointment', {
-        startDateTime: startDateTime.toISOString(),
-        endDateTime: endDateTime.toISOString(),
-        duration
-      });
-
-      const clientPhone = completeUserData?.phone || user.phone || '';
-      const clientAddress = clientPhone ? `Tel: ${clientPhone}` : 'Dirección a confirmar';
-
-      // Create new appointment as "once" type
-      const { data: newAppointment, error } = await supabase
-        .from('appointments')
-        .insert({
-          listing_id: listingIdForBooking,
-          provider_id: effectiveProviderId,
-          client_id: user.id,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          status: 'pending',
-          recurrence: 'none',
-          is_recurring_instance: false,
-          client_name: user.name,
-          client_email: user.email,
-          client_phone: clientPhone,
-          client_address: clientAddress,
-          notes: rescheduleData?.originalDate
-            ? `Reagendada desde: ${format(rescheduleData.originalDate, 'dd/MM/yyyy')}`
-            : 'Cita reagendada desde Mis Reservas',
-          external_booking: false,
-          created_by_user: user.id,
-          created_from: 'client_app'
-        })
-        .select()
+      const { data } = await db
+        .from("users")
+        .select("phone, canton_base_id, house_number, address, address_detail")
+        .eq("id", user!.id)
         .single();
+      return data;
+    },
+  });
 
-      if (error) throw error;
+  const providerId = listing?.provider_id ?? "";
+  const listingId = listing?.id ?? "";
+  const totalDuration = listing?.duration ?? 60;
+  const minNoticeHours = listing?.slot_preferences?.minNoticeHours ?? 0;
+  const cantonId = userData?.canton_base_id ?? null;
 
-      // Invalidar queries
-      await queryClient.invalidateQueries({ queryKey: ['client-bookings'] });
-      await queryClient.invalidateQueries({ queryKey: ['unified-recurring-appointments'] });
+  const { data: proximity } = usePublicProximity(providerId || undefined, listingId || undefined, cantonId);
 
-      // Mostrar éxito y navegar
-      toast.success('Cita reagendada exitosamente');
-      navigate('/client/bookings');
+  const handleSubmit = async () => {
+    if (!slot || !user || !listing) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const startMs = new Date(slot.slot_datetime_start).getTime();
+      const endTime = new Date(startMs + totalDuration * 60 * 1000).toISOString();
 
-    } catch (error: any) {
-      bookingLogger.error('Error rescheduling appointment:', { error });
-      
-      // Show actual error message to user for better debugging
-      const errorMessage = 
-        error?.message || 
-        (typeof error === 'string' ? error : null) || 
-        'Error al reagendar la cita';
-      
-      toast.error(errorMessage);
+      const addrParts = [
+        userData?.address,
+        userData?.house_number,
+        userData?.address_detail?.referencias,
+      ].filter(Boolean);
+
+      const selectedIsRecommended = !!(
+        proximity?.recommendedEpochs.has(new Date(slot.slot_datetime_start).getTime())
+      );
+      const effectivePrice = selectedIsRecommended && proximity
+        ? applyProximityDiscount(listing.base_price, proximity.settings)
+        : listing.base_price;
+
+      const { data: rpcData, error: rpcError } = await db.rpc("create_external_booking", {
+        p_provider_id: providerId,
+        p_listing_id: listingId,
+        p_start_time: slot.slot_datetime_start,
+        p_end_time: endTime,
+        p_client_name: user.name ?? user.email ?? "Cliente",
+        p_client_phone: userData?.phone ?? user.phone ?? "Sin teléfono",
+        p_notes: notas.trim() || null,
+        p_client_address: addrParts.join(" · ") || null,
+        p_canton_id: cantonId,
+        p_client_lat: null,
+        p_client_lng: null,
+        p_address_detail: userData?.address_detail ?? null,
+        p_final_price: effectivePrice ?? null,
+        p_total_duration: totalDuration,
+      });
+
+      if (rpcError) throw rpcError;
+
+      // Vincular appointment al cliente autenticado
+      const appointmentId = Array.isArray(rpcData) ? rpcData[0]?.appointment_id : rpcData?.appointment_id;
+      if (appointmentId) {
+        await db.from("appointments").update({
+          client_id: user.id,
+          client_email: user.email ?? null,
+          external_booking: false,
+          created_from: "client_app",
+        }).eq("id", appointmentId);
+      }
+      setStep("done");
+    } catch (e: any) {
+      setSubmitError(e?.message ?? "No se pudo enviar la solicitud");
     } finally {
-      setIsRescheduling(false);
+      setSubmitting(false);
     }
   };
 
-  // Show loading state while fetching service data (reschedule mode OR fallback mode)
-  if ((isRescheduleMode && isLoadingRescheduleService) || 
-      (!isRescheduleMode && !providerId && isLoadingListingFallback)) {
+  if (loadingListing) {
     return (
       <PageLayout>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="ml-3 text-muted-foreground">Cargando información del servicio...</p>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </PageLayout>
     );
   }
 
-  // Differentiated validation: more permissive for reschedule mode
-  if (isRescheduleMode) {
-    // En modo reagendar solo necesitamos IDs mínimos para cargar horarios
-    if (!listingIdForBooking || !effectiveProviderId) {
-      return (
-        <PageLayout>
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">
-              No se pudo cargar la información del servicio
-            </p>
-            <button
-              onClick={() => navigate('/client/bookings')}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-            >
-              Volver a Mis Reservas
-            </button>
-          </div>
-        </PageLayout>
-      );
-    }
-  } else {
-    // Normal mode requires full service details
-    if (!effectiveServiceDetails || !effectiveProviderId) {
-      return (
-        <PageLayout>
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">
-              No se pudo cargar la información del servicio
-            </p>
-            <button
-              onClick={() => navigate('/client/categories')}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-            >
-              Volver a Categorías
-            </button>
-          </div>
-        </PageLayout>
-      );
-    }
+  if (!listing) {
+    return (
+      <PageLayout>
+        <div className="text-center py-12 space-y-3">
+          <p className="text-muted-foreground">No se pudo cargar el servicio.</p>
+          <Button variant="outline" onClick={() => navigate(-1)}>Volver</Button>
+        </div>
+      </PageLayout>
+    );
   }
-
-  const handleBooking = async () => {
-    bookingLogger.info('Iniciando proceso de checkout');
-    
-    // VALIDATION
-    if (!user) {
-      toast.error('Debes iniciar sesión para realizar una reserva');
-      return;
-    }
-
-    if (!selectedDate || !selectedTime) {
-      toast.error('Por favor selecciona una fecha y hora para tu cita');
-      return;
-    }
-
-    if (!selectedVariants?.length) {
-      toast.error('Selección de servicio incompleta');
-      return;
-    }
-
-    try {
-      // Create start and end times
-      const [hours, minutes] = selectedTime.split(':').map(Number);
-      const startDateTime = new Date(selectedDate);
-      startDateTime.setHours(hours, minutes, 0, 0);
-      
-      const endDateTime = new Date(startDateTime);
-      const duration = totalDuration > 0 ? totalDuration : selectedVariant.duration;
-      endDateTime.setMinutes(endDateTime.getMinutes() + duration);
-
-      const userPhone = completeUserData?.phone || user.phone || '';
-      const clientAddress = userPhone ? `Tel: ${userPhone}` : 'Dirección a confirmar';
-
-      // Calculate total price
-      const totalPrice = effectiveSelectedVariants.reduce((sum, variant) => {
-        const basePrice = Number(variant.price) * variant.quantity;
-        const additionalPersonPrice = variant.personQuantity && variant.additionalPersonPrice 
-          ? Number(variant.additionalPersonPrice) * (variant.personQuantity - 1) * variant.quantity
-          : 0;
-        return sum + basePrice + additionalPersonPrice;
-      }, 0) + customVariablesTotalPrice;
-
-      // BOOKING DATA for payment
-      const bookingData = {
-        listingId: serviceId!,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        recurrenceType: selectedFrequency,
-        notes: notes || 'Reserva creada desde la aplicación',
-        clientAddress,
-        clientPhone: userPhone || 'Por confirmar',
-        clientEmail: user.email || 'Por confirmar',
-        customVariableSelections: Object.keys(customVariableSelections).length > 0 ? customVariableSelections : undefined,
-        customVariablesTotalPrice: customVariablesTotalPrice,
-        selectedSlotIds: selectedSlotIds.length > 0 ? selectedSlotIds : undefined,
-        totalDuration: totalDuration > 0 ? totalDuration : undefined,
-        providerId: effectiveProviderId
-      };
-
-      // Scroll to top before navigating to checkout
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      
-      // Navigate to checkout with all data including discount info
-      navigate('/checkout', {
-        state: {
-          serviceTitle: effectiveServiceDetails.title,
-          providerName: effectiveServiceDetails.provider?.name,
-          selectedVariants: effectiveSelectedVariants,
-          selectedDate,
-          selectedTime,
-          clientLocation,
-          bookingData,
-          totalPrice,
-          currency: effectiveServiceDetails?.currency || 'USD',
-          isRecommendedSlot, // Pass flag for 10% discount
-          slotIds: selectedSlotIds
-        }
-      });
-
-    } catch (error) {
-      console.error('Error al procesar checkout:', error);
-      toast.error('Error inesperado. Intenta de nuevo.', {
-        duration: 4000
-      });
-    }
-  };
-
-  const getRecurrenceText = (frequency: string) => {
-    switch (frequency) {
-      case 'weekly': return 'semanal';
-      case 'biweekly': return 'quincenal';
-      case 'triweekly': return 'cada 3 semanas';
-      case 'monthly': return 'mensual';
-      default: return 'una vez';
-    }
-  };
-
-  const formatPrice = (price: number | string) => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return numPrice.toLocaleString('es-CR', {
-      minimumFractionDigits: 0
-    });
-  };
-
-  // Build client location string using complete data from database
-  const clientLocation = buildCompleteLocation({
-    residenciaName: completeUserData?.residencias?.name,
-    condominiumText: completeUserData?.condominium_text,
-    condominiumName: completeUserData?.condominium_name,
-    houseNumber: completeUserData?.house_number,
-    isExternal: false
-  });
-
-  locationLogger.debug('Complete user data for location', {
-    residenciaName: completeUserData?.residencias?.name,
-    condominiumName: completeUserData?.condominium_text,
-    houseNumber: completeUserData?.house_number
-  });
-
-  locationLogger.debug('Final client location', clientLocation);
 
   return (
     <PageLayout>
-      {/* Title - Hide on step 3 or if in reschedule mode */}
-      {currentStep !== 3 && !isRescheduleMode && (
-        <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
-          Reservar Servicio
-        </h1>
-      )}
-
-      {isRescheduleMode && (
-        <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
-          Reagendar Cita
-        </h1>
-      )}
-
-      {/* Info card para modo reschedule */}
-      {isRescheduleMode && rescheduleData && (
-        <div className="max-w-2xl mx-auto mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <p className="text-sm text-blue-800 font-medium">
-            <strong>Cita original:</strong> {format(rescheduleData.originalDate, "dd/MM/yyyy 'a las' HH:mm", { locale: es })}
-          </p>
-          <p className="text-xs text-blue-600 mt-1">
-            Selecciona un nuevo horario para recibir el servicio
-          </p>
-        </div>
-      )}
-
-      {/* Single Column Layout - Same for Desktop and Mobile */}
-      <div className="max-w-2xl mx-auto space-y-3">
-        {/* Booking Form with Step Navigation */}
-        <NewBookingForm
-          currentStep={currentStep}
-          selectedFrequency={selectedFrequency}
-          onFrequencyChange={setSelectedFrequency}
-          selectedDate={selectedDate}
-          selectedTime={selectedTime}
-          totalDuration={totalDuration}
-          onDateChange={setSelectedDate}
-          onTimeChange={setSelectedTime}
-          onDurationChange={(duration, slotIds, isRecommended) => {
-            setTotalDuration(duration);
-            setSelectedSlotIds(slotIds || []);
-            setIsRecommendedSlot(isRecommended ?? false);
-          }}
-          providerId={effectiveProviderId}
-          listingId={listingIdForBooking}
-          selectedVariants={effectiveSelectedVariants}
-          notes={notes}
-          onNotesChange={setNotes}
-          customVariableGroups={effectiveServiceDetails?.custom_variable_groups}
-        customVariableSelections={customVariableSelections}
-        onCustomVariableSelectionsChange={(selections, totalPrice) => {
-          setCustomVariableSelections(selections);
-          setCustomVariablesTotalPrice(totalPrice);
-        }}
-        slotSize={SLOT_SIZE}
-        onNextStep={handleNextStep}
-        onPrevStep={handlePrevStep}
-        isRescheduleMode={isRescheduleMode}
-        onReschedule={handleReschedule}
-        serviceDetails={effectiveServiceDetails}
-        isLoadingReschedule={isRescheduling}
-      />
-
-        {/* Booking Summary - Only show on Step 3 and not in reschedule mode */}
-        {currentStep === 3 && !isRescheduleMode && (
-          <BookingSummaryCard
-            serviceTitle={effectiveServiceDetails.title}
-            providerName={effectiveServiceDetails.provider?.name}
-            selectedVariant={selectedVariant}
-            selectedVariants={selectedVariants}
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            clientLocation={clientLocation}
-            isLoadingLocation={isLoadingUserData}
-            isBookingValid={isBookingValid}
-            isLoading={isLoading}
-            onBooking={handleBooking}
-            formatPrice={formatPrice}
-            getRecurrenceText={getRecurrenceText}
-            selectedFrequency={selectedFrequency}
-            customVariablesTotalPrice={customVariablesTotalPrice}
-            selectedSlotIds={selectedSlotIds}
-            isPostPayment={serviceDetails?.is_post_payment || false}
-            notes={notes}
-            onNotesChange={setNotes}
+      <div className="mx-auto max-w-md px-4 py-6 space-y-6">
+        {step === "datetime" && (
+          <DateTimeStep
+            providerId={providerId}
+            listingId={listingId}
+            totalDuration={totalDuration}
+            basePrice={listing.base_price}
+            minNoticeHours={minNoticeHours}
+            cantonId={cantonId}
+            proximity={proximity}
+            selected={slot}
+            onSelect={setSlot}
+            onBack={() => navigate(-1)}
+            onNext={() => setStep("notas")}
           />
+        )}
+
+        {step === "notas" && slot && (
+          <div className="space-y-4">
+            <button onClick={() => setStep("datetime")} className="flex items-center text-sm text-muted-foreground">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Atrás
+            </button>
+            <h1 className="text-xl font-bold">Confirmá tu reserva</h1>
+
+            {/* Resumen */}
+            <div className="rounded-xl border bg-muted/30 p-4 space-y-2 text-sm">
+              <p className="font-semibold text-base">{listing.title}</p>
+              <p className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="h-4 w-4 shrink-0" />
+                {formatInTimeZone(new Date(slot.slot_datetime_start), TZ, "EEEE d 'de' LLLL", { locale: es })}
+              </p>
+              <p className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-4 w-4 shrink-0" />
+                {formatInTimeZone(new Date(slot.slot_datetime_start), TZ, "h:mm a")}
+                {" – "}
+                {formatInTimeZone(
+                  new Date(new Date(slot.slot_datetime_start).getTime() + totalDuration * 60000),
+                  TZ, "h:mm a"
+                )}
+                {" · "}{formatDuration(totalDuration)}
+              </p>
+              {listing.base_price != null && (
+                <p className="font-semibold text-primary">{colones(listing.base_price)}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notas-cliente">¿Algo adicional que deba saber? <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Textarea
+                id="notas-cliente"
+                maxLength={300}
+                placeholder="Ej: Tengo dos perros, acceso por portón azul..."
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+
+            {submitError && <p className="text-sm text-destructive">{submitError}</p>}
+
+            <Button className="w-full h-12" disabled={submitting} onClick={handleSubmit}>
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Enviar solicitud
+            </Button>
+          </div>
+        )}
+
+        {step === "done" && (
+          <div className="text-center space-y-4 py-10">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <Check className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold">¡Solicitud enviada!</h1>
+            <p className="text-muted-foreground text-sm">
+              {listing?.users?.name ?? "El proveedor"} revisará tu solicitud y te confirmará pronto.
+            </p>
+            {slot && (
+              <div className="rounded-xl border bg-muted/30 p-4 text-sm text-left space-y-1">
+                <p className="font-semibold">{listing.title}</p>
+                <p className="text-muted-foreground">
+                  {formatInTimeZone(new Date(slot.slot_datetime_start), TZ, "EEEE d 'de' LLLL · h:mm a", { locale: es })}
+                </p>
+              </div>
+            )}
+            <Button className="w-full" onClick={() => navigate("/client/bookings")}>
+              Ver mis reservas
+            </Button>
+          </div>
         )}
       </div>
     </PageLayout>
   );
-};
+}
 
-export default ClientBooking;
+// ── DateTimeStep (mismo diseño que PublicBooking) ──────────────────────────
+
+function DateTimeStep({
+  providerId,
+  listingId,
+  totalDuration,
+  basePrice,
+  minNoticeHours = 0,
+  cantonId,
+  proximity,
+  selected,
+  onSelect,
+  onBack,
+  onNext,
+}: {
+  providerId: string;
+  listingId: string;
+  totalDuration: number;
+  basePrice: number | null;
+  minNoticeHours?: number;
+  cantonId?: number | null;
+  proximity?: ProximityData;
+  selected: PublicSlot | null;
+  onSelect: (s: PublicSlot) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const { data: rawSlots = [], isLoading } = usePublicSlots(providerId, listingId, 90, minNoticeHours, cantonId);
+  const slots = useMemo(() => filterConsecutiveSlots(rawSlots, totalDuration), [rawSlots, totalDuration]);
+  const byDay = useMemo(() => groupSlotsByDay(slots), [slots]);
+  const [day, setDay] = useState<string | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState<Date | undefined>(undefined);
+
+  const showRec = proximity?.settings.show_recommended_slots ?? true;
+  const recommended = proximity?.recommendedEpochs ?? new Set<number>();
+  const isRec = (s: PublicSlot) => showRec && recommended.has(new Date(s.slot_datetime_start).getTime());
+  const discounted =
+    proximity && proximity.settings.proximity_discount_enabled
+      ? applyProximityDiscount(basePrice, proximity.settings)
+      : null;
+
+  const dayHasRec = (d: string) => byDay[d]?.some((s) => isRec(s));
+  const days = Object.keys(byDay).sort();
+
+  const keyToDate = (k: string) => new Date(k + "T00:00:00");
+  const dateToKey = (d: Date) => format(d, "yyyy-MM-dd");
+  const availableSet = useMemo(() => new Set(days), [slots]);
+  const recommendedDates = useMemo(
+    () => days.filter(dayHasRec).map(keyToDate),
+    [slots, showRec, proximity],
+  );
+
+  const slotsForDay = (d: string) =>
+    [...(byDay[d] ?? [])].sort(
+      (a, b) =>
+        Number(isRec(b)) - Number(isRec(a)) ||
+        a.slot_datetime_start.localeCompare(b.slot_datetime_start),
+    );
+
+  const firstAvailableDate = days.length > 0 ? keyToDate(days[0]) : undefined;
+  const displayMonth = calendarMonth ?? firstAvailableDate;
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="flex items-center text-sm text-muted-foreground">
+        <ArrowLeft className="mr-1 h-4 w-4" /> Atrás
+      </button>
+      <h1 className="text-xl font-bold">¿Cuándo te queda bien?</h1>
+
+      {isLoading ? (
+        <div className="flex flex-col items-center gap-3 py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Cargando horarios disponibles…</p>
+        </div>
+      ) : days.length === 0 ? (
+        <div className="rounded-xl border border-muted bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="font-medium">Sin disponibilidad en los próximos 3 meses</p>
+          <p className="mt-1 text-xs">Escribile directo al proveedor para coordinar.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex justify-center rounded-lg border bg-card">
+            <CalendarUI
+              mode="single"
+              selected={day ? keyToDate(day) : undefined}
+              onSelect={(d) => {
+                if (!d) return;
+                const key = dateToKey(d);
+                setDay(availableSet.has(key) ? key : null);
+              }}
+              month={displayMonth}
+              onMonthChange={setCalendarMonth}
+              fromDate={firstAvailableDate}
+              toDate={keyToDate(days[days.length - 1])}
+              disabled={(d) => !availableSet.has(dateToKey(d))}
+              modifiers={{ recomendado: recommendedDates }}
+              modifiersClassNames={{
+                recomendado:
+                  "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-emerald-500",
+              }}
+            />
+          </div>
+
+          {showRec && recommendedDates.length > 0 && (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Días con horario eficiente (el proveedor ya estará en tu zona)
+            </p>
+          )}
+
+          {day ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                {formatInTimeZone(keyToDate(day), TZ, "EEEE d 'de' LLLL", { locale: es })}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {slotsForDay(day).map((s) => {
+                  const rec = isRec(s);
+                  const isSel = selected?.id === s.id;
+                  const surcharge = s.transport_surcharge_pct ?? 0;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => onSelect(s)}
+                      className={`flex h-14 flex-col items-center justify-center rounded-lg border text-sm transition-colors
+                        ${isSel ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}
+                        ${rec && !isSel ? "border-emerald-500" : ""}
+                        ${surcharge > 0 && !isSel ? "border-amber-400" : ""}`}
+                    >
+                      <span className="flex items-center font-medium">
+                        {rec && <Star className="mr-0.5 h-3 w-3 fill-emerald-500 text-emerald-500" />}
+                        {formatInTimeZone(new Date(s.slot_datetime_start), TZ, "h:mm a")}
+                      </span>
+                      {rec && discounted != null && basePrice != null && (
+                        <span className={`text-[10px] ${isSel ? "text-primary-foreground/80" : "text-emerald-600"}`}>
+                          {colones(discounted)} · -{proximity!.settings.proximity_discount_pct}%
+                        </span>
+                      )}
+                      {surcharge > 0 && !rec && (
+                        <span className={`text-[10px] ${isSel ? "text-primary-foreground/80" : "text-amber-600"}`}>
+                          +{surcharge}% transp.
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {showRec && dayHasRec(day) && (
+                <p className="text-xs text-emerald-600">
+                  ⭐ Horario recomendado — el proveedor ya estará en tu zona.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" /> Elegí un día para ver las horas.
+            </p>
+          )}
+        </div>
+      )}
+
+      <Button className="h-12 w-full" disabled={!selected} onClick={onNext}>
+        Siguiente →
+      </Button>
+    </div>
+  );
+}
