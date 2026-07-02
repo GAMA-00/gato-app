@@ -1,200 +1,182 @@
-import React, { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import ServiceTypeCard from '@/components/client/ServiceTypeCard';
-import CategoryDetailsLoading from '@/components/client/CategoryDetailsLoading';
+import { Star, ChevronLeft, Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
-import Navbar from '@/components/layout/Navbar';
-import { useServiceTypeAvailability } from '@/hooks/useServiceTypeAvailability';
-import { serviceTypeOrderByCategory, categoriesWithoutReorder } from '@/constants/serviceTypeOrderConstants';
-import { useIsMobile } from '@/hooks/use-mobile';
-import CategoryHeroHeader from '@/components/client/CategoryHeroHeader';
-import { categoryOrder, categoryLabels } from '@/constants/categoryConstants';
+import { categoryLabels } from '@/constants/categoryConstants';
+import { formatCurrency } from '@/utils/currencyUtils';
 
-const ClientCategoryDetails = () => {
-  const { categoryId } = useParams();
-  const { availableServiceTypeIds, isLoading: availabilityLoading } = useServiceTypeAvailability();
-  const isMobile = useIsMobile();
+const db = supabase as any;
 
-  // Fetch all categories for the pill navigation
-  const { data: allCategories = [] } = useQuery({
-    queryKey: ['all-service-categories'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+const getInitials = (name?: string | null) =>
+  (name || 'P').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+interface ProviderListing {
+  listingId: string;
+  providerId: string;
+  providerName: string;
+  providerAvatar: string | null;
+  providerRating: number | null;
+  listingTitle: string;
+  serviceTypeName: string;
+  basePrice: number;
+  currency: string;
+  duration: number;
+  description: string;
+}
+
+const useProvidersByCategory = (categoryName: string) => {
+  return useQuery({
+    queryKey: ['providers-by-category', categoryName],
+    enabled: !!categoryName,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async (): Promise<ProviderListing[]> => {
+      // 1. Get category id
+      const { data: cat } = await db
         .from('service_categories')
-        .select('*');
-        
-      if (error) throw error;
-      
-      // Sort by categoryOrder
-      return (data || []).sort((a, b) => {
-        const indexA = categoryOrder.indexOf(a.name);
-        const indexB = categoryOrder.indexOf(b.name);
-        return indexA - indexB;
-      });
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+        .select('id')
+        .eq('name', categoryName)
+        .maybeSingle();
+      if (!cat) return [];
 
-  const { data: categoryData, isLoading: categoryLoading } = useQuery({
-    queryKey: ['category', categoryId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_categories')
-        .select('*')
-        .eq('name', categoryId)
-        .single();
-        
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!categoryId,
-  });
-
-  const { data: serviceTypes = [], isLoading: serviceTypesLoading } = useQuery({
-    queryKey: ['service-types', categoryData?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
+      // 2. Get service_type ids for this category
+      const { data: sTypes } = await db
         .from('service_types')
-        .select('*')
-        .eq('category_id', categoryData.id);
+        .select('id, name')
+        .eq('category_id', cat.id);
+      if (!sTypes?.length) return [];
 
+      const stMap = new Map(sTypes.map((s: any) => [s.id, s.name]));
+      const stIds = sTypes.map((s: any) => s.id);
+
+      // 3. Get active listings for those service types
+      const { data: listings, error } = await db
+        .from('listings')
+        .select('id, provider_id, title, description, base_price, currency, duration, service_type_id')
+        .in('service_type_id', stIds)
+        .eq('is_active', true);
       if (error) throw error;
+      if (!listings?.length) return [];
 
-      // Deduplicate by name — keep the first occurrence of each unique name
-      const seen = new Set<string>();
-      return (data || []).filter((st: any) => {
-        if (seen.has(st.name)) return false;
-        seen.add(st.name);
-        return true;
+      // 4. Get provider profiles
+      const providerIds = [...new Set(listings.map((l: any) => l.provider_id))];
+      const { data: providers } = await db
+        .from('provider_public_profiles')
+        .select('id, name, avatar_url, average_rating')
+        .in('id', providerIds);
+      const pMap = new Map((providers || []).map((p: any) => [p.id, p]));
+
+      return listings.map((l: any) => {
+        const p = pMap.get(l.provider_id) as any;
+        return {
+          listingId: l.id,
+          providerId: l.provider_id,
+          providerName: p?.name ?? 'Proveedor',
+          providerAvatar: p?.avatar_url ?? null,
+          providerRating: p?.average_rating != null ? Number(p.average_rating) : null,
+          listingTitle: l.title,
+          serviceTypeName: stMap.get(l.service_type_id) ?? l.title,
+          basePrice: l.base_price,
+          currency: l.currency ?? 'CRC',
+          duration: l.duration ?? 60,
+          description: l.description ?? '',
+        };
       });
     },
-    enabled: !!categoryData?.id,
   });
+};
 
-  // Ordenar service types dinámicamente
-  const sortedServiceTypes = useMemo(() => {
-    if (!serviceTypes.length) return [];
-    
-    // Si la categoría no debe reordenarse, devolver tal cual
-    if (categoriesWithoutReorder.includes(categoryId || '')) {
-      return serviceTypes;
-    }
-
-    // Obtener el orden preferido para esta categoría
-    const preferredOrder = serviceTypeOrderByCategory[categoryId || ''] || [];
-
-    // Separar service types con y sin providers
-    const withProviders = serviceTypes.filter(st => availableServiceTypeIds.has(st.id));
-    const withoutProviders = serviceTypes.filter(st => !availableServiceTypeIds.has(st.id));
-
-    // Ordenar los que tienen providers según el orden preferido
-    const orderedWithProviders = [...withProviders].sort((a, b) => {
-      const indexA = preferredOrder.findIndex(name => 
-        a.name.toLowerCase().includes(name.toLowerCase()) || 
-        name.toLowerCase().includes(a.name.toLowerCase())
-      );
-      const indexB = preferredOrder.findIndex(name => 
-        b.name.toLowerCase().includes(name.toLowerCase()) || 
-        name.toLowerCase().includes(b.name.toLowerCase())
-      );
-
-      // Si ambos están en el orden preferido
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      // Si solo uno está en el orden preferido, ponerlo primero
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      // Si ninguno está, ordenar alfabéticamente
-      return a.name.localeCompare(b.name);
-    });
-
-    // Ordenar los sin providers alfabéticamente
-    const orderedWithoutProviders = [...withoutProviders].sort((a, b) => 
-      a.name.localeCompare(b.name)
-    );
-
-    return [...orderedWithProviders, ...orderedWithoutProviders];
-  }, [serviceTypes, availableServiceTypeIds, categoryId]);
-
-  const isLoading = categoryLoading || serviceTypesLoading || availabilityLoading;
-
-  if (isLoading) {
-    return <CategoryDetailsLoading />;
-  }
-
-  const categoryLabel = categoryLabels[categoryId || ''] || categoryData?.label || categoryId;
-
-  // Mobile layout with hero header
-  if (isMobile) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen bg-[#FAFAFA] pb-20">
-          {/* Hero Header with gradient */}
-          <CategoryHeroHeader
-            categoryId={categoryId || ''}
-            categoryLabel={categoryLabel}
-            allCategories={allCategories}
-          />
-          
-          {/* Service Types Grid */}
-          <div className="p-4 pt-4">
-            {sortedServiceTypes.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  No hay tipos de servicio disponibles para esta categoría.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {sortedServiceTypes.map((serviceType) => (
-                  <ServiceTypeCard
-                    key={serviceType.id}
-                    serviceType={serviceType}
-                    categoryId={categoryId || ''}
-                    categoryLabel={categoryLabel}
-                    hasProviders={availableServiceTypeIds.has(serviceType.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+const ProviderCard = ({ p, onClick }: { p: ProviderListing; onClick: () => void }) => (
+  <Card
+    className="flex items-center gap-3 p-3 cursor-pointer hover:shadow-md transition-shadow"
+    onClick={onClick}
+  >
+    {/* Avatar */}
+    <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0 flex items-center justify-center">
+      {p.providerAvatar ? (
+        <img src={p.providerAvatar} alt={p.providerName} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/10">
+          <span className="text-lg font-bold text-primary/70">{getInitials(p.providerName)}</span>
         </div>
-      </>
-    );
-  }
+      )}
+    </div>
 
-  // Desktop layout (unchanged)
-  return (
-    <ClientPageLayout>
-      <div className="space-y-6">
-        {/* Centered title */}
-        <div className="text-center">
-          <h1 className="text-3xl font-semibold text-[#2D2D2D]">
-            {categoryLabel}
-          </h1>
-        </div>
-        
-        {sortedServiceTypes.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              No hay tipos de servicio disponibles para esta categoría.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {sortedServiceTypes.map((serviceType) => (
-              <ServiceTypeCard
-                key={serviceType.id}
-                serviceType={serviceType}
-                categoryId={categoryId || ''}
-                categoryLabel={categoryLabel}
-                hasProviders={availableServiceTypeIds.has(serviceType.id)}
-              />
-            ))}
+    {/* Info */}
+    <div className="flex-1 min-w-0">
+      <p className="font-semibold text-sm truncate">{p.providerName}</p>
+      <p className="text-xs text-muted-foreground truncate">{p.serviceTypeName}</p>
+      <div className="flex items-center gap-3 mt-1">
+        {p.providerRating != null && (
+          <div className="flex items-center gap-0.5">
+            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+            <span className="text-xs text-muted-foreground">{p.providerRating.toFixed(1)}</span>
           </div>
         )}
+        <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          <span>{p.duration} min</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Price */}
+    <div className="shrink-0 text-right">
+      <p className="text-sm font-semibold text-primary">
+        {formatCurrency(p.basePrice, p.currency as any)}
+      </p>
+    </div>
+  </Card>
+);
+
+const ClientCategoryDetails = () => {
+  const { categoryId } = useParams<{ categoryId: string }>();
+  const navigate = useNavigate();
+  const { data: providers = [], isLoading } = useProvidersByCategory(categoryId ?? '');
+  const label = categoryLabels[categoryId ?? ''] ?? categoryId ?? '';
+
+  return (
+    <ClientPageLayout
+      title={label}
+      subtitle={
+        isLoading ? '' :
+        providers.length > 0 ? `${providers.length} proveedor${providers.length !== 1 ? 'es' : ''}` :
+        'Sin proveedores disponibles'
+      }
+    >
+      {/* Back button */}
+      <button
+        onClick={() => navigate('/client/categories')}
+        className="flex items-center gap-1 text-sm text-muted-foreground mb-4 hover:text-foreground transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Todas las categorías
+      </button>
+
+      <div className="space-y-3">
+        {isLoading && (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          ))
+        )}
+
+        {!isLoading && providers.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground mb-2">No hay proveedores disponibles</p>
+            <p className="text-sm text-muted-foreground">Próximamente habrá proveedores en esta categoría.</p>
+          </div>
+        )}
+
+        {!isLoading && providers.map(p => (
+          <ProviderCard
+            key={p.listingId}
+            p={p}
+            onClick={() => navigate(`/client/service/${p.providerId}/${p.listingId}`)}
+          />
+        ))}
       </div>
     </ClientPageLayout>
   );
