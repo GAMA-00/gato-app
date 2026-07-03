@@ -149,6 +149,7 @@ export default function ClientBooking() {
 
       // Invalidar cache de reservas para que se muestre el nuevo appointment
       await queryClient.invalidateQueries({ queryKey: ["client-appointments-direct"] });
+      await queryClient.invalidateQueries({ queryKey: ["client-appointments-count"] });
 
       toast.success("¡Solicitud enviada!");
       setStep("done");

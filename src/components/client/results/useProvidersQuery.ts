@@ -184,10 +184,8 @@ export const useProvidersQuery = (serviceId: string, categoryName: string) => {
       return processedProviders;
     },
     enabled: !!serviceId,
-    staleTime: 0, // Force refetch to get updated avatar URLs
-    gcTime: 0, // Don't cache at all to force fresh data
-    refetchOnWindowFocus: true, // Refetch when window is focused
-    refetchOnMount: true, // Always refetch on mount
-    refetchInterval: false // Don't auto-refetch
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 };

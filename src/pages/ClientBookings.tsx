@@ -67,6 +67,7 @@ function AppointmentCard({ appt }: { appt: ClientAppointment }) {
       if (error) throw error;
       toast.success('Cita cancelada');
       queryClient.invalidateQueries({ queryKey: ['client-appointments-direct'] });
+      queryClient.invalidateQueries({ queryKey: ['client-appointments-count'] });
     } catch (e: any) {
       toast.error(e?.message ?? 'Error al cancelar');
     } finally {
