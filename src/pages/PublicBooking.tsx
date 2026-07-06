@@ -22,6 +22,7 @@ import {
   type PublicListing,
 } from "@/hooks/usePublicProvider";
 import { usePublicSlots, groupSlotsByDay, filterConsecutiveSlots, type PublicSlot } from "@/hooks/usePublicSlots";
+import ZoneSurchargeNotice from "@/components/booking/ZoneSurchargeNotice";
 import {
   usePublicProximity,
   applyProximityDiscount,
@@ -660,6 +661,11 @@ function DateTimeStep({
                   ⭐ Horario recomendado — el proveedor ya estará en tu zona.
                 </p>
               )}
+              <ZoneSurchargeNotice
+                providerId={providerId}
+                dayKey={day}
+                surchargePct={Math.max(0, ...slotsForDay(day).map((s) => s.transport_surcharge_pct ?? 0))}
+              />
             </div>
           ) : (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
