@@ -394,6 +394,11 @@ function DateTimeStep({
               <p className="text-sm font-medium">
                 {formatInTimeZone(keyToDate(day), TZ, "EEEE d 'de' LLLL", { locale: es })}
               </p>
+              <ZoneSurchargeNotice
+                providerId={providerId}
+                dayKey={day}
+                surchargePct={Math.max(0, ...slotsForDay(day).map((s) => s.transport_surcharge_pct ?? 0))}
+              />
               <div className="grid grid-cols-3 gap-2">
                 {slotsForDay(day).map((s) => {
                   const rec = isRec(s);
@@ -431,11 +436,6 @@ function DateTimeStep({
                   ⭐ Horario recomendado — el proveedor ya estará en tu zona.
                 </p>
               )}
-              <ZoneSurchargeNotice
-                providerId={providerId}
-                dayKey={day}
-                surchargePct={Math.max(0, ...slotsForDay(day).map((s) => s.transport_surcharge_pct ?? 0))}
-              />
             </div>
           ) : (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
