@@ -29,7 +29,6 @@ export default function RoutesSection() {
 
   // Filter editor state
   const [editingDay, setEditingDay] = useState<number | null>(null);
-  const [selectedProvIds, setSelectedProvIds] = useState<number[]>([]);
   const [expandedProv, setExpandedProv] = useState<number | null>(null);
   const [selectedCantonIds, setSelectedCantonIds] = useState<number[]>([]);
   const [surchargePct, setSurchargePct] = useState<string>("");
@@ -42,7 +41,6 @@ export default function RoutesSection() {
     const legacyProvCantons = (existing?.province_ids ?? []).flatMap((pid) =>
       cantonesAll.filter((c: any) => c.provincia_id === pid).map((c: any) => c.id)
     );
-    setSelectedProvIds([]);
     setSelectedCantonIds([...new Set([...(existing?.canton_ids ?? []), ...legacyProvCantons])]);
     setSurchargePct(existing?.transport_surcharge_pct ? String(existing.transport_surcharge_pct) : "");
     setExpandedProv(null);

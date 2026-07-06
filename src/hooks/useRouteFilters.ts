@@ -116,13 +116,3 @@ export async function getTransportSurcharge(
   // Cliente fuera de zona → recargo
   return surchargePct;
 }
-
-/** @deprecated Usar getTransportSurcharge. Mantenido para compatibilidad. */
-export async function checkRouteFilterAllowed(
-  providerId: string,
-  cantonId: number,
-  date: Date
-): Promise<boolean> {
-  const surcharge = await getTransportSurcharge(providerId, cantonId, date);
-  return surcharge === 0;
-}
