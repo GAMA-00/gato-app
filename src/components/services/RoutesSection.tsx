@@ -38,8 +38,12 @@ export default function RoutesSection() {
 
   const openEditor = (day: number) => {
     const existing = filters.find((f) => f.day_of_week === day);
-    setSelectedProvIds(existing?.province_ids ?? []);
-    setSelectedCantonIds(existing?.canton_ids ?? []);
+    // Legacy: expandir provincias guardadas a sus cantones (el filtro opera a nivel de cantón)
+    const legacyProvCantons = (existing?.province_ids ?? []).flatMap((pid) =>
+      cantonesAll.filter((c: any) => c.provincia_id === pid).map((c: any) => c.id)
+    );
+    setSelectedProvIds([]);
+    setSelectedCantonIds([...new Set([...(existing?.canton_ids ?? []), ...legacyProvCantons])]);
     setSurchargePct(existing?.transport_surcharge_pct ? String(existing.transport_surcharge_pct) : "");
     setExpandedProv(null);
     setEditingDay(day);
@@ -50,7 +54,7 @@ export default function RoutesSection() {
     const pct = Math.min(100, Math.max(0, Number(surchargePct) || 0));
     await saveFilter.mutateAsync({
       day_of_week: editingDay,
-      province_ids: selectedProvIds,
+      province_ids: [], // el filtro opera a nivel de cantón; provincia = atajo de selección
       canton_ids: selectedCantonIds,
       transport_surcharge_pct: pct,
     });
@@ -63,9 +67,16 @@ export default function RoutesSection() {
     toast.success(`Filtro eliminado para ${DAY_LABELS[day]}`);
   };
 
+  // Checkbox de provincia = atajo para (de)seleccionar todos sus cantones
   const toggleProv = (pid: number) => {
-    setSelectedProvIds((prev) =>
-      prev.includes(pid) ? prev.filter((x) => x !== pid) : [...prev, pid]
+    const provCantonIds = cantonesAll
+      .filter((c: any) => c.provincia_id === pid)
+      .map((c: any) => c.id);
+    const allSelected = provCantonIds.every((id: number) => selectedCantonIds.includes(id));
+    setSelectedCantonIds((prev) =>
+      allSelected
+        ? prev.filter((id) => !provCantonIds.includes(id))
+        : [...new Set([...prev, ...provCantonIds])]
     );
   };
 
@@ -227,7 +238,9 @@ export default function RoutesSection() {
               <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                 {provincias.map((prov: any) => {
                   const cantones = cantonesOfProv(prov.id);
-                  const isProvSelected = selectedProvIds.includes(prov.id);
+                  const isProvSelected =
+                    cantones.length > 0 &&
+                    cantones.every((c: any) => selectedCantonIds.includes(c.id));
                   const expanded = expandedProv === prov.id;
 
                   return (

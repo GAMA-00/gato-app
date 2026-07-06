@@ -103,24 +103,15 @@ export async function getTransportSurcharge(
   // Sin filtro para ese día → sin recargo
   if (!dayFilter) return 0;
 
+  // Nivel de cantón únicamente: solo los cantones explícitamente asignados quedan exentos.
   const allowedCantons: number[] = Array.isArray(dayFilter.canton_ids) ? dayFilter.canton_ids : [];
-  const allowedProvinces: number[] = Array.isArray(dayFilter.province_ids) ? dayFilter.province_ids : [];
   const surchargePct: number = dayFilter.transport_surcharge_pct ?? 0;
 
-  // Sin restricciones → sin recargo
-  if (allowedCantons.length === 0 && allowedProvinces.length === 0) return 0;
+  // Sin cantones asignados → sin recargo (filtro sin restricciones)
+  if (allowedCantons.length === 0) return 0;
 
-  // Cliente en zona permitida → sin recargo
+  // Cliente en un cantón asignado → sin recargo
   if (allowedCantons.includes(cantonId)) return 0;
-
-  if (allowedProvinces.length > 0) {
-    const { data: cantonData } = await db
-      .from("cantones")
-      .select("provincia_id")
-      .eq("id", cantonId)
-      .maybeSingle();
-    if (cantonData && allowedProvinces.includes(cantonData.provincia_id)) return 0;
-  }
 
   // Cliente fuera de zona → recargo
   return surchargePct;
