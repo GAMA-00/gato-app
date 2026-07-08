@@ -243,6 +243,59 @@ export type Database = {
           },
         ]
       }
+      blocked_slots: {
+        Row: {
+          created_at: string
+          id: string
+          provider_id: string
+          slot_date: string
+          slot_time: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          provider_id: string
+          slot_date: string
+          slot_time: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          provider_id?: string
+          slot_date?: string
+          slot_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_slots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cancellation_policies: {
         Row: {
           created_at: string
@@ -1906,6 +1959,7 @@ export type Database = {
         Row: {
           about_me: string | null
           address: string | null
+          auth_provider: string | null
           avatar_url: string | null
           average_rating: number | null
           certification_files: Json | null
@@ -1928,6 +1982,7 @@ export type Database = {
         Insert: {
           about_me?: string | null
           address?: string | null
+          auth_provider?: string | null
           avatar_url?: string | null
           average_rating?: number | null
           certification_files?: Json | null
@@ -1950,6 +2005,7 @@ export type Database = {
         Update: {
           about_me?: string | null
           address?: string | null
+          auth_provider?: string | null
           avatar_url?: string | null
           average_rating?: number | null
           certification_files?: Json | null
@@ -2405,6 +2461,27 @@ export type Database = {
           completed_jobs_count: number
           recurring_clients_count: number
           total_ratings: number
+        }[]
+      }
+      get_provider_by_name: {
+        Args: { p_name: string }
+        Returns: {
+          about_me: string
+          avatar_url: string
+          average_rating: number
+          email: string
+          experience_years: number
+          id: string
+          name: string
+          phone: string
+        }[]
+      }
+      get_provider_day_busy: {
+        Args: { p_date: string; p_provider_id: string }
+        Returns: {
+          end_time: string
+          source: string
+          start_time: string
         }[]
       }
       get_provider_listing: { Args: { p_provider_id: string }; Returns: string }

@@ -25,6 +25,7 @@ const PublicRoutes = () => {
     <Route key="register-provider" path="/register-provider" element={<ProviderRegister />} />,
     <Route key="forgot-password" path="/forgot-password" element={<ForgotPassword />} />,
     <Route key="reset-password" path="/reset-password" element={<ResetPassword />} />,
+    <Route key="complete-profile" path="/complete-profile" element={<CompleteProfile />} />,
     <Route 
       key="profile" 
       path="/profile" 

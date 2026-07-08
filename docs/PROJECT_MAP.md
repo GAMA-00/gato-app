@@ -24,6 +24,7 @@ de su negocio. El cliente reserva solo desde un **booking link público**
 | **Mensajería** | WhatsApp Business Cloud API (canal único al cliente) |
 | **Pagos** | OnvoPay (presente, **oculto en v1** — "sin pagos en v1") |
 | **Despliegue** | Lovable Cloud |
+| **Timezone** | America/Mexico_City (UTC-6) |
 
 ### Los 4 pilares del v1
 1. **Agenda ordenada** — booking link + slots + buffer + solicitudes.
@@ -36,42 +37,60 @@ de su negocio. El cliente reserva solo desde un **booking link público**
 ## 🏗️ Arquitectura de Alto Nivel
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                         │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
-│  │  Pages   │  │Components│  │  Hooks   │  │    Contexts      │ │
-│  │ (Rutas)  │  │   (UI)   │  │ (Lógica) │  │ (Estado Global)  │ │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      SUPABASE BACKEND                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │  PostgreSQL  │  │ Edge Functions│  │   Auth + Storage     │  │
-│  │  (Database)  │  │   (Deno)     │  │   (Usuarios/Archivos) │  │
-│  └──────────────┘  └──────────────┘  └───────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SERVICIOS EXTERNOS                           │
-│  ┌──────────────┐  ┌──────────────┐                             │
-│  │   OnvoPay    │  │    Resend    │                             │
-│  │   (Pagos)    │  │   (Emails)   │                             │
-│  └──────────────┘  └──────────────┘                             │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        FRONTEND (React + Vite)                       │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌───────────────┐  │
+│  │   Pages    │  │ Components │  │   Hooks    │  │   Contexts    │  │
+│  │  (35+)     │  │  (20+ dirs)│  │   (55+)    │  │ (Auth/Theme)  │  │
+│  └────────────┘  └────────────┘  └────────────┘  └───────────────┘  │
+│                                                                       │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐                      │
+│  │   Types    │  │  Services  │  │   Utils    │                      │
+│  │ (Central)  │  │  (API)     │  │ (Helpers)  │                      │
+│  └────────────┘  └────────────┘  └────────────┘                      │
+└───────────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                      SUPABASE BACKEND                                  │
+│  ┌────────────────┐  ┌────────────────┐  ┌─────────────────────────┐  │
+│  │   PostgreSQL   │  │ Edge Functions │  │   Auth + Storage        │  │
+│  │   (25+ tablas) │  │   (25+ funcs)  │  │   (JWT + Buckets)       │  │
+│  │   + RLS        │  │   (Deno)       │  │                         │  │
+│  └────────────────┘  └────────────────┘  └─────────────────────────┘  │
+└───────────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                    SERVICIOS EXTERNOS                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │
+│  │   OnvoPay    │  │    Resend    │  │   Storage    │                 │
+│  │   (Pagos)    │  │   (Emails)   │  │   (Assets)   │                 │
+│  └──────────────┘  └──────────────┘  └──────────────┘                 │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 👥 Roles de Usuario
 
-| Rol | Descripción | Permisos Clave |
-|-----|-------------|----------------|
-| **Client** | Usuario que reserva servicios | Ver servicios, reservar, pagar, calificar |
-| **Provider** | Proveedor de servicios | Crear listings, gestionar citas, recibir pagos |
-| **Admin** | Administrador de plataforma | Ver todo, gestionar usuarios, métricas |
+| Rol | Descripción | Acceso Principal |
+|-----|-------------|------------------|
+| **Client** | Usuario que reserva servicios | `/client/*`, checkout, bookings |
+| **Provider** | Proveedor que ofrece servicios | `/dashboard`, `/services`, `/calendar` |
+| **Admin** | Administrador de plataforma | `/admin/*`, métricas, gestión |
+
+### Flujo de Roles
+
+```
+Registro → Selección de rol → Configuración inicial → Dashboard específico
+                ↓
+    ┌───────────────────────────────────────┐
+    │ Client: Residencia + Condominio       │
+    │ Provider: Servicios + Disponibilidad  │
+    │ Admin: Acceso completo                │
+    └───────────────────────────────────────┘
+```
 
 ---
 
@@ -79,28 +98,41 @@ de su negocio. El cliente reserva solo desde un **booking link público**
 
 ```
 gato-app/
-├── docs/                    # 📚 Documentación DOE
-│   ├── PROJECT_MAP.md       # Este archivo
-│   ├── FRONTEND_MAP.md      # Mapa del frontend
-│   ├── BACKEND_MAP.md       # Mapa del backend
-│   └── skills/              # Skills para IA
+├── docs/                         # 📚 Documentación DOE
+│   ├── INDEX.md                  # Índice maestro
+│   ├── PROJECT_MAP.md            # Este archivo
+│   ├── FRONTEND_MAP.md           # Arquitectura frontend
+│   ├── BACKEND_MAP.md            # Edge Functions + DB
+│   ├── GLOSSARY.md               # Glosario de términos
+│   │
+│   └── skills/                   # 🛠️ Guías accionables
+│       ├── SKILL_NEW_FEATURE.md
+│       ├── SKILL_NEW_EDGE_FUNCTION.md
+│       ├── SKILL_DATABASE_MIGRATION.md
+│       ├── SKILL_DEBUG_PAYMENTS.md
+│       ├── SKILL_RECURRING_APPOINTMENTS.md
+│       ├── SKILL_MODIFY_UI.md
+│       ├── SKILL_DESIGN_SYSTEM.md      # ← NUEVO
+│       ├── SKILL_UI_PATTERNS.md        # ← NUEVO
+│       └── SKILL_COMPONENT_STYLING.md  # ← NUEVO
 │
-├── src/                     # 🎨 Código Frontend
-│   ├── components/          # Componentes React
-│   ├── pages/               # Páginas/Rutas
-│   ├── hooks/               # Custom hooks
-│   ├── contexts/            # Contextos React
-│   ├── services/            # Servicios/API calls
-│   ├── types/               # TypeScript types
-│   ├── utils/               # Utilidades
-│   ├── lib/                 # Librerías compartidas
-│   └── constants/           # Constantes
+├── src/                          # 🎨 Frontend
+│   ├── components/               # Componentes por dominio (20+ dirs)
+│   ├── pages/                    # Páginas/Rutas (35+ archivos)
+│   ├── hooks/                    # Custom hooks (55+ hooks)
+│   ├── contexts/                 # React Contexts (auth/)
+│   ├── types/                    # TypeScript types centralizados
+│   ├── services/                 # API calls organizados
+│   ├── utils/                    # Funciones utilitarias
+│   ├── lib/                      # Librerías compartidas
+│   ├── constants/                # Constantes de app
+│   └── integrations/             # Supabase client + types
 │
-├── supabase/                # ⚡ Backend Supabase
-│   ├── functions/           # Edge Functions (Deno)
-│   └── migrations/          # Migraciones SQL
+├── supabase/                     # ⚡ Backend
+│   ├── functions/                # Edge Functions (25+)
+│   └── migrations/               # Migraciones SQL
 │
-└── public/                  # 📦 Assets estáticos
+└── public/                       # 📦 Assets estáticos
 ```
 
 ---
@@ -125,20 +157,53 @@ gato-app/
 ### 2. Flujo de Gestión (Proveedor)
 
 ```
-1. Login → /provider/login
-2. Dashboard → /dashboard
-3. Gestionar servicios → /services
-4. Ver calendario → /calendar
-5. Procesar citas → Aprobar/Rechazar/Completar
+Cliente reserva (sin pago) → Proveedor acepta
+    │
+    ▼
+Servicio ejecutado → Proveedor marca completado
+    │
+    ▼
+onvopay-charge-post-payment → Cobro automático
+    │
+    ▼
+Factura generada
 ```
 
-### 3. Flujo de Pagos
+### 3. Reserva Recurrente
 
 ```
-1. Cliente inicia pago → onvopay-authorize
-2. Pago autorizado → onvopay-confirm
-3. Proveedor acepta cita → onvopay-capture
-4. Servicio completado → Factura generada
+Primera reserva → onvopay-initiate-recurring
+    │
+    ▼
+Crear recurring_rule → onvopay-create-subscription
+    │
+    ▼
+onvopay-create-loop → Loop en OnvoPay
+    │
+    ▼
+Cobros automáticos cada ciclo (semanal/mensual)
+    │
+    ├─→ Instancia generada automáticamente
+    ├─→ Proveedor recibe notificación
+    └─→ Cliente puede saltar/reagendar
+```
+
+### 4. Generación de Slots
+
+```
+Proveedor configura disponibilidad (provider_availability)
+    │
+    ▼
+generate_provider_time_slots_for_listing()
+    │
+    ▼
+Slots generados 60 días adelante (timezone: America/Mexico_City)
+    │
+    ▼
+Cliente ve slots disponibles → Reserva
+    │
+    ▼
+Slot marcado como is_reserved = true
 ```
 
 ---
@@ -167,17 +232,50 @@ gato-app/
 
 ---
 
-## 🔗 Enlaces Útiles
+## 🔗 URLs del Proyecto
 
-- **Preview**: https://id-preview--d441b09c-5b37-4117-9726-bc80bbe1b056.lovable.app
-- **Production**: https://gato-app.lovable.app
-- **Supabase Dashboard**: (requiere acceso)
+| Ambiente | URL |
+|----------|-----|
+| Preview | https://id-preview--d441b09c-5b37-4117-9726-bc80bbe1b056.lovable.app |
+| Production | https://gato-app.lovable.app |
+| Supabase | jckynopecuexfamepmoh.supabase.co |
 
 ---
 
-## 📝 TODOs Pendientes
+## 📝 Convenciones
 
-- [ ] TODO: Agregar diagrama de base de datos completo
-- [ ] TODO: Documentar variables de entorno
-- [ ] TODO: Agregar guía de contribución
-- [ ] TODO: Documentar proceso de deployment
+### Naming
+
+| Tipo | Convención | Ejemplo |
+|------|------------|---------|
+| Componentes | PascalCase | `BookingCard.tsx` |
+| Hooks | camelCase + use | `useAppointments.ts` |
+| Páginas | PascalCase | `ClientBookings.tsx` |
+| Types | PascalCase | `AppointmentStatus` |
+| Edge Functions | kebab-case | `onvopay-capture` |
+| Tablas DB | snake_case | `provider_time_slots` |
+
+### Git
+
+- Commits en español
+- Mensajes descriptivos
+- Branches: `feature/`, `fix/`, `hotfix/`
+
+---
+
+## 🚀 Quick Start para IA
+
+### Para implementar feature nueva:
+1. Leer `PROJECT_MAP.md` (este archivo)
+2. Leer `FRONTEND_MAP.md` o `BACKEND_MAP.md`
+3. Seguir skill correspondiente en `docs/skills/`
+
+### Para debug:
+1. Identificar área (payments, appointments, slots)
+2. Leer skill de debug relevante
+3. Usar queries SQL proporcionadas
+
+### Para modificar UI:
+1. Leer `SKILL_DESIGN_SYSTEM.md`
+2. Verificar tokens en `index.css`
+3. NO cambiar lógica de negocio
