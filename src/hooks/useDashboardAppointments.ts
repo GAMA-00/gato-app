@@ -70,8 +70,8 @@ export const useDashboardAppointments = () => {
         try {
           if (!app || app.status === 'cancelled' || app.status === 'rejected') return;
           
-          // CRITICAL: Use same status filter as unified system
-          if (!['pending', 'confirmed', 'completed'].includes(app.status)) {
+          // Only show confirmed/completed appointments in today/tomorrow lists
+          if (!['confirmed', 'completed'].includes(app.status)) {
             console.log(`Skipping appointment ${app.id} with status: ${app.status}`);
             return;
           }

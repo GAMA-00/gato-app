@@ -19,30 +19,11 @@ export interface RecommendedListing {
   } | null;
 }
 
-// Service types to search for recommendations
-const RECOMMENDED_SERVICE_PATTERNS = ['chef', 'manicur', 'tutor', 'flor'];
-
 export const useRecommendedListings = () => {
   return useQuery({
     queryKey: ['recommended-listings'],
     queryFn: async (): Promise<RecommendedListing[]> => {
-      // Build OR conditions for service type names
-      const orConditions = RECOMMENDED_SERVICE_PATTERNS
-        .map(pattern => `name.ilike.%${pattern}%`)
-        .join(',');
-
-      // First get matching service type IDs
-      const { data: serviceTypes, error: stError } = await supabase
-        .from('service_types')
-        .select('id, name')
-        .or(orConditions);
-
-      if (stError) throw stError;
-      if (!serviceTypes?.length) return [];
-
-      const serviceTypeIds = serviceTypes.map(st => st.id);
-
-      // Now fetch active listings for these service types
+      // Fetch any active listings (no pattern filter — show real catalog)
       const { data: listings, error: listingsError } = await supabase
         .from('listings')
         .select(`
@@ -55,21 +36,27 @@ export const useRecommendedListings = () => {
           provider_id
         `)
         .eq('is_active', true)
-        .in('service_type_id', serviceTypeIds)
         .limit(10);
 
       if (listingsError) throw listingsError;
       if (!listings?.length) return [];
 
-      // Get provider info from public view (bypasses RLS restrictions on users table)
+      // Provider info from public view
       const providerIds = [...new Set(listings.map(l => l.provider_id))];
       const { data: providers } = await supabase
         .from('provider_public_profiles')
         .select('id, name, avatar_url, average_rating')
         .in('id', providerIds);
 
+      // Service type names
+      const serviceTypeIds = [...new Set(listings.map(l => l.service_type_id).filter(Boolean))];
+      const { data: serviceTypes } = await supabase
+        .from('service_types')
+        .select('id, name')
+        .in('id', serviceTypeIds);
+
       const providersMap = new Map(providers?.map(p => [p.id, p]) || []);
-      const serviceTypesMap = new Map(serviceTypes.map(st => [st.id, st]));
+      const serviceTypesMap = new Map(serviceTypes?.map(st => [st.id, st]) || []);
 
       return listings.map(listing => ({
         id: listing.id,
@@ -81,7 +68,7 @@ export const useRecommendedListings = () => {
         service_type: serviceTypesMap.get(listing.service_type_id) || null,
       }));
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 };

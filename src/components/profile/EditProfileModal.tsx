@@ -26,11 +26,10 @@ import { Button } from '@/components/ui/button';
 import UnifiedAvatar from '@/components/ui/unified-avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Upload, Key } from 'lucide-react';
+import { Upload, Key, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import PasswordChangeModal from './PasswordChangeModal';
-import ClientResidenceField from '@/components/auth/ClientResidenceField';
-import { useResidencias } from '@/hooks/useResidencias';
+import { COVER_THEMES } from '@/utils/coverThemes';
 
 const clientProfileSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
@@ -39,10 +38,6 @@ const clientProfileSchema = z.object({
     .length(12, 'El número debe tener exactamente 8 dígitos')
     .optional()
     .or(z.literal('')),
-  residenciaId: z.string().optional(),
-  condominiumId: z.string().optional(),
-  houseNumber: z.string().optional(),
-  condominiumText: z.string().optional(),
 });
 
 const providerProfileSchema = z.object({
@@ -66,10 +61,10 @@ interface EditProfileModalProps {
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { profile, invalidateProfile } = useUserProfile();
-  const { residencias, isLoading: loadingResidencias } = useResidencias();
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const [coverTheme, setCoverTheme] = useState<string>('coral');
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -81,10 +76,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     defaultValues: {
       name: '',
       phone: '',
-      residenciaId: '',
-      condominiumId: '',
-      houseNumber: '',
-      condominiumText: '',
     },
   });
 
@@ -114,14 +105,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
         clientForm.reset({
           name: profile.name || '',
           phone: profile.phone || '',
-          residenciaId: profile.residencia_id || '',
-          condominiumId: profile.condominium_id || '',
-          houseNumber: profile.house_number || '',
-          condominiumText: profile.condominium_text || profile.condominium_name || '',
         });
       }
 
       setAvatarPreview(profile.avatar_url || '');
+      setCoverTheme((profile as any).cover_theme || 'coral');
     }
   }, [profile, isProvider]);
 
@@ -171,92 +159,31 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     try {
       console.log('=== Starting profile update ===', values);
 
-      let avatarUrl = profile?.avatar_url || '';
-      
-      // Upload new avatar if changed
+      // Upload avatar solo si el usuario seleccionó un archivo nuevo
       if (avatarFile) {
-        console.log('Uploading new avatar with unified system...');
         try {
-          toast.info('📸 Subiendo imagen de perfil...');
-          
-          // Usar el sistema unificado como la galería
-          avatarUrl = await unifiedAvatarUpload(avatarFile, user.id);
-          console.log('✅ Avatar subido exitosamente:', avatarUrl);
-          
-          toast.success('✅ Imagen de perfil actualizada');
-          
-          // Invalidar cache de React Query en lugar de reload
-          invalidateProfile();
-          
+          toast.info('Subiendo imagen de perfil...');
+          await unifiedAvatarUpload(avatarFile, user.id);
+          // unifiedAvatarUpload ya actualiza users.avatar_url en la DB
+          toast.success('Imagen de perfil actualizada');
         } catch (error: any) {
-          console.error('Avatar upload failed:', error);
-          console.error('Error details:', JSON.stringify(error, null, 2));
-          
-          let errorMessage = 'Error desconocido al subir la imagen';
-          if (error?.message) {
-            errorMessage = error.message;
-          } else if (typeof error === 'string') {
-            errorMessage = error;
-          }
-          
-          toast.error(`Error al subir la imagen de perfil: ${errorMessage}`, { 
+          toast.error(`Error al subir la foto: ${error?.message ?? 'Error desconocido'}`, {
             duration: 8000,
-            description: 'Verifica tu conexión y que la imagen sea válida (JPG, PNG, WebP, máx 5MB)'
+            description: 'Verificá tu conexión y que la imagen sea JPG/PNG/WebP menor a 5 MB',
           });
-          
-          // No continuar si falla el avatar, ya que es lo principal que se está editando
           setIsLoading(false);
           return;
         }
       }
 
-      // Prepare update data
-      const updateData: any = {
-        name: values.name,
-        phone: values.phone || '',
-        avatar_url: avatarUrl,
-      };
-
-      // Add provider-specific fields
-      if (isProvider && 'aboutMe' in values) {
-        updateData.about_me = values.aboutMe || '';
-      }
-      
-      // Only clients have location data
-      if (!isProvider && 'residenciaId' in values) {
-        let resolvedCondominiumName = values.condominiumText || '';
-        
-        if (values.condominiumId && !resolvedCondominiumName) {
-          console.log('Resolving condominium name for ID:', values.condominiumId);
-          
-          if (values.condominiumId.startsWith('static-')) {
-            // Static condominium from predefined list
-            const condominiumNames = [
-              'El Carao', 'La Ceiba', 'Guayaquil', 'Ilang-Ilang', 'Nogal', 
-              'Guayacán Real', 'Cedro Alto', 'Roble Sabana', 'Alamo', 'Guaitil'
-            ];
-            const index = parseInt(values.condominiumId.replace('static-', ''));
-            if (index >= 0 && index < condominiumNames.length) {
-              resolvedCondominiumName = condominiumNames[index];
-            }
-          }
-          // v1: sin tabla condominiums — no se resuelve nombre desde BD.
-        }
-
-        updateData.residencia_id = values.residenciaId || null;
-        updateData.condominium_id = values.condominiumId || null;
-        updateData.house_number = values.houseNumber || '';
-        updateData.condominium_text = resolvedCondominiumName;
-        updateData.condominium_name = resolvedCondominiumName;
-      }
-
-      console.log('=== Updating user data ===', updateData);
-
-      // Update user profile
-      const { error } = await supabase
-        .from('users')
-        .update(updateData)
-        .eq('id', user.id);
+      // Actualizar perfil via RPC SECURITY DEFINER (bypasses RLS)
+      const db = supabase as any;
+      const { error } = await db.rpc('update_my_profile', {
+        p_name: values.name,
+        p_phone: values.phone || null,
+        p_about_me: isProvider && 'aboutMe' in values ? (values as any).aboutMe || null : null,
+        p_cover_theme: isProvider ? coverTheme : null,
+      });
 
       if (error) {
         console.error('Error updating profile:', error);
@@ -288,31 +215,97 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Avatar Section */}
-            <div className="flex items-center space-x-4">
-              <UnifiedAvatar
-                src={avatarPreview || profile?.avatar_url}
-                name={profile?.name || user.name || 'Usuario'}
-                size="xl"
-              />
-              <div>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => avatarInputRef.current?.click()}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Cambiar Foto
-                </Button>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
+            {/* Avatar + Cover preview */}
+            {isProvider && (
+              <div className="overflow-hidden rounded-xl border">
+                {/* Mini preview of booking link hero */}
+                <div className={`relative h-20 ${COVER_THEMES.find(t => t.id === coverTheme)?.gradient ?? COVER_THEMES[0].gradient}`}>
+                  <div className="absolute bottom-0 left-4 translate-y-1/2">
+                    <div className="relative h-14 w-14 overflow-hidden rounded-full ring-2 ring-background">
+                      {(avatarPreview || profile?.avatar_url) ? (
+                        <img src={avatarPreview || profile?.avatar_url!} alt="Foto de perfil" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-primary/10 text-lg font-bold text-primary">
+                          {(profile?.name || user.name || 'U').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="px-4 pb-4 pt-10">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Foto de perfil</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-3.5 w-3.5" />
+                    Cambiar foto
+                  </Button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Avatar simple para clientes */}
+            {!isProvider && (
+              <div className="flex items-center space-x-4">
+                <UnifiedAvatar
+                  src={avatarPreview || profile?.avatar_url}
+                  name={profile?.name || user.name || 'Usuario'}
+                  size="xl"
+                />
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Cambiar Foto
+                  </Button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Cover theme selector — solo proveedores */}
+            {isProvider && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Tema de portada</p>
+                <div className="flex gap-2 flex-wrap">
+                  {COVER_THEMES.map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => setCoverTheme(theme.id)}
+                      title={theme.label}
+                      className={`relative h-10 w-16 rounded-lg ${theme.gradient} transition-all ${coverTheme === theme.id ? 'ring-2 ring-offset-2 ring-foreground' : 'opacity-70 hover:opacity-100'}`}
+                    >
+                      {coverTheme === theme.id && (
+                        <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {COVER_THEMES.find(t => t.id === coverTheme)?.label}
+                </p>
+              </div>
+            )}
 
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -349,18 +342,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
               />
             </div>
 
-            {/* Location Info - SOLO PARA CLIENTES */}
-            {!isProvider && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Información de Ubicación</h3>
-                <ClientResidenceField
-                  residencias={residencias}
-                  isSubmitting={isLoading}
-                  loadingResidencias={loadingResidencias}
-                  form={form}
-                />
-              </div>
-            )}
 
             {/* Provider-specific fields */}
             {isProvider && (

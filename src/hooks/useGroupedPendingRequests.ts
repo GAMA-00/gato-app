@@ -12,6 +12,8 @@ interface GroupedRequest {
   client_phone: string | null;
   client_email: string | null;
   client_location: string;
+  client_lat?: number | null;
+  client_lng?: number | null;
   is_external: boolean;
   service_name: string;
   start_time: string;
@@ -153,6 +155,8 @@ export function useGroupedPendingRequests() {
             client_phone: app.client_phone,
             client_email: app.client_email,
             client_location: app.client_location,
+            client_lat: (app as any).client_lat,
+            client_lng: (app as any).client_lng,
             is_external: app.is_external,
             service_name: app.service_name,
             start_time: app.start_time,

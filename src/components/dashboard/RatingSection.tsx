@@ -58,7 +58,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ comments }) => {
                   <h4 className="font-medium">{comment.clientName}</h4>
                   <p className="text-xs text-muted-foreground">{comment.serviceName}</p>
                   {comment.servicePrice && (
-                    <p className="text-xs text-muted-foreground">${formatCurrency(comment.servicePrice)}</p>
+                    <p className="text-xs text-muted-foreground">{formatCurrency(comment.servicePrice)}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1">

@@ -63,7 +63,7 @@ export function CantonSelector({
           <SelectTrigger id="provincia-select" className="h-12 text-base">
             <SelectValue placeholder="Elegí tu provincia" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" side="bottom" sideOffset={4} avoidCollisions={false} className="max-h-[280px] overflow-y-auto">
             {provincias.map((p) => (
               <SelectItem key={p.id} value={String(p.id)}>
                 {p.nombre}
@@ -85,7 +85,7 @@ export function CantonSelector({
               placeholder={provinciaId ? "Elegí tu cantón" : "Primero elegí la provincia"}
             />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" side="bottom" sideOffset={4} avoidCollisions={false} className="max-h-[280px] overflow-y-auto">
             {cantones.map((c) => (
               <SelectItem key={c.id} value={String(c.id)}>
                 {c.nombre}

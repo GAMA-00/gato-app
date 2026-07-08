@@ -6,6 +6,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import Navbar from '@/components/layout/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useGroupedPendingRequests } from '@/hooks/useGroupedPendingRequests';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import ProviderDashboardHeader from './ProviderDashboardHeader';
 import ProviderStatsCards from './ProviderStatsCards';
 import ProviderDashboardTabs from './ProviderDashboardTabs';
@@ -29,13 +30,14 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const { data: groupedRequests = [], isLoading: isLoadingRequests } = useGroupedPendingRequests();
+  const { profile } = useUserProfile();
 
   const renderContent = () => {
     if (user?.role === 'provider') {
       return (
         <div className="space-y-6">
           {/* Header with logo and greeting */}
-          <ProviderDashboardHeader userName={user?.name || 'Proveedor'} />
+          <ProviderDashboardHeader userName={user?.name || 'Proveedor'} slug={(profile as any)?.slug} />
 
           {/* Tabs with Citas and Solicitudes */}
           <ProviderDashboardTabs

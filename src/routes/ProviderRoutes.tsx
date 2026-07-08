@@ -6,6 +6,7 @@ import Dashboard from '@/pages/Dashboard';
 import Services from '@/pages/Services';
 import ServiceCreate from '@/pages/ServiceCreate';
 import ServiceEdit from '@/pages/ServiceEdit';
+import ServiceCatalog from '@/pages/ServiceCatalog';
 import Calendar from '@/pages/Calendar';
 import Achievements from '@/pages/Achievements';
 import OnboardingProvider from '@/pages/OnboardingProvider';
@@ -55,6 +56,15 @@ const ProviderRoutes = () => {
       element={
         <RoleGuard allowedRole="provider">
           <ServiceEdit />
+        </RoleGuard>
+      }
+    />,
+    <Route
+      key="services-catalog"
+      path="/services/catalog/:id"
+      element={
+        <RoleGuard allowedRole="provider">
+          <ServiceCatalog />
         </RoleGuard>
       }
     />,

@@ -62,9 +62,9 @@ export const buildCompleteLocation = (data: CompleteLocationData, appointmentId?
     if (data.isExternal && data.clientAddress?.trim()) {
       finalLocation = data.clientAddress.trim();
     } else if (data.isExternal) {
-      finalLocation = 'Reserva Externa';
+      finalLocation = 'Sin detalles de ubicación';
     } else {
-      finalLocation = 'Residencia por confirmar';
+      finalLocation = 'Sin detalles de ubicación';
     }
   }
   

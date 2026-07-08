@@ -111,6 +111,7 @@ export const UnifiedAvailabilityProvider: React.FC<{ children: React.ReactNode }
     queryClient.invalidateQueries({ queryKey: ['provider_time_slots'] });
     queryClient.invalidateQueries({ queryKey: ['weekly-slots'] });
     queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    queryClient.invalidateQueries({ queryKey: ['agenda-week'] });
     queryClient.invalidateQueries({ queryKey: ['provider-profile'] });
     
     logger.info('Availability change notified - all related caches invalidated');

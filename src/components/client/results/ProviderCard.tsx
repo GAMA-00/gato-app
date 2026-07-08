@@ -205,7 +205,7 @@ const ProviderCard = ({ provider, onClick }: ProviderCardProps) => {
             </span>
             <span className="mx-1.5">·</span>
             <span className="font-semibold text-[#2D2D2D]">
-              {getCurrencySymbol(provider.currency || 'USD')}{provider.price.toLocaleString(provider.currency === 'CRC' ? 'es-CR' : 'en-US')}
+              {getCurrencySymbol(provider.currency || 'CRC')}{provider.price.toLocaleString('es-CR')}
             </span>
           </div>
           

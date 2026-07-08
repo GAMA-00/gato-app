@@ -13,6 +13,7 @@ import Profile from '@/pages/Profile';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import PublicBooking from '@/pages/PublicBooking';
+import CompleteProfile from '@/pages/CompleteProfile';
 
 const PublicRoutes = () => {
   return [
@@ -25,6 +26,7 @@ const PublicRoutes = () => {
     <Route key="register-provider" path="/register-provider" element={<ProviderRegister />} />,
     <Route key="forgot-password" path="/forgot-password" element={<ForgotPassword />} />,
     <Route key="reset-password" path="/reset-password" element={<ResetPassword />} />,
+    <Route key="complete-profile" path="/complete-profile" element={<CompleteProfile />} />,
     <Route 
       key="profile" 
       path="/profile" 

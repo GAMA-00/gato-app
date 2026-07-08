@@ -29,7 +29,6 @@ export const supabase = createClient<Database>(
     },
     global: {
       headers: {
-        'Content-Type': 'application/json',
         'X-Client-Info': 'lovable-app'
       }
     }

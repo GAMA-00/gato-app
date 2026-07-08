@@ -27,62 +27,43 @@ interface WeeklyAvailability {
   [key: string]: DayAvailability;
 }
 
+const EMPTY_WEEK: WeeklyAvailability = {
+  monday:    { enabled: false, timeSlots: [] },
+  tuesday:   { enabled: false, timeSlots: [] },
+  wednesday: { enabled: false, timeSlots: [] },
+  thursday:  { enabled: false, timeSlots: [] },
+  friday:    { enabled: false, timeSlots: [] },
+  saturday:  { enabled: false, timeSlots: [] },
+  sunday:    { enabled: false, timeSlots: [] },
+};
+
+const DAY_MAPPING: Record<string, number> = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+  thursday: 4, friday: 5, saturday: 6,
+};
+
 export const useProviderAvailability = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { notifyAvailabilityChange } = useAvailabilityContext();
   const { syncAvailabilityToListing, loadAvailabilityFromListing, notifyAvailabilityChange: unifiedNotify } = useUnifiedAvailability();
-  const [availability, setAvailability] = useState<WeeklyAvailability>({
-    monday: { enabled: false, timeSlots: [] },
-    tuesday: { enabled: false, timeSlots: [] },
-    wednesday: { enabled: false, timeSlots: [] },
-    thursday: { enabled: false, timeSlots: [] },
-    friday: { enabled: false, timeSlots: [] },
-    saturday: { enabled: false, timeSlots: [] },
-    sunday: { enabled: false, timeSlots: [] }
-  });
+
+  const [availability, setAvailability] = useState<WeeklyAvailability>({ ...EMPTY_WEEK });
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const dayMapping = {
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6
-  };
-
   const fetchAvailability = async () => {
     if (!user?.id) return;
-
     setIsLoading(true);
     try {
-      console.log('Cargando disponibilidad para proveedor:', user.id);
-      
-      // First try to load from listing (unified source)
+      // 1. Intentar cargar desde listing (fuente unificada)
       const listingAvailability = await loadAvailabilityFromListing();
-      
-      console.log('=== AVAILABILITY SETTINGS DEBUG ===');
-      console.log('Listing availability result:', listingAvailability);
-      console.log('Is listingAvailability truthy?', !!listingAvailability);
-      if (listingAvailability) {
-        console.log('Days with data:', Object.keys(listingAvailability));
-        console.log('Enabled days:', Object.values(listingAvailability).some(day => day.enabled));
-      }
-      console.log('=== END AVAILABILITY SETTINGS DEBUG ===');
-      
-      if (listingAvailability && Object.values(listingAvailability).some(day => day.enabled)) {
-        console.log('Disponibilidad cargada desde listing (unified source):', listingAvailability);
+      if (listingAvailability && Object.values(listingAvailability).some(d => d.enabled)) {
         setAvailability(listingAvailability);
-        setIsLoading(false);
         return;
       }
-      
-      console.log('No se encontró disponibilidad en unified source o está vacía, buscando en provider_availability...');
-      
-      // Fallback to provider_availability table
+
+      // 2. Fallback: provider_availability table
       const { data, error } = await supabase
         .from('provider_availability')
         .select('*')
@@ -96,62 +77,35 @@ export const useProviderAvailability = () => {
         return;
       }
 
-      console.log('Datos de provider_availability:', data);
-
-      const newAvailability: WeeklyAvailability = {
-        monday: { enabled: false, timeSlots: [] },
-        tuesday: { enabled: false, timeSlots: [] },
-        wednesday: { enabled: false, timeSlots: [] },
-        thursday: { enabled: false, timeSlots: [] },
-        friday: { enabled: false, timeSlots: [] },
-        saturday: { enabled: false, timeSlots: [] },
-        sunday: { enabled: false, timeSlots: [] }
-      };
-
       if (data && data.length > 0) {
-        console.log('Disponibilidad cargada:', data.length, 'slots encontrados');
-        
+        const parsed: WeeklyAvailability = { ...EMPTY_WEEK };
         data.forEach((slot: AvailabilitySlot) => {
-          const dayName = Object.keys(dayMapping).find(
-            key => dayMapping[key as keyof typeof dayMapping] === slot.day_of_week
+          const dayName = Object.keys(DAY_MAPPING).find(
+            k => DAY_MAPPING[k] === slot.day_of_week
           );
-          
           if (dayName) {
-            if (!newAvailability[dayName].enabled) {
-              newAvailability[dayName] = { enabled: true, timeSlots: [] };
-            }
-            
-            newAvailability[dayName].timeSlots.push({
+            if (!parsed[dayName].enabled) parsed[dayName] = { enabled: true, timeSlots: [] };
+            parsed[dayName].timeSlots.push({
               id: slot.id,
               startTime: slot.start_time,
-              endTime: slot.end_time
+              endTime: slot.end_time,
             });
           }
         });
-        
-        console.log('Disponibilidad procesada:', newAvailability);
-      } else {
-        console.log('No se encontró disponibilidad previa en provider_availability');
-        
-        // Try to load from listings table availability field
-        const { data: listingsData, error: listingsError } = await supabase
-          .from('listings')
-          .select('availability')
-          .eq('provider_id', user.id)
-          .limit(1);
-
-        if (!listingsError && listingsData?.[0]?.availability) {
-          console.log('Disponibilidad encontrada en listings:', listingsData[0].availability);
-          const savedAvailability = listingsData[0].availability as unknown as WeeklyAvailability;
-          setAvailability(savedAvailability);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('No se encontró disponibilidad en ninguna fuente, iniciando con configuración vacía');
+        setAvailability(parsed);
+        return;
       }
 
-      setAvailability(newAvailability);
+      // 3. Último fallback: listings.availability
+      const { data: listingsData, error: listingsError } = await supabase
+        .from('listings')
+        .select('availability')
+        .eq('provider_id', user.id)
+        .limit(1);
+
+      if (!listingsError && listingsData?.[0]?.availability) {
+        setAvailability(listingsData[0].availability as unknown as WeeklyAvailability);
+      }
     } catch (error) {
       console.error('Error fetching availability:', error);
       toast.error('Error inesperado al cargar la disponibilidad');
@@ -162,48 +116,30 @@ export const useProviderAvailability = () => {
 
   const saveAvailability = async () => {
     if (!user?.id) return;
-
     setIsSaving(true);
     try {
-      console.log('Guardando disponibilidad para proveedor:', user.id);
-      
-      // Delete existing availability
+      // Reemplazar disponibilidad en provider_availability
       const { error: deleteError } = await supabase
         .from('provider_availability')
         .delete()
         .eq('provider_id', user.id);
 
       if (deleteError) {
-        console.error('Error deleting existing availability:', deleteError);
+        console.error('Error deleting availability:', deleteError);
         toast.error('Error al eliminar la disponibilidad anterior');
         return;
       }
 
-      const slotsToInsert: Array<{
-        provider_id: string;
-        day_of_week: number;
-        start_time: string;
-        end_time: string;
-        is_active: boolean;
-      }> = [];
-
-      Object.entries(availability).forEach(([dayName, dayData]) => {
-        if (dayData.enabled && dayData.timeSlots.length > 0) {
-          const dayOfWeek = dayMapping[dayName as keyof typeof dayMapping];
-          
-          dayData.timeSlots.forEach(slot => {
-            slotsToInsert.push({
-              provider_id: user.id,
-              day_of_week: dayOfWeek,
-              start_time: slot.startTime,
-              end_time: slot.endTime,
-              is_active: true
-            });
-          });
-        }
+      const slotsToInsert = Object.entries(availability).flatMap(([dayName, dayData]) => {
+        if (!dayData.enabled || dayData.timeSlots.length === 0) return [];
+        return dayData.timeSlots.map(slot => ({
+          provider_id: user.id,
+          day_of_week: DAY_MAPPING[dayName],
+          start_time: slot.startTime,
+          end_time: slot.endTime,
+          is_active: true,
+        }));
       });
-
-      console.log('Slots a insertar:', slotsToInsert.length);
 
       if (slotsToInsert.length > 0) {
         const { error: insertError } = await supabase
@@ -217,43 +153,36 @@ export const useProviderAvailability = () => {
         }
       }
 
-      console.log('Disponibilidad guardada exitosamente en provider_availability');
-      
-      // Sync to listing and then sync slots
+      // Sincronizar con listings y regenerar slots
       try {
         await syncAvailabilityToListing(availability);
-        console.log('Disponibilidad sincronizada con listings');
-        
-        // Sync slots for all active listings of this provider
+
         const { data: listings } = await supabase
           .from('listings')
           .select('id')
           .eq('provider_id', user.id)
           .eq('is_active', true);
 
-        if (listings && listings.length > 0) {
-          console.log(`Sincronizando slots para ${listings.length} listings...`);
-          for (const listing of listings) {
-            const { error: syncError } = await supabase.rpc('sync_slots_with_availability', {
-              p_listing_id: listing.id
+        for (const listing of listings ?? []) {
+          const { error: syncError } = await supabase.rpc('sync_slots_with_availability', {
+            p_listing_id: listing.id,
+          });
+          if (syncError) {
+            console.error(`Error sincronizando slots para listing ${listing.id}:`, syncError);
+            await (supabase as any).rpc('generate_provider_time_slots_for_listing', {
+              p_provider_id: user.id,
+              p_listing_id: listing.id,
+              p_days_ahead: 60,
             });
-            if (syncError) {
-              console.error(`Error sincronizando slots para listing ${listing.id}:`, syncError);
-            } else {
-              console.log(`Slots sincronizados para listing ${listing.id}`);
-            }
           }
         }
-        
-        // Notify all components of the change
+
         unifiedNotify();
-        
-        console.log('Disponibilidad guardada y sincronizada exitosamente');
+        queryClient.invalidateQueries({ queryKey: ['agenda-week'] });
         toast.success('Disponibilidad actualizada correctamente');
       } catch (syncError) {
         console.error('Error al sincronizar con listings:', syncError);
-        // Even if sync fails, the save to provider_availability was successful
-        toast.success('Disponibilidad actualizada (sincronización parcial)');
+        toast.success('Disponibilidad guardada');
       }
     } catch (error) {
       console.error('Error saving availability:', error);
@@ -269,59 +198,30 @@ export const useProviderAvailability = () => {
       [day]: {
         ...prev[day],
         enabled,
-        timeSlots: enabled ? 
-          (prev[day].timeSlots.length > 0 ? prev[day].timeSlots : [{ startTime: '09:00', endTime: '17:00' }]) : 
-          []
-      }
+        timeSlots: enabled
+          ? (prev[day].timeSlots.length > 0 ? prev[day].timeSlots : [{ startTime: '09:00', endTime: '17:00' }])
+          : [],
+      },
     }));
   };
 
   const addTimeSlot = (day: string, preset?: { startTime: string; endTime: string }) => {
-    const defaultSlot = preset || { startTime: '09:00', endTime: '17:00' };
-    
     setAvailability(prev => ({
       ...prev,
       [day]: {
         ...prev[day],
-        timeSlots: [
-          ...prev[day].timeSlots,
-          defaultSlot
-        ]
-      }
+        timeSlots: [...prev[day].timeSlots, preset ?? { startTime: '09:00', endTime: '17:00' }],
+      },
     }));
   };
-
-  const copyDayToOtherDays = (sourceDay: string, targetDays: string[]) => {
-    const sourceDayData = availability[sourceDay];
-    if (!sourceDayData || !sourceDayData.enabled) {
-      toast.error('El día origen debe estar habilitado para copiar');
-      return;
-    }
-
-    setAvailability(prev => {
-      const updated = { ...prev };
-      targetDays.forEach(day => {
-        if (day !== sourceDay) {
-          updated[day] = {
-            enabled: true,
-            timeSlots: [...sourceDayData.timeSlots]
-          };
-        }
-      });
-      return updated;
-    });
-    
-    toast.success(`Horarios copiados de ${sourceDay} a ${targetDays.length} días`);
-  };
-
 
   const removeTimeSlot = (day: string, index: number) => {
     setAvailability(prev => ({
       ...prev,
       [day]: {
         ...prev[day],
-        timeSlots: prev[day].timeSlots.filter((_, i) => i !== index)
-      }
+        timeSlots: prev[day].timeSlots.filter((_, i) => i !== index),
+      },
     }));
   };
 
@@ -330,11 +230,28 @@ export const useProviderAvailability = () => {
       ...prev,
       [day]: {
         ...prev[day],
-        timeSlots: prev[day].timeSlots.map((slot, i) => 
+        timeSlots: prev[day].timeSlots.map((slot, i) =>
           i === index ? { ...slot, [field]: value } : slot
-        )
-      }
+        ),
+      },
     }));
+  };
+
+  const copyDayToOtherDays = (sourceDay: string, targetDays: string[]) => {
+    const sourceDayData = availability[sourceDay];
+    if (!sourceDayData?.enabled) {
+      toast.error('El día origen debe estar habilitado para copiar');
+      return;
+    }
+    setAvailability(prev => {
+      const updated = { ...prev };
+      targetDays.forEach(day => {
+        if (day !== sourceDay) {
+          updated[day] = { enabled: true, timeSlots: [...sourceDayData.timeSlots] };
+        }
+      });
+      return updated;
+    });
   };
 
   useEffect(() => {
@@ -351,6 +268,6 @@ export const useProviderAvailability = () => {
     updateTimeSlot,
     saveAvailability,
     refreshAvailability: fetchAvailability,
-    copyDayToOtherDays
+    copyDayToOtherDays,
   };
 };

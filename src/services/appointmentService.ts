@@ -11,6 +11,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+const db = supabase as any;
 
 /**
  * Fetches basic appointments with listings data
@@ -74,13 +75,8 @@ export const fetchClientsData = async (clientIds: string[]) => {
       phone,
       email,
       house_number,
-      condominium_text,
-      condominium_name,
-      residencia_id,
-      residencias(
-        id,
-        name
-      )
+      address,
+      address_detail
     `)
     .in('id', clientIds);
 
@@ -115,7 +111,7 @@ export const fetchUnifiedRecurringAppointments = async (
     end: normalizedEnd.toISOString()
   });
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('appointments')
     .select(`
       id,
@@ -127,6 +123,10 @@ export const fetchUnifiedRecurringAppointments = async (
       client_id,
       listing_id,
       client_name,
+      client_phone,
+      client_email,
+      client_lat,
+      client_lng,
       provider_name,
       client_address,
       notes,
@@ -134,9 +134,11 @@ export const fetchUnifiedRecurringAppointments = async (
       recurrence_group_id,
       recurring_rule_id,
       external_booking,
+      updated_at,
       final_price,
       custom_variables_total_price,
       custom_variable_selections,
+      team_member_id,
       listings (
         id,
         title,
@@ -180,7 +182,7 @@ export const fetchAllRecurringBases = async (
     end: normalizedEnd.toISOString()
   });
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('appointments')
     .select(`
       id,
@@ -192,6 +194,10 @@ export const fetchAllRecurringBases = async (
       client_id,
       listing_id,
       client_name,
+      client_phone,
+      client_email,
+      client_lat,
+      client_lng,
       provider_name,
       client_address,
       notes,

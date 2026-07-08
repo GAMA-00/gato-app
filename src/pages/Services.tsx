@@ -6,11 +6,12 @@ import { ListingService } from '@/services/listingService';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceForm from '@/components/services/ServiceForm';
-import LogoutButton from '@/components/layout/LogoutButton';
 import { Service, ServiceVariant, WeeklyAvailability, CustomVariableGroup } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useServiceMutations } from '@/hooks/useServiceMutations';
+import RoutesSection from '@/components/services/RoutesSection';
+import TeamMembersSection from '@/components/services/TeamMembersSection';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -134,10 +135,16 @@ const Services = () => {
           </div>
         )}
 
-        {/* Gestión de equipo: queda para v2 (no va en v1). Sección removida. */}
+        {/* ── Rutas ──────────────────────────────────────────────── */}
+        <div className="mt-10">
+          <h2 className="mb-4 text-lg font-bold text-foreground">Rutas</h2>
+          <RoutesSection />
+        </div>
 
-        <div className="mt-8 border-t pt-6">
-          <LogoutButton />
+        {/* ── Equipo ─────────────────────────────────────────────── */}
+        <div className="mt-10">
+          <h2 className="mb-4 text-lg font-bold text-foreground">Equipo</h2>
+          <TeamMembersSection />
         </div>
 
         <ServiceForm

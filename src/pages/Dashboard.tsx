@@ -6,8 +6,6 @@ import { useDashboardAppointments } from '@/hooks/useDashboardAppointments';
 import DashboardLoadingState from '@/components/dashboard/DashboardLoadingState';
 import DashboardErrorState from '@/components/dashboard/DashboardErrorState';
 import DashboardContent from '@/components/dashboard/DashboardContent';
-import PostPaymentGate from '@/components/dashboard/PostPaymentGate';
-import ClientPostPaymentGate from '@/components/client/PostPaymentGate';
 import { logger } from '@/utils/logger';
 
 const Dashboard = () => {
@@ -55,20 +53,16 @@ const Dashboard = () => {
     );
   }
 
-  // Main content rendering with post-payment gating
+  // v1: pagos ocultos — sin gates de post-pago
   return (
-    <PostPaymentGate>
-      <ClientPostPaymentGate>
-        <DashboardContent 
-          user={user}
-          activeAppointmentsToday={activeAppointmentsToday}
-          tomorrowsAppointments={tomorrowsAppointments}
-          stats={stats}
-          isLoadingStats={isLoadingStats}
-          statsError={statsError}
-        />
-      </ClientPostPaymentGate>
-    </PostPaymentGate>
+    <DashboardContent
+      user={user}
+      activeAppointmentsToday={activeAppointmentsToday}
+      tomorrowsAppointments={tomorrowsAppointments}
+      stats={stats}
+      isLoadingStats={isLoadingStats}
+      statsError={statsError}
+    />
   );
 };
 

@@ -69,13 +69,54 @@
 | 🆕 **Geocoding inverso** | Convertir coordenadas GPS en un cantón |
 | 🆕 **Haversine** | Fórmula para distancia entre dos coordenadas (km) |
 
-## Abreviaciones
+---
+
+## 🗂️ Abreviaciones
 
 | Abreviación | Significado |
 |-------------|-------------|
 | `apt` | Appointment |
-| `TZ` | Timezone (America/Costa_Rica) |
-| `CRC` | Colones (moneda Costa Rica) |
-| `USD` | Dólares estadounidenses |
+| `TZ` | Timezone |
 | `RLS` | Row Level Security |
 | `JWT` | JSON Web Token |
+| `CRC` | Colón (moneda) |
+| `USD` | Dólar (moneda) |
+| `3DS` | 3D Secure |
+| `DOE` | Document-Oriented Engineering |
+| `UI` | User Interface |
+| `UX` | User Experience |
+| `DB` | Database |
+| `API` | Application Programming Interface |
+| `CRUD` | Create, Read, Update, Delete |
+| `SSR` | Server-Side Rendering |
+| `CSR` | Client-Side Rendering |
+
+---
+
+## 🕐 Timezone
+
+El proyecto usa **America/Mexico_City** (UTC-6) como zona horaria principal para:
+
+- Generación de slots
+- Mostrar fechas/horas a usuarios
+- Cálculo de cobros recurrentes
+
+```
+Ejemplo:
+- Slot guardado en DB: 2026-02-05 13:00:00+00 (UTC)
+- Mostrado al usuario: 7:00 AM (hora local)
+```
+
+---
+
+## 📝 Convenciones de Naming
+
+| Contexto | Convención | Ejemplo |
+|----------|------------|---------|
+| Componentes React | PascalCase | `BookingCard` |
+| Hooks | camelCase + use | `useAppointments` |
+| Edge Functions | kebab-case | `onvopay-capture` |
+| Tablas DB | snake_case | `provider_time_slots` |
+| Columnas DB | snake_case | `created_at` |
+| Types TS | PascalCase | `AppointmentStatus` |
+| Constantes | UPPER_SNAKE | `MAX_RETRY_ATTEMPTS` |

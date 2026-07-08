@@ -127,6 +127,7 @@ export const useClientBookings = () => {
 
   return useQuery({
     queryKey: ['client-bookings', user?.id, unifiedAppointments.length],
+    enabled: !!user?.id && !isLoadingUnified,
     queryFn: async (): Promise<ClientBooking[]> => {
       if (!user?.id) return [];
 
@@ -219,34 +220,12 @@ export const useClientBookings = () => {
         // v1: sin facturas post-pago (sin pagos). Set vacío.
         const approvedInvoices: Set<string> = new Set();
 
-        // *** PUNTO CRÍTICO: Obtener datos COMPLETOS del usuario ***
-        locationLogger.info('=== OBTENIENDO DATOS COMPLETOS DE UBICACIÓN DEL USUARIO ===');
-        const { data: userData, error: userError } = await supabase
+        // Obtener datos de ubicación del usuario (schema v1: canton_base_id, address, house_number)
+        const { data: userData } = await supabase
           .from('users')
-          .select(`
-            house_number,
-            condominium_text,
-            condominium_name,
-            residencia_id,
-            residencias (
-              id,
-              name
-            )
-          `)
+          .select('house_number, address, address_detail')
           .eq('id', user.id)
           .single();
-
-        if (userError) {
-          logger.error('Error obteniendo datos del usuario:', userError);
-        }
-
-        locationLogger.debug('=== DATOS COMPLETOS DEL USUARIO ===');
-        locationLogger.debug('Objeto completo userData:', JSON.stringify(userData, null, 2));
-        locationLogger.debug('Nombre residencia:', userData?.residencias?.name);
-        locationLogger.debug('Texto condominio (PRINCIPAL):', userData?.condominium_text);
-        locationLogger.debug('Nombre condominio (RESPALDO):', userData?.condominium_name);
-        locationLogger.debug('Número de casa:', userData?.house_number);
-        locationLogger.debug('=== FIN DATOS USUARIO ===');
 
         // ENRICH: Add original_appointment_id to materialized instances
         bookingLogger.info('=== ENRIQUECIENDO INSTANCIAS MATERIALIZADAS ===');
@@ -311,8 +290,9 @@ const enrichedAppointments = filteredAppointments.map(apt => {
         bookingLogger.info(`Enriquecimiento completado: ${enrichedAppointments.filter(a => a.original_appointment_id).length} appointments con original_appointment_id`);
 
         // FILTER: Show only next occurrence of each recurring plan
+        // rejected appointments already filtered to 24h window by useUnifiedRecurringAppointments
         const filteredForDisplay = getNextRecurringOccurrence(
-          enrichedAppointments.filter(a => !['cancelled', 'rejected'].includes(a.status))
+          enrichedAppointments.filter(a => a.status !== 'cancelled')
         );
         
         bookingLogger.info(`📋 Appointments after filtering next occurrences: ${filteredForDisplay.length} (from ${filteredAppointments.length} total)`);
@@ -404,7 +384,6 @@ const enrichedAppointments = filteredAppointments.map(apt => {
         throw error;
       }
     },
-    enabled: !!user?.id && !isLoadingUnified,
     retry: 3,
     retryDelay: 1000,
   });

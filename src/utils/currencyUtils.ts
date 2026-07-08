@@ -23,7 +23,7 @@ export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
  */
 export const formatCurrency = (
   price: number | string | null | undefined,
-  currency: CurrencyCode = 'USD'
+  currency: CurrencyCode = 'CRC'
 ): string => {
   if (price === null || price === undefined) return currency === 'CRC' ? '₡0' : '$0';
   
@@ -45,7 +45,7 @@ export const formatCurrency = (
 /**
  * Gets the currency symbol for a currency code
  */
-export const getCurrencySymbol = (currency: CurrencyCode = 'USD'): string => {
+export const getCurrencySymbol = (currency: CurrencyCode = 'CRC'): string => {
   return CURRENCY_SYMBOLS[currency] || '$';
 };
 
@@ -91,7 +91,7 @@ export const formatPriceRange = (
     return formatCurrency(min);
   }
   
-  return `${formatCurrency(min)} - ${formatCurrency(max)}`;
+  return `${formatCurrency(min, 'CRC')} - ${formatCurrency(max, 'CRC')}`;
 };
 
 /**

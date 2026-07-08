@@ -1,15 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import ClientPageLayout from '@/components/layout/ClientPageLayout';
-import CategoryIcon from '@/components/client/CategoryIcon';
 import { useCategoryVisibility } from '@/hooks/useCategoryVisibility';
-import { categoryOrder, categoryLabels } from '@/constants/categoryConstants';
+import { categoryOrder, categoryLabels, categoryImages } from '@/constants/categoryConstants';
+import { categoryCardBgColors, categoryTextColors } from '@/constants/categoryColors';
 import { smartPreloader } from '@/utils/smartPreloader';
 import LocationHeader from '@/components/client/LocationHeader';
 import RecommendedServicesCarousel from '@/components/client/RecommendedServicesCarousel';
@@ -18,11 +17,7 @@ import { useRecommendedListings } from '@/hooks/useRecommendedListings';
 const ClientServices = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
-  // Use visibility tracking for intersection observer
   const { visibleItems } = useCategoryVisibility();
-  
-  // Fetch recommended listings for mobile carousel
   const { data: recommendedListings = [], isLoading: recommendedLoading } = useRecommendedListings();
 
   const { data: fetchedCategories = [], isLoading } = useQuery({
@@ -31,7 +26,6 @@ const ClientServices = () => {
       const { data, error } = await supabase
         .from('service_categories')
         .select('*');
-        
       if (error) throw error;
       return data;
     },
@@ -39,7 +33,6 @@ const ClientServices = () => {
     gcTime: 10 * 60 * 1000,
   });
 
-  // Organize categories in the desired order
   const categories = [...fetchedCategories].sort((a, b) => {
     const indexA = categoryOrder.indexOf(a.name);
     const indexB = categoryOrder.indexOf(b.name);
@@ -47,7 +40,6 @@ const ClientServices = () => {
   });
 
   const handleCategoryClick = (categoryName: string) => {
-    // Preload services for this category
     smartPreloader.preloadCategoryServices(categoryName);
     navigate(`/client/category/${categoryName}`);
   };
@@ -81,49 +73,70 @@ const ClientServices = () => {
     );
   }
 
+  const renderCategoryCard = (categoryName: string, category: any) => {
+    const bgColor = categoryCardBgColors[categoryName] || 'bg-muted';
+    const textColor = categoryTextColors[categoryName] || 'text-foreground';
+    const imageUrl = categoryImages[categoryName];
+
+    return (
+      <div
+        key={category.id}
+        onClick={() => handleCategoryClick(category.name)}
+        data-category={categoryName}
+        className="cursor-pointer"
+      >
+        <div className={cn(
+          "relative overflow-hidden rounded-2xl shadow-sm hover:shadow-md transition-shadow",
+          bgColor,
+          isMobile ? "h-28" : "h-40"
+        )}>
+          {/* Text top-left */}
+          <span className={cn(
+            "absolute top-3 left-3 font-bold z-10",
+            textColor,
+            isMobile ? "text-xs" : "text-base"
+          )}>
+            {categoryLabels[category.name] || category.label}
+          </span>
+
+          {/* Icon bottom-right, partially cropped */}
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt=""
+              className={cn(
+                "absolute bottom-0 right-0 object-contain pointer-events-none",
+                isMobile
+                  ? "w-20 h-20 translate-x-2 translate-y-2"
+                  : "w-28 h-28 translate-x-3 translate-y-3"
+              )}
+              loading="eager"
+              decoding="async"
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Mobile layout
   if (isMobile) {
     return (
       <ClientPageLayout>
         <div className="space-y-4">
-          {/* 1. Location Header */}
           <LocationHeader />
           
-          {/* 2. Categories Section */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">Categorías</h2>
             <div className="grid grid-cols-3 gap-3">
               {categoryOrder.map((categoryName) => {
                 const category = categories.find(c => c.name === categoryName);
                 if (!category) return null;
-                
-                const isVisible = visibleItems.has(categoryName);
-                
-                return (
-                  <div 
-                    key={category.id} 
-                    onClick={() => handleCategoryClick(category.name)}
-                    data-category={categoryName}
-                  >
-                    <Card className="flex flex-col items-center justify-center p-3 h-28 rounded-xl hover:shadow-md transition-all cursor-pointer bg-[#F2F2F2] group">
-                      <div className="flex items-center justify-center mb-1">
-                        <CategoryIcon 
-                          categoryName={categoryName}
-                          isMobile={true}
-                          isVisible={isVisible}
-                        />
-                      </div>
-                      <h3 className="text-center text-[#1A1A1A] text-xs font-medium overflow-wrap-anywhere hyphens-auto px-1 leading-tight">
-                        {categoryLabels[category.name] || category.label}
-                      </h3>
-                    </Card>
-                  </div>
-                );
+                return renderCategoryCard(categoryName, category);
               })}
             </div>
           </section>
           
-          {/* 3. Recommended Services Section */}
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-4">Servicios recomendados</h2>
             <RecommendedServicesCarousel 
@@ -137,44 +150,16 @@ const ClientServices = () => {
   }
 
   // Desktop layout
-  const textSizeClass = 'text-lg';
-  
   return (
     <ClientPageLayout title="Explora nuestras categorías de servicio">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 px-2 md:px-6">
         {categoryOrder.map((categoryName) => {
           const category = categories.find(c => c.name === categoryName);
           if (!category) return null;
-          
-          const isVisible = visibleItems.has(categoryName);
-          
-          return (
-            <div 
-              key={category.id} 
-              onClick={() => handleCategoryClick(category.name)}
-              data-category={categoryName}
-            >
-              <Card className="flex flex-col items-center justify-center p-8 h-48 hover:shadow-lg transition-all cursor-pointer bg-[#F2F2F2] group">
-                <div className="flex items-center justify-center mb-4">
-                  <CategoryIcon 
-                    categoryName={categoryName}
-                    isMobile={false}
-                    isVisible={isVisible}
-                  />
-                </div>
-                <h3 className={cn(
-                  "text-center text-[#1A1A1A] overflow-wrap-anywhere hyphens-auto px-2",
-                  textSizeClass
-                )}>
-                  {categoryLabels[category.name] || category.label}
-                </h3>
-              </Card>
-            </div>
-          );
+          return renderCategoryCard(categoryName, category);
         })}
       </div>
       
-      {/* Servicios Recomendados para Desktop */}
       <section className="mt-8 px-2 md:px-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">
           Servicios recomendados
